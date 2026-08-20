@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Diaspora.Modules.Community</RootNamespace>
+    <AssemblyName>Diaspora.Modules.Community</AssemblyName>
+    <Description>
+      The Community &amp; Social Foundation Engine (Phase B6). The platform's single owner of
+      every social interaction: posts, comments, reactions, shares, bookmarks, follows,
+      mentions, hashtags, reports, moderation, visibility and feeds.
+
+      No later module implements its own comment thread, its own "like", its own report modal
+      or its own audience rule. Guides (B8), Community Updates (B9), Community Life (B13) and
+      every content module after them register a content source and consume this module's
+      services. That is the whole design: Identity owns who you are, Trust owns what you have
+      proven, Location owns where things are, Media owns the bytes, and Community owns what
+      members do to one another's content.
+
+      Feeds, ranking, reactions, moderation, hashtag processing, mention resolution, visibility
+      evaluation and content enrichment are all contributor seams, so a new feed or a new
+      ranking algorithm is a new class in another assembly rather than an edit here.
+
+      Registers entirely through B2.6 contributor interfaces: no edit to the Platform Kernel,
+      the Identity module, the Trust module, the Location module, the Media module, or
+      Program.cs.
+    </Description>
+  </PropertyGroup>
+
+  <!--
+    The reference set Trust, Location and Media use, plus Location and Media themselves.
+    Those two are deliberate and documented: B6 consumes Location's published Integration and
+    Extensibility contracts (IGeographicScopeResolver, ILocationDirectory, IResidencyDirectory,
+    INearbyResourceProvider, ILocationResourceCounter) and Media's published reference
+    contracts (MediaReference, MediaReferenceRoles, MediaOwnerType, Contracts.V1). Both are
+    the consumption paths those modules' own contract freezes publish for verticals.
+
+    Notably absent: the Identity module and the Trust module. Community reaches Identity
+    through the kernel's ICurrentUser and Trust through the kernel's ITrustService — the
+    published platform contracts — never through their aggregates.
+  -->
+  <ItemGroup>
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Diaspora.SharedKernel\Diaspora.SharedKernel.csproj" />
+    <ProjectReference Include="..\Diaspora.Contracts\Diaspora.Contracts.csproj" />
+    <ProjectReference Include="..\Diaspora.Platform\Diaspora.Platform.csproj" />
+    <ProjectReference Include="..\Diaspora.Application\Diaspora.Application.csproj" />
+    <ProjectReference Include="..\Diaspora.Persistence\Diaspora.Persistence.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Location\Diaspora.Modules.Location.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Media\Diaspora.Modules.Media.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,61 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Diaspora.UnitTests</RootNamespace>
+    <AssemblyName>Diaspora.UnitTests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="AutoFixture" />
+    <PackageReference Include="AutoFixture.Xunit2" />
+    <!--
+      SQLite, in memory, for the persistence tests. The soft-delete converter is ChangeTracker
+      state manipulation, which needs a real provider to observe — an assertion about generated
+      SQL is only meaningful if something generated it.
+    -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Diaspora.SharedKernel\Diaspora.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Domain\Diaspora.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Application\Diaspora.Application.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Platform\Diaspora.Platform.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Contracts\Diaspora.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Persistence\Diaspora.Persistence.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Infrastructure\Diaspora.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Operations\Diaspora.Operations.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Bookmarks\Diaspora.Modules.Bookmarks.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Trust\Diaspora.Modules.Trust.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Location\Diaspora.Modules.Location.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Media\Diaspora.Modules.Media.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Community\Diaspora.Modules.Community.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Providers\Diaspora.Modules.Providers.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Guides\Diaspora.Modules.Guides.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Jobs\Diaspora.Modules.Jobs.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Marketplace\Diaspora.Modules.Marketplace.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Housing\Diaspora.Modules.Housing.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.CommunityLife\Diaspora.Modules.CommunityLife.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Notifications\Diaspora.Modules.Notifications.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Recommendations\Diaspora.Modules.Recommendations.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Financial\Diaspora.Modules.Financial.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Conversations\Diaspora.Modules.Conversations.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.CommunityProgramme\Diaspora.Modules.CommunityProgramme.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Creator\Diaspora.Modules.Creator.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Analytics\Diaspora.Modules.Analytics.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.GeographicIntelligence\Diaspora.Modules.GeographicIntelligence.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Integrations\Diaspora.Modules.Integrations.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Automation\Diaspora.Modules.Automation.csproj" />
+  </ItemGroup>
+
+</Project>

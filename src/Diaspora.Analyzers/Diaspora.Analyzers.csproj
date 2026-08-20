@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      netstandard2.0, and not by choice. The compiler loads an analyzer into its own process,
+      and that process is whatever the SDK ships — so an analyzer targeting net10.0 loads on
+      the command line and fails to load inside Visual Studio, which is the one place the
+      squiggle was the point. Every analyzer in the ecosystem targets netstandard2.0 for this
+      reason.
+    -->
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>Diaspora.Analyzers</RootNamespace>
+    <AssemblyName>Diaspora.Analyzers</AssemblyName>
+    <IsPackable>false</IsPackable>
+
+    <!-- Turns on the RS1xxx/RS2xxx rules that check analyzers for the mistakes analyzers make. -->
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+
+    <!--
+      This assembly is loaded by the compiler, not referenced by anything. Copying its
+      dependency closure beside it would put a second Roslyn on disk for no reader.
+    -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      ExcludeAssets=runtime because the compiler already has Roslyn loaded; shipping a second
+      copy alongside the analyzer is how an analyzer ends up bound to the wrong version of the
+      API it is calling.
+    -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" ExcludeAssets="runtime" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Release tracking. RS2008 refuses a diagnostic id that is not recorded here, which is
+      exactly the discipline this pack needs: the catalogue in docs/platform is generated from
+      the same two files, so a rule cannot ship undocumented.
+    -->
+    <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
+    <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+  </ItemGroup>
+
+</Project>

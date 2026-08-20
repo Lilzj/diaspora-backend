@@ -1,0 +1,61 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Diaspora.Operations</RootNamespace>
+    <AssemblyName>Diaspora.Operations</AssemblyName>
+    <Description>
+      The Production Platform (Phase B17). The implementation half of every operational capability
+      the platform exposes: caching, resilience, rate limiting, feature management, runtime
+      configuration, distributed scheduling, secret management, threat detection, health
+      aggregation, operational dashboards, privacy tooling and disaster-recovery orchestration.
+
+      This assembly introduces no business functionality and owns no business data. Everything in
+      it is cross-cutting by construction.
+
+      The split with Diaspora.Platform is the load-bearing decision of the phase. Platform owns the
+      *abstractions* — ICacheService, IFeatureFlagStore, the operational policy records, the health
+      contracts — because a module may legitimately cache a read or check a flag. Operations owns
+      every *implementation*, because a module must never be able to reach one: a command handler
+      that can see the circuit-breaker registry is a command handler that will eventually open a
+      circuit, and the modular boundary would be gone with no compile error anywhere.
+
+      No business module references this assembly, and the architecture suite fails if one does
+      (B17-R1). No vendor is named in it: Redis, RabbitMQ, OpenSearch, Vault, CloudFront and every
+      cloud provider are adapters this assembly has never heard of. What ships here is the
+      in-process implementation of each capability plus the seam its distributed replacement
+      registers into.
+    </Description>
+  </PropertyGroup>
+
+  <!--
+    The ASP.NET Core shared framework, for the same reason Diaspora.Platform takes it: it already
+    carries the DI, Configuration, Options, Hosting, Caching, HealthChecks and Logging abstractions,
+    and referencing any of them as a package fails the Release build under NU1510.
+
+    Operations deliberately does not reference Diaspora.Persistence, Diaspora.Application or any
+    module. Health checks over the database, tracing over EF and read-replica routing are all
+    expressed here as ports and wired to their EF implementations in the host — which is what keeps
+    this assembly loadable in a worker process that has no DbContext.
+  -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      The scheduler's claim/complete/prune surface is internal on purpose: it is the contract between
+      the scheduler and its worker, and nothing else has any business calling it. Testing the state
+      machine through IBackgroundJobScheduler alone would mean asserting on a running worker's timing,
+      which is how a suite acquires its first flaky test. Persistence takes the same reference for the
+      same reason.
+    -->
+    <InternalsVisibleTo Include="Diaspora.UnitTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Diaspora.SharedKernel\Diaspora.SharedKernel.csproj" />
+    <ProjectReference Include="..\Diaspora.Contracts\Diaspora.Contracts.csproj" />
+    <ProjectReference Include="..\Diaspora.Platform\Diaspora.Platform.csproj" />
+  </ItemGroup>
+
+</Project>

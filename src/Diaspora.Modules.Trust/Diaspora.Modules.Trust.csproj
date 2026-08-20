@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Diaspora.Modules.Trust</RootNamespace>
+    <AssemblyName>Diaspora.Modules.Trust</AssemblyName>
+    <Description>
+      The Trust &amp; Verification Engine (Phase B3). Owns every trust decision on the
+      platform: who may contribute, publish, guide, moderate, or create organisations;
+      who has earned trust, lost it, or is appealing its loss.
+
+      Identity authenticates. Trust decides capability. The two never overlap — this
+      module reads the caller through the kernel's ICurrentUser and never references an
+      Identity type, and it reports outcomes back to Identity through the published
+      trust-decision contract rather than by touching Identity's data.
+
+      Registers entirely through B2.6 contributor interfaces: no edit to the Platform
+      Kernel, the Identity module, or Program.cs.
+    </Description>
+  </PropertyGroup>
+
+  <!--
+    The same reference set the Bookmarks reference module uses, and no more. Notably
+    absent: Diaspora.Domain's Identity namespace and anything under Diaspora.Api. A Trust
+    module that needed to reach into Identity's domain would prove ADR-002's boundary had
+    leaked.
+  -->
+  <ItemGroup>
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <!-- For the ADR-002 trust-decision channel to Identity, which is an HTTP call by design. -->
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Diaspora.SharedKernel\Diaspora.SharedKernel.csproj" />
+    <ProjectReference Include="..\Diaspora.Contracts\Diaspora.Contracts.csproj" />
+    <ProjectReference Include="..\Diaspora.Platform\Diaspora.Platform.csproj" />
+    <ProjectReference Include="..\Diaspora.Application\Diaspora.Application.csproj" />
+    <ProjectReference Include="..\Diaspora.Persistence\Diaspora.Persistence.csproj" />
+  </ItemGroup>
+
+</Project>

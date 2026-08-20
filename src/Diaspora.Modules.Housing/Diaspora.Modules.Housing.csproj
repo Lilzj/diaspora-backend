@@ -1,0 +1,96 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Diaspora.Modules.Housing</RootNamespace>
+    <AssemblyName>Diaspora.Modules.Housing</AssemblyName>
+    <Description>
+      The Housing, Accommodation &amp; Neighborhood Platform (Phase B11). The platform's single owner
+      of where a member is going to live and what it is like to live there.
+
+      This is a relocation module, not a classifieds module, and the distinction is load-bearing.
+      A listing is not an advert: it belongs to a landlord who may be a person, an agency, a hostel
+      or an employer; it sits in a neighbourhood rather than at an address, because the address is
+      the last thing revealed and the neighbourhood is the first thing asked about; it moves through
+      a lifecycle from draft to occupied; and it is reached through a viewing before it is ever
+      reserved, because nobody takes a home sight-unseen from a stranger on the internet.
+
+      What Housing owns: housing listings, landlord profiles, viewings, reservations, neighbourhood
+      profiles, neighbourhood insights, housing reports, the housing analytics rollup, and the
+      accommodation-type and amenity catalogues. What it deliberately does not: the neighbourhood
+      itself belongs to Location, the badge on a landlord belongs to Trust, the photograph bytes
+      belong to Media, the agency behind a landlord belongs to Providers, the discussion about a
+      neighbourhood belongs to Community, the explainer beside a listing belongs to Guides, and the
+      jobs and goods near a home belong to Jobs and Marketplace. Housing reaches every one of them
+      through published contracts and stores identifiers, never copies.
+
+      The neighbourhood is the module's central claim, and its ownership is split deliberately.
+      Location (B4) owns the *place* — the administrative node, its slug, its hierarchy path and its
+      centroid. Housing owns the *profile* — the living summaries, the liveability indexes and the
+      moderated community insights — keyed by B4's AreaId and never duplicating a single geographic
+      fact. The profile is published through INeighborhoodDirectory so Jobs, Marketplace, Providers,
+      Guides, Community and future modules can consume a neighbourhood without referencing this
+      module's aggregates and without any of them owning the concept.
+
+      Search is a seam, not an engine: the module ships an EF-backed search over the write model and
+      the IHousingSearchEngine port an OpenSearch adapter can satisfy later without a domain change.
+      Accommodation types, amenities, ranking, fraud signals, insight moderation, address disclosure,
+      availability calendars and neighbourhood metric sources are contributor seams on the same
+      terms.
+
+      Payment processing, lease management, digital signatures, mortgages, property valuation, map
+      provider integration, AI recommendations and commute calculation are explicitly out of scope,
+      and the abstractions here are shaped so each arrives as a new module or a new adapter rather
+      than as a restructuring of this one.
+
+      Registers entirely through B2.6 contributor interfaces: no edit to the Platform Kernel, the
+      Identity module, Trust, Location, Media, Community, Providers, Guides, Jobs, Marketplace, or
+      Program.cs.
+    </Description>
+  </PropertyGroup>
+
+  <!--
+    B10's reference set, minus Marketplace. Location, Media, Community, Providers and Guides are
+    deliberate and documented. B11 consumes Location's published Integration and Extensibility
+    contracts (IGeographicScopeResolver, INearbyResourceProvider, ILocationResourceCounter, and the
+    administrative-area catalogue that owns the neighbourhood itself), Media's published reference
+    contracts (attach-by-reference, never URLs — and MediaOwnerType.HousingListing has existed since
+    B5), Community's published Extensibility contract (ICommunityContentSource — and
+    CommunityContentType.Housing has existed since B6), Providers' published IProviderDirectory for
+    the agencies and hostels behind a landlord, and Guides' published IGuideDirectory for the
+    renting-safely explainers beside a listing.
+
+    Notably absent: the Identity module, the Trust module, the Jobs module and the Marketplace
+    module. Housing reaches Identity through the kernel's ICurrentUser and Trust through
+    Diaspora.Contracts — the published ITrustVerificationSubmission contract and Trust's published
+    integration events — never through their aggregates. Jobs and Marketplace are not consumed at
+    all: they are sibling verticals, and a reference to either would be the first edge in the graph
+    B2.6 exists to keep acyclic. "Nearby jobs" and "neighbourhood marketplace" are answered through
+    Location's INearbyResourceProvider registry, which both siblings already contribute to and
+    neither knows Housing reads. Architecture tests enforce all five.
+  -->
+  <ItemGroup>
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Diaspora.SharedKernel\Diaspora.SharedKernel.csproj" />
+    <ProjectReference Include="..\Diaspora.Contracts\Diaspora.Contracts.csproj" />
+    <ProjectReference Include="..\Diaspora.Platform\Diaspora.Platform.csproj" />
+    <ProjectReference Include="..\Diaspora.Application\Diaspora.Application.csproj" />
+    <ProjectReference Include="..\Diaspora.Persistence\Diaspora.Persistence.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Location\Diaspora.Modules.Location.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Media\Diaspora.Modules.Media.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Community\Diaspora.Modules.Community.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Providers\Diaspora.Modules.Providers.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Guides\Diaspora.Modules.Guides.csproj" />
+  </ItemGroup>
+
+</Project>

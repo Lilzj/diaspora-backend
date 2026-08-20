@@ -1,0 +1,98 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Diaspora.Modules.CommunityLife</RootNamespace>
+    <AssemblyName>Diaspora.Modules.CommunityLife</AssemblyName>
+    <Description>
+      The Community Life, Events &amp; Organizations Platform (Phase B12). The platform's single owner
+      of who gathers, where, and when.
+
+      This is not an event calendar, and the distinction is load-bearing. A calendar answers "what is
+      on". This module answers "who are my people here, and how do I find them" — which is why the
+      Organization is a first-class aggregate rather than a field on an event, why membership is a
+      workflow rather than a follow, and why an RSVP keeps its whole history rather than a single
+      current value.
+
+      What Community Life owns: organizations, organization memberships, events, RSVPs and their
+      check-ins, community-life reports, the event and organization analytics rollups, and the
+      organization-type and event-category catalogues. What it deliberately does not: the badge on an
+      organization belongs to Trust, the neighbourhood belongs to Location and its profile to
+      Housing, the photograph bytes belong to Media, the discussion under an event belongs to
+      Community, the agency behind an organizer belongs to Providers, and the explainer beside a
+      festival belongs to Guides. Community Life reaches every one of them through published
+      contracts and stores identifiers, never copies.
+
+      The two-aggregate split is the module's central claim. An Organization outlives every event it
+      runs, has members who are not attendees, and is verified as an institution. An Event is a
+      bounded occasion with a capacity, a start time and a guest list. Modelling either as the other
+      collapses a real distinction: a church is not a service, and a service is not a church. They
+      are related through an optional reference — an event may have an organizing organization, and
+      most do not.
+
+      Search is a seam, not an engine: the module ships an EF-backed search over the write model and
+      the ICommunityEventSearchEngine / IOrganizationSearchEngine ports an OpenSearch adapter can
+      satisfy later without a domain change. Organization types, event categories, ranking, spam
+      signals, check-in methods, membership policies, view tracking, visibility and calendar sources
+      are contributor seams on the same terms.
+
+      Ticket payments, paid events, seat allocation, QR code generation, live streaming, video
+      conferencing, sponsorship, AI recommendations, notification campaigns and calendar-provider
+      integration are explicitly out of scope, and the abstractions here are shaped so each arrives
+      as a new module or a new adapter rather than as a restructuring of this one.
+
+      Registers entirely through B2.6 contributor interfaces: no edit to the Platform Kernel, the
+      Identity module, Trust, Location, Media, Community, Providers, Guides, Jobs, Marketplace,
+      Housing, or Program.cs.
+    </Description>
+  </PropertyGroup>
+
+  <!--
+    B11's reference set, plus Housing. Location, Media, Community, Providers, Guides and Housing are
+    deliberate and documented. B12 consumes Location's published Integration and Extensibility
+    contracts (IGeographicScopeResolver, INearbyResourceProvider, ILocationResourceCounter, and the
+    administrative-area catalogue that owns the neighbourhood itself), Media's published reference
+    contracts (attach-by-reference, never URLs — and both MediaOwnerType.Event and
+    MediaOwnerType.Organization have existed since B5), Community's published Extensibility contract
+    (ICommunityContentSource — and CommunityContentType.Event and .Organization have existed since
+    B6), Providers' published IProviderDirectory for the agencies and institutions behind a host,
+    Guides' published IGuideDirectory for the festival and etiquette explainers beside an event, and
+    Housing's published INeighborhoodDirectory for the neighbourhood profile a local event is
+    discovered through.
+
+    Notably absent: the Identity module, the Trust module, the Jobs module and the Marketplace
+    module. Community Life reaches Identity through the kernel's ICurrentUser and Trust through
+    Diaspora.Contracts — the published ITrustVerificationSubmission contract and Trust's published
+    integration events — never through their aggregates. Jobs and Marketplace are not referenced at
+    all: they are sibling verticals, and an edge to either would be the first cycle in the graph
+    B2.6 exists to keep acyclic. Career fairs and vendor booths are expressed as typed linked
+    resources the organizer supplies, and "jobs near this event" is answered through Location's
+    INearbyResourceProvider registry, which Jobs already contributes to and does not know this
+    module reads. Architecture tests enforce all five.
+  -->
+  <ItemGroup>
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Diaspora.SharedKernel\Diaspora.SharedKernel.csproj" />
+    <ProjectReference Include="..\Diaspora.Contracts\Diaspora.Contracts.csproj" />
+    <ProjectReference Include="..\Diaspora.Platform\Diaspora.Platform.csproj" />
+    <ProjectReference Include="..\Diaspora.Application\Diaspora.Application.csproj" />
+    <ProjectReference Include="..\Diaspora.Persistence\Diaspora.Persistence.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Location\Diaspora.Modules.Location.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Media\Diaspora.Modules.Media.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Community\Diaspora.Modules.Community.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Providers\Diaspora.Modules.Providers.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Guides\Diaspora.Modules.Guides.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Housing\Diaspora.Modules.Housing.csproj" />
+  </ItemGroup>
+
+</Project>

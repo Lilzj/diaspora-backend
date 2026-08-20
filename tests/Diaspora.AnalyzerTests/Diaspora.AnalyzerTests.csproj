@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Diaspora.AnalyzerTests</RootNamespace>
+    <AssemblyName>Diaspora.AnalyzerTests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+
+    <!--
+      This project references Diaspora.Analyzers as an ordinary library so it can construct the
+      analyzers and run them by hand. Letting Directory.Build.props also hand the same assembly to
+      the compiler as an analyzer would load it twice and report every diagnostic twice.
+    -->
+    <UseDiasporaAnalyzers>false</UseDiasporaAnalyzers>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+
+    <!--
+      Relational, because a real entity configuration reaches for HasColumnName and the probes
+      that exercise the persistence rules should look like the configurations they protect.
+    -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Diaspora.Analyzers\Diaspora.Analyzers.csproj" />
+
+    <!--
+      The assemblies a probe snippet compiles against. The harness resolves its reference set from
+      these at runtime rather than from a list of paths, so a snippet is checked against the same
+      platform a module is checked against.
+    -->
+    <ProjectReference Include="..\..\src\Diaspora.SharedKernel\Diaspora.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Contracts\Diaspora.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Domain\Diaspora.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Application\Diaspora.Application.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Platform\Diaspora.Platform.csproj" />
+  </ItemGroup>
+
+</Project>

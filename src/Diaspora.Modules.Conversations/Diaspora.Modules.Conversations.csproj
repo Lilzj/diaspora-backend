@@ -1,0 +1,74 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Diaspora.Modules.Conversations</RootNamespace>
+    <AssemblyName>Diaspora.Modules.Conversations</AssemblyName>
+    <Description>
+      The Conversations &amp; Messaging Platform (Phase B13.2). The platform's single owner of a
+      conversation, its participants, its messages and everything that happens to them.
+
+      B13 built the Communication Platform and its runtime built the sockets; both stopped
+      deliberately short of conversations, because nothing owned one. IRealtimeGroupAuthorizer
+      refused every conversation group, ConversationRelayEnabled was false on every deployment, and
+      the client's chat screens ran on a mock. This module is the thing that was missing, and it
+      arrives entirely through seams the runtime already published.
+
+      What this module owns: the conversation, its participants and their per-participant state
+      (archive, mute, pin, read cursor, unread count), every message and its lifecycle, the block
+      list, the conversation context type catalogue, conversation authorisation, and the
+      orchestration that turns a domain fact into a socket write or a push.
+
+      What it deliberately does not own: any business data. A conversation about a listing holds the
+      listing's identifier and a snapshot of how it was described when the conversation opened — it
+      holds no price the Marketplace could change, no availability Housing could revoke and no
+      status a Job could move. It holds media identifiers, never bytes and never URLs. It holds
+      member identifiers, never names — those are resolved through a directory port whose shipped
+      implementation returns identifiers, exactly as B13 resolves nothing about people either.
+
+      It owns no transport. Every live write goes through IRealtimeNotifier and every push through
+      INotificationDispatcher, both of them B13's ports; this assembly names SignalR nowhere and an
+      architecture test says so.
+    </Description>
+  </PropertyGroup>
+
+  <!--
+    Two module references, and both are seam implementations rather than data access.
+
+    Diaspora.Modules.Notifications, because this module implements four of the Communication
+    Runtime's published ports — IRealtimeGroupAuthorizer (the seam that exists precisely so a
+    conversations vertical can answer "is this member in this conversation"), IRealtimeNotifier as a
+    consumer, INotificationDispatcher for push, and the notification catalogue contributors. The
+    reference runs from the vertical to the platform, which is the direction the runtime's own
+    documentation describes.
+
+    Diaspora.Modules.Marketplace, because B10 published IMarketplaceConversationProvider with no
+    implementation and recorded buyer/seller chat as "future Communication". Fulfilling that seam is
+    what the note meant. The adapter lives in Integration/Marketplace and the domain knows nothing
+    about it.
+
+    Housing, Jobs, Providers, Community Life and Organizations are integrated through published
+    contracts and context identifiers, with no project reference at all.
+  -->
+  <ItemGroup>
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Diaspora.SharedKernel\Diaspora.SharedKernel.csproj" />
+    <ProjectReference Include="..\Diaspora.Contracts\Diaspora.Contracts.csproj" />
+    <ProjectReference Include="..\Diaspora.Platform\Diaspora.Platform.csproj" />
+    <ProjectReference Include="..\Diaspora.Application\Diaspora.Application.csproj" />
+    <ProjectReference Include="..\Diaspora.Persistence\Diaspora.Persistence.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Notifications\Diaspora.Modules.Notifications.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Marketplace\Diaspora.Modules.Marketplace.csproj" />
+  </ItemGroup>
+
+</Project>

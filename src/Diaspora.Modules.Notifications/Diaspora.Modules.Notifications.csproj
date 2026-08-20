@@ -1,0 +1,78 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Diaspora.Modules.Notifications</RootNamespace>
+    <AssemblyName>Diaspora.Modules.Notifications</AssemblyName>
+    <Description>
+      The Notifications &amp; Communication Platform (Phase B13). The platform's single owner of how a
+      fact reaches a person.
+
+      This is not a notification table. It is the orchestration layer between "something happened"
+      and "somebody was told", and the distinction is the whole design: every other module publishes
+      facts and knows nothing about messages, while this module knows nothing about the facts and
+      everything about people, preferences, channels, languages and timing.
+
+      What Communication owns: the notification itself, the member's inbox and its counters, the
+      preference and communication-preference record, the template catalogue and its localizations,
+      the delivery record per channel, digests, the notification category catalogue, the routing
+      rules, and the analytics rollups. What it deliberately does not own: any business fact. There
+      is no job, listing, event or guide in this schema — only an identifier, a template key and a
+      deep link. The device register belongs to Identity and is reached through a port; the
+      photograph belongs to Media; the verification belongs to Trust; the destination behind a deep
+      link belongs to whichever module renders it.
+
+      Business modules never create notifications. They publish integration events, and this module
+      consumes them. A rule — reference data, not code — decides which template, which category,
+      which priority and which delivery policy each published fact produces, so changing "an
+      interview reminder is Critical and bypasses quiet hours" is a catalogue change rather than a
+      deployment.
+
+      In-app delivery is fully implemented. Push and email are implemented as channels behind
+      provider-independent ports (IPushNotificationSender, IEmailSender) whose only shipped
+      implementations record the attempt and report that no transport is configured — so the
+      lifecycle, the retry ladder, the analytics and the preference logic are all exercised today
+      and acquiring a vendor is a registration swap. SMS, WhatsApp, voice and webhooks are channel
+      kinds with no implementation, present so adding one is a new class rather than a new concept.
+
+      Marketing campaigns, real-time chat, AI-generated content, AI prioritisation, recommendation,
+      calendar synchronisation and a search engine implementation are explicitly out of scope; each
+      has an abstraction shaped for it and no code behind it.
+
+      Registers entirely through B2.6 contributor interfaces: no edit to the Platform Kernel, to any
+      previously completed module, or to Program.cs.
+    </Description>
+  </PropertyGroup>
+
+  <!--
+    Deliberately the narrowest reference set of any vertical in the platform, and that is the point.
+    Communication consumes published contracts and nothing else, so it references Diaspora.Contracts
+    for the events it subscribes to and takes no ProjectReference on Trust, Community, Guides, Jobs,
+    Marketplace, Housing, Community Life, Providers or Location at all. A notification about a job
+    interview is assembled entirely from the payload of JobsInterviewScheduledIntegrationEvent; if
+    that payload is not enough, the fix is to enrich the contract, never to reach into the module.
+
+    Diaspora.Application is referenced for the CQRS abstractions and the integration-event handler
+    base; Diaspora.Persistence for IDatabaseContributor and the shared context. Architecture tests
+    enforce the absence of every module reference.
+  -->
+  <ItemGroup>
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Diaspora.SharedKernel\Diaspora.SharedKernel.csproj" />
+    <ProjectReference Include="..\Diaspora.Contracts\Diaspora.Contracts.csproj" />
+    <ProjectReference Include="..\Diaspora.Platform\Diaspora.Platform.csproj" />
+    <ProjectReference Include="..\Diaspora.Application\Diaspora.Application.csproj" />
+    <ProjectReference Include="..\Diaspora.Persistence\Diaspora.Persistence.csproj" />
+  </ItemGroup>
+
+</Project>

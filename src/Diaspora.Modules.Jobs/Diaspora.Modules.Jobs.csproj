@@ -1,0 +1,80 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Diaspora.Modules.Jobs</RootNamespace>
+    <AssemblyName>Diaspora.Modules.Jobs</AssemblyName>
+    <Description>
+      The Jobs &amp; Careers Platform (Phase B9). The platform's single owner of employment:
+      who is hiring, what they are hiring for, who applied, and what happened next.
+
+      A job posting is not a classified advert. It belongs to a verified employer, moves through
+      a lifecycle from draft to filled, carries a salary a candidate can compare across
+      currencies, states plainly whether it sponsors a visa, and closes when the seat is taken.
+      An application is not a form submission: it is a durable record with a complete, append-only
+      history, a hiring pipeline behind it, interviews scheduled against it and an offer at the
+      end. Both sides are first-class — the employer's dashboard and the candidate's dashboard
+      read the same aggregates from opposite ends.
+
+      What Jobs owns: postings, employers, candidates, applications, interviews, offers,
+      pipelines, alerts, saved jobs and the employment catalogues. What it deliberately does not:
+      the badge on an employer belongs to Trust, the country a job sits in belongs to Location,
+      the résumé bytes belong to Media, the recruitment agency behind a posting belongs to
+      Providers, the work-permit explainer beside it belongs to Guides, and the discussion under
+      it belongs to Community. Jobs reaches every one of them through published contracts and
+      stores identifiers, never copies.
+
+      Search is a seam, not an engine: the module ships an EF-backed search over the write model
+      and the IJobSearchEngine port an OpenSearch adapter can satisfy later without a domain
+      change. Recommendations are a seam on the same terms, with a shipped heuristic and no
+      matching model anywhere in the module. Categories, ranking and verification sources are
+      contributor seams too.
+
+      Registers entirely through B2.6 contributor interfaces: no edit to the Platform Kernel,
+      the Identity module, Trust, Location, Media, Community, Providers, Guides, or Program.cs.
+    </Description>
+  </PropertyGroup>
+
+  <!--
+    B8's reference set plus B8 itself.
+
+    Location, Media, Community, Providers and Guides are deliberate and documented. B9 consumes
+    Location's published Integration and Extensibility contracts (IGeographicScopeResolver,
+    INearbyResourceProvider, ILocationResourceCounter), Media's published reference contracts
+    (attach-by-reference, never URLs — and MediaOwnerType.Job has existed since B5), Community's
+    published Integration contracts (ICommunityBookmarkService, ICommunityCommentService,
+    ICommunityModerationService, ICommunityContentSource — and CommunityContentType.Job has
+    existed since B6), Providers' published IProviderDirectory for the recruitment agencies and
+    career coaches behind a posting, and Guides' published IGuideDirectory and IGuideCatalog for
+    the contextual work-permit and interview guides beside one.
+
+    Notably absent: the Identity module and the Trust module. Jobs reaches Identity through the
+    kernel's ICurrentUser and Trust through Diaspora.Contracts — the published
+    ITrustVerificationSubmission contract and Trust's published integration events — never
+    through their aggregates. An architecture test enforces both.
+  -->
+  <ItemGroup>
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Diaspora.SharedKernel\Diaspora.SharedKernel.csproj" />
+    <ProjectReference Include="..\Diaspora.Contracts\Diaspora.Contracts.csproj" />
+    <ProjectReference Include="..\Diaspora.Platform\Diaspora.Platform.csproj" />
+    <ProjectReference Include="..\Diaspora.Application\Diaspora.Application.csproj" />
+    <ProjectReference Include="..\Diaspora.Persistence\Diaspora.Persistence.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Location\Diaspora.Modules.Location.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Media\Diaspora.Modules.Media.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Community\Diaspora.Modules.Community.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Providers\Diaspora.Modules.Providers.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Guides\Diaspora.Modules.Guides.csproj" />
+  </ItemGroup>
+
+</Project>

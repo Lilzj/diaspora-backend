@@ -1,0 +1,124 @@
+using Diaspora.Application.Abstractions;
+using Diaspora.Domain.Abstractions;
+using Diaspora.Modules.Financial.Application.Mapping;
+using Diaspora.Modules.Financial.Application.Services;
+using Diaspora.Modules.Financial.Contracts.V1.Responses;
+using Diaspora.Modules.Financial.Domain.Enums;
+using Diaspora.Modules.Financial.Domain.Identifiers;
+using Diaspora.Modules.Financial.Domain.Policies;
+using Diaspora.Modules.Financial.Domain.ValueObjects;
+using Diaspora.Modules.Financial.Extensibility.Caching;
+using Diaspora.Platform.Services.Abstractions;
+using Diaspora.SharedKernel.Results;
+
+namespace Diaspora.Modules.Financial.Application.Operations;
+
+/// <summary>
+/// Publishes a policy version and closes whatever it supersedes.
+/// <para>
+/// <b>Versions are rows, never edits.</b> Version 1 stays in the table for ever because every ledger
+/// entry it priced names it; recomputing a historical amount from today's configuration would
+/// produce a plausible, wrong number with nothing anywhere reporting a problem.
+/// </para>
+/// <para>
+/// The cache is cleared <em>after</em> the save, for the reason every catalogue handler on this
+/// platform records: clearing in front of a change that then failed to commit re-caches the old row.
+/// </para>
+/// </summary>
+public sealed class PublishFinancialPolicyCommandHandler
+    : ICommandHandler<PublishFinancialPolicyCommand, FinancialPolicyResponse>
+{
+    private readonly IFinancialPolicyRepository _policies;
+    private readonly FinancialAuthorizationService _authorization;
+    private readonly IFinancialCache _cache;
+    private readonly IGuidGenerator _guids;
+    private readonly IClock _clock;
+    private readonly IUnitOfWork _unitOfWork;
+
+    public PublishFinancialPolicyCommandHandler(
+        IFinancialPolicyRepository policies,
+        FinancialAuthorizationService authorization,
+        IFinancialCache cache,
+        IGuidGenerator guids,
+        IClock clock,
+        IUnitOfWork unitOfWork)
+    {
+        _policies = policies;
+        _authorization = authorization;
+        _cache = cache;
+        _guids = guids;
+        _clock = clock;
+        _unitOfWork = unitOfWork;
+    }
+
+    public async Task<Result<FinancialPolicyResponse>> Handle(
+        PublishFinancialPolicyCommand command, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+
+        if (!Enum.TryParse<FinancialPolicyKind>(command.Kind, true, out var kind))
+        {
+            return Result.Failure<FinancialPolicyResponse>(Error.Validation(
+                FinancialErrorCodes.PolicyNotFound,
+                $"'{command.Kind}' is not a policy kind the platform recognises."));
+        }
+
+        var scope = Enum.TryParse<PolicyScopeKind>(command.Scope, true, out var parsed)
+            ? parsed
+            : PolicyScopeKind.Platform;
+
+        var now = _clock.UtcNow;
+        var effectiveFrom = command.EffectiveFrom ?? now;
+
+        var previous = (await _policies.ListActiveByKeyAsync(command.PolicyKey, cancellationToken))
+            .Where(policy => policy.Scope == scope)
+            .Where(policy => string.Equals(
+                policy.ScopeValue, command.ScopeValue?.Trim(), StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        var version = await _policies.HighestVersionAsync(
+            command.PolicyKey, scope, command.ScopeValue, cancellationToken) + 1;
+
+        FinancialPolicy policy;
+
+        try
+        {
+            policy = FinancialPolicy.Publish(
+                FinancialPolicyId.From(_guids.NewSequentialGuid()),
+                command.PolicyKey,
+                kind,
+                scope,
+                command.ScopeValue,
+                version,
+                DateWindow.Open(effectiveFrom),
+                command.Description,
+                now,
+                isSystem: false,
+                _authorization.UserIdOrNull());
+        }
+        catch (DomainException exception)
+        {
+            return Result.Failure<FinancialPolicyResponse>(
+                Error.Validation(exception.Code, exception.Message));
+        }
+
+        foreach (var (key, value) in command.Parameters)
+        {
+            policy.SetParameter(_guids.NewSequentialGuid(), key, value);
+        }
+
+        _policies.Add(policy);
+
+        foreach (var superseded in previous)
+        {
+            superseded.Supersede(effectiveFrom);
+            _policies.Update(superseded);
+        }
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await _cache.RemoveByPrefixAsync("financial:policies", cancellationToken);
+
+        return Result.Success(FinancialMapper.ToResponse(policy));
+    }
+}

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Diaspora.Domain</RootNamespace>
+    <AssemblyName>Diaspora.Domain</AssemblyName>
+    <Description>Pure domain model — ZERO framework dependencies. Contains domain interfaces, repository contracts, and domain exceptions.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Diaspora.SharedKernel\Diaspora.SharedKernel.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Diaspora.Modules.Location</RootNamespace>
+    <AssemblyName>Diaspora.Modules.Location</AssemblyName>
+    <Description>
+      The Location &amp; Hyperlocal Intelligence Engine (Phase B4). The platform's single
+      source of truth for geography: the administrative hierarchy from country down to
+      postal area, country metadata, a member's residence history and geographic
+      preferences, and every distance, radius, bounding-box and nearby query the platform
+      makes.
+
+      Identity says who the caller is. Trust says whether a residency claim is proven.
+      Location says where everything is — and nothing else. It owns the *claim* that a
+      member lived somewhere; Trust owns the *proof*, which this module projects from
+      Trust's published integration events and never recomputes.
+
+      Every future vertical — Community, Providers, Guides, Jobs, Housing, Marketplace,
+      Organizations, Explore, Search, Recommendations — consumes this module rather than
+      implementing geography again. The two seams that make that true are
+      INearbyResourceProvider and ILocationResourceCounter: a vertical contributes its own
+      results to Location's aggregate endpoints without Location ever learning it exists.
+
+      Registers entirely through B2.6 contributor interfaces: no edit to the Platform
+      Kernel, the Identity module, the Trust module, or Program.cs.
+    </Description>
+  </PropertyGroup>
+
+  <!--
+    The same reference set Bookmarks and Trust use, and no more. Notably absent:
+    Diaspora.Domain's Identity namespace, Diaspora.Modules.Trust, and anything under
+    Diaspora.Api. A Location module that needed to reference Trust would prove the
+    event-carried boundary had leaked — Trust's contribution reaches this module through
+    Diaspora.Contracts.Trust.V1.Events and the kernel's ITrustService, both of which are
+    published contracts rather than module internals.
+  -->
+  <ItemGroup>
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <!--
+      For IHostedService only. The catalogue has to be seeded once at startup and the module
+      cannot edit Program.cs, so it registers its own hosted service from ConfigureServices —
+      which is the contributor model working as intended rather than a hole in it.
+    -->
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Diaspora.SharedKernel\Diaspora.SharedKernel.csproj" />
+    <ProjectReference Include="..\Diaspora.Contracts\Diaspora.Contracts.csproj" />
+    <ProjectReference Include="..\Diaspora.Platform\Diaspora.Platform.csproj" />
+    <ProjectReference Include="..\Diaspora.Application\Diaspora.Application.csproj" />
+    <ProjectReference Include="..\Diaspora.Persistence\Diaspora.Persistence.csproj" />
+  </ItemGroup>
+
+</Project>

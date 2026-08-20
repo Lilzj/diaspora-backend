@@ -1,0 +1,68 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Diaspora.Modules.Media</RootNamespace>
+    <AssemblyName>Diaspora.Modules.Media</AssemblyName>
+    <Description>
+      The Media &amp; Digital Asset Management Engine (Phase B5). The platform's single owner
+      of every byte a member uploads: profile photos, listing galleries, guide covers, event
+      banners, message attachments, immigration documents, and every video, audio clip and
+      archive that follows.
+
+      No other module stores a file, mints a URL, or talks to a storage provider. Business
+      modules hold a media *reference* — an identifier — and ask this module for a link when
+      they need one. That is the whole design: Identity owns who you are, Trust owns whether a
+      document proves something, Location owns where things are, and Media owns the bytes.
+
+      Storage is abstracted behind IMediaStorageProvider so S3, Azure Blob, R2, GCS and MinIO
+      are configuration rather than code. Processing is abstracted behind a contributor
+      pipeline — IImageProcessor, IVideoProcessor, IMetadataExtractor, IVirusScanner,
+      IThumbnailGenerator, IOcrProvider, IMediaTagger, IMediaModerationProvider — so a codec,
+      a scanner or an AI tagger plugs in without this module changing.
+
+      This module also fulfils the platform's two longest-standing declared-but-unimplemented
+      abstractions: IStorageService (which Trust's DocumentLinkFactory has been waiting on
+      since B3) and IImageProcessingService. Registering them is additive: Trust starts
+      minting document links with no edit to Trust.
+
+      Registers entirely through B2.6 contributor interfaces: no edit to the Platform Kernel,
+      the Identity module, the Trust module, the Location module, or Program.cs.
+    </Description>
+  </PropertyGroup>
+
+  <!--
+    The same reference set Bookmarks, Trust and Location use, and no more. Notably absent:
+    Diaspora.Domain's Identity namespace, every sibling module, and anything under
+    Diaspora.Api. A Media module that referenced Trust would prove the boundary had leaked —
+    Trust reaches this module through the kernel's IStorageService, which is a published
+    platform contract rather than a module internal.
+
+    Also notably absent: any storage SDK and any image codec. Both arrive through the
+    provider and processor seams, in whichever assembly a deployment chooses to put them.
+  -->
+  <ItemGroup>
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <!--
+      For IHostedService only. Abandoned upload sessions and orphaned assets have to be swept
+      on a timer, and the module cannot edit Program.cs — so it registers its own hosted
+      service from ConfigureServices, which is the contributor model working as intended.
+    -->
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Diaspora.SharedKernel\Diaspora.SharedKernel.csproj" />
+    <ProjectReference Include="..\Diaspora.Contracts\Diaspora.Contracts.csproj" />
+    <ProjectReference Include="..\Diaspora.Platform\Diaspora.Platform.csproj" />
+    <ProjectReference Include="..\Diaspora.Application\Diaspora.Application.csproj" />
+    <ProjectReference Include="..\Diaspora.Persistence\Diaspora.Persistence.csproj" />
+  </ItemGroup>
+
+</Project>

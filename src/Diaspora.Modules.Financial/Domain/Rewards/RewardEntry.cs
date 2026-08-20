@@ -1,0 +1,128 @@
+using Diaspora.SharedKernel.Primitives;
+
+namespace Diaspora.Modules.Financial.Domain.Rewards;
+
+/// <summary>
+/// One movement of reward points, owned by the account.
+/// <para>
+/// <b>Append-only, like the ledger, and for the same reason.</b> "Why do I have 340 points" is a
+/// question a member asks and a support agent has to answer; a balance that was simply overwritten
+/// cannot answer it. There is no operation on an entry but reading it.
+/// </para>
+/// <para>
+/// <b><see cref="Reference"/> is the idempotency key on an earning.</b> It is the grantor's own
+/// handle for the thing that was rewarded — a referral, a milestone, a challenge — and it is uniquely
+/// indexed per account, because only the grantor can know whether two events describe one earning.
+/// </para>
+/// <para><see cref="EntryId"/> is caller-supplied. <c>ValueGeneratedNever()</c>.</para>
+/// </summary>
+public sealed class RewardEntry : ValueObject
+{
+    private RewardEntry(
+        Guid entryId,
+        long points,
+        bool isConversion,
+        bool isSpend,
+        string source,
+        string reference,
+        DateTimeOffset occurredAt)
+    {
+        EntryId = entryId;
+        Points = points;
+        IsConversion = isConversion;
+        IsSpend = isSpend;
+        Source = source;
+        Reference = reference;
+        OccurredAt = occurredAt;
+    }
+
+    private RewardEntry() { }
+
+    public Guid EntryId { get; private set; }
+
+    /// <summary>Always positive. Which way it moved is <see cref="IsConversion"/>.</summary>
+    public long Points { get; private set; }
+
+    /// <summary>False for an earning, true for points spent becoming money.</summary>
+    public bool IsConversion { get; private set; }
+
+    /// <summary>
+    /// True for points exchanged for something that is not money — a creator reward redemption.
+    /// <para>
+    /// <b>Added in Wave 6, additively, and deliberately as a second flag rather than by turning the
+    /// pair into a kind.</b> Widening <see cref="IsConversion"/> into an enum would have been a
+    /// breaking column change on a table that already holds every member's earning history; a new
+    /// boolean defaults to false on every existing row, which is exactly what those rows mean.
+    /// </para>
+    /// <para>
+    /// <b>Both flags are debits and neither is money.</b> <see cref="IsConversion"/> says the points
+    /// became currency and went through the ledger; this says they bought an entitlement and did
+    /// not. The Creator Platform never touches the second — it asks
+    /// <c>IRewardPointsAccount.TrySpendAsync</c>, which is B15's own code, so the single points
+    /// balance stays B15's.
+    /// </para>
+    /// </summary>
+    public bool IsSpend { get; private set; }
+
+    /// <summary>Whether this entry takes points away, for whichever of the two reasons.</summary>
+    public bool IsDebit => IsConversion || IsSpend;
+
+    /// <summary>Why. <c>ReferralQualified</c>, <c>GuidePublished</c>, <c>Conversion</c>.</summary>
+    public string Source { get; private set; } = string.Empty;
+
+    /// <summary>The grantor's own handle. Unique per account — see the class summary.</summary>
+    public string Reference { get; private set; } = string.Empty;
+
+    public DateTimeOffset OccurredAt { get; private set; }
+
+    public static RewardEntry Earned(
+        Guid entryId, long points, string source, string reference, DateTimeOffset occurredAt)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reference);
+
+        return new RewardEntry(
+            entryId,
+            points,
+            isConversion: false,
+            isSpend: false,
+            string.IsNullOrWhiteSpace(source) ? "Unspecified" : source.Trim(),
+            reference.Trim(),
+            occurredAt);
+    }
+
+    public static RewardEntry Converted(
+        Guid entryId, long points, string reference, DateTimeOffset occurredAt) =>
+        new(entryId, points, isConversion: true, isSpend: false, "Conversion", reference.Trim(),
+            occurredAt);
+
+    /// <summary>
+    /// Points exchanged for something that is not money.
+    /// <para>
+    /// The reference is the spender's own handle — a creator reward redemption's identifier — and is
+    /// uniquely indexed per account like every other, so a retried redemption debits once.
+    /// </para>
+    /// </summary>
+    public static RewardEntry Spent(
+        Guid entryId, long points, string source, string reference, DateTimeOffset occurredAt)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reference);
+
+        return new RewardEntry(
+            entryId,
+            points,
+            isConversion: false,
+            isSpend: true,
+            string.IsNullOrWhiteSpace(source) ? "Redemption" : source.Trim(),
+            reference.Trim(),
+            occurredAt);
+    }
+
+    protected override IEnumerable<object?> GetEqualityComponents()
+    {
+        yield return EntryId;
+        yield return Points;
+        yield return IsConversion;
+        yield return IsSpend;
+        yield return Reference;
+    }
+}

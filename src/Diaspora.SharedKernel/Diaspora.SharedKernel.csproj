@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Diaspora.SharedKernel</RootNamespace>
+    <AssemblyName>Diaspora.SharedKernel</AssemblyName>
+    <Description>Reusable domain primitives, value objects, and cross-cutting building blocks for the Diaspora platform.</Description>
+  </PropertyGroup>
+
+</Project>

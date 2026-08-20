@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Diaspora.Persistence</RootNamespace>
+    <AssemblyName>Diaspora.Persistence</AssemblyName>
+    <Description>Persistence layer — EF Core DbContext, repository implementations, interceptors, and migrations.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      B1.3. The guarded update's SQL generation is internal — it is an implementation detail of
+      IAtomicUpdateExecutor and nothing outside this assembly may build a statement. The provider
+      compatibility tests assert the exact text it produces for PostgreSQL and SQLite, which is the
+      difference between a compatibility report that is evidence and one that is a claim.
+    -->
+    <InternalsVisibleTo Include="Diaspora.UnitTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Diaspora.Domain\Diaspora.Domain.csproj" />
+    <ProjectReference Include="..\Diaspora.SharedKernel\Diaspora.SharedKernel.csproj" />
+    <ProjectReference Include="..\Diaspora.Application\Diaspora.Application.csproj" />
+    <ProjectReference Include="..\Diaspora.Platform\Diaspora.Platform.csproj" />
+  </ItemGroup>
+
+</Project>

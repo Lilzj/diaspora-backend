@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Diaspora.Contracts</RootNamespace>
+    <AssemblyName>Diaspora.Contracts</AssemblyName>
+    <Description>Cross-module contracts, integration events, shared enums and DTOs for the Diaspora platform.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Diaspora.SharedKernel\Diaspora.SharedKernel.csproj" />
+  </ItemGroup>
+
+</Project>

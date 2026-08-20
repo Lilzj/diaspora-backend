@@ -1,0 +1,88 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Diaspora.Modules.CommunityProgramme</RootNamespace>
+    <AssemblyName>Diaspora.Modules.CommunityProgramme</AssemblyName>
+    <Description>
+      The Community Programme Platform (Phase B18). What an organization runs for the people who
+      belong to it — a membership programme with tiers, a volunteer programme with shifts and
+      confirmed hours, polls with server-computed results, scoped announcements, and the impact and
+      analytics reads over all four.
+
+      This is not a second Community Life, and the boundary is the module's central claim. B12 owns
+      the organization, the event, the RSVP and — this is the one most easily got wrong — the
+      (member, organization, role) edge itself. B18 owns nothing about who belongs to a body; it
+      owns what a body offers them. Every authorization question this module asks is answered by
+      B12's published IOrganizationDirectory, and the ten-flag OrganizationCapabilities contract is
+      a projection of B12's role ladder, not a second one.
+
+      Nor is it a second anything else. Money is B15's: a tier carries a price expressed in a
+      currency B15's catalogue validates, and not one penny moves through this module. Delivery is
+      B13's: this module publishes integration events and never composes a notification. Ranking is
+      B14's. Scheduling is B17's seam. Recurrence is B12.1's. The fundraising campaign lifecycle
+      belongs to B15.1 and is deliberately absent here — amended 11 August 2026: B15.1 shipped it,
+      and this module now maps its routes without owning any of it. /communities/campaigns/... and
+      /communities/memberships/{id}/payments are contributed here because the platform allows one
+      module per URL prefix and this module owns /api/v1/communities; every aggregate, state machine
+      and figure behind them is B15's, reached through injected B15 services. The same split this
+      module already uses for the one Community Life write it exposes: the route is ours and the
+      decision is theirs.
+
+      What B18 owns: the membership programme and its tiers, the fourteen-state programme
+      membership, volunteer opportunities, applications, assignments, confirmed hours and
+      certificates, community polls and their responses, community announcements, and the read
+      surfaces — organization analytics, community impact and the federated Community Life search —
+      computed over those rows and over what B12 and B15 already publish.
+
+      Idempotency is B15's primitive, copied rather than reinvented: a nullable key column on the
+      aggregate the write creates, uniquely indexed, looked up before the write and replayed on a
+      repeat. There is no second idempotency store.
+
+      Registers entirely through B2.6 contributor interfaces: no edit to the Platform Kernel, to
+      Identity, or to Program.cs.
+    </Description>
+  </PropertyGroup>
+
+  <!--
+    Two module references, both deliberate and both read-only in intent.
+
+    Community Life, because B18 is an extension of it. The organization, its membership edge and
+    its role ladder are B12's, and this module reaches all three through the published
+    IOrganizationDirectory contract rather than through B12's aggregates or repositories. The one
+    write B18 exposes on B12's behalf — assigning an organization role — is dispatched as B12's own
+    command through MediatR, so B12's handler makes the decision and B12 stays the only writer of
+    a role.
+
+    Financial, for one thing only: the currency catalogue. A tier price is Money, and the register
+    is explicit that there is to be no second currency source. B18 validates a currency code
+    against B15's catalogue and stores an amount; it creates no payment, no donation, no
+    subscription and no wallet movement, and an architecture test asserts it.
+
+    Notably absent: Notifications and Recommendations. This module publishes integration events and
+    B13 consumes them; a reference in the other direction would be the first cycle in the graph
+    B2.6 exists to keep acyclic. Location, Media, Housing and the sibling verticals are absent for
+    the same reason B12 gives — a place is reached through B12's summary, not through B4.
+  -->
+  <ItemGroup>
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Diaspora.SharedKernel\Diaspora.SharedKernel.csproj" />
+    <ProjectReference Include="..\Diaspora.Contracts\Diaspora.Contracts.csproj" />
+    <ProjectReference Include="..\Diaspora.Platform\Diaspora.Platform.csproj" />
+    <ProjectReference Include="..\Diaspora.Application\Diaspora.Application.csproj" />
+    <ProjectReference Include="..\Diaspora.Persistence\Diaspora.Persistence.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.CommunityLife\Diaspora.Modules.CommunityLife.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Financial\Diaspora.Modules.Financial.csproj" />
+  </ItemGroup>
+
+</Project>

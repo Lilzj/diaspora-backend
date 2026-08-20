@@ -1,0 +1,84 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Diaspora.Modules.Recommendations</RootNamespace>
+    <AssemblyName>Diaspora.Modules.Recommendations</AssemblyName>
+    <Description>
+      The Recommendation &amp; Personalization Platform (Phase B14). The platform's single owner of
+      the question "what should this particular member see next?".
+
+      This is not a recommendation table. It is the intelligence layer between "the platform knows
+      things" and "this member sees something", and the distinction is the whole design: every other
+      module publishes facts about what exists and what happened, while this module knows nothing
+      about the facts and everything about members, signals, affinities, policies and ranking.
+
+      What Recommendations owns: the immutable signal record, the derived personalization profile,
+      the member's explicit personalization preferences, the generated recommendation set with its
+      explanations and score breakdowns, the feedback record, the ranking-strategy catalogue, the
+      recommendation-policy catalogue, and the analytics rollups. What it deliberately does not own:
+      any business data. There is no job, listing, guide, event or provider in this schema — only a
+      candidate projection assembled from published contracts, which is a shadow of somebody else's
+      truth and is rebuildable by replaying the outbox. Delete the whole schema and nothing is lost
+      but personalization quality.
+
+      Business modules never compute recommendations. They publish integration events, and this
+      module consumes them. A ranking strategy and a recommendation policy are reference data, not
+      code paths, so changing "trust weighs more than recency on the housing surface" is a catalogue
+      change rather than a deployment.
+
+      Ranking is deterministic and explainable. Every recommendation carries a reason code, a score,
+      the strategy that produced it and the signals it was derived from; there is no opaque path
+      through this module. Machine learning, vector search, embeddings, semantic similarity and LLM
+      ranking are explicitly out of scope and each has an abstraction shaped for it —
+      IRankingStrategy, ISimilarityProvider, IRecommendationCandidateSource — with a deterministic
+      implementation behind it today and no vendor named anywhere in the assembly.
+
+      Registers entirely through B2.6 contributor interfaces: no edit to the Platform Kernel, to any
+      previously completed module, or to Program.cs.
+    </Description>
+  </PropertyGroup>
+
+  <!--
+    The same narrow reference set B13 established, and for the same reason. Recommendations consumes
+    published contracts and nothing else, so it references Diaspora.Contracts for the events it
+    subscribes to and takes no ProjectReference on Trust, Community, Guides, Jobs, Marketplace,
+    Housing, Community Life, Providers, Notifications or Location at all. A recommended job is
+    assembled entirely from the payload of JobPublishedIntegrationEvent; if that payload is not
+    enough, the fix is to enrich the contract, never to reach into the module.
+
+    Diaspora.Application is referenced for the CQRS abstractions and the integration-event handler
+    base; Diaspora.Persistence for IDatabaseContributor and the shared context. Architecture tests
+    enforce the absence of every module reference.
+  -->
+  <ItemGroup>
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+
+  <!--
+    The consumer-side vocabulary maps — the two internal classes that translate another module's
+    content-type and subject-type strings into this module's target types — are the one thing in here
+    worth testing directly and the one thing that should not be public. A wrong entry silently files a
+    boost or a bookmark against the wrong kind of thing, which no integration test would notice.
+    The same arrangement Diaspora.Operations and Diaspora.Persistence already use.
+  -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Diaspora.UnitTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Diaspora.SharedKernel\Diaspora.SharedKernel.csproj" />
+    <ProjectReference Include="..\Diaspora.Contracts\Diaspora.Contracts.csproj" />
+    <ProjectReference Include="..\Diaspora.Platform\Diaspora.Platform.csproj" />
+    <ProjectReference Include="..\Diaspora.Application\Diaspora.Application.csproj" />
+    <ProjectReference Include="..\Diaspora.Persistence\Diaspora.Persistence.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,91 @@
+<Project>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+
+    <!-- File-scoped namespaces enforced -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <AnalysisMode>Recommended</AnalysisMode>
+
+    <!-- Treat warnings as errors in CI/Release -->
+    <TreatWarningsAsErrors Condition="'$(Configuration)' == 'Release'">true</TreatWarningsAsErrors>
+
+    <!--
+      NuGet audit runs over the full transitive closure and fails Release on anything
+      moderate or worse. B2.6 turned this on deliberately: the audit found eight
+      high-severity advisories reaching the build through preview packages, and the only
+      reason nobody noticed was that Debug does not promote warnings.
+    -->
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>moderate</NuGetAuditLevel>
+
+    <!-- Reproducible builds: same source in, byte-identical assembly out. -->
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+
+    <!-- Assembly info -->
+    <Company>Diaspora</Company>
+    <Product>Diaspora Platform</Product>
+    <Copyright>Copyright © Diaspora $(CurrentYear)</Copyright>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!--
+      CA1707 — underscores in member names. Test methods read as sentences here.
+
+      CA1711 — types ending in "EventHandler". The platform kernel established this
+      naming with IDomainEventHandler in Phase B1, and "handler" is the term the CQRS
+      pipeline uses throughout. Renaming to satisfy the rule would make the code less
+      readable, not more.
+
+      CA1873 — log arguments that "may be expensive". The analyzer flags any property
+      access, which covers nearly every structured log call in the codebase. Where a call
+      genuinely sits on a hot path (per-request token validation) an explicit
+      ILogger.IsEnabled guard is used instead; suppressing the rule keeps the remaining
+      once-per-operation call sites readable.
+
+      CA1861 — constant array arguments. Raised only by EF Core's generated migration
+      files, which are not hand-maintained.
+
+      CA1000 — static members on generic types. This is the factory idiom the whole
+      platform is built on: Result<T>.Success, PagedResult<T>.Create, Error.Validation.
+      The BCL uses it in the same places (Task.FromResult, ImmutableArray<T>.Create), and
+      the alternative — a non-generic companion class per result type — is strictly worse
+      to read and to discover.
+
+      CA1716 — type names matching reserved keywords in another CLR language. Raised for
+      Result's companion type Error, which is a VB keyword. Renaming a type that appears
+      in every handler signature in the platform to accommodate a language nothing here
+      targets is not a trade worth making.
+    -->
+    <NoWarn>$(NoWarn);CA1707;CA1711;CA1873;CA1861;CA1000;CA1716</NoWarn>
+  </PropertyGroup>
+
+  <!--
+    B1.4. The platform's own analyzers, compiled from source and handed to every compilation in
+    the repository.
+
+    A ProjectReference rather than a package, because a package would need publishing before a
+    rule could be tried and would let the rules drift from the platform they describe. The two
+    metadata attributes are what turn a reference into an analyzer: OutputItemType hands the
+    assembly to the compiler instead of the linker, and ReferenceOutputAssembly=false keeps
+    Diaspora.Analyzers out of every project's reference set — nothing should be able to call it.
+
+    Opt-out exists for exactly two cases and both are structural: the analyzer project cannot
+    analyze itself, and the analyzer's test project references it as an ordinary library so it can
+    instantiate the analyzers under test. Any other use of this switch is a rule being turned off
+    for a whole project, which is what the .editorconfig in docs is for instead.
+  -->
+  <ItemGroup Condition="'$(UseDiasporaAnalyzers)' != 'false' AND '$(MSBuildProjectName)' != 'Diaspora.Analyzers'">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)src\Diaspora.Analyzers\Diaspora.Analyzers.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>

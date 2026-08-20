@@ -1,0 +1,88 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Diaspora.Modules.Integrations</RootNamespace>
+    <AssemblyName>Diaspora.Modules.Integrations</AssemblyName>
+    <Description>
+      The Integration Foundation (Phase B22). The external-boundary infrastructure the frontend's
+      Phase 16 register found no contract behind: a connection registry, an OAuth authorization-code
+      exchange with server-side token custody, a proxied calendar boundary, synchronisation with a
+      stable source-to-external mapping, an inbound webhook intake, and an outbound HTTP boundary
+      with an allow-list.
+
+      What this module owns: the fact that a member has connected an external account, what that
+      grant permits, when it expires, when it last worked and when it last failed; the single-use
+      authorization request that makes an OAuth callback verifiable; the encrypted custody of a
+      provider's tokens; the mapping between a Diaspora entity and the external record written for
+      it; and the record of every provider callback received.
+
+      What it deliberately does not own, and never duplicates:
+
+        Money is B15's. This module creates no payment, no ledger entry and no wallet movement, and
+        an architecture test asserts the assembly names no financial type. The gateway boundary
+        B15 already owns (IPaymentGateway, IPaymentWebhookProcessor, ProcessedWebhookEvent) is left
+        exactly as it is.
+
+        Delivery is B13's. This module publishes integration events and contributes a category,
+        five templates and five rules through B13's own contributor seams. It composes no
+        notification, sends no push and owns no device.
+
+        Geography is B21's. IRoutingProvider and IGeocodingProvider stay where they are; this
+        module provides the outbound HTTP boundary an adapter for either would call through.
+
+        Identity is Identity's. There is no second user, no second session and no second credential
+        store for the platform's own authentication. An external identity is a connection in this
+        registry; whether somebody may sign in is decided where it always was.
+
+        Resilience, scheduling, secrets, caching, rate limiting and dead-lettering are B17's.
+        Nothing here implements a retry loop, a breaker, a scheduler, a lock or a secret store —
+        every one is resolved from the platform.
+
+      Registers entirely through B2.6 contributor interfaces: no edit to the Platform Kernel, to
+      Identity, or to Program.cs.
+    </Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+
+    <!--
+      Data Protection and IHttpClientFactory both come from the ASP.NET Core shared framework,
+      which this project already has through Diaspora.Platform's FrameworkReference. A package
+      reference for either would pin a version beside the one the host actually loads.
+    -->
+  </ItemGroup>
+
+  <ItemGroup>
+  </ItemGroup>
+
+  <!--
+    One module reference, and it is the same shape Conversations already uses.
+
+    Notifications, for its catalogue contributor seams only — INotificationCategoryContributor,
+    INotificationTemplateContributor, INotificationRuleContributor. FRONTEND-PHASE16-GAP-017 asks
+    for an `integrations` category and five templates, and B13.3 recorded that they wait on "grant
+    and sync lifecycle events". This module publishes those events, so it contributes the wording
+    that renders them rather than asking B13 to hold knowledge of a module composed 800 later.
+
+    Notably absent: Financial. A payment provider's callback is B15's and stays B15's.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Diaspora.SharedKernel\Diaspora.SharedKernel.csproj" />
+    <ProjectReference Include="..\Diaspora.Contracts\Diaspora.Contracts.csproj" />
+    <ProjectReference Include="..\Diaspora.Platform\Diaspora.Platform.csproj" />
+    <ProjectReference Include="..\Diaspora.Application\Diaspora.Application.csproj" />
+    <ProjectReference Include="..\Diaspora.Persistence\Diaspora.Persistence.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Notifications\Diaspora.Modules.Notifications.csproj" />
+  </ItemGroup>
+
+</Project>

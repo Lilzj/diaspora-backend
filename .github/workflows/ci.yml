@@ -1,0 +1,167 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  CI: true
+
+jobs:
+  build-and-test:
+    name: Release build, tests, vulnerability scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore Diaspora.slnx
+
+      # Separate from the build so a vulnerable dependency is reported as its own
+      # failure rather than buried in a wall of TreatWarningsAsErrors output. The
+      # Release build below also fails on advisories — this step just names them.
+      - name: Vulnerability scan
+        run: |
+          dotnet list Diaspora.slnx package --vulnerable --include-transitive 2>&1 | tee audit.log
+          if grep -q "has the following vulnerable packages" audit.log; then
+            echo "::error::Vulnerable packages detected. See the log above."
+            exit 1
+          fi
+
+      # Release is the gate: TreatWarningsAsErrors, NuGetAudit and the full analyzer
+      # set are only active here. A green Debug build proves nothing.
+      - name: Build (Release)
+        run: dotnet build Diaspora.slnx -c Release --no-restore
+
+      - name: Unit tests
+        run: >
+          dotnet test tests/Diaspora.UnitTests/Diaspora.UnitTests.csproj
+          -c Release --no-build
+          --logger "trx;LogFileName=unit.trx"
+          --collect:"XPlat Code Coverage"
+          --results-directory ./test-results
+
+      - name: Architecture tests
+        run: >
+          dotnet test tests/Diaspora.ArchitectureTests/Diaspora.ArchitectureTests.csproj
+          -c Release --no-build
+          --logger "trx;LogFileName=architecture.trx"
+          --results-directory ./test-results
+
+      - name: Integration tests
+        run: >
+          dotnet test tests/Diaspora.IntegrationTests/Diaspora.IntegrationTests.csproj
+          -c Release --no-build
+          --logger "trx;LogFileName=integration.trx"
+          --collect:"XPlat Code Coverage"
+          --results-directory ./test-results
+
+      - name: API tests
+        run: >
+          dotnet test tests/Diaspora.ApiTests/Diaspora.ApiTests.csproj
+          -c Release --no-build
+          --logger "trx;LogFileName=api.trx"
+          --results-directory ./test-results
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: ./test-results
+          retention-days: 14
+
+  migrations:
+    name: Migration applies to PostgreSQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # The integration suite runs on SQLite for speed, which means the PostgreSQL
+    # migration is never executed by it. This job is the only thing standing between
+    # a model/migration drift and a failed production deploy.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: diaspora_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Install EF Core tools
+        run: dotnet tool install --global dotnet-ef
+
+      - name: Apply migrations
+        env:
+          DIASPORA_MIGRATIONS_CONNECTION: Host=localhost;Port=5432;Database=diaspora_ci;Username=postgres;Password=postgres
+        run: >
+          dotnet ef database update
+          --project src/Diaspora.Persistence
+          --startup-project src/Diaspora.Api
+
+      # A second run must be a no-op. If it is not, the migration is not idempotent
+      # and a re-deploy against an already-migrated database will fail.
+      - name: Re-apply migrations (must be a no-op)
+        env:
+          DIASPORA_MIGRATIONS_CONNECTION: Host=localhost;Port=5432;Database=diaspora_ci;Username=postgres;Password=postgres
+        run: >
+          dotnet ef database update
+          --project src/Diaspora.Persistence
+          --startup-project src/Diaspora.Api
+
+      # --startup-project must be the API host, not Persistence. Module entity
+      # configurations are contributed at runtime through IDatabaseContributor and found
+      # by scanning the dependency context; Persistence references no module, so a model
+      # built from it contains Identity's tables and nothing else. Pointed at itself this
+      # step compared an Identity-only model against the full snapshot and reported drift
+      # that did not exist — a false failure since the first module migration in B3, and
+      # corrected in B3.0.2. DesignTimeDbContextFactory documents the same requirement.
+      - name: Check for un-scaffolded model changes
+        env:
+          DIASPORA_MIGRATIONS_CONNECTION: Host=localhost;Port=5432;Database=diaspora_ci;Username=postgres;Password=postgres
+        run: |
+          dotnet ef migrations has-pending-model-changes \
+            --project src/Diaspora.Persistence \
+            --startup-project src/Diaspora.Api \
+          && echo "Model and migrations are in sync."
+
+  container:
+    name: Container image builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -f docker/Dockerfile -t diaspora-api:ci .

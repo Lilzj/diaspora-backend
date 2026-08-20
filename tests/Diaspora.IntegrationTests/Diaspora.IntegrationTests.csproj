@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Diaspora.IntegrationTests</RootNamespace>
+    <AssemblyName>Diaspora.IntegrationTests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+    <PackageReference Include="NSubstitute" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Diaspora.Api\Diaspora.Api.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Infrastructure\Diaspora.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Persistence\Diaspora.Persistence.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Media\Diaspora.Modules.Media.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Community\Diaspora.Modules.Community.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Providers\Diaspora.Modules.Providers.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Notifications\Diaspora.Modules.Notifications.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Recommendations\Diaspora.Modules.Recommendations.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Financial\Diaspora.Modules.Financial.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Conversations\Diaspora.Modules.Conversations.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.CommunityProgramme\Diaspora.Modules.CommunityProgramme.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Creator\Diaspora.Modules.Creator.csproj" />
+    <!-- Reuses FakeClock and the identity aggregate builders rather than duplicating them. -->
+    <ProjectReference Include="..\Diaspora.UnitTests\Diaspora.UnitTests.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Analytics\Diaspora.Modules.Analytics.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.GeographicIntelligence\Diaspora.Modules.GeographicIntelligence.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Integrations\Diaspora.Modules.Integrations.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Automation\Diaspora.Modules.Automation.csproj" />
+  </ItemGroup>
+
+</Project>

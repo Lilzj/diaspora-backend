@@ -1,0 +1,79 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Diaspora.Modules.Analytics</RootNamespace>
+    <AssemblyName>Diaspora.Modules.Analytics</AssemblyName>
+    <Description>
+      The Analytics Platform (Phase B19). The backend behind CREATOR-GAP-007 — creator analytics
+      and content performance — and the ingestion, authorization and definition foundation the
+      frontend's Phase 15 register sequences ahead of every other analytics contract.
+
+      The register's own finding is this module's premise: the platform has records and counts
+      them, and has nowhere a *time-bucketed aggregate* can come from, because nothing records
+      that a view happened at a moment. Lifetime counters answer a different question, and a
+      "30-day views" figure derived from one would be wrong in a way nobody could see.
+
+      What the Analytics Platform owns: the raw analytics event store and its deduplication
+      identity, the versioned event schema registry, the client telemetry ingestion contract, the
+      content dimension projection every attribution joins through, the daily rollups, the
+      aggregation projection and its checkpoint, the backfill and rebuild operations, retention
+      and erasure of analytics rows, the metric catalogue, and every analytics read contract.
+
+      What it deliberately does not own, and never duplicates:
+
+        Domain truth. Analytics is derived data. A guide's author, an event's organizer, a
+        listing's seller and a member's country all arrive as published contracts and are stored
+        as the dimension they were *at the moment the fact happened*. Nothing in this module is
+        read back as the current state of anything, and no analytics row mutates a domain
+        aggregate.
+
+        Money is B15's. No balance, no ledger entry, no settlement, and no revenue metric — an
+        earning that has not been attributed by B15.1 is CREATOR-GAP-008 and is reported as
+        unavailable rather than approximated.
+
+        Recommendations are B14's. This module records that a recommendation was shown or
+        dismissed when B14 publishes it; it ranks nothing and scores nothing.
+
+        Delivery is B13's. Notification analytics consume B13's published receipts; this module
+        composes no notification and reads no provider.
+
+        Identity is Trust's, and the member behind a row never leaves this module. An actor is
+        stored as a keyed hash so a distinct count is possible and a readership record is not.
+
+      Registers entirely through B2.6 contributor interfaces: no edit to the Platform Kernel, to
+      Identity, or to Program.cs.
+    </Description>
+  </PropertyGroup>
+
+  <!--
+    No module reference at all, and that is the design rather than an accident.
+
+    Every fact this module aggregates arrives as a contract in Diaspora.Contracts, published by a
+    module that has never heard of analytics. An analytics platform that referenced the eleven
+    modules it measures would be recompiled by every one of their releases, and would be able to
+    read their current state — which is precisely the mistake §4 of the phase brief forbids:
+    analytics must represent what happened, not become a second answer to what is true now.
+
+    An architecture test asserts this assembly names no Diaspora.Modules.* assembly.
+  -->
+  <ItemGroup>
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Diaspora.SharedKernel\Diaspora.SharedKernel.csproj" />
+    <ProjectReference Include="..\Diaspora.Contracts\Diaspora.Contracts.csproj" />
+    <ProjectReference Include="..\Diaspora.Platform\Diaspora.Platform.csproj" />
+    <ProjectReference Include="..\Diaspora.Application\Diaspora.Application.csproj" />
+    <ProjectReference Include="..\Diaspora.Persistence\Diaspora.Persistence.csproj" />
+  </ItemGroup>
+
+</Project>

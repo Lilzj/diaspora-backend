@@ -1,0 +1,44 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Diaspora.Analyzers/Diaspora.Analyzers.csproj" />
+    <Project Path="src/Diaspora.Api/Diaspora.Api.csproj" />
+    <Project Path="src/Diaspora.Application/Diaspora.Application.csproj" />
+    <Project Path="src/Diaspora.Contracts/Diaspora.Contracts.csproj" />
+    <Project Path="src/Diaspora.Domain/Diaspora.Domain.csproj" />
+    <Project Path="src/Diaspora.Infrastructure/Diaspora.Infrastructure.csproj" />
+    <Project Path="src/Diaspora.Modules.Analytics/Diaspora.Modules.Analytics.csproj" />
+    <Project Path="src/Diaspora.Modules.Automation/Diaspora.Modules.Automation.csproj" />
+    <Project Path="src/Diaspora.Modules.Bookmarks/Diaspora.Modules.Bookmarks.csproj" />
+    <Project Path="src/Diaspora.Modules.Community/Diaspora.Modules.Community.csproj" />
+    <Project Path="src/Diaspora.Modules.CommunityLife/Diaspora.Modules.CommunityLife.csproj" />
+    <Project Path="src/Diaspora.Modules.CommunityProgramme/Diaspora.Modules.CommunityProgramme.csproj" />
+    <Project Path="src/Diaspora.Modules.Creator/Diaspora.Modules.Creator.csproj" />
+    <Project Path="src/Diaspora.Modules.Conversations/Diaspora.Modules.Conversations.csproj" />
+    <Project Path="src/Diaspora.Modules.Financial/Diaspora.Modules.Financial.csproj" />
+    <Project Path="src/Diaspora.Modules.GeographicIntelligence/Diaspora.Modules.GeographicIntelligence.csproj" />
+    <Project Path="src/Diaspora.Modules.Guides/Diaspora.Modules.Guides.csproj" />
+    <Project Path="src/Diaspora.Modules.Housing/Diaspora.Modules.Housing.csproj" />
+    <Project Path="src/Diaspora.Modules.Integrations/Diaspora.Modules.Integrations.csproj" />
+    <Project Path="src/Diaspora.Modules.Jobs/Diaspora.Modules.Jobs.csproj" />
+    <Project Path="src/Diaspora.Modules.Location/Diaspora.Modules.Location.csproj" />
+    <Project Path="src/Diaspora.Modules.Marketplace/Diaspora.Modules.Marketplace.csproj" />
+    <Project Path="src/Diaspora.Modules.Media/Diaspora.Modules.Media.csproj" />
+    <Project Path="src/Diaspora.Modules.Notifications/Diaspora.Modules.Notifications.csproj" />
+    <Project Path="src/Diaspora.Modules.Providers/Diaspora.Modules.Providers.csproj" />
+    <Project Path="src/Diaspora.Modules.Recommendations/Diaspora.Modules.Recommendations.csproj" />
+    <Project Path="src/Diaspora.Modules.Trust/Diaspora.Modules.Trust.csproj" />
+    <Project Path="src/Diaspora.Observability/Diaspora.Observability.csproj" />
+    <Project Path="src/Diaspora.Operations/Diaspora.Operations.csproj" />
+    <Project Path="src/Diaspora.Push.Firebase/Diaspora.Push.Firebase.csproj" />
+    <Project Path="src/Diaspora.Persistence/Diaspora.Persistence.csproj" />
+    <Project Path="src/Diaspora.Platform/Diaspora.Platform.csproj" />
+    <Project Path="src/Diaspora.SharedKernel/Diaspora.SharedKernel.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Diaspora.AnalyzerTests/Diaspora.AnalyzerTests.csproj" />
+    <Project Path="tests/Diaspora.ApiTests/Diaspora.ApiTests.csproj" />
+    <Project Path="tests/Diaspora.ArchitectureTests/Diaspora.ArchitectureTests.csproj" />
+    <Project Path="tests/Diaspora.IntegrationTests/Diaspora.IntegrationTests.csproj" />
+    <Project Path="tests/Diaspora.UnitTests/Diaspora.UnitTests.csproj" />
+  </Folder>
+</Solution>

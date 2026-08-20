@@ -1,0 +1,312 @@
+using System.Globalization;
+using Diaspora.Application.Abstractions;
+using Diaspora.Modules.Analytics.Application.Services;
+using Diaspora.Modules.Analytics.Contracts.V1.Responses;
+using Diaspora.Modules.Analytics.Domain.Enums;
+using Diaspora.Modules.Analytics.Domain.Errors;
+using Diaspora.Modules.Analytics.Domain.Periods;
+using Diaspora.Modules.Analytics.Domain.Policies;
+using Diaspora.Modules.Analytics.Options;
+using Diaspora.SharedKernel.Results;
+using Microsoft.Extensions.Options;
+
+namespace Diaspora.Modules.Analytics.Application.Queries;
+
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+// FRONTEND-PHASE15-GAP-025 (access) and -030 (definitions).
+//
+// The register calls the first the linchpin — "every other gap's authorization line depends on it
+// being real" — and it is deliberately the smallest handler in the module: it answers what the
+// caller may do, from the caller's permissions and the subject's ownership, and nothing else.
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+
+/// <summary>
+/// What the caller may see for one subject.
+/// <para>
+/// <b>Answers rather than refuses.</b> A caller with no access receives an all-false set and a 200,
+/// so a screen renders "not available to you" instead of an error — and so the existence of an
+/// administrative dashboard is not confirmed by a status code. The only 401 is an unauthenticated
+/// caller, which is a fact about the request rather than about the subject.
+/// </para>
+/// </summary>
+[Authorize(Permission = AnalyticsPermissions.CreatorRead)]
+public sealed record GetAnalyticsAccessQuery : IQuery<AnalyticsAccessResponse>
+{
+    /// <summary><c>creator</c>, or one of the content subject types.</summary>
+    public string? SubjectType { get; init; }
+
+    public string? SubjectId { get; init; }
+}
+
+public sealed class GetAnalyticsAccessQueryHandler
+    : IQueryHandler<GetAnalyticsAccessQuery, AnalyticsAccessResponse>
+{
+    private readonly AnalyticsQueryContext _context;
+
+    public GetAnalyticsAccessQueryHandler(AnalyticsQueryContext context) => _context = context;
+
+    public async Task<Result<AnalyticsAccessResponse>> Handle(
+        GetAnalyticsAccessQuery query, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var caller = _context.RequireUser();
+
+        if (caller.IsFailure)
+        {
+            return Result.Failure<AnalyticsAccessResponse>(caller.Error);
+        }
+
+        var subjectType = query.SubjectType?.Trim().ToLowerInvariant() ?? "creator";
+        var isPlatformReader = _context.IsPlatformReader;
+
+        var canView = subjectType == "creator";
+
+        if (!canView && Guid.TryParse(query.SubjectId, out var contentId))
+        {
+            var contentType = AnalyticsContentTypes.FromRouteSegment(subjectType);
+
+            if (contentType != AnalyticsContentType.Unknown)
+            {
+                var owner = await _context
+                    .RequireContentOwnerAsync(contentType, contentId, cancellationToken)
+                    .ConfigureAwait(false);
+
+                canView = owner.IsSuccess;
+            }
+        }
+
+        return Result.Success(new AnalyticsAccessResponse
+        {
+            Subject = new AnalyticsSubjectResponse
+            {
+                Type = subjectType,
+                Id = subjectType == "creator" ? null : query.SubjectId,
+                Label = null
+            },
+            CanView = canView,
+
+            // Money is B15's and CREATOR-GAP-008's. Reporting this as true would tell a client to
+            // ask for a revenue figure this platform has no authority to produce.
+            CanViewFinancial = false,
+            CanViewAdministrative = isPlatformReader,
+
+            // Comparison across subjects is FRONTEND-PHASE15-GAP-006's contract and is not built.
+            CanCompare = false,
+
+            // Export is FRONTEND-PHASE15-GAP-026 and report building is -027. Both are named in the
+            // register as later phases; reporting them as available would render an action that 404s.
+            CanExport = false,
+            CanBuildReports = false,
+            SupportedRanges = SupportedRanges(),
+            SupportedComparisons = ["previousPeriod"],
+            RestrictedMetrics = RestrictedMetrics(canView),
+            ReportingTimezone = _context.Calendar.TimeZoneId
+        });
+    }
+
+    /// <summary>
+    /// Which of the client's eleven presets this deployment answers.
+    /// <para>
+    /// Six, which is the Phase 7 set. The five the Phase 15 model also carries —
+    /// <c>yesterday</c>, <c>previousMonth</c>, <c>previousYear</c>, <c>allTime</c>,
+    /// <c>thisMonth</c> — are absent because nothing serves them, and §6 makes which ranges a
+    /// subject offers a capability precisely so a client need not guess.
+    /// </para>
+    /// </summary>
+    private static IReadOnlyList<string> SupportedRanges() =>
+        ["today", "last7d", "last30d", "last90d", "thisYear", "custom"];
+
+    /// <summary>
+    /// What is withheld from this caller.
+    /// <para>
+    /// Distinct from what this deployment does not measure: one is about the caller and travels
+    /// here, the other is about the platform and travels on the dataset. Conflating them would tell
+    /// a creator that reach is being kept from them.
+    /// </para>
+    /// </summary>
+    private static IReadOnlyList<string> RestrictedMetrics(bool canView) =>
+        canView ? [] : AnalyticsMetricCatalog.CreatorHeadline;
+}
+
+/// <summary>
+/// The metric catalogue.
+/// <para>
+/// FRONTEND-PHASE15-GAP-030. Authenticated rather than public: the definitions describe what this
+/// deployment measures and how, which is operational detail rather than a member-facing secret, but
+/// it is also a map of the analytics surface and there is no reason for it to be anonymous.
+/// </para>
+/// </summary>
+[Authorize(Permission = AnalyticsPermissions.CreatorRead)]
+public sealed record GetAnalyticsDefinitionsQuery : IQuery<AnalyticsDefinitionsResponse>;
+
+public sealed class GetAnalyticsDefinitionsQueryHandler
+    : IQueryHandler<GetAnalyticsDefinitionsQuery, AnalyticsDefinitionsResponse>
+{
+    private readonly AnalyticsOptions _options;
+
+    public GetAnalyticsDefinitionsQueryHandler(IOptions<AnalyticsOptions> options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        _options = options.Value;
+    }
+
+    public Task<Result<AnalyticsDefinitionsResponse>> Handle(
+        GetAnalyticsDefinitionsQuery query, CancellationToken cancellationToken)
+    {
+        var freshness = string.Create(
+            CultureInfo.InvariantCulture,
+            $"Recomputed about every {_options.ProjectionIntervalSeconds} seconds from recorded activity. Raw activity is kept for {_options.RawEventRetentionDays} days and daily figures for {_options.RollupRetentionDays}.");
+
+        var definitions = AnalyticsMetricCatalog.Definitions
+            .Select(definition => new AnalyticsDefinitionResponse
+            {
+                Key = definition.Key,
+                CatalogueKey = definition.CatalogueKey,
+                Label = definition.Label,
+                Definition = definition.Definition,
+                Formula = definition.Formula,
+                Format = AnalyticsMetricAssembler.FormatName(definition.Format),
+                HigherIsBetter = definition.HigherIsBetter,
+                PrivacyClass = AnalyticsMetricAssembler.PrivacyName(definition.Privacy),
+                Owner = definition.Owner,
+                FreshnessPolicy = freshness,
+                TrustClass = definition.Trust switch
+                {
+                    AnalyticsTrustClass.Server => "server",
+                    AnalyticsTrustClass.Client => "client",
+                    _ => "derived"
+                },
+                Status = definition.Availability switch
+                {
+                    AnalyticsMetricAvailability.Available => "CONNECTED",
+                    AnalyticsMetricAvailability.AwaitingSource => "AWAITING_SOURCE",
+                    _ => "NOT_MEASURED"
+                }
+            })
+            .ToList();
+
+        return Task.FromResult(Result.Success(new AnalyticsDefinitionsResponse
+        {
+            Version = AnalyticsMetricCatalog.Version,
+            Definitions = definitions
+        }));
+    }
+}
+
+/// <summary>
+/// One item's performance, in the shared Phase 15 dataset shape.
+/// <para>
+/// FRONTEND-PHASE15-GAP-008. <b>One contract with a subject type rather than six contracts</b> — §22
+/// forbids duplicating creator analytics for guides and §23 forbids a second event analytics system,
+/// and one route with a type segment is what honouring both looks like on the wire.
+/// </para>
+/// </summary>
+[Authorize(Permission = AnalyticsPermissions.ContentReadOwn)]
+public sealed record GetContentAnalyticsQuery : IQuery<AnalyticsDatasetResponse>
+{
+    public required string ContentType { get; init; }
+
+    public required string ContentId { get; init; }
+
+    public string? From { get; init; }
+
+    public string? To { get; init; }
+
+    public string? Timezone { get; init; }
+
+    public string? Period { get; init; }
+}
+
+public sealed class GetContentAnalyticsQueryHandler
+    : IQueryHandler<GetContentAnalyticsQuery, AnalyticsDatasetResponse>
+{
+    private readonly AnalyticsQueryContext _context;
+    private readonly AnalyticsReadService _reads;
+    private readonly AnalyticsDatasetBuilder _builder;
+
+    public GetContentAnalyticsQueryHandler(
+        AnalyticsQueryContext context, AnalyticsReadService reads, AnalyticsDatasetBuilder builder)
+    {
+        _context = context;
+        _reads = reads;
+        _builder = builder;
+    }
+
+    public async Task<Result<AnalyticsDatasetResponse>> Handle(
+        GetContentAnalyticsQuery query, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var contentType = AnalyticsContentTypes.FromRouteSegment(query.ContentType);
+
+        if (contentType == AnalyticsContentType.Unknown)
+        {
+            return Result.Failure<AnalyticsDatasetResponse>(AnalyticsErrors.SubjectTypeUnsupported);
+        }
+
+        if (!Guid.TryParse(query.ContentId, out var contentId))
+        {
+            return Result.Failure<AnalyticsDatasetResponse>(AnalyticsErrors.SubjectNotFound);
+        }
+
+        var owner = await _context
+            .RequireContentOwnerAsync(contentType, contentId, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (owner.IsFailure)
+        {
+            return Result.Failure<AnalyticsDatasetResponse>(owner.Error);
+        }
+
+        var resolved = _context.ResolvePeriod(
+            query.Period ?? (query.From is null ? null : "custom"),
+            query.From,
+            query.To,
+            query.Timezone);
+
+        if (resolved.IsFailure)
+        {
+            return Result.Failure<AnalyticsDatasetResponse>(resolved.Error);
+        }
+
+        var period = resolved.Value;
+        var baseline = period.Previous();
+
+        var current = await _reads
+            .ReadContentAsync(contentType, contentId, period, cancellationToken)
+            .ConfigureAwait(false);
+
+        var previous = await _reads
+            .ReadContentAsync(contentType, contentId, baseline, cancellationToken)
+            .ConfigureAwait(false);
+
+        var daily = await _reads
+            .ReadContentDailyAsync(contentType, contentId, period, cancellationToken)
+            .ConfigureAwait(false);
+
+        var metrics = AnalyticsMetricAssembler.BuildSet(
+            AnalyticsMetricCatalog.ContentItem, current, previous);
+
+        var dataset = _builder.Build(
+            new AnalyticsSubjectResponse
+            {
+                Type = AnalyticsContentTypes.ToSubjectType(contentType),
+                Id = contentId.ToString(),
+                Label = null
+            },
+            period,
+            baseline,
+            metrics,
+            AnalyticsDatasetBuilder.SeriesFrom(
+                period,
+                daily.ToDictionary(row => row.Day, row => (double)row.Counts.Views),
+                AnalyticsMetricCatalog.ContentViews,
+                _context.Calendar.Today),
+            daily.Count == 0 ? null : daily.Max(row => row.ComputedAt),
+            leaderboards: []);
+
+        return Result.Success(dataset);
+    }
+}

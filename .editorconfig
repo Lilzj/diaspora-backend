@@ -1,0 +1,191 @@
+# EditorConfig — Diaspora Platform
+# https://editorconfig.org
+
+root = true
+
+[*]
+indent_style = space
+indent_size = 4
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{json,yml,yaml}]
+indent_size = 2
+
+[*.{csproj,props,targets}]
+indent_size = 2
+
+# C# files
+[*.cs]
+
+# File-scoped namespaces
+csharp_style_namespace_declarations = file_scoped:warning
+
+# Var preferences
+csharp_style_var_for_built_in_types = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = true:suggestion
+
+# Expression-bodied members
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_style_expression_bodied_constructors = false:suggestion
+csharp_style_expression_bodied_operators = when_on_single_line:suggestion
+csharp_style_expression_bodied_properties = true:suggestion
+csharp_style_expression_bodied_indexers = true:suggestion
+csharp_style_expression_bodied_accessors = true:suggestion
+csharp_style_expression_bodied_lambdas = true:suggestion
+csharp_style_expression_bodied_local_functions = when_on_single_line:suggestion
+
+# Pattern matching
+csharp_style_pattern_matching_over_is_with_cast_check = true:suggestion
+csharp_style_pattern_matching_over_as_with_null_check = true:suggestion
+csharp_style_prefer_switch_expression = true:suggestion
+csharp_style_prefer_pattern_matching = true:suggestion
+csharp_style_prefer_not_pattern = true:suggestion
+
+# Null checking
+csharp_style_throw_expression = true:suggestion
+csharp_style_conditional_delegate_call = true:suggestion
+csharp_style_prefer_null_check_over_type_check = true:suggestion
+
+# Modifier preferences
+csharp_preferred_modifier_order = public,private,protected,internal,file,static,extern,new,virtual,abstract,sealed,override,readonly,unsafe,required,volatile,async:suggestion
+
+# Code-block preferences
+csharp_prefer_braces = true:suggestion
+csharp_prefer_simple_using_statement = true:suggestion
+csharp_prefer_simple_default_expression = true:suggestion
+
+# Using preferences
+csharp_using_directive_placement = outside_namespace:warning
+
+# New line preferences
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+
+# Indentation preferences
+csharp_indent_case_contents = true
+csharp_indent_switch_labels = true
+
+# Spacing preferences
+csharp_space_after_cast = false
+csharp_space_after_keywords_in_control_flow_statements = true
+
+# Naming conventions
+dotnet_naming_rule.private_fields_should_be_camel_case.severity = warning
+dotnet_naming_rule.private_fields_should_be_camel_case.symbols = private_fields
+dotnet_naming_rule.private_fields_should_be_camel_case.style = camel_case_underscore
+
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+
+dotnet_naming_style.camel_case_underscore.required_prefix = _
+dotnet_naming_style.camel_case_underscore.capitalization = camel_case
+
+dotnet_naming_rule.constants_should_be_pascal_case.severity = warning
+dotnet_naming_rule.constants_should_be_pascal_case.symbols = constants
+dotnet_naming_rule.constants_should_be_pascal_case.style = pascal_case
+
+dotnet_naming_symbols.constants.applicable_kinds = field
+dotnet_naming_symbols.constants.required_modifiers = const
+
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+
+dotnet_naming_rule.interfaces_should_begin_with_i.severity = warning
+dotnet_naming_rule.interfaces_should_begin_with_i.symbols = interfaces
+dotnet_naming_rule.interfaces_should_begin_with_i.style = begins_with_i
+
+dotnet_naming_symbols.interfaces.applicable_kinds = interface
+
+dotnet_naming_style.begins_with_i.required_prefix = I
+dotnet_naming_style.begins_with_i.capitalization = pascal_case
+
+dotnet_naming_rule.async_methods_should_end_with_async.severity = suggestion
+dotnet_naming_rule.async_methods_should_end_with_async.symbols = async_methods
+dotnet_naming_rule.async_methods_should_end_with_async.style = end_in_async
+
+dotnet_naming_symbols.async_methods.applicable_kinds = method
+dotnet_naming_symbols.async_methods.required_modifiers = async
+
+dotnet_naming_style.end_in_async.required_suffix = Async
+dotnet_naming_style.end_in_async.capitalization = pascal_case
+
+# Analyzers
+dotnet_diagnostic.CA1062.severity = none
+dotnet_diagnostic.CA1707.severity = none
+dotnet_diagnostic.CA1724.severity = none
+dotnet_diagnostic.CA1848.severity = suggestion
+
+# ─── EF Core scaffolded migrations ───────────────────────────────────────────
+# These files are written by `dotnet ef migrations add` and rewritten wholesale
+# whenever the model changes. Holding them to the hand-written code's style rules
+# means every scaffold is followed by a manual reformat that the next scaffold
+# undoes. Marking them generated lets the analyzers skip them entirely.
+[src/Diaspora.Persistence/Migrations/**.cs]
+generated_code = true
+dotnet_diagnostic.IDE0161.severity = none
+
+# ─── B1.4 guardrail suppressions ─────────────────────────────────────────────
+# Every entry below is a rule the platform means, switched off in one place for a
+# stated reason, with the condition that would let it come back. Anything not on
+# this list is not suppressed anywhere — see docs/platform/b1.4-suppression-guidelines.md
+# for what qualifies and what the review expects of an addition.
+
+# DSP5002 — permission keys are colon-separated and B13's are not, quite.
+#
+# The Communication Platform declares `notifications.preferences:read`,
+# `notifications.templates:manage` and ten more like them: a dotted sub-module
+# segment followed by a colon and an action. Every other module on the platform
+# uses colons throughout, and mixing the two vocabularies inside one key is exactly
+# the confusion B2 separated them to avoid — so the rule is right and these twelve
+# keys are the exception, not the precedent.
+#
+# Not renamed, because a permission key is a live contract: it is minted into
+# access tokens, held in the frontend's capability map and stored in issued
+# sessions. Changing one is a coordinated release, not a cleanup, and B1.4 is a
+# platform-only phase that changes no public contract.
+#
+# This suppression is not the extent of the finding — B14 declares thirteen more
+# keys in the same shape, and PSR-1 gave them a suppression of their own below.
+# Until then they had none, because B14 built its definitions through a private
+# helper that took the key as a parameter: the analyzer resolves the argument at
+# the `new` site through the semantic model, saw a parameter rather than a
+# constant, and reported nothing. B1.4.1 recorded that blind spot as F8.
+#
+# Remove this suppression when B13's keys are renamed under a versioned
+# authorisation change. The finding is recorded in
+# docs/platform/b1.4-readiness-report.md and its status in
+# docs/platform/b1.4.1-platform-readiness-cleanup-report.md.
+[src/Diaspora.Modules.Notifications/Authorization/NotificationPermissionContributor.cs]
+dotnet_diagnostic.DSP5002.severity = none
+
+# DSP5002 — B14's thirteen keys, the other half of the same finding.
+#
+# `recommendations.signals:record`, `recommendations.profile:read` and eleven more
+# in the shape above. Identical to B13's case in every respect that matters, and
+# deferred for the identical reason: a permission key is minted into access tokens,
+# held in the frontend's capability map and stored in issued sessions, so renaming
+# one is a coordinated release rather than a cleanup.
+#
+# This entry is new in PSR-1 and its arrival is the point. B1.4.1's F8 recorded
+# that these thirteen were exempt from three naming rules not by decision but by
+# accident — a private `Member(key, …)` factory hid the constant from the semantic
+# model, so DSP5002, DSP5004 and DSP5006 had never once run against this file.
+# PSR-1 rewrote the contributor to construct every definition inline, which is the
+# closure B1.4.1 named as the cheaper of the two. The thirteen errors that appeared
+# the moment it compiled are the evidence the blind spot was real; this suppression
+# is what makes the deferral a decision on the record rather than a silence.
+#
+# Remove it in the same versioned authorisation change that removes B13's. The
+# finding is F1 in docs/platform/b1.4-readiness-report.md, the blind spot is F8 in
+# docs/platform/b1.4.1-platform-readiness-cleanup-report.md, and the closure is
+# recorded in docs/platform/psr-1-platform-stabilization-report.md.
+[src/Diaspora.Modules.Recommendations/Authorization/RecommendationPermissionContributor.cs]
+dotnet_diagnostic.DSP5002.severity = none

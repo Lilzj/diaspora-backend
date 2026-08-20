@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Diaspora.Modules.Bookmarks</RootNamespace>
+    <AssemblyName>Diaspora.Modules.Bookmarks</AssemblyName>
+    <Description>
+      A complete, self-contained feature module — the proof that B2.6's extension points
+      actually compose. It registers permissions, feature gates, policies, endpoints,
+      services, EF Core configuration and observability entirely through contributor
+      interfaces, with no edit to the Platform Kernel, the Identity module, or Program.cs.
+      If this plugs in cleanly, Trust, Marketplace, Messaging and the rest will too.
+    </Description>
+  </PropertyGroup>
+
+  <!--
+    The reference set a real feature module needs, and no more. Platform for the
+    contributor contracts and catalogues; SharedKernel for Result and the primitives;
+    Contracts for the authorization vocabulary; Persistence for IDatabaseContributor and
+    the shared DbContext; Application for the CQRS abstractions and pipeline. It does NOT
+    reference Identity — a module that needed to would prove the boundary had leaked.
+  -->
+  <ItemGroup>
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Diaspora.SharedKernel\Diaspora.SharedKernel.csproj" />
+    <ProjectReference Include="..\Diaspora.Contracts\Diaspora.Contracts.csproj" />
+    <ProjectReference Include="..\Diaspora.Platform\Diaspora.Platform.csproj" />
+    <ProjectReference Include="..\Diaspora.Application\Diaspora.Application.csproj" />
+    <ProjectReference Include="..\Diaspora.Persistence\Diaspora.Persistence.csproj" />
+  </ItemGroup>
+
+</Project>

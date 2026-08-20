@@ -1,0 +1,64 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Diaspora.ArchitectureTests</RootNamespace>
+    <AssemblyName>Diaspora.ArchitectureTests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="NetArchTest.Rules" />
+
+    <!--
+      B1.2. Lets MessagingCompilerEnforcementTests compile illegal snippets in memory and
+      assert the diagnostics, which is the only way to test a guarantee whose whole point is
+      that the code cannot exist in this repository.
+    -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+
+    <!--
+      Needed only to build an EF model in memory. ValueObjectSharingArchitectureTests reads
+      owned-ness from the real model rather than guessing it from a base type, and building a
+      model requires a provider. No connection is ever opened; owned-ness is a modelling
+      decision and identical on every provider.
+    -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Diaspora.SharedKernel\Diaspora.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Domain\Diaspora.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Application\Diaspora.Application.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Platform\Diaspora.Platform.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Contracts\Diaspora.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Infrastructure\Diaspora.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Persistence\Diaspora.Persistence.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Api\Diaspora.Api.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Observability\Diaspora.Observability.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Trust\Diaspora.Modules.Trust.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Location\Diaspora.Modules.Location.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Media\Diaspora.Modules.Media.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Community\Diaspora.Modules.Community.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Providers\Diaspora.Modules.Providers.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Guides\Diaspora.Modules.Guides.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Jobs\Diaspora.Modules.Jobs.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Marketplace\Diaspora.Modules.Marketplace.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Housing\Diaspora.Modules.Housing.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.CommunityLife\Diaspora.Modules.CommunityLife.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Notifications\Diaspora.Modules.Notifications.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Recommendations\Diaspora.Modules.Recommendations.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Financial\Diaspora.Modules.Financial.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.CommunityProgramme\Diaspora.Modules.CommunityProgramme.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Analytics\Diaspora.Modules.Analytics.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Modules.Automation\Diaspora.Modules.Automation.csproj" />
+  </ItemGroup>
+
+</Project>

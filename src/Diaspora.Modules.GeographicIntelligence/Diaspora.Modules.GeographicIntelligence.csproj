@@ -1,0 +1,79 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Diaspora.Modules.GeographicIntelligence</RootNamespace>
+    <AssemblyName>Diaspora.Modules.GeographicIntelligence</AssemblyName>
+    <Description>
+      The Geographic Intelligence Platform (Phase B21). The backend behind the geographic half of
+      the frontend's Phase 8 Maps and Navigation register — the neighbourhood score breakdown, the
+      cost-of-living surface, the safety surface, the heat-map layer and the routing boundary.
+
+      What this module owns: composing geographic intelligence out of facts other modules already
+      hold, publishing the provenance around every figure it serves, and declaring the boundary an
+      external geographic provider plugs into.
+
+      What it deliberately does not own, and never duplicates:
+
+        The places. B4 owns the catalogue — the hierarchy, the slugs, the centroids, the
+        boundaries and the viewport search. This module resolves an area through B4 and adds
+        nothing to it.
+
+        The opinion about a place. B11 owns the neighbourhood profile — the liveability bands,
+        their author, their approver and their review date. This module reads them through the
+        published INeighborhoodDirectory and stores none of them.
+
+        The counts. B4's ILocationResourceCounter registry has answered "how much of your vertical
+        is in this node" since B4 shipped. The heat layer is that registry re-shaped, not a second
+        count.
+
+        Analytics is B19's. This module classifies geography; it aggregates nothing over time and
+        records no event.
+
+        Ranking is B14's, delivery is B13's, scheduling is B17's. A geographic condition is a fact
+        this module can answer; what anybody does with it is theirs.
+
+      It owns no table and ships no migration, which is the design rather than an omission: every
+      figure it serves is composed at read time from a module that already holds it. A geographic
+      intelligence layer with its own copy of a neighbourhood would be the duplication the whole
+      phase brief forbids.
+
+      Registers entirely through B2.6 contributor interfaces: no edit to the Platform Kernel, to
+      Identity, or to Program.cs.
+    </Description>
+  </PropertyGroup>
+
+  <!--
+    Two module references, both backwards, both to a published seam.
+
+    Location composes at 300 and Housing at 1000; this module composes at 1900, so the module
+    dependency guardrail — "a module never depends on a module composed after it" — permits both
+    and the graph stays acyclic. The references buy exactly two things: B4's catalogue and counter
+    registry, and B11's INeighborhoodDirectory. No aggregate, no repository and no identifier of
+    either module is touched outside those seams.
+
+    The alternative — consuming both through published integration events and keeping a third copy
+    of every neighbourhood — is what Analytics does at 1800, and it is right for Analytics because
+    analytics must record what was true at a moment. This module answers what is true now, so
+    reading the owner directly is the correct shape and a projection would be a second truth that
+    drifts.
+  -->
+  <ItemGroup>
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Diaspora.SharedKernel\Diaspora.SharedKernel.csproj" />
+    <ProjectReference Include="..\Diaspora.Contracts\Diaspora.Contracts.csproj" />
+    <ProjectReference Include="..\Diaspora.Platform\Diaspora.Platform.csproj" />
+    <ProjectReference Include="..\Diaspora.Application\Diaspora.Application.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Location\Diaspora.Modules.Location.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Housing\Diaspora.Modules.Housing.csproj" />
+  </ItemGroup>
+
+</Project>

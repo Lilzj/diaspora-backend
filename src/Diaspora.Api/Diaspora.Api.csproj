@@ -1,0 +1,384 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <RootNamespace>Diaspora.Api</RootNamespace>
+    <AssemblyName>Diaspora.Api</AssemblyName>
+    <Description>Diaspora Platform ASP.NET Core Web API — the application host.</Description>
+
+    <!--
+      M1 — the published API contract.
+
+      `AddOpenApi()` has always been able to produce a document, but `MapOpenApi()` is called
+      only under IsDevelopment(), so the only way to read the contract was to run the server
+      and ask it. That makes the contract unavailable to anything that is not a running
+      deployment: CI, a reviewer, and — the reason this exists — the mobile client's repo,
+      which had taken to reverse-engineering the same contract out of C# with three separate
+      hand-written regex parsers.
+
+      These three properties make the build itself write the document to disk. The generator
+      is the same one AddOpenApi() registers, so the file is the server's own statement of its
+      surface rather than an inference about it.
+
+      Deliberately NOT done here: enabling MapOpenApi outside Development. Emission is a build
+      artefact; exposing a live `/openapi/v1.json` in production would change what the
+      deployment answers to an unauthenticated caller, and nothing about publishing a contract
+      requires that.
+
+      The path is the repository root's `contracts/`, not `bin/`, and that is the whole point:
+      a build output is per-configuration, gitignored and invisible to a sibling checkout,
+      whereas this file is a committed artefact a second repository reads. Refreshed by any
+      `dotnet build` of this project; a diff in `contracts/` is the API surface changing, and
+      is meant to be reviewed as such.
+    -->
+    <OpenApiDocumentsDirectory>$(MSBuildThisFileDirectory)..\..\contracts</OpenApiDocumentsDirectory>
+    <OpenApiGenerateDocuments>true</OpenApiGenerateDocuments>
+    <OpenApiGenerateDocumentsOnBuild>true</OpenApiGenerateDocumentsOnBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+
+    <!--
+      Build-time only, for the OpenAPI document emission configured above. The two metadata
+      elements are what keep it that way: PrivateAssets=all stops it flowing to anything that
+      references this project, and the IncludeAssets list omits `compile`, so no code here can
+      take a using on it. It contributes MSBuild targets and a generator tool and nothing else
+      — the app's runtime surface is byte-for-byte what it was without this reference.
+    -->
+    <PackageReference Include="Microsoft.Extensions.ApiDescription.Server">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Scalar.AspNetCore" />
+    <PackageReference Include="Asp.Versioning.Http" />
+    <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" />
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Microsoft.IdentityModel.Tokens" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
+
+    <!--
+      Design-time only, for the EF Core tools. Migrations are scaffolded with the Api as the
+      startup project so the module assemblies it references are in the dependency context
+      for the design-time factory's contributor scan — which is what lets a module's tables
+      land in a migration without Persistence referencing the module. PrivateAssets keeps
+      this out of the published output.
+    -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Diaspora.Application\Diaspora.Application.csproj" />
+    <ProjectReference Include="..\Diaspora.Infrastructure\Diaspora.Infrastructure.csproj" />
+    <ProjectReference Include="..\Diaspora.Persistence\Diaspora.Persistence.csproj" />
+    <!--
+      The push transport. A vendor adapter rather than a module: it registers against
+      IPushNotificationSender after the kernel and does nothing unless
+      Notifications:Push:Provider names it. See Diaspora.Push.Firebase.
+    -->
+    <ProjectReference Include="..\Diaspora.Push.Firebase\Diaspora.Push.Firebase.csproj" />
+    <ProjectReference Include="..\Diaspora.Observability\Diaspora.Observability.csproj" />
+    <ProjectReference Include="..\Diaspora.Platform\Diaspora.Platform.csproj" />
+
+    <!--
+      The Production Platform (B17). Referenced by the host and by nothing else: an architecture
+      rule (B17-R1) fails the build if a business module takes a reference on it, because a
+      command handler that can reach the circuit-breaker registry is a command handler that will
+      one day open a circuit, and the modular boundary would be gone with no compile error.
+    -->
+    <ProjectReference Include="..\Diaspora.Operations\Diaspora.Operations.csproj" />
+
+    <!--
+      Discovered, not wired. The host references the Bookmarks module only so its assembly
+      is in the build output for the kernel's scanner to find at startup — Program.cs names
+      it nowhere. That reference is the entire integration surface of a module, and it is
+      what proves Trust, Marketplace and the rest will plug in the same way.
+    -->
+    <ProjectReference Include="..\Diaspora.Modules.Analytics\Diaspora.Modules.Analytics.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Bookmarks\Diaspora.Modules.Bookmarks.csproj" />
+
+    <!--
+      The Trust & Verification Engine (B3), plugged in the same way and on the same terms:
+      one reference so the assembly ships, and nothing else. Program.cs does not name it,
+      the Platform Kernel does not know it exists, and the Identity module is unchanged.
+    -->
+    <ProjectReference Include="..\Diaspora.Modules.Trust\Diaspora.Modules.Trust.csproj" />
+
+    <!--
+      The Location & Hyperlocal Intelligence Engine (B4), on the same terms as the two above:
+      one reference so the assembly ships, and nothing else. Program.cs does not name it, the
+      Platform Kernel does not know it exists, and Identity and Trust are unchanged.
+    -->
+    <ProjectReference Include="..\Diaspora.Modules.Location\Diaspora.Modules.Location.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Media\Diaspora.Modules.Media.csproj" />
+
+    <!--
+      The Community & Social Foundation Engine (B6), on the same terms as the four above: one
+      reference so the assembly ships, and nothing else. Program.cs does not name it, the
+      Platform Kernel does not know it exists, and Identity, Trust, Location and Media are
+      unchanged.
+    -->
+    <ProjectReference Include="..\Diaspora.Modules.Community\Diaspora.Modules.Community.csproj" />
+
+    <!--
+      The Provider & Service Ecosystem Engine (B7), on the same terms as the five above: one
+      reference so the assembly ships, and nothing else. Program.cs does not name it, the
+      Platform Kernel does not know it exists, and Identity, Trust, Location, Media and
+      Community are unchanged.
+    -->
+    <ProjectReference Include="..\Diaspora.Modules.Providers\Diaspora.Modules.Providers.csproj" />
+
+    <!--
+      The Guides & Knowledge Platform (B8), on the same terms as the six above: one reference
+      so the assembly ships, and nothing else. Program.cs does not name it, the Platform
+      Kernel does not know it exists, and Identity, Trust, Location, Media, Community and
+      Providers are unchanged.
+    -->
+    <ProjectReference Include="..\Diaspora.Modules.Guides\Diaspora.Modules.Guides.csproj" />
+
+    <!--
+      The Jobs & Careers Platform (B9), on the same terms as the seven above: one reference so
+      the assembly ships, and nothing else. Program.cs does not name it, the Platform Kernel
+      does not know it exists, and Identity, Trust, Location, Media, Community, Providers and
+      Guides are unchanged.
+
+      The one host file B9 does touch is ProvisionalCatalogContributor, and it touches it by
+      deleting: the jobs.browse, jobs.apply and jobs:apply entries the host has held since B2
+      move into the module with their names and tier floors unchanged. That file exists to
+      shrink, and this is it shrinking.
+    -->
+    <ProjectReference Include="..\Diaspora.Modules.Jobs\Diaspora.Modules.Jobs.csproj" />
+
+    <!--
+      The Marketplace & Commerce Platform (B10), on the same terms as the eight above: one
+      reference so the assembly ships, and nothing else. Program.cs does not name it, the Platform
+      Kernel does not know it exists, and Identity, Trust, Location, Media, Community, Providers,
+      Guides and Jobs are unchanged.
+
+      The one host file B10 does touch is ProvisionalCatalogContributor, and it touches it by
+      deleting: the marketplace.browse and marketplace.listings.create entries the host has held
+      since B2 move into the module with their names and tier floors unchanged. That file exists to
+      shrink, and this is it shrinking to two remaining modules' worth of debt.
+    -->
+    <ProjectReference Include="..\Diaspora.Modules.Marketplace\Diaspora.Modules.Marketplace.csproj" />
+
+    <!--
+      The Housing, Accommodation & Neighborhood Platform (B11), on the same terms as the nine
+      above: one reference so the assembly ships, and nothing else. Program.cs does not name it,
+      the Platform Kernel does not know it exists, and Identity, Trust, Location, Media, Community,
+      Providers, Guides, Jobs and Marketplace are unchanged.
+
+      Unlike B8, B9 and B10, this one touches ProvisionalCatalogContributor not at all. The host
+      has never declared a housing permission or gate, so there is nothing to move and nothing to
+      delete — which was verified rather than assumed, because the catalogue refuses two modules
+      declaring one gate and the resulting startup failure takes down every request that resolves
+      it.
+    -->
+    <ProjectReference Include="..\Diaspora.Modules.Housing\Diaspora.Modules.Housing.csproj" />
+
+    <!--
+      The Community Life, Events & Organizations Platform (B12), on the same terms as the ten
+      above: one reference so the assembly ships, and nothing else. Program.cs does not name it,
+      the Platform Kernel does not know it exists, and every earlier module is unchanged.
+
+      Unlike B11, this one does touch ProvisionalCatalogContributor, and had to: the host has
+      declared organizations:create and organizations.create provisionally since B2, and B12 now
+      declares both at the same Verified floor. Both provisional entries are deleted in this same
+      change — the catalogue refuses two modules declaring one gate, and the resulting startup
+      failure takes down every request that resolves it, phone verification included. A reference
+      added without the deletion would break every deployment on boot.
+    -->
+    <ProjectReference Include="..\Diaspora.Modules.CommunityLife\Diaspora.Modules.CommunityLife.csproj" />
+
+    <!--
+      The Notifications & Communication Platform (B13), on the same terms as the eleven above: one
+      reference so the assembly ships, and nothing else. Program.cs does not name it, the Platform
+      Kernel does not know it exists, and every earlier module is unchanged.
+
+      It claims no provisional permission or gate. The host's provisional catalogue has never held a
+      notification entry, so unlike B12 this reference needs no matching deletion — the module's six
+      gates and fourteen permissions are all new names.
+    -->
+    <ProjectReference Include="..\Diaspora.Modules.Notifications\Diaspora.Modules.Notifications.csproj" />
+
+    <!--
+      The Recommendation & Personalization Platform (B14), on the same terms as the twelve above: one
+      reference so the assembly ships, and nothing else. Program.cs does not name it, the Platform
+      Kernel does not know it exists, and every earlier module is unchanged.
+
+      It claims no provisional permission or gate. The host's provisional catalogue has never held a
+      recommendation entry, so like B13 this reference needs no matching deletion — the module's six
+      gates and fourteen permissions are all new names. That was verified rather than assumed,
+      because the catalogue refuses two modules declaring one gate and the resulting startup failure
+      takes down every request that resolves it, phone verification included.
+    -->
+    <ProjectReference Include="..\Diaspora.Modules.Recommendations\Diaspora.Modules.Recommendations.csproj" />
+
+    <!--
+      The Financial Platform, Wallet & Monetization Engine (B15), on the same terms as the thirteen
+      above: one reference so the assembly ships, and nothing else. Program.cs does not name it, the
+      Platform Kernel does not know it exists, and every earlier module is unchanged.
+
+      It claims no provisional permission or gate. The host's provisional catalogue has never held a
+      financial entry, so like B13 and B14 this reference needs no matching deletion — the module's
+      six gates and twenty-one permissions are all new names. That was verified rather than assumed,
+      because the catalogue refuses two modules declaring one gate and the resulting startup failure
+      takes down every request that resolves one, phone verification included.
+    -->
+    <ProjectReference Include="..\Diaspora.Modules.Financial\Diaspora.Modules.Financial.csproj" />
+
+    <!--
+      The Conversations & Messaging Platform (B13.2), on the same terms: one reference so the
+      assembly ships, and nothing else. Program.cs does not name it and the Platform Kernel does not
+      know it exists.
+
+      Unlike the fourteen above, this reference changes the behaviour of a module that was already
+      here. The module registers an IRealtimeGroupAuthorizer at order 1500, which replaces the
+      Communication Runtime's own-group default on last-registration-wins — and that is the single
+      change that turns conversation-scoped typing, read receipts and message fan-out from "relayed
+      to nobody" into working. Removing this reference does not merely remove conversations; it
+      silently returns the runtime to refusing every conversation group.
+
+      It claims no provisional permission or gate. The host's provisional catalogue has never held a
+      conversation entry, so like B13, B14 and B15 this reference needs no matching deletion — its
+      two gates and three permissions are all new names, verified rather than assumed.
+    -->
+    <ProjectReference Include="..\Diaspora.Modules.Conversations\Diaspora.Modules.Conversations.csproj" />
+
+    <!--
+      The Community Programme Platform (B18), on the same terms as the fifteen above: one reference so
+      the assembly ships, and nothing else. Program.cs does not name it and the Platform Kernel does
+      not know it exists.
+
+      It claims no provisional permission or gate. The host's provisional catalogue has never held a
+      community-programme entry, so like B13, B14 and B15 this reference needs no matching deletion —
+      its four gates and seven permissions are all new names, verified rather than assumed. That
+      verification is not ceremony: the catalogue refuses two modules declaring one gate, and the
+      resulting startup failure takes down every request that resolves one, phone verification
+      included.
+
+      Unlike B13.2's reference, removing this one removes only B18. It replaces no default, claims no
+      seam another module ships, and registers nothing another module resolves — which is what being
+      the last module composed is supposed to mean.
+    -->
+    <ProjectReference Include="..\Diaspora.Modules.CommunityProgramme\Diaspora.Modules.CommunityProgramme.csproj" />
+
+    <!--
+      The Creator Platform (B18.x). Discovered, not wired: one reference so the assembly ships and
+      the kernel's scanner finds it at startup. Program.cs names it nowhere, and closing the eleven
+      Phase 7 creator gaps needed no edit to the host, to Identity or to any certified module.
+    -->
+    <ProjectReference Include="..\Diaspora.Modules.Creator\Diaspora.Modules.Creator.csproj" />
+
+    <!--
+      The Geographic Intelligence Platform (B21). Discovered, not wired, like every module since
+      B2.6: one reference so the assembly ships and the kernel's scanner finds it at startup.
+
+      It composes last, at 1900, and that is load-bearing rather than incidental. It is the first
+      module on this platform to read two others directly — Location's catalogue and counter
+      registry, Housing's published neighbourhood directory — and the module dependency guardrail
+      permits that only because both compose before it.
+    -->
+    <ProjectReference Include="..\Diaspora.Modules.GeographicIntelligence\Diaspora.Modules.GeographicIntelligence.csproj" />
+
+    <!--
+      The Integration Foundation (B22). Discovered, not wired, like every module since B2.6: one
+      reference so the assembly ships and the kernel's scanner finds it at startup.
+
+      It composes last, at 2000, and that is load-bearing rather than incidental. Nothing may depend
+      on the integration boundary — a business module that took a reference on it would be a business
+      module whose domain logic could reach a provider adapter — and composing after everything else
+      is what the module-dependency guardrail turns that intention into.
+
+      It claims no provisional permission or gate. The host's provisional catalogue has never held an
+      integration entry, so unlike B12 this reference needs no matching deletion — its two gates and
+      six permissions are all new names. That was verified rather than assumed, because the catalogue
+      refuses two modules declaring one gate and the resulting startup failure takes down every
+      request that resolves one, phone verification included.
+
+      Removing this reference removes the connection registry, the OAuth exchange and the calendar
+      proxy. It replaces no default another module relies on, so nothing else changes.
+    -->
+    <ProjectReference Include="..\Diaspora.Modules.Integrations\Diaspora.Modules.Integrations.csproj" />
+
+    <!--
+      B23 — the Automation Platform Foundation.
+
+      Referenced so the assembly lands in the build output and the kernel's contributor scan finds it.
+      The host names it nowhere else: permissions, gates, policies, endpoints, tables, telemetry and
+      the B13 notification catalogue are all contributed.
+
+      Composed at order 2100, after Integrations, because it may read a module composed before it and
+      never one composed after. It reads exactly one — Notifications at 1200, for its catalogue
+      contributor seams — and consumes every other module through published contracts in
+      Diaspora.Contracts, which is what publishing one is for.
+
+      Removing this reference removes the automation registry, the execution engine, the durable
+      occurrence store, execution history, reminders and saved searches. It replaces no default another
+      module relies on, so nothing else changes.
+    -->
+    <ProjectReference Include="..\Diaspora.Modules.Automation\Diaspora.Modules.Automation.csproj" />
+  </ItemGroup>
+
+  <!--
+    ─── Which environment the contract is generated from ─────────────────────────
+
+    The document generator does not read the routing table; it *starts the application*
+    with an inert server, lets every line of Program.cs run, and then asks the built host
+    what it serves. That is why the document is trustworthy — it is the app's own answer
+    rather than a parse of its source — and it is also why the app's startup rules apply
+    to a build.
+
+    Started with no ASPNETCORE_ENVIRONMENT, the host boots as Production, where
+    `Identity:Jwt:SigningKey` is required and deliberately absent from appsettings.json.
+    Startup validation refuses to boot, the generator exits 11, and the build fails. That
+    refusal is correct and must not be softened: a Production host that starts without a
+    signing key is the defect the validator exists to catch.
+
+    So the generator is pointed at Development instead — the same environment that already
+    produces this document today, since `MapOpenApi()` and Scalar are mapped only under
+    IsDevelopment(). The emitted file is therefore byte-identical to what a developer reads
+    at /scalar, rather than a second, differently-produced description of the API.
+
+    Verified rather than assumed: neither the `/openapi/{document}.json` endpoint nor
+    Scalar's UI route appears in the emitted document, so choosing Development adds no
+    development-only path to the published contract.
+
+    Why an inline task and not simply `<Exec EnvironmentVariables=...>`: the Exec that
+    launches the generator lives inside the NuGet package's own targets file, which is
+    imported after this project and cannot be parameterised. Redefining that target here
+    would mean copying its body and re-copying it at every package upgrade. Setting the
+    variable in the MSBuild node before the target runs reaches the same child process and
+    survives the package changing its internals.
+  -->
+  <UsingTask TaskName="SetProcessEnvironmentVariable"
+             TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Name ParameterType="System.String" Required="true" />
+      <Value ParameterType="System.String" />
+    </ParameterGroup>
+    <Task>
+      <Code Type="Fragment" Language="cs">
+        System.Environment.SetEnvironmentVariable(Name, string.IsNullOrEmpty(Value) ? null : Value);
+      </Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="SetOpenApiDocumentGenerationEnvironment" BeforeTargets="GenerateOpenApiDocuments">
+    <SetProcessEnvironmentVariable Name="ASPNETCORE_ENVIRONMENT" Value="Development" />
+  </Target>
+
+  <!--
+    Cleared again immediately afterwards. The variable is set on the MSBuild node, which is
+    reused for other projects and persists between builds in the same session; leaving it
+    behind would silently change the environment of anything else the node later launches.
+  -->
+  <Target Name="ClearOpenApiDocumentGenerationEnvironment" AfterTargets="GenerateOpenApiDocuments">
+    <SetProcessEnvironmentVariable Name="ASPNETCORE_ENVIRONMENT" />
+  </Target>
+
+</Project>

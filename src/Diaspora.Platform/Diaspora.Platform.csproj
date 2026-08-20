@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Diaspora.Platform</RootNamespace>
+    <AssemblyName>Diaspora.Platform</AssemblyName>
+    <Description>Platform kernel — module discovery, contributor contracts, permission/feature/policy catalogues, and cross-cutting service abstractions.</Description>
+  </PropertyGroup>
+
+  <!--
+    The kernel owns the authorisation handlers and the endpoint-contributor contract, both
+    of which are ASP.NET Core types. Splitting them into a Diaspora.Platform.Web assembly
+    would buy a worker-process-friendly kernel that nothing in this platform needs, at the
+    cost of an extra reference in every module. Revisit if a non-web host ever appears.
+
+    The ASP.NET Core shared framework already carries the DI, Configuration and Options
+    abstractions, so those are not referenced as packages — NU1510 fails the Release build
+    if they are. DependencyModel is the one extension package the framework does not bundle.
+  -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.Extensions.DependencyModel" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Diaspora.SharedKernel\Diaspora.SharedKernel.csproj" />
+    <ProjectReference Include="..\Diaspora.Contracts\Diaspora.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

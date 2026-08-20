@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The Firebase Cloud Messaging adapter.
+
+    It is a separate assembly on purpose. `Diaspora.Modules.Notifications` owns the push *policy* —
+    what a notification becomes, which endpoints to use, what a dead token means — and an
+    architecture test refuses any vendor name inside it. The vendor is a value of
+    `Notifications:Push:Provider`, never a type in the module. So the wire lives here, behind
+    `IPushNotificationSender`, and registers after the module on last-registration-wins.
+
+    Swapping to APNs, or adding a second provider for one platform, replaces this project and
+    leaves the channel, its tests and its analytics untouched.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Diaspora.Push.Firebase</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Diaspora.Modules.Notifications\Diaspora.Modules.Notifications.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+</Project>

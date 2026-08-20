@@ -1,0 +1,28 @@
+# The Dockerfile does `COPY . .` after restoring, so anything left here is shipped
+# into the build context. bin/ and obj/ in particular carry host-built artefacts that
+# can shadow the container's own restore and produce a build that works locally and
+# nowhere else.
+
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/.idea/
+**/node_modules/
+**/TestResults/
+**/test-results/
+**/logs/
+
+.git/
+.github/
+.claude/
+docs/
+*.md
+!README.md
+
+**/*.user
+**/*.suo
+**/.DS_Store
+**/Thumbs.db
+
+docker/docker-compose*.yml

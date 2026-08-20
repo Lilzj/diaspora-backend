@@ -1,0 +1,104 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Diaspora.Modules.Creator</RootNamespace>
+    <AssemblyName>Diaspora.Modules.Creator</AssemblyName>
+    <Description>
+      The Creator Platform (Phase B18.x). The eleven creator-economy capabilities the frontend's
+      Phase 7 register found no contract behind, implemented as one module rather than eleven:
+      the creator projection and its status ladder, the creator-programme verification wrapper,
+      milestones, challenges, community grants, the Academy, the referral programme, the sign-up
+      point bonus, the reward rules and redemption catalogue, the leaderboards and the creator
+      directory.
+
+      The register's own finding is this module's premise: "Phase 7 is not sixteen unrelated holes,
+      it is one missing backend module ... and the eleven share a single aggregate — a creator
+      projection with a status, a programme membership and a progress store."
+
+      What the Creator Platform owns: the creator profile and its server-decided status, the
+      creator-programme application and its eleven-state machine, milestone definitions and per
+      creator progress, challenge definitions and enrolments, grant programmes with server-defined
+      application forms and the applications against them, Academy content as structured blocks
+      with server-side quiz grading and versioned progress, referral codes and the qualification
+      rule behind them, the sign-up bonus, the reward rules catalogue and redemption records, and
+      the recognised-activity ledger every one of those reads.
+
+      What it deliberately does not own, and never duplicates:
+
+        Identity is Trust's. This module asks ITrustService whether a member's identity is verified
+        and whether their account stands in good order; it stores no document, no evidence content
+        and no KYC state, and creator verification is a separate state machine from Trust's.
+
+        Money is B15's. Points are B15's too — RewardAccount is the platform's single points
+        ledger, and this module awards points by publishing RewardPointsGrantedIntegrationEvent
+        and spends them through B15's own IRewardPointsAccount seam. There is no second balance,
+        no second ledger and no wallet write anywhere in this assembly.
+
+        Delivery is B13's. This module publishes integration events and composes no notification.
+
+        Ranking for recommendation is B14's. The creator leaderboard is a ranking of this module's
+        own recognised-activity ledger against a served score definition, which is a different
+        thing from a recommendation surface.
+
+        Analytics is B19's. There is no view, impression, reach or engagement figure in this
+        module and no time-series API. The recognised-activity ledger records actions the creator
+        programme rewards, not audience behaviour.
+
+      Idempotency is B15's primitive, copied rather than reinvented: a nullable key column on the
+      aggregate the write creates, uniquely indexed, looked up before the write and replayed on a
+      repeat. There is no second idempotency store.
+
+      Registers entirely through B2.6 contributor interfaces: no edit to the Platform Kernel, to
+      Identity, or to Program.cs.
+    </Description>
+  </PropertyGroup>
+
+  <!--
+    One module reference, and it is narrow.
+
+    Financial, for reward points. B15's RewardAccount is the platform's single points balance and
+    its own documentation names "a creator platform" as the grantor the seam exists for. This
+    module awards by publishing a contract B15 already consumes, and debits a redemption through
+    B15's IRewardPointsAccount — the seam added for this phase — so the balance check and the
+    debit are one transaction rather than two hopeful ones. It creates no payment, no wallet, no
+    ledger entry and no conversion, and an architecture test asserts it.
+
+    Notably absent: Trust, Community, Guides, Community Life, Notifications and Recommendations.
+    Trust is reached through the kernel's ITrustService, which is what that abstraction is for.
+    Everything a milestone, a challenge or a leaderboard counts arrives as a published integration
+    event, which is why this module can rank a creator's contribution without referencing the
+    module that produced it.
+  -->
+  <ItemGroup>
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Diaspora.SharedKernel\Diaspora.SharedKernel.csproj" />
+    <ProjectReference Include="..\Diaspora.Contracts\Diaspora.Contracts.csproj" />
+    <ProjectReference Include="..\Diaspora.Platform\Diaspora.Platform.csproj" />
+    <ProjectReference Include="..\Diaspora.Application\Diaspora.Application.csproj" />
+    <ProjectReference Include="..\Diaspora.Persistence\Diaspora.Persistence.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Financial\Diaspora.Modules.Financial.csproj" />
+
+    <!--
+      B23.x Wave 12. Community owns the follow graph — `FollowTargetType.Member` is how somebody
+      follows a creator — and this module's automation scope authority has to page through a creator's
+      audience to broadcast to it. Community composes at 500 and this module at 1400, so the edge runs
+      in the permitted direction, and it is the same shape B12 already has for `ICommunityContentSource`.
+
+      Nothing else in this module reads it: the reference exists for the follower page and the
+      follower count behind `notify.followers`, and an architecture test would report any other use.
+    -->
+    <ProjectReference Include="..\Diaspora.Modules.Community\Diaspora.Modules.Community.csproj" />
+  </ItemGroup>
+
+</Project>

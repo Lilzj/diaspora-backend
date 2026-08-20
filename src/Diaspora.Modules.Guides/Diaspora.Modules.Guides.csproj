@@ -1,0 +1,69 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Diaspora.Modules.Guides</RootNamespace>
+    <AssemblyName>Diaspora.Modules.Guides</AssemblyName>
+    <Description>
+      The Guides &amp; Knowledge Platform (Phase B8). The platform's single owner of long-lived,
+      versioned, community-authored knowledge: how to obtain a work permit, register a company,
+      enroll a child in school, open a bank account, import household goods — the questions every
+      diaspora member asks and the answers that outlive any feed.
+
+      A guide is not a post. It is drafted, published, versioned immutably on every published
+      edit, localized, categorized, tagged, moderated, measured, and progressively verified by
+      Trust into an authoritative resource. Community improvements arrive as suggestions; the
+      discussion, reactions and bookmarks around a guide belong to Community; the geography
+      belongs to Location; the assets belong to Media; the referenced professionals belong to
+      Providers. Guides owns the knowledge and its lifecycle, and nothing else.
+
+      Search is a seam, not an engine: the module ships an EF-backed projection search and the
+      IGuideSearchEngine port an OpenSearch adapter can satisfy later without a domain change.
+      Categories, ranking and verification sources are contributor seams on the same terms.
+
+      Registers entirely through B2.6 contributor interfaces: no edit to the Platform Kernel, the
+      Identity module, the Trust module, the Location module, the Media module, the Community
+      module, the Providers module, or Program.cs.
+    </Description>
+  </PropertyGroup>
+
+  <!--
+    The same reference set B7 uses, plus B7 itself.
+
+    Location, Media, Community and Providers are deliberate and documented. B8 consumes
+    Location's published Integration and Extensibility contracts (IGeographicScopeResolver,
+    INearbyResourceProvider, ILocationResourceCounter), Media's published reference contracts
+    (attach-by-reference, never URLs), Community's published Integration contracts
+    (ICommunityBookmarkService, ICommunityCommentService, ICommunityModerationService,
+    ICommunityContentSource) and Providers' published Integration contracts (IProviderDirectory)
+    — each the consumption path that module's own contract freeze publishes for verticals.
+
+    Notably absent: the Identity module and the Trust module. Guides reaches Identity through
+    the kernel's ICurrentUser and Trust through Diaspora.Contracts — the published
+    ITrustVerificationSubmission contract and Trust's published integration events — never
+    through their aggregates.
+  -->
+  <ItemGroup>
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Diaspora.SharedKernel\Diaspora.SharedKernel.csproj" />
+    <ProjectReference Include="..\Diaspora.Contracts\Diaspora.Contracts.csproj" />
+    <ProjectReference Include="..\Diaspora.Platform\Diaspora.Platform.csproj" />
+    <ProjectReference Include="..\Diaspora.Application\Diaspora.Application.csproj" />
+    <ProjectReference Include="..\Diaspora.Persistence\Diaspora.Persistence.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Location\Diaspora.Modules.Location.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Media\Diaspora.Modules.Media.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Community\Diaspora.Modules.Community.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Providers\Diaspora.Modules.Providers.csproj" />
+  </ItemGroup>
+
+</Project>

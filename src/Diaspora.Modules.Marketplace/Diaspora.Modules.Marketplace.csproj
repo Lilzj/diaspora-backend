@@ -1,0 +1,84 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Diaspora.Modules.Marketplace</RootNamespace>
+    <AssemblyName>Diaspora.Modules.Marketplace</AssemblyName>
+    <Description>
+      The Marketplace &amp; Commerce Platform (Phase B10). The platform's single owner of trade
+      between members: what is for sale, who is selling it, what was offered for it, who reserved
+      it, and whether it sold.
+
+      A listing is not a classified advert. It belongs to a seller profile that may be a person or
+      a business, carries a price in a stated currency that nothing silently converts, tracks its
+      own stock, moves through a lifecycle from draft to sold, and stops being discoverable the
+      moment it is reserved out. An offer is not a message: it is a durable negotiation with an
+      append-only history, an expiry, and exactly one accepted terminal state. A reservation is not
+      a flag: it holds stock against a named buyer until it completes, expires or is cancelled, and
+      returns the stock in every one of those cases.
+
+      What Marketplace owns: listings, seller profiles, offers, reservations, saved listings,
+      reports, promotions, conversation references, the listing analytics rollup and the commerce
+      catalogues. What it deliberately does not: the badge on a seller belongs to Trust, the
+      country a listing sits in belongs to Location, the photograph bytes belong to Media, the shop
+      behind a storefront belongs to Providers, the discussion under a listing belongs to
+      Community, and the chat between buyer and seller will belong to the Communication module.
+      Marketplace reaches every one of them through published contracts and stores identifiers,
+      never copies.
+
+      Search is a seam, not an engine: the module ships an EF-backed search over the write model
+      and the IMarketplaceSearchEngine port an OpenSearch adapter can satisfy later without a
+      domain change. Ranking, categories, category attributes, fraud signals, view de-duplication
+      and buyer/seller conversations are contributor seams on the same terms.
+
+      Payments, cart, checkout, escrow, shipment tracking, warehouse management, the auction engine
+      and dynamic pricing are explicitly out of scope, and the abstractions here are shaped so that
+      each arrives as a new module rather than as a restructuring of this one.
+
+      Registers entirely through B2.6 contributor interfaces: no edit to the Platform Kernel, the
+      Identity module, Trust, Location, Media, Community, Providers, Guides, Jobs, or Program.cs.
+    </Description>
+  </PropertyGroup>
+
+  <!--
+    B9's reference set. Location, Media, Community, Providers and Guides are deliberate and
+    documented. B10 consumes Location's published Integration and Extensibility contracts
+    (IGeographicScopeResolver, INearbyResourceProvider, ILocationResourceCounter), Media's
+    published reference contracts (attach-by-reference, never URLs — and
+    MediaOwnerType.MarketplaceListing has existed since B5), Community's published Extensibility
+    contract (ICommunityContentSource — and CommunityContentType.Marketplace has existed since
+    B6), Providers' published IProviderDirectory for the shops behind a storefront, and Guides'
+    published IGuideDirectory for the buying-safely explainers beside a listing.
+
+    Notably absent: the Identity module, the Trust module and the Jobs module. Marketplace reaches
+    Identity through the kernel's ICurrentUser and Trust through Diaspora.Contracts — the published
+    ITrustVerificationSubmission contract and Trust's published integration events — never through
+    their aggregates. Jobs is not consumed at all: the two verticals are siblings, and a reference
+    between them would be the first edge in the graph B2.6 exists to keep acyclic. Architecture
+    tests enforce all four.
+  -->
+  <ItemGroup>
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Diaspora.SharedKernel\Diaspora.SharedKernel.csproj" />
+    <ProjectReference Include="..\Diaspora.Contracts\Diaspora.Contracts.csproj" />
+    <ProjectReference Include="..\Diaspora.Platform\Diaspora.Platform.csproj" />
+    <ProjectReference Include="..\Diaspora.Application\Diaspora.Application.csproj" />
+    <ProjectReference Include="..\Diaspora.Persistence\Diaspora.Persistence.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Location\Diaspora.Modules.Location.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Media\Diaspora.Modules.Media.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Community\Diaspora.Modules.Community.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Providers\Diaspora.Modules.Providers.csproj" />
+    <ProjectReference Include="..\Diaspora.Modules.Guides\Diaspora.Modules.Guides.csproj" />
+  </ItemGroup>
+
+</Project>
