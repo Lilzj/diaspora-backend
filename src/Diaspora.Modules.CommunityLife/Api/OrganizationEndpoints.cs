@@ -199,6 +199,32 @@ internal static class OrganizationEndpoints
             .WithName("SetOrganizationLeaders")
             .WithSummary("Replaces the leadership list.");
 
+        // The guides an organization points its readers at. A sibling of
+        // `/leaders` and `/operating-hours` because it is the same kind of thing:
+        // a sub-collection edited over the organization's life rather than filled
+        // in once at creation.
+        //
+        // Until this existed, `OrganizationResponse.Guides` could not be
+        // populated by any route — the domain method, the reference type, the
+        // table and the resolver were all present and none of them had a caller.
+        group.MapPut("/organizations/{organizationId:guid}/guides", async (
+                Guid organizationId,
+                SetOrganizationGuidesRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new SetOrganizationGuidesCommand
+                        {
+                            OrganizationId = organizationId,
+                            Request = request
+                        },
+                        cancellationToken)))
+            .WithName("SetOrganizationGuides")
+            .WithSummary("Replaces the guides this organization points readers at.");
+
         group.MapPut("/organizations/{organizationId:guid}/operating-hours", async (
                 Guid organizationId,
                 SetOperatingHoursRequest request,
