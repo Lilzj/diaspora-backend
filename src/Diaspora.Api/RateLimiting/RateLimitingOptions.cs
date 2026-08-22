@@ -38,6 +38,19 @@ public sealed class RateLimitingOptions
     public RateLimitPolicyOptions Refresh { get; set; } = new() { PermitLimit = 30, WindowSeconds = 60 };
 
     /// <summary>
+    /// Authenticated application traffic, for the module groups that ask to be throttled.
+    /// <para>
+    /// Three hundred a minute is not a credential-exchange budget and is not meant to be.
+    /// It bounds a client that has already proved who it is, where the real control is the
+    /// authorisation on each endpoint; the limiter is there so a compromised or runaway
+    /// client cannot drive unbounded load. Before this existed those groups borrowed
+    /// <see cref="SignIn"/>, and ten requests a minute shared with <c>/auth/login</c> is a
+    /// chat screen that stops loading.
+    /// </para>
+    /// </summary>
+    public RateLimitPolicyOptions Authenticated { get; set; } = new() { PermitLimit = 300, WindowSeconds = 60 };
+
+    /// <summary>
     /// Per-subject budgets, applied by handlers on top of the per-IP limits above. These
     /// are what a distributed attack runs into.
     /// </summary>

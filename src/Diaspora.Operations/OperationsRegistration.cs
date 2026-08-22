@@ -206,6 +206,17 @@ public static class OperationsRegistration
     {
         services.TryAddSingleton<IBackupProvider, UnconfiguredBackupProvider>();
         services.AddSingleton<IPrivacyAuditor, PrivacyAuditor>();
+
+        // The two subject rights, on the seams the auditor already reports against.
+        //
+        // Scoped, unlike the auditor beside them, and the difference is load-bearing. The auditor is a
+        // singleton that opens a scope to count providers; these two must run on the *caller's* scope,
+        // because an erasure provider mutates a tracked aggregate and the caller's unit of work is what
+        // commits it. Registered as singletons in the first draft, the erasure resolved its providers
+        // into a DbContext nobody saved: every ExecuteDelete beside it worked, the account itself was
+        // silently untouched, and the receipt reported success.
+        services.AddScoped<IPersonalDataExportService, PersonalDataExportService>();
+        services.AddScoped<IAccountErasureService, AccountErasureService>();
     }
 
     private static void AddHealthAndDashboards(IServiceCollection services)

@@ -9,16 +9,37 @@ COPY Directory.Packages.props .
 COPY global.json .
 COPY .editorconfig .
 
-COPY src/Diaspora.SharedKernel/Diaspora.SharedKernel.csproj src/Diaspora.SharedKernel/
-COPY src/Diaspora.Contracts/Diaspora.Contracts.csproj src/Diaspora.Contracts/
-COPY src/Diaspora.Domain/Diaspora.Domain.csproj src/Diaspora.Domain/
-COPY src/Diaspora.Platform/Diaspora.Platform.csproj src/Diaspora.Platform/
-COPY src/Diaspora.Application/Diaspora.Application.csproj src/Diaspora.Application/
-COPY src/Diaspora.Persistence/Diaspora.Persistence.csproj src/Diaspora.Persistence/
-COPY src/Diaspora.Infrastructure/Diaspora.Infrastructure.csproj src/Diaspora.Infrastructure/
-COPY src/Diaspora.Observability/Diaspora.Observability.csproj src/Diaspora.Observability/
-COPY src/Diaspora.Modules.Bookmarks/Diaspora.Modules.Bookmarks.csproj src/Diaspora.Modules.Bookmarks/
-COPY src/Diaspora.Api/Diaspora.Api.csproj src/Diaspora.Api/
+# Every project file, not a hand-maintained subset.
+#
+# This used to name ten projects explicitly, and the solution has thirty-three. The
+# failure that caused is worth recording, because nothing about it looked like a
+# failure: `dotnet restore` does not error on a ProjectReference whose file is absent
+# from the build context. It prints `Skipping project "..." because it was not found`
+# and **exits 0**, having written an assets file for the Api that resolves none of the
+# twenty-three missing projects. The `COPY src/ src/` below then brings them all in and
+# `dotnet publish --no-restore` dies on the first one:
+#
+#     error NETSDK1004: Assets file '/source/src/Diaspora.Analyzers/obj/project.assets.json'
+#     not found. Run a NuGet package restore to generate this file.
+#
+# So the image could not be built at all, while the layer that was wrong reported
+# success. Every project added since the list was written widened the break, and none
+# of them had any reason to touch this file.
+#
+# A wildcard cannot go stale that way. It costs the restore layer some cache
+# granularity — the layer is invalidated when *any* project file changes rather than
+# one of ten — which is a repeated restore, not a broken image.
+#
+# `COPY src/*/*.csproj ./` flattens: Docker discards the directory part of a wildcard
+# source, so all thirty-three land in /source. The loop puts each one back under the
+# directory its own name implies, which is the convention this repository already
+# follows for every project without exception.
+COPY src/*/*.csproj ./
+RUN for project in *.csproj; do \
+        name="${project%.csproj}"; \
+        mkdir -p "src/$name"; \
+        mv "$project" "src/$name/"; \
+    done
 
 RUN dotnet restore src/Diaspora.Api/Diaspora.Api.csproj
 

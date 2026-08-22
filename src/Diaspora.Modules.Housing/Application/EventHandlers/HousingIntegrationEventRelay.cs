@@ -139,7 +139,12 @@ public sealed class HousingIntegrationEventRelay
                     ? []
                     : [.. listing.Amenities.Select(amenity => amenity.AmenityKey)],
                 IsFirstPublication = domainEvent.IsFirstPublication,
-                PublishedAt = domainEvent.PublishedAt
+                PublishedAt = domainEvent.PublishedAt,
+
+                // The member behind the profile. Already loaded above for the name, the kind and the
+                // badge, so this costs nothing, and without it a consumer that credits the person who
+                // listed the property has a profile identifier and no way to reach them.
+                LandlordUserId = landlord?.OwnerUserId.Value
             },
             cancellationToken);
     }

@@ -69,6 +69,16 @@
     <ProjectReference Include="..\Diaspora.Persistence\Diaspora.Persistence.csproj" />
     <ProjectReference Include="..\Diaspora.Modules.Notifications\Diaspora.Modules.Notifications.csproj" />
     <ProjectReference Include="..\Diaspora.Modules.Marketplace\Diaspora.Modules.Marketplace.csproj" />
+    <!--
+      Community, for one class: Infrastructure/Community/MessageContentSource.cs.
+
+      B6 owns reporting for every other content type on the platform, and a direct message was the
+      one surface with no way to raise a complaint at all. Claiming CommunityContentType.Message
+      here — rather than building a second reporting system inside Conversations — keeps one report
+      taxonomy, one moderation queue and one set of reasons. The source deliberately resolves only
+      for a participant and never exposes a message body; see the class note.
+    -->
+    <ProjectReference Include="..\Diaspora.Modules.Community\Diaspora.Modules.Community.csproj" />
   </ItemGroup>
 
 </Project>

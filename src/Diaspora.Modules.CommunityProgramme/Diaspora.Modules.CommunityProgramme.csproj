@@ -82,6 +82,16 @@
     <ProjectReference Include="..\Diaspora.Application\Diaspora.Application.csproj" />
     <ProjectReference Include="..\Diaspora.Persistence\Diaspora.Persistence.csproj" />
     <ProjectReference Include="..\Diaspora.Modules.CommunityLife\Diaspora.Modules.CommunityLife.csproj" />
+    <!--
+      Community, for one class: Infrastructure/Community/PollContentSource.cs.
+
+      `CommunityContentType.Poll` was the last member of B6's enum claimed by nothing, so a poll —
+      the one piece of community content built to gather answers from people — could not be
+      reported. This module owns the poll that is independently addressable
+      (`/communities/polls/{pollId}`); Community's own `Poll` hangs off a post and is reported by
+      reporting that post.
+    -->
+    <ProjectReference Include="..\Diaspora.Modules.Community\Diaspora.Modules.Community.csproj" />
     <ProjectReference Include="..\Diaspora.Modules.Financial\Diaspora.Modules.Financial.csproj" />
   </ItemGroup>
 

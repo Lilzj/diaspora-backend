@@ -72,7 +72,11 @@ public sealed class ListProviderReviewsQueryHandler
             HasMore = page.HasMore,
             Summary = query.Cursor is null
                 ? ProviderReviewMapper.ToResponse(provider.ReviewSummary)
-                : null
+                : null,
+
+            // Echoed so a caller that reached here through `/providers/me/reviews` knows which of
+            // its providers answered, and so no client has to remember the id it asked for.
+            ProviderId = provider.Id.Value
         });
     }
 }

@@ -53,6 +53,24 @@ public enum CommunityContentType
     /// <summary>A member profile. Followable and reportable, not commentable.</summary>
     Member = 11,
 
+    /// <summary>
+    /// One direct message, reportable and nothing else.
+    /// <para>
+    /// <b>Added late, and the reason it was missing is the reason it matters.</b> Every other
+    /// content type here is public or semi-public, and a private message is neither — so it was
+    /// never modelled as content, and the consequence was that a member being harassed in their
+    /// inbox had no way to report it. That is the one place on this platform where the harm is
+    /// most direct and the audience is smallest.
+    /// </para>
+    /// <para>
+    /// <b>Never commentable, never bookmarkable, never public.</b> The source that claims it
+    /// describes every message as <c>Private</c> and refuses comments, and it resolves only for a
+    /// participant in the conversation — so this enum member widens what can be *reported* without
+    /// widening what can be *read*.
+    /// </para>
+    /// </summary>
+    Message = 12,
+
     /// <summary>A content type a later module introduced before this enum caught up.</summary>
     Other = 99
 }

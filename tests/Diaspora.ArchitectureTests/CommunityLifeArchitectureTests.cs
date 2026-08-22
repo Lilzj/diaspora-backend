@@ -344,22 +344,33 @@ public class CommunityLifeArchitectureTests
     // ── Cross-module adapters ───────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// <b>One adapter per foreign module, and nothing else reaches across.</b> Community is
-    /// reached only from the content source, Location only from the two adapters — so a change in
-    /// either module is a change to one file here.
+    /// <b>Cross-module reach is confined to named adapters, and nothing else reaches across.</b>
+    /// Community is reached only from the content sources, Location only from the two adapters —
+    /// so a change in either module is a change to a file named here.
+    /// <para>
+    /// <b>This was "one adapter" and is now two.</b> <c>OrganizationContentSource</c> joined
+    /// <c>CommunityEventContentSource</c> when the disclosure sweep found
+    /// <c>CommunityContentType.Organization</c> declared in B6's enum and claimed by nothing —
+    /// so no association, church or savings group on the platform could be reported. The rule the
+    /// test is protecting is *confinement*, not the number: one content source per content type is
+    /// the shape the interface asks for, and B12 owns two content types. The allowlist is the
+    /// enforcement, and adding to it is a deliberate act that shows up in review.
+    /// </para>
     /// </summary>
     [Fact]
-    public void Community_is_reached_only_from_the_content_source()
+    public void Community_is_reached_only_from_the_content_sources()
     {
+        var adapters = new[] { typeof(CommunityEventContentSource), typeof(OrganizationContentSource) };
+
         var offenders = Types.InAssembly(Module)
             .That()
             .HaveDependencyOn("Diaspora.Modules.Community")
             .GetTypes()
-            .Where(type => type != typeof(CommunityEventContentSource))
+            .Where(type => !adapters.Contains(type))
             .ToList();
 
         offenders.Should().BeEmpty(
-            "B6 is reached through one adapter. Offenders: "
+            "B6 is reached through the named content sources. Offenders: "
             + string.Join(", ", offenders.Select(type => type.FullName)));
     }
 

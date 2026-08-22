@@ -44,7 +44,12 @@ public sealed class TrustEndpointContributor : IEndpointContributor
         var group = endpoints
             .MapGroup(TrustModuleMetadata.RoutePrefix)
             .WithTags("Trust")
-            .RequireRateLimiting("diaspora-signin");
+            // "diaspora-authenticated", not "diaspora-signin". This group used to draw on the
+            // credential-exchange budget — ten requests a minute, per IP, shared with
+            // /auth/login — which meant /trust/feature-requirements, the list every create
+            // screen fetches when it opens, 429ed after a member looked at a few of them.
+            // The literal rather than the host's constant: a module does not reference the host.
+            .RequireRateLimiting("diaspora-authenticated");
 
         MapProfile(group);
         MapVerifications(group);

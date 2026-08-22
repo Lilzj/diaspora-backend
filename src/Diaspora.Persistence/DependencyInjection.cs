@@ -1,5 +1,7 @@
 using Diaspora.Domain.Abstractions;
 using Diaspora.Persistence.Atomic;
+using Diaspora.Persistence.Identity;
+using Diaspora.Platform.Operations.Privacy;
 using Diaspora.Persistence.Modules;
 using Diaspora.Persistence.Outbox;
 using Diaspora.Persistence.Transactions;
@@ -37,6 +39,13 @@ public static class DependencyInjection
         // commit verifiable live inside the unit of work itself — they are steps in a transaction,
         // not services anything else may call — so this is the only one that needs registering.
         services.AddScoped<ITransactionReceiptStore, EfTransactionReceiptStore>();
+
+        // The two subject-rights providers for the identity schema. Registered here, with the identity
+        // mappings they operate on, and scoped because they read and write through the request's own
+        // DbContext — which is what lets an erasure participate in the caller's unit of work rather
+        // than committing a half-finished one of its own.
+        services.AddScoped<IDataErasureProvider, IdentityDataErasureProvider>();
+        services.AddScoped<IDataExportProvider, IdentityDataExportProvider>();
 
         // The guarded atomic update primitive B10 and B11 each closed by recommending. Scoped
         // because both run on the request's own context and transaction — a singleton executor

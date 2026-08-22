@@ -434,6 +434,31 @@ public sealed class CreatorActivityRepository : ICreatorActivityRepository
             cancellationToken);
     }
 
+    public async Task<IReadOnlyList<CreatorActivityEntry>> ListForCreatorAsync(
+        CreatorId creatorId,
+        DateTimeOffset? before,
+        int take,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(creatorId);
+
+        var query = Entries.AsNoTracking().Where(entry => entry.CreatorId == creatorId);
+
+        if (before is { } boundary)
+        {
+            query = query.Where(entry => entry.OccurredAt < boundary);
+        }
+
+        // Newest first, because a history opens at the top. `Id` breaks the tie so the cursor is
+        // stable: several entries can share an `OccurredAt` when one publish raises more than one
+        // recognised action, and an unstable order would drop or repeat rows across pages.
+        return await query
+            .OrderByDescending(entry => entry.OccurredAt)
+            .ThenByDescending(entry => entry.Id)
+            .Take(Math.Clamp(take, 1, 100))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<long> CountForCreatorAsync(
         CreatorId creatorId, DateTimeOffset? since, CancellationToken cancellationToken = default)
     {

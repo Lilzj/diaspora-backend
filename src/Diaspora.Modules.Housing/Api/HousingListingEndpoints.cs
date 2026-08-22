@@ -45,6 +45,24 @@ internal static class HousingListingEndpoints
             .WithName("CreateHousingListing")
             .WithSummary("Draft a property. Always private until published.");
 
+        // BG-07. A landlord listing several units in one building would otherwise retype the whole
+        // form each time. The address and the photographs are deliberately NOT carried over — see
+        // DuplicateHousingListingCommandHandler.
+        group.MapPost("/listings/{listingId:guid}/duplicate", async (
+                Guid listingId,
+                [FromBody] DuplicateHousingListingRequest? request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Created(
+                    context,
+                    await sender.Send(
+                        new DuplicateHousingListingCommand { ListingId = listingId, Title = request?.Title },
+                        cancellationToken)))
+            .RequireAuthorization(HousingPolicies.ListingCreate)
+            .WithName("DuplicateHousingListing")
+            .WithSummary("Copy one of your properties into a new draft.");
+
         group.MapPatch("/listings/{listingId:guid}", async (
                 Guid listingId,
                 [FromBody] UpdateHousingListingRequest request,

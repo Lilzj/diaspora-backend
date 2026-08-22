@@ -130,6 +130,36 @@ public sealed class EventContractEnrichmentTests
     ];
 
     /// <summary>
+    /// A fourth category: an identifier a later phase appended so a consumer could say <em>whose
+    /// work this was</em>, rather than so a notification could reach somebody.
+    /// <para>
+    /// BG-10 found that creator activity was being recorded against the <em>profile</em> id rather
+    /// than the member id, so a member's own contributions were attributed to a row that was not
+    /// them. The fix needs the publishing module to state the owning member on the event, because
+    /// Creator cannot resolve one without reaching into a module it may not depend on.
+    /// </para>
+    /// <para>
+    /// It does not belong in <see cref="Enrichments"/>, and the distinction is the reason this list
+    /// exists rather than a fourth line added there. Those are B13.1's <em>recipient</em>
+    /// identifiers — who a message is delivered to — and the relay fills them from
+    /// <c>NotifiableOwnerUserId</c>, which is deliberately null for an owner who has switched
+    /// delivery off. This is attribution: it comes from <c>OwnerUserId</c> and is present whatever
+    /// the owner's notification preferences say, because who wrote something does not change when
+    /// they mute it.
+    /// </para>
+    /// <para>
+    /// <c>HousingPublishedIntegrationEvent.LandlordUserId</c> is the same identifier for the same
+    /// reason, and is not listed because <c>Diaspora.Contracts.Housing</c> is not one of the four
+    /// namespaces the completeness rule below scans. Named here so the pair is discoverable from
+    /// either half.
+    /// </para>
+    /// </summary>
+    private static readonly (Type Contract, string Property)[] AttributionIdentifiers =
+    [
+        (typeof(JobPublishedIntegrationEvent), "EmployerUserId")
+    ];
+
+    /// <summary>
     /// What B12.1 appended to three event contracts, so the append-order rule can tell them from
     /// the properties those contracts carried before B13.1.
     /// <para>
@@ -439,6 +469,7 @@ public sealed class EventContractEnrichmentTests
         var recorded = Enrichments
             .Concat(PredatingB131)
             .Concat(BornWithTheContract)
+            .Concat(AttributionIdentifiers)
             .ToHashSet();
 
         var suffixed = typeof(IIntegrationEvent).Assembly.GetTypes()

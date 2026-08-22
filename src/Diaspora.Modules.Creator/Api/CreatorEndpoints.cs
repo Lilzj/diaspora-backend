@@ -1,9 +1,12 @@
+using Diaspora.Modules.Creator.Application.Activity;
 using Diaspora.Modules.Creator.Application.Creators;
 using Diaspora.Modules.Creator.Application.Discovery;
 using Diaspora.Modules.Creator.Application.Milestones;
 using Diaspora.Modules.Creator.Application.Verification;
 using Diaspora.Modules.Creator.Contracts.V1.Requests;
+using Diaspora.Modules.Creator.Contracts.V1.Responses;
 using Diaspora.Platform.Http;
+using Diaspora.SharedKernel.Results;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -27,6 +30,17 @@ internal static class CreatorProfileEndpoints
             .WithSummary(
                 "The caller's creator projection, with the status the platform decided and what the "
                 + "next rung needs.");
+
+        // BG-08. The rubric, not a score — see ContentHealthRubric for why the evaluation cannot
+        // live here without giving Creator a dependency on four content modules. Anonymous-safe:
+        // it is the platform's definition of the word, not anybody's data.
+        group.MapGet("/content-health/rubric", (HttpContext context) =>
+                PlatformResults.Ok(context, Result.Success(ContentHealthRubricResponse.Current)))
+            .AllowAnonymous()
+            .WithName("GetContentHealthRubric")
+            .WithSummary(
+                "What content health means: the criteria, their weights and the thresholds. The "
+                + "client applies this to the items it already holds.");
 
         group.MapPut("/me", async (
                 UpdateCreatorProfileRequest request,
@@ -136,6 +150,20 @@ internal static class CreatorMilestoneEndpoints
     public static void Map(RouteGroupBuilder group)
     {
         ArgumentNullException.ThrowIfNull(group);
+
+        // The read the workspace timeline was waiting for. `CreatorActivityEntry` has been written
+        // on every recognised action since the module shipped and nothing served it back.
+        group.MapGet("/me/activity", async (
+                DateTimeOffset? before,
+                int? take,
+                ISender sender, HttpContext context, CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new GetMyCreatorActivityQuery { Before = before, Take = take },
+                        cancellationToken)))
+            .WithName("GetMyCreatorActivity")
+            .WithSummary("The caller's own recognised activity, newest first.");
 
         group.MapGet("/me/milestones", async (
                 ISender sender, HttpContext context, CancellationToken cancellationToken) =>

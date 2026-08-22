@@ -54,6 +54,32 @@ internal static class ProviderReviewEndpoints
 
     private static void MapReviews(RouteGroupBuilder group)
     {
+        // ── The caller's own reviews ────────────────────────────────────────────
+        //
+        // Declared before `/{providerId:guid}/reviews` so the literal `me` resolves here. The
+        // client asked for `GET /providers/me/reviews`, got a bare 404, and the creator profile
+        // has carried "Diaspora cannot list your reviews yet" ever since — while
+        // `/{providerId}/reviews` worked perfectly and nothing could tell a member which provider
+        // id was theirs.
+        //
+        // A member who runs no provider gets an **empty page**, not a 404: "you have no reviews"
+        // and "you are not a provider" are different sentences, and the second one is not an
+        // error. The screen can tell them apart from `providerId` being null.
+        group.MapGet("/me/reviews", async (
+                string? cursor,
+                int? limit,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new ListMyProviderReviewsQuery { Cursor = cursor, Limit = limit },
+                        cancellationToken)))
+            .RequireAuthorization(ProviderPolicies.Read)
+            .WithName("ListMyProviderReviews")
+            .WithSummary("Reviews left on the providers the caller runs.");
+
         group.MapGet("/{providerId:guid}/reviews", async (
                 Guid providerId,
                 string? cursor,

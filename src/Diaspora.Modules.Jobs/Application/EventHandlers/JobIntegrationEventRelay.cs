@@ -146,7 +146,13 @@ public sealed class JobIntegrationEventRelay
                 ClosingAt = posting?.ClosingAt,
                 VacancyCount = posting?.VacancyCount ?? 1,
                 IsFirstPublication = domainEvent.IsFirstPublication,
-                PublishedAt = domainEvent.PublishedAt
+                PublishedAt = domainEvent.PublishedAt,
+
+                // The member behind the profile. Already loaded above for the name and the badge, so
+                // this costs nothing, and without it a consumer that credits the person who posted
+                // the vacancy has an organisation identifier and no way to reach them. OwnerUserId
+                // rather than NotifiableOwnerUserId: this attributes, it does not deliver.
+                EmployerUserId = employer?.OwnerUserId.Value
             },
             cancellationToken);
     }

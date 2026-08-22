@@ -120,11 +120,42 @@ public class DiasporaDbContext : DbContext, IUnitOfWork
         _databaseContributors = databaseContributors?.ToArray() ?? [];
     }
 
+    /// <summary>The schema the identity tables live in.</summary>
+    public const string IdentitySchema = "identity";
+
+    /// <summary>
+    /// The sequence that issues the placeholder phone number an erased account keeps. See
+    /// <see cref="OnModelCreating"/> for why a sequence and not a hash.
+    /// </summary>
+    public const string AnonymizedPhoneSequence = "anonymized_phone_seq";
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(DiasporaDbContext).Assembly);
+
+        // The placeholder numbers an erased account is left holding.
+        //
+        // `ix_users_phone_number` is unconditionally unique and does not exclude soft-deleted rows, so
+        // two members who both ask to be erased cannot be given the same tombstone. A hash of the user
+        // id would not do: E.164 permits fifteen digits, and no injective mapping of a 128-bit
+        // identifier fits in them — a birthday collision at a million erased accounts is about even.
+        //
+        // A sequence is provably unique with no retry loop and no reasoning about probability, which is
+        // the right shape for a constraint that would otherwise throw in the middle of an irreversible
+        // operation. Declared here rather than only in the migration so the model snapshot carries it
+        // and `has-pending-model-changes` stays quiet.
+        // PostgreSQL only, and that guard is not defensive coding — it is a hard requirement.
+        // `EnsureCreated()` builds its schema from the model rather than from the migrations, and the
+        // unit and integration suites build theirs on SQLite, which throws
+        // `NotSupportedException: SQLite does not support sequences` on any model that declares one.
+        // Declared unconditionally, this single line failed 116 tests that have nothing to do with
+        // erasure.
+        if (Database.IsNpgsql())
+        {
+            modelBuilder.HasSequence<long>(AnonymizedPhoneSequence, IdentitySchema).StartsAt(1).IncrementsBy(1);
+        }
 
         ApplyModuleConfigurations(modelBuilder);
 

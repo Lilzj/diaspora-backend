@@ -22,6 +22,8 @@ namespace Diaspora.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.HasSequence("anonymized_phone_seq", "identity");
+
             modelBuilder.Entity("Diaspora.Domain.Identity.Devices.UserDevice", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2013,6 +2015,28 @@ namespace Diaspora.Persistence.Migrations
                         .HasDatabaseName("ix_hashtags_slug");
 
                     b.ToTable("hashtags", "community");
+                });
+
+            modelBuilder.Entity("Diaspora.Modules.Community.Domain.Members.CommunityMember", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CountryCode")
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTimeOffset>("RegisteredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("community_members", "community");
                 });
 
             modelBuilder.Entity("Diaspora.Modules.Community.Domain.Mentions.Mention", b =>

@@ -6,6 +6,7 @@ using Diaspora.Modules.Community.Domain.Comments;
 using Diaspora.Modules.Community.Domain.Feeds;
 using Diaspora.Modules.Community.Domain.Follows;
 using Diaspora.Modules.Community.Domain.Hashtags;
+using Diaspora.Modules.Community.Domain.Members;
 using Diaspora.Modules.Community.Domain.Mentions;
 using Diaspora.Modules.Community.Domain.Moderation;
 using Diaspora.Modules.Community.Domain.Polls;
@@ -107,6 +108,10 @@ public sealed class CommunityModule : IPlatformModule
         services.AddScoped<IVisibilityRuleRepository, VisibilityRuleRepository>();
         services.AddScoped<IFeedSubscriptionRepository, FeedSubscriptionRepository>();
         services.AddScoped<IPollVoteRepository, PollVoteRepository>();
+
+        // BG-05a. Community's own record of who exists, so a member can be a moderation subject
+        // without this module reaching into Identity. See CommunityMember.
+        services.AddScoped<ICommunityMemberDirectory, CommunityMemberDirectory>();
     }
 
     private static void RegisterServices(IServiceCollection services)

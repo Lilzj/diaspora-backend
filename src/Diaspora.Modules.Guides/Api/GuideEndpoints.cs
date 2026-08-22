@@ -148,6 +148,24 @@ internal static class GuideEndpoints
             .WithName("CreateGuide")
             .WithSummary("Open a new guide. It is created as a draft.");
 
+        // BG-07. The quick-actions sheet's "Duplicate" was inert across several phases because no
+        // module had a clone route. Returns a fresh draft authored by the caller; see
+        // DuplicateGuideCommandHandler for exactly what is and is not carried over.
+        group.MapPost("/{guideId:guid}/duplicate", async (
+                Guid guideId,
+                DuplicateGuideRequest? request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Created(
+                    context,
+                    await sender.Send(
+                        new DuplicateGuideCommand { GuideId = guideId, Title = request?.Title },
+                        cancellationToken)))
+            .RequireAuthorization(GuidePolicies.Create)
+            .WithName("DuplicateGuide")
+            .WithSummary("Copy a guide you wrote into a new draft.");
+
         group.MapPut("/{guideId:guid}", async (
                 Guid guideId,
                 UpdateGuideRequest request,

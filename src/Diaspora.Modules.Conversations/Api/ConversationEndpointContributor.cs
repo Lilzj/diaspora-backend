@@ -41,7 +41,11 @@ public sealed class ConversationEndpointContributor : IEndpointContributor
         var group = endpoints
             .MapGroup(ConversationsModuleMetadata.RoutePrefix)
             .WithTags("Conversations")
-            .RequireRateLimiting("diaspora-signin");
+            // "diaspora-authenticated", not "diaspora-signin". Measured on the release
+            // candidate: the conversation list answered eight reads and then 429ed for a
+            // minute, because this group was sharing the ten-a-minute sign-in budget. A chat
+            // screen is the last surface that should be metered against password attempts.
+            .RequireRateLimiting("diaspora-authenticated");
 
         MapInbox(group);
         MapRequests(group);

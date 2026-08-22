@@ -37,6 +37,13 @@ internal static class CommunityPersistenceConstants
     public const string VisibilityClausesTable = "visibility_clauses";
     public const string FeedSubscriptionsTable = "feed_subscriptions";
 
+    /// <summary>
+    /// Community's own member projection — BG-05a. Prefixed for the reason the bookmarks note
+    /// gives: <c>members</c> is a name several modules would plausibly want, and the integration
+    /// suite runs on SQLite, which ignores schemas.
+    /// </summary>
+    public const string MembersTable = "community_members";
+
     public const int EnumLength = 32;
     public const int SlugLength = 64;
     public const int HandleLength = 128;

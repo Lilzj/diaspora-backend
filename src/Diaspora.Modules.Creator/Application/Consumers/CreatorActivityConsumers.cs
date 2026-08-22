@@ -359,6 +359,22 @@ public sealed class EventCompletedCreatorConsumer
     }
 }
 
+/// <summary>
+/// A marketplace publication, credited to the member who owns the seller profile.
+/// <para>
+/// <b>Not <c>SellerId</c>, and that is BG-10.</b> This consumer passed the <em>seller profile</em>
+/// identifier where <see cref="CreatorActivityRecorder.RecordAsync"/> expects a member, and the
+/// recorder opens a creator record for whatever it is handed — so every marketplace publication
+/// minted a creator profile keyed to a profile id that is not a person, the publishing member was
+/// never credited, and leaderboards, milestones and reward points were all computed over the wrong
+/// subject. The correcting migration is <c>RepairCreatorActivityAttribution</c>.
+/// </para>
+/// <para>
+/// <b>The contract already carried the answer.</b> <c>SellerUserId</c> was added in Wave 12 with a
+/// doc comment describing this exact failure mode for a different consumer. Nothing needed to be
+/// published that was not already being published; this consumer was reading the wrong field.
+/// </para>
+/// </summary>
 public sealed class ListingPublishedCreatorConsumer
     : IntegrationEventHandler<ListingPublishedIntegrationEvent>
 {
@@ -371,14 +387,20 @@ public sealed class ListingPublishedCreatorConsumer
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
 
-        return _recorder.RecordAsync(
-            integrationEvent.SellerId,
-            CreatorActivityTypes.ListingPublished,
-            $"{CreatorActivityTypes.ListingPublished}:{integrationEvent.ListingId:N}",
-            integrationEvent.OccurredAt,
-            cancellationToken,
-            "listing",
-            integrationEvent.ListingId);
+        // Nullable, because it is absent on outbox rows written before Wave 12. Recording nothing is
+        // the correct answer and falling back to SellerId is not: the fallback is the defect, and it
+        // fails by writing a wrong row rather than by writing none.
+        return integrationEvent.SellerUserId is { } sellerUserId
+            ? _recorder.RecordAsync(
+                sellerUserId,
+                CreatorActivityTypes.ListingPublished,
+                $"{CreatorActivityTypes.ListingPublished}:{integrationEvent.ListingId:N}",
+                integrationEvent.OccurredAt,
+                cancellationToken,
+                "listing",
+                integrationEvent.ListingId,
+                integrationEvent.CountryCode)
+            : Task.CompletedTask;
     }
 }
 
@@ -394,15 +416,19 @@ public sealed class JobPublishedCreatorConsumer
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
 
-        return _recorder.RecordAsync(
-            integrationEvent.EmployerId,
-            CreatorActivityTypes.JobPublished,
-            $"{CreatorActivityTypes.JobPublished}:{integrationEvent.JobId:N}",
-            integrationEvent.OccurredAt,
-            cancellationToken,
-            "job",
-            integrationEvent.JobId,
-            integrationEvent.CountryCode);
+        // See ListingPublishedCreatorConsumer. This passed EmployerId — the organisation — for the
+        // same reason and with the same consequence.
+        return integrationEvent.EmployerUserId is { } employerUserId
+            ? _recorder.RecordAsync(
+                employerUserId,
+                CreatorActivityTypes.JobPublished,
+                $"{CreatorActivityTypes.JobPublished}:{integrationEvent.JobId:N}",
+                integrationEvent.OccurredAt,
+                cancellationToken,
+                "job",
+                integrationEvent.JobId,
+                integrationEvent.CountryCode)
+            : Task.CompletedTask;
     }
 }
 
@@ -418,14 +444,21 @@ public sealed class HousingPublishedCreatorConsumer
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
 
-        return _recorder.RecordAsync(
-            integrationEvent.LandlordId,
-            CreatorActivityTypes.HousingPublished,
-            $"{CreatorActivityTypes.HousingPublished}:{integrationEvent.ListingId:N}",
-            integrationEvent.OccurredAt,
-            cancellationToken,
-            "housing",
-            integrationEvent.ListingId);
+        // See ListingPublishedCreatorConsumer. This passed LandlordId — the profile — for the same
+        // reason and with the same consequence. Housing was not named in BG-10's original write-up;
+        // it was found by asking the database which action types resolved to a member, and this was
+        // the third.
+        return integrationEvent.LandlordUserId is { } landlordUserId
+            ? _recorder.RecordAsync(
+                landlordUserId,
+                CreatorActivityTypes.HousingPublished,
+                $"{CreatorActivityTypes.HousingPublished}:{integrationEvent.ListingId:N}",
+                integrationEvent.OccurredAt,
+                cancellationToken,
+                "housing",
+                integrationEvent.ListingId,
+                integrationEvent.CountryCode)
+            : Task.CompletedTask;
     }
 }
 

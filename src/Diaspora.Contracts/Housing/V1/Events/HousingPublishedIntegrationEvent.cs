@@ -97,4 +97,33 @@ public sealed record HousingPublishedIntegrationEvent : IntegrationEvent
     public required bool IsFirstPublication { get; init; }
 
     public required DateTimeOffset PublishedAt { get; init; }
+
+    /// <summary>
+    /// The member behind the landlord profile.
+    /// <para>
+    /// <b>The field an attribution consumer cannot do its job without.</b> This contract named only
+    /// <see cref="LandlordId"/> — the <em>profile</em> — so a consumer that wanted to credit the
+    /// person who listed the property had a profile identifier and no way to reach them.
+    /// <c>ListingPublishedIntegrationEvent.SellerUserId</c> was added for exactly this reason in
+    /// Wave 12 and states it in the same words; this is the same field on the same argument, and its
+    /// absence here is BG-10.
+    /// </para>
+    /// <para>
+    /// <b>Attribution, not delivery.</b> It is <c>LandlordProfile.OwnerUserId</c> — the member who
+    /// registered the profile. A consumer that needs to <em>reach</em> a landlord asks Housing with
+    /// a viewer identity so the contact-disclosure rules apply; this field credits, it does not
+    /// address.
+    /// </para>
+    /// <para>
+    /// <b>Costs nothing to publish.</b> The relay already reads the landlord aggregate back to fill
+    /// in <see cref="LandlordName"/>, <see cref="LandlordKind"/> and
+    /// <see cref="IsLandlordVerified"/>, so there is no new read.
+    /// </para>
+    /// <para>
+    /// <b>Appended, never inserted.</b> Property order is part of the serialised shape, and a field
+    /// added in the middle changes how every previously-written outbox row deserialises. Null on
+    /// events published before this change, and null when the landlord could not be read.
+    /// </para>
+    /// </summary>
+    public Guid? LandlordUserId { get; init; }
 }

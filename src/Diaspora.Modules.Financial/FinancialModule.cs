@@ -48,6 +48,7 @@ using Diaspora.Platform.Modules.Seeding;
 using FluentValidation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using System.Reflection;
 
 namespace Diaspora.Modules.Financial;
@@ -247,9 +248,11 @@ public sealed class FinancialModule : IPlatformModule
         RegisterAll<ISubscriptionPlanContributor>(services, assemblies);
         RegisterAll<IContributionFundContributor>(services, assemblies);
 
-        // Payments. Every adapter and every webhook processor is available; the registry routes.
-        RegisterAll<IPaymentGateway>(services, assemblies);
-        RegisterAll<IPaymentWebhookProcessor>(services, assemblies);
+        // Payments. Every adapter and every webhook processor is available; the registry routes —
+        // except the shipped simulator, which is Development and Testing only. See
+        // IsDevelopmentOnlyPaymentAdapter for what happened when it was not.
+        RegisterAll<IPaymentGateway>(services, assemblies, ExcludeDevelopmentOnlyPaymentAdapters(services));
+        RegisterAll<IPaymentWebhookProcessor>(services, assemblies, ExcludeDevelopmentOnlyPaymentAdapters(services));
         RegisterAll<IPaymentReconciliationProvider>(services, assemblies);
         services.AddScoped<IPaymentGatewayRegistry, PaymentGatewayRegistry>();
 
@@ -342,11 +345,72 @@ public sealed class FinancialModule : IPlatformModule
     }
 
     private static void RegisterAll<TContract>(
-        IServiceCollection services, IReadOnlyList<Assembly> assemblies)
+        IServiceCollection services, IReadOnlyList<Assembly> assemblies, Func<Type, bool>? include = null)
     {
         foreach (var type in ModuleAssemblyScanner.FindImplementations<TContract>(assemblies))
         {
+            if (include is not null && !include(type))
+            {
+                continue;
+            }
+
             services.AddScoped(typeof(TContract), type);
         }
     }
+
+    /// <summary>
+    /// Keeps the shipped payment simulator out of every environment but Development and Testing.
+    /// <para>
+    /// <b>The simulator's webhook secret is a public compile-time constant.</b>
+    /// <c>SimulatedPaymentWebhookProcessor.Sign</c> defaults to
+    /// <c>DevelopmentSecret</c>, <c>IsSignatureValid</c> calls it with that default, and no
+    /// configuration key changes it. <c>POST /financial/webhooks/{provider}</c> is anonymous by
+    /// design — for a real provider the signature <em>is</em> the credential — so where that
+    /// signature can be computed by anyone holding the source, the route is an unauthenticated
+    /// write to the payment state machine.
+    /// </para>
+    /// <para>
+    /// <b>That is not a theoretical reading.</b> Driven end to end against a release candidate: a
+    /// member created a payment intent, and an unauthenticated caller carrying nothing but the
+    /// constant and the intent's identifier moved it <c>Draft → Authorized → Captured</c>, both
+    /// callbacks answering <c>outcome=Applied</c>. Four seconds later the platform posted a
+    /// completed <c>Payment</c> transaction of 25,000.00 NGN and a double-entry ledger pair —
+    /// Clearing debited, Revenue credited — for money that had never moved.
+    /// </para>
+    /// <para>
+    /// The surrounding controls all held: an unsigned callback was refused, a wrongly signed one
+    /// was refused, a replayed event identifier was de-duplicated, and an unknown reference was
+    /// answered <c>Unmatched</c> without inventing a payment. None of them can help, because the
+    /// callback was correctly signed. The only fix is for the adapter that can be forged not to be
+    /// there.
+    /// </para>
+    /// <para>
+    /// So in any other environment the provider simply does not exist: the webhook route answers
+    /// <c>404 financial.webhook.provider_unknown</c>, and
+    /// <c>GET /financial/capabilities</c> reports no gateway rather than naming one that cannot
+    /// take money. A deployment that means to accept payments registers a real adapter, which is
+    /// what the seam is for. This is the same position the platform already takes on
+    /// <c>Notifications:Push:Provider = "Loopback"</c>, and for the same reason: admitting nothing
+    /// is configured beats reporting success that did not happen.
+    /// </para>
+    /// </summary>
+    private static Func<Type, bool> ExcludeDevelopmentOnlyPaymentAdapters(IServiceCollection services)
+    {
+        // The host registers IHostEnvironment as a singleton instance before any module composes,
+        // so it is readable from the collection without building a provider. If it cannot be read
+        // the simulator is excluded: an environment this code cannot identify is not one that
+        // should be given a forgeable payment adapter.
+        var environment = services
+            .FirstOrDefault(descriptor => descriptor.ServiceType == typeof(IHostEnvironment))
+            ?.ImplementationInstance as IHostEnvironment;
+
+        var simulationPermitted =
+            environment is not null
+            && (environment.IsDevelopment() || environment.IsEnvironment("Testing"));
+
+        return type => simulationPermitted || !IsDevelopmentOnlyPaymentAdapter(type);
+    }
+
+    private static bool IsDevelopmentOnlyPaymentAdapter(Type type) =>
+        type == typeof(SimulatedPaymentGateway) || type == typeof(SimulatedPaymentWebhookProcessor);
 }

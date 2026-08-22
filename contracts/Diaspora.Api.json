@@ -2337,6 +2337,193 @@
         }
       }
     },
+    "/api/v1/privacy/export": {
+      "get": {
+        "tags": [
+          "Privacy"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseOfPersonalDataExport"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseOfPersonalDataExport"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseOfPersonalDataExport"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/privacy/deletion/preview": {
+      "get": {
+        "tags": [
+          "Privacy"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseOfAccountErasureReceipt"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseOfAccountErasureReceipt"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseOfAccountErasureReceipt"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/privacy/deletion": {
+      "post": {
+        "tags": [
+          "Privacy"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteMyAccountRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteMyAccountRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteMyAccountRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseOfAccountErasureReceipt"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseOfAccountErasureReceipt"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseOfAccountErasureReceipt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/profile": {
       "put": {
         "tags": [
@@ -6414,6 +6601,47 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/community-life/events/{eventId}/duplicate": {
+      "post": {
+        "tags": [
+          "Community Life"
+        ],
+        "summary": "Copy an event you organised into a new draft, on a future date.",
+        "operationId": "DuplicateCommunityEvent",
+        "parameters": [
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DuplicateEventRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "OK"
@@ -10988,6 +11216,20 @@
         }
       }
     },
+    "/api/v1/creators/content-health/rubric": {
+      "get": {
+        "tags": [
+          "Creator"
+        ],
+        "summary": "What content health means: the criteria, their weights and the thresholds. The client applies this to the items it already holds.",
+        "operationId": "GetContentHealthRubric",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/creators/me/verification": {
       "get": {
         "tags": [
@@ -11114,6 +11356,42 @@
           },
           "required": true
         },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/creators/me/activity": {
+      "get": {
+        "tags": [
+          "Creator"
+        ],
+        "summary": "The caller's own recognised activity, newest first.",
+        "operationId": "GetMyCreatorActivity",
+        "parameters": [
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "take",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -14777,6 +15055,47 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/guides/{guideId}/duplicate": {
+      "post": {
+        "tags": [
+          "Guides"
+        ],
+        "summary": "Copy a guide you wrote into a new draft.",
+        "operationId": "DuplicateGuide",
+        "parameters": [
+          {
+            "name": "guideId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DuplicateGuideRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "OK"
@@ -20567,6 +20886,47 @@
         }
       }
     },
+    "/api/v1/housing/listings/{listingId}/duplicate": {
+      "post": {
+        "tags": [
+          "Housing"
+        ],
+        "summary": "Copy one of your properties into a new draft.",
+        "operationId": "DuplicateHousingListing",
+        "parameters": [
+          {
+            "name": "listingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DuplicateHousingListingRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/housing/listings/{listingId}": {
       "patch": {
         "tags": [
@@ -25109,6 +25469,47 @@
         }
       }
     },
+    "/api/v1/marketplace/listings/{listingId}/duplicate": {
+      "post": {
+        "tags": [
+          "Marketplace"
+        ],
+        "summary": "Copy one of your listings into a new draft.",
+        "operationId": "DuplicateMarketplaceListing",
+        "parameters": [
+          {
+            "name": "listingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DuplicateListingRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/marketplace/listings/{listingId}/attributes": {
       "put": {
         "tags": [
@@ -28637,6 +29038,34 @@
         }
       }
     },
+    "/api/v1/providers/me": {
+      "get": {
+        "tags": [
+          "Providers"
+        ],
+        "summary": "Every provider the caller holds a role on.",
+        "operationId": "ListMyProviders",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/providers/featured": {
       "get": {
         "tags": [
@@ -29018,6 +29447,41 @@
             "in": "query",
             "schema": {
               "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/providers/me/reviews": {
+      "get": {
+        "tags": [
+          "Providers"
+        ],
+        "summary": "Reviews left on the providers the caller runs.",
+        "operationId": "ListMyProviderReviews",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
             }
           }
         ],
@@ -31328,6 +31792,54 @@
           }
         }
       },
+      "AccountErasureReceipt": {
+        "required": [
+          "userId",
+          "completedAt",
+          "isPreview",
+          "results",
+          "modulesWithoutErasureProvider",
+          "failures"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "completedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "isPreview": {
+            "type": "boolean"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ErasureResult"
+            }
+          },
+          "modulesWithoutErasureProvider": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "failures": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "isComplete": {
+            "type": "boolean"
+          }
+        }
+      },
       "AcknowledgeSignupBonusRequest": {
         "type": "object",
         "properties": {
@@ -31598,6 +32110,28 @@
               },
               {
                 "$ref": "#/components/schemas/AccessStateResponse"
+              }
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        }
+      },
+      "ApiResponseOfAccountErasureReceipt": {
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AccountErasureReceipt"
               }
             ]
           },
@@ -32175,6 +32709,28 @@
               },
               {
                 "$ref": "#/components/schemas/OutboxStatisticsResponse"
+              }
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        }
+      },
+      "ApiResponseOfPersonalDataExport": {
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PersonalDataExport"
               }
             ]
           },
@@ -37248,6 +37804,21 @@
           }
         }
       },
+      "DeleteMyAccountRequest": {
+        "required": [
+          "currentPassword",
+          "confirmation"
+        ],
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string"
+          },
+          "confirmation": {
+            "type": "string"
+          }
+        }
+      },
       "DeviceResponse": {
         "required": [
           "id",
@@ -37347,6 +37918,57 @@
               "string"
             ],
             "format": "double"
+          }
+        }
+      },
+      "DuplicateEventRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "startsAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "DuplicateGuideRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "DuplicateHousingListingRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "DuplicateListingRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -37476,6 +38098,48 @@
         "properties": {
           "endorsed": {
             "type": "boolean"
+          }
+        }
+      },
+      "ErasureOutcome": {
+        "enum": [
+          "Deleted",
+          "Anonymized",
+          "NothingHeld",
+          "Retained"
+        ]
+      },
+      "ErasureResult": {
+        "required": [
+          "module",
+          "dataSet",
+          "outcome",
+          "recordsAffected"
+        ],
+        "type": "object",
+        "properties": {
+          "module": {
+            "type": "string"
+          },
+          "dataSet": {
+            "type": "string"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/ErasureOutcome"
+          },
+          "recordsAffected": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -37642,6 +38306,28 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "ExportSection": {
+        "required": [
+          "module",
+          "dataSet",
+          "records"
+        ],
+        "type": "object",
+        "properties": {
+          "module": {
+            "type": "string"
+          },
+          "dataSet": {
+            "type": "string"
+          },
+          "records": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
           }
         }
       },
@@ -39841,6 +40527,37 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/OutboxEventTypeStatisticsResponse"
+            }
+          }
+        }
+      },
+      "PersonalDataExport": {
+        "required": [
+          "userId",
+          "generatedAt",
+          "sections",
+          "modulesWithoutExportProvider"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExportSection"
+            }
+          },
+          "modulesWithoutExportProvider": {
+            "type": "array",
+            "items": {
+              "type": "string"
             }
           }
         }
@@ -48723,6 +49440,9 @@
     },
     {
       "name": "Devices"
+    },
+    {
+      "name": "Privacy"
     },
     {
       "name": "Profile"

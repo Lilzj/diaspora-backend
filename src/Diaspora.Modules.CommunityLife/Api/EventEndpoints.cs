@@ -99,6 +99,29 @@ internal static class EventEndpoints
             .WithName("CreateCommunityEvent")
             .WithSummary("Drafts an event.");
 
+        // BG-07. The use case that makes duplication matter most here: an event that runs again.
+        // The schedule shifts forward in whole weeks so the copy keeps its weekday and time — see
+        // DuplicateEventCommandHandler.
+        group.MapPost("/events/{eventId:guid}/duplicate", async (
+                Guid eventId,
+                DuplicateEventRequest? request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Created(
+                    context,
+                    await sender.Send(
+                        new DuplicateEventCommand
+                        {
+                            EventId = eventId,
+                            Title = request?.Title,
+                            StartsAt = request?.StartsAt,
+                        },
+                        cancellationToken)))
+            .RequireAuthorization(CommunityLifePolicies.EventCreate)
+            .WithName("DuplicateCommunityEvent")
+            .WithSummary("Copy an event you organised into a new draft, on a future date.");
+
         group.MapPatch("/events/{eventId:guid}", async (
                 Guid eventId,
                 UpdateEventRequest request,

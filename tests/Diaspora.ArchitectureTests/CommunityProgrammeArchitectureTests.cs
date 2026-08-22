@@ -49,18 +49,37 @@ public sealed class CommunityProgrammeArchitectureTests
     }
 
     /// <summary>
-    /// <b>Two module references, and no more.</b> Community Life for the organization and its role
-    /// edge; Financial for the currency catalogue. A third would be a boundary decision nobody made.
+    /// <b>Three module references, and no more.</b> Community Life for the organization and its role
+    /// edge; Financial for the currency catalogue; Community for one content source. A fourth would
+    /// be a boundary decision nobody made.
     /// </summary>
+    /// <remarks>
+    /// <b>This was two, and Community is the third.</b> It is here for exactly one class —
+    /// <c>Infrastructure/Community/PollContentSource.cs</c> — because
+    /// <c>CommunityContentType.Poll</c> was declared in B6's enum and claimed by nothing, so a poll
+    /// could not be reported. This module owns the poll that is independently addressable
+    /// (<c>/communities/polls/{pollId}</c>); Community's own <c>Poll</c> hangs off a post and is
+    /// reported by reporting that post.
+    /// <para>
+    /// The direction is the one every feature module takes — Jobs, Marketplace, Housing, Guides,
+    /// Providers, CommunityLife and Conversations all reference Community to claim a content type,
+    /// and Community references none of them back. The assertion stays exhaustive rather than
+    /// becoming a "contains" check, so a fourth reference still has to be argued for in a diff.
+    /// </para>
+    /// </remarks>
     [Fact]
-    public void The_module_references_only_community_life_and_financial()
+    public void The_module_references_only_community_life_financial_and_community()
     {
         var moduleReferences = References
             .Where(name => name.StartsWith("Diaspora.Modules.", StringComparison.Ordinal))
             .ToList();
 
         moduleReferences.Should().BeEquivalentTo(
-            ["Diaspora.Modules.CommunityLife", "Diaspora.Modules.Financial"]);
+            [
+                "Diaspora.Modules.CommunityLife",
+                "Diaspora.Modules.Financial",
+                "Diaspora.Modules.Community"
+            ]);
     }
 
     /// <summary>

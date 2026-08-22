@@ -369,6 +369,26 @@ public interface ICreatorActivityRepository
     Task<long> CountForCreatorAsync(
         CreatorId creatorId, DateTimeOffset? since, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// One creator's own entries, newest first.
+    /// <para>
+    /// <b>The read this interface was missing.</b> It could count entries, count one action, rank a
+    /// leaderboard and answer whether a source event had been seen — everything except hand back
+    /// the rows. So the platform recorded a creator's activity faithfully and had no way to show it
+    /// to them, and the workspace carried *"Diaspora cannot show your activity history yet"* over a
+    /// table that was being written to on every publish.
+    /// </para>
+    /// <para>
+    /// Cursor-paged on <c>OccurredAt</c> rather than offset-paged: an active creator's history grows
+    /// while they are reading it, and an offset would show them the same entry twice.
+    /// </para>
+    /// </summary>
+    Task<IReadOnlyList<CreatorActivityEntry>> ListForCreatorAsync(
+        CreatorId creatorId,
+        DateTimeOffset? before,
+        int take,
+        CancellationToken cancellationToken = default);
+
     /// <summary>How many times one action has happened for one creator since a moment.</summary>
     Task<long> CountActionAsync(
         CreatorId creatorId,

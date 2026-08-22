@@ -49,6 +49,23 @@ internal static class MarketplaceListingEndpoints
             .WithName("CreateMarketplaceListing")
             .WithSummary("Draft a listing.");
 
+        // BG-07. The commonest real use is a seller listing several near-identical items, who would
+        // otherwise retype the description, category, fulfilment and location for each one.
+        group.MapPost("/listings/{listingId:guid}/duplicate", async (
+                Guid listingId,
+                [FromBody] DuplicateListingRequest? request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Created(
+                    context,
+                    await sender.Send(
+                        new DuplicateListingCommand { ListingId = listingId, Title = request?.Title },
+                        cancellationToken)))
+            .RequireAuthorization(MarketplacePolicies.ListingCreate)
+            .WithName("DuplicateMarketplaceListing")
+            .WithSummary("Copy one of your listings into a new draft.");
+
         group.MapPut("/listings/{listingId:guid}", async (
                 Guid listingId,
                 [FromBody] UpdateListingRequest request,

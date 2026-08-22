@@ -7,7 +7,7 @@ namespace Diaspora.Modules.Community.Persistence;
 /// <summary>
 /// Adds the Community module's tables to the shared context.
 /// <para>
-/// Twenty-six tables in the module's own <c>community</c> schema, which the context verifies at
+/// Twenty-seven tables in the module's own <c>community</c> schema, which the context verifies at
 /// startup. The boundary matters here for a reason particular to this module: Community is the
 /// one every later content module reads through, so a table of somebody else's leaking into this
 /// schema would be a dependency nobody could see in a project reference.
@@ -50,5 +50,9 @@ public sealed class CommunityDatabaseContributor : IDatabaseContributor
         modelBuilder.ApplyConfiguration(new VisibilityRuleConfiguration());
         modelBuilder.ApplyConfiguration(new FeedSubscriptionConfiguration());
         modelBuilder.ApplyConfiguration(new PollVoteConfiguration());
+
+        // BG-05a. The member projection, so a person can be a moderation subject without this
+        // module reaching into Identity. Fed by UserRegisteredIntegrationEvent.
+        modelBuilder.ApplyConfiguration(new CommunityMemberConfiguration());
     }
 }

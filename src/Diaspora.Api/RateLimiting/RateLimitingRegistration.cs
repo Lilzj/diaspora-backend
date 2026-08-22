@@ -31,6 +31,36 @@ public static class RateLimitingRegistration
     public const string RecoveryPolicy = "diaspora-recovery";
     public const string RefreshPolicy = "diaspora-refresh";
 
+    /// <summary>
+    /// The budget for authenticated application traffic, and the reason it exists.
+    /// <para>
+    /// Three module groups — Trust, Conversations and Bookmarks — were mapped with
+    /// <c>RequireRateLimiting(SignInPolicy)</c>, one of them commented "reuse the
+    /// authenticated default bucket". There was no such bucket. <see cref="SignInPolicy"/>
+    /// is credential exchange: ten requests a minute, per IP, and the partition key is the
+    /// policy name — so <c>/auth/login</c>, <c>/trust/profile</c>,
+    /// <c>/conversations</c> and <c>/bookmarks</c> all drew on one ten-request budget.
+    /// </para>
+    /// <para>
+    /// Measured, not inferred: the conversation list answered eight reads and then 429ed,
+    /// and <c>/bookmarks</c> was refused on its <em>first</em> request because the
+    /// conversation reads had already spent the shared budget. A chat screen and the
+    /// eligibility checklist that every create screen now fetches both exceed ten requests
+    /// a minute in ordinary use, so this was a broken journey rather than a tight limit.
+    /// </para>
+    /// <para>
+    /// Sized for an application rather than for a credential guess, and still a bound: an
+    /// authenticated client that issues three hundred requests in a minute is not a screen.
+    /// It stays per-IP, because the limiter runs <em>before</em> authentication on purpose —
+    /// refusing a flood must not cost a signature validation and two database reads — and
+    /// <c>HttpContext.User</c> is therefore empty here. That makes the forwarded-header
+    /// configuration load-bearing rather than optional: with an empty
+    /// <c>ForwardedHeaders:KnownProxies</c> behind an ingress, every member shares the
+    /// proxy's address and therefore this budget.
+    /// </para>
+    /// </summary>
+    public const string AuthenticatedPolicy = "diaspora-authenticated";
+
     public static IServiceCollection AddDiasporaRateLimiting(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
@@ -65,6 +95,7 @@ public static class RateLimitingRegistration
             AddFixedWindow(limiter, OneTimeCodePolicy, options => options.OneTimeCode);
             AddFixedWindow(limiter, RecoveryPolicy, options => options.Recovery);
             AddFixedWindow(limiter, RefreshPolicy, options => options.Refresh);
+            AddFixedWindow(limiter, AuthenticatedPolicy, options => options.Authenticated);
         });
 
         return services;

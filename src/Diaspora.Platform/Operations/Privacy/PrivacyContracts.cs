@@ -30,7 +30,15 @@ public enum ErasureOutcome
     Retained = 3
 }
 
-/// <summary>What one module did.</summary>
+/// <summary>
+/// What one module did.
+/// <para>
+/// <b>The outcome serialises as its name.</b> The host does not register a global string-enum
+/// converter — every one of the eight hundred and eighty-nine published operations would change
+/// shape if it did — so this one property carries its own. A member's deletion receipt is read by a
+/// person, and <c>"outcome": 3</c> is not something a client should have to hold a lookup table for.
+/// </para>
+/// </summary>
 /// <param name="Module">Who.</param>
 /// <param name="DataSet">What.</param>
 /// <param name="Outcome">Which of the four.</param>
@@ -39,6 +47,8 @@ public enum ErasureOutcome
 public sealed record ErasureResult(
     string Module,
     string DataSet,
+    [property: System.Text.Json.Serialization.JsonConverter(
+        typeof(System.Text.Json.Serialization.JsonStringEnumConverter))]
     ErasureOutcome Outcome,
     int RecordsAffected,
     string? Reason = null);

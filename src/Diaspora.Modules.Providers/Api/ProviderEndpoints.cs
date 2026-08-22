@@ -57,6 +57,27 @@ internal static class ProviderEndpoints
             .WithName("SearchProviders")
             .WithSummary("Find providers, with every discovery filter the client offers.");
 
+        // Declared before `/{idOrSlug}` would be reached, so the literal `me` resolves this
+        // route rather than being read as a slug — the same ordering `/placements/me` needs in
+        // Financial, and for the same reason.
+        group.MapGet("/me", async (
+                int? limit,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new ListMyProvidersQuery
+                        {
+                            Limit = limit,
+                            LanguageCode = LanguageOf(context)
+                        },
+                        cancellationToken)))
+            .RequireAuthorization(ProviderPolicies.Read)
+            .WithName("ListMyProviders")
+            .WithSummary("Every provider the caller holds a role on.");
+
         group.MapGet("/featured", async (
                 [AsParameters] ProviderSearchRequest request,
                 ISender sender,

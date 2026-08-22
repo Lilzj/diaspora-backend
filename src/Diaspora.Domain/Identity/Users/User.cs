@@ -616,6 +616,95 @@ public sealed class User : AggregateRoot<UserId>, IAuditableEntity, ISoftDeletab
         return Result.Success();
     }
 
+    // ─── Erasure ────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Replaces every field that names a person, and closes the account for good.
+    /// <para>
+    /// <b>Anonymisation rather than deletion, and the reason is the schema.</b> Two hundred and
+    /// sixteen foreign keys across this platform point at a member: a listing has a seller, a message
+    /// has an author, a ledger entry has an actor. Deleting the row would either break all of them or
+    /// cascade into destroying content other members are still reading. What a member is entitled to
+    /// is that the platform stops holding a person; they are not entitled to delete a conversation
+    /// somebody else took part in.
+    /// </para>
+    /// <para>
+    /// So the row survives, the references stay valid, and everything that identified a human being is
+    /// gone: name, phone number, email, avatar. The security stamp is rotated, which invalidates every
+    /// access token already issued, and the account is closed and soft-deleted so nothing can sign in
+    /// again or reactivate it.
+    /// </para>
+    /// <para>
+    /// <paramref name="anonymizedPhoneNumber"/> is supplied rather than derived here because it has to
+    /// be <em>unique</em> — <c>ix_users_phone_number</c> is unconditionally unique and does not exclude
+    /// deleted rows, so two erased members cannot share a placeholder. The caller draws it from a
+    /// sequence; the aggregate is not the place to reach for one.
+    /// </para>
+    /// <para>
+    /// <b>Irreversible by construction.</b> <see cref="Restore"/> would clear the soft-delete flag and
+    /// give back an account whose profile is tombstones — so erasure closes the account first, and
+    /// <see cref="Reactivate"/> from <see cref="AccessState.Disabled"/> would return a member to
+    /// limited access with no name and a phone number nobody can dial. Nothing calls either on an
+    /// erased account, and <see cref="IsAnonymized"/> exists so a caller can refuse to.
+    /// </para>
+    /// </summary>
+    public Result Anonymize(
+        PhoneNumber anonymizedPhoneNumber, FullName tombstoneName, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(anonymizedPhoneNumber);
+        ArgumentNullException.ThrowIfNull(tombstoneName);
+
+        if (IsAnonymized)
+        {
+            // Erasing twice is not an error. A member whose request was interrupted and retried should
+            // get the same answer as one whose request completed, and a second pass must not raise a
+            // second event or rotate a stamp that already invalidated everything.
+            return Result.Success();
+        }
+
+        if (AccessState != AccessState.Disabled)
+        {
+            var closed = Disable("Erased at the member's request.", now);
+            if (closed.IsFailure)
+            {
+                return closed;
+            }
+        }
+
+        FullName = tombstoneName;
+        PhoneNumber = anonymizedPhoneNumber;
+        Email = null;
+        Avatar = null;
+        LastLoginAt = null;
+        LastActiveAt = null;
+        StatusReason = ErasedStatusReason;
+
+        // The history is a list of hashes of passwords this person chose, and a password is reused
+        // across services often enough that keeping the hashes of somebody who has left is a liability
+        // with no purpose.
+        _passwordHistory.Clear();
+
+        Security = Security.WithRotatedSecurityStamp();
+
+        MarkDeleted(now, Id.Value.ToString());
+
+        RaiseDomainEvent(new UserAnonymizedDomainEvent(Id, now));
+
+        return Result.Success();
+    }
+
+    /// <summary>The status reason an erased account carries, and the marker that it is one.</summary>
+    public const string ErasedStatusReason = "Erased at the member's request.";
+
+    /// <summary>
+    /// Whether this account has been erased. Read before offering anything that assumes a person is
+    /// behind it — reactivation above all.
+    /// </summary>
+    public bool IsAnonymized =>
+        IsDeleted &&
+        AccessState == AccessState.Disabled &&
+        string.Equals(StatusReason, ErasedStatusReason, StringComparison.Ordinal);
+
     // ─── Auditing & soft delete ─────────────────────────────────────────
 
     public void SetCreated(DateTimeOffset timestamp, string? userId)

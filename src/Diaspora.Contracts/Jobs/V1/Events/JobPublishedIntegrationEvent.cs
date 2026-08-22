@@ -91,4 +91,33 @@ public sealed record JobPublishedIntegrationEvent : IntegrationEvent
     public required bool IsFirstPublication { get; init; }
 
     public required DateTimeOffset PublishedAt { get; init; }
+
+    /// <summary>
+    /// The member behind the employer profile.
+    /// <para>
+    /// <b>The field an attribution consumer cannot do its job without.</b> This contract named only
+    /// <see cref="EmployerId"/> — the <em>organisation</em> — so a consumer that wanted to credit
+    /// the person who posted the vacancy had a profile identifier and no way to reach them.
+    /// <c>ListingPublishedIntegrationEvent.SellerUserId</c> was added for exactly this reason in
+    /// Wave 12 and states it in the same words; this is the same field on the same argument, and its
+    /// absence here is BG-10.
+    /// </para>
+    /// <para>
+    /// <b>Attribution, not delivery.</b> It is <c>EmployerProfile.OwnerUserId</c> — the member who
+    /// registered the organisation — and deliberately not <c>NotifiableOwnerUserId</c>, which
+    /// follows an ownership transfer. Who published a vacancy in March does not change because the
+    /// company changed hands in June, and a credit that moved with the transfer would restate
+    /// history.
+    /// </para>
+    /// <para>
+    /// <b>Costs nothing to publish.</b> The relay already reads the employer aggregate back to fill
+    /// in <see cref="EmployerName"/> and <see cref="IsEmployerVerified"/>, so there is no new read.
+    /// </para>
+    /// <para>
+    /// <b>Appended, never inserted.</b> Property order is part of the serialised shape, and a field
+    /// added in the middle changes how every previously-written outbox row deserialises. Null on
+    /// events published before this change, and null when the employer could not be read.
+    /// </para>
+    /// </summary>
+    public Guid? EmployerUserId { get; init; }
 }
