@@ -239,4 +239,86 @@ public sealed class AnalyticsPeriodTests
             return null;
         }
     }
+
+    // ── Every analytics read from a real device returned 500 ─────────────────
+    //
+    // `Start` and `End` are computed in the caller's zone, so a request from
+    // Lagos carried `+01:00`. Those boundaries go to EF as query parameters and
+    // Npgsql refuses them outright:
+    //
+    //     Cannot write DateTimeOffset with Offset=01:00:00 to PostgreSQL type
+    //     'timestamp with time zone', only offset 0 (UTC) is supported.
+    //
+    // So `GET /analytics/creators/me/summary` — and every other analytics read —
+    // answered **500 for any device outside UTC**, which is every real device.
+    //
+    // It survived every probe because they all passed `timezone=UTC` or omitted
+    // it, and the default is UTC. Found only by watching a phone in Africa/Lagos
+    // fail while the identical curl succeeded.
+
+    [Theory]
+    [InlineData("Africa/Lagos")]
+    [InlineData("Europe/London")]
+    [InlineData("America/New_York")]
+    [InlineData("Asia/Kolkata")]
+    public void Boundaries_are_written_in_Utc_whatever_zone_was_asked_for(string zoneId)
+    {
+        var zone = TimeZoneInfo.FindSystemTimeZoneById(zoneId);
+
+        var resolution = AnalyticsPeriod.Resolve(
+            AnalyticsPeriodPreset.Last30Days,
+            null,
+            null,
+            zone,
+            DateTimeOffset.UtcNow,
+            366);
+
+        resolution.IsResolved.Should().BeTrue();
+
+        // The assertion Npgsql makes, made here instead.
+        resolution.Period.Start.Offset.Should().Be(TimeSpan.Zero);
+        resolution.Period.End.Offset.Should().Be(TimeSpan.Zero);
+    }
+
+    [Fact]
+    public void Normalising_to_Utc_does_not_move_the_window()
+    {
+        // `ToUniversalTime()` changes how an instant is written, not which
+        // instant it is. If this ever stops holding, the fix has started
+        // reporting a different month than the member asked for.
+        var lagos = TimeZoneInfo.FindSystemTimeZoneById("Africa/Lagos");
+        var now = DateTimeOffset.UtcNow;
+
+        var resolved = AnalyticsPeriod.Resolve(
+            AnalyticsPeriodPreset.Last30Days, null, null, lagos, now, 366);
+
+        resolved.IsResolved.Should().BeTrue();
+        var period = resolved.Period;
+
+        // The zone the member asked for is not lost — it is what the day
+        // boundaries were computed in, and it is echoed back.
+        period.TimeZoneId.Should().Be("Africa/Lagos");
+
+        // And the window still covers the same span of real time.
+        period.Duration.Should().BeGreaterThan(TimeSpan.Zero);
+        period.Contains(period.Start).Should().BeTrue();
+        period.Contains(period.End).Should().BeFalse();
+    }
+
+    [Fact]
+    public void The_previous_window_is_Utc_too()
+    {
+        // `Previous()` builds a new period from this one's boundaries, so it
+        // would reintroduce the offset if the constructor did not normalise.
+        var kolkata = TimeZoneInfo.FindSystemTimeZoneById("Asia/Kolkata");
+
+        var resolved = AnalyticsPeriod.Resolve(
+            AnalyticsPeriodPreset.Last30Days, null, null, kolkata, DateTimeOffset.UtcNow, 366);
+
+        var previous = resolved.Period.Previous();
+
+        previous.Start.Offset.Should().Be(TimeSpan.Zero);
+        previous.End.Offset.Should().Be(TimeSpan.Zero);
+    }
+
 }

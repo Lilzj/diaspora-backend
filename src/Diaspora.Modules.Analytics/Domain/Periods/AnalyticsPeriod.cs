@@ -37,8 +37,28 @@ public sealed record AnalyticsPeriod
         AnalyticsGranularity granularity)
     {
         Preset = preset;
-        Start = start;
-        End = end;
+
+        // ── Instants are stored in UTC, always ──────────────────────────────
+        //
+        // `Start` and `End` are computed in the caller's zone, so a request from
+        // Lagos produced a `DateTimeOffset` carrying `+01:00`. Those boundaries
+        // are handed to EF as query parameters, and Npgsql refuses them:
+        //
+        //     Cannot write DateTimeOffset with Offset=01:00:00 to PostgreSQL
+        //     type 'timestamp with time zone', only offset 0 (UTC) is supported.
+        //
+        // The result was a **500 on every analytics read from a device in any
+        // zone but UTC** — which is every real device. It went unnoticed because
+        // every probe and every curl against these routes passed `timezone=UTC`
+        // or omitted it, and the default is UTC.
+        //
+        // `ToUniversalTime()` does not move the instant, only how it is written,
+        // so `Contains`, `Duration` and `Previous()` are unchanged. The zone the
+        // member asked for is not lost: it is `TimeZoneId`, which is what
+        // `FromDate`/`ToDate` were computed in and what the response echoes.
+        Start = start.ToUniversalTime();
+        End = end.ToUniversalTime();
+
         FromDate = fromDate;
         ToDate = toDate;
         TimeZoneId = timeZoneId;
