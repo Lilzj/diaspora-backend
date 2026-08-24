@@ -1,0 +1,67 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Diaspora API on Fly.io
+#
+# ── Why this deployment exists ───────────────────────────────────────────────
+#
+# Every runtime check in this programme has run against a `Diaspora.Api.exe` on
+# `localhost:5099` backed by a user-owned PostgreSQL cluster living in a session
+# scratchpad. That arrangement lost its database twice and its emulator twice,
+# and each loss invalidated whatever was being measured at the time. A hosted API
+# and a hosted database mean seeded data survives the session that created it.
+#
+# ── Region ───────────────────────────────────────────────────────────────────
+#
+# `iad` (Ashburn) sits next to the Neon project in AWS `us-east-2` (Ohio). Every
+# request this API serves makes several database round trips, so the distance
+# between the app and the database matters far more than the distance between the
+# phone and the app.
+#
+# ── This is a test deployment, and it is public ──────────────────────────────
+#
+# Anyone who finds the hostname can reach it. It carries rate limiting and a real
+# signing key, and every account in it is seeded and disposable. Nothing here
+# should be data anybody would mind being exposed.
+# ─────────────────────────────────────────────────────────────────────────────
+
+app = 'diaspora-api'
+primary_region = 'iad'
+
+[build]
+  dockerfile = 'docker/Dockerfile'
+
+[env]
+  # Production is what the module option validators expect. It also refuses to
+  # log OTP codes — `IdentityModuleOptionsValidator` will not start any
+  # non-Development environment with `LogOtpCodesForDevelopment` enabled — so
+  # seeding here creates identities directly rather than reading codes from a
+  # log, and signs in with a password.
+  ASPNETCORE_ENVIRONMENT = 'Production'
+  ASPNETCORE_URLS = 'http://+:8080'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+
+  # ── Kept warm on purpose ───────────────────────────────────────────────────
+  #
+  # `auto_stop_machines` would suspend the machine when idle and cost 20–40
+  # seconds on the next request. During a device walkthrough that is
+  # indistinguishable from a hung screen, and this programme has already spent
+  # two rounds separating broken tooling from broken product. One always-on
+  # shared machine is worth more than the saving.
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    grace_period = '30s'
+    interval = '30s'
+    method = 'GET'
+    timeout = '5s'
+    # Liveness, not readiness: readiness also probes the database, and a machine
+    # that is up but waiting on Neon to wake should not be killed and restarted.
+    path = '/health/live'
+
+[[vm]]
+  size = 'shared-cpu-1x'
+  memory = '1gb'
