@@ -1,4 +1,4 @@
-namespace Diaspora.Modules.Marketplace;
+﻿namespace Diaspora.Modules.Marketplace;
 
 /// <summary>
 /// The permissions the Marketplace module owns.
@@ -55,6 +55,8 @@ public static class MarketplacePermissions
     public const string ReservationCreate = "marketplace:reservation:create";
     public const string ReservationManage = "marketplace:reservation:manage";
     public const string SavedManage = "marketplace:saved:manage";
+    public const string ReviewWrite = "marketplace:review:write";
+    public const string ReviewRespond = "marketplace:review:respond";
 
     // ── Shared ─────────────────────────────────────────────────
 

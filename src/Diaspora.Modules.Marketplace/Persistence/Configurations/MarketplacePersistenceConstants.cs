@@ -1,4 +1,4 @@
-namespace Diaspora.Modules.Marketplace.Persistence.Configurations;
+﻿namespace Diaspora.Modules.Marketplace.Persistence.Configurations;
 
 /// <summary>
 /// Table names and column widths every Marketplace configuration shares.
@@ -32,6 +32,7 @@ internal static class MarketplacePersistenceConstants
     public const string OffersTable = "marketplace_offers";
     public const string OfferHistoryTable = "marketplace_offer_history";
     public const string ReservationsTable = "marketplace_reservations";
+    public const string SellerReviewsTable = "marketplace_seller_reviews";
     public const string ReservationHistoryTable = "marketplace_reservation_history";
 
     // ── Catalogues ──────────────────────────────────────────────────────────────────────────

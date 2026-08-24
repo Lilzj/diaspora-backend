@@ -1,4 +1,4 @@
-using Diaspora.Application.Abstractions;
+﻿using Diaspora.Application.Abstractions;
 using Diaspora.Contracts.Community.V1.Events;
 using Diaspora.Modules.Community.Application.Services;
 using Diaspora.Modules.Community.Domain.Events;
@@ -32,7 +32,8 @@ public sealed class ReactionAddedEventHandler : DomainEventHandler<ReactionAdded
                 UserId = domainEvent.UserId.Value,
                 ReactionKey = domainEvent.ReactionKey,
                 Sentiment = CommunityWireNames.ToWire(domainEvent.Sentiment),
-                ContentAuthorId = domainEvent.ContentAuthorId
+                ContentAuthorId = domainEvent.ContentAuthorId,
+                CountryCode = domainEvent.CountryCode
             },
             cancellationToken);
     }

@@ -1,4 +1,4 @@
-using Diaspora.Modules.Marketplace.Persistence.Configurations;
+﻿using Diaspora.Modules.Marketplace.Persistence.Configurations;
 using Diaspora.Persistence.Modules;
 using Microsoft.EntityFrameworkCore;
 
@@ -47,6 +47,7 @@ public sealed class MarketplaceDatabaseContributor : IDatabaseContributor
         // not owned: a popular item attracts hundreds of both.
         modelBuilder.ApplyConfiguration(new ListingOfferConfiguration());
         modelBuilder.ApplyConfiguration(new ListingReservationConfiguration());
+        modelBuilder.ApplyConfiguration(new SellerReviewConfiguration());
 
         // The extensible catalogues, seeded by contributors at startup.
         modelBuilder.ApplyConfiguration(new ListingCategoryConfiguration());

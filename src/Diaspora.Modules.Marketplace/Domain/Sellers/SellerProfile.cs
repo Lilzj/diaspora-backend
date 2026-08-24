@@ -1,4 +1,4 @@
-using Diaspora.Domain.Abstractions;
+﻿using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Marketplace.Domain.Enums;
 using Diaspora.Modules.Marketplace.Domain.Errors;
 using Diaspora.Modules.Marketplace.Domain.Events;
@@ -52,6 +52,7 @@ public sealed class SellerProfile
         Contact = SellerContact.InAppOnly;
         TrustMark = ListingTrustMark.None;
         Statistics = SellerStatistics.None;
+        ReviewSummary = SellerReviewSummary.Empty;
         Status = SellerStatus.Active;
         CreatedAt = createdAt;
     }
@@ -101,6 +102,17 @@ public sealed class SellerProfile
     public ListingTrustMark TrustMark { get; private set; } = default!;
 
     public SellerStatistics Statistics { get; private set; } = default!;
+
+    /// <summary>
+    /// The rating rollup, recomputed from the reviews table rather than incremented.
+    /// <para>
+    /// <b>Read <c>ReviewSummary.HasReviews</c> before rendering the average.</b> A seller with
+    /// no reviews has an average of zero, and zero is not a rating — the marketplace screen
+    /// substituted a hardcoded <c>4.8</c> for exactly this missing field, which is the defect
+    /// this rollup exists to end rather than repeat.
+    /// </para>
+    /// </summary>
+    public SellerReviewSummary ReviewSummary { get; private set; } = default!;
 
     /// <summary>Why the seller was suspended. Shown to them, never to buyers.</summary>
     public string? SuspensionReason { get; private set; }
@@ -565,6 +577,20 @@ public sealed class SellerProfile
 
     public void RecordCompletedReservation() =>
         Statistics = Statistics.WithCompletedReservation();
+
+    /// <summary>
+    /// Replaces the rating rollup wholesale.
+    /// <para>
+    /// Takes a whole summary rather than a delta on purpose: the only supported way to change
+    /// this field is to recompute it from the reviews, so there is no method here that could
+    /// drift it.
+    /// </para>
+    /// </summary>
+    public void ApplyReviewSummary(SellerReviewSummary summary)
+    {
+        ArgumentNullException.ThrowIfNull(summary);
+        ReviewSummary = summary;
+    }
 
     public void RecordCancelledReservation() =>
         Statistics = Statistics.WithCancelledReservation();

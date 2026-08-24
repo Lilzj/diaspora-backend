@@ -1,4 +1,4 @@
-namespace Diaspora.Modules.Marketplace;
+﻿namespace Diaspora.Modules.Marketplace;
 
 /// <summary>
 /// The authorisation policy names the module's endpoints reference.
@@ -42,6 +42,8 @@ public static class MarketplacePolicies
     public const string ReservationCreate = "marketplace.reservation.create";
     public const string ReservationManage = "marketplace.reservation.manage";
     public const string SavedManage = "marketplace.saved.manage";
+    public const string ReviewWrite = "marketplace.review.write";
+    public const string ReviewRespond = "marketplace.review.respond";
 
     // ── Shared ─────────────────────────────────────────────────
 

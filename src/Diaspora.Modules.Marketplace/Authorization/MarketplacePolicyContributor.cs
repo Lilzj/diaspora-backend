@@ -1,4 +1,4 @@
-using Diaspora.Contracts.Authorization;
+﻿using Diaspora.Contracts.Authorization;
 using Diaspora.Platform.Modules.Contributors;
 
 namespace Diaspora.Modules.Marketplace.Authorization;
@@ -63,6 +63,9 @@ public sealed class MarketplacePolicyContributor : IPolicyContributor
         yield return Policy(
             MarketplacePolicies.ReservationManage, MarketplacePermissions.ReservationManage);
         yield return Policy(MarketplacePolicies.SavedManage, MarketplacePermissions.SavedManage);
+        yield return Policy(MarketplacePolicies.ReviewWrite, MarketplacePermissions.ReviewWrite);
+        yield return Policy(
+            MarketplacePolicies.ReviewRespond, MarketplacePermissions.ReviewRespond);
 
         // Shared
         yield return Policy(MarketplacePolicies.Report, MarketplacePermissions.Report);

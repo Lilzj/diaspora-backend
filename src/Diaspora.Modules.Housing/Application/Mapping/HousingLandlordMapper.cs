@@ -1,4 +1,4 @@
-using Diaspora.Modules.Housing.Contracts.V1.Responses;
+﻿using Diaspora.Modules.Housing.Contracts.V1.Responses;
 using Diaspora.Modules.Housing.Domain.Landlords;
 
 namespace Diaspora.Modules.Housing.Application.Mapping;
@@ -28,7 +28,11 @@ public static class HousingLandlordMapper
         Slug = string.Empty,
         DisplayName = "Unknown landlord",
         Kind = Domain.Enums.LandlordKind.Individual.ToString(),
-        IsVerified = false
+        IsVerified = false,
+
+        // A landlord that could not be loaded has no rating to report, which is exactly what
+        // null says. Reporting zero stars would libel a landlord over a failed join.
+        Rating = null
     };
 
     public static LandlordSummaryResponse ToSummary(LandlordProfile landlord)
@@ -44,7 +48,12 @@ public static class HousingLandlordMapper
             IsVerified = landlord.IsVerified,
             Badge = landlord.TrustMark.Badge,
             LogoMediaId = landlord.LogoMediaId,
-            ProviderId = landlord.ProviderId
+            ProviderId = landlord.ProviderId,
+
+            // Null, not a zeroed rollup, when nobody has reviewed them. See the field's note.
+            Rating = landlord.ReviewSummary.HasReviews
+                ? landlord.ReviewSummary.ToResponse()
+                : null
         };
     }
 

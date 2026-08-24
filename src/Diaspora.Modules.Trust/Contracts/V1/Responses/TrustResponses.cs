@@ -202,3 +202,30 @@ public sealed record ConfirmationResponse
 
     public required DateTimeOffset ConfirmedAt { get; init; }
 }
+
+/// <summary>
+/// How many members have confirmed one thing, and whether the caller is one of them.
+/// <para>
+/// The read side of <c>POST /trust/contributions/confirmations</c>. The write side has existed
+/// since the module shipped and nothing could ever read it back —
+/// <c>CountForTargetAsync</c> was written and never called — so every surface that offered a
+/// confirm control had to either invent the count or show a number from somewhere else.
+/// </para>
+/// <para>
+/// <b>There is deliberately no percentage here.</b> A share of readers needs a count of readers,
+/// and this module records no impressions — a rate computed from confirmations alone would have
+/// its denominator invented, which is the defect this route exists to remove rather than move.
+/// </para>
+/// </summary>
+public sealed record ConfirmationSummaryResponse
+{
+    public required string TargetType { get; init; }
+
+    public required string TargetId { get; init; }
+
+    /// <summary>Distinct members who confirmed. One per member, enforced by a unique index.</summary>
+    public required int ConfirmationCount { get; init; }
+
+    /// <summary>Whether the caller already confirmed this, so the control renders as spent.</summary>
+    public required bool ConfirmedByViewer { get; init; }
+}

@@ -1,4 +1,4 @@
-namespace Diaspora.Modules.Housing;
+﻿namespace Diaspora.Modules.Housing;
 
 /// <summary>
 /// The authorisation policy names the module's endpoints reference.
@@ -41,6 +41,8 @@ public static class HousingPolicies
     public const string ViewingManage = "housing.viewing.manage";
     public const string ReservationCreate = "housing.reservation.create";
     public const string ReservationManage = "housing.reservation.manage";
+    public const string ReviewWrite = "housing.review.write";
+    public const string ReviewRespond = "housing.review.respond";
 
     // ── Neighbourhoods ─────────────────────────────────────────────────
 

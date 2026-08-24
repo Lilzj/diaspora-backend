@@ -1,4 +1,4 @@
-using Diaspora.Modules.Marketplace.Contracts.V1.Responses;
+﻿using Diaspora.Modules.Marketplace.Contracts.V1.Responses;
 using Diaspora.Modules.Marketplace.Domain.Sellers;
 using Diaspora.Modules.Providers.Integration;
 
@@ -38,7 +38,12 @@ internal static class SellerMapper
             CompletedSales = seller.Statistics.SoldListings,
             CancellationRate = seller.Statistics.CancellationRate,
             AverageResponseMinutes = seller.Statistics.AverageResponseMinutes,
-            MemberSince = seller.CreatedAt
+            MemberSince = seller.CreatedAt,
+
+            // Null, not a zeroed rollup, when nobody has reviewed them. See the field's note.
+            Rating = seller.ReviewSummary.HasReviews
+                ? seller.ReviewSummary.ToResponse()
+                : null
         };
     }
 
@@ -57,7 +62,11 @@ internal static class SellerMapper
         SellerType = Domain.Enums.SellerType.Individual.ToString(),
         IsVerified = false,
         CompletedSales = 0,
-        MemberSince = DateTimeOffset.MinValue
+        MemberSince = DateTimeOffset.MinValue,
+
+        // A seller that could not be loaded has no rating to report, which is exactly what
+        // null says. Reporting zero stars would libel a seller over a failed join.
+        Rating = null
     };
 
     /// <summary>The full storefront.</summary>

@@ -1,4 +1,4 @@
-namespace Diaspora.Modules.Housing;
+﻿namespace Diaspora.Modules.Housing;
 
 /// <summary>
 /// The stable wire-level error codes the Housing module emits.
@@ -174,4 +174,15 @@ public static class HousingErrorCodes
     public const string SearchQueryInvalid = "housing.search.query-invalid";
     public const string SuspectedFraud = "housing.fraud.suspected";
     public const string DuplicateListing = "housing.listing.duplicate";
+
+    // ── Reviews ─────────────────────────────────────────────────────────────────────────────
+
+    public const string ReviewNotFound = "housing.review.not-found";
+    public const string ReviewSelf = "housing.review.self";
+    public const string ReviewRatingOutOfRange = "housing.review.rating-out-of-range";
+    public const string ReviewNoTenancy = "housing.review.no-tenancy";
+    public const string ReviewAlreadyWritten = "housing.review.already-written";
+    public const string ReviewNotEditable = "housing.review.not-editable";
+    public const string ReviewEditWindowClosed = "housing.review.edit-window-closed";
+    public const string ReviewResponseEmpty = "housing.review.response-empty";
 }

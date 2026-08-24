@@ -1,4 +1,4 @@
-using Diaspora.Platform.Modules.Contributors;
+﻿using Diaspora.Platform.Modules.Contributors;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -39,5 +39,6 @@ public sealed class HousingEndpointContributor : IEndpointContributor
         NeighborhoodEndpoints.Map(group);
         HousingCatalogEndpoints.Map(group);
         HousingModerationEndpoints.Map(group);
+        HousingReviewEndpoints.Map(group);
     }
 }

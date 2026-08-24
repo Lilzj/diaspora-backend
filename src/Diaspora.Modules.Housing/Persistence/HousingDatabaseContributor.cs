@@ -1,4 +1,4 @@
-using Diaspora.Modules.Housing.Persistence.Configurations;
+﻿using Diaspora.Modules.Housing.Persistence.Configurations;
 using Diaspora.Persistence.Modules;
 using Microsoft.EntityFrameworkCore;
 
@@ -53,6 +53,7 @@ public sealed class HousingDatabaseContributor : IDatabaseContributor
         // read somebody's whole diary.
         modelBuilder.ApplyConfiguration(new HousingViewingConfiguration());
         modelBuilder.ApplyConfiguration(new HousingReservationConfiguration());
+        modelBuilder.ApplyConfiguration(new LandlordReviewConfiguration());
 
         // The neighbourhood profile and what the community says about it. The insight is its own
         // aggregate because the moderation queue pages across neighbourhoods rather than within

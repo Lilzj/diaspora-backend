@@ -1,4 +1,4 @@
-using Diaspora.Contracts.Events;
+﻿using Diaspora.Contracts.Events;
 
 namespace Diaspora.Contracts.Community.V1.Events;
 
@@ -25,4 +25,7 @@ public sealed record CommunityReactionAddedIntegrationEvent : IntegrationEvent
     public required string Sentiment { get; init; }
 
     public Guid? ContentAuthorId { get; init; }
+
+    /// <summary>The country community the content belongs to, when it has one.</summary>
+    public string? CountryCode { get; init; }
 }

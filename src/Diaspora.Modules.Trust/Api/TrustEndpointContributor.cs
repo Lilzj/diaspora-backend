@@ -1,4 +1,4 @@
-using Diaspora.Modules.Trust.Application.Appeals;
+﻿using Diaspora.Modules.Trust.Application.Appeals;
 using Diaspora.Modules.Trust.Application.Eligibility;
 using Diaspora.Modules.Trust.Application.Moderation;
 using Diaspora.Modules.Trust.Application.Profile;
@@ -560,6 +560,27 @@ public sealed class TrustEndpointContributor : IEndpointContributor
             .RequireAuthorization(TrustPolicies.Confirm)
             .WithName("RecordConfirmation")
             .WithSummary("Confirm the accuracy of another member's contribution.");
+
+        group.MapGet("/contributions/confirmations", async (
+                string targetType,
+                string targetId,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await sender.Send(
+                    new GetConfirmationSummaryQuery
+                    {
+                        TargetType = targetType,
+                        TargetId = targetId
+                    },
+                    cancellationToken);
+
+                return PlatformResults.Ok(context, result);
+            })
+            .RequireAuthorization(TrustPolicies.ReadSelf)
+            .WithName("GetConfirmationSummary")
+            .WithSummary("How many members confirmed one thing, and whether the caller did.");
     }
 
     // ── Eligibility ──────────────────────────────────────────────────────

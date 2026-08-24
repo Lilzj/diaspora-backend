@@ -246,3 +246,76 @@ public sealed class RecordConfirmationCommandHandler
         });
     }
 }
+
+/// <summary>
+/// How many members confirmed one target, and whether the caller is one of them.
+/// <para>
+/// The counterpart to <see cref="RecordConfirmationCommand"/>. Reads only — a caller learns
+/// the tally for a target it can already see, so this sits on the same read permission as the
+/// rest of the trust centre rather than on <c>Confirm</c>.
+/// </para>
+/// </summary>
+[Authorize(Permission = TrustPermissions.ReadSelf)]
+public sealed record GetConfirmationSummaryQuery : IQuery<ConfirmationSummaryResponse>
+{
+    public required string TargetType { get; init; }
+
+    public required string TargetId { get; init; }
+}
+
+public sealed class GetConfirmationSummaryQueryValidator
+    : AbstractValidator<GetConfirmationSummaryQuery>
+{
+    public GetConfirmationSummaryQueryValidator()
+    {
+        RuleFor(query => query.TargetType)
+            .NotEmpty()
+            .MaximumLength(CommunityContribution.MaxTargetTypeLength);
+
+        RuleFor(query => query.TargetId)
+            .NotEmpty()
+            .MaximumLength(CommunityContribution.MaxTargetIdLength);
+    }
+}
+
+public sealed class GetConfirmationSummaryQueryHandler
+    : IQueryHandler<GetConfirmationSummaryQuery, ConfirmationSummaryResponse>
+{
+    private readonly ICommunityContributionRepository _contributions;
+    private readonly ICurrentUser _currentUser;
+
+    public GetConfirmationSummaryQueryHandler(
+        ICommunityContributionRepository contributions, ICurrentUser currentUser)
+    {
+        _contributions = contributions;
+        _currentUser = currentUser;
+    }
+
+    public async Task<Result<ConfirmationSummaryResponse>> Handle(
+        GetConfirmationSummaryQuery request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var userId = _currentUser.UserId;
+        if (userId is null)
+        {
+            return Result.Failure<ConfirmationSummaryResponse>(TrustErrors.NotAuthenticated);
+        }
+
+        var count = await _contributions.CountForTargetAsync(
+            request.TargetType, request.TargetId, cancellationToken);
+
+        var confirmedByViewer = await _contributions.ExistsAsync(
+            userId, request.TargetType, request.TargetId, cancellationToken);
+
+        // A target nobody has confirmed is a zero, not a 404. The control has to render before
+        // the first confirmation exists or nobody can ever give it one.
+        return Result.Success(new ConfirmationSummaryResponse
+        {
+            TargetType = request.TargetType.Trim().ToLowerInvariant(),
+            TargetId = request.TargetId,
+            ConfirmationCount = count,
+            ConfirmedByViewer = confirmedByViewer
+        });
+    }
+}

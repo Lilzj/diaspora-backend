@@ -1,4 +1,4 @@
-namespace Diaspora.Modules.Marketplace;
+﻿namespace Diaspora.Modules.Marketplace;
 
 /// <summary>
 /// The stable wire-level error codes the Marketplace module emits.
@@ -164,4 +164,15 @@ public static class MarketplaceErrorCodes
     public const string SearchQueryInvalid = "marketplace.search.query-invalid";
     public const string SuspectedFraud = "marketplace.fraud.suspected";
     public const string DuplicateListing = "marketplace.listing.duplicate";
+
+    // ── Reviews ─────────────────────────────────────────────────────────────────────────────
+
+    public const string ReviewNotFound = "marketplace.review.not-found";
+    public const string ReviewSelf = "marketplace.review.self";
+    public const string ReviewRatingOutOfRange = "marketplace.review.rating-out-of-range";
+    public const string ReviewNoCompletedPurchase = "marketplace.review.no-completed-purchase";
+    public const string ReviewAlreadyWritten = "marketplace.review.already-written";
+    public const string ReviewNotEditable = "marketplace.review.not-editable";
+    public const string ReviewEditWindowClosed = "marketplace.review.edit-window-closed";
+    public const string ReviewResponseEmpty = "marketplace.review.response-empty";
 }

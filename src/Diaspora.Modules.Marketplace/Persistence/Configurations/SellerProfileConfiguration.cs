@@ -1,4 +1,4 @@
-using Diaspora.Modules.Marketplace.Domain.Identifiers;
+﻿using Diaspora.Modules.Marketplace.Domain.Identifiers;
 using Diaspora.Modules.Marketplace.Domain.Policies;
 using Diaspora.Modules.Marketplace.Domain.Sellers;
 using Diaspora.SharedKernel.Identity;
@@ -53,6 +53,7 @@ public sealed class SellerProfileConfiguration : IEntityTypeConfiguration<Seller
         ConfigureContact(builder);
         ConfigureTrustMark(builder);
         ConfigureStatistics(builder);
+        ConfigureReviewSummary(builder);
 
         // One profile per member. See the class summary.
         builder.HasIndex(seller => seller.OwnerUserId)
@@ -223,5 +224,31 @@ public sealed class SellerProfileConfiguration : IEntityTypeConfiguration<Seller
         });
 
         builder.Navigation(seller => seller.Statistics).IsRequired();
+    }
+
+    /// <summary>
+    /// The rating rollup, stored as its five bucket counts.
+    /// <para>
+    /// The average and the total are <b>not</b> columns. Both are derived from the buckets on
+    /// construction, so storing them would create two more places for the same number to be
+    /// wrong — and a stored average is exactly the field that drifts when a review is hidden.
+    /// </para>
+    /// </summary>
+    private static void ConfigureReviewSummary(EntityTypeBuilder<SellerProfile> builder)
+    {
+        builder.OwnsOne(seller => seller.ReviewSummary, summary =>
+        {
+            summary.Property(value => value.OneStar).HasColumnName("rating_one_star");
+            summary.Property(value => value.TwoStar).HasColumnName("rating_two_star");
+            summary.Property(value => value.ThreeStar).HasColumnName("rating_three_star");
+            summary.Property(value => value.FourStar).HasColumnName("rating_four_star");
+            summary.Property(value => value.FiveStar).HasColumnName("rating_five_star");
+
+            summary.Ignore(value => value.TotalReviews);
+            summary.Ignore(value => value.Average);
+            summary.Ignore(value => value.HasReviews);
+        });
+
+        builder.Navigation(seller => seller.ReviewSummary).IsRequired();
     }
 }

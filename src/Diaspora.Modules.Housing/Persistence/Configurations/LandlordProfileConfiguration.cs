@@ -1,4 +1,4 @@
-using Diaspora.Modules.Housing.Domain.Identifiers;
+﻿using Diaspora.Modules.Housing.Domain.Identifiers;
 using Diaspora.Modules.Housing.Domain.Landlords;
 using Diaspora.Modules.Housing.Domain.Policies;
 using Diaspora.SharedKernel.Identity;
@@ -61,6 +61,7 @@ public sealed class LandlordProfileConfiguration : IEntityTypeConfiguration<Land
         ConfigureContact(builder);
         ConfigureTrustMark(builder);
         ConfigureStatistics(builder);
+        ConfigureReviewSummary(builder);
 
         // One profile per member. See the class summary.
         builder.HasIndex(profile => profile.OwnerUserId)
@@ -205,5 +206,31 @@ public sealed class LandlordProfileConfiguration : IEntityTypeConfiguration<Land
         });
 
         builder.Navigation(profile => profile.Statistics).IsRequired();
+    }
+
+    /// <summary>
+    /// The rating rollup, stored as its five bucket counts.
+    /// <para>
+    /// The average and the total are <b>not</b> columns: both are derived from the buckets, so
+    /// storing them would create two more places for the same number to be wrong — and a stored
+    /// average is exactly the field that drifts when a review is hidden.
+    /// </para>
+    /// </summary>
+    private static void ConfigureReviewSummary(EntityTypeBuilder<LandlordProfile> builder)
+    {
+        builder.OwnsOne(profile => profile.ReviewSummary, summary =>
+        {
+            summary.Property(value => value.OneStar).HasColumnName("rating_one_star");
+            summary.Property(value => value.TwoStar).HasColumnName("rating_two_star");
+            summary.Property(value => value.ThreeStar).HasColumnName("rating_three_star");
+            summary.Property(value => value.FourStar).HasColumnName("rating_four_star");
+            summary.Property(value => value.FiveStar).HasColumnName("rating_five_star");
+
+            summary.Ignore(value => value.TotalReviews);
+            summary.Ignore(value => value.Average);
+            summary.Ignore(value => value.HasReviews);
+        });
+
+        builder.Navigation(profile => profile.ReviewSummary).IsRequired();
     }
 }

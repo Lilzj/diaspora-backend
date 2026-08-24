@@ -1,4 +1,4 @@
-using Diaspora.Modules.Marketplace.Domain.Listings;
+﻿using Diaspora.Modules.Marketplace.Domain.Listings;
 using Diaspora.SharedKernel.Results;
 
 namespace Diaspora.Modules.Marketplace.Domain.Errors;
@@ -558,4 +558,43 @@ public static class MarketplaceErrors
     public static readonly Error DuplicateListing = Error.Conflict(
         MarketplaceErrorCodes.DuplicateListing,
         "You already have a listing that looks exactly like this one.");
+
+    // ── Reviews ─────────────────────────────────────────────────────────────────────────────
+
+    public static readonly Error ReviewNotFound = Error.NotFound(
+        MarketplaceErrorCodes.ReviewNotFound,
+        "That review does not exist.");
+
+    public static readonly Error ReviewSelf = Error.Validation(
+        MarketplaceErrorCodes.ReviewSelf,
+        "You cannot review your own storefront.");
+
+    public static readonly Error ReviewRatingOutOfRange = Error.Validation(
+        MarketplaceErrorCodes.ReviewRatingOutOfRange,
+        "A rating is a whole number of stars from one to five.");
+
+    /// <summary>
+    /// The gate that makes the star mean something. Stated plainly rather than as a generic
+    /// forbidden, because "you have not bought from this seller" is actionable and
+    /// "not allowed" is not.
+    /// </summary>
+    public static readonly Error ReviewNoCompletedPurchase = Error.Forbidden(
+        MarketplaceErrorCodes.ReviewNoCompletedPurchase,
+        "Only a completed purchase can be reviewed. You have no completed reservation with this seller.");
+
+    public static readonly Error ReviewAlreadyWritten = Error.Conflict(
+        MarketplaceErrorCodes.ReviewAlreadyWritten,
+        "You have already reviewed this purchase. Edit that review instead.");
+
+    public static readonly Error ReviewNotEditable = Error.Validation(
+        MarketplaceErrorCodes.ReviewNotEditable,
+        "That review has been withdrawn or hidden and can no longer be changed.");
+
+    public static readonly Error ReviewEditWindowClosed = Error.Validation(
+        MarketplaceErrorCodes.ReviewEditWindowClosed,
+        "The window for editing this review has closed. You can still withdraw it.");
+
+    public static readonly Error ReviewResponseEmpty = Error.Validation(
+        MarketplaceErrorCodes.ReviewResponseEmpty,
+        "A response needs some text.");
 }

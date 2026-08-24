@@ -11078,6 +11078,76 @@ namespace Diaspora.Persistence.Migrations
                     b.ToTable("housing_reservations", "housing");
                 });
 
+            modelBuilder.Entity("Diaspora.Modules.Housing.Domain.Reviews.LandlordReview", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Body")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("EditedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("LandlordId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ListingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("ReservationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("RespondedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Response")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid>("ReviewerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReservationId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_housing_landlord_reviews_reservation");
+
+                    b.HasIndex("ReviewerId")
+                        .HasDatabaseName("ix_housing_landlord_reviews_reviewer");
+
+                    b.HasIndex("LandlordId", "Status")
+                        .HasDatabaseName("ix_housing_landlord_reviews_landlord_status");
+
+                    b.ToTable("housing_landlord_reviews", "housing");
+                });
+
             modelBuilder.Entity("Diaspora.Modules.Housing.Domain.Viewings.HousingViewing", b =>
                 {
                     b.Property<Guid>("Id")
@@ -13564,6 +13634,76 @@ namespace Diaspora.Persistence.Migrations
                         .HasDatabaseName("ix_marketplace_reservations_listing_buyer");
 
                     b.ToTable("marketplace_reservations", "marketplace");
+                });
+
+            modelBuilder.Entity("Diaspora.Modules.Marketplace.Domain.Reviews.SellerReview", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Body")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("EditedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ListingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("ReservationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("RespondedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Response")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid>("ReviewerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SellerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReservationId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_marketplace_seller_reviews_reservation");
+
+                    b.HasIndex("ReviewerId")
+                        .HasDatabaseName("ix_marketplace_seller_reviews_reviewer");
+
+                    b.HasIndex("SellerId", "Status")
+                        .HasDatabaseName("ix_marketplace_seller_reviews_seller_status");
+
+                    b.ToTable("marketplace_seller_reviews", "marketplace");
                 });
 
             modelBuilder.Entity("Diaspora.Modules.Marketplace.Domain.Saved.SavedListing", b =>
@@ -23558,6 +23698,39 @@ namespace Diaspora.Persistence.Migrations
                                 .HasForeignKey("LandlordProfileId");
                         });
 
+                    b.OwnsOne("Diaspora.Modules.Housing.Domain.ValueObjects.LandlordReviewSummary", "ReviewSummary", b1 =>
+                        {
+                            b1.Property<Guid>("LandlordProfileId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<int>("FiveStar")
+                                .HasColumnType("integer")
+                                .HasColumnName("rating_five_star");
+
+                            b1.Property<int>("FourStar")
+                                .HasColumnType("integer")
+                                .HasColumnName("rating_four_star");
+
+                            b1.Property<int>("OneStar")
+                                .HasColumnType("integer")
+                                .HasColumnName("rating_one_star");
+
+                            b1.Property<int>("ThreeStar")
+                                .HasColumnType("integer")
+                                .HasColumnName("rating_three_star");
+
+                            b1.Property<int>("TwoStar")
+                                .HasColumnType("integer")
+                                .HasColumnName("rating_two_star");
+
+                            b1.HasKey("LandlordProfileId");
+
+                            b1.ToTable("housing_landlords", "housing");
+
+                            b1.WithOwner()
+                                .HasForeignKey("LandlordProfileId");
+                        });
+
                     b.OwnsOne("Diaspora.Modules.Housing.Domain.ValueObjects.LandlordStatistics", "Statistics", b1 =>
                         {
                             b1.Property<Guid>("LandlordProfileId")
@@ -23603,6 +23776,9 @@ namespace Diaspora.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Identity")
+                        .IsRequired();
+
+                    b.Navigation("ReviewSummary")
                         .IsRequired();
 
                     b.Navigation("Slug")
@@ -28016,6 +28192,39 @@ namespace Diaspora.Persistence.Migrations
                                 .HasForeignKey("SellerProfileId");
                         });
 
+                    b.OwnsOne("Diaspora.Modules.Marketplace.Domain.ValueObjects.SellerReviewSummary", "ReviewSummary", b1 =>
+                        {
+                            b1.Property<Guid>("SellerProfileId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<int>("FiveStar")
+                                .HasColumnType("integer")
+                                .HasColumnName("rating_five_star");
+
+                            b1.Property<int>("FourStar")
+                                .HasColumnType("integer")
+                                .HasColumnName("rating_four_star");
+
+                            b1.Property<int>("OneStar")
+                                .HasColumnType("integer")
+                                .HasColumnName("rating_one_star");
+
+                            b1.Property<int>("ThreeStar")
+                                .HasColumnType("integer")
+                                .HasColumnName("rating_three_star");
+
+                            b1.Property<int>("TwoStar")
+                                .HasColumnType("integer")
+                                .HasColumnName("rating_two_star");
+
+                            b1.HasKey("SellerProfileId");
+
+                            b1.ToTable("marketplace_sellers", "marketplace");
+
+                            b1.WithOwner()
+                                .HasForeignKey("SellerProfileId");
+                        });
+
                     b.OwnsOne("Diaspora.Modules.Marketplace.Domain.ValueObjects.SellerStatistics", "Statistics", b1 =>
                         {
                             b1.Property<Guid>("SellerProfileId")
@@ -28061,6 +28270,9 @@ namespace Diaspora.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Identity")
+                        .IsRequired();
+
+                    b.Navigation("ReviewSummary")
                         .IsRequired();
 
                     b.Navigation("Slug")

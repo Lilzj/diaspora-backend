@@ -1,4 +1,4 @@
-using Diaspora.Contracts.Authorization;
+﻿using Diaspora.Contracts.Authorization;
 using Diaspora.Platform.Modules.Contributors;
 
 namespace Diaspora.Modules.Housing.Authorization;
@@ -56,6 +56,8 @@ public sealed class HousingPolicyContributor : IPolicyContributor
             HousingPolicies.ReservationCreate, HousingPermissions.ReservationCreate);
         yield return Policy(
             HousingPolicies.ReservationManage, HousingPermissions.ReservationManage);
+        yield return Policy(HousingPolicies.ReviewWrite, HousingPermissions.ReviewWrite);
+        yield return Policy(HousingPolicies.ReviewRespond, HousingPermissions.ReviewRespond);
 
         // Neighbourhoods
         yield return Policy(

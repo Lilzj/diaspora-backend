@@ -1,4 +1,4 @@
-using Diaspora.Domain.Abstractions;
+﻿using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Housing.Domain.Enums;
 using Diaspora.Modules.Housing.Domain.Errors;
 using Diaspora.Modules.Housing.Domain.Events;
@@ -51,6 +51,7 @@ public sealed class LandlordProfile
         Contact = contact;
         TrustMark = HousingTrustMark.Unverified;
         Statistics = LandlordStatistics.Empty;
+        ReviewSummary = LandlordReviewSummary.Empty;
         Status = LandlordStatus.Active;
         CreatedAt = createdAt;
     }
@@ -93,6 +94,17 @@ public sealed class LandlordProfile
     public HousingTrustMark TrustMark { get; private set; } = default!;
 
     public LandlordStatistics Statistics { get; private set; } = default!;
+
+    /// <summary>
+    /// The rating rollup, recomputed from the reviews table rather than incremented.
+    /// <para>
+    /// <b>Read <c>ReviewSummary.HasReviews</c> before rendering the average.</b> A landlord with
+    /// no reviews has an average of zero, and zero is not a rating — the housing screen rendered
+    /// <c>★ {listing.host.rating}</c> against a field that never existed, which is the defect
+    /// this rollup exists to end rather than repeat.
+    /// </para>
+    /// </summary>
+    public LandlordReviewSummary ReviewSummary { get; private set; } = default!;
 
     /// <summary>Why they were suspended, for the landlord to read and a moderator to review.</summary>
     public string? SuspensionReason { get; private set; }
@@ -363,6 +375,20 @@ public sealed class LandlordProfile
         Statistics = Statistics.WithListingCounts(activeListings, totalListings);
 
     public void RecordLet() => Statistics = Statistics.RecordLet();
+
+    /// <summary>
+    /// Replaces the rating rollup wholesale.
+    /// <para>
+    /// Takes a whole summary rather than a delta on purpose: the only supported way to change
+    /// this field is to recompute it from the reviews, so there is no method here that could
+    /// drift it.
+    /// </para>
+    /// </summary>
+    public void ApplyReviewSummary(LandlordReviewSummary summary)
+    {
+        ArgumentNullException.ThrowIfNull(summary);
+        ReviewSummary = summary;
+    }
 
     public void RecordViewingRequest() => Statistics = Statistics.RecordViewingRequest();
 

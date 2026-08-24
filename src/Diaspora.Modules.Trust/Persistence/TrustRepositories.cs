@@ -1,4 +1,4 @@
-using Diaspora.Modules.Trust.Domain;
+﻿using Diaspora.Modules.Trust.Domain;
 using Diaspora.Persistence;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Pagination;
@@ -225,9 +225,21 @@ public sealed class TrustProfileRepository : ITrustProfileRepository
 
     private DbSet<TrustProfile> Profiles => _dbContext.Set<TrustProfile>();
 
+    /// <summary>
+    /// The member's profile, including one added earlier in this same unit of work.
+    /// <para>
+    /// <b>The change tracker is consulted first, and that is not an optimisation.</b> A
+    /// LINQ query goes to the database and cannot see a pending insert, so a caller that
+    /// provisions a profile and then asks for it back is told there is none — and provisions
+    /// a second. <c>TrustProfileProvisioner</c> and <c>ReputationService</c> did exactly that
+    /// in one request, which is a unique-constraint violation at save time on the reputation
+    /// side and silently discarded country points on this one.
+    /// </para>
+    /// </summary>
     public async Task<TrustProfile?> GetByUserAsync(
         UserId userId, CancellationToken cancellationToken = default) =>
-        await Profiles
+        Profiles.Local.FirstOrDefault(profile => profile.UserId == userId)
+        ?? await Profiles
             .Include(profile => profile.Badges)
             .Include(profile => profile.Countries)
             .FirstOrDefaultAsync(profile => profile.UserId == userId, cancellationToken);
@@ -266,9 +278,20 @@ public sealed class ReputationProfileRepository : IReputationProfileRepository
     /// never needed — caps are answered by <see cref="GetRuleUsageAsync"/> instead.
     /// </para>
     /// </summary>
+    /// <summary>
+    /// The member's profile, including one added earlier in this same unit of work.
+    /// <para>
+    /// See the note on <see cref="TrustProfileRepository.GetByUserAsync"/>. Here the
+    /// consequence was a 500: <c>GetOrCreateBothAsync</c> added a profile, this query did not
+    /// see it, <c>ScoreAsync</c> added a second, and the save violated
+    /// <c>ix_reputation_profiles_user</c>. It fired on every author's *first* confirmation,
+    /// which is the one case a brand-new contributor is guaranteed to hit.
+    /// </para>
+    /// </summary>
     public async Task<ReputationProfile?> GetByUserAsync(
         UserId userId, CancellationToken cancellationToken = default) =>
-        await Profiles.FirstOrDefaultAsync(profile => profile.UserId == userId, cancellationToken);
+        Profiles.Local.FirstOrDefault(profile => profile.UserId == userId)
+        ?? await Profiles.FirstOrDefaultAsync(profile => profile.UserId == userId, cancellationToken);
 
     public async Task<ReputationProfile?> GetByUserReadOnlyAsync(
         UserId userId, CancellationToken cancellationToken = default) =>

@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Diaspora.Contracts.Identity.V1.Responses;
@@ -354,15 +354,39 @@ public sealed class CommunityModuleTests : IdentityTestBase
     {
         // Accepting it would produce a row nothing can render, moderate or notify about.
         //
-        // This used to be asserted against 'guide', which B8 now owns — a content type becomes
-        // commentable the moment its module registers a content source, which is the whole point
-        // of the ContentReference model. 'job' is the nearest unclaimed key: B11 has not shipped.
+        // **This assertion has now gone stale twice**, and for the same reason both times: a
+        // content type becomes commentable the moment its module registers a content source,
+        // which is the whole point of the ContentReference model. It was written against
+        // 'guide', which B8 claimed; it was moved to 'job' on the grounds that "B11 has not
+        // shipped", and B11 shipped `JobContentSource` — so the call started answering 404 (a
+        // real type, no such job) instead of 400, and the test caught a drift it was never
+        // about.
+        //
+        // **Every declared type now has an owner except one.** Guides, jobs, housing,
+        // marketplace, events, organizations, polls, messages and provider listings are all
+        // claimed by their modules, and `member` is claimed by Community's own
+        // `MemberContentSource` — so there is no real vertical left to point this at, and any
+        // choice of one would be a third stale assertion waiting to happen.
+        //
+        // `Other` is the exception and cannot drift, because it is not a vertical: the enum
+        // defines it as "a content type a later module introduced before this enum caught up".
+        // It is the sentinel for the unclaimed, so nothing will ever register a source for it,
+        // which makes it the one honest subject for this property.
         var (_, auth) = await RegisterVerifiedMemberAsync();
         Api.Authenticate(auth.Tokens.AccessToken);
 
+        // The premise, asserted rather than assumed. If some later module does register a
+        // source for `member`, this fails here with the reason instead of silently becoming a
+        // test about something else.
+        var capabilities = await ReadDataAsync<CapabilitiesDto>(
+            await HttpClient.GetAsync("/api/v1/community/capabilities"));
+
+        capabilities.SupportedContentTypes.Should().NotContain(
+            "other", "the case under test only exists while no module owns this type");
+
         var response = await HttpClient.PostAsJsonAsync(
-            $"/api/v1/community/content/job/{Guid.NewGuid()}/comments",
-            new { body = "Nobody owns jobs yet." });
+            $"/api/v1/community/content/other/{Guid.NewGuid()}/comments",
+            new { body = "Nobody owns this, so nothing could render the comment." });
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 

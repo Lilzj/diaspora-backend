@@ -1,4 +1,4 @@
-using Diaspora.SharedKernel.Results;
+﻿using Diaspora.SharedKernel.Results;
 
 namespace Diaspora.Modules.Housing.Domain.Errors;
 
@@ -530,4 +530,43 @@ public static class HousingErrors
     public static readonly Error DuplicateListing = Error.Conflict(
         HousingErrorCodes.DuplicateListing,
         "You already have a live listing with that title.");
+
+    // ── Reviews ─────────────────────────────────────────────────────────────────────────────
+
+    public static readonly Error ReviewNotFound = Error.NotFound(
+        HousingErrorCodes.ReviewNotFound,
+        "That review does not exist.");
+
+    public static readonly Error ReviewSelf = Error.Validation(
+        HousingErrorCodes.ReviewSelf,
+        "You cannot review your own listing.");
+
+    public static readonly Error ReviewRatingOutOfRange = Error.Validation(
+        HousingErrorCodes.ReviewRatingOutOfRange,
+        "A rating is a whole number of stars from one to five.");
+
+    /// <summary>
+    /// The gate that makes the star mean something. Stated plainly rather than as a generic
+    /// forbidden, because "you have not rented from this landlord" is actionable and
+    /// "not allowed" is not.
+    /// </summary>
+    public static readonly Error ReviewNoTenancy = Error.Forbidden(
+        HousingErrorCodes.ReviewNoTenancy,
+        "Only a tenancy you moved into can be reviewed. You have no completed reservation with this landlord.");
+
+    public static readonly Error ReviewAlreadyWritten = Error.Conflict(
+        HousingErrorCodes.ReviewAlreadyWritten,
+        "You have already reviewed this tenancy. Edit that review instead.");
+
+    public static readonly Error ReviewNotEditable = Error.Validation(
+        HousingErrorCodes.ReviewNotEditable,
+        "That review has been withdrawn or hidden and can no longer be changed.");
+
+    public static readonly Error ReviewEditWindowClosed = Error.Validation(
+        HousingErrorCodes.ReviewEditWindowClosed,
+        "The window for editing this review has closed. You can still withdraw it.");
+
+    public static readonly Error ReviewResponseEmpty = Error.Validation(
+        HousingErrorCodes.ReviewResponseEmpty,
+        "A response needs some text.");
 }

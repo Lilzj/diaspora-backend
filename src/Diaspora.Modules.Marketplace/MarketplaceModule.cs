@@ -1,5 +1,6 @@
 ﻿using Diaspora.Modules.Marketplace.Application.EventHandlers;
 using Diaspora.Modules.Marketplace.Application.Services;
+using Diaspora.Modules.Marketplace.Domain.Reviews;
 using Diaspora.Modules.Marketplace.Domain.Analytics;
 using Diaspora.Modules.Marketplace.Domain.Attributes;
 using Diaspora.Modules.Marketplace.Domain.Catalog;
@@ -117,6 +118,7 @@ public sealed class MarketplaceModule : IPlatformModule
     private static void RegisterServices(IServiceCollection services)
     {
         services.AddScoped<MarketplaceAuthorizationService>();
+        services.AddScoped<SellerReviewSummaryService>();
         services.AddScoped<ListingCategoryResolver>();
         services.AddScoped<ListingAttributeValidator>();
         services.AddScoped<ListingSlugAllocator>();
@@ -150,6 +152,7 @@ public sealed class MarketplaceModule : IPlatformModule
         services.AddScoped<ISellerProfileRepository, SellerProfileRepository>();
         services.AddScoped<IListingOfferRepository, ListingOfferRepository>();
         services.AddScoped<IListingReservationRepository, ListingReservationRepository>();
+        services.AddScoped<ISellerReviewRepository, SellerReviewRepository>();
 
         // The stock guard. Declared in the domain, satisfied in persistence over the platform's
         // guarded atomic reservation store — so the module depends on its own abstraction and the

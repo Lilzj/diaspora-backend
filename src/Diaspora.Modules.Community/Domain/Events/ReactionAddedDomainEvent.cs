@@ -1,4 +1,4 @@
-using Diaspora.Modules.Community.Domain.Enums;
+﻿using Diaspora.Modules.Community.Domain.Enums;
 using Diaspora.Modules.Community.Domain.Identifiers;
 using Diaspora.Modules.Community.Domain.ValueObjects;
 using Diaspora.SharedKernel.Identity;
@@ -29,4 +29,14 @@ public sealed record ReactionAddedDomainEvent : DomainEvent
 
     /// <summary>The author of the content, when B6 owns it. Who a notification goes to.</summary>
     public Guid? ContentAuthorId { get; init; }
+
+    /// <summary>
+    /// The country community the content belongs to, when it has one.
+    /// <para>
+    /// Carried because a consumer scoring the author's standing needs the country of the thing
+    /// reacted to, and cannot derive it — the reactor's country is not it, and neither is the
+    /// author's own primary country.
+    /// </para>
+    /// </summary>
+    public string? CountryCode { get; init; }
 }

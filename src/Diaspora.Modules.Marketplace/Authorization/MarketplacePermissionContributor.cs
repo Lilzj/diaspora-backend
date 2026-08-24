@@ -1,4 +1,4 @@
-using Diaspora.Contracts.Authorization;
+﻿using Diaspora.Contracts.Authorization;
 using Diaspora.Platform.Modules.Contributors;
 
 namespace Diaspora.Modules.Marketplace.Authorization;
@@ -211,6 +211,26 @@ public sealed class MarketplacePermissionContributor : IPermissionContributor
             "Reserve an item for collection.")
         {
             MinimumTier = AccessTier.Verified
+        };
+
+        // The real gate on a review is the completed reservation the handler checks for, not
+        // this tier — a member who has bought something has already cleared Verified to do it.
+        yield return new PermissionDefinition(
+            MarketplacePermissions.ReviewWrite, MarketplaceModuleMetadata.Name,
+            "Review a seller you have completed a purchase with.")
+        {
+            MinimumTier = AccessTier.Verified
+        };
+
+        // A restricted seller keeps the right of reply. Answering a review is the one thing a
+        // seller under restriction most needs, and silencing it would let a restriction decide
+        // how a public dispute reads.
+        yield return new PermissionDefinition(
+            MarketplacePermissions.ReviewRespond, MarketplaceModuleMetadata.Name,
+            "Reply publicly to a review of your storefront.")
+        {
+            MinimumTier = AccessTier.Limited,
+            GrantedWhenRestricted = true
         };
 
         yield return new PermissionDefinition(

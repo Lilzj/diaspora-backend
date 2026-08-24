@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Diaspora.Contracts.Identity.V1.Responses;
@@ -61,8 +61,12 @@ public sealed class BookmarksModuleTests : IdentityTestBase
         var (_, auth) = await RegisterAndVerifyAsync();
         Api.Authenticate(auth.Tokens.AccessToken);
 
-        var first = await Create("listing", "listing-9");
-        var second = await Create("listing", "listing-9");
+        // `listing` predates `BookmarkTargetCatalog`, which was added precisely because
+        // nothing validated the type and a client typo became a permanent unrenderable row.
+        // The baseline never had a bare `listing`: the ambiguity between a marketplace item and
+        // a housing let is the reason it is spelled out.
+        var first = await Create("marketplace-listing", "listing-9");
+        var second = await Create("marketplace-listing", "listing-9");
 
         first.Id.Should().Be(second.Id, "a second save of the same target updates rather than duplicates");
 

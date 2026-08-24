@@ -1,4 +1,4 @@
-using Diaspora.Contracts.Authorization;
+﻿using Diaspora.Contracts.Authorization;
 using Diaspora.Platform.Modules.Contributors;
 
 namespace Diaspora.Modules.Housing.Authorization;
@@ -214,6 +214,26 @@ public sealed class HousingPermissionContributor : IPermissionContributor
             "Reserve a property.")
         {
             MinimumTier = AccessTier.Verified
+        };
+
+        // The real gate on a review is the tenancy the handler checks for, not this tier — a
+        // member who moved into a place has already cleared Verified to reserve it.
+        yield return new PermissionDefinition(
+            HousingPermissions.ReviewWrite, HousingModuleMetadata.Name,
+            "Review a landlord whose property you moved into.")
+        {
+            MinimumTier = AccessTier.Verified
+        };
+
+        // A restricted landlord keeps the right of reply. Answering a review is the one thing a
+        // landlord under restriction most needs, and silencing it would let a restriction decide
+        // how a public dispute reads.
+        yield return new PermissionDefinition(
+            HousingPermissions.ReviewRespond, HousingModuleMetadata.Name,
+            "Reply publicly to a review of your listings.")
+        {
+            MinimumTier = AccessTier.Limited,
+            GrantedWhenRestricted = true
         };
 
         yield return new PermissionDefinition(

@@ -1,4 +1,4 @@
-namespace Diaspora.Modules.Housing.Persistence.Configurations;
+﻿namespace Diaspora.Modules.Housing.Persistence.Configurations;
 
 /// <summary>
 /// Table names and column widths every Housing configuration shares.
@@ -38,6 +38,7 @@ internal static class HousingPersistenceConstants
     public const string ViewingsTable = "housing_viewings";
     public const string ViewingHistoryTable = "housing_viewing_history";
     public const string ReservationsTable = "housing_reservations";
+    public const string LandlordReviewsTable = "housing_landlord_reviews";
     public const string ReservationHistoryTable = "housing_reservation_history";
 
     // ── Neighbourhood profiles. See the class summary: profiles, not neighbourhoods. ────────

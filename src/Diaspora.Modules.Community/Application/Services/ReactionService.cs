@@ -1,4 +1,4 @@
-using Diaspora.Domain.Abstractions;
+﻿using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Community.Domain.Enums;
 using Diaspora.Modules.Community.Domain.Errors;
 using Diaspora.Modules.Community.Domain.Events;
@@ -120,7 +120,8 @@ public sealed class ReactionService : ICommunityReactionService
             UserId = userId,
             ReactionKey = definition.Key,
             Sentiment = definition.Sentiment,
-            ContentAuthorId = descriptor.AuthorId
+            ContentAuthorId = descriptor.AuthorId,
+            CountryCode = descriptor.CountryCode
         });
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);

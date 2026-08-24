@@ -1,4 +1,4 @@
-using Diaspora.Platform.Modules.Contributors;
+﻿using Diaspora.Platform.Modules.Contributors;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -38,5 +38,6 @@ public sealed class MarketplaceEndpointContributor : IEndpointContributor
         MarketplaceCommerceEndpoints.Map(group);
         MarketplaceCatalogEndpoints.Map(group);
         MarketplaceModerationEndpoints.Map(group);
+        MarketplaceReviewEndpoints.Map(group);
     }
 }

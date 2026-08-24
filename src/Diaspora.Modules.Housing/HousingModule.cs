@@ -1,5 +1,6 @@
 ﻿using Diaspora.Modules.Housing.Application.EventHandlers;
 using Diaspora.Modules.Housing.Application.Services;
+using Diaspora.Modules.Housing.Domain.Reviews;
 using Diaspora.Modules.Housing.Domain.Analytics;
 using Diaspora.Modules.Housing.Domain.Catalog;
 using Diaspora.Modules.Housing.Domain.Landlords;
@@ -112,6 +113,7 @@ public sealed class HousingModule : IPlatformModule
         services.AddScoped<ILandlordProfileRepository, LandlordProfileRepository>();
         services.AddScoped<IHousingViewingRepository, HousingViewingRepository>();
         services.AddScoped<IHousingReservationRepository, HousingReservationRepository>();
+        services.AddScoped<ILandlordReviewRepository, LandlordReviewRepository>();
         services.AddScoped<INeighborhoodProfileRepository, NeighborhoodProfileRepository>();
         services.AddScoped<INeighborhoodInsightRepository, NeighborhoodInsightRepository>();
         services.AddScoped<IAccommodationTypeRepository, AccommodationTypeRepository>();
@@ -140,6 +142,7 @@ public sealed class HousingModule : IPlatformModule
     private static void RegisterServices(IServiceCollection services)
     {
         services.AddScoped<HousingAuthorizationService>();
+        services.AddScoped<LandlordReviewSummaryService>();
         services.AddScoped<HousingListingWriteGate>();
         services.AddScoped<HousingListingReadContext>();
         services.AddScoped<HousingCatalogResolver>();
