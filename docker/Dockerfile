@@ -53,12 +53,24 @@ RUN dotnet publish src/Diaspora.Api/Diaspora.Api.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
-# Security: run as non-root
-RUN addgroup --system diaspora && adduser --system --ingroup diaspora diaspora
-
-COPY --from=build /app/publish .
-RUN chown -R diaspora:diaspora /app
-USER diaspora
+# ── Non-root, using the user the base image already ships ──────────────────
+#
+# This used to run `addgroup --system diaspora && adduser --system …`. Those are
+# BusyBox applets: they exist on Alpine and **not** on this image, which is
+# Debian-based and slim enough to omit the `adduser` package. The build died on
+# that line with `/bin/sh: 1: addgroup: not found`.
+#
+# Worth stating plainly, because the file gave no hint of it: **this Dockerfile
+# had never built successfully.** It carries a detailed comment about an earlier
+# `COPY` failure, so it reads as maintained — but nothing had ever run it far
+# enough to reach line three of the runtime stage.
+#
+# Rather than swap in Debian's `groupadd`/`useradd`, this uses the `app` user
+# (UID 1654) that Microsoft has shipped in the .NET runtime images since .NET 8
+# precisely so images do not have to create one. `--chown` on the COPY replaces
+# the separate `chown -R`, which is one fewer layer and one fewer full-tree walk.
+COPY --from=build --chown=app:app /app/publish .
+USER app
 
 # The aspnet runtime image ships neither curl nor wget, so the previous
 # `curl -f .../health/live` probe could only ever report unhealthy. The published
