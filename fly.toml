@@ -38,6 +38,18 @@ primary_region = 'iad'
   ASPNETCORE_ENVIRONMENT = 'Production'
   ASPNETCORE_URLS = 'http://+:8080'
 
+  # ── Media needs somewhere it may write ─────────────────────────────────────
+  #
+  # `FilesystemStorageProvider` resolves a relative `FilesystemRoot` against
+  # `AppContext.BaseDirectory` — `/app` — which the non-root `app` user cannot
+  # write to. Every upload answered 500 from `Directory.CreateDirectory`, and
+  # from outside that looks like a broken endpoint rather than a missing mount.
+  #
+  # A volume rather than a container path, because uploads should outlive a
+  # deploy: a listing whose photograph vanishes on the next release is worse
+  # than one that never had one.
+  Media__Storage__FilesystemRoot = '/data/media'
+
 [http_service]
   internal_port = 8080
   force_https = true
@@ -61,6 +73,10 @@ primary_region = 'iad'
     # Liveness, not readiness: readiness also probes the database, and a machine
     # that is up but waiting on Neon to wake should not be killed and restarted.
     path = '/health/live'
+
+[[mounts]]
+  source = 'diaspora_media'
+  destination = '/data'
 
 [[vm]]
   size = 'shared-cpu-1x'

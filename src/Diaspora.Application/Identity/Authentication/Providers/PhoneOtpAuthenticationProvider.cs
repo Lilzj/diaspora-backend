@@ -12,9 +12,24 @@ namespace Diaspora.Application.Identity.Authentication.Providers;
 /// <para>
 /// The code must have been minted for <see cref="OtpPurpose.SignIn"/>: a registration or
 /// recovery code cannot be replayed to sign in, because the OTP store scopes every lookup
-/// by purpose. The same coarse failure the password provider returns is used here for an
-/// unknown number and a wrong code alike, so the two methods are equally silent about which
-/// numbers are registered.
+/// by purpose.
+/// </para>
+/// <para>
+/// <b>Every failure here speaks about the code, never about a password.</b> This used to
+/// return <c>UserErrors.InvalidCredentials</c> — "The phone number or password is incorrect."
+/// — on a flow that has no password, so the one screen a member reaches by entering a
+/// six-digit code told them their password was wrong.
+/// </para>
+/// <para>
+/// The reason it did was sound and is preserved: an unknown number and a wrong code must be
+/// indistinguishable, or this route becomes an oracle for which numbers are registered. The
+/// fix is not to leak the difference but to move both onto the same OTP-shaped error, so the
+/// wording is right for the flow **and** the two cases still read identically.
+/// </para>
+/// <para>
+/// Past that point the challenge itself is the caller's own — they asked for it — so the
+/// service's specific failure is returned unchanged: incorrect, expired, or attempts
+/// exhausted are things the person holding the code needs to be able to tell apart.
 /// </para>
 /// </summary>
 public sealed class PhoneOtpAuthenticationProvider : IAuthenticationProvider
@@ -38,23 +53,30 @@ public sealed class PhoneOtpAuthenticationProvider : IAuthenticationProvider
 
         if (!PhoneNumber.TryCreate(credentials.PhoneNumber, out var phoneNumber) || phoneNumber is null)
         {
-            return Result.Failure<AuthenticatedMember>(UserErrors.InvalidCredentials);
+            return Result.Failure<AuthenticatedMember>(OtpErrors.IncorrectCode);
         }
 
         var user = await _users.GetByPhoneNumberAsync(phoneNumber, cancellationToken);
         if (user is null)
         {
-            return Result.Failure<AuthenticatedMember>(UserErrors.InvalidCredentials);
+            // Deliberately the same error a wrong code produces. Anything more
+            // specific here would say "that number is not registered", which is
+            // exactly the enumeration this route must not answer.
+            return Result.Failure<AuthenticatedMember>(OtpErrors.IncorrectCode);
         }
 
         var verification = await _otpChallenges.VerifyAsync(
             user, OtpPurpose.SignIn, credentials.Code ?? string.Empty, cancellationToken);
 
-        // The OTP service already consumes an attempt on failure, which is the brute-force
-        // defence. Collapse its specific error into the coarse one so this path leaks no
-        // more than the password path does.
+        // The service's own error is returned rather than flattened. Reaching here means the
+        // number resolved to a member and a challenge existed, both of which the caller
+        // established themselves by requesting the code — so "incorrect", "expired" and
+        // "too many attempts" reveal nothing they did not already know, and are the three
+        // things somebody staring at a six-digit field actually needs to tell apart.
+        //
+        // `OtpErrors` already words all three. Nothing is re-written here.
         return verification.IsFailure
-            ? Result.Failure<AuthenticatedMember>(UserErrors.InvalidCredentials)
+            ? Result.Failure<AuthenticatedMember>(verification.Error)
             : Result.Success(new AuthenticatedMember(user, Method));
     }
 }

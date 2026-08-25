@@ -1,8 +1,10 @@
 using Diaspora.Application.Abstractions;
-using MediatR;
+using Diaspora.Modules.Providers.Application.Mapping;
 using Diaspora.Modules.Providers.Application.Services;
 using Diaspora.Modules.Providers.Contracts.V1.Responses;
+using Diaspora.Modules.Providers.Domain.Enums;
 using Diaspora.Modules.Providers.Domain.Providers;
+using Diaspora.Modules.Providers.Domain.Reviews;
 using Diaspora.SharedKernel.Results;
 
 namespace Diaspora.Modules.Providers.Application.Reviews;
@@ -41,18 +43,20 @@ public sealed record ListMyProviderReviewsQuery : IQuery<ProviderReviewPageRespo
 public sealed class ListMyProviderReviewsQueryHandler
     : IQueryHandler<ListMyProviderReviewsQuery, ProviderReviewPageResponse>
 {
+    private const int DefaultLimit = 20;
+
     private readonly IProviderRepository _providers;
+    private readonly IProviderReviewRepository _reviews;
     private readonly ProviderAuthorizationService _authorization;
-    private readonly ISender _sender;
 
     public ListMyProviderReviewsQueryHandler(
         IProviderRepository providers,
-        ProviderAuthorizationService authorization,
-        ISender sender)
+        IProviderReviewRepository reviews,
+        ProviderAuthorizationService authorization)
     {
         _providers = providers;
+        _reviews = reviews;
         _authorization = authorization;
-        _sender = sender;
     }
 
     public async Task<Result<ProviderReviewPageResponse>> Handle(
@@ -74,13 +78,42 @@ public sealed class ListMyProviderReviewsQueryHandler
             return Result.Success(ProviderReviewPageResponse.Empty());
         }
 
-        return await _sender.Send(
-            new ListProviderReviewsQuery
-            {
-                ProviderId = mine[0].Id.Value,
-                Cursor = query.Cursor,
-                Limit = query.Limit
-            },
+        // ── Reads the page directly rather than sending to the sibling handler ──
+        //
+        // This used to inject `ISender` and dispatch `ListProviderReviewsQuery`.
+        // DSP1001 forbids that — a handler that depends on the mediator can reach
+        // any other handler, so the call graph stops being visible in the type
+        // and a cycle stops being a compile-time impossibility.
+        //
+        // It was a **warning** in Debug and an **error** in Release, and every
+        // local build here is Debug, so it only surfaced when the container built
+        // with `-c Release`. Nothing had ever compiled this solution the way it
+        // ships.
+        //
+        // The provider is already loaded above, so doing the work here costs one
+        // repository call and no second lookup — the sibling handler would have
+        // re-fetched the provider it was handed the id of.
+        var provider = mine[0];
+
+        var includeHidden = _authorization.IsStaff
+            || provider.HasAtLeast(_authorization.CallerId, ProviderRole.Manager);
+
+        var page = await _reviews.ListForProviderAsync(
+            provider.Id,
+            query.Cursor,
+            query.Limit ?? DefaultLimit,
+            includeHidden,
             cancellationToken);
+
+        return Result.Success(new ProviderReviewPageResponse
+        {
+            Items = page.Items.Select(review => ProviderReviewMapper.ToResponse(review)).ToList(),
+            NextCursor = page.NextCursor,
+            HasMore = page.HasMore,
+            Summary = query.Cursor is null
+                ? ProviderReviewMapper.ToResponse(provider.ReviewSummary)
+                : null,
+            ProviderId = provider.Id.Value
+        });
     }
 }
