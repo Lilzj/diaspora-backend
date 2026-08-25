@@ -1,4 +1,5 @@
 using System.Net.Sockets;
+using Diaspora.Application.Identity;
 using Diaspora.Platform.Operations.Policies;
 using Diaspora.Platform.Operations.Resilience;
 
@@ -51,7 +52,21 @@ public static class SmsDependencies
 /// </summary>
 public sealed class SmsResiliencePolicyContributor : IOperationalPolicyContributor
 {
-    public string Module => "Sms";
+    /// <summary>
+    /// Identity, not "Sms".
+    /// <para>
+    /// The kernel attributes policy conflicts and the platform manifest by this name, and it warns
+    /// (SV2006) when it does not match a registered module — which "Sms" did not, because this is
+    /// an adapter rather than a module. Naming a module that does not exist would put an
+    /// unresolvable owner on every conflict message these policies ever appear in.
+    /// </para>
+    /// <para>
+    /// Identity is the right owner on the merits too: these numbers govern how long a member waits
+    /// for a sign-in code and how many times the platform pays to send one, which is Identity's
+    /// behaviour. The vendor stays anonymous here, as it does everywhere above the gateway.
+    /// </para>
+    /// </summary>
+    public string Module => IdentityModuleMetadata.Name;
 
     public IEnumerable<OperationalPolicy> Policies =>
     [
