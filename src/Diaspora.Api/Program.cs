@@ -12,6 +12,7 @@ using Diaspora.Observability;
 using Diaspora.Persistence;
 using Diaspora.Platform.Http;
 using Diaspora.Push.Firebase;
+using Diaspora.Sms;
 using Diaspora.Platform.Modules;
 using Diaspora.Platform.Modules.Contributors;
 using Diaspora.Platform.Validation;
@@ -79,6 +80,15 @@ builder.Services.AddReliableMessaging(builder.Configuration);
 // last-registration-wins. It is a no-op unless Notifications:Push:Provider names it, so the call
 // is unconditional and the configuration remains the only thing that decides.
 builder.Services.AddFirebasePushAdapter(builder.Configuration);
+
+// The SMS transport, on the same last-registration-wins seam. The Identity infrastructure
+// registers a logging placeholder behind IOtpDeliveryService, and this replaces it once a
+// provider is configured.
+//
+// Which provider carries a given number is Sms:Routes, matched longest-prefix against the
+// destination: a Nigerian number and a German one do not cost the same on the same wire, and
+// the cheap wire does not reach Germany at all.
+builder.Services.AddSmsAdapter(builder.Configuration);
 
 // The Production Platform (B17): caching, resilience, rate limiting, feature management, runtime
 // configuration, scheduling, health aggregation, dashboards, security and privacy tooling.

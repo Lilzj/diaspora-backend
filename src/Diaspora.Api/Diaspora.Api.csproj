@@ -80,6 +80,12 @@
       Notifications:Push:Provider names it. See Diaspora.Push.Firebase.
     -->
     <ProjectReference Include="..\Diaspora.Push.Firebase\Diaspora.Push.Firebase.csproj" />
+
+    <!--
+      The SMS adapter. Twilio and Africa's Talking, chosen per destination by Sms:Routes.
+      A no-op unless a provider is configured. See Diaspora.Sms.
+    -->
+    <ProjectReference Include="..\Diaspora.Sms\Diaspora.Sms.csproj" />
     <ProjectReference Include="..\Diaspora.Observability\Diaspora.Observability.csproj" />
     <ProjectReference Include="..\Diaspora.Platform\Diaspora.Platform.csproj" />
 

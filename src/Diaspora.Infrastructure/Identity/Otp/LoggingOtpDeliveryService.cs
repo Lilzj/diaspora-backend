@@ -43,15 +43,32 @@ public sealed class LoggingOtpDeliveryService : IOtpDeliveryService
             _logger.LogWarning(
                 "DEVELOPMENT ONLY - {Purpose} code for {PhoneNumber} is {Code}, valid until {ExpiresAt:u}",
                 request.Purpose, request.PhoneNumber, request.Code, request.ExpiresAt);
-        }
-        else
-        {
-            _logger.LogInformation(
-                "Dispatched a {Purpose} code to {PhoneNumber} in {Language}, valid until {ExpiresAt:u}",
-                request.Purpose, Mask(request.PhoneNumber), request.Language, request.ExpiresAt);
+
+            // The code reached somebody who can read it. For a development host, that is delivery.
+            return Task.FromResult(true);
         }
 
-        return Task.FromResult(true);
+        // ── It used to say "Dispatched" here, and return true ────────────────────────────
+        //
+        // Nothing was dispatched. This type has never had a transport; the line was written when
+        // an SMS gateway was expected to arrive behind the same port, and until one did, every
+        // deployment without `LogOtpCodesForDevelopment` reported successful delivery of codes
+        // that were never sent.
+        //
+        // What that cost: on the hosted deployment nobody could sign in through the app, because
+        // the only path in is an SMS code — and the API's own logs said delivery was working, so
+        // the deployment looked healthy while being unusable by any real member.
+        //
+        // False is the truth, and `OtpChallengeService` already knows what to do with it: the
+        // member is told the code could not be sent, which is a screen they can act on rather
+        // than a wait that never ends.
+        _logger.LogError(
+            "No SMS provider is configured, so a {Purpose} code for {PhoneNumber} was not sent. "
+            + "Configure the 'Sms' section — see Diaspora.Sms — or enable "
+            + "'Identity:LogOtpCodesForDevelopment' on a development host.",
+            request.Purpose, Mask(request.PhoneNumber));
+
+        return Task.FromResult(false);
     }
 
     private static string Mask(string phoneNumber)

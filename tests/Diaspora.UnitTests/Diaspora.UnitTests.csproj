@@ -35,6 +35,7 @@
     <ProjectReference Include="..\..\src\Diaspora.Persistence\Diaspora.Persistence.csproj" />
     <ProjectReference Include="..\..\src\Diaspora.Infrastructure\Diaspora.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Diaspora.Operations\Diaspora.Operations.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Sms\Diaspora.Sms.csproj" />
     <ProjectReference Include="..\..\src\Diaspora.Modules.Bookmarks\Diaspora.Modules.Bookmarks.csproj" />
     <ProjectReference Include="..\..\src\Diaspora.Modules.Trust\Diaspora.Modules.Trust.csproj" />
     <ProjectReference Include="..\..\src\Diaspora.Modules.Location\Diaspora.Modules.Location.csproj" />

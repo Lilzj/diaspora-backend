@@ -88,6 +88,8 @@ public static class IdentityMessageCatalog
             [IdentityMessageKeys.OtpRequired] = "A verification code is required.",
             [IdentityMessageKeys.OtpFormat] = "The verification code must be {0} digits.",
             [IdentityMessageKeys.OtpPurposeUnknown] = "That verification purpose is not recognised.",
+            [IdentityMessageKeys.OtpSmsBody] =
+                "Your Diaspora code is {0}. It expires in {1} minutes. Never share it with anyone.",
             [IdentityMessageKeys.RefreshTokenRequired] = "A refresh token is required.",
             [IdentityMessageKeys.CurrentPasswordRequired] = "Your current password is required.",
             [IdentityMessageKeys.DeviceIdentifierRequired] = "A device identifier is required.",
@@ -126,6 +128,8 @@ public static class IdentityMessageCatalog
             [IdentityMessageKeys.OtpRequired] = "Un code de vérification est requis.",
             [IdentityMessageKeys.OtpFormat] = "Le code de vérification doit comporter {0} chiffres.",
             [IdentityMessageKeys.OtpPurposeUnknown] = "Ce type de vérification n'est pas reconnu.",
+            [IdentityMessageKeys.OtpSmsBody] =
+                "Votre code Diaspora est {0}. Il expire dans {1} minutes. Ne le partagez avec personne.",
             [IdentityMessageKeys.RefreshTokenRequired] = "Un jeton de rafraîchissement est requis.",
             [IdentityMessageKeys.CurrentPasswordRequired] = "Votre mot de passe actuel est requis.",
             [IdentityMessageKeys.DeviceIdentifierRequired] = "Un identifiant d'appareil est requis.",
@@ -164,6 +168,8 @@ public static class IdentityMessageCatalog
             [IdentityMessageKeys.OtpRequired] = "É necessário um código de verificação.",
             [IdentityMessageKeys.OtpFormat] = "O código de verificação deve ter {0} dígitos.",
             [IdentityMessageKeys.OtpPurposeUnknown] = "Esse tipo de verificação não é reconhecido.",
+            [IdentityMessageKeys.OtpSmsBody] =
+                "O seu código Diaspora é {0}. Expira em {1} minutos. Nunca o partilhe com ninguém.",
             [IdentityMessageKeys.RefreshTokenRequired] = "É necessário um token de atualização.",
             [IdentityMessageKeys.CurrentPasswordRequired] = "A sua palavra-passe atual é obrigatória.",
             [IdentityMessageKeys.DeviceIdentifierRequired] = "É necessário um identificador de dispositivo.",
@@ -202,6 +208,8 @@ public static class IdentityMessageCatalog
             [IdentityMessageKeys.OtpRequired] = "رمز التحقق مطلوب.",
             [IdentityMessageKeys.OtpFormat] = "يجب أن يتكون رمز التحقق من {0} أرقام.",
             [IdentityMessageKeys.OtpPurposeUnknown] = "غرض التحقق هذا غير معروف.",
+            [IdentityMessageKeys.OtpSmsBody] =
+                "رمز Diaspora الخاص بك هو {0}. تنتهي صلاحيته خلال {1} دقيقة. لا تشاركه مع أحد.",
             [IdentityMessageKeys.RefreshTokenRequired] = "رمز التحديث مطلوب.",
             [IdentityMessageKeys.CurrentPasswordRequired] = "كلمة المرور الحالية مطلوبة.",
             [IdentityMessageKeys.DeviceIdentifierRequired] = "معرّف الجهاز مطلوب.",

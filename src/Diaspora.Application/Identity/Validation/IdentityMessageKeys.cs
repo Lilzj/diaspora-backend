@@ -39,6 +39,16 @@ public static class IdentityMessageKeys
     public const string OtpFormat = "identity.validation.otp.format";
     public const string OtpPurposeUnknown = "identity.validation.otp.purposeUnknown";
 
+    /// <summary>
+    /// The body of the SMS that carries a one-time code.
+    /// <para>
+    /// In the catalogue rather than in the SMS adapter because it is the one string in that path
+    /// a member actually reads, and the adapter is a vendor wire that should not own copy. Takes
+    /// the code and the minutes it lasts, in that order.
+    /// </para>
+    /// </summary>
+    public const string OtpSmsBody = "identity.otp.smsBody";
+
     public const string RefreshTokenRequired = "identity.validation.refreshToken.required";
     public const string CurrentPasswordRequired = "identity.validation.currentPassword.required";
 
