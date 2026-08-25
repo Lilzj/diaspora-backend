@@ -61,11 +61,24 @@ public static class SmsAdapterRegistration
         // One classifier per provider dependency. Without these the executor's default applies,
         // which treats an unrecognised exception as permanent — so a missing registration would
         // silently switch retry off rather than fail visibly.
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IFailureClassifier>(
-            _ => new SmsFailureClassifier(SmsDependencies.Twilio)));
+        //
+        // ── Add, not TryAddEnumerable ────────────────────────────────────────────────────
+        //
+        // `TryAddEnumerable` de-duplicates on the descriptor's *implementation type*, and a
+        // factory descriptor has none — the implementation type reads as `IFailureClassifier`
+        // itself, which it refuses as "indistinguishable from other services registered for" the
+        // same interface. It threw during registration, so the host aborted before binding a port
+        // and the machine restarted ten times and stopped.
+        //
+        // Two instances of one type is also exactly what is wanted here, and is the case
+        // `TryAddEnumerable` exists to prevent. The two differ by constructor argument, not by
+        // type, so de-duplicating by type would have collapsed them into one and left whichever
+        // provider lost running under the platform's default classifier — retry silently off.
+        services.AddSingleton<IFailureClassifier>(
+            _ => new SmsFailureClassifier(SmsDependencies.Twilio));
 
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IFailureClassifier>(
-            _ => new SmsFailureClassifier(SmsDependencies.AfricasTalking)));
+        services.AddSingleton<IFailureClassifier>(
+            _ => new SmsFailureClassifier(SmsDependencies.AfricasTalking));
 
         // The per-attempt timeout is the policy's; this one is the transport's last resort, set
         // above it so a client-level abort cannot pre-empt the executor's own accounting.
