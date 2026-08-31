@@ -191,7 +191,121 @@ internal static class ProviderEndpoints
             .RequireAuthorization(ProviderPolicies.ManageStatus)
             .WithName("ChangeProviderStatus")
             .WithSummary("Publish, pause, close, suspend, reinstate or archive.");
+
+        MapServices(group);
+        MapAvailability(group);
     }
+
+    /// <summary>
+    /// What a provider offers.
+    /// <para>
+    /// Separate routes rather than a services array on <c>UpdateProviderRequest</c>, because a
+    /// restaurant editing one dish must not have to resend its whole menu — a client that has to
+    /// send the full list to change one row will eventually send a stale one and silently delete
+    /// the rest.
+    /// </para>
+    /// <para>
+    /// All three answer with the whole <c>ProviderResponse</c>, not the single service. The
+    /// aggregate recalculates its service count, display ordering and profile-completion score on
+    /// every one of these, so returning just the row would leave the client holding figures that
+    /// are already wrong.
+    /// </para>
+    /// </summary>
+    private static void MapServices(RouteGroupBuilder group)
+    {
+        group.MapPost("/{providerId:guid}/services", async (
+                Guid providerId,
+                ProviderServiceRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new AddProviderServiceCommand
+                        {
+                            ProviderId = providerId,
+                            Request = request
+                        },
+                        cancellationToken)))
+            .RequireAuthorization(ProviderPolicies.ManageServices)
+            .WithName("AddProviderService")
+            .WithSummary("Add something a provider offers.");
+
+        group.MapPut("/{providerId:guid}/services/{serviceId:guid}", async (
+                Guid providerId,
+                Guid serviceId,
+                ProviderServiceRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new UpdateProviderServiceCommand
+                        {
+                            ProviderId = providerId,
+                            ServiceId = serviceId,
+                            Request = request
+                        },
+                        cancellationToken)))
+            .RequireAuthorization(ProviderPolicies.ManageServices)
+            .WithName("UpdateProviderService")
+            .WithSummary("Edit something a provider offers.");
+
+        group.MapDelete("/{providerId:guid}/services/{serviceId:guid}", async (
+                Guid providerId,
+                Guid serviceId,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new RemoveProviderServiceCommand
+                        {
+                            ProviderId = providerId,
+                            ServiceId = serviceId
+                        },
+                        cancellationToken)))
+            .RequireAuthorization(ProviderPolicies.ManageServices)
+            .WithName("RemoveProviderService")
+            .WithSummary("Remove something a provider offers.");
+    }
+
+    /// <summary>
+    /// When a provider is open.
+    /// <para>
+    /// One route taking a list, rather than seven per-day calls, because the client's hours
+    /// editor is a week of rows saved as one screen. The command is <c>[Transactional]</c>, so
+    /// either the whole week lands or none of it does — a half-saved schedule is a business
+    /// advertising hours it never agreed to.
+    /// </para>
+    /// <para>
+    /// Days the request omits are left as they were. Closing a day is
+    /// <c>OperatingHoursRequest.IsClosed</c>, which says "we do not open Sundays"; omission says
+    /// nothing at all, and the two must not collapse into each other.
+    /// </para>
+    /// </summary>
+    private static void MapAvailability(RouteGroupBuilder group) =>
+        group.MapPut("/{providerId:guid}/operating-hours", async (
+                Guid providerId,
+                SetProviderOperatingHoursRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new SetProviderOperatingHoursCommand
+                        {
+                            ProviderId = providerId,
+                            Request = request
+                        },
+                        cancellationToken)))
+            .RequireAuthorization(ProviderPolicies.ManageAvailability)
+            .WithName("SetProviderOperatingHours")
+            .WithSummary("Replace a provider's opening hours for the days given.");
 
     /// <summary>
     /// The caller's preferred language, for category translation.

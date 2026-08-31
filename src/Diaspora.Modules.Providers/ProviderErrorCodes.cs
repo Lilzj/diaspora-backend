@@ -86,6 +86,8 @@ public static class ProviderErrorCodes
     public const string OperatingHoursOverlap = "providers.operating-hours.overlap";
     public const string OperatingHoursWindowInverted = "providers.operating-hours.window-inverted";
     public const string OperatingHoursWindowLimit = "providers.operating-hours.window-limit";
+    public const string OperatingHoursTimeInvalid = "providers.operating-hours.time-invalid";
+    public const string OperatingHoursDayDuplicated = "providers.operating-hours.day-duplicated";
     public const string AvailabilityTimeZoneInvalid = "providers.availability.timezone-invalid";
     public const string AvailabilityExceptionNotFound = "providers.availability.exception-not-found";
     public const string AvailabilityExceptionOverlap = "providers.availability.exception-overlap";

@@ -266,6 +266,18 @@ public static class ProviderErrors
         ProviderErrorCodes.OperatingHoursWindowLimit,
         "That is more opening periods than one day can hold.");
 
+    // The two below are wire-level: the domain takes a `TimeOnly` and one day at a time, so it
+    // never sees a malformed string or a payload that names Tuesday twice. Refusing both here
+    // keeps the aggregate free of parsing concerns and stops a duplicate day resolving to
+    // last-one-wins, which would honour one of two contradictory instructions and hide the bug.
+    public static readonly Error OperatingHoursTimeInvalid = Error.Validation(
+        ProviderErrorCodes.OperatingHoursTimeInvalid,
+        "Opening and closing times must be given as HH:mm.");
+
+    public static readonly Error OperatingHoursDayDuplicated = Error.Validation(
+        ProviderErrorCodes.OperatingHoursDayDuplicated,
+        "That request sets the same day more than once.");
+
     public static readonly Error TimeZoneInvalid = Error.Validation(
         ProviderErrorCodes.AvailabilityTimeZoneInvalid,
         "That is not a time zone we recognise.");

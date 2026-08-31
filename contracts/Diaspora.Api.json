@@ -14366,6 +14366,30 @@
         }
       }
     },
+    "/api/v1/financial/webhooks/{provider}/payouts": {
+      "post": {
+        "tags": [
+          "Financial"
+        ],
+        "summary": "A payout provider's callback. Signature-verified, replay-protected, and one of the two ways a withdrawal settles — the resolution sweep is the other, and neither is allowed to be the only one.",
+        "operationId": "ProcessPayoutWebhook",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/financial/donations/causes/{causeCode}/timeseries": {
       "get": {
         "tags": [
@@ -29615,6 +29639,152 @@
         }
       }
     },
+    "/api/v1/providers/{providerId}/services": {
+      "post": {
+        "tags": [
+          "Providers"
+        ],
+        "summary": "Add something a provider offers.",
+        "operationId": "AddProviderService",
+        "parameters": [
+          {
+            "name": "providerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderServiceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/providers/{providerId}/services/{serviceId}": {
+      "put": {
+        "tags": [
+          "Providers"
+        ],
+        "summary": "Edit something a provider offers.",
+        "operationId": "UpdateProviderService",
+        "parameters": [
+          {
+            "name": "providerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "serviceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderServiceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Providers"
+        ],
+        "summary": "Remove something a provider offers.",
+        "operationId": "RemoveProviderService",
+        "parameters": [
+          {
+            "name": "providerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "serviceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/providers/{providerId}/operating-hours": {
+      "put": {
+        "tags": [
+          "Providers"
+        ],
+        "summary": "Replace a provider's opening hours for the days given.",
+        "operationId": "SetProviderOperatingHours",
+        "parameters": [
+          {
+            "name": "providerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetProviderOperatingHoursRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/providers/categories": {
       "get": {
         "tags": [
@@ -33700,6 +33870,27 @@
             "type": "string"
           },
           "parameters": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AvailabilityWindowEntry": {
+        "required": [
+          "opensAt",
+          "closesAt"
+        ],
+        "type": "object",
+        "properties": {
+          "opensAt": {
+            "type": "string"
+          },
+          "closesAt": {
+            "type": "string"
+          },
+          "label": {
             "type": [
               "null",
               "string"
@@ -40101,6 +40292,26 @@
           }
         }
       },
+      "OperatingHoursRequest": {
+        "required": [
+          "dayOfWeek"
+        ],
+        "type": "object",
+        "properties": {
+          "dayOfWeek": {
+            "type": "string"
+          },
+          "isClosed": {
+            "type": "boolean"
+          },
+          "windows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityWindowEntry"
+            }
+          }
+        }
+      },
       "OperationAcknowledgedResponse": {
         "required": [
           "message"
@@ -40957,6 +41168,50 @@
           }
         }
       },
+      "PricingRequest": {
+        "type": "object",
+        "properties": {
+          "model": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "minAmount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "maxAmount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "currency": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "unit": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isNegotiable": {
+            "type": "boolean"
+          }
+        }
+      },
       "PrivacyAuditEntry": {
         "required": [
           "module",
@@ -41041,6 +41296,67 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "ProviderServiceRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "category": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "pricing": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PricingRequest"
+              }
+            ]
+          },
+          "deliveryMode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "durationMinutes": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "imageMediaId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "isAvailable": {
+            "type": "boolean"
+          },
+          "isFeatured": {
+            "type": "boolean"
           }
         }
       },
@@ -44536,6 +44852,17 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/OrganizationLeaderRequest"
+            }
+          }
+        }
+      },
+      "SetProviderOperatingHoursRequest": {
+        "type": "object",
+        "properties": {
+          "hours": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OperatingHoursRequest"
             }
           }
         }
