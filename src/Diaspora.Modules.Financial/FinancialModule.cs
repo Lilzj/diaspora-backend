@@ -25,6 +25,7 @@ using Diaspora.Modules.Financial.Extensibility.Catalog;
 using Diaspora.Modules.Financial.Extensibility.Eligibility;
 using Diaspora.Modules.Financial.Extensibility.Fraud;
 using Diaspora.Modules.Financial.Extensibility.Gateways;
+using Diaspora.Modules.Financial.Extensibility.Payouts;
 using Diaspora.Modules.Financial.Extensibility.Pricing;
 using Diaspora.Modules.Financial.Extensibility.Provisioning;
 using Diaspora.Modules.Financial.Extensibility.Receipts;
@@ -34,6 +35,7 @@ using Diaspora.Modules.Financial.Infrastructure.Caching;
 using Diaspora.Modules.Financial.Infrastructure.Eligibility;
 using Diaspora.Modules.Financial.Infrastructure.Fraud;
 using Diaspora.Modules.Financial.Infrastructure.Gateways;
+using Diaspora.Modules.Financial.Infrastructure.Payouts;
 using Diaspora.Modules.Financial.Infrastructure.Hosting;
 using Diaspora.Modules.Financial.Infrastructure.Ledger;
 using Diaspora.Modules.Financial.Infrastructure.Pricing;
@@ -108,6 +110,16 @@ public sealed class FinancialModule : IPlatformModule
 
         services.AddOptions<FinancialOptions>()
             .Bind(configuration.GetSection(FinancialOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        // The payout capability matrix. Validated on start like every other module option, which
+        // catches configuration that cannot bind at all — a misspelled payout method, a priority
+        // that is not a number. Row-level sense is checked later and separately: a three-letter
+        // country code drops that one route in ConfiguredPayoutCapabilitySource and is logged,
+        // because it should cost one destination rather than every request the API serves.
+        services.AddOptions<PayoutRoutingOptions>()
+            .Bind(configuration.GetSection(PayoutRoutingOptions.SectionName))
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
@@ -256,6 +268,23 @@ public sealed class FinancialModule : IPlatformModule
         RegisterAll<IPaymentReconciliationProvider>(services, assemblies);
         services.AddScoped<IPaymentGatewayRegistry, PaymentGatewayRegistry>();
 
+        // Payouts. Sources are additive so a deployment can overlay its own matrix on a shipped one;
+        // the router collapses conflicts toward the more cautious row. Scoped like every other seam
+        // here — the router reads IOptionsMonitor rather than caching, so a matrix edit reaches the
+        // next withdrawal rather than the next deployment.
+        RegisterAll<IPayoutCapabilitySource>(services, assemblies);
+        services.AddScoped<PayoutProviderRouter>();
+        services.AddScoped<PayoutRouteResolver>();
+
+        // None of IPayoutProviderVerificationSource, ISettlementProvider, ISettlementStatusProvider
+        // or IPayoutWebhookProcessor is scanned for. All are vendor adapters, and an adapter is
+        // registered by the deployment with the named HTTP client, options monitor and credential
+        // cache it needs — a type-scanned AddScoped(typeof(T)) cannot build one, and where it
+        // happens to succeed it builds the wrong one.
+        //
+        // The resolver and the router both take IEnumerable<>, so no registration means no provider,
+        // which means a payout refuses rather than being attempted. That is the safe direction.
+
         // Pricing. Every rule is offered the context; the first that claims it answers.
         RegisterAll<IPricingRule>(services, assemblies);
         services.AddScoped<IFinancialPolicyEngine, FinancialPolicyEngine>();
@@ -273,10 +302,19 @@ public sealed class FinancialModule : IPlatformModule
         // B15 serves the ceiling, which it does own, whether or not anybody reports the consumption.
         RegisterAll<IEntitlementUsageProvider>(services, assemblies);
 
-        // Settlement. Scanned like every other plural seam, and deliberately with nothing behind it
-        // in this assembly — an architecture test asserts the absence. A deployment that means to pay
-        // members registers one, and GET /financial/capabilities starts reporting payoutsEnabled.
-        RegisterAll<ISettlementProvider>(services, assemblies);
+        // Settlement is NOT scanned for, unlike every other plural seam above. It used to be, on the
+        // reasoning that an architecture test keeps this assembly empty of implementations so the
+        // scan could only ever find a deployment's own — which was true right up until a deployment
+        // referenced an adapter assembly.
+        //
+        // Then the scan found it and registered it by type, whether or not it was configured. That
+        // is three failures at once: an unconfigured adapter tells the payout router the rail is
+        // available, a scan-built instance gets the default HttpClient rather than the named one
+        // with its timeout, and an adapter needing anything the container cannot supply — PayPal's
+        // access-token cache — fails host startup outright. The last is how it was found.
+        //
+        // A deployment registers its own; see AddStripePayments, AddPayPalPayments and
+        // AddFlutterwavePayments, each a no-op until its credentials exist.
 
         // The replaceable singles. See the method summary.
         services.AddScoped<IRevenueDistributionStrategy, PlatformCommissionDistributionStrategy>();
@@ -335,6 +373,7 @@ public sealed class FinancialModule : IPlatformModule
         services.AddHostedService<ExpiryNoticeSweep>();
         services.AddHostedService<WithdrawalProcessingSweep>();
         services.AddHostedService<PaymentReconciliationSweep>();
+        services.AddHostedService<PayoutReconciliationSweep>();
 
         // B15.1 Giving Extension. The campaign sweep runs before the recurring charge, so a campaign
         // whose deadline passed overnight has closed its cause by the time a standing donation would

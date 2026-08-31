@@ -8,6 +8,7 @@ using Diaspora.Modules.Financial.Extensibility.Gateways;
 using Diaspora.Modules.Financial.Extensibility.Search;
 using Diaspora.Modules.Financial.Extensibility.Settlement;
 using Diaspora.Modules.Financial.Infrastructure.Fraud;
+using Diaspora.Modules.Financial.Infrastructure.Payouts;
 using Diaspora.Modules.Financial.Infrastructure.Search;
 using Diaspora.SharedKernel.Results;
 
@@ -31,6 +32,7 @@ public sealed class GetFinancialCapabilitiesQueryHandler
     private readonly IEnumerable<ISettlementProvider> _settlement;
     private readonly IEnumerable<IFraudAssessor> _fraud;
     private readonly IFinancialSearchProjector _search;
+    private readonly PayoutProviderRouter _router;
 
     public GetFinancialCapabilitiesQueryHandler(
         IPaymentGatewayRegistry gateways,
@@ -38,7 +40,8 @@ public sealed class GetFinancialCapabilitiesQueryHandler
         IEnumerable<IExchangeRateProvider> rates,
         IEnumerable<ISettlementProvider> settlement,
         IEnumerable<IFraudAssessor> fraud,
-        IFinancialSearchProjector search)
+        IFinancialSearchProjector search,
+        PayoutProviderRouter router)
     {
         _gateways = gateways;
         _currencies = currencies;
@@ -46,6 +49,7 @@ public sealed class GetFinancialCapabilitiesQueryHandler
         _settlement = settlement;
         _fraud = fraud;
         _search = search;
+        _router = router;
     }
 
     public async Task<Result<FinancialCapabilitiesResponse>> Handle(
@@ -54,6 +58,7 @@ public sealed class GetFinancialCapabilitiesQueryHandler
         ArgumentNullException.ThrowIfNull(query);
 
         var currencies = await _currencies.ListActiveAsync(cancellationToken);
+        var payoutCountries = _router.SupportedCountries();
 
         return Result.Success(new FinancialCapabilitiesResponse
         {
@@ -68,7 +73,12 @@ public sealed class GetFinancialCapabilitiesQueryHandler
             ],
             Currencies = [.. currencies.Select(FinancialMapper.ToResponse)],
             CurrencyConversionEnabled = _rates.Any(),
-            PayoutsEnabled = _settlement.Any(),
+            // Both halves are required. A registered provider with an empty capability matrix can
+            // pay nobody, and a matrix full of countries with no adapter behind them can pay nobody
+            // either — so the honest answer is the intersection, which is what SupportedCountries
+            // already computes.
+            PayoutsEnabled = _settlement.Any() && payoutCountries.Count > 0,
+            PayoutCountries = payoutCountries,
 
             // The shipped velocity assessor does not count: the question is whether anything beyond
             // it is registered.

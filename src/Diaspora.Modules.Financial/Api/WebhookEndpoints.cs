@@ -80,6 +80,47 @@ internal static class WebhookEndpoints
             .WithSummary(
                 "A payment provider's callback. Signature-verified, replay-protected, and the only "
                 + "thing on this platform that may confirm a payment on a provider's word.");
+
+        // Payout callbacks take their own route rather than sharing the one above. Every provider
+        // here lets an endpoint select the events it receives, so this costs a line of provider
+        // configuration and buys three things: no payload offered to two processors, no body
+        // verified twice, and no guess about which adapter owns a shape it does not recognise.
+        group.MapPost("/webhooks/{provider}/payouts", async (
+                string provider,
+                HttpContext context,
+                ISender sender,
+                CancellationToken cancellationToken) =>
+            {
+                var body = await ReadBodyAsync(context.Request, cancellationToken);
+
+                if (body is null)
+                {
+                    return Microsoft.AspNetCore.Http.Results.Problem(
+                        PlatformProblem.Create(
+                            context,
+                            StatusCodes.Status413PayloadTooLarge,
+                            FinancialErrorCodes.WebhookPayloadTooLarge,
+                            "Payload too large",
+                            "That callback body is larger than this platform will read."));
+                }
+
+                return PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new ProcessPayoutWebhookCommand
+                        {
+                            Provider = provider,
+                            RawBody = body,
+                            Headers = Headers(context.Request)
+                        },
+                        cancellationToken));
+            })
+            .AllowAnonymous()
+            .WithName("ProcessPayoutWebhook")
+            .WithSummary(
+                "A payout provider's callback. Signature-verified, replay-protected, and one of the "
+                + "two ways a withdrawal settles — the resolution sweep is the other, and neither is "
+                + "allowed to be the only one.");
     }
 
     /// <summary>

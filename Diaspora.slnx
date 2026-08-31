@@ -27,6 +27,9 @@
     <Project Path="src/Diaspora.Modules.Providers/Diaspora.Modules.Providers.csproj" />
     <Project Path="src/Diaspora.Modules.Recommendations/Diaspora.Modules.Recommendations.csproj" />
     <Project Path="src/Diaspora.Modules.Trust/Diaspora.Modules.Trust.csproj" />
+    <Project Path="src/Diaspora.Payments.Flutterwave/Diaspora.Payments.Flutterwave.csproj" />
+    <Project Path="src/Diaspora.Payments.PayPal/Diaspora.Payments.PayPal.csproj" />
+    <Project Path="src/Diaspora.Payments.Stripe/Diaspora.Payments.Stripe.csproj" />
     <Project Path="src/Diaspora.Observability/Diaspora.Observability.csproj" />
     <Project Path="src/Diaspora.Operations/Diaspora.Operations.csproj" />
     <Project Path="src/Diaspora.Push.Firebase/Diaspora.Push.Firebase.csproj" />

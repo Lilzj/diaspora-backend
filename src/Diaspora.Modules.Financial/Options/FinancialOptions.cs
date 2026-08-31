@@ -112,6 +112,16 @@ public sealed class FinancialOptions
     public bool EnableWithdrawalSweep { get; set; } = true;
 
     /// <summary>
+    /// How long an instruction whose outcome is unknown is left alone before a status provider is
+    /// asked about it.
+    /// <para>
+    /// Not zero: a provider asked about a transfer it is still creating answers "no such thing",
+    /// and acting on that would fail a payout that was about to succeed.
+    /// </para>
+    /// </summary>
+    public int WithdrawalResolutionGraceMinutes { get; set; } = 15;
+
+    /// <summary>
     /// Whether the platform asks providers about payments it believes are still in flight.
     /// <para>
     /// Requires a registered <c>IPaymentReconciliationProvider</c>; the sweep does nothing without
@@ -125,6 +135,25 @@ public sealed class FinancialOptions
     public int WithdrawalSweepMinutes { get; set; } = 5;
 
     public int ReconciliationSweepMinutes { get; set; } = 60;
+
+    /// <summary>
+    /// Whether the platform checks its payouts against the provider's own record.
+    /// <para>
+    /// The only check that can find a transfer the provider made with no withdrawal behind it, which
+    /// is money gone with nothing accounting for it. Does nothing without a registered
+    /// <c>IPayoutReconciliationProvider</c>, and none ships.
+    /// </para>
+    /// </summary>
+    public bool EnablePayoutReconciliationSweep { get; set; } = true;
+
+    public int PayoutReconciliationSweepMinutes { get; set; } = 360;
+
+    /// <summary>
+    /// How far back each pass looks. Wide enough to cover a provider that settles slowly and a
+    /// deployment that was down for a while, because a window that misses a payout misses it
+    /// permanently — nothing else looks for one.
+    /// </summary>
+    public int PayoutReconciliationWindowHours { get; set; } = 72;
 
     /// <summary>
     /// How long a captured payment may go unsettled before the reconciliation sweep asks about it.

@@ -86,6 +86,17 @@
       A no-op unless a provider is configured. See Diaspora.Sms.
     -->
     <ProjectReference Include="..\Diaspora.Sms\Diaspora.Sms.csproj" />
+
+    <!--
+      The Stripe payout adapter. Registers ISettlementProvider and
+      IPayoutProviderVerificationSource, and is a no-op unless Payments:Stripe:SecretKey is
+      configured - an uncredentialed adapter would tell the payout router Stripe is available.
+      Registering it enables nothing on its own: which corridors it may serve is
+      Financial:PayoutRouting. See Diaspora.Payments.Stripe.
+    -->
+    <ProjectReference Include="..\Diaspora.Payments.Stripe\Diaspora.Payments.Stripe.csproj" />
+    <ProjectReference Include="..\Diaspora.Payments.PayPal\Diaspora.Payments.PayPal.csproj" />
+    <ProjectReference Include="..\Diaspora.Payments.Flutterwave\Diaspora.Payments.Flutterwave.csproj" />
     <ProjectReference Include="..\Diaspora.Observability\Diaspora.Observability.csproj" />
     <ProjectReference Include="..\Diaspora.Platform\Diaspora.Platform.csproj" />
 

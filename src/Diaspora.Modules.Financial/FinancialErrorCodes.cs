@@ -230,4 +230,53 @@ public static class FinancialErrorCodes
     /// Returned by the payout surface. The seams exist; no settlement engine ships in this phase.
     /// </summary>
     public const string PayoutNotSupported = "financial.payout.not_supported";
+
+    // ── Payout routing ───────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// One code per reason the router declined, because "unavailable" is not something a member can
+    /// act on. Somebody told their country is unsupported stops; somebody told their <em>bank</em> is
+    /// unsupported tries mobile money. The distinction is <c>PayoutRefusalReason</c>'s whole purpose
+    /// and it survives to the client only if the codes are distinct.
+    /// </summary>
+    public const string PayoutCountryUnsupported = "financial.payout.country_unsupported";
+
+    public const string PayoutMethodUnsupported = "financial.payout.method_unsupported";
+
+    public const string PayoutCurrencyUnsupported = "financial.payout.currency_unsupported";
+
+    /// <summary>
+    /// Rows match and none of them has been confirmed against provider documentation. Distinct from
+    /// <see cref="PayoutCountryUnsupported"/> on purpose: this is a gap in what the platform knows,
+    /// not a gap in what the provider does, and the two are fixed by different people.
+    /// </summary>
+    public const string PayoutCapabilityUnknown = "financial.payout.capability_unknown";
+
+    /// <summary>A supported route this deployment has switched off. A setting, not a limitation.</summary>
+    public const string PayoutRouteDisabled = "financial.payout.route_disabled";
+
+    public const string PayoutAmountOutOfRange = "financial.payout.amount_out_of_range";
+
+    /// <summary>The route requires a verified payee and this one is not. See <c>PayoutRefusalReason</c>.</summary>
+    public const string PayoutVerificationRequired = "financial.payout.verification_required";
+
+    /// <summary>
+    /// The matrix names an adapter nobody registered. The platform's own misconfiguration rather
+    /// than a capability gap, and reported separately so it does not read as a country problem.
+    /// </summary>
+    public const string PayoutProviderNotRegistered = "financial.payout.provider_not_registered";
+
+    /// <summary>
+    /// The payee has not completed the chosen provider's own onboarding. Separate from
+    /// <see cref="PayoutVerificationRequired"/>: that one is the platform's identity check, this one
+    /// is a provider's, and they are finished in different places.
+    /// </summary>
+    public const string PayoutProviderOnboardingRequired = "financial.payout.provider_onboarding_required";
+
+    /// <summary>
+    /// The saved payout destination belongs to a provider that can no longer carry this. The member
+    /// registers a new destination; the platform has not lost coverage of their country.
+    /// </summary>
+    public const string PayoutDestinationProviderUnavailable =
+        "financial.payout.destination_provider_unavailable";
 }

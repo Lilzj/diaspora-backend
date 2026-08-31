@@ -241,6 +241,29 @@ public sealed class Withdrawal : AggregateRoot<WithdrawalId>, IAuditableEntity
         Transition(previous, now);
     }
 
+    /// <summary>
+    /// The provider was asked and the answer is not known.
+    /// <para>
+    /// <b>Deliberately not a status change.</b> <c>Processing</c> already means "handed to a
+    /// settlement provider and the outcome is unknown", so this records <em>why</em> it is still
+    /// unknown without pretending anything moved. Releasing the hold here would be the platform
+    /// giving a member their balance back while a provider may be sending them the same money.
+    /// </para>
+    /// <para>
+    /// No domain event: the status did not change, and a <c>StatusChanged</c> event whose previous
+    /// and current values match is a message consumers would act on twice.
+    /// </para>
+    /// </summary>
+    public void RecordUnresolvedOutcome(string? code, string? message, DateTimeOffset now)
+    {
+        Require(WithdrawalStatus.Processing);
+
+        FailureCode = Trimmed(code);
+        FailureMessage = Trimmed(message);
+        Revision++;
+        ModifiedAt = now;
+    }
+
     /// <summary>The member changed their mind before anybody picked it up.</summary>
     public void Cancel(DateTimeOffset now)
     {

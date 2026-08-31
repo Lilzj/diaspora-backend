@@ -49,4 +49,15 @@ public interface IWithdrawalRepository
     /// <summary>Requests waiting for a settlement provider to pick them up, oldest first.</summary>
     Task<IReadOnlyList<Withdrawal>> ListPendingAsync(
         int take, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Requests handed to a provider whose outcome is still unknown, oldest first.
+    /// <para>
+    /// <paramref name="startedBefore"/> keeps the resolution pass off instructions that were
+    /// submitted moments ago and are simply still in flight; asking a provider about a transfer it
+    /// is currently creating produces a "not found" that means nothing.
+    /// </para>
+    /// </summary>
+    Task<IReadOnlyList<Withdrawal>> ListUnresolvedAsync(
+        DateTimeOffset startedBefore, int take, CancellationToken cancellationToken = default);
 }

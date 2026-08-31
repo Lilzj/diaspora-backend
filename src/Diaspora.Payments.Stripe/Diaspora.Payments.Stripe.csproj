@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The Stripe payout adapter.
+
+    A separate assembly for the reason `Diaspora.Push.Firebase` and `Diaspora.Sms` are: an
+    architecture test refuses a vendor name inside `Diaspora.Modules.Financial`
+    (`No_payment_vendor_is_named_in_this_assembly`, a substring match over type names), and that
+    rule is one of the Financial Platform's central claims rather than a style preference. The
+    module knows a provider as a string in its capability matrix; the wire lives here.
+
+    No `Stripe.net`. The SMS adapter's reasoning applies unchanged: an SDK adds a dependency, its
+    transitive graph and its own retry loop layered under the platform's, and the platform's is the
+    one that is catalogue-driven and visible on a dashboard. Two form-encoded calls do not justify
+    any of that.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Diaspora.Payments.Stripe</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The seams this implements: ISettlementProvider and IPayoutProviderVerificationSource. -->
+    <ProjectReference Include="..\Diaspora.Modules.Financial\Diaspora.Modules.Financial.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The response mappers are internal; the tests that pin them are the reason they can be. -->
+    <InternalsVisibleTo Include="Diaspora.UnitTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+</Project>

@@ -12,6 +12,9 @@ using Diaspora.Observability;
 using Diaspora.Persistence;
 using Diaspora.Platform.Http;
 using Diaspora.Push.Firebase;
+using Diaspora.Payments.Flutterwave;
+using Diaspora.Payments.PayPal;
+using Diaspora.Payments.Stripe;
 using Diaspora.Sms;
 using Diaspora.Platform.Modules;
 using Diaspora.Platform.Modules.Contributors;
@@ -89,6 +92,21 @@ builder.Services.AddFirebasePushAdapter(builder.Configuration);
 // destination: a Nigerian number and a German one do not cost the same on the same wire, and
 // the cheap wire does not reach Germany at all.
 builder.Services.AddSmsAdapter(builder.Configuration);
+
+// The Stripe payout adapter, behind the Financial Platform's ISettlementProvider and
+// IPayoutProviderVerificationSource seams. A no-op unless Payments:Stripe:SecretKey is configured,
+// and deliberately so: the payout router treats every registered ISettlementProvider as usable, so
+// an uncredentialed adapter would advertise a rail that answers 401 rather than refusing cleanly.
+//
+// Registering it enables no corridor by itself. Which countries, rails and currencies this account
+// may serve is Financial:PayoutRouting, and every row there has to be confirmed against Stripe's
+// own documentation - an unconfirmed row stays Unknown and refuses.
+builder.Services.AddStripePayments(builder.Configuration);
+
+// The other two payout rails, on the same seams and with the same rule: each is a no-op until its
+// own credentials are configured, and registering one enables no corridor by itself.
+builder.Services.AddPayPalPayments(builder.Configuration);
+builder.Services.AddFlutterwavePayments(builder.Configuration);
 
 // The Production Platform (B17): caching, resilience, rate limiting, feature management, runtime
 // configuration, scheduling, health aggregation, dashboards, security and privacy tooling.

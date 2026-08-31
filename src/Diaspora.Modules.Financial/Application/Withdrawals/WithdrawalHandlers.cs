@@ -8,7 +8,9 @@ using Diaspora.Modules.Financial.Domain.Identifiers;
 using Diaspora.Modules.Financial.Domain.Policies;
 using Diaspora.Modules.Financial.Domain.ValueObjects;
 using Diaspora.Modules.Financial.Domain.Withdrawals;
+using Diaspora.Modules.Financial.Extensibility.Payouts;
 using Diaspora.Modules.Financial.Extensibility.Settlement;
+using Diaspora.Modules.Financial.Infrastructure.Payouts;
 using Diaspora.Modules.Financial.Observability;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Results;
@@ -42,6 +44,7 @@ public sealed class CreateWithdrawalCommandHandler
     private readonly WithdrawalProcessor _processor;
     private readonly CurrencyCatalog _currencies;
     private readonly IEnumerable<ISettlementProvider> _settlement;
+    private readonly PayoutRouteResolver _routes;
     private readonly IGuidGenerator _guids;
     private readonly IClock _clock;
     private readonly IUnitOfWork _unitOfWork;
@@ -55,6 +58,7 @@ public sealed class CreateWithdrawalCommandHandler
         WithdrawalProcessor processor,
         CurrencyCatalog currencies,
         IEnumerable<ISettlementProvider> settlement,
+        PayoutRouteResolver routes,
         IGuidGenerator guids,
         IClock clock,
         IUnitOfWork unitOfWork)
@@ -67,6 +71,7 @@ public sealed class CreateWithdrawalCommandHandler
         _processor = processor;
         _currencies = currencies;
         _settlement = settlement;
+        _routes = routes;
         _guids = guids;
         _clock = clock;
         _unitOfWork = unitOfWork;
@@ -170,6 +175,35 @@ public sealed class CreateWithdrawalCommandHandler
             return Result.Failure<WithdrawalResponse>(refusal);
         }
 
+        // Priced once, here, and used for both the routing decision and the stored withdrawal. The
+        // fee is the platform's and never leaves; what a provider is asked to move is the net, so
+        // that is the figure its limits apply to. Routing on the gross would refuse a payout the
+        // provider would have accepted, and accept one it would refuse, in each case by the fee.
+        var fee = limits.FeeOn(gross);
+        var net = gross.Subtract(fee);
+
+        // Can anybody actually carry this? Asked before the balance is checked, because telling a
+        // member they have insufficient funds for a payout the platform could never have made is
+        // the wrong refusal twice over.
+        //
+        // Every input is server-held: the country and the rail come off the verified destination
+        // rather than off the request. The command carries its own CountryCode — the limits resolver
+        // above uses it — and routing on it would let a caller pick the rail their money left on by
+        // typing a different country.
+        //
+        // The payee's verification is derived rather than assumed: a personal account reaches Active
+        // through exactly one path — VerificationApprovedConsumer, on a non-partial Trust approval —
+        // and CanDebit is that status. The guard above has already refused if it were false, so it
+        // is true here today; it is passed as a value anyway so that reordering these checks cannot
+        // quietly turn a provider's verification requirement into a lie.
+        var unroutable = await RouteRefusalAsync(
+            destination, net, caller.Value, account.CanDebit, cancellationToken);
+
+        if (unroutable is not null)
+        {
+            return Result.Failure<WithdrawalResponse>(unroutable);
+        }
+
         if (limits.DailyMaximum is { } dailyMaximum)
         {
             var usedToday = await _withdrawals.SumSinceAsync(
@@ -204,7 +238,9 @@ public sealed class CreateWithdrawalCommandHandler
 
             // Priced by the server from the policy, and stored — a member told they will receive
             // ninety-eight pounds receives ninety-eight pounds even if the fee changes tomorrow.
-            limits.FeeOn(gross),
+            // The same figure the route was chosen against, so the provider's limits and the
+            // member's receipt cannot disagree.
+            fee,
             _clock.UtcNow,
             command.IdempotencyKey,
             command.CountryCode);
@@ -226,6 +262,86 @@ public sealed class CreateWithdrawalCommandHandler
             new KeyValuePair<string, object?>("outcome", "requested"));
 
         return Result.Success(FinancialMapperExtensions.ToResponse(withdrawal, facts.Symbol));
+    }
+
+    /// <summary>
+    /// Asks the router whether anything can carry this payout, and turns a refusal into the error
+    /// the member sees.
+    /// <para>
+    /// <b>Where the verification signal comes from, because there are two and only one of them
+    /// means anything here.</b> The fraud assessor's <c>IsVerified</c> is populated from a
+    /// <em>permission</em> and says nothing about whether anybody checked a document; passing that
+    /// through would let a permission grant satisfy a provider's KYC requirement. The account's
+    /// status is the real record: a personal account opens <c>Pending</c> and reaches
+    /// <c>Active</c> through exactly one path — <c>VerificationApprovedConsumer</c>, on a
+    /// non-partial Trust approval — and <c>VerificationRevokedConsumer</c> restricts it again when
+    /// Trust withdraws. That is an event-sourced verification record the platform already keeps,
+    /// and it is what a route's <c>RequiresVerifiedPayee</c> is answered with.
+    /// </para>
+    /// </summary>
+    private async Task<Error?> RouteRefusalAsync(
+        PayoutDestination destination,
+        Money gross,
+        Guid payeeUserId,
+        bool payeeVerified,
+        CancellationToken cancellationToken)
+    {
+        var result = await _routes.ResolveAsync(new PayoutRouteRequest
+        {
+            // Off the verified destination, never off the request body — see the call site.
+            Country = destination.CountryCode ?? string.Empty,
+            Method = destination.Kind,
+            Amount = gross,
+            PayeeVerified = payeeVerified,
+
+            // A destination bound to a provider can only go to that provider - its token means
+            // nothing to any other.
+            RequiredProvider = destination.Provider
+        },
+        payeeUserId,
+        cancellationToken);
+
+        if (result.IsRouted)
+        {
+            return null;
+        }
+
+        var code = result.Refusal.ToErrorCode();
+        var country = destination.CountryCode ?? "that country";
+
+        return result.Refusal switch
+        {
+            PayoutRefusalReason.MethodUnsupported => Error.ServiceUnavailable(
+                code,
+                $"We cannot pay out to that kind of destination in {country} yet. "
+                + "Another destination type may work."),
+
+            PayoutRefusalReason.CurrencyUnsupported => Error.ServiceUnavailable(
+                code, $"We cannot send {gross.Currency} to {country} yet."),
+
+            PayoutRefusalReason.AmountOutOfRange => Error.Validation(
+                code, $"That amount is outside what we can send to {country} in one payout."),
+
+            PayoutRefusalReason.PayeeVerificationRequired => Error.Conflict(
+                code, $"Payouts to {country} need identity verification first."),
+
+            PayoutRefusalReason.DestinationProviderUnavailable => Error.ServiceUnavailable(
+                code,
+                "That saved payout method can no longer be used. Adding a new one should work."),
+
+            PayoutRefusalReason.ProviderOnboardingRequired => Error.Conflict(
+                code,
+                "The payout provider needs you to finish setting up your account with them "
+                + "before it can send money."),
+
+            PayoutRefusalReason.RouteDisabled => Error.ServiceUnavailable(
+                code, $"Payouts to {country} are switched off at the moment."),
+
+            // The remaining reasons are the platform's own gaps rather than the member's, and none
+            // of them is worth describing to the member in any more detail than this. The code
+            // tells an operator which one it was.
+            _ => Error.ServiceUnavailable(code, $"We cannot send money to {country} yet.")
+        };
     }
 
     private static Error? Refuse(Money amount, MovementLimits limits)

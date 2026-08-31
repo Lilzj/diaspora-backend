@@ -129,4 +129,14 @@ public sealed class WithdrawalRepository : IWithdrawalRepository
             .OrderBy(withdrawal => withdrawal.RequestedAt)
             .Take(Math.Max(1, take))
             .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<Withdrawal>> ListUnresolvedAsync(
+        DateTimeOffset startedBefore, int take, CancellationToken cancellationToken = default) =>
+        await Withdrawals
+            .Where(withdrawal => withdrawal.Status == WithdrawalStatus.Processing
+                && withdrawal.ProcessingStartedAt != null
+                && withdrawal.ProcessingStartedAt < startedBefore)
+            .OrderBy(withdrawal => withdrawal.ProcessingStartedAt)
+            .Take(Math.Max(1, take))
+            .ToListAsync(cancellationToken);
 }

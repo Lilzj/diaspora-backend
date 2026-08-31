@@ -22,8 +22,27 @@ public sealed record FinancialCapabilitiesResponse
     /// <summary>False everywhere today. The platform never converts.</summary>
     public required bool CurrencyConversionEnabled { get; init; }
 
-    /// <summary>False everywhere today. No settlement engine ships in this phase.</summary>
+    /// <summary>
+    /// Whether this deployment can actually pay somebody.
+    /// <para>
+    /// <b>Registration is not coverage.</b> A settlement provider being registered says the
+    /// deployment does payouts somewhere; it says nothing about whether the capability matrix can
+    /// route one. Reporting this as "a provider exists" would have the client offer a withdrawal
+    /// screen that refuses every amount, which is the disclosure failure this endpoint exists to
+    /// prevent.
+    /// </para>
+    /// </summary>
     public required bool PayoutsEnabled { get; init; }
+
+    /// <summary>
+    /// The countries money can actually reach: supported, enabled, and with a registered adapter
+    /// behind them. Empty when <see cref="PayoutsEnabled"/> is false. ISO 3166-1 alpha-2, sorted.
+    /// <para>
+    /// A country listed on the strength of a matrix row alone would be one the platform advertises
+    /// and then refuses.
+    /// </para>
+    /// </summary>
+    public required IReadOnlyList<string> PayoutCountries { get; init; }
 
     /// <summary>Whether a fraud assessor beyond the shipped velocity rules is registered.</summary>
     public required bool FraudAssessmentEnabled { get; init; }
