@@ -86,3 +86,22 @@ docker-compose.override.yml
 # Reports, matrices, reviews and phase write-ups stay local.
 *.md
 docs/
+
+# -- ...but two of those are build inputs, not documentation ------------------
+#
+# Roslyn analyzer release tracking is .md by convention, and
+# Diaspora.Analyzers.csproj lists both files as compile inputs. The blanket
+# rule above caught them by extension.
+#
+# They exist in every working tree, so nothing local ever fails. The only
+# place it appears is a clean checkout -- CI, a new machine, a release build:
+#
+#     CSC : error CS2001: Source file AnalyzerReleases.Shipped.md
+#           could not be found.
+#
+# Recorded as UAT-131. Re-inclusion works because the exclusion is on the
+# extension, not on a parent directory; git cannot re-include a file whose
+# directory is itself excluded, which is why docs/ needs different treatment
+# and has not been given one here.
+!src/Diaspora.Analyzers/AnalyzerReleases.Shipped.md
+!src/Diaspora.Analyzers/AnalyzerReleases.Unshipped.md
