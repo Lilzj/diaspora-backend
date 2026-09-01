@@ -66,6 +66,22 @@ primary_region = 'iad'
   # carry their own.
   Media__Storage__PublicBaseUrl = 'https://diaspora-api.fly.dev'
 
+  # -- Who outbound mail is from --------------------------------------------
+  #
+  # Not a secret, so it lives here beside the other operational settings rather
+  # than in the secret store. It is still *required*: EmailOptionsValidator
+  # refuses a configuration with credentials and no sender address, because
+  # Resend rejects a `from` on an unverified domain and its refusal names the
+  # message rather than the configuration.
+  #
+  # `onboarding@resend.dev` is Resend's own test sender. It needs no domain
+  # verification and delivers only to the address that owns the Resend account,
+  # which is exactly the shape of a first end-to-end test. Point this at a
+  # verified domain before real members depend on it.
+  Email__From__Address = 'onboarding@resend.dev'
+  Email__From__Name = 'Diaspora'
+  Email__DefaultProvider = 'Resend'
+
 [http_service]
   internal_port = 8080
   force_https = true
