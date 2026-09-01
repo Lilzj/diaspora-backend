@@ -170,8 +170,11 @@ public sealed class ResendEmailGateway : IEmailGateway
             : $"{message.FromName} <{message.FromAddress}>",
         To = [.. message.Recipients],
         Subject = message.Subject,
-        Html = message.IsHtml ? message.Body : null,
-        Text = message.IsHtml ? null : message.Body,
+        // Both parts when there are both. Resend accepts `html` and `text` together and the
+        // recipient's client chooses; sending only the first is how a message arrives blank in a
+        // text client and scores as suspicious with filters that expect multipart.
+        Html = string.IsNullOrWhiteSpace(message.HtmlBody) ? null : message.HtmlBody,
+        Text = message.TextBody,
         Headers = message.UnsubscribeUrl is { Length: > 0 } url
             ? new Dictionary<string, string>(StringComparer.Ordinal)
             {

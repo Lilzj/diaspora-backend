@@ -27,7 +27,16 @@ public sealed class IdentityNotificationRuleContributor : INotificationRuleContr
             TemplateKey = NotificationTemplateKeys.Welcome,
             CategoryKey = NotificationCategoryKeys.Platform,
             Priority = NotificationPriority.Normal,
-            Channels = [NotificationChannelKind.InApp],
+            // ── In the inbox and in the mailbox ───────────────────────────────────────
+            //
+            // In-app only meant the welcome was seen by members who came back, and missed
+            // precisely the ones who did not. A member registers, closes the app, and the platform
+            // never speaks to them again — the onboarding message being the one piece of mail that
+            // exists to prevent that.
+            //
+            // Not Push: a notification permission prompt has not been answered this early, and a
+            // welcome is not worth spending the one prompt a member will grant.
+            Channels = [NotificationChannelKind.InApp, NotificationChannelKind.Email],
 
             // Never expires. It is the first thing in a member's inbox and the only place the
             // platform introduces itself.

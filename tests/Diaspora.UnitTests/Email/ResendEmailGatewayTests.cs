@@ -136,24 +136,34 @@ public sealed class ResendEmailGatewayTests
     // ── The payload ─────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task An_html_body_is_sent_as_html_and_a_text_body_as_text()
+    public async Task A_message_with_both_parts_sends_both()
     {
-        // A plain-text body delivered in the `html` field renders as one unbroken paragraph,
-        // because the newlines a text body relies on mean nothing in HTML.
+        // The recipient's client chooses. Sending only the HTML is how a message arrives blank in
+        // a text-only client, unreadable to a screen reader in plain mode, and suspicious to a
+        // filter that expects multipart.
         var handler = new StubHandler(HttpStatusCode.OK, """{"id":"re_1"}""");
-        var gateway = GatewayWith(handler);
 
-        await gateway.SendAsync(Message() with { IsHtml = true, Body = "<p>Hello</p>" });
-        var asHtml = JsonDocument.Parse(handler.LastBody).RootElement;
+        await GatewayWith(handler).SendAsync(
+            Message() with { TextBody = "Hello", HtmlBody = "<p>Hello</p>" });
 
-        asHtml.TryGetProperty("html", out _).Should().BeTrue();
-        asHtml.TryGetProperty("text", out _).Should().BeFalse();
+        var payload = JsonDocument.Parse(handler.LastBody).RootElement;
 
-        await gateway.SendAsync(Message() with { IsHtml = false, Body = "Hello" });
-        var asText = JsonDocument.Parse(handler.LastBody).RootElement;
+        payload.GetProperty("text").GetString().Should().Be("Hello");
+        payload.GetProperty("html").GetString().Should().Be("<p>Hello</p>");
+    }
 
-        asText.TryGetProperty("text", out _).Should().BeTrue();
-        asText.TryGetProperty("html", out _).Should().BeFalse();
+    [Fact]
+    public async Task A_message_with_no_html_is_sent_as_text_alone()
+    {
+        // An empty `html` field is not the same as no field: some clients render the empty one.
+        var handler = new StubHandler(HttpStatusCode.OK, """{"id":"re_1"}""");
+
+        await GatewayWith(handler).SendAsync(Message() with { HtmlBody = null });
+
+        var payload = JsonDocument.Parse(handler.LastBody).RootElement;
+
+        payload.TryGetProperty("text", out _).Should().BeTrue();
+        payload.TryGetProperty("html", out _).Should().BeFalse();
     }
 
     [Fact]
@@ -215,8 +225,7 @@ public sealed class ResendEmailGatewayTests
     {
         Recipients = [Recipient],
         Subject = "A subject",
-        Body = "A body",
-        IsHtml = false,
+        TextBody = "A body",
         FromAddress = "no-reply@diaspora.test",
         FromName = "Diaspora"
     };

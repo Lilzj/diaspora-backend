@@ -81,23 +81,40 @@ public sealed class GatewayEmailSender : IEmailSender
                 "NoRecipients", "The message resolved to no email addresses.", isPermanent: true);
         }
 
-        var sender = _options.CurrentValue.From;
+        // The address a member sees is chosen by what the message is about. A receipt and a
+        // security alert arriving from the same mailbox teaches people to filter both.
+        var sender = _options.CurrentValue.SenderFor(message.CategoryKey);
+
+        var unsubscribeUrl = message.UnsubscribeToken is { Length: > 0 } token
+            ? BuildUnsubscribeUrl(token)
+            : null;
+
+        var actionUrl = BuildActionUrl(message.Route);
 
         var outbound = new OutboundEmail
         {
             Recipients = recipients,
             Subject = message.Subject,
-            Body = message.Body,
 
-            // Notifications names the format; the vendor needs to know which field to put the
-            // body in. Anything that is not explicitly HTML is sent as text, because a plain
-            // body delivered as HTML renders as one unbroken paragraph.
-            IsHtml = string.Equals(message.Format, "html", StringComparison.OrdinalIgnoreCase),
+            // ── The template's words, this module's markup ────────────────────────────────
+            //
+            // `EmailNotificationChannel` hands over plain text or Markdown and refuses to produce
+            // HTML, because template bodies are editable reference data and markup in that path is
+            // stored cross-site scripting. `EmailLayout` escapes everything it is given and adds
+            // the only HTML in the message, which is a constant in this assembly.
+            TextBody = EmailLayout.Text(
+                message.Subject, message.Body,
+                actionLabel: actionUrl is null ? null : "Open in Diaspora",
+                actionUrl: actionUrl,
+                unsubscribeUrl: unsubscribeUrl),
+            HtmlBody = EmailLayout.Html(
+                message.Subject, message.Body,
+                actionLabel: actionUrl is null ? null : "Open in Diaspora",
+                actionUrl: actionUrl,
+                unsubscribeUrl: unsubscribeUrl),
             FromAddress = sender.Address,
             FromName = sender.Name,
-            UnsubscribeUrl = message.UnsubscribeToken is { Length: > 0 } token
-                ? BuildUnsubscribeUrl(token)
-                : null
+            UnsubscribeUrl = unsubscribeUrl
         };
 
         var dependency = EmailDependencies.For(_gateway.Provider);
@@ -168,4 +185,30 @@ public sealed class GatewayEmailSender : IEmailSender
     /// </remarks>
     private string BuildUnsubscribeUrl(string token) =>
         $"{_options.CurrentValue.UnsubscribeBaseUrl.TrimEnd('/')}/{Uri.EscapeDataString(token)}";
+
+    /// <summary>
+    /// The web address behind the message's button, or null when there is nothing to open.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A notification's <c>Route</c> is an in-app path such as <c>/housing/123</c>. On its own that
+    /// is useless in an inbox, so it is joined to the deployment's public base to make something a
+    /// mail client can follow.
+    /// </para>
+    /// <para>
+    /// Null when no base is configured, which is honest: a button that goes nowhere is worse than
+    /// no button, and the message still carries everything it needs to say.
+    /// </para>
+    /// </remarks>
+    private string? BuildActionUrl(string? route)
+    {
+        var baseUrl = _options.CurrentValue.AppBaseUrl;
+
+        if (string.IsNullOrWhiteSpace(route) || string.IsNullOrWhiteSpace(baseUrl))
+        {
+            return null;
+        }
+
+        return $"{baseUrl.TrimEnd('/')}/{route.TrimStart('/')}";
+    }
 }

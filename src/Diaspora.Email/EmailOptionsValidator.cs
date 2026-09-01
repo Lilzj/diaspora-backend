@@ -62,6 +62,31 @@ public sealed class EmailOptionsValidator : IValidateOptions<EmailOptions>
                 + "which is not a valid email address.");
         }
 
+        // ── Every per-category sender, not just the default ───────────────────────────────
+        //
+        // These are the addresses least likely to be exercised in development and most likely to
+        // be wrong: a deployment sends its first receipt weeks after its first welcome. Checking
+        // them at startup turns a silent billing-mail outage into a boot failure naming the key.
+        foreach (var (categoryKey, sender) in options.Senders)
+        {
+            // A blank is not an error. Shipped configuration carries the keys with empty values so
+            // an operator can see which categories exist, and a deployment that overrides only
+            // some of them leaves the rest blank on purpose — `SenderFor` falls back to the
+            // default for exactly that case. Refusing blanks here would turn the documentation
+            // into a boot failure.
+            if (string.IsNullOrWhiteSpace(sender.Address))
+            {
+                continue;
+            }
+
+            if (!IsParseableAddress(sender.Address))
+            {
+                failures.Add(
+                    $"'{EmailOptions.SectionName}:Senders:{categoryKey}:Address' is "
+                    + $"'{sender.Address}', which is not a valid email address.");
+            }
+        }
+
         if (options.TimeoutSeconds <= 0)
         {
             failures.Add($"'{EmailOptions.SectionName}:TimeoutSeconds' must be at least 1.");

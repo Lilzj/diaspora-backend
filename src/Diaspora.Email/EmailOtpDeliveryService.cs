@@ -154,6 +154,16 @@ public sealed class EmailOtpDeliveryService : IOtpDeliveryService
     /// is the credential they still hold.
     /// </para>
     /// </remarks>
+    /// <summary>
+    /// The category a recovery code is filed under, for choosing its sender.
+    /// </summary>
+    /// <remarks>
+    /// The literal rather than a reference to <c>NotificationCategoryKeys</c>: a one-time code is
+    /// not a notification and does not travel through that module, so borrowing its constant would
+    /// be a dependency this path does not otherwise have.
+    /// </remarks>
+    private const string SecurityCategoryKey = "security";
+
     private static bool CanCarry(OtpPurpose purpose) =>
         purpose is OtpPurpose.PasswordReset or OtpPurpose.AccountRecovery;
 
@@ -165,18 +175,25 @@ public sealed class EmailOtpDeliveryService : IOtpDeliveryService
         // looks like an already-dead code and has the member ask for another one.
         var minutes = Math.Max(1, (int)Math.Ceiling(remaining.TotalMinutes));
 
-        var identity = _options.CurrentValue.From;
+        // A recovery code is security mail, so it comes from the security mailbox rather than
+        // the one receipts and reminders use. A member who has just been told their password can
+        // be reset should recognise the sender.
+        var identity = _options.CurrentValue.SenderFor(SecurityCategoryKey);
+
+        var subject = _messages.GetFor(IdentityMessageKeys.OtpEmailSubject, request.Language);
+        var body = Body(request, minutes);
+
+        // The code is the whole message, so it is given its own line and its own weight rather
+        // than being left to sit inside a sentence a member has to re-read on a phone.
+        var footer = _messages.GetFor(IdentityMessageKeys.OtpEmailFooter, request.Language);
 
         return new OutboundEmail
         {
             Recipients = [address],
-            Subject = _messages.GetFor(IdentityMessageKeys.OtpEmailSubject, request.Language),
-            Body = Body(request, minutes),
+            Subject = subject,
+            TextBody = EmailLayout.Text(subject, body, footerNote: footer),
+            HtmlBody = EmailLayout.Html(subject, body, footerNote: footer),
 
-            // Text, not HTML. The body is a code and two sentences; there is nothing here that
-            // markup would carry, and it keeps this path consistent with the house rule
-            // `EmailNotificationChannel` states — no HTML is produced from composed content.
-            IsHtml = false,
             FromAddress = identity.Address,
             FromName = identity.Name,
 

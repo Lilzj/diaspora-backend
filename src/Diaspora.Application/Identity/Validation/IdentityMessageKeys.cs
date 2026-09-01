@@ -62,6 +62,13 @@ public static class IdentityMessageKeys
 
     public const string OtpEmailBody = "identity.otp.emailBody";
 
+    /// <summary>The small print under a recovery email.</summary>
+    /// <remarks>
+    /// Separate from the body so the layout can set it below the rule, where small print belongs.
+    /// It carries the one instruction that matters to somebody who did not ask for the code.
+    /// </remarks>
+    public const string OtpEmailFooter = "identity.otp.emailFooter";
+
     public const string RefreshTokenRequired = "identity.validation.refreshToken.required";
     public const string CurrentPasswordRequired = "identity.validation.currentPassword.required";
 

@@ -1,5 +1,6 @@
 using Diaspora.Application.Identity.Abstractions;
 using Diaspora.Email.Gateways;
+using Diaspora.Modules.Notifications.Extensibility.Addressing;
 using Diaspora.Modules.Notifications.Extensibility.Channels;
 using Diaspora.Platform.Operations.Policies;
 using Diaspora.Platform.Operations.Resilience;
@@ -94,6 +95,19 @@ public static class EmailAdapterRegistration
         services.AddScoped<IEmailSender, GatewayEmailSender>();
 
         DecorateOtpDelivery(services);
+
+        // ── The other half of an email provider ───────────────────────────────────────────
+        //
+        // Notifications ships `NullRecipientAddressResolver`, which resolves nothing, because a
+        // member's email address belongs to Identity and no published contract carries it. That is
+        // a deliberate decision rather than a gap: it keeps one owner for the platform's most
+        // sensitive contact detail.
+        //
+        // The consequence, until this line existed, was that every notification email failed with
+        // `NoEndpoint` — transport configured, template rendered, preferences evaluated, message
+        // composed, and nowhere to send it. Last-registration-wins replaces the placeholder, and
+        // only here, where the deployment has already said it can send email at all.
+        services.AddScoped<IRecipientAddressResolver, IdentityRecipientAddressResolver>();
 
         return services;
     }

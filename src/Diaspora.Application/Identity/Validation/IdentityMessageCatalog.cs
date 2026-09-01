@@ -96,6 +96,8 @@ public static class IdentityMessageCatalog
                 "Your Diaspora code is {0}. It expires in {1} minutes. Never share it "
                 + "with anyone.\n\nIf you did not request this code, you can ignore "
                 + "this message. Your password has not been changed.",
+            [IdentityMessageKeys.OtpEmailFooter] =
+                "If you did not ask to reset your password, no action is needed and your password has not changed.",
             [IdentityMessageKeys.RefreshTokenRequired] = "A refresh token is required.",
             [IdentityMessageKeys.CurrentPasswordRequired] = "Your current password is required.",
             [IdentityMessageKeys.DeviceIdentifierRequired] = "A device identifier is required.",
@@ -142,6 +144,9 @@ public static class IdentityMessageCatalog
                 "Votre code Diaspora est {0}. Il expire dans {1} minutes. Ne le partagez "
                 + "avec personne.\n\nSi vous n'avez pas demandé ce code, vous "
                 + "pouvez ignorer ce message. Votre mot de passe n'a pas été modifié.",
+            [IdentityMessageKeys.OtpEmailFooter] =
+                "Si vous n'avez pas demandé à réinitialiser votre mot de passe, aucune action "
+                + "n'est nécessaire et votre mot de passe reste inchangé.",
             [IdentityMessageKeys.RefreshTokenRequired] = "Un jeton de rafraîchissement est requis.",
             [IdentityMessageKeys.CurrentPasswordRequired] = "Votre mot de passe actuel est requis.",
             [IdentityMessageKeys.DeviceIdentifierRequired] = "Un identifiant d'appareil est requis.",
@@ -188,6 +193,9 @@ public static class IdentityMessageCatalog
                 "O seu código Diaspora é {0}. Expira em {1} minutos. Nunca o partilhe "
                 + "com ninguém.\n\nSe não solicitou este código, pode ignorar esta "
                 + "mensagem. A sua palavra-passe não foi alterada.",
+            [IdentityMessageKeys.OtpEmailFooter] =
+                "Se não pediu para redefinir a sua palavra-passe, não é necessária qualquer "
+                + "ação e a sua palavra-passe permanece inalterada.",
             [IdentityMessageKeys.RefreshTokenRequired] = "É necessário um token de atualização.",
             [IdentityMessageKeys.CurrentPasswordRequired] = "A sua palavra-passe atual é obrigatória.",
             [IdentityMessageKeys.DeviceIdentifierRequired] = "É necessário um identificador de dispositivo.",
@@ -233,6 +241,8 @@ public static class IdentityMessageCatalog
             [IdentityMessageKeys.OtpEmailBody] =
                 "رمز Diaspora الخاص بك هو {0}. تنتهي صلاحيته خلال {1} دقيقة. لا تشاركه مع أحد.\n\n"
                 + "إذا لم تطلب هذا الرمز، يمكنك تجاهل هذه الرسالة. لم يتم تغيير كلمة المرور الخاصة بك.",
+            [IdentityMessageKeys.OtpEmailFooter] =
+                "إذا لم تطلب إعادة تعيين كلمة المرور، فلا حاجة لأي إجراء ولم تتغير كلمة المرور الخاصة بك.",
             [IdentityMessageKeys.RefreshTokenRequired] = "رمز التحديث مطلوب.",
             [IdentityMessageKeys.CurrentPasswordRequired] = "كلمة المرور الحالية مطلوبة.",
             [IdentityMessageKeys.DeviceIdentifierRequired] = "معرّف الجهاز مطلوب.",

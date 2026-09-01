@@ -78,9 +78,31 @@ primary_region = 'iad'
   # verification and delivers only to the address that owns the Resend account,
   # which is exactly the shape of a first end-to-end test. Point this at a
   # verified domain before real members depend on it.
-  Email__From__Address = 'onboarding@resend.dev'
-  Email__From__Name = 'Diaspora'
+  # diaspora.joinmydiaspora.com is the verified domain in Resend (the subdomain,, so mail reaches real members rather
+  # not the apex - the apex is refused with a 403 naming it).
   Email__DefaultProvider = 'Resend'
+  Email__From__Address = 'no-reply@diaspora.joinmydiaspora.com'
+  Email__From__Name = 'Diaspora'
+
+  # -- A different mailbox for a different kind of message ------------------
+  #
+  # Keyed by notification category. A receipt and a security alert arriving from
+  # one address teaches members to filter both, and the one they then miss is the
+  # one saying their account was suspended.
+  #
+  # Anything not listed falls back to From above, so this is the handful where it
+  # earns its keep rather than an enumeration of every category.
+  Email__Senders__security__Address = 'security@diaspora.joinmydiaspora.com'
+  Email__Senders__security__Name = 'Diaspora Security'
+  Email__Senders__billing__Address = 'receipts@diaspora.joinmydiaspora.com'
+  Email__Senders__billing__Name = 'Diaspora Receipts'
+  Email__Senders__platform__Address = 'hello@diaspora.joinmydiaspora.com'
+  Email__Senders__platform__Name = 'Diaspora'
+
+  # Turns a notification's in-app route into something clickable in an inbox.
+  # Empty would simply drop the button, which is the right failure.
+  Email__AppBaseUrl = 'https://diaspora-api.fly.dev'
+  Email__UnsubscribeBaseUrl = 'https://diaspora-api.fly.dev/unsubscribe'
 
 [http_service]
   internal_port = 8080

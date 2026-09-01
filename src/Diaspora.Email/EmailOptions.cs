@@ -48,6 +48,55 @@ public sealed class EmailOptions
     /// </remarks>
     public string UnsubscribeBaseUrl { get; set; } = "https://diaspora.app/unsubscribe";
 
+    /// <summary>
+    /// Where a notification's in-app route becomes a link somebody can click in an inbox.
+    /// </summary>
+    /// <remarks>
+    /// A notification carries a route like <c>/housing/123</c>, which means nothing in a mail
+    /// client. Joined to this it becomes a real address. Left empty, messages simply carry no
+    /// button — which is the right failure, because a link to nowhere is worse than none.
+    /// </remarks>
+    public string AppBaseUrl { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Sender identities for particular kinds of mail, keyed by notification category.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A receipt and a security alert should not arrive from the same mailbox. A member who filters
+    /// <c>no-reply@</c> into a folder they never read has silently opted out of being told their
+    /// account was suspended, and a bank that sends statements from its marketing address teaches
+    /// people to ignore the address that matters.
+    /// </para>
+    /// <para>
+    /// Keyed by <c>NotificationCategoryKeys</c> — <c>security</c>, <c>billing</c>, <c>trust</c>,
+    /// <c>platform</c> and the rest — so the split is configuration rather than code, and a
+    /// deployment that wants one address for everything simply sets none of these. Anything not
+    /// listed falls back to <see cref="From"/>.
+    /// </para>
+    /// <para>
+    /// Every address here has to be on a domain the provider has verified. Resend refuses an
+    /// unverified <c>from</c>, and its refusal names the message rather than the configuration —
+    /// which is why <see cref="EmailOptionsValidator"/> checks these at startup instead.
+    /// </para>
+    /// </remarks>
+    public Dictionary<string, EmailSenderIdentity> Senders { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The identity mail in <paramref name="categoryKey"/> is sent from.
+    /// </summary>
+    /// <remarks>
+    /// Falls back to <see cref="From"/> rather than failing, because a category nobody configured
+    /// an address for is the normal case: the split exists for the handful of kinds where it
+    /// matters, not as an obligation to enumerate every category the platform has.
+    /// </remarks>
+    public EmailSenderIdentity SenderFor(string? categoryKey) =>
+        categoryKey is { Length: > 0 } key
+        && Senders.TryGetValue(key, out var sender)
+        && sender.IsConfigured
+            ? sender
+            : From;
+
     public ResendOptions Resend { get; set; } = new();
 }
 

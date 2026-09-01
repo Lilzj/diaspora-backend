@@ -210,9 +210,13 @@ public sealed class EmailOtpDeliveryTests
 
         await Service(gateway, new RecordingInner()).SendAsync(Request(OtpPurpose.PasswordReset));
 
-        gateway.Sent[0].Body.Should().Contain("482913").And.Contain("10");
+        gateway.Sent[0].TextBody.Should().Contain("482913").And.Contain("10");
         gateway.Sent[0].Subject.Should().Be("Your Diaspora verification code");
-        gateway.Sent[0].IsHtml.Should().BeFalse();
+
+        // Both parts. The code has to survive a text-only client, and the HTML is what makes it
+        // legible on a phone.
+        gateway.Sent[0].HtmlBody.Should().NotBeNullOrWhiteSpace();
+        gateway.Sent[0].HtmlBody.Should().Contain("482913");
     }
 
     [Fact]
@@ -227,7 +231,7 @@ public sealed class EmailOtpDeliveryTests
                 ExpiresAt = DateTimeOffset.UnixEpoch.AddSeconds(40)
             });
 
-        gateway.Sent[0].Body.Should().Contain("1 minute");
+        gateway.Sent[0].TextBody.Should().Contain("1 minute");
     }
 
     [Fact]
@@ -266,7 +270,10 @@ public sealed class EmailOtpDeliveryTests
         await Service(gateway, new RecordingInner(), messages: messages)
             .SendAsync(Request(OtpPurpose.PasswordReset));
 
-        gateway.Sent[0].Body.Should().Be("482913");
+        // The digits survive a broken translation. The layout still wraps them, so this is a
+        // containment check rather than equality — what matters is that the member can read the
+        // code, not that the sentence around it was lost.
+        gateway.Sent[0].TextBody.Should().Contain("482913");
     }
 
     // ── What recovery is told to say ────────────────────────────────────────

@@ -51,6 +51,42 @@ public sealed class PlatformNotificationTemplateContributor : INotificationTempl
                     ShortBody = "Bienvenue sur Diaspora, {fullname}."
                 }
             ],
+            // ── The inbox line is not the email ───────────────────────────────────────
+            //
+            // A notification body is written to be read in a list, where the surrounding screen
+            // supplies the context. An email arrives alone: it has to greet the member, say what
+            // the product is for, and give them one thing to do. Without a variant the email would
+            // carry the inbox one-liner under a subject that repeats it.
+            Variants =
+            [
+                new TemplateVariantSeed
+                {
+                    Channel = NotificationChannelKind.Email,
+                    Language = "en",
+                    Title = "Welcome to Diaspora, {fullname}",
+                    Body =
+                        "Your account is ready.\n\n"
+                        + "Diaspora brings together the things people need after a move: trusted "
+                        + "local services, homes to rent, jobs, guides written by people who have "
+                        + "already made the move, and the community around you.\n\n"
+                        + "Verifying your account unlocks the rest — posting, selling, listing a "
+                        + "property and messaging other members."
+                },
+                new TemplateVariantSeed
+                {
+                    Channel = NotificationChannelKind.Email,
+                    Language = "fr",
+                    Title = "Bienvenue sur Diaspora, {fullname}",
+                    Body =
+                        "Votre compte est prêt.\n\n"
+                        + "Diaspora réunit ce dont on a besoin après un déménagement : des services "
+                        + "locaux de confiance, des logements à louer, des emplois, des guides "
+                        + "rédigés par des personnes déjà installées, et la communauté autour de "
+                        + "vous.\n\n"
+                        + "Vérifier votre compte débloque le reste : publier, vendre, proposer un "
+                        + "logement et contacter les autres membres."
+                }
+            ],
             Actions =
             [
                 new TemplateActionSeed

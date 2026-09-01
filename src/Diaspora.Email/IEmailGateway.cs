@@ -40,10 +40,21 @@ public sealed record OutboundEmail
 
     public required string Subject { get; init; }
 
-    public required string Body { get; init; }
+    /// <summary>The plain-text part. Always present.</summary>
+    /// <remarks>
+    /// Required rather than optional, and that is the point. A message sent as HTML alone reads as
+    /// empty to a text-only client and to a screen reader in plain mode, and scores badly with
+    /// every spam filter that looks for a multipart body. The text part is the message; the HTML
+    /// part is a presentation of it.
+    /// </remarks>
+    public required string TextBody { get; init; }
 
-    /// <summary>True when <see cref="Body"/> is HTML rather than plain text.</summary>
-    public required bool IsHtml { get; init; }
+    /// <summary>The HTML part, when the message has one.</summary>
+    /// <remarks>
+    /// Null is a perfectly good value: a transactional message with nothing to lay out is better
+    /// sent as text alone than wrapped in a shell that adds only weight.
+    /// </remarks>
+    public string? HtmlBody { get; init; }
 
     public required string FromAddress { get; init; }
 
