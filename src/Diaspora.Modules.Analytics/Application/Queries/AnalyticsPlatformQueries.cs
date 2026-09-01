@@ -41,6 +41,18 @@ public sealed record GetAnalyticsAccessQuery : IQuery<AnalyticsAccessResponse>
 public sealed class GetAnalyticsAccessQueryHandler
     : IQueryHandler<GetAnalyticsAccessQuery, AnalyticsAccessResponse>
 {
+
+    /// <summary>
+    /// Subjects that name a <b>role the caller holds</b> rather than a piece of content.
+    /// </summary>
+    /// <remarks>
+    /// Content subjects are resolved by ownership of the row. These are resolved by identity:
+    /// the subject id is the member's own user id, so "may I see this" and "is this me" are the
+    /// same question. A platform reader may see any of them.
+    /// </remarks>
+    private static readonly HashSet<string> RoleSubjects =
+        new(StringComparer.Ordinal) { "seller", "landlord", "employer" };
+
     private readonly AnalyticsQueryContext _context;
 
     public GetAnalyticsAccessQueryHandler(AnalyticsQueryContext context) => _context = context;
@@ -60,7 +72,34 @@ public sealed class GetAnalyticsAccessQueryHandler
         var subjectType = query.SubjectType?.Trim().ToLowerInvariant() ?? "creator";
         var isPlatformReader = _context.IsPlatformReader;
 
+        // ── Role subjects could never be viewed by anybody ────────────────────
+        //
+        // This was `canView = subjectType == "creator"`, then a fallback through
+        // `AnalyticsContentTypes.FromRouteSegment` — which maps **content** types
+        // only: post, guide, listing, job, housing, marketplace, event,
+        // organization. `seller`, `landlord` and `employer` are **role**
+        // subjects, so the lookup returned `Unknown`, the block was skipped, and
+        // `canView` stayed false for every possible input.
+        //
+        // There was no request that made `/analytics/seller`,
+        // `/analytics/landlord` or the employer dashboard return true. All three
+        // are linked from Profile → Analytics and rendered "Not available to
+        // you" to the only person entitled to them: a member with a seller
+        // profile and three published listings was refused their own selling
+        // figures (UAT-125).
+        //
+        // A role subject is the caller's own standing in that role, and the
+        // client sends the caller's user id as its identifier — the same
+        // protection the creator subject gets from carrying no id at all. So the
+        // rule is ownership: you may read a role subject when it is you.
         var canView = subjectType == "creator";
+
+        if (!canView && RoleSubjects.Contains(subjectType))
+        {
+            canView = isPlatformReader
+                || (Guid.TryParse(query.SubjectId, out var roleSubjectId)
+                    && roleSubjectId == caller.Value);
+        }
 
         if (!canView && Guid.TryParse(query.SubjectId, out var contentId))
         {

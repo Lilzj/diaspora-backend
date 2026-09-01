@@ -294,7 +294,7 @@ public sealed class CommunicationExtensionTests : IdentityTestBase
 
         var response = await Api.LoginAsync(new LoginRequest
         {
-            PhoneNumber = phoneNumber,
+            Email = EmailFor(phoneNumber),
             Password = ValidPassword,
             DeviceIdentifier = deviceIdentifier,
             DeviceName = deviceIdentifier

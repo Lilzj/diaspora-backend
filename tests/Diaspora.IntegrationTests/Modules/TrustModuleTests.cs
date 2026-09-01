@@ -671,7 +671,7 @@ public sealed class TrustModuleTests : IdentityTestBase
         }
 
         var login = await IdentityApiClient.ReadDataAsync<AuthenticationResponse>(
-            await Api.LoginAsync(new LoginRequest { PhoneNumber = phone, Password = ValidPassword }));
+            await Api.LoginAsync(new LoginRequest { Email = EmailFor(phone), Password = ValidPassword }));
 
         Api.Authenticate(login.Tokens.AccessToken);
     }

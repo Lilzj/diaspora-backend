@@ -39,6 +39,17 @@ namespace Diaspora.IntegrationTests.Modules;
 /// </summary>
 public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementWebApplicationFactory>
 {
+    /// <summary>
+    /// The currency this suite's deposits are made in.
+    /// </summary>
+    /// <remarks>
+    /// Distinct from the member's own wallet currency, which follows their country of residence.
+    /// A deposit names its currency and opens a wallet in it, so a member who registers in Canada
+    /// and deposits in sterling holds two primary wallets — and a balance assertion has to say
+    /// which one it means.
+    /// </remarks>
+    private const string DepositCurrency = "GBP";
+
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     public FinancialMovementTests(FinancialMovementWebApplicationFactory factory) : base(factory)
@@ -1092,11 +1103,12 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         await PublishConversionRateAsync(minorUnitsPerPoint: 1m);
         await GrantPointsAsync(userId, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
 
-        var before = await AvailableAsync(userId);
+        var currency = await MemberCurrencyAsync(userId);
+        var before = await AvailableAsync(userId, currency);
 
         var response = await HttpClient.PostAsJsonAsync(
             new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
-            new { points = 600L, currency = "GBP", idempotencyKey = Guid.NewGuid().ToString("N") });
+            new { points = 600L, currency, idempotencyKey = Guid.NewGuid().ToString("N") });
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
@@ -1106,7 +1118,7 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         conversion.Credited.MinorUnits.Should().Be(600);
         conversion.TransactionId.Should().NotBeNull("a conversion is a ledger posting, not a counter");
 
-        (await AvailableAsync(userId)).Should().Be(before + 600);
+        (await AvailableAsync(userId, currency)).Should().Be(before + 600);
         (await PointsAsync()).Should().Be(400);
     }
 
@@ -1120,14 +1132,15 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         await GrantPointsAsync(userId, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
 
         var key = Guid.NewGuid().ToString("N");
+        var currency = await MemberCurrencyAsync(userId);
 
         await HttpClient.PostAsJsonAsync(
             new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
-            new { points = 300L, currency = "GBP", idempotencyKey = key });
+            new { points = 300L, currency, idempotencyKey = key });
 
         await HttpClient.PostAsJsonAsync(
             new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
-            new { points = 300L, currency = "GBP", idempotencyKey = key });
+            new { points = 300L, currency, idempotencyKey = key });
 
         (await PointsAsync()).Should().Be(700, "points leave once per key");
     }
@@ -1508,13 +1521,22 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         await unitOfWork.SaveChangesAsync();
     }
 
-    private async Task<long> AvailableAsync(Guid userId) =>
-        (await PrimaryWalletAsync(userId))?.AvailableMinorUnits ?? 0;
+    private async Task<long> AvailableAsync(Guid userId, string currency = DepositCurrency) =>
+        (await PrimaryWalletAsync(userId, currency))?.AvailableMinorUnits ?? 0;
 
-    private async Task<long> ReservedAsync(Guid userId) =>
-        (await PrimaryWalletAsync(userId))?.ReservedMinorUnits ?? 0;
+    private async Task<long> ReservedAsync(Guid userId, string currency = DepositCurrency) =>
+        (await PrimaryWalletAsync(userId, currency))?.ReservedMinorUnits ?? 0;
 
-    private async Task<Wallet?> PrimaryWalletAsync(Guid userId)
+    /// <summary>
+    /// The member's primary wallet in one currency.
+    /// </summary>
+    /// <remarks>
+    /// <b>A member holds more than one.</b> Registration opens a wallet in the currency of their
+    /// country of residence, and a deposit in another currency opens a second — both
+    /// <c>Primary</c>. So the currency is part of the question, and a lookup that dropped it
+    /// returned whichever happened to come back first, which is how a funded wallet reads as empty.
+    /// </remarks>
+    private async Task<Wallet?> PrimaryWalletAsync(Guid userId, string currency = DepositCurrency)
     {
         using var scope = Factory.Services.CreateScope();
 
@@ -1523,7 +1545,48 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
 
         return held.FirstOrDefault(wallet =>
             wallet.WalletType == WalletType.Primary
-            && string.Equals(wallet.Currency, "GBP", StringComparison.Ordinal));
+            && string.Equals(wallet.Currency, currency, StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// The currency this member's financial account was opened in.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Read from the account rather than hard-coded, because it follows the member's
+    /// <c>CountryOfResidence</c>: <c>IdentityTestBase</c> registers members resident in Canada, so
+    /// the platform opens them a CAD account. Read from the <em>account</em> rather than a wallet
+    /// because no wallet exists until something credits one — which, for a conversion, is the very
+    /// call under test.
+    /// </para>
+    /// <para>
+    /// It is also the comparison the handler itself makes: a conversion credits a wallet in the
+    /// currency the caller names, and a member holds one only in the currency their account was
+    /// opened in. Naming any other currency is answered
+    /// <c>404 — "You hold no GBP wallet for the credit to land in."</c>, which is correct.
+    /// </para>
+    /// <para>
+    /// <b>These tests used to post "GBP" and pass, and that was the bug passing.</b> Every wallet
+    /// was opened in GBP regardless of country — a Mauritian member's wallet screen read
+    /// "£0.00 / GBP" — which is the defect <c>CountryCurrency</c> was written to fix. The tests
+    /// had encoded it, so fixing the product turned two of them red. Asking the wallet what it
+    /// holds is the assertion that survives the next country being added.
+    /// </para>
+    /// </remarks>
+    private async Task<string> MemberCurrencyAsync(Guid userId)
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        var accounts = scope.ServiceProvider
+            .GetRequiredService<IFinancialAccountRepository>();
+
+        var account = await accounts.FindByOwnerAsync(userId, FinancialAccountType.Personal);
+
+        return account?.PrimaryCurrency
+            ?? throw new InvalidOperationException(
+                $"Member {userId} has no financial account, so there is no currency to convert "
+                + "into. AuthenticateAsync drains the outbox and activates the identity, so this "
+                + "means the account was never opened.");
     }
 
     private async Task<long> PointsAsync()

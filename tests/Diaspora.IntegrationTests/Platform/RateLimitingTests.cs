@@ -47,7 +47,7 @@ public sealed class RateLimitingTests : IClassFixture<CustomWebApplicationFactor
 
         using var client = throttled.CreateClient();
 
-        var request = new LoginRequest { PhoneNumber = "+2348000000001", Password = "whatever-wrong" };
+        var request = new LoginRequest { Email = "member2348000000001@diaspora.test", Password = "whatever-wrong" };
 
         // The first two are allowed through (and fail auth, which is fine — the limiter, not
         // the credentials, is under test). The third is refused by the limiter.

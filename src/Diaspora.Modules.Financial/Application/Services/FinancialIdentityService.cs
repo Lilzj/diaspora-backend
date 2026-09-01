@@ -84,7 +84,22 @@ public sealed class FinancialIdentityService
             return existing;
         }
 
-        var normalized = Domain.ValueObjects.Money.NormalizeCurrency(currency) ?? DefaultCurrency;
+        // ── The country of residence chooses the currency ─────────────────────
+        //
+        // This read `NormalizeCurrency(currency) ?? DefaultCurrency` and never
+        // looked at `countryCode`, which the caller had already supplied — one
+        // line below. `UserRegisteredConsumer` passes the member's
+        // `CountryOfResidence` and a null currency, so **every member on the
+        // platform was opened in GBP**, including members resident in Mauritius
+        // pricing their own listings in MUR (UAT-124).
+        //
+        // Order of precedence: an explicit currency wins, because a caller that
+        // named one knows something this does not. Then the country. Then the
+        // configured default, for a market the platform has no opinion about.
+        var normalized =
+            Domain.ValueObjects.Money.NormalizeCurrency(currency)
+            ?? Domain.ValueObjects.Money.NormalizeCurrency(CountryCurrency.For(countryCode))
+            ?? DefaultCurrency;
 
         var account = FinancialAccount.Open(
             FinancialAccountId.From(_guids.NewSequentialGuid()),

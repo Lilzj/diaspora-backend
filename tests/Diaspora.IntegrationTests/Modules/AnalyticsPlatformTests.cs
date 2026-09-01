@@ -1613,6 +1613,7 @@ internal sealed class AnalyticsConcurrencyHarness
         {
             FullName = "Concurrent Reader",
             PhoneNumber = phone,
+            Email = $"member{phone.TrimStart('+')}@diaspora.test",
             Password = "Correct-Horse-Battery-7",
             Nationality = "NG",
             CountryOfResidence = "CA",

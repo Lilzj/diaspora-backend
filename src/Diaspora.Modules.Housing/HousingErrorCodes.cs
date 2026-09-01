@@ -68,6 +68,16 @@ public static class HousingErrorCodes
     public const string SummaryTooLong = "housing.summary.too-long";
     public const string PriceInvalid = "housing.price.invalid";
     public const string PriceRequired = "housing.price.required";
+
+    /// <summary>
+    /// A rent was given but the period it covers was missing or unrecognised.
+    /// </summary>
+    /// <remarks>
+    /// Distinct from <see cref="PriceRequired"/> on purpose. Both used to answer
+    /// "State the rent, or mark the price as on application." — which named the wrong field
+    /// to a landlord who was looking at the rent they had just typed (UAT-113).
+    /// </remarks>
+    public const string PricePeriodRequired = "housing.price.period-required";
     public const string DepositInvalid = "housing.deposit.invalid";
     public const string CurrencyInvalid = "housing.currency.invalid";
     public const string CurrencyMismatch = "housing.currency.mismatch";

@@ -277,7 +277,8 @@ public sealed class CreateHousingListingCommandHandler
         if (!Enum.TryParse<RentPeriod>(request.RentPeriod, ignoreCase: true, out var period)
             || period == RentPeriod.None)
         {
-            return Result.Failure<HousingPrice>(HousingErrors.PriceRequired);
+            // Names the period, not the rent. See `HousingErrors.PricePeriodRequired`.
+            return Result.Failure<HousingPrice>(HousingErrors.PricePeriodRequired);
         }
 
         return HousingPrice.Create(

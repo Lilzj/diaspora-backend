@@ -217,6 +217,25 @@ public static class HousingErrors
         HousingErrorCodes.PriceRequired,
         "State the rent, or mark the price as on application.");
 
+    /// <summary>
+    /// The rent is present; the period it covers is not.
+    /// </summary>
+    /// <remarks>
+    /// This case used to return <see cref="PriceRequired"/>, so a landlord who supplied a rent
+    /// with an unparseable period was told to state the rent — the one field that was already
+    /// correct. It reached a release build: the client sent no <c>rentPeriod</c> at all, so
+    /// **every housing listing that stated a price was refused**, and the message sent the
+    /// landlord back to re-enter a price that had never been the problem (UAT-113).
+    /// <para>
+    /// The members are listed because a client cannot guess them: "Monthly" is the form's label
+    /// and parses to nothing.
+    /// </para>
+    /// </remarks>
+    public static readonly Error PricePeriodRequired = Error.Validation(
+        HousingErrorCodes.PricePeriodRequired,
+        "State how often the rent is paid: PerNight, PerWeek, PerMonth, PerQuarter, PerYear "
+        + "or PerStay.");
+
     public static readonly Error DepositInvalid = Error.Validation(
         HousingErrorCodes.DepositInvalid,
         "That deposit is not a valid amount.");
