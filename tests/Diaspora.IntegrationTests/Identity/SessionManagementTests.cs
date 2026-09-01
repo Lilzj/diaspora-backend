@@ -32,7 +32,7 @@ public class SessionManagementTests : IdentityTestBase
 
         var secondLogin = await Api.LoginAsync(new Contracts.Identity.V1.Requests.LoginRequest
         {
-            PhoneNumber = phone,
+            Email = EmailFor(phone),
             Password = ValidPassword,
             DeviceName = "MacBook Pro",
             Platform = "Web"
@@ -56,7 +56,7 @@ public class SessionManagementTests : IdentityTestBase
 
         var secondLogin = await Api.LoginAsync(new Contracts.Identity.V1.Requests.LoginRequest
         {
-            PhoneNumber = phone,
+            Email = EmailFor(phone),
             Password = ValidPassword,
             DeviceName = "MacBook Pro",
             Platform = "Web"
@@ -105,12 +105,12 @@ public class SessionManagementTests : IdentityTestBase
 
         await Api.LoginAsync(new Contracts.Identity.V1.Requests.LoginRequest
         {
-            PhoneNumber = phone, Password = ValidPassword, DeviceName = "Device B", Platform = "Web"
+            Email = EmailFor(phone), Password = ValidPassword, DeviceName = "Device B", Platform = "Web"
         });
 
         var thirdLogin = await Api.LoginAsync(new Contracts.Identity.V1.Requests.LoginRequest
         {
-            PhoneNumber = phone, Password = ValidPassword, DeviceName = "Device C", Platform = "IOS"
+            Email = EmailFor(phone), Password = ValidPassword, DeviceName = "Device C", Platform = "IOS"
         });
 
         var current = await IdentityApiClient.ReadDataAsync<AuthenticationResponse>(thirdLogin);
@@ -132,7 +132,7 @@ public class SessionManagementTests : IdentityTestBase
 
         var secondLogin = await Api.LoginAsync(new Contracts.Identity.V1.Requests.LoginRequest
         {
-            PhoneNumber = phone, Password = ValidPassword, DeviceName = "Device B", Platform = "Web"
+            Email = EmailFor(phone), Password = ValidPassword, DeviceName = "Device B", Platform = "Web"
         });
 
         var second = await IdentityApiClient.ReadDataAsync<AuthenticationResponse>(secondLogin);

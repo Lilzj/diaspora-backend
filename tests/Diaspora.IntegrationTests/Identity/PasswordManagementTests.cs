@@ -29,7 +29,7 @@ public class PasswordManagementTests : IdentityTestBase
         response.IsSuccessStatusCode.Should().BeTrue();
 
         Api.ClearAuthentication();
-        var signIn = await Api.LoginAsync(new LoginRequest { PhoneNumber = phone, Password = NewPassword });
+        var signIn = await Api.LoginAsync(new LoginRequest { Email = EmailFor(phone), Password = NewPassword });
         signIn.IsSuccessStatusCode.Should().BeTrue();
     }
 
@@ -46,7 +46,7 @@ public class PasswordManagementTests : IdentityTestBase
         });
 
         Api.ClearAuthentication();
-        var signIn = await Api.LoginAsync(new LoginRequest { PhoneNumber = phone, Password = ValidPassword });
+        var signIn = await Api.LoginAsync(new LoginRequest { Email = EmailFor(phone), Password = ValidPassword });
 
         signIn.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
@@ -82,7 +82,7 @@ public class PasswordManagementTests : IdentityTestBase
         // again with the new password before attempting the second change.
         Api.ClearAuthentication();
         var reAuth = await IdentityApiClient.ReadDataAsync<AuthenticationResponse>(
-            await Api.LoginAsync(new LoginRequest { PhoneNumber = phone, Password = NewPassword }));
+            await Api.LoginAsync(new LoginRequest { Email = EmailFor(phone), Password = NewPassword }));
 
         Api.Authenticate(reAuth.Tokens.AccessToken);
         var revert = await Api.ChangePasswordAsync(new ChangePasswordRequest
@@ -102,7 +102,7 @@ public class PasswordManagementTests : IdentityTestBase
 
         var secondLogin = await Api.LoginAsync(new LoginRequest
         {
-            PhoneNumber = phone, Password = ValidPassword, DeviceName = "Device B", Platform = "Web"
+            Email = EmailFor(phone), Password = ValidPassword, DeviceName = "Device B", Platform = "Web"
         });
 
         var second = await IdentityApiClient.ReadDataAsync<AuthenticationResponse>(secondLogin);
@@ -118,13 +118,31 @@ public class PasswordManagementTests : IdentityTestBase
         (await Api.GetCurrentUserAsync()).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
+    /// <summary>
+    /// The sentence the member is shown.
+    /// </summary>
+    /// <remarks>
+    /// Compared instead of the whole body because the envelope legitimately carries a request id,
+    /// a correlation id and a timestamp, all of which differ between any two calls. The message is
+    /// the only part a prober could read a difference out of.
+    /// </remarks>
+    private static string MessageOf(string body)
+    {
+        using var document = System.Text.Json.JsonDocument.Parse(body);
+
+        return document.RootElement.TryGetProperty("data", out var data)
+               && data.TryGetProperty("message", out var message)
+            ? message.GetString() ?? string.Empty
+            : body;
+    }
+
     [Fact]
     public async Task Account_recovery_always_acknowledges_the_same_way()
     {
         var (phone, _) = await RegisterAndVerifyAsync();
 
-        var known = await Api.ForgotPasswordAsync(phone);
-        var unknown = await Api.ForgotPasswordAsync(NextPhoneNumber());
+        var known = await Api.ForgotPasswordAsync(EmailFor(phone));
+        var unknown = await Api.ForgotPasswordAsync(EmailFor(NextPhoneNumber()));
 
         known.StatusCode.Should().Be(HttpStatusCode.OK);
         unknown.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -133,8 +151,20 @@ public class PasswordManagementTests : IdentityTestBase
         var unknownBody = await unknown.Content.ReadAsStringAsync();
 
         // Identical wording; only the request id in the envelope differs.
-        knownBody.Should().Contain("If that phone number belongs to a Diaspora account");
-        unknownBody.Should().Contain("If that phone number belongs to a Diaspora account");
+        //
+        // The sentence names the **email address**, because that is what recovery now takes: the
+        // member types the credential they actually sign in with. It also names the channel, and
+        // this deployment has no email sender configured, so the code goes by SMS and the
+        // acknowledgement says so. Both halves vary only with configuration — never with whether
+        // the account exists — which is what keeps this endpoint from being an enumeration oracle.
+        knownBody.Should().Contain("If that email address belongs to a Diaspora account");
+        unknownBody.Should().Contain("If that email address belongs to a Diaspora account");
+
+        // Character for character, not merely "both contain the stem". A sentence that appended
+        // anything account-specific would still satisfy the two assertions above.
+        MessageOf(knownBody).Should().Be(
+            MessageOf(unknownBody),
+            "a registered address and an invented one must be indistinguishable to the caller");
     }
 
     [Fact]
@@ -142,19 +172,19 @@ public class PasswordManagementTests : IdentityTestBase
     {
         var (phone, _) = await RegisterAndVerifyAsync();
 
-        await Api.ForgotPasswordAsync(phone);
+        await Api.ForgotPasswordAsync(EmailFor(phone));
         var code = Factory.OtpCodes.LatestFor(phone, OtpPurpose.PasswordReset);
 
         var reset = await Api.ResetPasswordAsync(new ResetPasswordRequest
         {
-            PhoneNumber = phone,
+            Email = EmailFor(phone),
             Code = code,
             NewPassword = NewPassword
         });
 
         reset.IsSuccessStatusCode.Should().BeTrue();
 
-        var signIn = await Api.LoginAsync(new LoginRequest { PhoneNumber = phone, Password = NewPassword });
+        var signIn = await Api.LoginAsync(new LoginRequest { Email = EmailFor(phone), Password = NewPassword });
         signIn.IsSuccessStatusCode.Should().BeTrue();
     }
 
@@ -162,11 +192,11 @@ public class PasswordManagementTests : IdentityTestBase
     public async Task A_wrong_recovery_code_is_refused()
     {
         var (phone, _) = await RegisterAndVerifyAsync();
-        await Api.ForgotPasswordAsync(phone);
+        await Api.ForgotPasswordAsync(EmailFor(phone));
 
         var reset = await Api.ResetPasswordAsync(new ResetPasswordRequest
         {
-            PhoneNumber = phone,
+            Email = EmailFor(phone),
             Code = "000000",
             NewPassword = NewPassword
         });
@@ -181,12 +211,12 @@ public class PasswordManagementTests : IdentityTestBase
         // else's hands; no session earns an exemption.
         var (phone, auth) = await RegisterAndVerifyAsync();
 
-        await Api.ForgotPasswordAsync(phone);
+        await Api.ForgotPasswordAsync(EmailFor(phone));
         var code = Factory.OtpCodes.LatestFor(phone, OtpPurpose.PasswordReset);
 
         await Api.ResetPasswordAsync(new ResetPasswordRequest
         {
-            PhoneNumber = phone,
+            Email = EmailFor(phone),
             Code = code,
             NewPassword = NewPassword
         });
@@ -200,17 +230,17 @@ public class PasswordManagementTests : IdentityTestBase
     {
         var (phone, _) = await RegisterAndVerifyAsync();
 
-        await Api.ForgotPasswordAsync(phone);
+        await Api.ForgotPasswordAsync(EmailFor(phone));
         var code = Factory.OtpCodes.LatestFor(phone, OtpPurpose.PasswordReset);
 
         await Api.ResetPasswordAsync(new ResetPasswordRequest
         {
-            PhoneNumber = phone, Code = code, NewPassword = NewPassword
+            Email = EmailFor(phone), Code = code, NewPassword = NewPassword
         });
 
         var replay = await Api.ResetPasswordAsync(new ResetPasswordRequest
         {
-            PhoneNumber = phone, Code = code, NewPassword = "Yet-Another-Password-5"
+            Email = EmailFor(phone), Code = code, NewPassword = "Yet-Another-Password-5"
         });
 
         replay.IsSuccessStatusCode.Should().BeFalse();
@@ -226,7 +256,7 @@ public class PasswordManagementTests : IdentityTestBase
 
         var reset = await Api.ResetPasswordAsync(new ResetPasswordRequest
         {
-            PhoneNumber = phone,
+            Email = EmailFor(phone),
             Code = verificationCode,
             NewPassword = NewPassword
         });

@@ -4,6 +4,7 @@ using Diaspora.Api.Hosting;
 using Diaspora.Api.Identity.Authentication;
 using Diaspora.Api.Middleware;
 using Diaspora.Api.RateLimiting;
+using Diaspora.Email;
 using Diaspora.Operations;
 using Diaspora.Application;
 using Diaspora.Infrastructure;
@@ -92,6 +93,22 @@ builder.Services.AddFirebasePushAdapter(builder.Configuration);
 // destination: a Nigerian number and a German one do not cost the same on the same wire, and
 // the cheap wire does not reach Germany at all.
 builder.Services.AddSmsAdapter(builder.Configuration);
+
+// The Resend email adapter, behind Notifications' IEmailSender. The module registers
+// UnconfiguredEmailSender as a placeholder — IsConfigured => false, and a failure on every
+// send — and this replaces it once Email:Resend:ApiKey is set.
+//
+// Until it was added, every email the platform composed was dropped at the wire: the 60
+// notification template seeds in Notifications' Catalog/Templates, none of them deliverable.
+//
+// It also decorates IOtpDeliveryService, and that is why it has to come *after*
+// AddSmsAdapter rather than anywhere convenient. The decorator wraps whichever transport is
+// registered at the moment it runs, so that a recovery code goes to the mailbox the member
+// just identified themselves with while phone verification stays on SMS — a code proving
+// you hold a number cannot arrive anywhere else. Called first, it would wrap the logging
+// placeholder, and AddSmsAdapter would then replace the whole decorated chain: recovery would
+// go quietly back to SMS with nothing failing to say so.
+builder.Services.AddEmailAdapter(builder.Configuration);
 
 // The Stripe payout adapter, behind the Financial Platform's ISettlementProvider and
 // IPayoutProviderVerificationSource seams. A no-op unless Payments:Stripe:SecretKey is configured,

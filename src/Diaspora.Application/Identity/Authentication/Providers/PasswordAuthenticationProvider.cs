@@ -54,15 +54,15 @@ public sealed class PasswordAuthenticationProvider : IAuthenticationProvider
         var now = _clock.UtcNow;
         var password = credentials.Password ?? string.Empty;
 
-        if (!PhoneNumber.TryCreate(credentials.PhoneNumber, out var phoneNumber) || phoneNumber is null)
+        if (!EmailAddress.TryCreate(credentials.Email, out var email) || email is null)
         {
-            // Pay the hashing cost even on a malformed number so the timing matches a real
-            // attempt, then refuse indistinguishably.
+            // Sign-in is by email address now. Pay the hashing cost even on a malformed
+            // address so the timing matches a real attempt, then refuse indistinguishably.
             _passwordHasher.Verify(_passwordHasher.DummyHash, password);
             return Result.Failure<AuthenticatedMember>(UserErrors.InvalidCredentials);
         }
 
-        var user = await _users.GetByPhoneNumberAsync(phoneNumber, cancellationToken);
+        var user = await _users.GetByEmailAsync(email, cancellationToken);
         if (user is null)
         {
             _passwordHasher.Verify(_passwordHasher.DummyHash, password);

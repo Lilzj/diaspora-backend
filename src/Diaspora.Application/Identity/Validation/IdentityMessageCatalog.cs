@@ -68,6 +68,7 @@ public static class IdentityMessageCatalog
             [IdentityMessageKeys.FullNameRequired] = "Your full name is required.",
             [IdentityMessageKeys.FullNameLength] = "Your full name must be between 2 and 120 characters.",
             [IdentityMessageKeys.PhoneRequired] = "A phone number is required.",
+            [IdentityMessageKeys.EmailRequired] = "An email address is required.",
             [IdentityMessageKeys.PhoneFormat] = "Enter a valid international phone number, for example +2348012345678.",
             [IdentityMessageKeys.PasswordRequired] = "A password is required.",
             [IdentityMessageKeys.PasswordTooShort] = "Your password must be at least {0} characters long.",
@@ -90,6 +91,11 @@ public static class IdentityMessageCatalog
             [IdentityMessageKeys.OtpPurposeUnknown] = "That verification purpose is not recognised.",
             [IdentityMessageKeys.OtpSmsBody] =
                 "Your Diaspora code is {0}. It expires in {1} minutes. Never share it with anyone.",
+            [IdentityMessageKeys.OtpEmailSubject] = "Your Diaspora verification code",
+            [IdentityMessageKeys.OtpEmailBody] =
+                "Your Diaspora code is {0}. It expires in {1} minutes. Never share it "
+                + "with anyone.\n\nIf you did not request this code, you can ignore "
+                + "this message. Your password has not been changed.",
             [IdentityMessageKeys.RefreshTokenRequired] = "A refresh token is required.",
             [IdentityMessageKeys.CurrentPasswordRequired] = "Your current password is required.",
             [IdentityMessageKeys.DeviceIdentifierRequired] = "A device identifier is required.",
@@ -108,6 +114,7 @@ public static class IdentityMessageCatalog
             [IdentityMessageKeys.FullNameRequired] = "Votre nom complet est requis.",
             [IdentityMessageKeys.FullNameLength] = "Votre nom complet doit contenir entre 2 et 120 caractères.",
             [IdentityMessageKeys.PhoneRequired] = "Un numéro de téléphone est requis.",
+            [IdentityMessageKeys.EmailRequired] = "Une adresse e-mail est requise.",
             [IdentityMessageKeys.PhoneFormat] = "Saisissez un numéro international valide, par exemple +2348012345678.",
             [IdentityMessageKeys.PasswordRequired] = "Un mot de passe est requis.",
             [IdentityMessageKeys.PasswordTooShort] = "Votre mot de passe doit contenir au moins {0} caractères.",
@@ -130,6 +137,11 @@ public static class IdentityMessageCatalog
             [IdentityMessageKeys.OtpPurposeUnknown] = "Ce type de vérification n'est pas reconnu.",
             [IdentityMessageKeys.OtpSmsBody] =
                 "Votre code Diaspora est {0}. Il expire dans {1} minutes. Ne le partagez avec personne.",
+            [IdentityMessageKeys.OtpEmailSubject] = "Votre code de vérification Diaspora",
+            [IdentityMessageKeys.OtpEmailBody] =
+                "Votre code Diaspora est {0}. Il expire dans {1} minutes. Ne le partagez "
+                + "avec personne.\n\nSi vous n'avez pas demandé ce code, vous "
+                + "pouvez ignorer ce message. Votre mot de passe n'a pas été modifié.",
             [IdentityMessageKeys.RefreshTokenRequired] = "Un jeton de rafraîchissement est requis.",
             [IdentityMessageKeys.CurrentPasswordRequired] = "Votre mot de passe actuel est requis.",
             [IdentityMessageKeys.DeviceIdentifierRequired] = "Un identifiant d'appareil est requis.",
@@ -148,6 +160,7 @@ public static class IdentityMessageCatalog
             [IdentityMessageKeys.FullNameRequired] = "O seu nome completo é obrigatório.",
             [IdentityMessageKeys.FullNameLength] = "O seu nome completo deve ter entre 2 e 120 caracteres.",
             [IdentityMessageKeys.PhoneRequired] = "É necessário um número de telefone.",
+            [IdentityMessageKeys.EmailRequired] = "É necessário um endereço de e-mail.",
             [IdentityMessageKeys.PhoneFormat] = "Introduza um número internacional válido, por exemplo +2348012345678.",
             [IdentityMessageKeys.PasswordRequired] = "É necessária uma palavra-passe.",
             [IdentityMessageKeys.PasswordTooShort] = "A sua palavra-passe deve ter pelo menos {0} caracteres.",
@@ -170,6 +183,11 @@ public static class IdentityMessageCatalog
             [IdentityMessageKeys.OtpPurposeUnknown] = "Esse tipo de verificação não é reconhecido.",
             [IdentityMessageKeys.OtpSmsBody] =
                 "O seu código Diaspora é {0}. Expira em {1} minutos. Nunca o partilhe com ninguém.",
+            [IdentityMessageKeys.OtpEmailSubject] = "O seu código de verificação Diaspora",
+            [IdentityMessageKeys.OtpEmailBody] =
+                "O seu código Diaspora é {0}. Expira em {1} minutos. Nunca o partilhe "
+                + "com ninguém.\n\nSe não solicitou este código, pode ignorar esta "
+                + "mensagem. A sua palavra-passe não foi alterada.",
             [IdentityMessageKeys.RefreshTokenRequired] = "É necessário um token de atualização.",
             [IdentityMessageKeys.CurrentPasswordRequired] = "A sua palavra-passe atual é obrigatória.",
             [IdentityMessageKeys.DeviceIdentifierRequired] = "É necessário um identificador de dispositivo.",
@@ -188,6 +206,7 @@ public static class IdentityMessageCatalog
             [IdentityMessageKeys.FullNameRequired] = "الاسم الكامل مطلوب.",
             [IdentityMessageKeys.FullNameLength] = "يجب أن يتراوح الاسم الكامل بين 2 و120 حرفًا.",
             [IdentityMessageKeys.PhoneRequired] = "رقم الهاتف مطلوب.",
+            [IdentityMessageKeys.EmailRequired] = "عنوان البريد الإلكتروني مطلوب.",
             [IdentityMessageKeys.PhoneFormat] = "أدخل رقم هاتف دولي صحيح، مثل ‎+2348012345678.",
             [IdentityMessageKeys.PasswordRequired] = "كلمة المرور مطلوبة.",
             [IdentityMessageKeys.PasswordTooShort] = "يجب ألا تقل كلمة المرور عن {0} أحرف.",
@@ -210,6 +229,10 @@ public static class IdentityMessageCatalog
             [IdentityMessageKeys.OtpPurposeUnknown] = "غرض التحقق هذا غير معروف.",
             [IdentityMessageKeys.OtpSmsBody] =
                 "رمز Diaspora الخاص بك هو {0}. تنتهي صلاحيته خلال {1} دقيقة. لا تشاركه مع أحد.",
+            [IdentityMessageKeys.OtpEmailSubject] = "رمز التحقق الخاص بك في Diaspora",
+            [IdentityMessageKeys.OtpEmailBody] =
+                "رمز Diaspora الخاص بك هو {0}. تنتهي صلاحيته خلال {1} دقيقة. لا تشاركه مع أحد.\n\n"
+                + "إذا لم تطلب هذا الرمز، يمكنك تجاهل هذه الرسالة. لم يتم تغيير كلمة المرور الخاصة بك.",
             [IdentityMessageKeys.RefreshTokenRequired] = "رمز التحديث مطلوب.",
             [IdentityMessageKeys.CurrentPasswordRequired] = "كلمة المرور الحالية مطلوبة.",
             [IdentityMessageKeys.DeviceIdentifierRequired] = "معرّف الجهاز مطلوب.",

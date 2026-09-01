@@ -9,5 +9,6 @@ namespace Diaspora.Application.Identity.Commands.Passwords.ForgotPassword;
 [Auditable(Action = "identity.user.password-reset-requested")]
 public sealed record ForgotPasswordCommand : ICommand<OperationAcknowledgedResponse>
 {
-    public required string PhoneNumber { get; init; }
+    /// <summary>The address the account was registered with.</summary>
+    public required string Email { get; init; }
 }

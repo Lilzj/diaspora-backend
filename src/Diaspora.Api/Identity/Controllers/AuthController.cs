@@ -65,6 +65,7 @@ public sealed class AuthController : ApiController
         {
             FullName = request.FullName,
             PhoneNumber = request.PhoneNumber,
+            Email = request.Email,
             Password = request.Password,
             Nationality = request.Nationality,
             CountryOfResidence = request.CountryOfResidence,
@@ -138,7 +139,7 @@ public sealed class AuthController : ApiController
 
         var result = await _sender.Send(new LoginCommand
         {
-            PhoneNumber = request.PhoneNumber,
+            Email = request.Email,
             Password = request.Password,
             DeviceIdentifier = request.DeviceIdentifier,
             DeviceName = request.DeviceName,
@@ -265,7 +266,7 @@ public sealed class AuthController : ApiController
 
         var result = await _sender.Send(new ForgotPasswordCommand
         {
-            PhoneNumber = request.PhoneNumber
+            Email = request.Email
         }, cancellationToken);
 
         return HandleResult(result);
@@ -285,7 +286,7 @@ public sealed class AuthController : ApiController
 
         var result = await _sender.Send(new ResetPasswordCommand
         {
-            PhoneNumber = request.PhoneNumber,
+            Email = request.Email,
             Code = request.Code,
             NewPassword = request.NewPassword
         }, cancellationToken);

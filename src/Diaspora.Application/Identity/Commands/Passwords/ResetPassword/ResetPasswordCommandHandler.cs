@@ -67,12 +67,15 @@ public sealed class ResetPasswordCommandHandler : ICommandHandler<ResetPasswordC
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (!PhoneNumber.TryCreate(request.PhoneNumber, out var phoneNumber) || phoneNumber is null)
+        // Identified by the same address the recovery was requested with. The history
+        // is loaded because the policy below refuses a password the member has used
+        // before, and a history-less load would let that refusal silently never fire.
+        if (!EmailAddress.TryCreate(request.Email, out var email) || email is null)
         {
             return Result.Failure<OperationAcknowledgedResponse>(OtpErrors.NotFound);
         }
 
-        var user = await _users.GetByPhoneNumberWithPasswordHistoryAsync(phoneNumber, cancellationToken);
+        var user = await _users.GetByEmailWithPasswordHistoryAsync(email, cancellationToken);
         if (user is null)
         {
             return Result.Failure<OperationAcknowledgedResponse>(OtpErrors.NotFound);

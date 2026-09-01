@@ -59,11 +59,25 @@ public abstract class IdentityTestBase<TFactory> : IClassFixture<TFactory>, IDis
     protected static string NextPhoneNumber() =>
         $"+23480{Interlocked.Increment(ref _phoneCounter):D8}";
 
+    /// <summary>
+    /// The address that belongs to a test phone number.
+    /// </summary>
+    /// <remarks>
+    /// Sign-in moved from a phone one-time code to an email address and a password, so
+    /// every test that authenticates now needs an address as well as a number. Deriving
+    /// one from the other keeps the existing tests intact: a test that only tracks the
+    /// phone it registered can still compute the credential it has to sign in with, and
+    /// the address inherits the number's per-call uniqueness.
+    /// </remarks>
+    protected static string EmailFor(string phoneNumber) =>
+        $"member{phoneNumber.TrimStart('+')}@diaspora.test";
+
     protected static RegisterRequest RegistrationFor(string phoneNumber, string password = ValidPassword) =>
         new()
         {
             FullName = "Amara Okafor",
             PhoneNumber = phoneNumber,
+            Email = EmailFor(phoneNumber),
             Password = password,
             Nationality = "NG",
             CountryOfResidence = "CA",
@@ -128,7 +142,7 @@ public abstract class IdentityTestBase<TFactory> : IClassFixture<TFactory>, IDis
         // Re-authenticate so the returned tokens carry the new access state.
         var loginResponse = await Api.LoginAsync(new LoginRequest
         {
-            PhoneNumber = phone,
+            Email = EmailFor(phone),
             Password = ValidPassword
         });
 

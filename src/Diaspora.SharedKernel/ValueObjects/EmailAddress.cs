@@ -25,6 +25,36 @@ public sealed class EmailAddress : ValueObject
         return new EmailAddress(normalized);
     }
 
+    /// <summary>
+    /// Parses without throwing, for the paths where a bad address is a validation
+    /// failure the caller reports rather than an exception it has to catch.
+    /// </summary>
+    /// <remarks>
+    /// Added when sign-in moved from a phone one-time code to an email address and a
+    /// password. Registration, sign-in, recovery and reset all take an address typed by
+    /// a member, so all four need to reject a malformed one as data rather than as a
+    /// fault — and <see cref="Create"/> throws.
+    /// </remarks>
+    public static bool TryCreate(string? value, out EmailAddress? email)
+    {
+        email = null;
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        var normalized = value.Trim().ToLowerInvariant();
+
+        if (normalized.Length > 320 || !EmailPattern.IsMatch(normalized))
+        {
+            return false;
+        }
+
+        email = new EmailAddress(normalized);
+        return true;
+    }
+
     public static implicit operator string(EmailAddress email) => email.Value;
 
     protected override IEnumerable<object?> GetEqualityComponents()

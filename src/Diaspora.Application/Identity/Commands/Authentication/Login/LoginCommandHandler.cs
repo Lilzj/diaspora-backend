@@ -77,18 +77,27 @@ public sealed class LoginCommandHandler : ICommandHandler<LoginCommand, Authenti
 
         var now = _clock.UtcNow;
 
-        if (!PhoneNumber.TryCreate(request.PhoneNumber, out var phoneNumber) || phoneNumber is null)
+        // ── Sign-in is by email address now, not by phone number ──────────────────
+        //
+        // The one-time code path charged for an SMS on every sign-in. A password costs
+        // nothing to deliver, so SMS is now spent only on phone verification — the one
+        // thing a message actually proves.
+        //
+        // Both refusals below still hash a dummy and return the same generic error, so
+        // "no such address" and "wrong password" remain indistinguishable in both
+        // timing and response. An enumerable sign-in is worse than an expensive one.
+        if (!EmailAddress.TryCreate(request.Email, out var email) || email is null)
         {
             _passwordHasher.Verify(_passwordHasher.DummyHash, request.Password);
-            await RecordFailureAsync(null, "Malformed phone number.", cancellationToken);
+            await RecordFailureAsync(null, "Malformed email address.", cancellationToken);
             return Result.Failure<AuthenticationResponse>(UserErrors.InvalidCredentials);
         }
 
-        var user = await _users.GetByPhoneNumberAsync(phoneNumber, cancellationToken);
+        var user = await _users.GetByEmailAsync(email, cancellationToken);
         if (user is null)
         {
             _passwordHasher.Verify(_passwordHasher.DummyHash, request.Password);
-            await RecordFailureAsync(null, "No account for the supplied phone number.", cancellationToken);
+            await RecordFailureAsync(null, "No account for the supplied email address.", cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             return Result.Failure<AuthenticationResponse>(UserErrors.InvalidCredentials);
         }

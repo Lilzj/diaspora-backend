@@ -6,7 +6,8 @@ namespace Diaspora.Contracts.Identity.V1.Requests;
 /// </summary>
 public sealed record ResetPasswordRequest
 {
-    public required string PhoneNumber { get; init; }
+    /// <summary>The address the account was registered with.</summary>
+    public required string Email { get; init; }
 
     /// <summary>The one-time recovery code delivered to the member's phone.</summary>
     public required string Code { get; init; }

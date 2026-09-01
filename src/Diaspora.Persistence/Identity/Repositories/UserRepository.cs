@@ -66,6 +66,17 @@ public sealed class UserRepository : IUserRepository
         return await Users.FirstOrDefaultAsync(user => user.Email == email, cancellationToken);
     }
 
+    public async Task<User?> GetByEmailWithPasswordHistoryAsync(
+        EmailAddress email,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(email);
+
+        return await Users
+            .Include(user => user.PasswordHistory)
+            .FirstOrDefaultAsync(user => user.Email == email, cancellationToken);
+    }
+
     public async Task<bool> ExistsByPhoneNumberAsync(
         PhoneNumber phoneNumber,
         CancellationToken cancellationToken = default)

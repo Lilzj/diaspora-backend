@@ -9,7 +9,8 @@ namespace Diaspora.Application.Identity.Commands.Authentication.Login;
 [Auditable(Action = "identity.user.logged-in")]
 public sealed record LoginCommand : ICommand<AuthenticationResponse>
 {
-    public required string PhoneNumber { get; init; }
+    /// <summary>The address the account was registered with. Was <c>PhoneNumber</c>.</summary>
+    public required string Email { get; init; }
 
     public required string Password { get; init; }
 

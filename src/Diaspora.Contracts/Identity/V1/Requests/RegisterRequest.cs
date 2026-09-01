@@ -1,16 +1,31 @@
 namespace Diaspora.Contracts.Identity.V1.Requests;
 
 /// <summary>
-/// Everything Diaspora asks for at sign-up. Email is deliberately absent: onboarding
-/// runs on a phone number, and an address can be added later from the profile.
+/// Everything Diaspora asks for at sign-up.
 /// </summary>
+/// <remarks>
+/// Email used to be deliberately absent, because onboarding ran on a phone number and
+/// sign-in was a one-time code. Sign-in is now an email address and a password, so the
+/// address is required here: it is the credential the member will use from now on.
+/// <para>
+/// The phone number is still collected and still verified by SMS — that is what it is
+/// for. What it is no longer used for is signing in, which is what a message costs
+/// money for every single time.
+/// </para>
+/// </remarks>
 public sealed record RegisterRequest
 {
     /// <summary>The member's full name, as they wish to be addressed.</summary>
     public required string FullName { get; init; }
 
     /// <summary>Phone number in E.164 form, for example "+2348012345678".</summary>
+    /// <remarks>Verified by SMS after registration. Not a sign-in credential.</remarks>
     public required string PhoneNumber { get; init; }
+
+    /// <summary>
+    /// The address the member will sign in with. Unique across the platform.
+    /// </summary>
+    public required string Email { get; init; }
 
     public required string Password { get; init; }
 

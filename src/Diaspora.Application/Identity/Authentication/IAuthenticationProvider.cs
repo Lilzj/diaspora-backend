@@ -14,6 +14,17 @@ public sealed record AuthenticationCredentials(string PhoneNumber)
     public string? Password { get; init; }
 
     public string? Code { get; init; }
+
+    /// <summary>
+    /// The sign-in identifier for the password method.
+    /// </summary>
+    /// <remarks>
+    /// Sign-in moved from a phone one-time code to an email address and a password. The
+    /// phone number stays on this record because the <b>one-time code</b> method still
+    /// uses it — that is what a code proves, and phone verification is the one place an
+    /// SMS earns its cost.
+    /// </remarks>
+    public string? Email { get; init; }
 }
 
 /// <summary>

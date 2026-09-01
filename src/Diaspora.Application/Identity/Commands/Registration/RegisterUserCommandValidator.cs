@@ -25,6 +25,13 @@ public sealed class RegisterUserCommandValidator : IdentityValidator<RegisterUse
             .Must(value => PhoneNumber.TryCreate(value, out _))
             .WithMessage(Message(IdentityMessageKeys.PhoneFormat));
 
+        // The address is now the sign-in credential, so it is required at registration
+        // and validated by the same value object that parses it everywhere else.
+        RuleFor(command => command.Email)
+            .NotEmpty().WithMessage(Message(IdentityMessageKeys.EmailRequired))
+            .Must(value => EmailAddress.TryCreate(value, out _))
+            .WithMessage(Message(IdentityMessageKeys.EmailFormat));
+
         RuleFor(command => command.Password)
             .NotEmpty().WithMessage(Message(IdentityMessageKeys.PasswordRequired));
 

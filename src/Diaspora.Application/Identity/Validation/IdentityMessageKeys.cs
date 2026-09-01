@@ -35,6 +35,9 @@ public static class IdentityMessageKeys
     public const string TimeZoneFormat = "identity.validation.timeZone.format";
     public const string EmailFormat = "identity.validation.email.format";
 
+    /// <summary>Sign-in and recovery both identify the member by email address.</summary>
+    public const string EmailRequired = "identity.validation.email.required";
+
     public const string OtpRequired = "identity.validation.otp.required";
     public const string OtpFormat = "identity.validation.otp.format";
     public const string OtpPurposeUnknown = "identity.validation.otp.purposeUnknown";
@@ -48,6 +51,16 @@ public static class IdentityMessageKeys
     /// </para>
     /// </summary>
     public const string OtpSmsBody = "identity.otp.smsBody";
+
+    /// <summary>Subject line of the email carrying a one-time code.</summary>
+    /// <remarks>
+    /// The code is deliberately <b>not</b> in the subject. A subject is what a phone shows on a
+    /// locked screen, and a recovery code readable without unlocking the device is a weaker code
+    /// than the one the body carries.
+    /// </remarks>
+    public const string OtpEmailSubject = "identity.otp.emailSubject";
+
+    public const string OtpEmailBody = "identity.otp.emailBody";
 
     public const string RefreshTokenRequired = "identity.validation.refreshToken.required";
     public const string CurrentPasswordRequired = "identity.validation.currentPassword.required";

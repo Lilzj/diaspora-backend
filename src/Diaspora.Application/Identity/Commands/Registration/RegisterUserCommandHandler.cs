@@ -70,6 +70,24 @@ public sealed class RegisterUserCommandHandler : ICommandHandler<RegisterUserCom
             return Result.Failure<RegistrationResponse>(UserErrors.PhoneAlreadyRegistered);
         }
 
+        // ── The email is now a credential, not a profile field ────────────────────
+        //
+        // Sign-in moved from a phone one-time code to an email address and a password,
+        // so this is the identifier the member will use for the rest of their life on
+        // the platform. It is required, it is validated here rather than at the wire,
+        // and it has to be unique — two accounts sharing an address would make
+        // `GetByEmailAsync` ambiguous and sign-in non-deterministic.
+        if (!EmailAddress.TryCreate(request.Email, out var email) || email is null)
+        {
+            return Result.Failure<RegistrationResponse>(Error.Validation(
+                nameof(request.Email), "Enter a valid email address."));
+        }
+
+        if (await _users.ExistsByEmailAsync(email, cancellationToken))
+        {
+            return Result.Failure<RegistrationResponse>(UserErrors.EmailAlreadyRegistered);
+        }
+
         if (!FullName.TryCreate(request.FullName, out var fullName) || fullName is null ||
             !CountryCode.TryCreate(request.Nationality, out var nationality) || nationality is null ||
             !CountryCode.TryCreate(request.CountryOfResidence, out var residence) || residence is null)
@@ -89,7 +107,10 @@ public sealed class RegisterUserCommandHandler : ICommandHandler<RegisterUserCom
         var policyCheck = _passwordPolicy.Validate(request.Password, new PasswordPolicyContext
         {
             PhoneNumber = phoneNumber.Value,
-            FullName = fullName.Value
+            FullName = fullName.Value,
+            // The address is the sign-in identifier now, so a password derived from it
+            // is the first thing an attacker would try.
+            Email = email.Value
         });
 
         if (policyCheck.IsFailure)
@@ -108,6 +129,11 @@ public sealed class RegisterUserCommandHandler : ICommandHandler<RegisterUserCom
             language,
             timeZone,
             now);
+
+        // `User.Register` predates email being a credential and does not take one.
+        // Set through the domain so the profile-updated event is raised exactly as it
+        // would be for any later change.
+        user.SetEmail(email, now);
 
         await _users.AddAsync(user, cancellationToken);
 

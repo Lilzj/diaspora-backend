@@ -91,6 +91,8 @@ public class RegistrationAndVerificationTests : IdentityTestBase
         {
             FullName = "Amara Okafor",
             PhoneNumber = "08012345678",
+            // Valid, so the malformed phone number is the only thing under test.
+            Email = "malformed.phone@diaspora.test",
             Password = ValidPassword,
             Nationality = "NG",
             CountryOfResidence = "CA"

@@ -88,6 +88,15 @@
     <ProjectReference Include="..\Diaspora.Sms\Diaspora.Sms.csproj" />
 
     <!--
+      The email adapter. Resend, behind Notifications' IEmailSender. A no-op unless
+      Email:Resend:ApiKey is configured, which is deliberate: EmailNotificationChannel reads
+      IEmailSender.IsConfigured to decide whether the channel is available, so an unconfigured
+      deployment routes around email rather than queueing messages that can never leave.
+      See Diaspora.Email.
+    -->
+    <ProjectReference Include="..\Diaspora.Email\Diaspora.Email.csproj" />
+
+    <!--
       The Stripe payout adapter. Registers ISettlementProvider and
       IPayoutProviderVerificationSource, and is a no-op unless Payments:Stripe:SecretKey is
       configured - an uncredentialed adapter would tell the payout router Stripe is available.

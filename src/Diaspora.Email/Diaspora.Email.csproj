@@ -1,0 +1,60 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The email adapter: Resend.
+
+    A separate assembly for the reason `Diaspora.Sms` and `Diaspora.Push.Firebase` are ones.
+    Notifications owns the *policy* — what a notification is, which channel carries it, what a
+    member has consented to — and architecture tests refuse a vendor name inside a module. The
+    vendor is a value of `Email:DefaultProvider`, never a type in the module. So the wire lives
+    here, behind `IEmailSender`, and registers after Notifications on last-registration-wins.
+
+    ── Why this exists at all ────────────────────────────────────────────────────────────────
+
+    Notifications shipped with `UnconfiguredEmailSender` as the only `IEmailSender` registration:
+    `IsConfigured => false` and a failure on every send. Every email the platform composed — the
+    60 notification template seeds in `Catalog/Templates`, and account recovery — was dropped at
+    the wire.
+
+    It also constrained account recovery. `POST /auth/forgot-password` identifies a member by
+    email and delivered the code by **SMS**, because there was nothing that could deliver an
+    email. `EmailOtpDeliveryService` closes that: with this adapter registered, a recovery code
+    goes to the mailbox the member just identified themselves with.
+
+    ── One vendor, but shaped for more ───────────────────────────────────────────────────────
+
+    `Diaspora.Sms` holds two vendors in one assembly because its unit of substitution is a
+    routing table. Email has no equivalent — an address is an address, and there is no
+    per-destination routing to disagree about. So this is one gateway behind a resolver that can
+    take a second without a caller changing, which is the shape the SMS adapter has and the push
+    adapter does not.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Diaspora.Email</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The port (`IEmailSender`, `EmailMessage`, `EmailSendResult`). -->
+    <ProjectReference Include="..\Diaspora.Modules.Notifications\Diaspora.Modules.Notifications.csproj" />
+    <!--
+      The OTP delivery port. Same reference `Diaspora.Sms` takes, and for the same reason: this
+      assembly carries recovery codes as well as notifications, and `IOtpDeliveryService` is where
+      Identity asks for that.
+    -->
+    <ProjectReference Include="..\Diaspora.Application\Diaspora.Application.csproj" />
+    <!-- The resilience contracts the gateway executes under. -->
+    <ProjectReference Include="..\Diaspora.Platform\Diaspora.Platform.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+</Project>

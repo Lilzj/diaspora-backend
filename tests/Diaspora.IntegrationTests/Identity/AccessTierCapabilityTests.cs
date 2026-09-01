@@ -258,7 +258,7 @@ public sealed class AccessTierCapabilityTests : IdentityTestBase
         return await IdentityApiClient.ReadDataAsync<AuthenticationResponse>(
             await Api.LoginAsync(new LoginRequest
             {
-                PhoneNumber = phone,
+                Email = EmailFor(phone),
                 Password = ValidPassword
             }));
     }
@@ -275,7 +275,7 @@ public sealed class AccessTierCapabilityTests : IdentityTestBase
         return await IdentityApiClient.ReadDataAsync<AuthenticationResponse>(
             await Api.LoginAsync(new LoginRequest
             {
-                PhoneNumber = phone,
+                Email = EmailFor(phone),
                 Password = ValidPassword
             }));
     }

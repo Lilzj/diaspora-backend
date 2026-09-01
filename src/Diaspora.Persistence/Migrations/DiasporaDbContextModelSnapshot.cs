@@ -360,7 +360,9 @@ namespace Diaspora.Persistence.Migrations
                         .HasDatabaseName("ix_users_access_state");
 
                     b.HasIndex("Email")
-                        .HasDatabaseName("ix_users_email");
+                        .IsUnique()
+                        .HasDatabaseName("ix_users_email")
+                        .HasFilter("\"Email\" IS NOT NULL");
 
                     b.HasIndex("IsDeleted")
                         .HasDatabaseName("ix_users_is_deleted");

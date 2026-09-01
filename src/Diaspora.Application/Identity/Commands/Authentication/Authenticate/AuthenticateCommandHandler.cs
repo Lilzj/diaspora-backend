@@ -66,7 +66,10 @@ public sealed class AuthenticateCommandHandler : ICommandHandler<AuthenticateCom
             new AuthenticationCredentials(request.PhoneNumber)
             {
                 Password = request.Password,
-                Code = request.Code
+                Code = request.Code,
+                // The password method resolves the member by address; the one-time code
+                // method keeps using the phone number above.
+                Email = request.Email
             },
             cancellationToken);
 

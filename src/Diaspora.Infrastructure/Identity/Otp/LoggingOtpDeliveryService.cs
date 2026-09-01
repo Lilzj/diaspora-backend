@@ -1,5 +1,6 @@
 using Diaspora.Application.Identity.Abstractions;
 using Diaspora.Application.Identity.Models;
+using Diaspora.Domain.Identity.Verification;
 using Diaspora.Infrastructure.Identity.Options;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -70,6 +71,17 @@ public sealed class LoggingOtpDeliveryService : IOtpDeliveryService
 
         return Task.FromResult(false);
     }
+
+    /// <summary>
+    /// SMS when the development log is standing in for a gateway, and nothing otherwise.
+    /// </summary>
+    /// <remarks>
+    /// The honest answer for a host with no provider is <see cref="OtpDeliveryChannel.None"/>,
+    /// which is what has recovery tell the member no code could be sent rather than name a
+    /// channel nothing will arrive on.
+    /// </remarks>
+    public OtpDeliveryChannel ChannelFor(OtpPurpose purpose) =>
+        _options.LogOtpCodesForDevelopment ? OtpDeliveryChannel.Sms : OtpDeliveryChannel.None;
 
     private static string Mask(string phoneNumber)
     {

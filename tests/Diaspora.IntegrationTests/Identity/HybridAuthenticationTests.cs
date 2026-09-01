@@ -55,7 +55,7 @@ public sealed class HybridAuthenticationTests : IdentityTestBase
         var (phone, _) = await RegisterAndVerifyAsync();
         Api.ClearAuthentication();
 
-        var response = await Api.LoginAsync(new LoginRequest { PhoneNumber = phone, Password = ValidPassword });
+        var response = await Api.LoginAsync(new LoginRequest { Email = EmailFor(phone), Password = ValidPassword });
 
         var auth = await IdentityApiClient.ReadDataAsync<AuthenticationResponse>(response);
         auth.Tokens.AccessToken.Should().NotBeNullOrEmpty();

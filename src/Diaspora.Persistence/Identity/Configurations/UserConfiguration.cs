@@ -153,8 +153,20 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .IsUnique()
             .HasDatabaseName("ix_users_phone_number");
 
+        // ── Unique, because the address is now a sign-in credential ──────────────
+        //
+        // Sign-in resolves the member with `GetByEmailAsync`, a `FirstOrDefaultAsync`.
+        // Two accounts sharing an address would make that non-deterministic — the same
+        // credentials would authenticate as different people depending on row order.
+        //
+        // Filtered on `IS NOT NULL` so the accounts registered before the address was
+        // required keep their null and are not collapsed into a single "duplicate".
+        // PostgreSQL treats nulls as distinct in a unique index anyway; the filter makes
+        // the intent explicit and keeps the index off the rows that will never match.
         builder.HasIndex(user => user.Email)
-            .HasDatabaseName("ix_users_email");
+            .HasDatabaseName("ix_users_email")
+            .IsUnique()
+            .HasFilter("\"Email\" IS NOT NULL");
 
         builder.HasIndex(user => user.AccessState)
             .HasDatabaseName("ix_users_access_state");

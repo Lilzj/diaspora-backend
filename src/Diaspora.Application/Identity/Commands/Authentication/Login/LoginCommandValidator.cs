@@ -17,8 +17,9 @@ public sealed class LoginCommandValidator : IdentityValidator<LoginCommand>
 {
     public LoginCommandValidator(ILocalizedMessageProvider messages) : base(messages)
     {
-        RuleFor(command => command.PhoneNumber)
-            .NotEmpty().WithMessage(Message(IdentityMessageKeys.PhoneRequired));
+        RuleFor(command => command.Email)
+            .NotEmpty().WithMessage(Message(IdentityMessageKeys.EmailRequired))
+            .EmailAddress().WithMessage(Message(IdentityMessageKeys.EmailFormat));
 
         RuleFor(command => command.Password)
             .NotEmpty().WithMessage(Message(IdentityMessageKeys.PasswordRequired));

@@ -205,6 +205,11 @@ public sealed class OtpChallengeService : IOtpChallengeService
                 new OtpDeliveryRequest
                 {
                     PhoneNumber = user.PhoneNumber.Value,
+
+                    // Both contact points, every time. Which one is used is the transport's
+                    // decision, not this service's: it is the layer that knows what the
+                    // deployment has configured.
+                    EmailAddress = user.Email?.Value,
                     Code = code,
                     Purpose = challenge.Purpose,
                     Language = user.PreferredLanguage.Value,

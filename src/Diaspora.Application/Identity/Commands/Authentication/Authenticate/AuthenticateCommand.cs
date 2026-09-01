@@ -24,6 +24,9 @@ public sealed record AuthenticateCommand : ICommand<AuthenticationResponse>
 
     public required string PhoneNumber { get; init; }
 
+    /// <summary>Used by the password method; the one-time code method uses the phone number.</summary>
+    public string? Email { get; init; }
+
     public string? Password { get; init; }
 
     public string? Code { get; init; }

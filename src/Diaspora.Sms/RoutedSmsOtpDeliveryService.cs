@@ -2,6 +2,7 @@ using System.Globalization;
 using Diaspora.Application.Identity.Abstractions;
 using Diaspora.Application.Identity.Models;
 using Diaspora.Application.Identity.Validation;
+using Diaspora.Domain.Identity.Verification;
 using Diaspora.Platform.Operations.Resilience;
 using Diaspora.Platform.Services.Abstractions;
 using Microsoft.Extensions.Logging;
@@ -229,6 +230,19 @@ public sealed class RoutedSmsOtpDeliveryService : IOtpDeliveryService
             return request.Code;
         }
     }
+
+    /// <summary>
+    /// SMS for every purpose, when this deployment has a gateway.
+    /// </summary>
+    /// <remarks>
+    /// Answered without a destination, so it cannot account for a number this deployment's routes
+    /// happen not to reach — <see cref="SmsGatewayRouter.Resolve"/> is where that is decided, and
+    /// it needs the number. The looser answer is the right one here: the caller is asking what
+    /// channel to name to a member, and "SMS" is correct for a configured deployment even if one
+    /// particular number later fails to route.
+    /// </remarks>
+    public OtpDeliveryChannel ChannelFor(OtpPurpose purpose) =>
+        _router.HasAnyGateway ? OtpDeliveryChannel.Sms : OtpDeliveryChannel.None;
 
     /// <summary>
     /// Enough of the number to match against a support conversation, not enough to be a contact

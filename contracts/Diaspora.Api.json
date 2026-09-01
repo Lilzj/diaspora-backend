@@ -39045,11 +39045,11 @@
       },
       "ForgotPasswordRequest": {
         "required": [
-          "phoneNumber"
+          "email"
         ],
         "type": "object",
         "properties": {
-          "phoneNumber": {
+          "email": {
             "type": "string"
           }
         }
@@ -39647,12 +39647,12 @@
       },
       "LoginRequest": {
         "required": [
-          "phoneNumber",
+          "email",
           "password"
         ],
         "type": "object",
         "properties": {
-          "phoneNumber": {
+          "email": {
             "type": "string"
           },
           "password": {
@@ -42471,6 +42471,7 @@
         "required": [
           "fullName",
           "phoneNumber",
+          "email",
           "password",
           "nationality",
           "countryOfResidence"
@@ -42481,6 +42482,9 @@
             "type": "string"
           },
           "phoneNumber": {
+            "type": "string"
+          },
+          "email": {
             "type": "string"
           },
           "password": {
@@ -42929,13 +42933,13 @@
       },
       "ResetPasswordRequest": {
         "required": [
-          "phoneNumber",
+          "email",
           "code",
           "newPassword"
         ],
         "type": "object",
         "properties": {
-          "phoneNumber": {
+          "email": {
             "type": "string"
           },
           "code": {

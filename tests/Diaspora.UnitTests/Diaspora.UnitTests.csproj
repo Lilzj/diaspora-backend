@@ -36,6 +36,7 @@
     <ProjectReference Include="..\..\src\Diaspora.Infrastructure\Diaspora.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Diaspora.Operations\Diaspora.Operations.csproj" />
     <ProjectReference Include="..\..\src\Diaspora.Sms\Diaspora.Sms.csproj" />
+    <ProjectReference Include="..\..\src\Diaspora.Email\Diaspora.Email.csproj" />
     <ProjectReference Include="..\..\src\Diaspora.Payments.Stripe\Diaspora.Payments.Stripe.csproj" />
     <ProjectReference Include="..\..\src\Diaspora.Payments.PayPal\Diaspora.Payments.PayPal.csproj" />
     <ProjectReference Include="..\..\src\Diaspora.Payments.Flutterwave\Diaspora.Payments.Flutterwave.csproj" />

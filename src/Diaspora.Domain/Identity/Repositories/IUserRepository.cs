@@ -30,6 +30,18 @@ public interface IUserRepository
 
     Task<User?> GetByEmailAsync(EmailAddress email, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// The same lookup with the password history loaded, for the reset path.
+    /// </summary>
+    /// <remarks>
+    /// Added when recovery moved from the phone number to the email address. The reset
+    /// handler has to check the new password against the member's history, and a
+    /// history-less load would silently let a member reuse a password the policy
+    /// forbids — a refusal that never fires is worse than no policy at all.
+    /// </remarks>
+    Task<User?> GetByEmailWithPasswordHistoryAsync(
+        EmailAddress email, CancellationToken cancellationToken = default);
+
     Task<bool> ExistsByPhoneNumberAsync(PhoneNumber phoneNumber, CancellationToken cancellationToken = default);
 
     Task<bool> ExistsByEmailAsync(EmailAddress email, CancellationToken cancellationToken = default);

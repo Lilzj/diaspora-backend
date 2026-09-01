@@ -9,8 +9,9 @@ public sealed class ResetPasswordCommandValidator : IdentityValidator<ResetPassw
 {
     public ResetPasswordCommandValidator(ILocalizedMessageProvider messages) : base(messages)
     {
-        RuleFor(command => command.PhoneNumber)
-            .NotEmpty().WithMessage(Message(IdentityMessageKeys.PhoneRequired));
+        RuleFor(command => command.Email)
+            .NotEmpty().WithMessage(Message(IdentityMessageKeys.EmailRequired))
+            .EmailAddress().WithMessage(Message(IdentityMessageKeys.EmailFormat));
 
         RuleFor(command => command.Code)
             .NotEmpty().WithMessage(Message(IdentityMessageKeys.OtpRequired))

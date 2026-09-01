@@ -30,7 +30,7 @@ public class AuthenticationTests : IdentityTestBase
 
         var response = await Api.LoginAsync(new LoginRequest
         {
-            PhoneNumber = phone,
+            Email = EmailFor(phone),
             Password = ValidPassword,
             DeviceName = "Pixel 8",
             Platform = "Android"
@@ -50,7 +50,7 @@ public class AuthenticationTests : IdentityTestBase
 
         var response = await Api.LoginAsync(new LoginRequest
         {
-            PhoneNumber = phone,
+            Email = EmailFor(phone),
             Password = "Wrong-Horse-Battery-9"
         });
 
@@ -66,13 +66,13 @@ public class AuthenticationTests : IdentityTestBase
 
         var wrongPassword = await Api.LoginAsync(new LoginRequest
         {
-            PhoneNumber = phone,
+            Email = EmailFor(phone),
             Password = "Wrong-Horse-Battery-9"
         });
 
         var unknownNumber = await Api.LoginAsync(new LoginRequest
         {
-            PhoneNumber = NextPhoneNumber(),
+            Email = EmailFor(NextPhoneNumber()),
             Password = "Wrong-Horse-Battery-9"
         });
 
@@ -91,7 +91,7 @@ public class AuthenticationTests : IdentityTestBase
 
         var response = await Api.LoginAsync(new LoginRequest
         {
-            PhoneNumber = phone,
+            Email = EmailFor(phone),
             Password = ValidPassword
         });
 
@@ -139,12 +139,12 @@ public class AuthenticationTests : IdentityTestBase
 
         for (var i = 0; i < 3; i++)
         {
-            await Api.LoginAsync(new LoginRequest { PhoneNumber = phone, Password = "Wrong-Password-1" });
+            await Api.LoginAsync(new LoginRequest { Email = EmailFor(phone), Password = "Wrong-Password-1" });
         }
 
         var afterLockout = await Api.LoginAsync(new LoginRequest
         {
-            PhoneNumber = phone,
+            Email = EmailFor(phone),
             Password = ValidPassword
         });
 

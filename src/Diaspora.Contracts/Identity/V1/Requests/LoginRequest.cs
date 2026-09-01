@@ -6,7 +6,16 @@ namespace Diaspora.Contracts.Identity.V1.Requests;
 /// </summary>
 public sealed record LoginRequest
 {
-    public required string PhoneNumber { get; init; }
+    /// <summary>
+    /// The address the account was registered with.
+    /// </summary>
+    /// <remarks>
+    /// This was <c>PhoneNumber</c>. Sign-in moved to an email address and a password so
+    /// that signing in costs nothing to deliver: the one-time code path charged for an
+    /// SMS on every sign-in, and a password does not. SMS is now spent only where it
+    /// earns its cost — proving the member holds the phone number they claim.
+    /// </remarks>
+    public required string Email { get; init; }
 
     public required string Password { get; init; }
 

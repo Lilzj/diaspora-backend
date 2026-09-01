@@ -52,9 +52,10 @@ public sealed class IdentityApiClient
         _client.PostAsJsonAsync(
             $"{BaseUrl}/auth/logout", new LogoutRequest { RevokeAllSessions = revokeAllSessions }, JsonOptions);
 
-    public Task<HttpResponseMessage> ForgotPasswordAsync(string phoneNumber) =>
+    /// <summary>Recovery identifies the member by email; the code is delivered by SMS.</summary>
+    public Task<HttpResponseMessage> ForgotPasswordAsync(string email) =>
         _client.PostAsJsonAsync(
-            $"{BaseUrl}/auth/forgot-password", new ForgotPasswordRequest { PhoneNumber = phoneNumber }, JsonOptions);
+            $"{BaseUrl}/auth/forgot-password", new ForgotPasswordRequest { Email = email }, JsonOptions);
 
     public Task<HttpResponseMessage> ResetPasswordAsync(ResetPasswordRequest request) =>
         _client.PostAsJsonAsync($"{BaseUrl}/auth/reset-password", request, JsonOptions);

@@ -18,6 +18,9 @@ public sealed record RegisterUserCommand : ICommand<RegistrationResponse>
 
     public required string PhoneNumber { get; init; }
 
+    /// <summary>The address the member will sign in with. Unique across the platform.</summary>
+    public required string Email { get; init; }
+
     public required string Password { get; init; }
 
     public required string Nationality { get; init; }

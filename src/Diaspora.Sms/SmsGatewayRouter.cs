@@ -43,6 +43,16 @@ public sealed class SmsGatewayRouter
     }
 
     /// <summary>
+    /// Whether any gateway is registered at all.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately weaker than <see cref="Resolve"/>, which answers for a specific destination.
+    /// This is the question a caller asks before it has a number in hand — "can this deployment
+    /// send an SMS to anyone" — and the only honest answer without one.
+    /// </remarks>
+    public bool HasAnyGateway => _gateways.Count > 0;
+
+    /// <summary>
     /// The route for a destination, or null when this deployment has no gateway that can carry it.
     /// <para>
     /// Null rather than an exception: "no SMS provider is configured" is a legitimate state for a
