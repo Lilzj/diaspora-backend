@@ -61,7 +61,7 @@ public sealed class StripePayoutWebhookProcessor : IPayoutWebhookProcessor
 
         var settings = _options.CurrentValue;
 
-        if (string.IsNullOrWhiteSpace(settings.WebhookSecret))
+        if (!settings.HasWebhookSecret)
         {
             // Unverifiable, so unverified. A deployment that has not configured the signing secret
             // must not have its callbacks believed — treating "we cannot check" as "it is fine"
@@ -223,20 +223,35 @@ public sealed class StripePayoutWebhookProcessor : IPayoutWebhookProcessor
             return false;
         }
 
-        var expected = Sign(
-            $"{timestamp.Value.ToString(CultureInfo.InvariantCulture)}.{rawBody}",
-            settings.WebhookSecret);
+        var signedPayload =
+            $"{timestamp.Value.ToString(CultureInfo.InvariantCulture)}.{rawBody}";
 
-        foreach (var candidate in candidates)
+        // Every configured secret is tried, not just one. Stripe issues a secret per endpoint and
+        // this integration registers two — payments and payouts on separate routes — so a verifier
+        // that knew one would refuse every callback from the other as forged. The same loop covers
+        // a secret roll, where Stripe signs with both the old and the new for up to 24 hours.
+        //
+        // Every candidate is compared even after a match, so the work does not depend on which
+        // secret was the right one.
+        var verified = false;
+
+        foreach (var secret in settings.AcceptedWebhookSecrets)
         {
-            // Constant time: a comparison that returns early on the first wrong byte leaks how much
-            // of a forged signature was right, one request at a time.
-            if (CryptographicOperations.FixedTimeEquals(
-                    Encoding.UTF8.GetBytes(candidate), Encoding.UTF8.GetBytes(expected)))
+            var expected = Sign(signedPayload, secret);
+
+            foreach (var candidate in candidates)
             {
-                reason = string.Empty;
-                return true;
+                // Constant time: a comparison that returns early on the first wrong byte leaks how
+                // much of a forged signature was right, one request at a time.
+                verified |= CryptographicOperations.FixedTimeEquals(
+                    Encoding.UTF8.GetBytes(candidate), Encoding.UTF8.GetBytes(expected));
             }
+        }
+
+        if (verified)
+        {
+            reason = string.Empty;
+            return true;
         }
 
         reason = "no candidate signature matched";
@@ -262,7 +277,11 @@ public sealed class StripePayoutWebhookProcessor : IPayoutWebhookProcessor
             ? reference["diaspora-payout-".Length..]
             : reference;
 
-    private static string? Header(IReadOnlyDictionary<string, string> headers, string name)
+    /// <summary>
+    /// Case-insensitive header lookup. Internal because the charge processor verifies the
+    /// same way against the same header, and two copies would drift.
+    /// </summary>
+    internal static string? Header(IReadOnlyDictionary<string, string> headers, string name)
     {
         foreach (var pair in headers)
         {

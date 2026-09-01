@@ -260,12 +260,33 @@ public sealed class FinancialModule : IPlatformModule
         RegisterAll<ISubscriptionPlanContributor>(services, assemblies);
         RegisterAll<IContributionFundContributor>(services, assemblies);
 
-        // Payments. Every adapter and every webhook processor is available; the registry routes —
-        // except the shipped simulator, which is Development and Testing only. See
-        // IsDevelopmentOnlyPaymentAdapter for what happened when it was not.
-        RegisterAll<IPaymentGateway>(services, assemblies, ExcludeDevelopmentOnlyPaymentAdapters(services));
-        RegisterAll<IPaymentWebhookProcessor>(services, assemblies, ExcludeDevelopmentOnlyPaymentAdapters(services));
-        RegisterAll<IPaymentReconciliationProvider>(services, assemblies);
+        // Payments. Only this assembly is scanned, and that is load-bearing rather than tidy.
+        //
+        // A vendor adapter lives in its own assembly — Diaspora.Payments.Stripe and its siblings —
+        // and every one of them is named Diaspora.*, so a platform-wide scan finds them. RegisterAll
+        // registers what it finds unconditionally: it cannot ask whether an adapter has credentials,
+        // because IsConfigured is the adapter's own business. So merely *referencing* Stripe would
+        // register its gateway on a deployment holding no Stripe key, and three things break at once.
+        //
+        // The capabilities endpoint builds `gateways` from the registry, so it would report `stripe`
+        // to every client on a deployment that cannot take a single payment — the exact inversion of
+        // the honest empty answer it gives today. Every payment would then reach Stripe without a
+        // key and come back 401, which reads to a member as a platform fault. And a scan-built
+        // instance is activated by the container, so it would be handed the default HttpClient
+        // rather than the named one carrying the configured timeout.
+        //
+        // This is the same defect that was found and fixed on ISettlementProvider, which is why no
+        // RegisterAll line for that seam appears below. Deployments register their own adapters, in
+        // Program.cs, behind their own IsConfigured check.
+        //
+        // The shipped simulator still comes from here because it lives here — and it stays
+        // Development and Testing only. See IsDevelopmentOnlyPaymentAdapter for what happened when
+        // it did not.
+        var shipped = (IReadOnlyList<Assembly>)[typeof(FinancialModule).Assembly];
+
+        RegisterAll<IPaymentGateway>(services, shipped, ExcludeDevelopmentOnlyPaymentAdapters(services));
+        RegisterAll<IPaymentWebhookProcessor>(services, shipped, ExcludeDevelopmentOnlyPaymentAdapters(services));
+        RegisterAll<IPaymentReconciliationProvider>(services, shipped);
         services.AddScoped<IPaymentGatewayRegistry, PaymentGatewayRegistry>();
 
         // Payouts. Sources are additive so a deployment can overlay its own matrix on a shipped one;

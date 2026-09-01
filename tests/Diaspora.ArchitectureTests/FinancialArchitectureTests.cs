@@ -261,6 +261,63 @@ public class FinancialArchitectureTests
     }
 
     /// <summary>
+    /// <b>A vendor adapter is never discovered by scanning.</b>
+    /// <para>
+    /// Every adapter assembly is named <c>Diaspora.*</c>, so <c>ModuleAssemblyScanner</c> finds all
+    /// of them, and <c>RegisterAll</c> registers what it finds without asking whether the adapter
+    /// has credentials — it cannot ask, because <c>IsConfigured</c> is the adapter's own business.
+    /// Merely <em>referencing</em> Stripe would therefore register its gateway on a deployment
+    /// holding no Stripe key, and the capabilities endpoint — which builds <c>gateways</c> from the
+    /// registry — would report a provider that answers 401 to every payment.
+    /// </para>
+    /// <para>
+    /// This was found and fixed once already on <c>ISettlementProvider</c>. The payment seam kept
+    /// the defect until a real charge adapter existed to trip it, which is exactly the shape of bug
+    /// that only appears the day someone does the obvious thing.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_payment_seams_are_registered_from_this_assembly_alone()
+    {
+        var source = File.ReadAllText(ModuleSourcePath());
+
+        foreach (var seam in (string[])["IPaymentGateway", "IPaymentWebhookProcessor", "IPaymentReconciliationProvider"])
+        {
+            source.Should().NotContain(
+                $"RegisterAll<{seam}>(services, assemblies",
+                $"scanning every platform assembly for {seam} registers vendor adapters that no "
+                + "deployment configured; register them in Program.cs behind their own IsConfigured");
+
+            source.Should().Contain(
+                $"RegisterAll<{seam}>(services, shipped",
+                $"the shipped default for {seam} still has to be registered from this assembly");
+        }
+
+        // The companion assertion: the settlement seam must not regain a scan either.
+        source.Should().NotContain(
+            "RegisterAll<ISettlementProvider>",
+            "a payout adapter that timed out may already have moved money; one registered without "
+            + "credentials tells the router its rail is available");
+    }
+
+    private static string ModuleSourcePath()
+    {
+        // Walks up from the test binary to the repository root, which is where every other
+        // source-reading assertion in this suite starts from.
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+
+        while (directory is not null && !Directory.Exists(Path.Combine(directory.FullName, "src")))
+        {
+            directory = directory.Parent;
+        }
+
+        directory.Should().NotBeNull("the repository root should be above the test binary");
+
+        return Path.Combine(
+            directory!.FullName, "src", "Diaspora.Modules.Financial", "FinancialModule.cs");
+    }
+
+    /// <summary>
     /// <b>The module's URL space is declared in one place.</b> A second prefix appearing elsewhere
     /// would be a financial surface nobody knew existed.
     /// </summary>

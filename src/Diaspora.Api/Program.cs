@@ -348,6 +348,63 @@ app.MapGet("/", (PlatformManifest manifest) => new
     health = "/health/live"
 });
 
+// Stripe Checkout return pages.
+//
+// Stripe requires http(s) return URLs and rejects a custom scheme, so a Checkout cannot send a
+// member straight back to diaspora://. These two pages are the bridge: they land in the system
+// browser and immediately hand off to the app, with a visible link for the case where the automatic
+// hand-off does not fire.
+//
+// Neither page decides anything. Whether the money is held is settled by the verified
+// checkout.session.completed callback, and a member who never lands here — closed the tab, lost
+// signal — is not treated differently from one who did. Reading an outcome off a redirect the member
+// controls would be an unauthenticated write to the payment state machine.
+static IResult CheckoutReturn(string heading, string message, string deepLink)
+{
+    // $$ so the CSS braces stay literal and only {{...}} interpolates. With a single $ the raw
+    // string reads every { as an interpolation hole and the stylesheet stops compiling.
+    var html = $$"""
+        <!doctype html>
+        <html lang="en">
+        <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{{heading}}</title>
+        <style>
+          body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0;
+                 display: grid; place-items: center; min-height: 100vh; background: #f7f8fa;
+                 color: #14161a; padding: 24px; }
+          main { max-width: 22rem; text-align: center; }
+          h1 { font-size: 1.25rem; margin: 0 0 .5rem; }
+          p { margin: 0 0 1.5rem; line-height: 1.5; color: #55606e; }
+          a { display: inline-block; background: #f59e0b; color: #fff; text-decoration: none;
+              font-weight: 700; padding: .75rem 1.5rem; border-radius: 999px; }
+        </style>
+        </head>
+        <body>
+        <main>
+          <h1>{{heading}}</h1>
+          <p>{{message}}</p>
+          <a href="{{deepLink}}">Return to Diaspora</a>
+        </main>
+        <script>location.replace({{System.Text.Json.JsonSerializer.Serialize(deepLink)}});</script>
+        </body>
+        </html>
+        """;
+
+    return Results.Content(html, "text/html; charset=utf-8");
+}
+
+app.MapGet("/payments/checkout/complete", () => CheckoutReturn(
+    "Payment received",
+    "Your wallet will update as soon as Diaspora has confirmed it with your bank. You can close this page.",
+    "diaspora://wallet"));
+
+app.MapGet("/payments/checkout/cancelled", () => CheckoutReturn(
+    "Payment cancelled",
+    "Nothing was charged. You can try again from your wallet whenever you are ready.",
+    "diaspora://wallet"));
+
 // ─── Start ───────────────────────────────────────────────────────────
 
 try

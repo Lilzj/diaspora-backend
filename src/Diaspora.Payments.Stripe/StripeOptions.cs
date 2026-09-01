@@ -65,6 +65,41 @@ public sealed class StripeOptions
     public string WebhookSecret { get; set; } = string.Empty;
 
     /// <summary>
+    /// Additional endpoint signing secrets, tried alongside <see cref="WebhookSecret"/>.
+    /// <para>
+    /// <b>Stripe issues a different secret per endpoint, and this integration registers two.</b>
+    /// Payment callbacks and payout callbacks arrive on separate routes — deliberately, so an
+    /// endpoint can be scoped to the events it owns — which means two Stripe endpoints and two
+    /// <c>whsec_</c> values. A verifier that knew only one of them would refuse every callback from
+    /// the other, for ever, as an invalid signature. A refused payment callback is a deposit that
+    /// completed at Stripe and never moved the member's balance.
+    /// </para>
+    /// <para>
+    /// <b>It also covers a secret roll.</b> Stripe keeps the previous secret live for up to 24
+    /// hours and signs with both, so a deployment mid-rotation legitimately has two.
+    /// </para>
+    /// <para>
+    /// Set as <c>Payments__Stripe__WebhookSecrets__0</c>, <c>__1</c>, and so on.
+    /// </para>
+    /// </summary>
+    public IList<string> WebhookSecrets { get; set; } = [];
+
+    /// <summary>
+    /// Every secret a callback may be signed with. Order is irrelevant; each is tried.
+    /// </summary>
+    public IReadOnlyList<string> AcceptedWebhookSecrets =>
+    [
+        .. new[] { WebhookSecret }
+            .Concat(WebhookSecrets ?? [])
+            .Where(secret => !string.IsNullOrWhiteSpace(secret))
+            .Select(secret => secret.Trim())
+            .Distinct(StringComparer.Ordinal)
+    ];
+
+    /// <summary>Whether any callback can be verified at all.</summary>
+    public bool HasWebhookSecret => AcceptedWebhookSecrets.Count > 0;
+
+    /// <summary>
     /// How far from now a callback's timestamp may be, in seconds.
     /// <para>
     /// A correctly signed callback captured off the wire stays correctly signed for ever, so this is
@@ -73,6 +108,34 @@ public sealed class StripeOptions
     /// </para>
     /// </summary>
     public int WebhookToleranceSeconds { get; set; } = 300;
+
+    /// <summary>
+    /// Where Stripe returns a member after a completed Checkout, and after a cancelled one.
+    /// <para>
+    /// <b>Checkout, rather than a bare client secret, because the app has no payment SDK.</b> A
+    /// PaymentIntent's client secret has to be confirmed by Stripe's own SDK, and there is none in
+    /// the client; what the client <em>does</em> have is a challenge renderer that opens an HTTPS
+    /// URL. A hosted Checkout page is that URL, and it keeps the card form out of the app entirely.
+    /// </para>
+    /// <para>
+    /// <b>Stripe requires http(s) here — a custom scheme is rejected</b>, so these cannot be
+    /// <c>diaspora://</c> deep links. Point them at a web page that deep-links onward.
+    /// </para>
+    /// </summary>
+    public string CheckoutSuccessUrl { get; set; } = string.Empty;
+
+    /// <inheritdoc cref="CheckoutSuccessUrl"/>
+    public string CheckoutCancelUrl { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Whether a hosted Checkout can be started. Separate from <see cref="IsConfigured"/> on
+    /// purpose: a deployment may hold a key for payouts alone, and a missing return URL must refuse
+    /// the charge rather than fail the whole adapter's registration.
+    /// </summary>
+    public bool IsCheckoutConfigured =>
+        IsConfigured
+        && !string.IsNullOrWhiteSpace(CheckoutSuccessUrl)
+        && !string.IsNullOrWhiteSpace(CheckoutCancelUrl);
 
     /// <summary>Whether enough has been supplied to make a call at all.</summary>
     public bool IsConfigured =>

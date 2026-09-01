@@ -1,3 +1,4 @@
+using Diaspora.Modules.Financial.Extensibility.Gateways;
 using Diaspora.Modules.Financial.Extensibility.Payouts;
 using Diaspora.Modules.Financial.Extensibility.Settlement;
 using Diaspora.Platform.Services.Abstractions;
@@ -10,7 +11,7 @@ using Microsoft.Extensions.Options;
 namespace Diaspora.Payments.Stripe;
 
 /// <summary>
-/// Registers the Stripe adapter behind the Financial Platform's payout seams.
+/// Registers the Stripe adapter behind the Financial Platform's payment and payout seams.
 /// <para>
 /// <b>It is a no-op unless a secret key is configured, and that is load-bearing rather than
 /// tidy.</b> <c>PayoutProviderRouter</c> builds its set of usable providers from the registered
@@ -59,6 +60,32 @@ public static class StripePaymentsRegistration
 
         services.AddHttpClient(StripeSettlementStatusProvider.HttpClientName, (provider, client) =>
             client.Timeout = TransportTimeout(provider));
+
+        services.AddHttpClient(StripePaymentGateway.HttpClientName, (provider, client) =>
+            client.Timeout = TransportTimeout(provider));
+
+        // ── The charge half ──────────────────────────────────────────────────────
+        //
+        // Without this the deployment has no IPaymentGateway at all: the only implementation in the
+        // repository is SimulatedPaymentGateway, which FinancialModule excludes outside Development
+        // and Testing. The capabilities endpoint reads the registry, so `gateways` and
+        // `supportedMethods` came back empty and every deposit surface in the client correctly, and
+        // uselessly, reported that the platform could not take payments.
+        services.AddSingleton<IPaymentGateway>(provider => new StripePaymentGateway(
+            provider.GetRequiredService<IOptionsMonitor<StripeOptions>>(),
+            provider.GetRequiredService<IHttpClientFactory>()
+                .CreateClient(StripePaymentGateway.HttpClientName),
+            provider.GetRequiredService<ILogger<StripePaymentGateway>>()));
+
+        // Authorise and capture are separated by the member confirming the intent in the app, and
+        // this callback is what tells the platform that happened. Without it an authorisation never
+        // becomes capturable on the platform's side, however well it went at Stripe.
+        services.AddSingleton<IPaymentWebhookProcessor>(provider => new StripePaymentWebhookProcessor(
+            provider.GetRequiredService<IOptionsMonitor<StripeOptions>>(),
+            provider.GetRequiredService<IClock>(),
+            provider.GetRequiredService<ILogger<StripePaymentWebhookProcessor>>()));
+
+        // ── The payout half ──────────────────────────────────────────────────────
 
         services.AddSingleton<ISettlementProvider>(provider => new StripeSettlementProvider(
             provider.GetRequiredService<IOptionsMonitor<StripeOptions>>(),

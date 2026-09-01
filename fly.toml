@@ -104,6 +104,42 @@ primary_region = 'iad'
   Email__AppBaseUrl = 'https://diaspora-api.fly.dev'
   Email__UnsubscribeBaseUrl = 'https://diaspora-api.fly.dev/unsubscribe'
 
+  # ── Payments ───────────────────────────────────────────────────────────────
+  #
+  # Non-secret settings only. The four credentials are Fly secrets, set out of
+  # band and never in this file:
+  #
+  #   Payments__Stripe__SecretKey            sk_test_… / sk_live_…
+  #   Payments__Stripe__WebhookSecret        whsec_…  (per endpoint, NOT the API key)
+  #   Payments__Flutterwave__SecretKey       FLWSECK_TEST-… / FLWSECK-…
+  #   Payments__Flutterwave__WebhookSecretHash
+  #
+  # Each adapter is a no-op until its own key is present, so a missing secret
+  # leaves the capability honestly reported as absent rather than producing a
+  # 401 on somebody's payment.
+  #
+  # Switching sandbox to live is a key change and nothing else: no code, no
+  # routing change, no redeploy of this file. The one thing to re-check is the
+  # payout matrix in appsettings.json, because a live account is approved for
+  # corridors a test account is not.
+
+  # Where Stripe returns a member after Checkout. Stripe rejects a custom
+  # scheme, so these are API pages that hand off to diaspora:// on arrival.
+  Payments__Stripe__CheckoutSuccessUrl = 'https://diaspora-api.fly.dev/payments/checkout/complete'
+  Payments__Stripe__CheckoutCancelUrl = 'https://diaspora-api.fly.dev/payments/checkout/cancelled'
+
+  # The names the payout capability matrix routes on. They must match what each
+  # adapter reports as its own Provider, or a matrix row names an adapter nobody
+  # registered and the router refuses with provider_not_registered.
+  # Deposits are OFF unless this is set. FinancialOptions.EnableDeposits is a
+  # plain bool with no initializer, so every top-up refuses with
+  # financial.deposit.not_supported until a deployment turns it on. The limits
+  # endpoint reports it honestly as isEnabled:false, and the client reads that.
+  Financial__EnableDeposits = 'true'
+
+  Payments__Stripe__Provider = 'stripe'
+  Payments__Flutterwave__Provider = 'flutterwave'
+
 [http_service]
   internal_port = 8080
   force_https = true

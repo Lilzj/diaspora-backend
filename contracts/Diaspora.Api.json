@@ -2789,6 +2789,30 @@
         }
       }
     },
+    "/payments/checkout/complete": {
+      "get": {
+        "tags": [
+          "Diaspora.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/payments/checkout/cancelled": {
+      "get": {
+        "tags": [
+          "Diaspora.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/analytics/access": {
       "get": {
         "tags": [
