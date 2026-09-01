@@ -459,6 +459,17 @@ public sealed class MediaModuleTests : IdentityTestBase
 
     // ── Signed access ────────────────────────────────────────────────────
 
+    /// <summary>
+    /// <b>This test used to stop one assertion short, and that gap was UAT-121.</b>
+    /// </summary>
+    /// <remarks>
+    /// It asserted that the minted URL contained <c>sig=</c> and never fetched it. A link that is
+    /// shaped like a signed link is not a link that opens anything — and this one did not: the
+    /// handler verified the signature and then ran the full access check anyway, which re-derives
+    /// the caller from the request. On a device that request is an <c>&lt;img&gt;</c> load with no
+    /// <c>Authorization</c> header, so it answered 403 to every signed URL, including one the
+    /// owner had just minted for their own photograph.
+    /// </remarks>
     [Fact]
     public async Task A_signed_link_opens_a_private_asset_and_reports_its_expiry()
     {
@@ -473,7 +484,107 @@ public sealed class MediaModuleTests : IdentityTestBase
         signed.GetProperty("url").GetString().Should().Contain("sig=");
         signed.GetProperty("expiresAt").GetDateTimeOffset()
             .Should().BeAfter(DateTimeOffset.UtcNow);
+
+        // The assertion that was missing. No token on this client, exactly as an image loader
+        // has none.
+        using var imageLoader = Factory.CreateClient();
+
+        var fetched = await imageLoader.GetAsync(
+            PathAndQueryOf(signed.GetProperty("url").GetString()!));
+
+        fetched.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await fetched.Content.ReadAsByteArrayAsync()).Should().Equal(OnePixelPng);
     }
+
+    /// <summary>
+    /// The URL is absolute, because the client that has to fetch it is not on this origin.
+    /// </summary>
+    /// <remarks>
+    /// The third of UAT-121's faults. With no <c>Media:Storage:PublicBaseUrl</c> configured the
+    /// endpoint returned a bare <c>/api/v1/media/…</c> path; the mobile client holds a base of
+    /// <c>https://host/v1</c> and joining the two produced <c>/v1/api/v1/media/…</c>, a 404 that
+    /// reads as a missing photograph rather than a malformed URL.
+    /// </remarks>
+    [Fact]
+    public async Task A_signed_link_is_absolute_so_a_client_on_another_origin_can_resolve_it()
+    {
+        await AuthenticateAsync();
+
+        var mediaId = (await UploadOnePixelPngAsync()).GetProperty("mediaId").GetGuid();
+
+        var signed = await ReadDataAsync(await HttpClient.PostAsJsonAsync(
+            $"/api/v1/media/{mediaId}/signed-url", new { variant = "original" }));
+
+        var url = signed.GetProperty("url").GetString();
+
+        Uri.TryCreate(url, UriKind.Absolute, out var absolute).Should().BeTrue(
+            "a relative media URL cannot be resolved by a client that is not a browser on this "
+            + $"origin, and this one was '{url}'");
+
+        absolute!.Scheme.Should().StartWith("http");
+        absolute.Host.Should().NotBeNullOrWhiteSpace();
+    }
+
+    /// <summary>
+    /// The expiry the response advertises is the one inside the link.
+    /// </summary>
+    /// <remarks>
+    /// The endpoint used to build the route itself and mint a second token for the response's
+    /// <c>expiresAt</c>, so the two could disagree — a client caching by the advertised expiry
+    /// would keep using a link that had already stopped working.
+    /// </remarks>
+    [Fact]
+    public async Task The_advertised_expiry_is_the_one_the_link_carries()
+    {
+        await AuthenticateAsync();
+
+        var mediaId = (await UploadOnePixelPngAsync()).GetProperty("mediaId").GetGuid();
+
+        var signed = await ReadDataAsync(await HttpClient.PostAsJsonAsync(
+            $"/api/v1/media/{mediaId}/signed-url", new { variant = "original" }));
+
+        var url = new Uri(signed.GetProperty("url").GetString()!);
+        var advertised = signed.GetProperty("expiresAt").GetDateTimeOffset();
+
+        var carried = System.Web.HttpUtility.ParseQueryString(url.Query)["exp"];
+
+        carried.Should().Be(advertised.ToUnixTimeSeconds().ToString(
+            System.Globalization.CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// Serving a signed link is not a bypass: an unreadable asset stays unreadable.
+    /// </summary>
+    /// <remarks>
+    /// The counterweight to the test above. Loosening redemption so an image tag can use a link
+    /// must not loosen what a link is worth — a signature still buys only the identity it was
+    /// minted for, and never a file the platform would refuse to serve at all.
+    /// </remarks>
+    [Fact]
+    public async Task A_link_for_one_asset_does_not_open_another()
+    {
+        await AuthenticateAsync();
+
+        var first = (await UploadOnePixelPngAsync()).GetProperty("mediaId").GetGuid();
+        var second = (await UploadOnePixelPngAsync()).GetProperty("mediaId").GetGuid();
+
+        var signed = await ReadDataAsync(await HttpClient.PostAsJsonAsync(
+            $"/api/v1/media/{first}/signed-url", new { variant = "original" }));
+
+        // The signature covers the media id, so replaying it against a different asset fails.
+        var replayed = PathAndQueryOf(signed.GetProperty("url").GetString()!)
+            .Replace(first.ToString(), second.ToString(), StringComparison.OrdinalIgnoreCase);
+
+        using var imageLoader = Factory.CreateClient();
+
+        var response = await imageLoader.GetAsync(replayed);
+
+        response.StatusCode.Should().NotBe(HttpStatusCode.OK);
+    }
+
+    /// <summary>The path a client on this origin would request, from an absolute URL.</summary>
+    private static string PathAndQueryOf(string url) =>
+        Uri.TryCreate(url, UriKind.Absolute, out var absolute) ? absolute.PathAndQuery : url;
 
     /// <summary>
     /// A forged signature is refused. The signature covers every field, so nothing in the

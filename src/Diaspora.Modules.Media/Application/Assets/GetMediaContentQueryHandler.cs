@@ -16,11 +16,19 @@ namespace Diaspora.Modules.Media.Application.Assets;
 /// <summary>
 /// Serves an asset's bytes, after deciding — twice — that the caller may have them.
 /// <para>
-/// <b>Two independent gates, and both must pass.</b> A signed token, when one is presented, is
-/// checked first. Then the access guard runs anyway. A token is a convenience for a client
-/// that cannot send a header; it is not a bypass, and an asset that has been quarantined since
-/// the token was minted is refused even though the signature is perfectly valid. That is the
+/// <b>A signed token establishes who the caller is; it is not a bypass.</b> When one is presented
+/// and verifies, the caller's identity is settled — that is the whole job of the signature, and
+/// the request carrying it is an image load with no <c>Authorization</c> header on it. What the
+/// signature cannot vouch for is anything that happened after it was minted, so an asset
+/// quarantined, deleted, or detached from a withdrawn listing since is still refused. That is the
 /// property a provider-presigned URL cannot offer, and the reason this module mints its own.
+/// </para>
+/// <para>
+/// <b>This used to demand both, and the result was that neither worked.</b> A verified signature
+/// was followed by a full <c>CanReadContentAsync</c>, which re-derives the caller from the
+/// request — nobody, on an image load. So every signed URL for a private asset answered 403,
+/// including one the owner had just minted for themselves, and no listing photograph rendered on
+/// any device.
 /// </para>
 /// <para>
 /// Falls back to the original when a requested rendition does not exist. A client asking for a
@@ -83,6 +91,18 @@ public sealed class GetMediaContentQueryHandler
             {
                 return Result.Failure<MediaContentResult>(valid.Error);
             }
+
+            // The signature answers "who". This answers "is it still servable" — quarantine,
+            // deletion and a vertical's withdrawal all post-date the token. An unbound token
+            // names no audience, and `null` is the honest caller for it: the bytes are served on
+            // the strength of the link, not of an identity nobody presented.
+            var servable = await _guard.CanServeSignedAsync(
+                asset, token.Audience, cancellationToken);
+
+            if (servable.IsFailure)
+            {
+                return Result.Failure<MediaContentResult>(servable.Error);
+            }
         }
         else
         {
@@ -93,16 +113,6 @@ public sealed class GetMediaContentQueryHandler
             {
                 return Result.Failure<MediaContentResult>(allowed.Error);
             }
-        }
-
-        // Runs even when a token was presented and verified. Quarantine, deletion and a
-        // revoked grant all post-date the token, and a signature is not a licence to ignore
-        // them.
-        var stillAllowed = await _guard.CanReadContentAsync(asset, cancellationToken);
-
-        if (stillAllowed.IsFailure)
-        {
-            return Result.Failure<MediaContentResult>(stillAllowed.Error);
         }
 
         var variant = purpose is MediaVariantPurpose.Original ? null : asset.FindVariant(purpose);

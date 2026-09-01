@@ -19,8 +19,22 @@ namespace Diaspora.Modules.Media.Extensibility.Access;
 /// makes the seam optional rather than a burden on every consumer.
 /// </para>
 /// <para>
-/// <b>Deny wins.</b> Media's own checks run first and a refusal there is final — a policy
-/// cannot grant access to a quarantined file. A policy can only narrow.
+/// <b>Deny wins, and a grant reaches exactly one thing.</b> A denial is final. A grant widens a
+/// <em>read</em> that Media would have refused on visibility alone — which is the case this seam
+/// exists for, because a listing photograph is private to its uploader until the vertical says
+/// the listing is something the caller may look at.
+/// </para>
+/// <para>
+/// A grant cannot reach anything else. The state floor — deleted, quarantined, unscanned — has
+/// already run and is not revisited, so no policy can serve a quarantined file; and management is
+/// gated on ownership before a policy is consulted, so none can hand a member someone else's file
+/// to edit.
+/// </para>
+/// <para>
+/// <b>Prefer abstaining to denying.</b> A denial removes access the uploader would otherwise have
+/// had — including their own file. Unless the vertical genuinely means "not even the owner", the
+/// honest answer for a case it does not want to permit is <c>Abstain</c>, which leaves Media's
+/// decision standing.
 /// </para>
 /// <para>
 /// <b>Implementing one.</b> Put it in your module's assembly; Media scans every

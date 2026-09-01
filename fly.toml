@@ -50,6 +50,22 @@ primary_region = 'iad'
   # than one that never had one.
   Media__Storage__FilesystemRoot = '/data/media'
 
+  # ── And somewhere the client can reach it ────────────────────────────────
+  #
+  # Unset, `MediaUrlFactory` emits a bare `/api/v1/media/…` path. The mobile
+  # client holds a base of `https://<host>/v1`, so joining the two gave
+  # `/v1/api/v1/media/…` and every image 404'd — one of the three faults in
+  # UAT-121.
+  #
+  # The factory now falls back to the request's own origin, so this is belt and
+  # braces rather than the only defence. It is still set explicitly, because the
+  # fallback cannot help a background worker composing a notification — there is
+  # no request to read an origin from.
+  #
+  # The origin only. A path here would be prefixed onto routes that already
+  # carry their own.
+  Media__Storage__PublicBaseUrl = 'https://diaspora-api.fly.dev'
+
 [http_service]
   internal_port = 8080
   force_https = true

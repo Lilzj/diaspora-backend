@@ -20,6 +20,7 @@ using Diaspora.Platform.Modules.Contributors;
 using FluentAssertions;
 using NetArchTest.Rules;
 using Xunit;
+using Diaspora.Modules.Media.Extensibility.Access;
 
 namespace Diaspora.ArchitectureTests;
 
@@ -80,21 +81,59 @@ public class MarketplaceArchitectureTests
 
     /// <summary>
     /// <b>Marketplace never owns Media.</b> Every photograph is a <c>MediaId</c>; the module holds
-    /// no stream, no byte array and no stored URL, and exactly one class knows how to talk to B5.
+    /// no stream, no byte array and no stored URL, and exactly one class knows how to call B5.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The rule is about direction, not about a count.</b> It used to assert that exactly one
+    /// type in the assembly depended on Media at all, which conflated two opposite things: a class
+    /// that <em>calls</em> Media, and a class Media <em>calls</em>. The first is the coupling
+    /// ADR-005 exists to contain. The second is an extension point Media publishes and instructs
+    /// verticals to implement in their own assembly — refusing it would mean the seam could never
+    /// be used by the modules it was built for.
+    /// </para>
+    /// <para>
+    /// So implementations of <see cref="IMediaAccessPolicy"/> are excluded and everything else
+    /// still has to be the one claimer. A new class reaching into Media fails exactly as before;
+    /// the exemption cannot be borrowed, because implementing the interface means Media is
+    /// driving.
+    /// </para>
+    /// </remarks>
     [Fact]
-    public void Only_one_class_talks_to_media()
+    public void Only_one_class_calls_into_media()
     {
-        var talkers = Types.InAssembly(Module)
+        var callers = Types.InAssembly(Module)
             .That().HaveDependencyOn("Diaspora.Modules.Media")
             .GetTypes()
+            .Where(type => !typeof(IMediaAccessPolicy).IsAssignableFrom(type))
             .Select(type => type.Name)
             .ToList();
 
-        talkers.Should().BeEquivalentTo(
+        callers.Should().BeEquivalentTo(
             [nameof(MarketplaceMediaClaimer)],
             "ADR-005's rule is attach-by-reference, and containing the knowledge in one class is "
             + "what makes it checkable");
+    }
+
+    /// <summary>
+    /// The listing media policy is registered for marketplace listings and nothing else.
+    /// </summary>
+    /// <remarks>
+    /// Media resolves one policy per owner type and refuses two claiming the same one. A policy
+    /// answering for the wrong type would decide access for another vertical's files — which is
+    /// why this is asserted rather than left to the registry to discover at startup.
+    /// </remarks>
+    [Fact]
+    public void The_listing_media_policy_speaks_only_for_marketplace_listings()
+    {
+        var policies = Types.InAssembly(Module)
+            .That().ImplementInterface(typeof(IMediaAccessPolicy))
+            .GetTypes()
+            .ToList();
+
+        policies.Should().ContainSingle(
+            "one vertical, one owner type, one policy")
+            .Which.Should().Be(typeof(MarketplaceListingMediaPolicy));
     }
 
     /// <summary>
