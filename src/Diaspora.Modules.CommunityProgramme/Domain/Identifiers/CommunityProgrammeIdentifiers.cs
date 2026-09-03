@@ -127,3 +127,31 @@ public sealed record CommunityAnnouncementId(Guid Value) : StronglyTypedId(Value
 
     public static CommunityAnnouncementId From(Guid value) => new(value);
 }
+
+/// <summary>
+/// A community — the group people belong to, not the organization that serves one.
+/// <para>
+/// The register asked for "a stable identifier independent of country code", and this is it. A
+/// community keyed by country could never express "Nigerians in London" and "Nigerians in Toronto"
+/// as two things, and could never express an interest community at all.
+/// </para>
+/// </summary>
+public sealed record CommunityId(Guid Value) : StronglyTypedId(Value)
+{
+    public static CommunityId New() => new(Guid.NewGuid());
+    public static CommunityId From(Guid value) => new(value);
+}
+
+/// <summary>
+/// One person's standing in one community.
+/// <para>
+/// Distinct from <see cref="ProgrammeMembershipId"/>, which is a paid tier in an organization's
+/// programme. Somebody can belong to a community and have bought nothing, and can hold a lapsed
+/// paid membership of an organization that serves a community they never joined.
+/// </para>
+/// </summary>
+public sealed record CommunityMembershipId(Guid Value) : StronglyTypedId(Value)
+{
+    public static CommunityMembershipId New() => new(Guid.NewGuid());
+    public static CommunityMembershipId From(Guid value) => new(value);
+}

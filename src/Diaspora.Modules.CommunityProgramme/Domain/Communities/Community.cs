@@ -1,0 +1,377 @@
+using Diaspora.Domain.Abstractions;
+using Diaspora.Modules.CommunityProgramme.Domain.Errors;
+using Diaspora.Modules.CommunityProgramme.Domain.Identifiers;
+using Diaspora.SharedKernel.Primitives;
+using Diaspora.SharedKernel.Results;
+
+namespace Diaspora.Modules.CommunityProgramme.Domain.Communities;
+
+/// <summary>
+/// A community: a group of people with a shared origin, language, faith, city or interest.
+/// <para>
+/// <b>This is the entity the whole multi-community register was waiting on.</b> Twenty-three
+/// capabilities — the directory, profiles, joining, a primary community, scoped content, scoped
+/// search, moderation, statistics — all assumed a community was a first-class thing with its own
+/// identity. Nothing was: <c>GET /communities</c> answered 404, and the client had been built
+/// against a simulated adapter. Every one of those capabilities is a read or a write over this
+/// aggregate.
+/// </para>
+///
+/// <para>
+/// <b>A community is not a country, and the distinction is the point of the phase.</b> The platform
+/// already had 192 countries and a <c>CountryRef</c> on every publisher. A country is a fact about
+/// a place; a community is a group of people who may be spread across forty of them. "Nigerians in
+/// London" is one community, "Nigerians" is another, and the second is not the union of the first
+/// — a member belongs to what they say they belong to.
+/// </para>
+///
+/// <para>
+/// <b>A community is not an organization either.</b> <see cref="Memberships.MembershipProgramme"/>
+/// is what an organization sells; this is what a person belongs to. An organization can serve a
+/// community without being one, and a community exists whether or not any organization serves it.
+/// </para>
+///
+/// <para>
+/// <b>The identifier and the slug are both stable, and neither is the name.</b> The register asked
+/// for "a stable identifier independent of country code" and "a slug scheme stable enough to put in
+/// a deep link". A rename changes <see cref="Name"/> and nothing else — the slug somebody put in a
+/// message last year keeps resolving. See <see cref="CommunitySlug"/>.
+/// </para>
+///
+/// <para>
+/// <b>Member count is not stored as a running total anybody may set.</b> It is maintained by the
+/// aggregate as members join and leave, and §31 forbids sorting a directory by a count the backend
+/// does not authoritatively report — so a deployment that cannot vouch for the number must publish
+/// nothing rather than an estimate. <see cref="MemberCount"/> is that number, and it is only ever
+/// moved by <see cref="RecordMemberJoined"/> and <see cref="RecordMemberLeft"/>.
+/// </para>
+/// </summary>
+public sealed class Community : AggregateRoot<CommunityId>, IAuditableEntity
+{
+    public const int NameMinimumLength = 2;
+    public const int NameMaximumLength = 120;
+    public const int TaglineMaximumLength = 200;
+    public const int DescriptionMaximumLength = 4000;
+
+    private readonly List<string> _presenceCountryCodes = [];
+    private readonly List<string> _supportedLanguages = [];
+
+    private Community(
+        CommunityId id,
+        CommunitySlug slug,
+        string name,
+        CommunityType type,
+        CommunityVisibility visibility,
+        string? originCountryCode,
+        string? originRegionName)
+        : base(id)
+    {
+        Slug = slug;
+        Name = name;
+        Type = type;
+        Visibility = visibility;
+        OriginCountryCode = originCountryCode;
+        OriginRegionName = originRegionName;
+        Status = CommunityStatus.Pending;
+    }
+
+    // EF Core.
+    private Community() { }
+
+    /// <summary>The handle. Issued once and never changed. See <see cref="CommunitySlug"/>.</summary>
+    public CommunitySlug Slug { get; private set; } = null!;
+
+    public string Name { get; private set; } = string.Empty;
+
+    public string? Tagline { get; private set; }
+
+    public string? Description { get; private set; }
+
+    public CommunityType Type { get; private set; }
+
+    public CommunityStatus Status { get; private set; }
+
+    public CommunityVisibility Visibility { get; private set; }
+
+    /// <summary>ISO 3166-1 alpha-2, upper case. Required for a national or regional community.</summary>
+    public string? OriginCountryCode { get; private set; }
+
+    /// <summary>For a region that is not a country — "West Africa", "the Caribbean".</summary>
+    public string? OriginRegionName { get; private set; }
+
+    public string? PrimaryLanguage { get; private set; }
+
+    /// <summary>Where this community has a presence, which is not where it is from.</summary>
+    public IReadOnlyCollection<string> PresenceCountryCodes => _presenceCountryCodes.AsReadOnly();
+
+    public IReadOnlyCollection<string> SupportedLanguages => _supportedLanguages.AsReadOnly();
+
+    /// <summary>
+    /// Members in good standing. Moved only by this aggregate; never assigned from outside.
+    /// </summary>
+    public int MemberCount { get; private set; }
+
+    /// <summary>Why the community is suspended or archived. Shown to members verbatim.</summary>
+    public string? StatusReason { get; private set; }
+
+    public DateTimeOffset CreatedAt { get; private set; }
+
+    public string? CreatedBy { get; private set; }
+
+    public DateTimeOffset? ModifiedAt { get; private set; }
+
+    public string? ModifiedBy { get; private set; }
+
+    /// <summary>Whether somebody may join right now. Read by the join path and by capabilities.</summary>
+    public bool IsJoinable => Status == CommunityStatus.Active;
+
+    /// <summary>Whether this community may appear in directory results at all.</summary>
+    public bool IsListable =>
+        Visibility == CommunityVisibility.Public
+        && Status is CommunityStatus.Active or CommunityStatus.Suspended;
+
+    // ── Creation ────────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Proposes a community. It opens in <see cref="CommunityStatus.Pending"/> and is not joinable
+    /// until <see cref="Open"/> is called — a community that appeared in the directory the instant
+    /// somebody typed a name would make the directory a scratchpad.
+    /// </summary>
+    public static Result<Community> Propose(
+        CommunityId id,
+        CommunitySlug slug,
+        string? name,
+        CommunityType type,
+        CommunityVisibility visibility,
+        string? originCountryCode = null,
+        string? originRegionName = null)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+        ArgumentNullException.ThrowIfNull(slug);
+
+        var trimmedName = name?.Trim();
+
+        if (string.IsNullOrEmpty(trimmedName))
+        {
+            return Result.Failure<Community>(CommunityErrors.NameRequired);
+        }
+
+        if (trimmedName.Length is < NameMinimumLength or > NameMaximumLength)
+        {
+            return Result.Failure<Community>(CommunityErrors.NameLength);
+        }
+
+        var country = NormaliseCountryCode(originCountryCode);
+
+        if (originCountryCode is not null && country is null)
+        {
+            return Result.Failure<Community>(CommunityErrors.CountryCodeShape);
+        }
+
+        // A national or regional community that cannot answer "where from" is invisible to the one
+        // filter the directory is built around.
+        if (type is CommunityType.NationalDiaspora or CommunityType.RegionalDiaspora
+            && country is null
+            && string.IsNullOrWhiteSpace(originRegionName))
+        {
+            return Result.Failure<Community>(CommunityErrors.OriginRequired);
+        }
+
+        return Result.Success(new Community(
+            id, slug, trimmedName, type, visibility, country, originRegionName?.Trim()));
+    }
+
+    // ── Lifecycle ───────────────────────────────────────────────────────────────────────────
+
+    /// <summary>Opens a pending or suspended community. Archived is final and refuses.</summary>
+    public Result Open()
+    {
+        if (Status == CommunityStatus.Archived)
+        {
+            return Result.Failure(CommunityErrors.ArchivedIsFinal);
+        }
+
+        if (Status == CommunityStatus.Active)
+        {
+            return Result.Failure(CommunityErrors.AlreadyActive);
+        }
+
+        Status = CommunityStatus.Active;
+        StatusReason = null;
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Stops a community without ending it. Members keep their standing and are shown
+    /// <paramref name="reason"/> verbatim, which is why it is required.
+    /// </summary>
+    public Result Suspend(string? reason)
+    {
+        if (Status == CommunityStatus.Archived)
+        {
+            return Result.Failure(CommunityErrors.ArchivedIsFinal);
+        }
+
+        var trimmed = reason?.Trim();
+
+        if (string.IsNullOrEmpty(trimmed))
+        {
+            return Result.Failure(CommunityErrors.SuspensionNeedsReason);
+        }
+
+        Status = CommunityStatus.Suspended;
+        StatusReason = trimmed;
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Ends a community. Irreversible, and it stays readable: the links that pointed here resolve
+    /// to an explanation rather than a 404.
+    /// </summary>
+    public Result Archive(string? reason)
+    {
+        if (Status == CommunityStatus.Archived)
+        {
+            return Result.Success();
+        }
+
+        Status = CommunityStatus.Archived;
+        StatusReason = reason?.Trim();
+        return Result.Success();
+    }
+
+    // ── Description ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>Renames the community. The slug is untouched — see the type summary.</summary>
+    public Result Rename(string? name)
+    {
+        var trimmed = name?.Trim();
+
+        if (string.IsNullOrEmpty(trimmed))
+        {
+            return Result.Failure(CommunityErrors.NameRequired);
+        }
+
+        if (trimmed.Length is < NameMinimumLength or > NameMaximumLength)
+        {
+            return Result.Failure(CommunityErrors.NameLength);
+        }
+
+        Name = trimmed;
+        return Result.Success();
+    }
+
+    public void Describe(string? tagline, string? description)
+    {
+        Tagline = Truncate(tagline, TaglineMaximumLength);
+        Description = Truncate(description, DescriptionMaximumLength);
+    }
+
+    public void SetVisibility(CommunityVisibility visibility) => Visibility = visibility;
+
+    public void SetLanguages(string? primaryLanguage, IEnumerable<string>? supported)
+    {
+        PrimaryLanguage = string.IsNullOrWhiteSpace(primaryLanguage) ? null : primaryLanguage.Trim();
+
+        _supportedLanguages.Clear();
+        foreach (var language in Distinct(supported))
+        {
+            _supportedLanguages.Add(language);
+        }
+    }
+
+    /// <summary>
+    /// Records where this community has a presence. Distinct from where it is from: a Nigerian
+    /// community present in the UK, Canada and the UAE has one origin and three presences.
+    /// </summary>
+    public Result SetPresence(IEnumerable<string>? countryCodes)
+    {
+        var normalised = new List<string>();
+
+        foreach (var candidate in Distinct(countryCodes))
+        {
+            var code = NormaliseCountryCode(candidate);
+
+            if (code is null)
+            {
+                return Result.Failure(CommunityErrors.CountryCodeShape);
+            }
+
+            if (!normalised.Contains(code, StringComparer.Ordinal))
+            {
+                normalised.Add(code);
+            }
+        }
+
+        _presenceCountryCodes.Clear();
+        _presenceCountryCodes.AddRange(normalised);
+        return Result.Success();
+    }
+
+    // ── Membership counting ─────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Called by the membership path when somebody joins. Not public API: a count anybody could set
+    /// is a count nobody can trust, and §31 forbids sorting the directory by an unreliable one.
+    /// </summary>
+    public void RecordMemberJoined() => MemberCount++;
+
+    /// <summary>
+    /// Called when somebody leaves or is removed. Floors at zero rather than throwing: a negative
+    /// member count is a reporting bug, and taking down a leave request over it helps nobody.
+    /// </summary>
+    public void RecordMemberLeft() => MemberCount = Math.Max(0, MemberCount - 1);
+
+    // ── Audit ───────────────────────────────────────────────────────────────────────────────
+
+    public void SetCreated(DateTimeOffset timestamp, string? userId)
+    {
+        CreatedAt = timestamp;
+        CreatedBy = userId;
+    }
+
+    public void SetModified(DateTimeOffset timestamp, string? userId)
+    {
+        ModifiedAt = timestamp;
+        ModifiedBy = userId;
+    }
+
+    // ── Helpers ─────────────────────────────────────────────────────────────────────────────
+
+    /// <summary>Upper-cases and validates an ISO 3166-1 alpha-2 code. Null in, null out.</summary>
+    internal static string? NormaliseCountryCode(string? value)
+    {
+        var trimmed = value?.Trim();
+
+        if (string.IsNullOrEmpty(trimmed))
+        {
+            return null;
+        }
+
+        if (trimmed.Length != 2 || !trimmed.All(char.IsLetter))
+        {
+            return null;
+        }
+
+        return trimmed.ToUpperInvariant();
+    }
+
+    private static string? Truncate(string? value, int limit)
+    {
+        var trimmed = value?.Trim();
+
+        if (string.IsNullOrEmpty(trimmed))
+        {
+            return null;
+        }
+
+        return trimmed.Length <= limit ? trimmed : trimmed[..limit];
+    }
+
+    private static IEnumerable<string> Distinct(IEnumerable<string>? values) =>
+        (values ?? [])
+            .Select(value => value?.Trim())
+            .Where(value => !string.IsNullOrEmpty(value))
+            .Select(value => value!)
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+}
