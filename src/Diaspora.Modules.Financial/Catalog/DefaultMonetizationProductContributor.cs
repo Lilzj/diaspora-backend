@@ -33,6 +33,77 @@ public sealed class DefaultMonetizationProductContributor : IMonetizationProduct
 
     public IEnumerable<MonetizationProductSeed> GetProducts()
     {
+        // ── Advertising campaigns — B16 ──────────────────────────────────────────────────────
+        //
+        // Fixed tiers rather than a budget the advertiser types, and the reason is the payment
+        // path: a purchase is priced from the catalogue or from a pricing policy over a catalogue
+        // amount, and neither takes a figure from the request. Charging an arbitrary budget would
+        // mean changing the shape every product on this platform is bought through, on the one
+        // path where a mistake takes somebody's money.
+        //
+        // A tier *is* the budget. The campaign's budget must equal what its product charges, which
+        // is checked at submission — one number, not two that can disagree.
+        //
+        // The subject is the campaign itself, which is what lets a captured purchase find its way
+        // back to it. Placement kind and priority weight are deliberately absent — a campaign books
+        // its placements through its own lifecycle, not through the purchase.
+
+        yield return new MonetizationProductSeed
+        {
+            Code = "advertising.campaign.starter.30d",
+            Name = "Starter campaign",
+            Description = "A 30-day advertising campaign with a £25 budget.",
+            Category = MonetizationProductCategory.Campaign,
+            SubjectType = MonetizationSubjectType.Campaign,
+            PriceAmount = 25.00m,
+            Currency = Gbp,
+            DurationDays = 30,
+            SortOrder = 500,
+            IsSystem = true
+        };
+
+        yield return new MonetizationProductSeed
+        {
+            Code = "advertising.campaign.standard.30d",
+            Name = "Standard campaign",
+            Description = "A 30-day advertising campaign with a £50 budget.",
+            Category = MonetizationProductCategory.Campaign,
+            SubjectType = MonetizationSubjectType.Campaign,
+            PriceAmount = 50.00m,
+            Currency = Gbp,
+            DurationDays = 30,
+            SortOrder = 510,
+            IsSystem = true
+        };
+
+        yield return new MonetizationProductSeed
+        {
+            Code = "advertising.campaign.growth.30d",
+            Name = "Growth campaign",
+            Description = "A 30-day advertising campaign with a £100 budget.",
+            Category = MonetizationProductCategory.Campaign,
+            SubjectType = MonetizationSubjectType.Campaign,
+            PriceAmount = 100.00m,
+            Currency = Gbp,
+            DurationDays = 30,
+            SortOrder = 520,
+            IsSystem = true
+        };
+
+        yield return new MonetizationProductSeed
+        {
+            Code = "advertising.campaign.scale.30d",
+            Name = "Scale campaign",
+            Description = "A 30-day advertising campaign with a £250 budget.",
+            Category = MonetizationProductCategory.Campaign,
+            SubjectType = MonetizationSubjectType.Campaign,
+            PriceAmount = 250.00m,
+            Currency = Gbp,
+            DurationDays = 30,
+            SortOrder = 530,
+            IsSystem = true
+        };
+
         // ── Marketplace ──────────────────────────────────────────────────────────────────────
 
         yield return new MonetizationProductSeed

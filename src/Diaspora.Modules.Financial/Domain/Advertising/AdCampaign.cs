@@ -365,9 +365,19 @@ public sealed class AdCampaign : AggregateRoot<AdCampaignId>, IAuditableEntity
     }
 
     /// <summary>
-    /// The money arrived. Queues the campaign for review.
+    /// Records the purchase opened to fund this campaign. Does not move the status.
+    /// <para>
+    /// <b>Attaching and funding are two acts because they happen at two moments.</b> The purchase
+    /// is opened when the advertiser submits, and it is <em>captured</em> whenever their bank gets
+    /// round to it — which may be seconds or may be days. A campaign that went to review on the
+    /// intent being created would be reviewed before anybody had paid for it.
+    /// </para>
+    /// <para>
+    /// The id is stored here so the capture, when it arrives, can find its way back: the event
+    /// carries a purchase and needs a campaign.
+    /// </para>
     /// </summary>
-    public Result MarkFunded(MonetizationPurchaseId purchaseId)
+    public Result AttachPurchase(MonetizationPurchaseId purchaseId)
     {
         ArgumentNullException.ThrowIfNull(purchaseId);
 
@@ -377,6 +387,26 @@ public sealed class AdCampaign : AggregateRoot<AdCampaignId>, IAuditableEntity
         }
 
         PurchaseId = purchaseId;
+        Revision++;
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// The money arrived. Queues the campaign for review.
+    /// <para>
+    /// Called when the purchase captures, not when it is created. See
+    /// <see cref="AttachPurchase"/>.
+    /// </para>
+    /// </summary>
+    public Result MarkFunded(MonetizationPurchaseId? purchaseId = null)
+    {
+        if (Status != AdCampaignStatus.PendingPayment)
+        {
+            return Result.Failure(AdCampaignErrors.NotAwaitingPayment);
+        }
+
+        PurchaseId = purchaseId ?? PurchaseId;
         MoveTo(AdCampaignStatus.Submitted, DateTimeOffset.UtcNow);
 
         return Result.Success();

@@ -4,6 +4,7 @@ using Diaspora.Modules.Financial.Application.Services;
 using Diaspora.Modules.Financial.Contracts.V1.Requests;
 using Diaspora.Modules.Financial.Contracts.V1.Responses;
 using Diaspora.Modules.Financial.Domain.Advertising;
+using Diaspora.Modules.Financial.Domain.Catalog;
 using Diaspora.Modules.Financial.Domain.Enums;
 using Diaspora.Modules.Financial.Domain.Identifiers;
 using Diaspora.Modules.Financial.Domain.ValueObjects;
@@ -43,9 +44,22 @@ public sealed record UpdateAdCampaignCommand : ICommand<AdCampaignResponse>
 /// Submits for review, which is what freezes the campaign — before the money arrives, not after.
 /// </summary>
 [Authorize(Permission = FinancialPermissions.PurchasesCreate)]
-public sealed record SubmitAdCampaignCommand : ICommand<AdCampaignResponse>
+public sealed record SubmitAdCampaignCommand : ICommand<AdCampaignSubmissionResponse>
 {
     public required Guid CampaignId { get; init; }
+
+    /// <summary>How the advertiser intends to pay. Passed through to the purchase unchanged.</summary>
+    public string? MethodKind { get; init; }
+
+    /// <summary>
+    /// Makes a retried submission safe.
+    /// <para>
+    /// Submission opens a purchase, and a purchase is a charge. A double tap on a slow connection
+    /// must not open two — the existing purchase path already honours this key, so it is passed
+    /// straight through rather than re-implemented here.
+    /// </para>
+    /// </summary>
+    public string? IdempotencyKey { get; init; }
 }
 
 /// <summary>Pauses or resumes a running campaign. The advertiser's own control.</summary>
@@ -220,27 +234,51 @@ public sealed class UpdateAdCampaignCommandHandler
     }
 }
 
+/// <summary>
+/// Freezes the campaign and tells the advertiser what to buy.
+/// <para>
+/// <b>It does not open the purchase itself, and that is a platform rule rather than a shortcut.</b>
+/// The first version dispatched B15's own purchase command from here, which the DSP1001 analyzer
+/// refuses: a handler holding <c>ISender</c> can reach every handler in the process. The alternative
+/// it suggests — extracting the purchase path into a shared service — is a refactor of 125 lines and
+/// fifteen dependencies on the one path that takes somebody's money.
+/// </para>
+/// <para>
+/// <b>So the campaign became a purchase subject instead</b>, which is the model this platform
+/// already has for everything else it sells. The client buys the campaign's package through the
+/// existing purchase route with <c>subjectType: Campaign</c>, and the capture finds its way back on
+/// its own. One extra call, no second implementation of pricing, and no handler reaching into
+/// another.
+/// </para>
+/// <para>
+/// <b>The campaign still freezes here, before the money.</b> Editing a campaign somebody is halfway
+/// through paying for is the thing this ordering prevents.
+/// </para>
+/// </summary>
 public sealed class SubmitAdCampaignCommandHandler
-    : ICommandHandler<SubmitAdCampaignCommand, AdCampaignResponse>
+    : ICommandHandler<SubmitAdCampaignCommand, AdCampaignSubmissionResponse>
 {
     private readonly IAdCampaignRepository _campaigns;
+    private readonly IMonetizationProductRepository _products;
     private readonly FinancialAuthorizationService _authorization;
     private readonly IClock _clock;
     private readonly IUnitOfWork _unitOfWork;
 
     public SubmitAdCampaignCommandHandler(
         IAdCampaignRepository campaigns,
+        IMonetizationProductRepository products,
         FinancialAuthorizationService authorization,
         IClock clock,
         IUnitOfWork unitOfWork)
     {
         _campaigns = campaigns;
+        _products = products;
         _authorization = authorization;
         _clock = clock;
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<Result<AdCampaignResponse>> Handle(
+    public async Task<Result<AdCampaignSubmissionResponse>> Handle(
         SubmitAdCampaignCommand command, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
@@ -250,21 +288,60 @@ public sealed class SubmitAdCampaignCommandHandler
 
         if (loaded.IsFailure)
         {
-            return Result.Failure<AdCampaignResponse>(loaded.Error);
+            return Result.Failure<AdCampaignSubmissionResponse>(loaded.Error);
         }
 
-        var submitted = loaded.Value.Submit(_clock.UtcNow);
+        var campaign = loaded.Value;
+
+        if (string.IsNullOrWhiteSpace(campaign.ProductCode))
+        {
+            return Result.Failure<AdCampaignSubmissionResponse>(
+                AdCampaignErrors.ProductRequiredToSubmit);
+        }
+
+        var product = await _products.FindByCodeAsync(campaign.ProductCode, cancellationToken);
+
+        if (product is null)
+        {
+            return Result.Failure<AdCampaignSubmissionResponse>(
+                AdCampaignErrors.ProductRequiredToSubmit);
+        }
+
+        // The budget and the charge must be one number.
+        //
+        // A campaign is bought as a tier — see the catalogue seed for why the payment path cannot
+        // take an arbitrary amount — so a budget that did not match the tier would give the
+        // advertiser two figures: one on their dashboard and one on their statement.
+        if (product.Price is not { } price
+            || price.MinorUnits != campaign.BudgetMinorUnits
+            || !string.Equals(price.Currency, campaign.Currency, StringComparison.Ordinal))
+        {
+            return Result.Failure<AdCampaignSubmissionResponse>(
+                AdCampaignErrors.BudgetDoesNotMatchProduct);
+        }
+
+        var submitted = campaign.Submit(_clock.UtcNow);
 
         if (submitted.IsFailure)
         {
-            return Result.Failure<AdCampaignResponse>(submitted.Error);
+            return Result.Failure<AdCampaignSubmissionResponse>(submitted.Error);
         }
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        // PendingPayment. The client takes the campaign's product code and budget to the existing
-        // purchase route; that path calls MarkFunded, which is what starts the review.
-        return Result.Success(AdCampaignMapper.ToResponse(loaded.Value));
+        return Result.Success(new AdCampaignSubmissionResponse
+        {
+            Campaign = AdCampaignMapper.ToResponse(campaign),
+            ProductCode = product.Code,
+            SubjectType = MonetizationSubjectType.Campaign.ToString(),
+            SubjectId = campaign.Id.Value,
+            Amount = new AdMoneyResponse
+            {
+                MinorUnits = price.MinorUnits,
+                Currency = price.Currency,
+                Exponent = price.Exponent
+            }
+        });
     }
 }
 

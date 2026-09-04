@@ -2,7 +2,11 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Diaspora.Application.Abstractions;
+using Diaspora.Contracts.Financial.V1.Events;
 using Diaspora.IntegrationTests.Common;
+using Diaspora.Modules.Financial.Application.Consumers.Advertising;
+using Microsoft.Extensions.DependencyInjection;
 using FluentAssertions;
 using Xunit;
 
@@ -45,7 +49,7 @@ public sealed class AdCampaignEndpointTests : IdentityTestBase
         campaign.CanSubmit.Should().BeTrue();
         campaign.CanPause.Should().BeFalse();
         campaign.Spend.MinorUnits.Should().Be(0);
-        campaign.Remaining.MinorUnits.Should().Be(50_000);
+        campaign.Remaining.MinorUnits.Should().Be(5_000);
         campaign.Review.Decision.Should().Be("Pending");
     }
 
@@ -60,13 +64,20 @@ public sealed class AdCampaignEndpointTests : IdentityTestBase
         using var client = await AdvertiserAsync();
         var created = await CreateAsync(client);
 
-        var submitted = await ReadDataAsync<CampaignDto>(
-            await client.PostAsync($"{Root}/campaigns/{created.Id}/submit", null));
+        var submitted = await ReadDataAsync<SubmissionDto>(
+            await client.PostAsJsonAsync($"{Root}/campaigns/{created.Id}/submit", new { }));
 
-        submitted.Status.Should().Be("PendingPayment");
-        submitted.CanEdit.Should().BeFalse("submission is what freezes it, not payment");
-        submitted.CanSubmit.Should().BeFalse();
-        submitted.CanCancel.Should().BeTrue();
+        submitted.Campaign.Status.Should().Be("PendingPayment");
+        submitted.Campaign.CanEdit.Should().BeFalse("submission is what freezes it, not payment");
+        submitted.Campaign.CanSubmit.Should().BeFalse();
+        submitted.Campaign.CanCancel.Should().BeTrue();
+
+        // Everything the client needs to pay, in one call: the package, what it is for, and what
+        // it costs. The intent itself is opened by the existing purchase route — see the handler.
+        submitted.ProductCode.Should().Be("advertising.campaign.standard.30d");
+        submitted.SubjectType.Should().Be("Campaign");
+        submitted.SubjectId.Should().Be(created.Id);
+        submitted.Amount.MinorUnits.Should().Be(5_000);
     }
 
     [Fact]
@@ -146,7 +157,7 @@ public sealed class AdCampaignEndpointTests : IdentityTestBase
 
         edited.Name.Should().Be("Second thoughts");
 
-        await client.PostAsync($"{Root}/campaigns/{created.Id}/submit", null);
+        await client.PostAsJsonAsync($"{Root}/campaigns/{created.Id}/submit", new { });
 
         var refused = await client.PutAsJsonAsync(
             $"{Root}/campaigns/{created.Id}", NewCampaign() with { Name = "Too late" });
@@ -180,7 +191,7 @@ public sealed class AdCampaignEndpointTests : IdentityTestBase
                 $"{Root}/campaigns/{created.Id}/cancel", new { reason = "Changed our minds." }));
 
         cancelled.Status.Should().Be("Cancelled");
-        cancelled.Settled!.MinorUnits.Should().Be(50_000);
+        cancelled.Settled!.MinorUnits.Should().Be(5_000);
         cancelled.EndReason.Should().Be("Changed our minds.");
         cancelled.CanCancel.Should().BeFalse();
     }
@@ -198,6 +209,84 @@ public sealed class AdCampaignEndpointTests : IdentityTestBase
 
         again.StatusCode.Should().Be(HttpStatusCode.Conflict);
         (await again.Content.ReadAsStringAsync()).Should().Contain("already_finished");
+    }
+
+    // ── Funding ─────────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// <b>Without this the state machine has an unreachable half.</b> Submission leaves a campaign
+    /// in PendingPayment, and if nothing moved it out then every campaign ever submitted would sit
+    /// waiting for a payment that had already cleared, and no reviewer would see one.
+    /// </summary>
+    [Fact]
+    public async Task A_captured_purchase_moves_the_campaign_to_review()
+    {
+        using var client = await AdvertiserAsync();
+        var created = await CreateAsync(client);
+
+        var submitted = await ReadDataAsync<SubmissionDto>(
+            await client.PostAsJsonAsync($"{Root}/campaigns/{created.Id}/submit", new { }));
+
+        submitted.Campaign.Status.Should().Be("PendingPayment");
+
+        await ConsumePurchaseAsync(created.Id);
+
+        var funded = await ReadDataAsync<CampaignDto>(
+            await client.GetAsync($"{Root}/campaigns/{created.Id}"));
+
+        funded.Status.Should().Be("Submitted", "the money arrived, so it is queued for review");
+    }
+
+    /// <summary>
+    /// <b>A purchase with no campaign passes in silence.</b> Every other monetization product goes
+    /// through the same event — a boost, a subscription, a credit bundle — and none has a campaign.
+    /// </summary>
+    [Fact]
+    public async Task A_purchase_with_no_campaign_behind_it_is_ignored()
+    {
+        var consuming = async () => await ConsumePurchaseAsync(Guid.NewGuid());
+
+        await consuming.Should().NotThrowAsync();
+    }
+
+    /// <summary>
+    /// <b>A campaign with nothing to charge against cannot be submitted.</b> It would reach review
+    /// unpriced, and somebody would have to price it by hand.
+    /// </summary>
+    [Fact]
+    public async Task A_campaign_with_no_package_cannot_be_submitted()
+    {
+        using var client = await AdvertiserAsync();
+
+        var created = await ReadDataAsync<CampaignDto>(
+            await client.PostAsJsonAsync(
+                $"{Root}/campaigns", NewCampaign() with { ProductCode = null }));
+
+        var response = await client.PostAsJsonAsync(
+            $"{Root}/campaigns/{created.Id}/submit", new { });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync()).Should().Contain("product.required");
+    }
+
+    /// <summary>
+    /// <b>A budget that does not match the package is refused.</b> Otherwise one figure lands on
+    /// the dashboard and a different one on the bank statement.
+    /// </summary>
+    [Fact]
+    public async Task A_budget_that_does_not_match_the_package_is_refused()
+    {
+        using var client = await AdvertiserAsync();
+
+        var created = await ReadDataAsync<CampaignDto>(
+            await client.PostAsJsonAsync(
+                $"{Root}/campaigns", NewCampaign() with { BudgetMinorUnits = 1_234 }));
+
+        var response = await client.PostAsJsonAsync(
+            $"{Root}/campaigns/{created.Id}/submit", new { });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync()).Should().Contain("budget.mismatch");
     }
 
     // ── Ownership ───────────────────────────────────────────────────────────────────────────
@@ -328,6 +417,35 @@ public sealed class AdCampaignEndpointTests : IdentityTestBase
 
     // ── Helpers ─────────────────────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Drives the funding consumer directly rather than through the outbox, so the test asserts
+    /// the transition rather than the dispatcher's timing.
+    /// </summary>
+    private async Task ConsumePurchaseAsync(Guid campaignId)
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        var consumer = ActivatorUtilities.CreateInstance<AdCampaignFundedConsumer>(
+            scope.ServiceProvider);
+
+        await consumer.Handle(
+            new IntegrationEventNotification<MonetizationProductPurchasedIntegrationEvent>(
+                new MonetizationProductPurchasedIntegrationEvent
+                {
+                    PurchaseId = Guid.NewGuid(),
+                    BuyerUserId = Guid.NewGuid(),
+                    ProductCode = "advertising.campaign.standard.30d",
+                    Category = "Campaign",
+                    SubjectType = "Campaign",
+                    SubjectId = campaignId,
+                    PaidMinorUnits = 5_000,
+                    ListMinorUnits = 5_000,
+                    Currency = "GBP",
+                    PurchasedAt = DateTimeOffset.UtcNow
+                }),
+            CancellationToken.None);
+    }
+
     private async Task<HttpClient> AdvertiserAsync()
     {
         var (_, auth) = await RegisterVerifiedMemberAsync();
@@ -339,12 +457,19 @@ public sealed class AdCampaignEndpointTests : IdentityTestBase
         return client;
     }
 
+    /// <summary>
+    /// A draft with a product code, because submission opens a purchase and a campaign with
+    /// nothing to charge against cannot be submitted.
+    /// </summary>
     private static CreateCampaignDto NewCampaign() => new(
         Name: "Nigerians in London — spring",
         Objective: "Traffic",
-        BudgetMinorUnits: 50_000,
+        // The Standard tier: £50, which is what advertising.campaign.standard.30d charges. The
+        // budget has to equal the tier's price or submission refuses — one number, not two.
+        BudgetMinorUnits: 5_000,
         Currency: "GBP",
         Exponent: 2,
+        ProductCode: "advertising.campaign.standard.30d",
         StartsAt: DateTimeOffset.UtcNow.AddDays(1),
         EndsAt: DateTimeOffset.UtcNow.AddDays(31),
         Audience: new AudienceDto(["GB"], null, null, null, null),
@@ -384,7 +509,8 @@ public sealed class AdCampaignEndpointTests : IdentityTestBase
         DateTimeOffset? EndsAt,
         AudienceDto? Audience,
         string? Headline,
-        string? Body);
+        string? Body,
+        string? ProductCode = null);
 
     private sealed record AudienceDto(
         List<string>? CountryCodes,
@@ -411,6 +537,13 @@ public sealed class AdCampaignEndpointTests : IdentityTestBase
         bool CanAppeal,
         string? AppealNote,
         DateTimeOffset? AppealedAt);
+
+    private sealed record SubmissionDto(
+        CampaignDto Campaign,
+        string ProductCode,
+        string SubjectType,
+        Guid SubjectId,
+        MoneyDto Amount);
 
     private sealed record CampaignDto(
         Guid Id,

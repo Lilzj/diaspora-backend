@@ -96,18 +96,24 @@ internal static class AdCampaignEndpoints
 
         group.MapPost("/campaigns/{campaignId:guid}/submit", async (
                 Guid campaignId,
+                SubmitAdCampaignRequest? request,
                 ISender sender,
                 HttpContext context,
                 CancellationToken cancellationToken) =>
                 PlatformResults.Ok(
                     context,
                     await sender.Send(
-                        new SubmitAdCampaignCommand { CampaignId = campaignId },
+                        new SubmitAdCampaignCommand
+                        {
+                            CampaignId = campaignId,
+                            MethodKind = request?.MethodKind,
+                            IdempotencyKey = request?.IdempotencyKey
+                        },
                         cancellationToken)))
             .WithName("SubmitAdCampaign")
             .WithSummary(
-                "Submits for review and freezes the campaign. Answers PendingPayment — the client "
-                + "funds it through the existing purchase route.");
+                "Freezes the campaign and opens the purchase that funds it. Answers the campaign "
+                + "and the payment intent together; review starts when that captures.");
 
         // Pause and resume are two routes over one command rather than one route with a body,
         // because the register names two and because "POST /pause" is a thing an operator can

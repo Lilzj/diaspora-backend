@@ -316,4 +316,6 @@ public static class FinancialErrorCodes
     public const string AdCampaignDecisionUnknown = "financial.ad_campaign.decision.unknown";
     public const string AdCampaignCannotReviewOwn = "financial.ad_campaign.cannot_review_own";
     public const string AdCampaignDimensionUnknown = "financial.ad_campaign.dimension.unknown";
+    public const string AdCampaignProductRequired = "financial.ad_campaign.product.required";
+    public const string AdCampaignBudgetMismatch = "financial.ad_campaign.budget.mismatch";
 }

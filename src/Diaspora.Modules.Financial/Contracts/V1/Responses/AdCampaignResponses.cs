@@ -350,3 +350,34 @@ public sealed record AdPerformanceResponse
 
     public required AdMetricDefinitionsResponse Definitions { get; init; }
 }
+
+/// <summary>
+/// What a submission answers — MON-GAP-001.
+/// <para>
+/// <b>The campaign, and everything needed to pay for it in one call.</b> The register asked for
+/// "the payment intent to fund it"; the intent is opened by the existing purchase route instead,
+/// because a handler that dispatched into that route is what DSP1001 forbids. What comes back here
+/// is the exact triple that route needs — package, subject type, subject id — so the client makes
+/// one more call and never has to work out what to buy.
+/// </para>
+/// <para>
+/// <b>The campaign is already frozen when this returns.</b> Editing one somebody is halfway through
+/// paying for is what that ordering prevents.
+/// </para>
+/// </summary>
+public sealed record AdCampaignSubmissionResponse
+{
+    public required AdCampaignResponse Campaign { get; init; }
+
+    /// <summary>The package to buy. Pass it to the existing purchase route.</summary>
+    public required string ProductCode { get; init; }
+
+    /// <summary>Always <c>Campaign</c>. What the purchase is for.</summary>
+    public required string SubjectType { get; init; }
+
+    /// <summary>The campaign's own id. The capture uses it to find its way back.</summary>
+    public required Guid SubjectId { get; init; }
+
+    /// <summary>What the package costs, which is the campaign's budget.</summary>
+    public required AdMoneyResponse Amount { get; init; }
+}

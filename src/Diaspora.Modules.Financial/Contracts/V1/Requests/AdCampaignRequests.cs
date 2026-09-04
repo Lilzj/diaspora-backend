@@ -158,3 +158,17 @@ public sealed record RecordAdClickRequest
 {
     public string? Surface { get; init; }
 }
+
+/// <summary>
+/// Submitting a campaign, which opens the purchase that funds it.
+/// <para>
+/// The idempotency key matters here more than anywhere else on this surface: submission opens a
+/// charge, and a double tap on a slow connection must not open two.
+/// </para>
+/// </summary>
+public sealed record SubmitAdCampaignRequest
+{
+    public string? MethodKind { get; init; }
+
+    public string? IdempotencyKey { get; init; }
+}

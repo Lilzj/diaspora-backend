@@ -14918,7 +14918,7 @@
         "tags": [
           "Financial"
         ],
-        "summary": "Submits for review and freezes the campaign. Answers PendingPayment — the client funds it through the existing purchase route.",
+        "summary": "Freezes the campaign and opens the purchase that funds it. Answers the campaign and the payment intent together; review starts when that captures.",
         "operationId": "SubmitAdCampaign",
         "parameters": [
           {
@@ -14931,6 +14931,22 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/SubmitAdCampaignRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "OK"
@@ -46367,6 +46383,23 @@
             "format": "uuid"
           },
           "role": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SubmitAdCampaignRequest": {
+        "type": "object",
+        "properties": {
+          "methodKind": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "idempotencyKey": {
             "type": [
               "null",
               "string"

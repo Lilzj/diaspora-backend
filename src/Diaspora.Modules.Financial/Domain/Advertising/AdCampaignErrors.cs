@@ -63,6 +63,22 @@ public static class AdCampaignErrors
 
     // ── Submission ──────────────────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Nothing to charge against. A campaign that reached review unpriced would be one somebody had
+    /// to price by hand.
+    /// </summary>
+    /// <summary>
+    /// The budget on the campaign is not what its tier charges. One of the two numbers would end
+    /// up on a dashboard and the other on a bank statement.
+    /// </summary>
+    public static readonly Error BudgetDoesNotMatchProduct = Error.Validation(
+        FinancialErrorCodes.AdCampaignBudgetMismatch,
+        "The campaign's budget does not match the package you chose.");
+
+    public static readonly Error ProductRequiredToSubmit = Error.Validation(
+        FinancialErrorCodes.AdCampaignProductRequired,
+        "Choose what you are buying before submitting the campaign.");
+
     public static readonly Error NotSubmittable = Error.Conflict(
         FinancialErrorCodes.AdCampaignNotSubmittable,
         "Only a draft campaign can be submitted.");

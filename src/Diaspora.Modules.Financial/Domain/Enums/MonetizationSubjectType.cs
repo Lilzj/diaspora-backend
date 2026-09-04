@@ -40,5 +40,16 @@ public enum MonetizationSubjectType
     /// shipped, so acting on it is the smaller change and the one already on the wire.
     /// </para>
     /// </summary>
-    CommunityMembership = 11
+    CommunityMembership = 11,
+
+    /// <summary>
+    /// An advertising campaign — B16.
+    /// <para>
+    /// A campaign is bought the way everything else on this platform is bought: as a purchase with
+    /// a subject. That is what lets the capture find its way back to the campaign without the
+    /// campaign's own handler reaching into the purchase path, which DSP1001 forbids and which
+    /// would have meant a second implementation of pricing.
+    /// </para>
+    /// </summary>
+    Campaign = 12
 }
