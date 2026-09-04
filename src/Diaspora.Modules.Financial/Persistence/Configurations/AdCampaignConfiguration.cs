@@ -120,6 +120,13 @@ public sealed class AdCampaignConfiguration : IEntityTypeConfiguration<AdCampaig
 
             subject.Property(reference => reference.SubjectId)
                 .HasColumnName("SubjectId");
+
+            // The impression consumer's lookup: "which campaign is delivering over this subject",
+            // once per served promotion. Unindexed it would be a table scan on delivery.
+            subject.HasIndex(
+                    nameof(Domain.ValueObjects.SubjectReference.SubjectType),
+                    nameof(Domain.ValueObjects.SubjectReference.SubjectId))
+                .HasDatabaseName("ix_financial_ad_campaigns_subject");
         });
 
         builder.OwnsOne(campaign => campaign.Schedule, schedule =>

@@ -6548,6 +6548,60 @@ namespace Diaspora.Persistence.Migrations
                     b.ToTable("financial_ad_campaigns", "financial");
                 });
 
+            modelBuilder.Entity("Diaspora.Modules.Financial.Domain.Advertising.AdPerformanceDay", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CampaignId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("Clicks")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("Conversions")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Exponent")
+                        .HasColumnType("integer");
+
+                    b.Property<long>("Impressions")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid?>("PlacementId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("SpendMinorUnits")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Surface")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CampaignId", "Day")
+                        .HasDatabaseName("ix_financial_ad_performance_campaign_day");
+
+                    b.HasIndex("PlacementId", "Day")
+                        .HasDatabaseName("ix_financial_ad_performance_placement_day");
+
+                    b.HasIndex("CampaignId", "PlacementId", "Surface", "Day")
+                        .IsUnique()
+                        .HasDatabaseName("ix_financial_ad_performance_bucket");
+
+                    b.ToTable("financial_ad_performance_days", "financial");
+                });
+
             modelBuilder.Entity("Diaspora.Modules.Financial.Domain.Catalog.MonetizationProduct", b =>
                 {
                     b.Property<Guid>("Id")
@@ -21893,6 +21947,9 @@ namespace Diaspora.Persistence.Migrations
                                 .HasColumnName("SubjectType");
 
                             b1.HasKey("AdCampaignId");
+
+                            b1.HasIndex("SubjectType", "SubjectId")
+                                .HasDatabaseName("ix_financial_ad_campaigns_subject");
 
                             b1.ToTable("financial_ad_campaigns", "financial");
 

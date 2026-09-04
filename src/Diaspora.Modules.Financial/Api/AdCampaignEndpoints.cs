@@ -34,6 +34,7 @@ internal static class AdCampaignEndpoints
 
         MapAdvertiserRoutes(group);
         MapReviewRoutes(group);
+        MapPerformanceRoutes(group);
     }
 
     private static void MapAdvertiserRoutes(RouteGroupBuilder group)
@@ -151,6 +152,92 @@ internal static class AdCampaignEndpoints
                         cancellationToken)))
             .WithName("CancelAdCampaign")
             .WithSummary("Stops a campaign for good and records the unspent budget as owed.");
+    }
+
+    /// <summary>
+    /// Performance — MON-GAP-002.
+    /// <para>
+    /// <b>Three reads and one write, and the write is the odd one.</b> Impressions are recorded by
+    /// the platform when B14 reports having served a promoted subject; the click is the single
+    /// metric only the device can observe, so it is the single one a route accepts. It is checked
+    /// against a delivering campaign rather than trusted.
+    /// </para>
+    /// <para>
+    /// Every read is ownership-checked and every response carries the metric definitions, because
+    /// a number whose meaning is not stated is a number somebody will read as something else.
+    /// </para>
+    /// </summary>
+    private static void MapPerformanceRoutes(RouteGroupBuilder group)
+    {
+        group.MapGet("/campaigns/{campaignId:guid}/performance", async (
+                Guid campaignId,
+                [FromQuery] int? days,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new GetAdCampaignPerformanceQuery
+                        {
+                            CampaignId = campaignId,
+                            Days = days
+                        },
+                        cancellationToken)))
+            .WithName("GetAdCampaignPerformance")
+            .WithSummary(
+                "Impressions, clicks, spend, results and cost per result for one campaign, with "
+                + "the definition of each.");
+
+        group.MapGet("/placements/{placementId:guid}/performance", async (
+                Guid placementId,
+                [FromQuery] int? days,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new GetPlacementPerformanceQuery
+                        {
+                            PlacementId = placementId,
+                            Days = days
+                        },
+                        cancellationToken)))
+            .WithName("GetPlacementPerformance")
+            .WithSummary("The same for one purchased placement.");
+
+        group.MapGet("/placements/me/performance/summary", async (
+                [FromQuery] int? days,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new GetMyAdPerformanceSummaryQuery { Days = days }, cancellationToken)))
+            .WithName("GetMyAdPerformanceSummary")
+            .WithSummary("The rollup across everything the caller is running.");
+
+        group.MapPost("/campaigns/{campaignId:guid}/clicks", async (
+                Guid campaignId,
+                RecordAdClickRequest? request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new RecordAdClickCommand
+                        {
+                            CampaignId = campaignId,
+                            Surface = request?.Surface
+                        },
+                        cancellationToken)))
+            .WithName("RecordAdClick")
+            .WithSummary(
+                "Reports a click on a promoted subject. Accepted only while the campaign is "
+                + "running, and records nothing about who clicked.");
     }
 
     private static void MapReviewRoutes(RouteGroupBuilder group)

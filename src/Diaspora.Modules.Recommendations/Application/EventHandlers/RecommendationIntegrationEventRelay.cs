@@ -58,6 +58,18 @@ public sealed class RecommendationIntegrationEventRelay
                 StrategyKeys = domainEvent.StrategyKeys,
                 IsColdStart = domainEvent.IsColdStart,
                 PolicyExclusionCount = domainEvent.PolicyExclusionCount,
+
+                // Copied rather than recomputed. This relay is the boundary, and a second place
+                // that decided what counts as promoted would be a second answer to the question
+                // B15 bills on.
+                PromotedTargets = [.. domainEvent.PromotedTargets.Select(target =>
+                    new PromotedTargetPayload
+                    {
+                        TargetType = target.TargetType.ToString(),
+                        TargetId = target.TargetId,
+                        Position = target.Position
+                    })],
+
                 GeneratedAt = domainEvent.GeneratedAt
             },
             cancellationToken);

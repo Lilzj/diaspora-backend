@@ -1,4 +1,5 @@
 using Diaspora.Modules.Financial.Domain.Advertising;
+using Diaspora.Modules.Financial.Domain.Enums;
 using Diaspora.Modules.Financial.Domain.Identifiers;
 using Diaspora.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -87,6 +88,23 @@ public sealed class AdCampaignRepository : IAdCampaignRepository
             .ThenBy(campaign => campaign.Id)
             .Take(Math.Clamp(take, 1, 200))
             .ToListAsync(cancellationToken);
+
+    public async Task<AdCampaign?> FindDeliveringForSubjectAsync(
+        MonetizationSubjectType subjectType,
+        Guid subjectId,
+        CancellationToken cancellationToken = default) =>
+
+        // Active only. A paused or draft campaign over the same subject is not delivering, and
+        // counting an impression against it would show an advertiser numbers for a campaign they
+        // stopped.
+        await Campaigns
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                campaign => campaign.Status == AdCampaignStatus.Active
+                    && campaign.Subject != null
+                    && campaign.Subject.SubjectType == subjectType
+                    && campaign.Subject.SubjectId == subjectId,
+                cancellationToken);
 
     public async Task<IReadOnlyList<AdCampaign>> ListForDeliverySweepAsync(
         DateTimeOffset asOf, int take = 200, CancellationToken cancellationToken = default) =>

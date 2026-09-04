@@ -67,6 +67,7 @@ internal static class FinancialPersistenceConstants
 
     public const string AdCampaignsTable = "financial_ad_campaigns";
     public const string AdCampaignPlacementsTable = "financial_ad_campaign_placements";
+    public const string AdPerformanceTable = "financial_ad_performance_days";
 
     /// <summary>Enum names are stored as text; nothing in this module has a longer one.</summary>
     public const int EnumLength = 32;

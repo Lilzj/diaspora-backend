@@ -145,3 +145,16 @@ public sealed record AppealAdCampaignRequest
 {
     public string? Note { get; init; }
 }
+
+/// <summary>
+/// A click on a promoted subject.
+/// <para>
+/// Carries the surface so an advertiser can see where their campaign is working, and nothing else:
+/// the platform already knows the campaign from the path and deliberately does not want to know who
+/// clicked.
+/// </para>
+/// </summary>
+public sealed record RecordAdClickRequest
+{
+    public string? Surface { get; init; }
+}

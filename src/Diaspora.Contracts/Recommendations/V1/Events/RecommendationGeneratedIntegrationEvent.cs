@@ -40,5 +40,14 @@ public sealed record RecommendationGeneratedIntegrationEvent : IntegrationEvent
     /// <summary>How many candidates a policy removed before ranking.</summary>
     public required int PolicyExclusionCount { get; init; }
 
+    /// <summary>
+    /// The subjects that ranked where they did because somebody paid for them.
+    /// <para>
+    /// Empty for almost every set. B15 counts a paid impression per entry, which is the only
+    /// honest source for that number — see <see cref="PromotedTargetPayload"/>.
+    /// </para>
+    /// </summary>
+    public IReadOnlyList<PromotedTargetPayload> PromotedTargets { get; init; } = [];
+
     public required DateTimeOffset GeneratedAt { get; init; }
 }

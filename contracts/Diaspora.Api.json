@@ -15158,6 +15158,149 @@
         }
       }
     },
+    "/api/v1/financial/campaigns/{campaignId}/performance": {
+      "get": {
+        "tags": [
+          "Financial"
+        ],
+        "summary": "Impressions, clicks, spend, results and cost per result for one campaign, with the definition of each.",
+        "operationId": "GetAdCampaignPerformance",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/financial/placements/{placementId}/performance": {
+      "get": {
+        "tags": [
+          "Financial"
+        ],
+        "summary": "The same for one purchased placement.",
+        "operationId": "GetPlacementPerformance",
+        "parameters": [
+          {
+            "name": "placementId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/financial/placements/me/performance/summary": {
+      "get": {
+        "tags": [
+          "Financial"
+        ],
+        "summary": "The rollup across everything the caller is running.",
+        "operationId": "GetMyAdPerformanceSummary",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/financial/campaigns/{campaignId}/clicks": {
+      "post": {
+        "tags": [
+          "Financial"
+        ],
+        "summary": "Reports a click on a promoted subject. Accepted only while the campaign is running, and records nothing about who clicked.",
+        "operationId": "RecordAdClick",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RecordAdClickRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/geo/neighborhoods/compare": {
       "get": {
         "tags": [
@@ -42518,6 +42661,17 @@
             "format": "uuid"
           },
           "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "RecordAdClickRequest": {
+        "type": "object",
+        "properties": {
+          "surface": {
             "type": [
               "null",
               "string"

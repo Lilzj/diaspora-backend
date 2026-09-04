@@ -231,3 +231,108 @@ public sealed record AdAudienceEstimateResponse
     /// </summary>
     public required bool IsNarrowed { get; init; }
 }
+
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+// Performance — MON-GAP-002.
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+
+/// <summary>
+/// What each number means, sent with every performance response.
+/// <para>
+/// <b>MON-GAP-002 asks for "a documented definition for every metric" and this is where it goes.</b>
+/// A definition that lives in a code comment is one the person reading the dashboard never sees,
+/// and §20 forbids inventing metric semantics — which includes letting a client invent them by
+/// guessing what a number means.
+/// </para>
+/// <para>
+/// Written for an advertiser, not for a reviewer of this file. They are printable as they stand.
+/// </para>
+/// </summary>
+public sealed record AdMetricDefinitionsResponse
+{
+    public required string Impression { get; init; }
+
+    public required string Click { get; init; }
+
+    public required string Conversion { get; init; }
+
+    public required string Result { get; init; }
+
+    /// <summary>What is collapsed, and what is not. Currently nothing is.</summary>
+    public required string Deduplication { get; init; }
+
+    /// <summary>How far behind delivery these figures run.</summary>
+    public required string ReportingLag { get; init; }
+}
+
+/// <summary>One day of delivery.</summary>
+public sealed record AdPerformanceDayResponse
+{
+    public required DateOnly Day { get; init; }
+
+    public required long Impressions { get; init; }
+
+    public required long Clicks { get; init; }
+
+    public required long Conversions { get; init; }
+
+    public required long SpendMinorUnits { get; init; }
+}
+
+/// <summary>Delivery on one surface, so an advertiser can see where it is working.</summary>
+public sealed record AdPerformanceSurfaceResponse
+{
+    public required string Surface { get; init; }
+
+    public required long Impressions { get; init; }
+
+    public required long Clicks { get; init; }
+}
+
+/// <summary>
+/// How a campaign, a placement, or everything an advertiser runs is doing.
+/// <para>
+/// <b>Every derived figure is computed on the server.</b> Cost per result is a division that has to
+/// agree with what the campaign was actually charged; a client doing it from two rounded numbers
+/// would show a figure the platform never calculated.
+/// </para>
+/// <para>
+/// <b>An absent rate is null, never zero.</b> "0% clicked" and "we have not shown this to anybody
+/// yet" are different sentences, and only one of them is a reason to change the creative.
+/// </para>
+/// </summary>
+public sealed record AdPerformanceResponse
+{
+    public required DateOnly From { get; init; }
+
+    public required DateOnly To { get; init; }
+
+    public required long Impressions { get; init; }
+
+    public required long Clicks { get; init; }
+
+    public required long Conversions { get; init; }
+
+    /// <summary>Clicks over impressions, six decimal places. Null when nothing was served.</summary>
+    public decimal? ClickThroughRate { get; init; }
+
+    public required AdMoneyResponse Spend { get; init; }
+
+    /// <summary>What the objective counts. See <see cref="AdMetricDefinitionsResponse.Result"/>.</summary>
+    public required long Results { get; init; }
+
+    /// <summary>Spend over results. Null when there are none — dividing by zero is not "free".</summary>
+    public AdMoneyResponse? CostPerResult { get; init; }
+
+    /// <summary>
+    /// How much of the budget has gone, 0 to 1. Null for a placement or a rollup, which have no
+    /// single budget behind them.
+    /// </summary>
+    public decimal? BudgetConsumedFraction { get; init; }
+
+    public IReadOnlyList<AdPerformanceDayResponse> Daily { get; init; } = [];
+
+    public IReadOnlyList<AdPerformanceSurfaceResponse> BySurface { get; init; } = [];
+
+    public required AdMetricDefinitionsResponse Definitions { get; init; }
+}

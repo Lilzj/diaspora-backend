@@ -144,6 +144,20 @@ public sealed class RecommendationSet : AggregateRoot<RecommendationSetId>, IAud
 
         set.StrategyKeys = string.Join(',', strategies);
 
+        // The items that ranked where they did because somebody paid. Identified by the reason
+        // code rather than by a score threshold: `Promoted` is its own code precisely so a
+        // promotion never explains itself as merit, and that makes it the one unambiguous marker
+        // of a paid impression. B15 counts one per entry.
+        var promoted = set._items
+            .Where(item => item.Explanation.ReasonCode == RecommendationReasonCode.Promoted)
+            .Select(item => new PromotedTarget
+            {
+                TargetType = item.Target.TargetType,
+                TargetId = item.Target.TargetId,
+                Position = item.Position
+            })
+            .ToArray();
+
         set.RaiseDomainEvent(new RecommendationGeneratedDomainEvent
         {
             SetId = id,
@@ -153,6 +167,7 @@ public sealed class RecommendationSet : AggregateRoot<RecommendationSetId>, IAud
             StrategyKeys = strategies,
             IsColdStart = isColdStart,
             PolicyExclusionCount = set.PolicyExclusionCount,
+            PromotedTargets = promoted,
             GeneratedAt = generatedAt
         });
 

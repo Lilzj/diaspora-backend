@@ -34,5 +34,25 @@ public sealed record RecommendationGeneratedDomainEvent : DomainEvent
     /// <summary>How many candidates a policy removed before ranking. The number nobody else can see.</summary>
     public required int PolicyExclusionCount { get; init; }
 
+    /// <summary>
+    /// The subjects in this set that ranked where they did <em>because</em> they were promoted.
+    /// <para>
+    /// Empty for almost every set. Present so B15 can count paid impressions without a
+    /// synchronous call back into this module on the read path — see
+    /// <c>PromotedTargetPayload</c>.
+    /// </para>
+    /// </summary>
+    public required IReadOnlyList<PromotedTarget> PromotedTargets { get; init; }
+
     public required DateTimeOffset GeneratedAt { get; init; }
+}
+
+/// <summary>One subject served because it was promoted. See the event's own summary.</summary>
+public sealed record PromotedTarget
+{
+    public required RecommendationTargetType TargetType { get; init; }
+
+    public required Guid TargetId { get; init; }
+
+    public required int Position { get; init; }
 }

@@ -1,3 +1,4 @@
+using Diaspora.Modules.Financial.Domain.Enums;
 using Diaspora.Modules.Financial.Domain.Identifiers;
 
 namespace Diaspora.Modules.Financial.Domain.Advertising;
@@ -53,6 +54,26 @@ public interface IAdCampaignRepository
     /// </summary>
     Task<IReadOnlyList<AdCampaign>> ListAwaitingReviewAsync(
         int take = 50, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The campaign currently delivering over a subject, if there is one.
+    /// <para>
+    /// <b>Internal, and deliberately not reachable from any route.</b> Every other read here is
+    /// keyed by owner, because an advertiser is owed their own numbers and nobody is owed "who is
+    /// promoting this listing, and how is it going" — which is what a subject-keyed read answers.
+    /// This exists for one caller: the consumer that counts an impression when B14 reports having
+    /// served a promoted subject, which has a subject and needs a campaign.
+    /// </para>
+    /// <para>
+    /// Returns null where no campaign is above the promotion. That is an ordinary case rather than
+    /// an error: a placement bought before campaigns existed is a real promotion with nothing to
+    /// attribute it to.
+    /// </para>
+    /// </summary>
+    Task<AdCampaign?> FindDeliveringForSubjectAsync(
+        MonetizationSubjectType subjectType,
+        Guid subjectId,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Campaigns that should now be running but are not, and ones whose window has closed.
