@@ -5,6 +5,7 @@ using Diaspora.IntegrationTests.Common;
 using Diaspora.Modules.CommunityProgramme.Domain.Communities;
 using Diaspora.Modules.CommunityProgramme.Domain.Identifiers;
 using Diaspora.Modules.CommunityProgramme.Domain.Repositories;
+using Diaspora.Modules.CommunityProgramme.Infrastructure.Hosting;
 using Diaspora.SharedKernel.Identity;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
@@ -360,6 +361,82 @@ public sealed class CommunityDirectoryTests : IdentityTestBase
 
         community.Status.Should().Be("Pending");
         community.Slug.Should().Be(slug);
+    }
+
+    // ════════════════════════════════════════════════════════════════════════════════════════
+    // The founding directory
+    // ════════════════════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// <b>The directory is not empty, and the reason to assert that here is what an empty one
+    /// hides.</b> Every filter, exclusion and visibility test in this file passes against a
+    /// directory that returns nothing at all — which is the failure mode this module has already
+    /// paid for once: a discovery route that answered 500 the moment its page held a row, with a
+    /// suite that only ever asked it about an empty table.
+    /// </summary>
+    [Fact]
+    public async Task The_directory_is_seeded_at_startup()
+    {
+        var page = await ReadDataAsync<DirectoryPageDto>(
+            await HttpClient.GetAsync($"{Root}?limit=50"));
+
+        page.Items.Should().NotBeEmpty("the founding set is seeded by CommunityDirectorySeeder");
+
+        page.Items.Should().Contain(
+            item => item.Community.Slug == "nigerian-diaspora");
+    }
+
+    /// <summary>
+    /// <b>A community with no country is in the directory, and that is the point of the phase.</b>
+    /// A founding set of nothing but national diasporas would let "one country, one community" back
+    /// in through the data, whatever the model says — so the seed carries a regional community with
+    /// no country code and an interest community with no geography at all.
+    /// </summary>
+    [Fact]
+    public async Task The_directory_holds_communities_that_are_not_countries()
+    {
+        var page = await ReadDataAsync<DirectoryPageDto>(
+            await HttpClient.GetAsync($"{Root}?limit=50"));
+
+        var regional = page.Items
+            .Should().ContainSingle(item => item.Community.Slug == "west-african-community")
+            .Subject.Community;
+
+        regional.Origin.CountryCode.Should().BeNull();
+        regional.Origin.RegionName.Should().Be("West Africa");
+
+        var interest = page.Items
+            .Should().ContainSingle(item => item.Community.Slug == "diaspora-founders")
+            .Subject.Community;
+
+        interest.Origin.CountryCode.Should().BeNull();
+        interest.Origin.RegionName.Should().BeNull();
+
+        interest.Identity.IconName.Should().NotBeNullOrEmpty(
+            "a community with no country has no flag, and the icon is all that is left");
+    }
+
+    /// <summary>
+    /// <b>Seeding twice adds nothing.</b> The seeder runs on every boot, and a deployment that
+    /// gained eleven duplicate communities a day would be a directory nobody could use.
+    /// </summary>
+    [Fact]
+    public async Task Seeding_again_adds_no_duplicates()
+    {
+        var before = await ReadDataAsync<DirectoryPageDto>(
+            await HttpClient.GetAsync($"{Root}?limit=50"));
+
+        using (var scope = Factory.Services.CreateScope())
+        {
+            await scope.ServiceProvider
+                .GetRequiredService<CommunityDirectorySeeder>()
+                .SeedAsync();
+        }
+
+        var after = await ReadDataAsync<DirectoryPageDto>(
+            await HttpClient.GetAsync($"{Root}?limit=50"));
+
+        after.Items.Should().HaveCount(before.Items.Count);
     }
 
     // ── Seeding ─────────────────────────────────────────────────────────────────────────────

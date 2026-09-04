@@ -2,6 +2,7 @@ using Diaspora.Modules.CommunityProgramme.Application.EventHandlers;
 using Diaspora.Modules.CommunityProgramme.Application.Services;
 using Diaspora.Modules.CommunityProgramme.Domain.Repositories;
 using Diaspora.Modules.CommunityProgramme.Infrastructure.Hosting;
+using Diaspora.Platform.Modules.Seeding;
 using Diaspora.Modules.CommunityProgramme.Options;
 using Diaspora.Modules.CommunityProgramme.Persistence.Repositories;
 using Diaspora.Platform.Modules;
@@ -132,5 +133,10 @@ public sealed class CommunityProgrammeModule : IPlatformModule
         // switch — DEBT-049's lesson, applied on the module's first day rather than four phases in.
         services.AddHostedService<CommunityProgrammeLifecycleSweep>();
         services.AddHostedService<CommunityProgrammeReconciliationSweep>();
+
+        // Not AddHostedService: AddReferenceDataSeeder registers the one instance three ways, so
+        // the integration factory can await the seed deterministically instead of racing the host.
+        // Registering it as a plain hosted service builds a second instance that nothing can await.
+        services.AddReferenceDataSeeder<CommunityDirectorySeeder>();
     }
 }
