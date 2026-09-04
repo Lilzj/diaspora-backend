@@ -1,6 +1,8 @@
 using Diaspora.Modules.CommunityProgramme.Application.EventHandlers;
 using Diaspora.Modules.CommunityProgramme.Application.Services;
 using Diaspora.Modules.CommunityProgramme.Domain.Repositories;
+using Diaspora.Modules.Financial.Extensibility.Advertising;
+using Diaspora.Modules.CommunityProgramme.Infrastructure.Advertising;
 using Diaspora.Modules.CommunityProgramme.Infrastructure.Hosting;
 using Diaspora.Platform.Modules.Seeding;
 using Diaspora.Modules.CommunityProgramme.Options;
@@ -138,5 +140,11 @@ public sealed class CommunityProgrammeModule : IPlatformModule
         // the integration factory can await the seed deterministically instead of racing the host.
         // Registering it as a plain hosted service builds a second instance that nothing can await.
         services.AddReferenceDataSeeder<CommunityDirectorySeeder>();
+
+        // B16 asks; B18 answers, because B18 owns the vocabulary. Financial references no other
+        // module, so a targeting picker reaches real communities only through a contribution like
+        // this one. See IAdTargetingOptionProvider.
+        services.AddScoped<IAdTargetingOptionProvider, CommunityTargetingOptionProvider>();
+        services.AddScoped<IAdAudienceSizer, CommunityAudienceSizer>();
     }
 }

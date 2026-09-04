@@ -192,13 +192,27 @@ public sealed record AdTargetingOptionResponse
     public required string Label { get; init; }
 }
 
-/// <summary>The selectable values for one dimension.</summary>
+/// <summary>
+/// The selectable values for one dimension.
+/// <para>
+/// <b>An empty list and no catalogue are different answers</b>, and the client renders them
+/// differently: one is "pick from this empty list", the other is "type what you want, Diaspora
+/// cannot enumerate these". Country is deliberately the second — it is an ISO list the app already
+/// holds in full, and a second copy served from here would be a second list to keep in step.
+/// </para>
+/// </summary>
 public sealed record AdTargetingOptionsResponse
 {
     /// <summary>The dimension these belong to, as its name.</summary>
     public required string Dimension { get; init; }
 
     public IReadOnlyList<AdTargetingOptionResponse> Options { get; init; } = [];
+
+    /// <summary>False when the platform cannot enumerate this dimension at all.</summary>
+    public required bool HasCatalogue { get; init; }
+
+    /// <summary>What to do instead, when there is no catalogue. Rendered verbatim.</summary>
+    public string? Note { get; init; }
 }
 
 /// <summary>

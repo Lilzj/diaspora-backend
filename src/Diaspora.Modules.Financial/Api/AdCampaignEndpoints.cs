@@ -35,6 +35,7 @@ internal static class AdCampaignEndpoints
         MapAdvertiserRoutes(group);
         MapReviewRoutes(group);
         MapPerformanceRoutes(group);
+        MapTargetingRoutes(group);
     }
 
     private static void MapAdvertiserRoutes(RouteGroupBuilder group)
@@ -238,6 +239,60 @@ internal static class AdCampaignEndpoints
             .WithSummary(
                 "Reports a click on a promoted subject. Accepted only while the campaign is "
                 + "running, and records nothing about who clicked.");
+    }
+
+    /// <summary>
+    /// Targeting — MON-GAP-007.
+    /// <para>
+    /// <b>The options come from whichever module owns the vocabulary</b>, contributed rather than
+    /// looked up, because Financial references no other module. A dimension with no contributor
+    /// answers "no catalogue" rather than "no options" — the two are different sentences on a
+    /// targeting screen.
+    /// </para>
+    /// <para>
+    /// <b>The estimate is a range with a basis, never a number.</b> §29 forbids inventing an
+    /// authoritative metric, and the reachable audience depends on who opens the app tomorrow.
+    /// </para>
+    /// </summary>
+    private static void MapTargetingRoutes(RouteGroupBuilder group)
+    {
+        group.MapGet("/targeting/options", async (
+                [FromQuery] string? dimension,
+                [FromQuery] string? query,
+                [FromQuery] int? take,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new GetAdTargetingOptionsQuery
+                        {
+                            Dimension = dimension,
+                            Query = query,
+                            Take = take
+                        },
+                        cancellationToken)))
+            .WithName("GetAdTargetingOptions")
+            .WithSummary(
+                "The selectable values for one targeting dimension, owned by the backend rather "
+                + "than hard-coded in the app.");
+
+        // POST rather than GET, because an audience is five arrays and a query string that carried
+        // fifty community ids would be a URL nothing along the path is obliged to accept. It reads
+        // and changes nothing.
+        group.MapPost("/targeting/estimate", async (
+                AdAudienceRequest? audience,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new EstimateAdAudienceQuery { Audience = audience }, cancellationToken)))
+            .WithName("EstimateAdAudience")
+            .WithSummary(
+                "How many people a selection could reach, as a range with the reasoning behind it.");
     }
 
     private static void MapReviewRoutes(RouteGroupBuilder group)

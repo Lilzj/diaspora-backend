@@ -15301,6 +15301,78 @@
         }
       }
     },
+    "/api/v1/financial/targeting/options": {
+      "get": {
+        "tags": [
+          "Financial"
+        ],
+        "summary": "The selectable values for one targeting dimension, owned by the backend rather than hard-coded in the app.",
+        "operationId": "GetAdTargetingOptions",
+        "parameters": [
+          {
+            "name": "dimension",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "take",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/financial/targeting/estimate": {
+      "post": {
+        "tags": [
+          "Financial"
+        ],
+        "summary": "How many people a selection could reach, as a range with the reasoning behind it.",
+        "operationId": "EstimateAdAudience",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/AdAudienceRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/geo/neighborhoods/compare": {
       "get": {
         "tags": [

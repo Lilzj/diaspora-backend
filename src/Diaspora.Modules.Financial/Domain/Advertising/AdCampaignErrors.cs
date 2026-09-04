@@ -82,6 +82,10 @@ public static class AdCampaignErrors
         FinancialErrorCodes.AdCampaignRejectionNeedsReason,
         "Say why the campaign was rejected. The advertiser is shown this.");
 
+    public static readonly Error DimensionUnknown = Error.Validation(
+        FinancialErrorCodes.AdCampaignDimensionUnknown,
+        "That is not a targeting dimension this platform honours.");
+
     public static readonly Error DecisionUnknown = Error.Validation(
         FinancialErrorCodes.AdCampaignDecisionUnknown,
         "A review is either an approval or a rejection.");
