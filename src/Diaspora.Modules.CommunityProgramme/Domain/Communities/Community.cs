@@ -1,6 +1,7 @@
 using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.CommunityProgramme.Domain.Errors;
 using Diaspora.Modules.CommunityProgramme.Domain.Identifiers;
+using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Primitives;
 using Diaspora.SharedKernel.Results;
 

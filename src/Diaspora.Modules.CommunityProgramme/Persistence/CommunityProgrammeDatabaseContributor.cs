@@ -40,6 +40,11 @@ public sealed class CommunityProgrammeDatabaseContributor : IDatabaseContributor
 
         // What an organization offers: the programme, its tiers, and each tier's benefits and
         // requirements. Four tables, one root.
+        // The community aggregate. Registered first because a membership has a foreign key
+        // to it and EF wants the principal known before the dependent.
+        modelBuilder.ApplyConfiguration(new CommunityConfiguration());
+        modelBuilder.ApplyConfiguration(new CommunityMembershipConfiguration());
+
         modelBuilder.ApplyConfiguration(new MembershipProgrammeConfiguration());
 
         // Who bought one, and where that is in its fourteen-state life. Its own aggregate for the

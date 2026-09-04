@@ -3641,6 +3641,166 @@ namespace Diaspora.Persistence.Migrations
                     b.ToTable("community_announcements", "community_programme");
                 });
 
+            modelBuilder.Entity("Diaspora.Modules.CommunityProgramme.Domain.Communities.Community", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<int>("MemberCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("OriginCountryCode")
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)");
+
+                    b.Property<string>("OriginRegionName")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.PrimitiveCollection<string[]>("PresenceCountryCodes")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<string>("PrimaryLanguage")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("StatusReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.PrimitiveCollection<string[]>("SupportedLanguages")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<string>("Tagline")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Visibility")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OriginCountryCode")
+                        .HasDatabaseName("ix_communities_origin_country");
+
+                    b.HasIndex("Slug")
+                        .IsUnique()
+                        .HasDatabaseName("ix_communities_slug");
+
+                    b.HasIndex("Type")
+                        .HasDatabaseName("ix_communities_type");
+
+                    b.HasIndex("Status", "Visibility")
+                        .HasDatabaseName("ix_communities_status_visibility");
+
+                    b.ToTable("communities", "community_programme");
+                });
+
+            modelBuilder.Entity("Diaspora.Modules.CommunityProgramme.Domain.Communities.CommunityMembership", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CommunityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("DecidedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DecisionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset?>("EndedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("JoinedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MemberId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_community_memberships_one_primary_per_member")
+                        .HasFilter("\"IsPrimary\"");
+
+                    b.HasIndex("CommunityId", "MemberId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_community_memberships_community_member");
+
+                    b.HasIndex("MemberId", "State")
+                        .HasDatabaseName("ix_community_memberships_member_state");
+
+                    b.ToTable("community_memberships", "community_programme");
+                });
+
             modelBuilder.Entity("Diaspora.Modules.CommunityProgramme.Domain.Memberships.MembershipProgramme", b =>
                 {
                     b.Property<Guid>("Id")
@@ -19886,6 +20046,15 @@ namespace Diaspora.Persistence.Migrations
                         });
 
                     b.Navigation("Media");
+                });
+
+            modelBuilder.Entity("Diaspora.Modules.CommunityProgramme.Domain.Communities.CommunityMembership", b =>
+                {
+                    b.HasOne("Diaspora.Modules.CommunityProgramme.Domain.Communities.Community", null)
+                        .WithMany()
+                        .HasForeignKey("CommunityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Diaspora.Modules.CommunityProgramme.Domain.Memberships.MembershipProgramme", b =>

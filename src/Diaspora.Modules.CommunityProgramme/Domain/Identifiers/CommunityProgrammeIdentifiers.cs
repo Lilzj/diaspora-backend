@@ -129,21 +129,13 @@ public sealed record CommunityAnnouncementId(Guid Value) : StronglyTypedId(Value
 }
 
 /// <summary>
-/// A community — the group people belong to, not the organization that serves one.
-/// <para>
-/// The register asked for "a stable identifier independent of country code", and this is it. A
-/// community keyed by country could never express "Nigerians in London" and "Nigerians in Toronto"
-/// as two things, and could never express an interest community at all.
-/// </para>
-/// </summary>
-public sealed record CommunityId(Guid Value) : StronglyTypedId(Value)
-{
-    public static CommunityId New() => new(Guid.NewGuid());
-    public static CommunityId From(Guid value) => new(value);
-}
-
-/// <summary>
 /// One person's standing in one community.
+/// <para>
+/// The community itself is identified by <c>Diaspora.SharedKernel.Identity.CommunityId</c>,
+/// which already existed: Automation scopes an automation to a community with it. A second,
+/// module-local CommunityId would have made an automation's community and a membership's
+/// community two unrelated types that happen to hold the same Guid.
+/// </para>
 /// <para>
 /// Distinct from <see cref="ProgrammeMembershipId"/>, which is a paid tier in an organization's
 /// programme. Somebody can belong to a community and have bought nothing, and can hold a lapsed

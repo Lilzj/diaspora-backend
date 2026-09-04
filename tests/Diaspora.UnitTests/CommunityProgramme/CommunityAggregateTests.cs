@@ -1,5 +1,6 @@
 using Diaspora.Modules.CommunityProgramme.Domain.Communities;
 using Diaspora.Modules.CommunityProgramme.Domain.Identifiers;
+using Diaspora.SharedKernel.Identity;
 using Diaspora.Modules.CommunityProgramme;
 // `Diaspora.UnitTests.Community` is a sibling namespace, so the bare name resolves to it
 // rather than to the aggregate. Aliased once here instead of qualifying every use.

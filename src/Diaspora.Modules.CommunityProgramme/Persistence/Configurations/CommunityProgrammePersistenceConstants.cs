@@ -15,6 +15,10 @@ internal static class CommunityProgrammePersistenceConstants
 {
     // ── Tables ──────────────────────────────────────────────────────────────────────────────
 
+    // ── Communities — the groups people belong to, not the programmes organizations sell ──
+    public const string CommunitiesTable = "communities";
+    public const string CommunityMembershipsTable = "community_memberships";
+
     public const string ProgrammesTable = "membership_programmes";
     public const string ProgrammeTiersTable = "membership_tiers";
     public const string TierBenefitsTable = "membership_tier_benefits";
