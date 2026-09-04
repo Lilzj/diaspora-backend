@@ -45,8 +45,17 @@ public sealed record CommunityDirectoryFilter
     /// </summary>
     public UserId? Viewer { get; init; }
 
-    /// <summary>Whether to include communities the viewer already belongs to.</summary>
-    public bool IncludeJoined { get; init; } = true;
+    /// <summary>
+    /// Communities to leave out, resolved by the caller.
+    /// <para>
+    /// This is how <c>includeJoined=false</c> is served, and it is applied in the query rather than
+    /// to the materialised page for a reason worth stating: dropping rows after paging returns short
+    /// pages, and a short page reads to an infinite-scroll list as the end of the directory. A
+    /// member who belongs to eight of the first twenty communities would see a twelve-row list and
+    /// no more.
+    /// </para>
+    /// </summary>
+    public IReadOnlyList<CommunityId>? ExcludeCommunityIds { get; init; }
 
     public string? Cursor { get; init; }
 

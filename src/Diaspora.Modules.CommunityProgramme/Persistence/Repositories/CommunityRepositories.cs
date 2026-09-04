@@ -155,6 +155,12 @@ public sealed class CommunityRepository : ICommunityRepository
             query = query.Where(community => community.PresenceCountryCodes.Contains(presence));
         }
 
+        if (filter.ExcludeCommunityIds is { Count: > 0 })
+        {
+            var excluded = filter.ExcludeCommunityIds.ToList();
+            query = query.Where(community => !excluded.Contains(community.Id));
+        }
+
         var cursor = CommunityProgrammeCursor.Parse(filter.Cursor);
 
         query = CursorPage.Apply(

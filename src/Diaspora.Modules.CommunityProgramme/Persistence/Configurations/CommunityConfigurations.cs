@@ -81,6 +81,10 @@ public sealed class CommunityConfiguration : IEntityTypeConfiguration<CommunityA
         builder.Property(community => community.PrimaryLanguage).HasMaxLength(32);
         builder.Property(community => community.StatusReason).HasMaxLength(500);
 
+        // Display metadata. Unindexed: nothing filters, sorts or joins on any of them.
+        builder.Property(community => community.IconName).HasMaxLength(64);
+        builder.Property(community => community.AccentColor).HasMaxLength(7);
+
         builder.PrimitiveCollection(community => community.PresenceCountryCodes);
         builder.PrimitiveCollection(community => community.SupportedLanguages);
 
@@ -141,6 +145,16 @@ public sealed class CommunityMembershipConfiguration : IEntityTypeConfiguration<
             .HasConversion(CommunityProgrammeValueConverters.Id<UserId>());
 
         builder.Property(membership => membership.State).HasConversion<string>().HasMaxLength(32);
+
+        // Private is the enum's zero, so a row written without this column reads as private rather
+        // than as consent to publish. See CommunityMembershipVisibility.
+        builder.Property(membership => membership.Visibility)
+            .HasConversion<string>()
+            .HasMaxLength(32);
+
+        // A list of role names with no identity of their own. Nothing joins to a single entry, so
+        // an owned table would buy a join and a shadow key for nothing.
+        builder.PrimitiveCollection(membership => membership.Roles);
 
         builder.Property(membership => membership.DecisionReason)
             .HasMaxLength(CommunityMembership.ReasonMaximumLength);

@@ -131,3 +131,60 @@ public enum CommunityMembershipState
     /// <summary>Was a member and chose to leave.</summary>
     Left = 9,
 }
+
+/// <summary>
+/// A role inside one community.
+/// <para>
+/// <b>A role is not an authorization, and the client says so in as many words: "Display only.
+/// Authority comes from <c>capabilities</c>."</b> These drive badges and navigation; every action is
+/// gated on the capability set the server evaluates, and no screen derives one from the other. Two
+/// separate things because they drift — a moderator who is removed keeps their badge until the app
+/// refetches, and must lose the affordance immediately.
+/// </para>
+/// <para>
+/// Nothing grants any of these yet. The role directory is its own register entry
+/// (FRONTEND-PHASE13-GAP-017) and its own increment; until it lands, every membership carries
+/// <see cref="Member"/> alone and the moderation capabilities are false for everyone — which is
+/// true, rather than a placeholder.
+/// </para>
+/// </summary>
+public enum CommunityMembershipRole
+{
+    /// <summary>Belongs. Held by every current member, and implied rather than granted.</summary>
+    Member = 1,
+
+    /// <summary>Reviews reports and moderates content.</summary>
+    Moderator = 2,
+
+    /// <summary>Represents the community. A public-facing role, not a moderation one.</summary>
+    Ambassador = 3,
+
+    /// <summary>Runs the community: rules, roles, notices.</summary>
+    Administrator = 4,
+}
+
+/// <summary>
+/// Who may see that somebody belongs to a community.
+/// <para>
+/// <b><see cref="Private"/> is zero, and that is the whole design.</b> §41 requires that joining
+/// publish nothing and that the member opt <em>in</em> to being visible. A missing or defaulted
+/// value must therefore read as private — so private is what <c>default</c> gives, and any path that
+/// forgets to set this fails closed rather than open.
+/// </para>
+/// <para>
+/// Community membership is genuinely sensitive. A diaspora community, a faith community or a
+/// support group can disclose nationality, immigration status, religion or health, and the platform
+/// has no business publishing any of them because somebody tapped Join.
+/// </para>
+/// </summary>
+public enum CommunityMembershipVisibility
+{
+    /// <summary>Nobody but the member. The default, deliberately at zero.</summary>
+    Private = 0,
+
+    /// <summary>Other members of the same community.</summary>
+    CommunityOnly = 1,
+
+    /// <summary>Anybody. Only ever by an explicit choice the member made.</summary>
+    Public = 2,
+}

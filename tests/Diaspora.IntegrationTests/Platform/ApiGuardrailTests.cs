@@ -1,5 +1,6 @@
 using System.Reflection;
 using Diaspora.IntegrationTests.Common;
+using Diaspora.Modules.CommunityProgramme.Domain.Communities;
 using Diaspora.Platform.Authorization;
 using Diaspora.Platform.Modules;
 using FluentAssertions;
@@ -205,6 +206,58 @@ public sealed class ApiGuardrailTests : IClassFixture<CustomWebApplicationFactor
 
         authorised.Should().BeGreaterThan(
             100, "most of the platform's endpoints declare their policy on the route");
+    }
+
+    /// <summary>
+    /// <b>No community handle can shadow a route.</b> A community's profile is
+    /// <c>/api/v1/communities/{idOrSlug}</c> — one parameterised segment sitting directly beside
+    /// every literal one-segment route the module maps. ASP.NET Core prefers the literal, so a
+    /// community slugged <c>campaigns</c> resolves to the campaign list forever, and nothing
+    /// anywhere reports it: the row exists, the slug is valid, the route returns 200, and it is the
+    /// wrong endpoint.
+    /// <para>
+    /// <b>The reserved list cannot be trusted to know this by itself.</b> It is a hand-written set
+    /// in a domain type that has no view of the route table, and the route table is assembled at
+    /// runtime from a contributor the type never sees. When this was first written the list was
+    /// missing <c>campaigns</c>, <c>impact</c> and <c>polls</c> — three live routes — and it read as
+    /// though it were complete. This test is what found them, and it is what will find the next
+    /// route somebody maps.
+    /// </para>
+    /// <para>
+    /// Only the first segment matters: a slug is one segment, so <c>/volunteer/opportunities</c>
+    /// cannot be shadowed by any handle. The check is deliberately behavioural — it asks
+    /// <see cref="CommunitySlug"/> to mint the segment and requires a refusal — because asserting
+    /// against the private set would test the list rather than the rule.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void No_route_segment_under_communities_can_be_taken_as_a_community_handle()
+    {
+        const string Prefix = "api/v1/communities/";
+
+        var literalSegments = _endpoints
+            .Select(endpoint => endpoint.RoutePattern.RawText ?? string.Empty)
+            .Select(route => route.TrimStart('/'))
+            .Where(route => route.StartsWith(Prefix, StringComparison.Ordinal))
+            .Select(route => route[Prefix.Length..].Split('/')[0])
+
+            // A parameterised first segment is the profile route itself, not a rival.
+            .Where(segment => segment.Length > 0 && !segment.StartsWith('{'))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        literalSegments.Should().NotBeEmpty(
+            "the module maps literal routes beside the profile route, and finding none would mean "
+            + "this guardrail is scanning nothing");
+
+        var unreserved = literalSegments
+            .Where(segment => CommunitySlug.Create(segment) is { IsSuccess: true })
+            .ToList();
+
+        unreserved.Should().BeEmpty(
+            "each of these is a live route segment that a community could take as its handle, "
+            + "which would make that community permanently unreachable — add them to "
+            + "CommunitySlug.Reserved");
     }
 
     /// <summary>

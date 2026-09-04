@@ -44,6 +44,15 @@ public sealed class CommunityMembership : AggregateRoot<CommunityMembershipId>, 
 {
     public const int ReasonMaximumLength = 500;
 
+    /// <summary>
+    /// Role names, stored as strings.
+    /// <para>
+    /// Names rather than numbers, for the reason every enum in this module is stored that way:
+    /// reordering the enum would otherwise silently reassign every role on the platform.
+    /// </para>
+    /// </summary>
+    private readonly List<string> _roles = [];
+
     private CommunityMembership(
         CommunityMembershipId id,
         CommunityId communityId,
@@ -73,6 +82,31 @@ public sealed class CommunityMembership : AggregateRoot<CommunityMembershipId>, 
 
     /// <summary>When they most recently became a member. Null until they are one.</summary>
     public DateTimeOffset? JoinedAt { get; private set; }
+
+    /// <summary>
+    /// When the member's connection to this community was verified. Set by <see cref="Verify"/>.
+    /// </summary>
+    public DateTimeOffset? VerifiedAt { get; private set; }
+
+    /// <summary>
+    /// Roles held here. Display only — authority is the capability set the server evaluates.
+    /// <para>
+    /// <see cref="CommunityMembershipRole.Member"/> is implied by <see cref="IsCurrentMember"/> and
+    /// is not stored, so this list is empty for an ordinary member. Granting is a later increment;
+    /// see <see cref="CommunityMembershipRole"/>.
+    /// </para>
+    /// </summary>
+    public IReadOnlyCollection<string> Roles => _roles.AsReadOnly();
+
+    /// <summary>
+    /// Who may see that this person belongs here.
+    /// <para>
+    /// <b>Private unless the member said otherwise, and it is never set by joining.</b> §41: the
+    /// member opts in to being visible rather than out of it. The enum's zero is Private so a path
+    /// that forgets this field fails closed.
+    /// </para>
+    /// </summary>
+    public CommunityMembershipVisibility Visibility { get; private set; }
 
     /// <summary>When they most recently stopped being one, however that happened.</summary>
     public DateTimeOffset? EndedAt { get; private set; }
@@ -199,7 +233,7 @@ public sealed class CommunityMembership : AggregateRoot<CommunityMembershipId>, 
     /// Marks a member's connection to the community as verified. Never a first step: verification is
     /// a statement about somebody who already belongs.
     /// </summary>
-    public Result Verify()
+    public Result Verify(DateTimeOffset? now = null)
     {
         if (State != CommunityMembershipState.Member)
         {
@@ -207,6 +241,9 @@ public sealed class CommunityMembership : AggregateRoot<CommunityMembershipId>, 
         }
 
         State = CommunityMembershipState.VerifiedMember;
+
+        // The client shows "verified member since"; a verified state with no date cannot say it.
+        VerifiedAt = now ?? DateTimeOffset.UtcNow;
         return Result.Success();
     }
 
@@ -251,7 +288,42 @@ public sealed class CommunityMembership : AggregateRoot<CommunityMembershipId>, 
         return Result.Success();
     }
 
-    // ── Primary ─────────────────────────────────────────────────────────────────────────────
+    // ── Roles and visibility ─────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Grants a role. Granting one already held is not an error — it is the state asked for.
+    /// <para>
+    /// Refused for anybody who does not currently belong: a moderator who is not a member is a
+    /// contradiction, and the check belongs here rather than at every future call site.
+    /// </para>
+    /// </summary>
+    public Result Grant(CommunityMembershipRole role)
+    {
+        if (!IsCurrentMember)
+        {
+            return Result.Failure(CommunityErrors.NotAMember);
+        }
+
+        var name = role.ToString();
+
+        if (!_roles.Contains(name, StringComparer.Ordinal))
+        {
+            _roles.Add(name);
+        }
+
+        return Result.Success();
+    }
+
+    /// <summary>Removes a role. Removing one not held is what was asked for, not an error.</summary>
+    public void RevokeRole(CommunityMembershipRole role) =>
+        _roles.RemoveAll(held => string.Equals(held, role.ToString(), StringComparison.Ordinal));
+
+    /// <summary>
+    /// Sets who may see this membership. The member's own choice, and nobody else's.
+    /// </summary>
+    public void SetVisibility(CommunityMembershipVisibility visibility) => Visibility = visibility;
+
+    // ── Primary ──────────────────────────────────────────────────────────────────────────────
 
     /// <summary>
     /// Makes this the member's primary community. Refused unless they currently belong — otherwise
@@ -305,6 +377,11 @@ public sealed class CommunityMembership : AggregateRoot<CommunityMembershipId>, 
 
         // A community you no longer belong to cannot be the one your profile leads with.
         IsPrimary = false;
+
+        // Nor can you moderate it. A revoked moderator who kept the badge would keep it on every
+        // screen that reads roles for display, which is every screen that shows one.
+        _roles.Clear();
+
         Revision++;
     }
 

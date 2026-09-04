@@ -102,6 +102,27 @@ public sealed class Community : AggregateRoot<CommunityId>, IAuditableEntity
 
     public string? PrimaryLanguage { get; private set; }
 
+    // ── Identity ────────────────────────────────────────────────────────────────────────────
+    //
+    // Three fields a person uses to recognise their community at a glance, and the reason they are
+    // on the aggregate rather than left null on the wire: the client's card falls back from flag to
+    // icon to bare name, and a RegionalDiaspora or InterestCommunity has no country, so no flag.
+    // Without an icon those communities render as grey text — which is the type this whole phase
+    // exists to make first-class. Serving a contract-valid response that makes the screen worse
+    // than the adapter it replaces is not closing the gap.
+    //
+    // Advisory, all three. Nothing is gated on them and none is required.
+
+    /// <summary>The community's mark. A media id resolved to a URL at the edge, never a raw link.</summary>
+    public Guid? LogoMediaId { get; private set; }
+
+    /// <summary>An Ionicons name. What a community with no flag is recognised by.</summary>
+    public string? IconName { get; private set; }
+
+    /// <summary>Hex, <c>#rrggbb</c>. Advisory: contrast is the client's to guarantee, not this
+    /// module's to promise.</summary>
+    public string? AccentColor { get; private set; }
+
     /// <summary>Where this community has a presence, which is not where it is from.</summary>
     public IReadOnlyCollection<string> PresenceCountryCodes => _presenceCountryCodes.AsReadOnly();
 
@@ -269,6 +290,47 @@ public sealed class Community : AggregateRoot<CommunityId>, IAuditableEntity
     }
 
     public void SetVisibility(CommunityVisibility visibility) => Visibility = visibility;
+
+    /// <summary>
+    /// Sets the community's mark. Each argument is applied as given, <c>null</c> included, so
+    /// clearing a logo is one call rather than a second method.
+    /// <para>
+    /// A malformed accent colour is dropped rather than refused. It is advisory display metadata —
+    /// refusing the whole edit because a hex string lost its hash would block a name change on a
+    /// field nothing depends on.
+    /// </para>
+    /// </summary>
+    public void SetIdentity(Guid? logoMediaId, string? iconName, string? accentColor)
+    {
+        LogoMediaId = logoMediaId;
+
+        var icon = iconName?.Trim();
+        IconName = string.IsNullOrEmpty(icon) ? null : icon;
+
+        var colour = accentColor?.Trim();
+        AccentColor = IsHexColour(colour) ? colour!.ToLowerInvariant() : null;
+    }
+
+    /// <summary><c>#rrggbb</c>, and nothing else. Written out rather than a regex because the
+    /// aggregate would have to become partial to carry a <c>[GeneratedRegex]</c>, and this is
+    /// clearer than the regex would have been.</summary>
+    private static bool IsHexColour(string? value)
+    {
+        if (value is not { Length: 7 } || value[0] != '#')
+        {
+            return false;
+        }
+
+        for (var index = 1; index < 7; index++)
+        {
+            if (!Uri.IsHexDigit(value[index]))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     public void SetLanguages(string? primaryLanguage, IEnumerable<string>? supported)
     {

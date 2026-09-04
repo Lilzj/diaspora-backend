@@ -36,11 +36,31 @@ public sealed partial class CommunitySlug : ValueObject
     /// <summary>
     /// Words a slug may not take, because each already names a route segment under
     /// <c>/communities</c> or would read as one.
+    /// <para>
+    /// <b>This list is checked against the composed route table, not maintained by hand.</b> A
+    /// community slugged <c>campaigns</c> would be minted, stored, and then shadowed: its profile
+    /// URL is <c>/api/v1/communities/campaigns</c>, which the router hands to the campaign list
+    /// because a literal segment beats a parameter. The community is unreachable and nothing
+    /// reports it. Three words below were missing for exactly that reason and were found by adding
+    /// the guardrail rather than by reading this list.
+    /// </para>
+    /// <para>
+    /// Some entries name no route yet — <c>compare</c> and <c>suggestions</c> are the register's
+    /// and are not built. Reserving ahead costs a handle nobody has asked for; not reserving costs
+    /// a migration to take one back.
+    /// </para>
     /// </summary>
     private static readonly HashSet<string> Reserved = new(StringComparer.Ordinal)
     {
-        "me", "new", "search", "all", "none", "admin", "api", "directory",
-        "memberships", "organizations", "announcements", "settings", "primary",
+        // Route segments live under /api/v1/communities today.
+        "announcements", "campaigns", "impact", "memberships", "organizations", "polls", "search",
+        "volunteer",
+
+        // Declared by the register, not yet mapped. See the summary.
+        "compare", "suggestions", "directory", "primary",
+
+        // Never a community, whatever the route table says.
+        "me", "new", "all", "none", "admin", "api", "settings",
     };
 
     private CommunitySlug(string value) => Value = value;

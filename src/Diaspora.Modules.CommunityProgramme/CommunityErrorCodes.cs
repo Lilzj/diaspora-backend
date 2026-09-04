@@ -30,6 +30,11 @@ public static class CommunityErrorCodes
     public const string CountryCodeShape = Prefix + ".country-code.shape";
 
     // ── Lifecycle ───────────────────────────────────────────────────────────────────────────
+    // The directory's orderings. See GetCommunityDirectoryQueryHandler.ReadSort.
+    public const string SortUnknown = Prefix + ".sort.unknown";
+    public const string SortByMembersUnavailable = Prefix + ".sort.members-unavailable";
+    public const string SortByNameUnavailable = Prefix + ".sort.name-unavailable";
+
     public const string NotJoinable = Prefix + ".not-joinable";
     public const string AlreadyActive = Prefix + ".already-active";
     public const string ArchivedIsFinal = Prefix + ".archived-is-final";

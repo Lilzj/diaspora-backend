@@ -31,6 +31,13 @@ public sealed class CommunityProgrammeEndpointContributor : IEndpointContributor
             .MapGroup(CommunityProgrammeModuleMetadata.RoutePrefix)
             .WithTags("Community Programme");
 
+        // First, and the order is not cosmetic. `/{idOrSlug}` is a single parameterised segment
+        // sitting beside every literal one below it; mapping it here keeps it visible next to what
+        // it competes with. ASP.NET Core resolves by specificity rather than by registration order,
+        // so the literals still win — CommunitySlug refusing those words is what protects the
+        // handles, and a guardrail over the composed route table is what keeps that list honest.
+        CommunityEndpoints.Map(group);
+
         OrganizationEndpoints.Map(group);
         MembershipEndpoints.Map(group);
         VolunteerEndpoints.Map(group);

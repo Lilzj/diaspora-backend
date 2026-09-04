@@ -72,6 +72,33 @@ public static class CommunityErrors
 
     // ── Lifecycle ───────────────────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// An ordering the directory does not serve. Each of the three is refused rather than quietly
+    /// substituted, and each carries its own reason because the client renders three different
+    /// things: an unknown word is a bug, and the other two are honest limits.
+    /// </summary>
+    public static readonly Error SortUnknown = Error.Validation(
+        CommunityErrorCodes.SortUnknown,
+        "That is not an ordering the directory offers.");
+
+    /// <summary>
+    /// §31: do not imply a popularity the backend does not authoritatively report. The member count
+    /// is maintained as members come and go rather than measured, so an order built on it would
+    /// present a running total as a ranking.
+    /// </summary>
+    public static readonly Error SortByMembersUnavailable = Error.Validation(
+        CommunityErrorCodes.SortByMembersUnavailable,
+        "Communities cannot be ordered by size. The platform does not publish an authoritative member count.");
+
+    /// <summary>
+    /// The module pages on a timestamp-keyed cursor. Serving a name order would need a second
+    /// boundary scheme; paging in timestamp order under a name label would be the silent fallback
+    /// this refusal exists to avoid.
+    /// </summary>
+    public static readonly Error SortByNameUnavailable = Error.Validation(
+        CommunityErrorCodes.SortByNameUnavailable,
+        "Communities cannot be ordered by name yet.");
+
     public static readonly Error NotJoinable = Error.Conflict(
         CommunityErrorCodes.NotJoinable,
         "This community is not open to join at the moment.");
