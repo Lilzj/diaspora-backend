@@ -55,6 +55,10 @@ public sealed class FinancialDatabaseContributor : IDatabaseContributor
         modelBuilder.ApplyConfiguration(new MonetizationPurchaseConfiguration());
         modelBuilder.ApplyConfiguration(new PlacementConfiguration());
 
+        // B16. The layer above a placement — see AdCampaignConfiguration for why the table is
+        // financial_ad_campaigns and not financial_campaigns.
+        modelBuilder.ApplyConfiguration(new AdCampaignConfiguration());
+
         // Recurring — the plan catalogue and the subscriptions against it.
         modelBuilder.ApplyConfiguration(new SubscriptionPlanConfiguration());
         modelBuilder.ApplyConfiguration(new SubscriptionConfiguration());

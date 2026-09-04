@@ -7,6 +7,7 @@ using Diaspora.Modules.Financial.Domain.Currencies;
 using Diaspora.Modules.Financial.Domain.Giving;
 using Diaspora.Modules.Financial.Domain.Ledgers;
 using Diaspora.Modules.Financial.Domain.Payments;
+using Diaspora.Modules.Financial.Domain.Advertising;
 using Diaspora.Modules.Financial.Domain.Placements;
 using Diaspora.Modules.Financial.Domain.Policies;
 using Diaspora.Modules.Financial.Domain.Promotions;
@@ -140,6 +141,7 @@ public sealed class FinancialModule : IPlatformModule
         services.AddScoped<IMonetizationProductRepository, MonetizationProductRepository>();
         services.AddScoped<IMonetizationPurchaseRepository, MonetizationPurchaseRepository>();
         services.AddScoped<IPlacementRepository, PlacementRepository>();
+        services.AddScoped<IAdCampaignRepository, AdCampaignRepository>();
         services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanRepository>();
         services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
         services.AddScoped<IPromotionRepository, PromotionRepository>();

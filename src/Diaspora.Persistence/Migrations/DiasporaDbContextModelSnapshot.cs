@@ -6425,6 +6425,129 @@ namespace Diaspora.Persistence.Migrations
                     b.ToTable("financial_accounts", "financial");
                 });
 
+            modelBuilder.Entity("Diaspora.Modules.Financial.Domain.Advertising.AdCampaign", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ActivatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("AppealNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset?>("AppealedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Body")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<long>("BudgetMinorUnits")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("CreativeMediaId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
+                    b.Property<string>("EndReason")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<DateTimeOffset?>("EndedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Exponent")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Headline")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Objective")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<Guid>("OwnerUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("PausedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ProductCode")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid?>("PurchaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReviewDecision")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("ReviewNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset?>("ReviewedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ReviewedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.Property<long?>("SettledMinorUnits")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("SpendMinorUnits")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTimeOffset?>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId", "Status")
+                        .HasDatabaseName("ix_financial_ad_campaigns_owner");
+
+                    b.HasIndex("Status", "CreatedAt")
+                        .HasDatabaseName("ix_financial_ad_campaigns_status");
+
+                    b.ToTable("financial_ad_campaigns", "financial");
+                });
+
             modelBuilder.Entity("Diaspora.Modules.Financial.Domain.Catalog.MonetizationProduct", b =>
                 {
                     b.Property<Guid>("Id")
@@ -21688,6 +21811,128 @@ namespace Diaspora.Persistence.Migrations
                     b.Navigation("Evidence");
 
                     b.Navigation("InformationRequests");
+                });
+
+            modelBuilder.Entity("Diaspora.Modules.Financial.Domain.Advertising.AdCampaign", b =>
+                {
+                    b.OwnsOne("Diaspora.Modules.Financial.Domain.Advertising.AdAudience", "Audience", b1 =>
+                        {
+                            b1.Property<Guid>("AdCampaignId")
+                                .HasColumnType("uuid");
+
+                            b1.PrimitiveCollection<string[]>("Categories")
+                                .IsRequired()
+                                .HasColumnType("text[]")
+                                .HasColumnName("AudienceCategories");
+
+                            b1.PrimitiveCollection<Guid[]>("CommunityIds")
+                                .IsRequired()
+                                .HasColumnType("uuid[]")
+                                .HasColumnName("AudienceCommunityIds");
+
+                            b1.PrimitiveCollection<string[]>("CountryCodes")
+                                .IsRequired()
+                                .HasColumnType("text[]")
+                                .HasColumnName("AudienceCountryCodes");
+
+                            b1.PrimitiveCollection<string[]>("Interests")
+                                .IsRequired()
+                                .HasColumnType("text[]")
+                                .HasColumnName("AudienceInterests");
+
+                            b1.PrimitiveCollection<Guid[]>("NeighbourhoodIds")
+                                .IsRequired()
+                                .HasColumnType("uuid[]")
+                                .HasColumnName("AudienceNeighbourhoodIds");
+
+                            b1.HasKey("AdCampaignId");
+
+                            b1.ToTable("financial_ad_campaigns", "financial");
+
+                            b1.WithOwner()
+                                .HasForeignKey("AdCampaignId");
+                        });
+
+                    b.OwnsOne("Diaspora.Modules.Financial.Domain.ValueObjects.DateWindow", "Schedule", b1 =>
+                        {
+                            b1.Property<Guid>("AdCampaignId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<DateTimeOffset?>("EndsAt")
+                                .HasColumnType("timestamp with time zone")
+                                .HasColumnName("EndsAt");
+
+                            b1.Property<DateTimeOffset>("StartsAt")
+                                .HasColumnType("timestamp with time zone")
+                                .HasColumnName("StartsAt");
+
+                            b1.HasKey("AdCampaignId");
+
+                            b1.HasIndex("EndsAt")
+                                .HasDatabaseName("ix_financial_ad_campaigns_ends");
+
+                            b1.ToTable("financial_ad_campaigns", "financial");
+
+                            b1.WithOwner()
+                                .HasForeignKey("AdCampaignId");
+                        });
+
+                    b.OwnsOne("Diaspora.Modules.Financial.Domain.ValueObjects.SubjectReference", "Subject", b1 =>
+                        {
+                            b1.Property<Guid>("AdCampaignId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<Guid>("SubjectId")
+                                .HasColumnType("uuid")
+                                .HasColumnName("SubjectId");
+
+                            b1.Property<string>("SubjectType")
+                                .IsRequired()
+                                .HasMaxLength(32)
+                                .HasColumnType("character varying(32)")
+                                .HasColumnName("SubjectType");
+
+                            b1.HasKey("AdCampaignId");
+
+                            b1.ToTable("financial_ad_campaigns", "financial");
+
+                            b1.WithOwner()
+                                .HasForeignKey("AdCampaignId");
+                        });
+
+                    b.OwnsMany("Diaspora.Modules.Financial.Domain.Advertising.AdCampaignPlacement", "Placements", b1 =>
+                        {
+                            b1.Property<Guid>("PlacementId")
+                                .HasColumnType("uuid")
+                                .HasColumnName("PlacementId");
+
+                            b1.Property<Guid>("AdCampaignId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<string>("Kind")
+                                .IsRequired()
+                                .HasMaxLength(32)
+                                .HasColumnType("character varying(32)");
+
+                            b1.HasKey("PlacementId");
+
+                            b1.HasIndex("AdCampaignId");
+
+                            b1.ToTable("financial_ad_campaign_placements", "financial");
+
+                            b1.WithOwner()
+                                .HasForeignKey("AdCampaignId");
+                        });
+
+                    b.Navigation("Audience")
+                        .IsRequired();
+
+                    b.Navigation("Placements");
+
+                    b.Navigation("Schedule")
+                        .IsRequired();
+
+                    b.Navigation("Subject");
                 });
 
             modelBuilder.Entity("Diaspora.Modules.Financial.Domain.Catalog.MonetizationProduct", b =>

@@ -61,8 +61,10 @@ public sealed class AdCampaign : AggregateRoot<AdCampaignId>, IAuditableEntity
         OwnerUserId = ownerUserId;
         Name = name;
         Objective = objective;
-        Budget = budget;
-        Spend = Money.Zero(budget.Currency, budget.Exponent);
+        BudgetMinorUnits = budget.MinorUnits;
+        SpendMinorUnits = 0;
+        Currency = budget.Currency;
+        Exponent = budget.Exponent;
         Schedule = schedule;
         Audience = audience;
         Status = AdCampaignStatus.Draft;
@@ -80,11 +82,32 @@ public sealed class AdCampaign : AggregateRoot<AdCampaignId>, IAuditableEntity
 
     public AdCampaignStatus Status { get; private set; }
 
+    // ── Money, as primitives ────────────────────────────────────────────────────────────────
+    //
+    // Stored as minor units, currency and exponent rather than as an owned Money, because that is
+    // what every other aggregate in this module does — Donation, Contribution, RewardEntry. An
+    // owned type here would put this one table's amounts in a shape no existing query, projection
+    // or reconciliation report knows how to read.
+    //
+    // One currency for the whole campaign. A budget in GBP that accrued spend in NGN would be a
+    // remaining balance nobody could compute, so RecordSpend refuses a mismatch outright.
+
+    public long BudgetMinorUnits { get; private set; }
+
+    public long SpendMinorUnits { get; private set; }
+
+    public string Currency { get; private set; } = string.Empty;
+
+    public int Exponent { get; private set; } = Money.DefaultExponent;
+
+    /// <summary>What was owed back on a cancellation, in minor units. Null until one happens.</summary>
+    public long? SettledMinorUnits { get; private set; }
+
     /// <summary>What the advertiser authorised. Never moves after submission.</summary>
-    public Money Budget { get; private set; } = default!;
+    public Money Budget => Money.FromMinorUnits(BudgetMinorUnits, Currency, Exponent);
 
     /// <summary>What has been consumed. Only ever moves while Active.</summary>
-    public Money Spend { get; private set; } = default!;
+    public Money Spend => Money.FromMinorUnits(SpendMinorUnits, Currency, Exponent);
 
     public DateWindow Schedule { get; private set; } = default!;
 
@@ -137,7 +160,9 @@ public sealed class AdCampaign : AggregateRoot<AdCampaignId>, IAuditableEntity
     public string? EndReason { get; private set; }
 
     /// <summary>What was owed back on a cancellation. Null until one happens.</summary>
-    public Money? SettledAmount { get; private set; }
+    public Money? SettledAmount => SettledMinorUnits is { } minor
+        ? Money.FromMinorUnits(minor, Currency, Exponent)
+        : null;
 
     public int Revision { get; private set; }
 
@@ -152,7 +177,8 @@ public sealed class AdCampaign : AggregateRoot<AdCampaignId>, IAuditableEntity
     // ── Derived ─────────────────────────────────────────────────────────────────────────────
 
     /// <summary>Everything authorised and not yet consumed.</summary>
-    public Money RemainingBudget => Budget.Subtract(Spend);
+    public Money RemainingBudget =>
+        Money.FromMinorUnits(BudgetMinorUnits - SpendMinorUnits, Currency, Exponent);
 
     /// <summary>Whether the advertiser may still change it. Draft only — see <see cref="Update"/>.</summary>
     public bool IsEditable => Status == AdCampaignStatus.Draft;
@@ -260,8 +286,10 @@ public sealed class AdCampaign : AggregateRoot<AdCampaignId>, IAuditableEntity
 
         Name = drafted.Value.Name;
         Objective = objective;
-        Budget = budget;
-        Spend = Money.Zero(budget.Currency, budget.Exponent);
+        BudgetMinorUnits = budget.MinorUnits;
+        SpendMinorUnits = 0;
+        Currency = budget.Currency;
+        Exponent = budget.Exponent;
         Schedule = schedule;
         Audience = audience ?? AdAudience.Everyone();
         Revision++;
@@ -582,7 +610,7 @@ public sealed class AdCampaign : AggregateRoot<AdCampaignId>, IAuditableEntity
             return Result.Failure(AdCampaignErrors.NotDelivering);
         }
 
-        if (!string.Equals(amount.Currency, Budget.Currency, StringComparison.Ordinal))
+        if (!string.Equals(amount.Currency, Currency, StringComparison.Ordinal))
         {
             return Result.Failure(AdCampaignErrors.CurrencyMismatch);
         }
@@ -592,16 +620,14 @@ public sealed class AdCampaign : AggregateRoot<AdCampaignId>, IAuditableEntity
             return Result.Failure(AdCampaignErrors.SpendMustBePositive);
         }
 
-        var remaining = RemainingBudget;
+        var remaining = BudgetMinorUnits - SpendMinorUnits;
 
         // Clamped rather than refused. Refusing loses the delivery that already happened; charging
         // past the ceiling charges money nobody authorised. Clamping keeps both honest.
-        var applied = amount.MinorUnits >= remaining.MinorUnits ? remaining : amount;
-
-        Spend = Spend.Add(applied);
+        SpendMinorUnits += Math.Min(amount.MinorUnits, remaining);
         Revision++;
 
-        return Spend.MinorUnits >= Budget.MinorUnits
+        return SpendMinorUnits >= BudgetMinorUnits
             ? Complete("The budget was fully spent.", now)
             : Result.Success();
     }
@@ -643,7 +669,7 @@ public sealed class AdCampaign : AggregateRoot<AdCampaignId>, IAuditableEntity
             return Result.Failure(AdCampaignErrors.AlreadyFinished);
         }
 
-        SettledAmount = RemainingBudget;
+        SettledMinorUnits = BudgetMinorUnits - SpendMinorUnits;
 
         Status = AdCampaignStatus.Cancelled;
         EndedAt = now;

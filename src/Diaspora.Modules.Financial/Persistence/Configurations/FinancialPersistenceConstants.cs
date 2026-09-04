@@ -60,6 +60,14 @@ internal static class FinancialPersistenceConstants
     public const string CampaignUpdatesTable = "financial_campaign_updates";
     public const string RecurringDonationsTable = "financial_recurring_donations";
 
+    // -- B16 Advertising ----------------------------------------------------------------------
+    //
+    // `financial_ad_campaigns`, not `financial_campaigns`: that name holds B15.1's fundraising
+    // campaigns and has since they shipped. The entity that arrived second takes the longer name.
+
+    public const string AdCampaignsTable = "financial_ad_campaigns";
+    public const string AdCampaignPlacementsTable = "financial_ad_campaign_placements";
+
     /// <summary>Enum names are stored as text; nothing in this module has a longer one.</summary>
     public const int EnumLength = 32;
 
