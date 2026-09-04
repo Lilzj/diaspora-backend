@@ -70,6 +70,11 @@ public sealed class CommunityProgrammeModule : IPlatformModule
 
     private static void RegisterRepositories(IServiceCollection services)
     {
+        // The community aggregate and standing in one. Registered before the programme
+        // repositories because a community is what a programme's organization serves.
+        services.AddScoped<ICommunityRepository, CommunityRepository>();
+        services.AddScoped<ICommunityMembershipRepository, CommunityMembershipRepository>();
+
         services.AddScoped<IMembershipProgrammeRepository, MembershipProgrammeRepository>();
         services.AddScoped<IProgrammeMembershipRepository, ProgrammeMembershipRepository>();
         services.AddScoped<IVolunteerOpportunityRepository, VolunteerOpportunityRepository>();
