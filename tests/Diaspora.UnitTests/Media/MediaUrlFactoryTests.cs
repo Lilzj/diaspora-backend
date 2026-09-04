@@ -148,7 +148,7 @@ public sealed class MediaUrlFactoryTests
             Options.Create(new MediaStorageOptions { PublicBaseUrl = publicBaseUrl }));
     }
 
-    private static HttpContext Request(string host, string scheme)
+    private static DefaultHttpContext Request(string host, string scheme)
     {
         var context = new DefaultHttpContext();
         context.Request.Host = new HostString(host);

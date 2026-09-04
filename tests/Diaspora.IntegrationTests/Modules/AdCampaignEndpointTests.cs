@@ -476,7 +476,7 @@ public sealed class AdCampaignEndpointTests : IdentityTestBase
         Headline: "Find your people in London",
         Body: null);
 
-    private async Task<CampaignDto> CreateAsync(HttpClient client) =>
+    private static async Task<CampaignDto> CreateAsync(HttpClient client) =>
         await ReadDataAsync<CampaignDto>(
             await client.PostAsJsonAsync($"{Root}/campaigns", NewCampaign()));
 

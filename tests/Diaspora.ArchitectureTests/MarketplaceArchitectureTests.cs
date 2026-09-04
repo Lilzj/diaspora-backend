@@ -133,7 +133,7 @@ public class MarketplaceArchitectureTests
 
         policies.Should().ContainSingle(
             "one vertical, one owner type, one policy")
-            .Which.Should().Be(typeof(MarketplaceListingMediaPolicy));
+            .Which.Should().Be<MarketplaceListingMediaPolicy>();
     }
 
     /// <summary>

@@ -276,7 +276,7 @@ public sealed class AnalyticsPeriodTests
         resolution.IsResolved.Should().BeTrue();
 
         // The assertion Npgsql makes, made here instead.
-        resolution.Period.Start.Offset.Should().Be(TimeSpan.Zero);
+        resolution.Period!.Start.Offset.Should().Be(TimeSpan.Zero);
         resolution.Period.End.Offset.Should().Be(TimeSpan.Zero);
     }
 
@@ -293,7 +293,7 @@ public sealed class AnalyticsPeriodTests
             AnalyticsPeriodPreset.Last30Days, null, null, lagos, now, 366);
 
         resolved.IsResolved.Should().BeTrue();
-        var period = resolved.Period;
+        var period = resolved.Period!;
 
         // The zone the member asked for is not lost — it is what the day
         // boundaries were computed in, and it is echoed back.
@@ -315,7 +315,7 @@ public sealed class AnalyticsPeriodTests
         var resolved = AnalyticsPeriod.Resolve(
             AnalyticsPeriodPreset.Last30Days, null, null, kolkata, DateTimeOffset.UtcNow, 366);
 
-        var previous = resolved.Period.Previous();
+        var previous = resolved.Period!.Previous();
 
         previous.Start.Offset.Should().Be(TimeSpan.Zero);
         previous.End.Offset.Should().Be(TimeSpan.Zero);

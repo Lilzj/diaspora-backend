@@ -126,7 +126,21 @@
     -->
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="$(DotnetVersion)" />
-    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.4.0" />
+    <!--
+      4.14.0 is a security floor, not a preference. Testcontainers pulls SSH.NET, and every
+      SSH.NET up to and including 2025.1.0 carries GHSA-q939-rpr3-3284 (high: ScpClient
+      recursive download allows arbitrary file write via server-controlled filenames). Only
+      SSH.NET 2026.0.0 is patched, and 4.14.0 is the first Testcontainers that depends on it
+      — 4.13.0 still resolves 2025.1.0, so a partial bump looks like a fix and is not one.
+
+      `NuGetAuditMode` is `all`, so a transitive advisory is a Release build error rather than
+      a warning nobody reads. That is why a package no code imports was able to break CI: the
+      suite runs on SQLite by choice (see CustomWebApplicationFactory), and this reference
+      exists to keep a Postgres-flavoured run available for provider-specific checks. Nothing
+      constructs a container today. If that option is ever dropped, drop this with it — an
+      unused dependency still gets audited.
+    -->
+    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.14.0" />
 
     <!--
       Test host only. The real SignalR client, so the hub is exercised the way a phone exercises

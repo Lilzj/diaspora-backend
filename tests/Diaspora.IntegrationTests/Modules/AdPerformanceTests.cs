@@ -340,7 +340,7 @@ public sealed class AdPerformanceTests : IdentityTestBase
         return client;
     }
 
-    private async Task<Guid> CreateDraftAsync(HttpClient client, Guid subjectId)
+    private static async Task<Guid> CreateDraftAsync(HttpClient client, Guid subjectId)
     {
         var created = await ReadDataAsync<CampaignDto>(
             await client.PostAsJsonAsync($"{Root}/campaigns", new
