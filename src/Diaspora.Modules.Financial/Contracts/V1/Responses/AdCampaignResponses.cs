@@ -244,6 +244,17 @@ public sealed record AdAudienceEstimateResponse
     /// reachable population. The client must not present that as a targeted reach.
     /// </summary>
     public required bool IsNarrowed { get; init; }
+
+    /// <summary>
+    /// Whether anything actually counted, as opposed to reporting zero because it could not.
+    /// <para>
+    /// <b>Without this the bounds are ambiguous and a client would guess.</b> Zero and zero means
+    /// two entirely different things: "this selection reaches nobody, do not run it" and "this
+    /// selection is narrowed and Diaspora cannot say by how much". Only the first is a reason to
+    /// stop somebody submitting.
+    /// </para>
+    /// </summary>
+    public required bool IsCounted { get; init; }
 }
 
 // ════════════════════════════════════════════════════════════════════════════════════════════════

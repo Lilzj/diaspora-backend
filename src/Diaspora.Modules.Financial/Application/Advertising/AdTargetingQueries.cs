@@ -130,6 +130,7 @@ public sealed class EstimateAdAudienceQueryHandler
                 UpperBound = 0,
                 ConstrainedDimensions = [],
                 IsNarrowed = false,
+                IsCounted = false,
                 Basis =
                     "This campaign is not narrowed to anybody in particular, so there is no size to "
                     + "estimate. Diaspora does not publish how many members it has."
@@ -162,6 +163,7 @@ public sealed class EstimateAdAudienceQueryHandler
                 // cannot say by how much. Reporting none would read as an unnarrowed campaign.
                 ConstrainedDimensions = [.. constrained.Select(dimension => dimension.ToString())],
                 IsNarrowed = true,
+                IsCounted = false,
                 Basis =
                     "This campaign is narrowed, but Diaspora cannot count how many people that "
                     + "reaches. It will only be shown to people who match."
@@ -180,6 +182,7 @@ public sealed class EstimateAdAudienceQueryHandler
             UpperBound = upper,
             ConstrainedDimensions = [.. constrained.Select(dimension => dimension.ToString())],
             IsNarrowed = true,
+            IsCounted = true,
             Basis = string.Join(' ', bounds.Select(bound => bound.Basis))
         });
     }
