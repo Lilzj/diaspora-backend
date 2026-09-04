@@ -641,6 +641,36 @@ public sealed class FinancialIntegrationEventRelay
             cancellationToken);
     }
 
+    /// <summary>
+    /// An *advertising* campaign moved between states. MON-GAP-001.
+    /// <para>
+    /// Both states travel, so a consumer decides which transitions are worth telling somebody
+    /// about. The register wanted approval and rejection; keeping that rule in B13 means the next
+    /// one needs no change here.
+    /// </para>
+    /// </summary>
+    public Task PublishAsync(
+        AdCampaignStatusChangedDomainEvent domainEvent, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(domainEvent);
+
+        return PublishSafelyAsync(
+            new AdCampaignStatusChangedIntegrationEvent
+            {
+                AdCampaignId = domainEvent.AdCampaignId.Value,
+                OwnerUserId = domainEvent.OwnerUserId,
+                CampaignName = domainEvent.CampaignName,
+                PreviousStatus = domainEvent.PreviousStatus,
+                CurrentStatus = domainEvent.CurrentStatus,
+                Reason = domainEvent.Reason
+            },
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// A *fundraising* campaign moved. Not to be confused with the advertising one above — two
+    /// entities share the noun and the two events are deliberately different types.
+    /// </summary>
     public Task PublishAsync(
         CampaignStatusChangedDomainEvent domainEvent, CancellationToken cancellationToken = default)
     {

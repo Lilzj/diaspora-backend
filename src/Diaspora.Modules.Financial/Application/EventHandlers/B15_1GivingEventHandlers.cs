@@ -88,3 +88,24 @@ public sealed class RecurringDonationFailedEventHandler
         RecurringDonationFailedDomainEvent domainEvent, CancellationToken cancellationToken) =>
         _relay.PublishAsync(domainEvent, cancellationToken);
 }
+
+/// <summary>
+/// Announces an *advertising* campaign lifecycle move. MON-GAP-001.
+/// <para>
+/// The register asks for this "so B13 can notify on approval and rejection". Which transitions
+/// deserve a notification is a rule and lives in B13's contributors; this announces all of them
+/// with both states so that rule can change without a release here.
+/// </para>
+/// </summary>
+public sealed class AdCampaignStatusChangedEventHandler
+    : DomainEventHandler<AdCampaignStatusChangedDomainEvent>
+{
+    private readonly FinancialIntegrationEventRelay _relay;
+
+    public AdCampaignStatusChangedEventHandler(FinancialIntegrationEventRelay relay) =>
+        _relay = relay;
+
+    protected override Task HandleAsync(
+        AdCampaignStatusChangedDomainEvent domainEvent, CancellationToken cancellationToken) =>
+        _relay.PublishAsync(domainEvent, cancellationToken);
+}

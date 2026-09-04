@@ -1,5 +1,6 @@
 using Diaspora.Modules.Financial;
 using Diaspora.Modules.Financial.Domain.Advertising;
+using Diaspora.Modules.Financial.Domain.Events;
 using Diaspora.Modules.Financial.Domain.Identifiers;
 using Diaspora.Modules.Financial.Domain.ValueObjects;
 using FluentAssertions;
@@ -430,6 +431,62 @@ public class AdCampaignTests
         var second = AdAudience.Create(countryCodes: ["NG", "GB"], interests: ["b", "a"]);
 
         first.Should().Be(second);
+    }
+
+    // ── What the platform is told ───────────────────────────────────────────────────────────
+
+    [Fact]
+    public void Every_move_announces_itself_with_both_states()
+    {
+        // The register asks for the event "so B13 can notify on approval and rejection". Both
+        // states travel so which transitions deserve a notification stays B13's rule.
+        var campaign = Funded();
+        campaign.ClearDomainEvents();
+
+        campaign.Reject(Guid.NewGuid(), "The creative names a competitor.", Now);
+
+        var announced = campaign.DomainEvents
+            .OfType<AdCampaignStatusChangedDomainEvent>()
+            .Should().ContainSingle().Subject;
+
+        announced.PreviousStatus.Should().Be("Submitted");
+        announced.CurrentStatus.Should().Be("Rejected");
+        announced.Reason.Should().Be("The creative names a competitor.");
+        announced.OwnerUserId.Should().Be(campaign.OwnerUserId);
+    }
+
+    [Fact]
+    public void A_refused_transition_announces_nothing()
+    {
+        // Otherwise an advertiser would be notified that their campaign was paused when it was not.
+        var campaign = Drafted();
+        campaign.ClearDomainEvents();
+
+        campaign.Pause(Now).IsFailure.Should().BeTrue();
+
+        campaign.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void The_whole_lifecycle_is_announced_once_per_move()
+    {
+        var campaign = Drafted();
+        campaign.ClearDomainEvents();
+
+        campaign.Submit(Now);
+        campaign.MarkFunded(MonetizationPurchaseId.New());
+        campaign.Approve(Guid.NewGuid(), null, Now);
+        campaign.MarkScheduled();
+        campaign.Activate(Now);
+        campaign.Pause(Now);
+
+        var moves = campaign.DomainEvents
+            .OfType<AdCampaignStatusChangedDomainEvent>()
+            .Select(move => move.CurrentStatus)
+            .ToList();
+
+        moves.Should().Equal(
+            "PendingPayment", "Submitted", "Approved", "Scheduled", "Active", "Paused");
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────────────────────

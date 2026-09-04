@@ -1,4 +1,5 @@
 using Diaspora.Domain.Abstractions;
+using Diaspora.Modules.Financial.Domain.Events;
 using Diaspora.Modules.Financial.Domain.Identifiers;
 using Diaspora.Modules.Financial.Domain.ValueObjects;
 using Diaspora.SharedKernel.Primitives;
@@ -357,9 +358,8 @@ public sealed class AdCampaign : AggregateRoot<AdCampaignId>, IAuditableEntity
             return Result.Failure(AdCampaignErrors.ScheduleAlreadyOver);
         }
 
-        Status = AdCampaignStatus.PendingPayment;
         SubmittedAt = now;
-        Revision++;
+        MoveTo(AdCampaignStatus.PendingPayment, now);
 
         return Result.Success();
     }
@@ -377,8 +377,7 @@ public sealed class AdCampaign : AggregateRoot<AdCampaignId>, IAuditableEntity
         }
 
         PurchaseId = purchaseId;
-        Status = AdCampaignStatus.Submitted;
-        Revision++;
+        MoveTo(AdCampaignStatus.Submitted, DateTimeOffset.UtcNow);
 
         return Result.Success();
     }
@@ -397,10 +396,9 @@ public sealed class AdCampaign : AggregateRoot<AdCampaignId>, IAuditableEntity
             return Result.Failure(AdCampaignErrors.AlreadyFinished);
         }
 
-        Status = AdCampaignStatus.Failed;
         EndedAt = now;
         EndReason = Clip(reason, ReasonMaximumLength);
-        Revision++;
+        MoveTo(AdCampaignStatus.Failed, now, EndReason);
 
         return Result.Success();
     }
@@ -417,8 +415,7 @@ public sealed class AdCampaign : AggregateRoot<AdCampaignId>, IAuditableEntity
             return Result.Failure(AdCampaignErrors.NotReviewable);
         }
 
-        Status = AdCampaignStatus.UnderReview;
-        Revision++;
+        MoveTo(AdCampaignStatus.UnderReview, DateTimeOffset.UtcNow);
 
         return Result.Success();
     }
@@ -438,8 +435,7 @@ public sealed class AdCampaign : AggregateRoot<AdCampaignId>, IAuditableEntity
         ReviewNote = Clip(note, ReasonMaximumLength);
         ReviewedAt = now;
 
-        Status = AdCampaignStatus.Approved;
-        Revision++;
+        MoveTo(AdCampaignStatus.Approved, now, ReviewNote);
 
         return Result.Success();
     }
@@ -471,9 +467,8 @@ public sealed class AdCampaign : AggregateRoot<AdCampaignId>, IAuditableEntity
         ReviewNote = Clip(note, ReasonMaximumLength);
         ReviewedAt = now;
 
-        Status = AdCampaignStatus.Rejected;
         EndedAt = now;
-        Revision++;
+        MoveTo(AdCampaignStatus.Rejected, now, ReviewNote);
 
         return Result.Success();
     }
@@ -524,8 +519,7 @@ public sealed class AdCampaign : AggregateRoot<AdCampaignId>, IAuditableEntity
             return Result.Failure(AdCampaignErrors.NotSchedulable);
         }
 
-        Status = AdCampaignStatus.Scheduled;
-        Revision++;
+        MoveTo(AdCampaignStatus.Scheduled, DateTimeOffset.UtcNow);
 
         return Result.Success();
     }
@@ -543,10 +537,9 @@ public sealed class AdCampaign : AggregateRoot<AdCampaignId>, IAuditableEntity
             return Result.Failure(AdCampaignErrors.ScheduleNotStarted);
         }
 
-        Status = AdCampaignStatus.Active;
         ActivatedAt ??= now;
         PausedAt = null;
-        Revision++;
+        MoveTo(AdCampaignStatus.Active, now);
 
         return Result.Success();
     }
@@ -559,9 +552,8 @@ public sealed class AdCampaign : AggregateRoot<AdCampaignId>, IAuditableEntity
             return Result.Failure(AdCampaignErrors.NotPausable);
         }
 
-        Status = AdCampaignStatus.Paused;
         PausedAt = now;
-        Revision++;
+        MoveTo(AdCampaignStatus.Paused, now);
 
         return Result.Success();
     }
@@ -586,9 +578,8 @@ public sealed class AdCampaign : AggregateRoot<AdCampaignId>, IAuditableEntity
             return Complete("The schedule ended while the campaign was paused.", now);
         }
 
-        Status = AdCampaignStatus.Active;
         PausedAt = null;
-        Revision++;
+        MoveTo(AdCampaignStatus.Active, now);
 
         return Result.Success();
     }
@@ -644,11 +635,10 @@ public sealed class AdCampaign : AggregateRoot<AdCampaignId>, IAuditableEntity
             return Result.Failure(AdCampaignErrors.AlreadyFinished);
         }
 
-        Status = AdCampaignStatus.Completed;
         EndedAt = now;
         EndReason = Clip(reason, ReasonMaximumLength);
         PausedAt = null;
-        Revision++;
+        MoveTo(AdCampaignStatus.Completed, now, EndReason);
 
         return Result.Success();
     }
@@ -671,11 +661,10 @@ public sealed class AdCampaign : AggregateRoot<AdCampaignId>, IAuditableEntity
 
         SettledMinorUnits = BudgetMinorUnits - SpendMinorUnits;
 
-        Status = AdCampaignStatus.Cancelled;
         EndedAt = now;
         EndReason = Clip(reason, ReasonMaximumLength);
         PausedAt = null;
-        Revision++;
+        MoveTo(AdCampaignStatus.Cancelled, now, EndReason);
 
         return Result.Success();
     }
@@ -710,6 +699,38 @@ public sealed class AdCampaign : AggregateRoot<AdCampaignId>, IAuditableEntity
     {
         ModifiedAt = timestamp;
         ModifiedBy = userId;
+    }
+
+    /// <summary>
+    /// Moves the status and announces it.
+    /// <para>
+    /// <b>The only place <see cref="Status"/> is assigned outside the constructor.</b> Every
+    /// transition goes through here, so a state change that nobody was told about is not something
+    /// a future edit can introduce by forgetting a line — it would have to assign the property
+    /// directly, which nothing else does.
+    /// </para>
+    /// </summary>
+    private void MoveTo(AdCampaignStatus status, DateTimeOffset now, string? reason = null)
+    {
+        var previous = Status;
+        Status = status;
+        Revision++;
+
+        if (previous == status)
+        {
+            return;
+        }
+
+        RaiseDomainEvent(new AdCampaignStatusChangedDomainEvent
+        {
+            AdCampaignId = Id,
+            OwnerUserId = OwnerUserId,
+            CampaignName = Name,
+            PreviousStatus = previous.ToString(),
+            CurrentStatus = status.ToString(),
+            Reason = reason,
+            OccurredAt = now
+        });
     }
 
     private static string? Clip(string? value, int maximum)
