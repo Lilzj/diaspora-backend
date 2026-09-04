@@ -279,4 +279,37 @@ public static class FinancialErrorCodes
     /// </summary>
     public const string PayoutDestinationProviderUnavailable =
         "financial.payout.destination_provider_unavailable";
+
+    // -- Advertising campaigns -----------------------------------------------------------------
+    //
+    // Prefixed `financial.ad_campaign` and not `financial.campaign`, which is taken: the giving
+    // campaign has held that prefix since B15.1 and a client switching on `financial.campaign.*`
+    // would start matching an entirely different entity. Two things called a campaign live in this
+    // module; only one of them can own the short name, and it is the one that had it first.
+
+    public const string AdCampaignNotFound = "financial.ad_campaign.not_found";
+    public const string AdCampaignOwnerRequired = "financial.ad_campaign.owner_required";
+    public const string AdCampaignNameLength = "financial.ad_campaign.name.length";
+    public const string AdCampaignObjectiveUnknown = "financial.ad_campaign.objective.unknown";
+    public const string AdCampaignBudgetRequired = "financial.ad_campaign.budget.required";
+    public const string AdCampaignScheduleRequiresEnd = "financial.ad_campaign.schedule.requires_end";
+    public const string AdCampaignScheduleAlreadyOver = "financial.ad_campaign.schedule.already_over";
+    public const string AdCampaignNotEditable = "financial.ad_campaign.not_editable";
+    public const string AdCampaignNotSubmittable = "financial.ad_campaign.not_submittable";
+    public const string AdCampaignNotAwaitingPayment = "financial.ad_campaign.not_awaiting_payment";
+    public const string AdCampaignNotReviewable = "financial.ad_campaign.not_reviewable";
+    public const string AdCampaignRejectionNeedsReason = "financial.ad_campaign.rejection.needs_reason";
+    public const string AdCampaignNothingToAppeal = "financial.ad_campaign.nothing_to_appeal";
+    public const string AdCampaignAlreadyAppealed = "financial.ad_campaign.already_appealed";
+    public const string AdCampaignAppealNeedsReason = "financial.ad_campaign.appeal.needs_reason";
+    public const string AdCampaignNotSchedulable = "financial.ad_campaign.not_schedulable";
+    public const string AdCampaignNotActivatable = "financial.ad_campaign.not_activatable";
+    public const string AdCampaignScheduleNotStarted = "financial.ad_campaign.schedule.not_started";
+    public const string AdCampaignNotPausable = "financial.ad_campaign.not_pausable";
+    public const string AdCampaignNotResumable = "financial.ad_campaign.not_resumable";
+    public const string AdCampaignNotDelivering = "financial.ad_campaign.not_delivering";
+    public const string AdCampaignCurrencyMismatch = "financial.ad_campaign.currency_mismatch";
+    public const string AdCampaignSpendMustBePositive = "financial.ad_campaign.spend.must_be_positive";
+    public const string AdCampaignAlreadyFinished = "financial.ad_campaign.already_finished";
+    public const string AdCampaignPlacementAlreadyBooked = "financial.ad_campaign.placement.already_booked";
 }
