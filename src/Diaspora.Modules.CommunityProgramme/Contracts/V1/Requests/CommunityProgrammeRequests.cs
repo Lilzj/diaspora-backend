@@ -352,3 +352,38 @@ public sealed record BindMembershipPaymentRequest
 {
     public required Guid PaymentIntentId { get; init; }
 }
+
+// -- The community itself: Frontend Phase 13 --------------------------------------------------
+
+/// <summary>
+/// The member acting on their own standing — GAP-004.
+/// <para>
+/// The act is data rather than a route, which is what the client already sends: its mutation hooks
+/// take the action rather than calling one of four functions. An absent action reads as
+/// <c>join</c>, the only act with a route of its own in every earlier sketch of this contract.
+/// </para>
+/// </summary>
+public sealed record ChangeCommunityMembershipRequest
+{
+    /// <summary><c>join</c>, <c>follow</c> or <c>express-interest</c>.</summary>
+    public string? Action { get; init; }
+}
+
+/// <summary>
+/// Which community the caller leads with — GAP-005.
+/// <para>
+/// A null <see cref="CommunityId"/> clears it, and is a deliberate value rather than an omission:
+/// clearing a primary is something people do, and it should not need a second route.
+/// </para>
+/// </summary>
+public sealed record SetPrimaryCommunityRequest
+{
+    public Guid? CommunityId { get; init; }
+}
+
+/// <summary>Who may see the caller belongs to a community — §41.</summary>
+public sealed record SetMembershipVisibilityRequest
+{
+    /// <summary><c>Private</c>, <c>CommunityOnly</c> or <c>Public</c>.</summary>
+    public string? Visibility { get; init; }
+}

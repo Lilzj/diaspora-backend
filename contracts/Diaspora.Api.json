@@ -8138,6 +8138,183 @@
         }
       }
     },
+    "/api/v1/communities/me/memberships": {
+      "get": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "Every community relationship the caller holds, terminal ones included.",
+        "operationId": "GetMyCommunityMemberships",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/communities/me/primary": {
+      "put": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "Leads with one community, or clears it. Answers the whole set.",
+        "operationId": "SetPrimaryCommunity",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/SetPrimaryCommunityRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/communities/{idOrSlug}/capabilities": {
+      "get": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "What the caller may do here. All false rather than a refusal.",
+        "operationId": "GetCommunityMemberCapabilities",
+        "parameters": [
+          {
+            "name": "idOrSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/communities/{idOrSlug}/membership": {
+      "post": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "Join, follow or express interest in a community.",
+        "operationId": "ChangeCommunityMembership",
+        "parameters": [
+          {
+            "name": "idOrSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ChangeCommunityMembershipRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "Leave a community, unfollow it, or withdraw an interest.",
+        "operationId": "EndCommunityMembership",
+        "parameters": [
+          {
+            "name": "idOrSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/communities/{idOrSlug}/membership/visibility": {
+      "put": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "Who may see the caller belongs here. Set by the member alone.",
+        "operationId": "SetCommunityMembershipVisibility",
+        "parameters": [
+          {
+            "name": "idOrSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/SetMembershipVisibilityRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/communities/organizations/me": {
       "get": {
         "tags": [
@@ -34570,6 +34747,17 @@
           }
         }
       },
+      "ChangeCommunityMembershipRequest": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "ChangeMemberRoleRequest": {
         "required": [
           "role"
@@ -44933,6 +45121,17 @@
           }
         }
       },
+      "SetMembershipVisibilityRequest": {
+        "type": "object",
+        "properties": {
+          "visibility": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "SetOperatingHoursRequest": {
         "type": "object",
         "properties": {
@@ -44982,6 +45181,18 @@
             "items": {
               "$ref": "#/components/schemas/OrganizationLeaderRequest"
             }
+          }
+        }
+      },
+      "SetPrimaryCommunityRequest": {
+        "type": "object",
+        "properties": {
+          "communityId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },

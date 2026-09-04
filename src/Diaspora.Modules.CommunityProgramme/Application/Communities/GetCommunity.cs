@@ -4,6 +4,7 @@ using Diaspora.Modules.CommunityProgramme.Contracts.V1.Responses;
 using Diaspora.Modules.CommunityProgramme.Domain.Communities;
 using Diaspora.Modules.CommunityProgramme.Domain.Errors;
 using Diaspora.Modules.CommunityProgramme.Domain.Repositories;
+using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Results;
 
 using CommunityAggregate = Diaspora.Modules.CommunityProgramme.Domain.Communities.Community;
@@ -111,8 +112,7 @@ public sealed class GetCommunityQueryHandler : IQueryHandler<GetCommunityQuery, 
         // Not yet open. Its creator can see it; nobody else can know the name is taken.
         if (community.Status == CommunityStatus.Pending)
         {
-            return _access.CallerId is { } caller
-                && string.Equals(community.CreatedBy, caller.Value.ToString(), StringComparison.Ordinal);
+            return _access.CallerId is { } caller && WasCreatedBy(community, caller);
         }
 
         return community.Visibility switch
@@ -123,4 +123,27 @@ public sealed class GetCommunityQueryHandler : IQueryHandler<GetCommunityQuery, 
             _ => membership is not null
         };
     }
+
+    /// <summary>
+    /// Whether this caller is the one the audit trail records as having proposed the community.
+    /// <para>
+    /// <b>Two forms are accepted, because the stamp is not written in the form it looks like it is
+    /// written in.</b> <c>DiasporaDbContext.ApplyAuditFields</c> writes
+    /// <c>_currentUser.UserId?.ToString()</c>, and <see cref="UserId"/> is a <em>derived</em> record:
+    /// the compiler synthesises a <c>ToString</c> on it that overrides
+    /// <c>StronglyTypedId</c>&apos;s bare-value one, so what actually lands in the column is
+    /// <c>UserId { Value = … }</c> — a debug rendering, not an identifier.
+    /// </para>
+    /// <para>
+    /// That is a platform-wide property of every <c>CreatedBy</c> and <c>ModifiedBy</c> column and
+    /// not this module&apos;s to change here. Reading both forms means this check keeps working
+    /// whichever way it is stamped, including after somebody fixes the interceptor — the failure it
+    /// avoids is silent and one-directional: a creator locked out of the community they had just
+    /// proposed, with a 404 that looks exactly like the intended answer for everyone else.
+    /// </para>
+    /// </summary>
+    private static bool WasCreatedBy(CommunityAggregate community, UserId caller) =>
+        community.CreatedBy is { Length: > 0 } stamp
+        && (string.Equals(stamp, caller.ToString(), StringComparison.Ordinal)
+            || string.Equals(stamp, caller.Value.ToString(), StringComparison.OrdinalIgnoreCase));
 }

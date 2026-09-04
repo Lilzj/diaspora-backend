@@ -136,6 +136,23 @@ public sealed class Community : AggregateRoot<CommunityId>, IAuditableEntity
     /// <summary>Why the community is suspended or archived. Shown to members verbatim.</summary>
     public string? StatusReason { get; private set; }
 
+    /// <summary>
+    /// Whether joining goes to a queue.
+    /// <para>
+    /// <b>The documented rule the register asked for: it is a property of the community, set by the
+    /// people who run it, and false unless they say otherwise.</b> Not derived from visibility, which
+    /// answers a different question — Unlisted is about who can find the community, InviteOnly about
+    /// who may ask at all, and this about what happens when they do. Deriving one from another would
+    /// mean an administrator could not open a private community to anyone who found the link, or
+    /// close a public one to review.
+    /// </para>
+    /// <para>
+    /// The client renders this before the button is pressed, so somebody is told they are asking
+    /// rather than joining. That is the whole reason it crosses the wire.
+    /// </para>
+    /// </summary>
+    public bool RequiresApproval { get; private set; }
+
     public DateTimeOffset CreatedAt { get; private set; }
 
     public string? CreatedBy { get; private set; }
@@ -290,6 +307,9 @@ public sealed class Community : AggregateRoot<CommunityId>, IAuditableEntity
     }
 
     public void SetVisibility(CommunityVisibility visibility) => Visibility = visibility;
+
+    /// <summary>Sets whether joining is a request rather than an act. See <see cref="RequiresApproval"/>.</summary>
+    public void SetJoinPolicy(bool requiresApproval) => RequiresApproval = requiresApproval;
 
     /// <summary>
     /// Sets the community's mark. Each argument is applied as given, <c>null</c> included, so

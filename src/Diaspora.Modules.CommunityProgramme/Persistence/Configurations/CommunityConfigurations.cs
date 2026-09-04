@@ -90,6 +90,8 @@ public sealed class CommunityConfiguration : IEntityTypeConfiguration<CommunityA
 
         builder.Property(community => community.MemberCount).IsRequired();
 
+        builder.Property(community => community.RequiresApproval).IsRequired();
+
         // The directory pages on these three together.
         builder.HasIndex(community => new { community.Status, community.Visibility })
             .HasDatabaseName("ix_communities_status_visibility");

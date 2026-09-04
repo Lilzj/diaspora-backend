@@ -167,6 +167,51 @@ public sealed class CommunityMembership : AggregateRoot<CommunityMembershipId>, 
     /// revoked member cannot rejoin by asking — that is the point of keeping the row.
     /// </para>
     /// </summary>
+    /// <summary>
+    /// Moves an existing row back to a state that carries no standing — following, or interested.
+    /// <para>
+    /// <b>The counterpart to <see cref="Start"/> for a row that already exists.</b> Somebody who
+    /// left may follow; somebody who was declined may follow while they wait to ask again. Neither
+    /// is membership and neither touches the community's count.
+    /// </para>
+    /// <para>
+    /// <b>Refused from every state that carries standing, and from <see cref="CommunityMembershipState.Revoked"/>.</b>
+    /// A member must not be quietly demoted to a follower, somebody waiting on approval must not
+    /// lose their place in the queue, and a revocation must not be laundered by following.
+    /// </para>
+    /// </summary>
+    public Result Restart(CommunityMembershipState state)
+    {
+        if (state is not (CommunityMembershipState.Discovering
+            or CommunityMembershipState.Interested
+            or CommunityMembershipState.Following))
+        {
+            return Result.Failure(CommunityErrors.NotJoinable);
+        }
+
+        if (State == CommunityMembershipState.Revoked)
+        {
+            return Result.Failure(CommunityErrors.MembershipRevoked);
+        }
+
+        if (IsCurrentMember || State == CommunityMembershipState.PendingApproval)
+        {
+            return Result.Failure(CommunityErrors.AlreadyMember);
+        }
+
+        State = state;
+
+        // The row is no longer in a refusal state, so it must stop carrying a refusal's reason —
+        // the client renders stateReason verbatim, and "you were declined" under a Following badge
+        // is a sentence nobody meant to write.
+        EndedAt = null;
+        DecisionReason = null;
+        DecidedBy = null;
+        Revision++;
+
+        return Result.Success();
+    }
+
     public Result Join(Community community, bool requiresApproval, DateTimeOffset now, bool hasInvitation = false)
     {
         ArgumentNullException.ThrowIfNull(community);
@@ -279,12 +324,16 @@ public sealed class CommunityMembership : AggregateRoot<CommunityMembershipId>, 
     /// <summary>Stops following without ever having been a member.</summary>
     public Result Unfollow()
     {
-        if (State != CommunityMembershipState.Following)
+        // Following and Interested both, because the client's `unfollow` and `remove-interest` are
+        // the same transition: stepping back from a relationship that never carried standing. A
+        // member cannot reach it — leaving a community is Leave, and it records a departure.
+        if (State is not (CommunityMembershipState.Following or CommunityMembershipState.Interested))
         {
             return Result.Failure(CommunityErrors.NotAMember);
         }
 
         State = CommunityMembershipState.None;
+        Revision++;
         return Result.Success();
     }
 

@@ -116,6 +116,23 @@ public static class CommunityErrors
 
     // ── Membership ──────────────────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// A visibility the platform does not have. Refused rather than defaulted, in either
+    /// direction: defaulting to Private ignores somebody opting in, and defaulting to Public
+    /// discloses a membership on a typo.
+    /// </summary>
+    public static readonly Error UnknownMembershipVisibility = Error.Validation(
+        CommunityErrorCodes.UnknownMembershipVisibility,
+        "That is not a visibility setting.");
+
+    /// <summary>
+    /// An act the membership route does not offer. Refused rather than treated as a join, because
+    /// guessing at an unrecognised verb is how a client that meant "follow" ends up a member.
+    /// </summary>
+    public static readonly Error UnknownMembershipAction = Error.Validation(
+        CommunityErrorCodes.UnknownMembershipAction,
+        "That is not something you can do to a membership.");
+
     public static readonly Error AlreadyMember = Error.Conflict(
         CommunityErrorCodes.AlreadyMember, "You already belong to this community.");
 

@@ -41,6 +41,8 @@ public static class CommunityErrorCodes
     public const string SuspensionNeedsReason = Prefix + ".suspension.needs-reason";
 
     // ── Membership ──────────────────────────────────────────────────────────────────────────
+    public const string UnknownMembershipVisibility = Prefix + ".membership.unknown-visibility";
+    public const string UnknownMembershipAction = Prefix + ".membership.unknown-action";
     public const string AlreadyMember = Prefix + ".membership.already-member";
     public const string NotAMember = Prefix + ".membership.not-a-member";
     public const string MembershipRevoked = Prefix + ".membership.revoked";

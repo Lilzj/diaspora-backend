@@ -311,6 +311,57 @@ public sealed class CommunityDirectoryTests : IdentityTestBase
             "/communities/campaigns is the campaign list, and a community may not take that handle");
     }
 
+    /// <summary>
+    /// <b>A pending community is absent to everyone but the person who proposed it.</b> A name
+    /// somebody has reserved but not opened is not yet a public fact, and answering 403 would
+    /// confirm the handle is taken.
+    /// </summary>
+    [Fact]
+    public async Task A_pending_community_is_absent_to_a_stranger()
+    {
+        var slug = await SeedOpenCommunityAsync("Pending probe", open: false);
+
+        var response = await HttpClient.GetAsync($"{Root}/{slug}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    /// <summary>
+    /// <b>The person who proposed it can read it, and this test is here because the first version
+    /// of that check did not work.</b>
+    /// <para>
+    /// The handler compares <c>CreatedBy</c> to the caller. <c>CreatedBy</c> is written by
+    /// <c>DiasporaDbContext.ApplyAuditFields</c> as <c>UserId.ToString()</c>, and reading
+    /// <c>StronglyTypedId</c> — which overrides <c>ToString</c> to return the bare value — says that
+    /// is a plain guid. It is not: <see cref="UserId"/> is a <em>derived</em> record, the compiler
+    /// synthesises a <c>ToString</c> on it that overrides the base one, and what lands in the column
+    /// is <c>UserId { Value = … }</c>.
+    /// </para>
+    /// <para>
+    /// Comparing against the guid therefore failed for every creator, and failed as a 404 — the same
+    /// answer this route deliberately gives everyone else, so nothing looked wrong. Only running it
+    /// against a real column found it.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task The_person_who_proposed_a_community_can_read_it_before_it_opens()
+    {
+        var auth = await RegisterVerifiedMemberAsync();
+        var creator = UserId.From(auth.Auth.User.Id);
+
+        var slug = await SeedOpenCommunityAsync("Pending creator", open: false, createdBy: creator);
+
+        using var client = Factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue(
+                "Bearer", auth.Auth.Tokens.AccessToken);
+
+        var community = await ReadDataAsync<CommunityDto>(await client.GetAsync($"{Root}/{slug}"));
+
+        community.Status.Should().Be("Pending");
+        community.Slug.Should().Be(slug);
+    }
+
     // ── Seeding ─────────────────────────────────────────────────────────────────────────────
 
     /// <summary>
@@ -328,7 +379,9 @@ public sealed class CommunityDirectoryTests : IdentityTestBase
         string? origin = "NG",
         IReadOnlyList<string>? presence = null,
         UserId? member = null,
-        string? suspendWith = null)
+        string? suspendWith = null,
+        bool open = true,
+        UserId? createdBy = null)
     {
         // No slicing: FromName already truncates at the maximum length, and a hand-rolled
         // substring here threw on every name shorter than the slice.
@@ -343,7 +396,10 @@ public sealed class CommunityDirectoryTests : IdentityTestBase
             .Propose(CommunityId.New(), slug, name, type, visibility, origin)
             .Value;
 
-        community.Open();
+        if (open)
+        {
+            community.Open();
+        }
 
         if (presence is { Count: > 0 })
         {
@@ -371,6 +427,21 @@ public sealed class CommunityDirectoryTests : IdentityTestBase
 
         communities.Add(community);
         await unitOfWork.SaveChangesAsync();
+
+        // Stamped after the insert, not before, and the ordering is the point.
+        //
+        // The audit interceptor writes CreatedBy on every Added entity from the *current caller*,
+        // and this seeds straight through the repository where there is none — so a value set
+        // before the save is overwritten with null. On a Modified entity the interceptor writes
+        // ModifiedBy instead and leaves CreatedBy alone, so a second save is what makes it stick.
+        //
+        // The format is the interceptor's own: UserId.ToString(), which StronglyTypedId renders as
+        // the bare value.
+        if (createdBy is not null)
+        {
+            community.SetCreated(community.CreatedAt, createdBy.ToString());
+            await unitOfWork.SaveChangesAsync();
+        }
 
         return slug.Value;
     }

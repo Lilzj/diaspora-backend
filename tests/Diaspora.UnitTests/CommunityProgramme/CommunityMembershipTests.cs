@@ -261,6 +261,122 @@ public class CommunityMembershipTests
         membership.IsPrimary.Should().BeFalse();
     }
 
+    // -- Stepping back to no standing -----------------------------------------------------
+
+    [Fact]
+    public void Somebody_who_left_may_follow_without_rejoining()
+    {
+        var membership = Member();
+        membership.Leave(Now);
+
+        membership.Restart(CommunityMembershipState.Following).IsSuccess.Should().BeTrue();
+
+        membership.State.Should().Be(CommunityMembershipState.Following);
+        membership.EndedAt.Should().BeNull("the row is no longer an ended one");
+    }
+
+    [Fact]
+    public void Restarting_clears_a_refusals_reason()
+    {
+        // The client renders stateReason verbatim. "This community is for alumni only" under a
+        // Following badge is a sentence nobody meant to write.
+        var (community, membership) = Following();
+        membership.Join(community, requiresApproval: true, Now);
+        membership.Decline(UserId.New(), "This community is for alumni only.");
+
+        membership.Restart(CommunityMembershipState.Interested);
+
+        membership.DecisionReason.Should().BeNull();
+        membership.DecidedBy.Should().BeNull();
+    }
+
+    [Fact]
+    public void A_member_is_never_quietly_demoted_to_a_follower()
+    {
+        // The client sends the act, not the target state. Reading "follow" as "become a follower"
+        // would remove somebody from their own community.
+        Member().Restart(CommunityMembershipState.Following)
+            .Error.Code.Should().Be(CommunityErrorCodes.AlreadyMember);
+    }
+
+    [Fact]
+    public void Somebody_waiting_on_approval_does_not_lose_their_place()
+    {
+        var (community, membership) = Following();
+        membership.Join(community, requiresApproval: true, Now);
+
+        membership.Restart(CommunityMembershipState.Following)
+            .Error.Code.Should().Be(CommunityErrorCodes.AlreadyMember);
+    }
+
+    [Fact]
+    public void A_revocation_cannot_be_laundered_by_following()
+    {
+        var membership = Member();
+        membership.Revoke(UserId.New(), "Removed.", Now);
+
+        membership.Restart(CommunityMembershipState.Following)
+            .Error.Code.Should().Be(CommunityErrorCodes.MembershipRevoked);
+    }
+
+    [Theory]
+    [InlineData(CommunityMembershipState.Member)]
+    [InlineData(CommunityMembershipState.VerifiedMember)]
+    [InlineData(CommunityMembershipState.PendingApproval)]
+    public void Restart_cannot_mint_a_standing(CommunityMembershipState state)
+    {
+        var membership = Member();
+        membership.Leave(Now);
+
+        membership.Restart(state).IsFailure.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Removing_an_interest_and_unfollowing_are_the_same_step_back()
+    {
+        // The client has two verbs for it; the domain has one transition.
+        var (community, membership) = Following();
+        membership.Unfollow().IsSuccess.Should().BeTrue();
+        membership.State.Should().Be(CommunityMembershipState.None);
+
+        var interested = CommunityMembership.Start(
+            CommunityMembershipId.New(), community.Id, UserId.New(),
+            CommunityMembershipState.Interested).Value;
+
+        interested.Unfollow().IsSuccess.Should().BeTrue();
+        interested.State.Should().Be(CommunityMembershipState.None);
+    }
+
+    [Fact]
+    public void A_member_cannot_unfollow_their_way_out_of_a_community()
+    {
+        // Leaving records a departure and moves the count. Unfollow does neither.
+        Member().Unfollow().Error.Code.Should().Be(CommunityErrorCodes.NotAMember);
+    }
+
+    // -- Verification -----------------------------------------------------------------------
+
+    [Fact]
+    public void Verification_records_when_it_happened()
+    {
+        // The client shows "verified member since"; a verified state with no date cannot say it.
+        var membership = Member();
+
+        membership.Verify(Now.AddDays(3));
+
+        membership.VerifiedAt.Should().Be(Now.AddDays(3));
+    }
+
+    // -- Visibility -------------------------------------------------------------------------
+
+    [Fact]
+    public void A_new_membership_publishes_nothing()
+    {
+        // §41: the member opts in to being visible rather than out of it, and the enum's zero is
+        // Private so a path that forgets this field fails closed.
+        Member().Visibility.Should().Be(CommunityMembershipVisibility.Private);
+    }
+
     // ── Helpers ─────────────────────────────────────────────────────────────────────────────
 
     private static CommunityAggregate Opened()
