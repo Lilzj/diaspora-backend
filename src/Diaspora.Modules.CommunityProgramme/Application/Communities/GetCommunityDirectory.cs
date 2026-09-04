@@ -210,7 +210,7 @@ public sealed class GetCommunityDirectoryQueryHandler
     /// that names <em>only</em> unknown types is treated as no filter for the same reason.
     /// </para>
     /// </summary>
-    private static IReadOnlyList<CommunityType>? ReadTypes(string? types)
+    private static List<CommunityType>? ReadTypes(string? types)
     {
         var names = Split(types);
 
@@ -230,7 +230,7 @@ public sealed class GetCommunityDirectoryQueryHandler
         return parsed.Count > 0 ? parsed : null;
     }
 
-    private static IReadOnlyList<string>? Split(string? value) =>
+    private static List<string>? Split(string? value) =>
         string.IsNullOrWhiteSpace(value)
             ? null
             : [.. value

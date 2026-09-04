@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Diaspora.Modules.CommunityProgramme.Domain.Communities;
 using Diaspora.Modules.CommunityProgramme.Domain.Identifiers;
 using Diaspora.Modules.CommunityProgramme.Domain.Policies;
@@ -98,6 +99,21 @@ public sealed class CommunityRepository : ICommunityRepository
     /// members can still find a community they belong to and read why it stopped.
     /// </para>
     /// </summary>
+    [SuppressMessage(
+        "Globalization", "CA1304:Specify CultureInfo",
+        Justification =
+            "The ToLower calls below are inside an expression tree. They are never executed in "
+            + ".NET: EF translates them to SQL lower(), which runs under the database collation. "
+            + "There is no CultureInfo to specify, and passing one would fail to translate.")]
+    [SuppressMessage(
+        "Globalization", "CA1311:Specify a culture or use an invariant version",
+        Justification = "See CA1304. ToLowerInvariant translates identically; neither is executed.")]
+    [SuppressMessage(
+        "Globalization", "CA1862:Use the StringComparison method overloads",
+        Justification =
+            "Contains(string, StringComparison) has no translation on either provider, so the "
+            + "suggested overload would move the whole directory search into memory. Lowering both "
+            + "sides is what makes the match case-insensitive on Postgres, where LIKE is not.")]
     public async Task<CursorPagedResult<CommunityAggregate>> SearchAsync(
         CommunityDirectoryFilter filter, CancellationToken cancellationToken = default)
     {
@@ -117,6 +133,11 @@ public sealed class CommunityRepository : ICommunityRepository
             // `EF.Functions.ILike` was the obvious choice and does not work: it is Npgsql-only and
             // throws "could not be translated" on SQLite, which the integration suite runs. Lowering
             // both sides translates on every provider.
+            //
+            // `EF.Functions.Like` is what three other repositories in this module use, and it is
+            // not right here: LIKE is case-sensitive on Postgres, so a member typing "nigerians in
+            // london" would not find "Nigerians in London" — on the one screen the whole phase is
+            // built around. Lowering both sides is what makes it match.
             //
             // It also means no index is used for the text match. That is the right trade at this
             // size — the filters that narrow hardest, origin and type, are indexed — and the fix
