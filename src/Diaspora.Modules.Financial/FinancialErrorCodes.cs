@@ -312,4 +312,7 @@ public static class FinancialErrorCodes
     public const string AdCampaignSpendMustBePositive = "financial.ad_campaign.spend.must_be_positive";
     public const string AdCampaignAlreadyFinished = "financial.ad_campaign.already_finished";
     public const string AdCampaignPlacementAlreadyBooked = "financial.ad_campaign.placement.already_booked";
+    public const string AdCampaignSubjectIncomplete = "financial.ad_campaign.subject.incomplete";
+    public const string AdCampaignDecisionUnknown = "financial.ad_campaign.decision.unknown";
+    public const string AdCampaignCannotReviewOwn = "financial.ad_campaign.cannot_review_own";
 }

@@ -43,5 +43,9 @@ public sealed class FinancialEndpointContributor : IEndpointContributor
         // membership payment binding. The campaign routes live in another module's URL space — see
         // GivingExtensionEndpoints for why.
         GivingExtensionEndpoints.Map(group);
+
+        // B16. `/campaigns` here is *advertising*; B15.1's fundraising campaigns are at
+        // /api/v1/communities/campaigns. Two entities, one noun, two prefixes.
+        AdCampaignEndpoints.Map(group);
     }
 }

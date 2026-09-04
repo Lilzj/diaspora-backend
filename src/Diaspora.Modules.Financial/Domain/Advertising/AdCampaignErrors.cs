@@ -82,6 +82,18 @@ public static class AdCampaignErrors
         FinancialErrorCodes.AdCampaignRejectionNeedsReason,
         "Say why the campaign was rejected. The advertiser is shown this.");
 
+    public static readonly Error DecisionUnknown = Error.Validation(
+        FinancialErrorCodes.AdCampaignDecisionUnknown,
+        "A review is either an approval or a rejection.");
+
+    /// <summary>
+    /// Somebody approving their own creative is the one conflict a review queue exists to prevent,
+    /// and it costs one comparison to refuse.
+    /// </summary>
+    public static readonly Error CannotReviewOwn = Error.Forbidden(
+        FinancialErrorCodes.AdCampaignCannotReviewOwn,
+        "You cannot review your own campaign.");
+
     public static readonly Error NothingToAppeal = Error.Conflict(
         FinancialErrorCodes.AdCampaignNothingToAppeal,
         "Only a rejected campaign can be appealed.");
@@ -139,6 +151,14 @@ public static class AdCampaignErrors
         "This campaign has already finished.");
 
     // ── Placements ──────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// A subject type with no id, or an id with no type. Either half alone is a reference to
+    /// nothing — it would be stored, and it would never resolve to anything a click could land on.
+    /// </summary>
+    public static readonly Error SubjectIncomplete = Error.Validation(
+        FinancialErrorCodes.AdCampaignSubjectIncomplete,
+        "Say both what the campaign promotes and which one.");
 
     public static readonly Error PlacementAlreadyBooked = Error.Conflict(
         FinancialErrorCodes.AdCampaignPlacementAlreadyBooked,
