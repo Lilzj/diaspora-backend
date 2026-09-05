@@ -1,3 +1,6 @@
+using Diaspora.Modules.Financial.Domain.Advertising;
+using Diaspora.SharedKernel.Contracts;
+
 namespace Diaspora.Modules.Financial.Contracts.V1.Requests;
 
 /// <summary>
@@ -35,6 +38,14 @@ public sealed record CreateAdCampaignRequest
     public string? Name { get; init; }
 
     /// <summary><c>Awareness</c>, <c>Traffic</c>, <c>Engagement</c> or <c>Leads</c>.</summary>
+    /// <remarks>
+    /// A string rather than the enum on purpose: the handler parses case-insensitively and
+    /// answers <c>ObjectiveUnknown</c>, which is a better failure than the model binder's 400.
+    /// The attribute is what puts the four legal values in the published contract, where a
+    /// client can read them — without it the document says only "string", which is how six
+    /// objectives shipped against four.
+    /// </remarks>
+    [OpenApiEnumValues(typeof(AdCampaignObjective))]
     public string? Objective { get; init; }
 
     public long BudgetMinorUnits { get; init; }
@@ -82,6 +93,14 @@ public sealed record UpdateAdCampaignRequest
 {
     public string? Name { get; init; }
 
+    /// <remarks>
+    /// A string rather than the enum on purpose: the handler parses case-insensitively and
+    /// answers <c>ObjectiveUnknown</c>, which is a better failure than the model binder's 400.
+    /// The attribute is what puts the four legal values in the published contract, where a
+    /// client can read them — without it the document says only "string", which is how six
+    /// objectives shipped against four.
+    /// </remarks>
+    [OpenApiEnumValues(typeof(AdCampaignObjective))]
     public string? Objective { get; init; }
 
     public long BudgetMinorUnits { get; init; }

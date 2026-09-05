@@ -193,7 +193,11 @@ builder.Services.AddApiVersioning(options =>
 });
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddOpenApi();
+// The schema transformer publishes the values behind string-typed enum properties.
+// Without it the document describes `objective` as an unconstrained string and the
+// four legal values live only in C# — see OpenApiEnumValuesAttribute.
+builder.Services.AddOpenApi(options =>
+    options.AddSchemaTransformer<Diaspora.Api.OpenApi.EnumValuesSchemaTransformer>());
 
 // Forwarded headers. Without this, every security event, session record and rate-limit
 // partition behind a load balancer sees the proxy's address instead of the client's —

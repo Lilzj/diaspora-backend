@@ -35966,6 +35966,12 @@
             ]
           },
           "objective": {
+            "enum": [
+              "Awareness",
+              "Traffic",
+              "Engagement",
+              "Leads"
+            ],
             "type": [
               "null",
               "string"
@@ -47201,6 +47207,12 @@
             ]
           },
           "objective": {
+            "enum": [
+              "Awareness",
+              "Traffic",
+              "Engagement",
+              "Leads"
+            ],
             "type": [
               "null",
               "string"
