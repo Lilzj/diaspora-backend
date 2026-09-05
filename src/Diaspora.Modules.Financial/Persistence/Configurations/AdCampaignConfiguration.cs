@@ -91,6 +91,9 @@ public sealed class AdCampaignConfiguration : IEntityTypeConfiguration<AdCampaig
         builder.Property(campaign => campaign.Headline)
             .HasMaxLength(AdCampaign.HeadlineMaximumLength);
 
+        builder.Property(campaign => campaign.CallToActionLabel)
+            .HasMaxLength(AdCampaign.CallToActionMaximumLength);
+
         builder.Property(campaign => campaign.Body)
             .HasMaxLength(AdCampaign.BodyMaximumLength);
 

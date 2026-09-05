@@ -212,7 +212,7 @@ public sealed class UpdateAdCampaignCommandHandler
         }
 
         var creative = campaign.SetCreative(
-            request.CreativeMediaId, request.Headline, request.Body);
+            request.CreativeMediaId, request.Headline, request.Body, request.CallToActionLabel);
 
         if (creative.IsFailure)
         {
@@ -571,7 +571,8 @@ internal static class AdCampaignFactory
         }
 
         var campaign = drafted.Value;
-        campaign.SetCreative(request.CreativeMediaId, request.Headline, request.Body);
+        campaign.SetCreative(
+            request.CreativeMediaId, request.Headline, request.Body, request.CallToActionLabel);
 
         var subject = ReadSubject(request);
 

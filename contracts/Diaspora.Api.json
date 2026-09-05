@@ -36031,6 +36031,12 @@
               "string"
             ]
           },
+          "callToActionLabel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "body": {
             "type": [
               "null",
@@ -47255,6 +47261,12 @@
             "format": "uuid"
           },
           "headline": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "callToActionLabel": {
             "type": [
               "null",
               "string"

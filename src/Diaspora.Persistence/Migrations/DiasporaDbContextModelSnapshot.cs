@@ -6447,6 +6447,10 @@ namespace Diaspora.Persistence.Migrations
                     b.Property<long>("BudgetMinorUnits")
                         .HasColumnType("bigint");
 
+                    b.Property<string>("CallToActionLabel")
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 

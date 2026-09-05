@@ -43,6 +43,7 @@ internal static class AdCampaignMapper
 
             CreativeMediaId = campaign.CreativeMediaId,
             Headline = campaign.Headline,
+            CallToActionLabel = campaign.CallToActionLabel,
             Body = campaign.Body,
 
             SubjectType = campaign.Subject?.SubjectType.ToString(),

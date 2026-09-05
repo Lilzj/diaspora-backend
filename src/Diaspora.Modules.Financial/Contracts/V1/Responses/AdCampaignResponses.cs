@@ -134,6 +134,8 @@ public sealed record AdCampaignResponse
 
     public string? Headline { get; init; }
 
+    public string? CallToActionLabel { get; init; }
+
     public string? Body { get; init; }
 
     public string? SubjectType { get; init; }

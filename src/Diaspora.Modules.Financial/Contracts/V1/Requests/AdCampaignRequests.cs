@@ -55,6 +55,9 @@ public sealed record CreateAdCampaignRequest
 
     public string? Headline { get; init; }
 
+    /// <summary>What the advertisement's button says. Clipped to 24 characters.</summary>
+    public string? CallToActionLabel { get; init; }
+
     public string? Body { get; init; }
 
     /// <summary>What a click leads to — the subject the campaign promotes.</summary>
@@ -97,6 +100,9 @@ public sealed record UpdateAdCampaignRequest
 
     public string? Headline { get; init; }
 
+    /// <summary>What the advertisement's button says. Clipped to 24 characters.</summary>
+    public string? CallToActionLabel { get; init; }
+
     public string? Body { get; init; }
 
     public string? SubjectType { get; init; }
@@ -118,6 +124,7 @@ public sealed record UpdateAdCampaignRequest
         Audience = Audience,
         CreativeMediaId = CreativeMediaId,
         Headline = Headline,
+        CallToActionLabel = CallToActionLabel,
         Body = Body,
         SubjectType = SubjectType,
         SubjectId = SubjectId,

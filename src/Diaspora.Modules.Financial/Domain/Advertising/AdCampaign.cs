@@ -43,6 +43,17 @@ public sealed class AdCampaign : AggregateRoot<AdCampaignId>, IAuditableEntity
     public const int NameMinimumLength = 3;
     public const int NameMaximumLength = 120;
     public const int HeadlineMaximumLength = 120;
+
+    /// <summary>
+    /// The words on the advertisement's own button.
+    /// <para>
+    /// Short because it is a button. The client asked members for this from the day the
+    /// builder shipped and had nowhere to put it: the creative carried a headline and a body
+    /// and nothing else, so every campaign rendered a default label while its author believed
+    /// they had chosen one.
+    /// </para>
+    /// </summary>
+    public const int CallToActionMaximumLength = 24;
     public const int BodyMaximumLength = 500;
     public const int ReasonMaximumLength = 500;
 
@@ -118,6 +129,9 @@ public sealed class AdCampaign : AggregateRoot<AdCampaignId>, IAuditableEntity
     public Guid? CreativeMediaId { get; private set; }
 
     public string? Headline { get; private set; }
+
+    /// <summary>What the advertisement's button says. Null falls back to the client's default.</summary>
+    public string? CallToActionLabel { get; private set; }
 
     public string? Body { get; private set; }
 
@@ -299,7 +313,8 @@ public sealed class AdCampaign : AggregateRoot<AdCampaignId>, IAuditableEntity
     }
 
     /// <summary>Sets the creative. Draft only, for the same reason as <see cref="Update"/>.</summary>
-    public Result SetCreative(Guid? mediaId, string? headline, string? body)
+    public Result SetCreative(
+        Guid? mediaId, string? headline, string? body, string? callToActionLabel = null)
     {
         if (!IsEditable)
         {
@@ -309,6 +324,7 @@ public sealed class AdCampaign : AggregateRoot<AdCampaignId>, IAuditableEntity
         CreativeMediaId = mediaId;
         Headline = Clip(headline, HeadlineMaximumLength);
         Body = Clip(body, BodyMaximumLength);
+        CallToActionLabel = Clip(callToActionLabel, CallToActionMaximumLength);
         Revision++;
 
         return Result.Success();
