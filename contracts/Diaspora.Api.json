@@ -11950,6 +11950,76 @@
         }
       }
     },
+    "/api/v1/creators/me/earnings": {
+      "get": {
+        "tags": [
+          "Creator"
+        ],
+        "summary": "The caller's own earnings, newest first, each with the source it came from, the state it is in, and both the share and what was actually paid.",
+        "operationId": "GetMyCreatorEarnings",
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "take",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/creators/me/revenue/summary": {
+      "get": {
+        "tags": [
+          "Creator"
+        ],
+        "summary": "Lifetime, pending, available, processing and paid, plus the per-source breakdown. Summed in one currency, and says so when there are others.",
+        "operationId": "GetMyCreatorRevenueSummary",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/grants": {
       "get": {
         "tags": [

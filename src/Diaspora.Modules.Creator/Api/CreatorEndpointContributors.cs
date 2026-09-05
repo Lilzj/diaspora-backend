@@ -36,6 +36,10 @@ public sealed class CreatorEndpointContributor : IEndpointContributor
         CreatorVerificationEndpoints.Map(group);
         CreatorMilestoneEndpoints.Map(group);
         CreatorDiscoveryEndpoints.Map(group);
+
+        // What a creator earned and what it was for. B15 records that money moved; these are the
+        // only routes that say what a movement meant.
+        CreatorEarningEndpoints.Map(group);
     }
 }
 
