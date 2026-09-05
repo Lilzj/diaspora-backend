@@ -178,6 +178,24 @@ public sealed class FinancialPermissionContributor : IPermissionContributor
         };
 
         yield return new PermissionDefinition(
+            FinancialPermissions.AdvertisingRead,
+            Module,
+            "See the advertising campaigns waiting to be reviewed.")
+        {
+            MinimumTier = AccessTier.Limited,
+            Roles = StaffRoles()
+        };
+
+        yield return new PermissionDefinition(
+            FinancialPermissions.AdvertisingManage,
+            Module,
+            "Approve or reject an advertising campaign.")
+        {
+            MinimumTier = AccessTier.Limited,
+            Roles = StaffRoles()
+        };
+
+        yield return new PermissionDefinition(
             FinancialPermissions.ReportingRead, Module, "Read revenue and the financial dashboard.")
         {
             MinimumTier = AccessTier.Limited,

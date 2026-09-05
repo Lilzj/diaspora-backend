@@ -43,7 +43,7 @@ public sealed record GetAdCampaignReviewQuery : IQuery<AdCampaignReviewResponse>
 /// reads — a queue of everybody's creative and targeting is not something a purchase permission
 /// should open.
 /// </summary>
-[Authorize(Permission = FinancialPermissions.ReportingRead)]
+[Authorize(Permission = FinancialPermissions.AdvertisingRead)]
 public sealed record GetAdCampaignReviewQueueQuery : IQuery<IReadOnlyList<AdCampaignResponse>>
 {
     public int? Take { get; init; }
@@ -195,7 +195,7 @@ public sealed class GetAdCampaignReviewQueueQueryHandler
 /// request shape that lets somebody approve their own campaign.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.ReportingRead)]
+[Authorize(Permission = FinancialPermissions.AdvertisingManage)]
 public sealed record DecideAdCampaignCommand : ICommand<AdCampaignResponse>
 {
     public required Guid CampaignId { get; init; }

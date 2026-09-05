@@ -23,6 +23,24 @@ public static class FinancialPermissions
     /// <summary>See your own wallet, statement and transaction history.</summary>
     public const string WalletRead = "financial:wallet:read";
 
+    // ── Advertising review ─────────────────────────────────────────────────────
+    //
+    // Both review routes shipped guarded by `ReportingRead`, which this file
+    // describes as "read revenue and the financial dashboard" and which the policy
+    // contributor binds to **Analyst**. So a revenue analyst could approve an
+    // advertisement — releasing delivery and a charge — on a permission whose whole
+    // name says read.
+    //
+    // Two keys rather than one because they are genuinely different acts: seeing
+    // what is queued is an audit that costs nothing, and deciding is what puts an
+    // advertisement in front of members.
+
+    /// <summary>See the advertising campaigns waiting to be reviewed.</summary>
+    public const string AdvertisingRead = "financial:advertising:read";
+
+    /// <summary>Approve or reject an advertising campaign.</summary>
+    public const string AdvertisingManage = "financial:advertising:manage";
+
     /// <summary>Start, authorise, cancel and refund your own payments.</summary>
     public const string PaymentsManage = "financial:payments:manage";
 
