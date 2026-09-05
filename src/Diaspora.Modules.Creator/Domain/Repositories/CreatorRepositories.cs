@@ -2,6 +2,7 @@ using Diaspora.Modules.Creator.Domain.Academy;
 using Diaspora.Modules.Creator.Domain.Activity;
 using Diaspora.Modules.Creator.Domain.Challenges;
 using Diaspora.Modules.Creator.Domain.Creators;
+using Diaspora.Modules.Creator.Domain.Earnings;
 using Diaspora.Modules.Creator.Domain.Enums;
 using Diaspora.Modules.Creator.Domain.Grants;
 using Diaspora.Modules.Creator.Domain.Identifiers;
@@ -355,6 +356,50 @@ public interface ICreatorRewardRepository
 
     Task<CreatorRewardRedemption?> FindByIdempotencyKeyAsync(
         string key, CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// One creator's recorded earnings.
+/// <para>
+/// Reads only, plus the idempotency check. Nothing here aggregates in memory: a revenue summary over
+/// a lifetime of earnings is a database sum, and loading every row to add them up is how a dashboard
+/// becomes slower every month it is used.
+/// </para>
+/// </summary>
+public interface ICreatorEarningRepository
+{
+    void Add(CreatorEarning earning);
+
+    /// <summary>Whether this producing event has already been recorded. The idempotency barrier.</summary>
+    Task<bool> ExistsAsync(string sourceReference, CancellationToken cancellationToken = default);
+
+    /// <summary>One creator's earnings, newest first, optionally narrowed.</summary>
+    Task<IReadOnlyList<CreatorEarning>> ListForCreatorAsync(
+        CreatorId creatorId,
+        CreatorEarningState? state,
+        CreatorEarningSource? source,
+        int take,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Totals per state, summed at the database.
+    /// <para>
+    /// Keyed by state and currency together: a creator paid in two currencies has two totals, and
+    /// adding them would produce a number that is not money in any currency.
+    /// </para>
+    /// </summary>
+    Task<IReadOnlyList<(CreatorEarningState State, string Currency, long MinorUnits, int Count)>>
+        SumByStateAsync(
+            CreatorId creatorId, DateTimeOffset? since, CancellationToken cancellationToken = default);
+
+    /// <summary>Totals per source, summed at the database. Same currency rule as above.</summary>
+    Task<IReadOnlyList<(CreatorEarningSource Source, string Currency, long MinorUnits, int Count)>>
+        SumBySourceAsync(
+            CreatorId creatorId, DateTimeOffset? since, CancellationToken cancellationToken = default);
+
+    /// <summary>Earnings that have cleared their waiting period and are still pending.</summary>
+    Task<IReadOnlyList<CreatorEarning>> ListClearableAsync(
+        DateTimeOffset clearedBefore, int take, CancellationToken cancellationToken = default);
 }
 
 public interface ICreatorActivityRepository

@@ -80,5 +80,9 @@ public sealed class CreatorDatabaseContributor : IDatabaseContributor
         // The recognised-activity ledger that four of the above read. Not analytics — see the
         // aggregate's own summary.
         modelBuilder.ApplyConfiguration(new CreatorActivityConfiguration());
+
+        // What a creator earned and what it was for. B15 records that money moved; this is the only
+        // place on the platform that records what a movement meant.
+        modelBuilder.ApplyConfiguration(new CreatorEarningConfiguration());
     }
 }

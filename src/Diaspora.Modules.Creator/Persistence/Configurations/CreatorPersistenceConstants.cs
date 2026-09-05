@@ -88,6 +88,9 @@ internal static class CreatorPersistenceConstants
 
     public const string ActivityTable = "creator_activity_entries";
 
+    /// <summary>One recorded earning and what it was for. See <c>CreatorEarning</c>.</summary>
+    public const string EarningsTable = "creator_earnings";
+
     // ── Widths ──────────────────────────────────────────────────────────────────────────────
 
     /// <summary>Enum names are stored as strings, so a value added later reads correctly on old rows.</summary>

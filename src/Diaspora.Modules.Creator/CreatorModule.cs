@@ -72,6 +72,12 @@ public sealed class CreatorModule : IPlatformModule
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
+        services
+            .AddOptions<CreatorRevenueShareOptions>()
+            .Bind(configuration.GetSection(CreatorRevenueShareOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
         RegisterRepositories(services);
         RegisterServices(services);
         RegisterHostedServices(services);
@@ -95,6 +101,7 @@ public sealed class CreatorModule : IPlatformModule
         services.AddScoped<ISignupBonusRepository, SignupBonusRepository>();
         services.AddScoped<ICreatorRewardRepository, CreatorRewardRepository>();
         services.AddScoped<ICreatorActivityRepository, CreatorActivityRepository>();
+        services.AddScoped<ICreatorEarningRepository, CreatorEarningRepository>();
 
         // A narrow read across the ledger rather than a repository operation on an aggregate — see
         // the type's own summary for why it is not a method on ICreatorActivityRepository.

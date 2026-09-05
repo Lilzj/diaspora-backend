@@ -5464,6 +5464,86 @@ namespace Diaspora.Persistence.Migrations
                     b.ToTable("creator_profiles", "creator");
                 });
 
+            modelBuilder.Entity("Diaspora.Modules.Creator.Domain.Earnings.CreatorEarning", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("AmountMinorUnits")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("CreatorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
+                    b.Property<int>("Exponent")
+                        .HasColumnType("integer");
+
+                    b.Property<long>("GrossMinorUnits")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PayoutId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("SettledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Source")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SourceReference")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<int>("State")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("StateReason")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<Guid?>("SubjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SubjectType")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SourceReference")
+                        .IsUnique()
+                        .HasDatabaseName("ux_creator_earning_source");
+
+                    b.HasIndex("CreatorId", "OccurredAt")
+                        .HasDatabaseName("ix_creator_earning_ledger");
+
+                    b.HasIndex("CreatorId", "Source")
+                        .HasDatabaseName("ix_creator_earning_source_total");
+
+                    b.HasIndex("CreatorId", "State")
+                        .HasDatabaseName("ix_creator_earning_state");
+
+                    b.HasIndex("State", "OccurredAt")
+                        .HasDatabaseName("ix_creator_earning_clearing");
+
+                    b.ToTable("creator_earnings", "creator");
+                });
+
             modelBuilder.Entity("Diaspora.Modules.Creator.Domain.Grants.CommunityGrant", b =>
                 {
                     b.Property<Guid>("Id")

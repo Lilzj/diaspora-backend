@@ -214,6 +214,14 @@ public sealed record CreatorPointRuleId(Guid Value) : StronglyTypedId(Value)
 /// leaderboard can answer for a period rather than only for all time.
 /// </para>
 /// </summary>
+/// <summary>One recorded earning. See <c>CreatorEarning</c>.</summary>
+public sealed record CreatorEarningId(Guid Value) : StronglyTypedId(Value)
+{
+    public static CreatorEarningId New() => new(Guid.NewGuid());
+
+    public static CreatorEarningId From(Guid value) => new(value);
+}
+
 public sealed record CreatorActivityEntryId(Guid Value) : StronglyTypedId(Value)
 {
     public static CreatorActivityEntryId New() => new(Guid.NewGuid());
