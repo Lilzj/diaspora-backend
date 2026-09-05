@@ -141,6 +141,10 @@ public sealed class CreatorModule : IPlatformModule
         // than scanned because it is a collaborator of the consumers, not a seam.
         services.AddScoped<CreatorActivityRecorder>();
 
+        // The single settling path for an earning. Both money consumers call into it, so the rate
+        // arithmetic, the idempotency check and the creator lookup exist once.
+        services.AddScoped<CreatorEarningRecorder>();
+
         // Resolves a guide's author from this module's own ledger rather than referencing B8 for a
         // Guid. Registered by hand so a second implementation cannot appear by accident.
         services.AddScoped<IGuidesAuthorLookup, ActivityLedgerAuthorLookup>();
