@@ -45,7 +45,7 @@ public sealed class CreatorEarningTests
     {
         var options = new CreatorRevenueShareOptions();
 
-        options.ShareOf(5_000, CreatorEarningSource.Sponsorship).Should().Be(0);
+        options.ShareOf(5_000, CreatorEarningSource.SponsoredContent).Should().Be(0);
         options.ShareOf(5_000, CreatorEarningSource.Subscription).Should().Be(0);
         options.ShareOf(5_000, CreatorEarningSource.Referral).Should().Be(0);
     }
@@ -55,9 +55,9 @@ public sealed class CreatorEarningTests
     {
         // 33.33% of 10 pence is 3.333 pence. Rounding towards the creator would have the platform
         // paying out marginally more than it took, once per earning, for ever.
-        var options = new CreatorRevenueShareOptions { SponsorshipBasisPoints = 3_333 };
+        var options = new CreatorRevenueShareOptions { SponsoredContentBasisPoints = 3_333 };
 
-        options.ShareOf(10, CreatorEarningSource.Sponsorship).Should().Be(3);
+        options.ShareOf(10, CreatorEarningSource.SponsoredContent).Should().Be(3);
     }
 
     [Fact]
@@ -173,7 +173,7 @@ public sealed class CreatorEarningTests
     {
         // Served rather than held by a screen, so four surfaces cannot disagree about what
         // `Sponsorship` is called and so the wording is translatable in one place.
-        CreatorEarningMapper.LabelFor(CreatorEarningSource.Sponsorship)
+        CreatorEarningMapper.LabelFor(CreatorEarningSource.SponsoredContent)
             .Should().Be("Sponsored content");
 
         CreatorEarningMapper.LabelFor(CreatorEarningSource.Donation).Should().Be("Donations");

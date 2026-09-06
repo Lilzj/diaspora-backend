@@ -163,7 +163,7 @@ public static class CreatorEarningMapper
     public static string LabelFor(CreatorEarningSource source) => source switch
     {
         CreatorEarningSource.Donation => "Donations",
-        CreatorEarningSource.Sponsorship => "Sponsored content",
+        CreatorEarningSource.SponsoredContent => "Sponsored content",
         CreatorEarningSource.Subscription => "Subscriptions",
         CreatorEarningSource.Referral => "Referrals",
         _ => source.ToString(),

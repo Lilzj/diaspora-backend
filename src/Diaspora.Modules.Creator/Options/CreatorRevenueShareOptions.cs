@@ -35,7 +35,7 @@ public sealed class CreatorRevenueShareOptions
 
     /// <summary>A purchase against this creator's own subject. Unset until somebody sets it.</summary>
     [Range(0, 10_000)]
-    public int SponsorshipBasisPoints { get; set; }
+    public int SponsoredContentBasisPoints { get; set; }
 
     /// <summary>A subscription share. Unset until somebody sets it.</summary>
     [Range(0, 10_000)]
@@ -59,7 +59,7 @@ public sealed class CreatorRevenueShareOptions
     public int RateFor(CreatorEarningSource source) => source switch
     {
         CreatorEarningSource.Donation => DonationBasisPoints,
-        CreatorEarningSource.Sponsorship => SponsorshipBasisPoints,
+        CreatorEarningSource.SponsoredContent => SponsoredContentBasisPoints,
         CreatorEarningSource.Subscription => SubscriptionBasisPoints,
         CreatorEarningSource.Referral => ReferralBasisPoints,
 

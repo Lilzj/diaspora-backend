@@ -21,8 +21,13 @@ public enum CreatorEarningSource
     /// <summary>
     /// A share of something bought against this creator's own subject — a promoted listing, a
     /// featured guide. `MonetizationProductPurchasedIntegrationEvent`.
+    /// <para>
+    /// Named for the client's word rather than the shorter one: the revenue surface has called this
+    /// `SponsoredContent` since before the backend recorded any earning, and one vocabulary with two
+    /// spellings is a mapping layer nobody needs.
+    /// </para>
     /// </summary>
-    Sponsorship = 2,
+    SponsoredContent = 2,
 
     /// <summary>A share of a subscription attributed to this creator.</summary>
     Subscription = 3,

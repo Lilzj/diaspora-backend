@@ -234,7 +234,7 @@ public sealed class MonetizationPurchaseEarningConsumer
 
         await _recorder.RecordAsync(
             owner,
-            CreatorEarningSource.Sponsorship,
+            CreatorEarningSource.SponsoredContent,
             integrationEvent.PaidMinorUnits,
             integrationEvent.Currency,
             exponent: 2,
