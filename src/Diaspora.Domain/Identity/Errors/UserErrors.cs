@@ -22,8 +22,22 @@ public static class UserErrors
     public static readonly Error EmailAlreadyRegistered =
         Error.Conflict("Identity.User.EmailAlreadyRegistered", "An account already exists for this email address.");
 
+    /// <summary>
+    /// One coarse refusal for every credential exchange.
+    /// <para>
+    /// <b>It names no field, and that is deliberate twice over.</b> It has to stay coarse so
+    /// sign-in cannot be used to enumerate accounts — "no such address" and "wrong password" are
+    /// answered identically, in timing and in words. And it is shared by password sign-in, phone OTP
+    /// sign-in and device registration, so naming any one channel is wrong in the others.
+    /// </para>
+    /// <para>
+    /// It used to read "The phone number or password is incorrect", written when sign-in was
+    /// phone-based. After the move to email and password it told members to check a phone number the
+    /// form does not ask for.
+    /// </para>
+    /// </summary>
     public static readonly Error InvalidCredentials =
-        Error.Unauthorized("Identity.User.InvalidCredentials", "The phone number or password is incorrect.");
+        Error.Unauthorized("Identity.User.InvalidCredentials", "Those sign-in details are not right.");
 
     public static readonly Error PhoneNotVerified =
         Error.Forbidden("Identity.User.PhoneNotVerified", "The phone number on this account has not been verified.");

@@ -16,7 +16,7 @@ namespace Diaspora.Application.Identity.Authentication.Providers;
 /// </para>
 /// <para>
 /// <b>Every failure here speaks about the code, never about a password.</b> This used to
-/// return <c>UserErrors.InvalidCredentials</c> — "The phone number or password is incorrect."
+/// return <c>UserErrors.InvalidCredentials</c>, which names no field on purpose.
 /// — on a flow that has no password, so the one screen a member reaches by entering a
 /// six-digit code told them their password was wrong.
 /// </para>
