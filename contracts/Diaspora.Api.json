@@ -11955,7 +11955,7 @@
         "tags": [
           "Creator"
         ],
-        "summary": "The caller's own earnings, newest first, each with the source it came from, the state it is in, and both the share and what was actually paid.",
+        "summary": "The caller's own earnings, newest first, each with the source it came from, the state it is in, and both the share and what was actually paid. Paged: pass the previous page's nextCursor back as cursor.",
         "operationId": "GetMyCreatorEarnings",
         "parameters": [
           {
@@ -11982,6 +11982,13 @@
                 "string"
               ],
               "format": "int32"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
             }
           }
         ],

@@ -1,6 +1,7 @@
 using Diaspora.Application.Abstractions;
 using Diaspora.Modules.Creator.Application.Services;
 using Diaspora.Modules.Creator.Contracts.V1.Responses;
+using Diaspora.Modules.Creator.Domain.Earnings;
 using Diaspora.Modules.Creator.Domain.Enums;
 using Diaspora.Modules.Creator.Domain.Repositories;
 using Diaspora.Modules.Creator.Options;
@@ -11,7 +12,7 @@ namespace Diaspora.Modules.Creator.Application.Earnings;
 
 /// <summary>The caller's own earnings, newest first — CREATOR-GAP-008.</summary>
 [Authorize(Permission = CreatorPermissions.ProfileRead)]
-public sealed record GetMyEarningsQuery : IQuery<IReadOnlyList<CreatorEarningResponse>>
+public sealed record GetMyEarningsQuery : IQuery<CreatorEarningPageResponse>
 {
     /// <summary>A <c>CreatorEarningState</c> name. Absent means every state.</summary>
     public string? State { get; init; }
@@ -20,6 +21,17 @@ public sealed record GetMyEarningsQuery : IQuery<IReadOnlyList<CreatorEarningRes
     public string? Source { get; init; }
 
     public int? Take { get; init; }
+
+    /// <summary>
+    /// A <c>NextCursor</c> from the previous page. Absent starts at the newest.
+    /// <para>
+    /// <b>This route pages rather than capping.</b> A list that answers the most recent fifty and
+    /// says nothing is a ledger with rows missing that a creator has no way to notice — the same
+    /// shape as a filter that can only come back empty, and worse, because the rows it hides are
+    /// money.
+    /// </para>
+    /// </summary>
+    public string? Cursor { get; init; }
 }
 
 /// <summary>What the caller has earned, totalled — CREATOR-GAP-008.</summary>
@@ -33,8 +45,10 @@ public sealed record GetMyRevenueSummaryQuery : IQuery<CreatorRevenueSummaryResp
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
 public sealed class GetMyEarningsQueryHandler
-    : IQueryHandler<GetMyEarningsQuery, IReadOnlyList<CreatorEarningResponse>>
+    : IQueryHandler<GetMyEarningsQuery, CreatorEarningPageResponse>
 {
+    private const int DefaultTake = 25;
+
     private readonly CreatorContext _context;
     private readonly ICreatorEarningRepository _earnings;
     private readonly CreatorRevenueShareOptions _shares;
@@ -51,7 +65,7 @@ public sealed class GetMyEarningsQueryHandler
         _shares = shares.Value;
     }
 
-    public async Task<Result<IReadOnlyList<CreatorEarningResponse>>> Handle(
+    public async Task<Result<CreatorEarningPageResponse>> Handle(
         GetMyEarningsQuery query, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(query);
@@ -60,7 +74,7 @@ public sealed class GetMyEarningsQueryHandler
 
         if (creator.IsFailure)
         {
-            return Result.Failure<IReadOnlyList<CreatorEarningResponse>>(creator.Error);
+            return Result.Failure<CreatorEarningPageResponse>(creator.Error);
         }
 
         // An unparseable filter narrows to nothing rather than being ignored. Silently returning
@@ -69,16 +83,46 @@ public sealed class GetMyEarningsQueryHandler
         if (!TryParseFilter<CreatorEarningState>(query.State, out var state)
             || !TryParseFilter<CreatorEarningSource>(query.Source, out var source))
         {
-            return Result.Failure<IReadOnlyList<CreatorEarningResponse>>(
+            return Result.Failure<CreatorEarningPageResponse>(
                 CreatorEarningQueryErrors.FilterUnknown);
         }
 
-        var earnings = await _earnings.ListForCreatorAsync(
-            creator.Value.Id, state, source, query.Take ?? 50, cancellationToken);
+        // Refused, not ignored. Ignoring a bad cursor serves page one again, so a "load more"
+        // button would reload the rows already on screen and look to a creator like a ledger that
+        // ends where it does not.
+        CreatorEarningCursor? after = null;
 
-        return Result.Success<IReadOnlyList<CreatorEarningResponse>>(
-            [.. earnings.Select(earning =>
-                CreatorEarningMapper.ToResponse(earning, _shares.ClearingDays))]);
+        if (!string.IsNullOrWhiteSpace(query.Cursor))
+        {
+            if (!CreatorEarningCursor.TryParse(query.Cursor, out var parsed))
+            {
+                return Result.Failure<CreatorEarningPageResponse>(
+                    CreatorEarningQueryErrors.CursorInvalid);
+            }
+
+            after = parsed;
+        }
+
+        var take = Math.Clamp(query.Take ?? DefaultTake, 1, 100);
+
+        // One extra row, so `hasMore` is known without a second count query.
+        var rows = await _earnings.ListForCreatorAsync(
+            creator.Value.Id, state, source, after, take + 1, cancellationToken);
+
+        var hasMore = rows.Count > take;
+        var page = hasMore ? rows.Take(take).ToList() : rows;
+
+        return Result.Success(new CreatorEarningPageResponse
+        {
+            Items = [.. page.Select(earning =>
+                CreatorEarningMapper.ToResponse(earning, _shares.ClearingDays))],
+
+            NextCursor = hasMore
+                ? new CreatorEarningCursor(page[^1].OccurredAt, page[^1].Id.Value).ToString()
+                : null,
+
+            HasMore = hasMore,
+        });
     }
 
     private static bool TryParseFilter<TEnum>(string? value, out TEnum? parsed)
@@ -267,4 +311,8 @@ public static class CreatorEarningQueryErrors
     public static readonly Error FilterUnknown = Error.Validation(
         "Creator.Earning.FilterUnknown",
         "That is not a state or a source this platform records.");
+
+    public static readonly Error CursorInvalid = Error.Validation(
+        "Creator.Earning.CursorInvalid",
+        "That is not a page marker this platform issued.");
 }

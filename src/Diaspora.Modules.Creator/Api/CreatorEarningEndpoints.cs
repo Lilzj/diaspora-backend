@@ -31,18 +31,26 @@ public static class CreatorEarningEndpoints
                 [FromQuery] string? state,
                 [FromQuery] string? source,
                 [FromQuery] int? take,
+                [FromQuery] string? cursor,
                 ISender sender,
                 HttpContext context,
                 CancellationToken cancellationToken) =>
                 PlatformResults.Ok(
                     context,
                     await sender.Send(
-                        new GetMyEarningsQuery { State = state, Source = source, Take = take },
+                        new GetMyEarningsQuery
+                        {
+                            State = state,
+                            Source = source,
+                            Take = take,
+                            Cursor = cursor,
+                        },
                         cancellationToken)))
             .WithName("GetMyCreatorEarnings")
             .WithSummary(
                 "The caller's own earnings, newest first, each with the source it came from, the "
-                + "state it is in, and both the share and what was actually paid.");
+                + "state it is in, and both the share and what was actually paid. Paged: pass the "
+                + "previous page's nextCursor back as cursor.");
 
         group.MapGet("/me/revenue/summary", async (
                 [FromQuery] int? days,

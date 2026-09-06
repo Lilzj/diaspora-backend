@@ -41,6 +41,7 @@ public sealed class CreatorEarningRepository : ICreatorEarningRepository
         CreatorId creatorId,
         CreatorEarningState? state,
         CreatorEarningSource? source,
+        CreatorEarningCursor? after,
         int take,
         CancellationToken cancellationToken = default)
     {
@@ -56,8 +57,23 @@ public sealed class CreatorEarningRepository : ICreatorEarningRepository
             query = query.Where(earning => earning.Source == wantedSource);
         }
 
+        // **Keyset, not a bare timestamp.** `OccurredAt < cursor` would skip every row sharing the
+        // boundary instant, and one purchase settling against two subjects records both at the same
+        // instant routinely. The second clause takes the ones the first excludes, ordered the same
+        // way, so a page boundary can fall in the middle of a tie without losing a row.
+        if (after is { } boundary)
+        {
+            var occurredAt = boundary.OccurredAt;
+            var id = boundary.Id;
+
+            query = query.Where(earning =>
+                earning.OccurredAt < occurredAt
+                || (earning.OccurredAt == occurredAt && earning.Id.Value < id));
+        }
+
         return await query
             .OrderByDescending(earning => earning.OccurredAt)
+            .ThenByDescending(earning => earning.Id.Value)
             .Take(Math.Clamp(take, 1, 200))
             .ToListAsync(cancellationToken);
     }

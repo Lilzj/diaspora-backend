@@ -373,11 +373,19 @@ public interface ICreatorEarningRepository
     /// <summary>Whether this producing event has already been recorded. The idempotency barrier.</summary>
     Task<bool> ExistsAsync(string sourceReference, CancellationToken cancellationToken = default);
 
-    /// <summary>One creator's earnings, newest first, optionally narrowed.</summary>
+    /// <summary>
+    /// One creator's earnings, newest first, optionally narrowed.
+    /// <para>
+    /// <paramref name="after"/> is a position in the ledger rather than a timestamp, because two
+    /// earnings can share an instant and a timestamp cursor would drop one of them. See
+    /// <see cref="CreatorEarningCursor"/>.
+    /// </para>
+    /// </summary>
     Task<IReadOnlyList<CreatorEarning>> ListForCreatorAsync(
         CreatorId creatorId,
         CreatorEarningState? state,
         CreatorEarningSource? source,
+        CreatorEarningCursor? after,
         int take,
         CancellationToken cancellationToken = default);
 

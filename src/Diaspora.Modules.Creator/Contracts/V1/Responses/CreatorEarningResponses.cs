@@ -66,6 +66,24 @@ public sealed record CreatorEarningResponse
     public required string Description { get; init; }
 }
 
+/// <summary>
+/// A page of earnings.
+/// <para>
+/// <b>A page rather than a capped list.</b> The first shape of this route answered the most recent
+/// fifty and carried nothing to say there were more, which is a ledger with rows missing that a
+/// creator cannot see are missing. On money, that is the worst version of the empty-filter defect.
+/// </para>
+/// </summary>
+public sealed record CreatorEarningPageResponse
+{
+    public required IReadOnlyList<CreatorEarningResponse> Items { get; init; }
+
+    /// <summary>Pass back as <c>cursor</c>. Null when this page is the last one.</summary>
+    public string? NextCursor { get; init; }
+
+    public required bool HasMore { get; init; }
+}
+
 /// <summary>One source's total on the revenue summary.</summary>
 public sealed record CreatorRevenueSourceResponse
 {
