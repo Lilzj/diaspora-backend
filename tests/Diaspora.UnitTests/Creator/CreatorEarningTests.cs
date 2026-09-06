@@ -1,3 +1,4 @@
+using Diaspora.Modules.Creator.Contracts.V1.Responses;
 using Diaspora.Modules.Creator.Domain.Earnings;
 using Diaspora.Modules.Creator.Domain.Enums;
 using Diaspora.Modules.Creator.Domain.Identifiers;
@@ -163,5 +164,49 @@ public sealed class CreatorEarningTests
         var earning = Record(share: 100, gross: 100).Value;
 
         earning.Reverse(CreatorEarningState.Available, null).IsFailure.Should().BeTrue();
+    }
+
+    // -- What a window may and may not narrow ---------------------------------
+
+    [Fact]
+    public void The_source_label_is_the_platforms_word_for_it()
+    {
+        // Served rather than held by a screen, so four surfaces cannot disagree about what
+        // `Sponsorship` is called and so the wording is translatable in one place.
+        CreatorEarningMapper.LabelFor(CreatorEarningSource.Sponsorship)
+            .Should().Be("Sponsored content");
+
+        CreatorEarningMapper.LabelFor(CreatorEarningSource.Donation).Should().Be("Donations");
+    }
+
+    [Fact]
+    public void A_pending_earning_says_when_it_clears()
+    {
+        // The platform made the clearing rule, so the platform states the date. A client adding
+        // days to a date it half-knows the rule for is a promise nobody checked.
+        var earning = Record(share: 100, gross: 100).Value;
+
+        var response = CreatorEarningMapper.ToResponse(earning, clearingDays: 30);
+
+        response.AvailableAt.Should().Be(Now.AddDays(30));
+    }
+
+    [Fact]
+    public void A_cleared_earning_has_no_clearing_date_left_to_state()
+    {
+        var earning = Record(share: 100, gross: 100).Value;
+        earning.MakeAvailable(Now);
+
+        CreatorEarningMapper.ToResponse(earning, clearingDays: 30).AvailableAt.Should().BeNull();
+    }
+
+    [Fact]
+    public void An_earning_describes_itself_in_words()
+    {
+        // Composed from the source and the subject rather than stored, so it cannot drift from the
+        // fields beside it.
+        var donation = Record(share: 100, gross: 100).Value;
+
+        CreatorEarningMapper.ToResponse(donation).Description.Should().Be("A donation");
     }
 }

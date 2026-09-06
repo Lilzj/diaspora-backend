@@ -1,4 +1,5 @@
 using Diaspora.Modules.Creator.Domain.Earnings;
+using Diaspora.Modules.Creator.Domain.Enums;
 
 namespace Diaspora.Modules.Creator.Contracts.V1.Responses;
 
@@ -43,6 +44,26 @@ public sealed record CreatorEarningResponse
 
     /// <summary>Why it is not payable, when it is not.</summary>
     public string? StateReason { get; init; }
+
+    /// <summary>
+    /// When a pending earning clears. Null once it has.
+    /// <para>
+    /// Derived from the configured clearing period rather than left for the client to add days to a
+    /// date it half-knows the rule for. "Available on the 5th" is a promise, and the platform that
+    /// made the rule should be the one that states it.
+    /// </para>
+    /// </summary>
+    public DateTimeOffset? AvailableAt { get; init; }
+
+    /// <summary>
+    /// What this earning was, in words.
+    /// <para>
+    /// Composed from the source and the subject rather than stored, so it cannot drift from the
+    /// fields beside it — and served rather than composed on the device, so the wording is the
+    /// platform's and translatable in one place.
+    /// </para>
+    /// </summary>
+    public required string Description { get; init; }
 }
 
 /// <summary>One source's total on the revenue summary.</summary>
@@ -50,10 +71,23 @@ public sealed record CreatorRevenueSourceResponse
 {
     public required string Source { get; init; }
 
+    /// <summary>The source in words, for a screen that should not hold its own copy.</summary>
+    public required string Label { get; init; }
+
     public required long MinorUnits { get; init; }
 
     /// <summary>How many earnings make up the total. A single £500 sponsorship is not five £100 ones.</summary>
     public required int Count { get; init; }
+
+    /// <summary>
+    /// This source's share of the total, as a percentage.
+    /// <para>
+    /// <b>Computed here, not on the device.</b> §11 forbids revenue being authoritative client-side
+    /// data, and a client dividing one served figure by another is doing arithmetic on money whose
+    /// rounding nobody agreed. The server holds both numbers; it can divide them.
+    /// </para>
+    /// </summary>
+    public required decimal SharePercentage { get; init; }
 }
 
 /// <summary>
@@ -105,17 +139,61 @@ public sealed record CreatorRevenueSummaryResponse
     /// </summary>
     public required bool HasOtherCurrencies { get; init; }
 
+    /// <summary>What was earned in the window this summary covers.</summary>
+    public required long CurrentPeriodMinorUnits { get; init; }
+
+    /// <summary>The window in words — "the last 30 days", or "all time" when unbounded.</summary>
+    public required string CurrentPeriodLabel { get; init; }
+
+    /// <summary>
+    /// When these totals were computed.
+    /// <para>
+    /// A revenue figure with no timestamp cannot be told from a stale one, and a creator refreshing
+    /// a screen that silently served a cached total would have no way to know.
+    /// </para>
+    /// </summary>
+    public required DateTimeOffset GeneratedAt { get; init; }
+
     public required IReadOnlyList<CreatorRevenueSourceResponse> BySource { get; init; }
 }
 
 public static class CreatorEarningMapper
 {
-    public static CreatorEarningResponse ToResponse(CreatorEarning earning)
+    /// <summary>The source in words. One place, so a screen does not keep its own copy.</summary>
+    public static string LabelFor(CreatorEarningSource source) => source switch
+    {
+        CreatorEarningSource.Donation => "Donations",
+        CreatorEarningSource.Sponsorship => "Sponsored content",
+        CreatorEarningSource.Subscription => "Subscriptions",
+        CreatorEarningSource.Referral => "Referrals",
+        _ => source.ToString(),
+    };
+
+    private static string DescribeSubject(string? subjectType) => subjectType switch
+    {
+        "listing" => "a marketplace listing",
+        "housing" => "a property",
+        "job" => "a job",
+        "event" => "an event",
+        "guide" => "a guide",
+        "donation" => "a donation",
+        _ => "your work",
+    };
+
+    public static CreatorEarningResponse ToResponse(CreatorEarning earning, int clearingDays = 0)
     {
         ArgumentNullException.ThrowIfNull(earning);
 
         return new CreatorEarningResponse
         {
+            Description = earning.Source == CreatorEarningSource.Donation
+                ? "A donation"
+                : $"Promotion of {DescribeSubject(earning.SubjectType)}",
+
+            AvailableAt = earning.State == CreatorEarningState.Pending && clearingDays > 0
+                ? earning.OccurredAt.AddDays(clearingDays)
+                : null,
+
             EarningId = earning.Id.Value,
             Source = earning.Source.ToString(),
             State = earning.State.ToString(),

@@ -37,11 +37,18 @@ public sealed class GetMyEarningsQueryHandler
 {
     private readonly CreatorContext _context;
     private readonly ICreatorEarningRepository _earnings;
+    private readonly CreatorRevenueShareOptions _shares;
 
-    public GetMyEarningsQueryHandler(CreatorContext context, ICreatorEarningRepository earnings)
+    public GetMyEarningsQueryHandler(
+        CreatorContext context,
+        ICreatorEarningRepository earnings,
+        IOptions<CreatorRevenueShareOptions> shares)
     {
+        ArgumentNullException.ThrowIfNull(shares);
+
         _context = context;
         _earnings = earnings;
+        _shares = shares.Value;
     }
 
     public async Task<Result<IReadOnlyList<CreatorEarningResponse>>> Handle(
@@ -70,7 +77,8 @@ public sealed class GetMyEarningsQueryHandler
             creator.Value.Id, state, source, query.Take ?? 50, cancellationToken);
 
         return Result.Success<IReadOnlyList<CreatorEarningResponse>>(
-            [.. earnings.Select(CreatorEarningMapper.ToResponse)]);
+            [.. earnings.Select(earning =>
+                CreatorEarningMapper.ToResponse(earning, _shares.ClearingDays))]);
     }
 
     private static bool TryParseFilter<TEnum>(string? value, out TEnum? parsed)
@@ -144,23 +152,57 @@ public sealed class GetMyRevenueSummaryQueryHandler
             ? DateTimeOffset.UtcNow.AddDays(-days)
             : null;
 
-        var byState = await _earnings.SumByStateAsync(creator.Value.Id, since, cancellationToken);
+        // ── What the window applies to, and what it must not ─────────────────────────
+        //
+        // **The balances are all-time.** Pending, available, processing and paid answer "what do I
+        // hold", and holdings do not have a date range — an available balance that shrank when a
+        // creator asked about the last thirty days would be them watching money disappear from a
+        // filter. Only the period figure and the breakdown are windowed, because those answer "what
+        // did this window earn me".
+        //
+        // Two queries rather than one for exactly that reason, and both are database sums.
+        var allTimeByState = await _earnings.SumByStateAsync(
+            creator.Value.Id, since: null, cancellationToken);
+
+        var periodByState = since is null
+            ? allTimeByState
+            : await _earnings.SumByStateAsync(creator.Value.Id, since, cancellationToken);
+
         var bySource = await _earnings.SumBySourceAsync(creator.Value.Id, since, cancellationToken);
 
         // The currency with the most rows behind it. Deterministic, and the flag below says whether
         // choosing was necessary at all.
-        var currency = byState
+        var currency = allTimeByState
             .GroupBy(row => row.Currency)
             .OrderByDescending(group => group.Sum(row => row.Count))
             .ThenBy(group => group.Key, StringComparer.Ordinal)
             .Select(group => group.Key)
             .FirstOrDefault() ?? "GBP";
 
-        var currencyCount = byState.Select(row => row.Currency).Distinct().Count();
+        var currencyCount = allTimeByState.Select(row => row.Currency).Distinct().Count();
 
-        long TotalFor(CreatorEarningState state) => byState
+        long TotalFor(CreatorEarningState state) => allTimeByState
             .Where(row => row.State == state && row.Currency == currency)
             .Sum(row => row.MinorUnits);
+
+        long PeriodTotalFor(CreatorEarningState state) => periodByState
+            .Where(row => row.State == state && row.Currency == currency)
+            .Sum(row => row.MinorUnits);
+
+        // Everything earned, ever, and not taken back.
+        var lifetimeTotal =
+            TotalFor(CreatorEarningState.Pending)
+            + TotalFor(CreatorEarningState.Available)
+            + TotalFor(CreatorEarningState.Processing)
+            + TotalFor(CreatorEarningState.Paid);
+
+        // The same sum over the window, and the denominator for every share below — so a breakdown
+        // adds to a hundred rather than to whatever the states happen to sum.
+        var periodTotal =
+            PeriodTotalFor(CreatorEarningState.Pending)
+            + PeriodTotalFor(CreatorEarningState.Available)
+            + PeriodTotalFor(CreatorEarningState.Processing)
+            + PeriodTotalFor(CreatorEarningState.Paid);
 
         return Result.Success(new CreatorRevenueSummaryResponse
         {
@@ -170,11 +212,7 @@ public sealed class GetMyRevenueSummaryQueryHandler
             // Lifetime is what was earned, not what survived. Reversed and refunded earnings are
             // excluded, because a creator reading "£400 earned" beside "£40 available" would
             // otherwise be looking at £360 that was taken back.
-            LifetimeMinorUnits =
-                TotalFor(CreatorEarningState.Pending)
-                + TotalFor(CreatorEarningState.Available)
-                + TotalFor(CreatorEarningState.Processing)
-                + TotalFor(CreatorEarningState.Paid),
+            LifetimeMinorUnits = lifetimeTotal,
 
             PendingMinorUnits = TotalFor(CreatorEarningState.Pending),
             AvailableMinorUnits = TotalFor(CreatorEarningState.Available),
@@ -192,6 +230,14 @@ public sealed class GetMyRevenueSummaryQueryHandler
             // for one and told the other exists.
             HasOtherCurrencies = currencyCount > 1,
 
+            // The window this summary covers. With no `days` the window is everything, and the
+            // period figure is the lifetime figure rather than a second number that looks different
+            // for no reason a creator could name.
+            CurrentPeriodMinorUnits = periodTotal,
+            CurrentPeriodLabel = since is null ? "All time" : $"The last {query.Days} days",
+
+            GeneratedAt = DateTimeOffset.UtcNow,
+
             BySource =
             [
                 .. bySource
@@ -200,8 +246,16 @@ public sealed class GetMyRevenueSummaryQueryHandler
                     .Select(row => new CreatorRevenueSourceResponse
                     {
                         Source = row.Source.ToString(),
+                        Label = CreatorEarningMapper.LabelFor(row.Source),
                         MinorUnits = row.MinorUnits,
                         Count = row.Count,
+
+                        // Divided here rather than on the device. A zero total divides to zero
+                        // rather than throwing, and rounds to one decimal so four sources do not
+                        // display as 33.3 three times and leave a member hunting the missing tenth.
+                        SharePercentage = periodTotal <= 0
+                            ? 0m
+                            : Math.Round(row.MinorUnits * 100m / periodTotal, 1),
                     })
             ],
         });
