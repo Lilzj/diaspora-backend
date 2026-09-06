@@ -274,10 +274,32 @@ public sealed class ProcessPaymentWebhookCommandHandler
         switch (result.EventKind?.Trim().ToLowerInvariant())
         {
             case "authorized":
+            {
                 intent.Authorize(_guids.NewSequentialGuid(), gateway, now);
                 _intents.Update(intent);
 
-                return Result.Success();
+                // **And then take it.** Checkout sessions are opened with
+                // `capture_method=manual`, so completing one authorises the money and holds it;
+                // the provider will not move it until this platform asks. Nothing asked. Every
+                // payment ever made through a hosted page sat `Authorized` for ever — the donation
+                // stayed `Pending`, no ledger entry was written, the campaign showed nothing
+                // raised, and the member's money sat held at the provider having left their
+                // account's available balance in every way that matters to them.
+                //
+                // `CaptureAsync`, not `ConfirmCaptureAsync`. The latter records a capture the
+                // provider has *already* performed and is what the `captured` case below is for;
+                // calling it here would write a capture that never happened, leaving the ledger
+                // claiming money the provider is still holding. That is the one outcome worse than
+                // not capturing at all.
+                //
+                // Nothing on this platform defers a capture on purpose: there is no escrow, and
+                // `NoEscrowDisclosure` tells members so. An authorisation with no capture behind it
+                // is not a policy here, it is an unfinished payment.
+                var authorised = await AmountAsync(intent, result, cancellationToken);
+                var taken = await _payments.CaptureAsync(intent, authorised, cancellationToken);
+
+                return taken.IsSuccess ? Result.Success() : Result.Failure(taken.Error);
+            }
 
             case "captured":
             {
