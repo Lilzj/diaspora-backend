@@ -220,6 +220,7 @@ public sealed class FinancialIntegrationEventRelay
             new MonetizationProductPurchasedIntegrationEvent
             {
                 PurchaseId = domainEvent.PurchaseId.Value,
+                TransactionId = domainEvent.TransactionId?.Value,
                 BuyerUserId = domainEvent.BuyerUserId,
                 ProductCode = domainEvent.ProductCode,
                 Category = domainEvent.Category.ToString(),
@@ -330,6 +331,7 @@ public sealed class FinancialIntegrationEventRelay
             new DonationCompletedIntegrationEvent
             {
                 DonationId = domainEvent.DonationId.Value,
+                TransactionId = domainEvent.TransactionId?.Value,
 
                 // Absent, not hidden. The aggregate stored nothing when anonymous.
                 DonorUserId = domainEvent.DonorUserId,

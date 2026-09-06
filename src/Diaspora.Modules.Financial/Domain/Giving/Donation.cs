@@ -170,6 +170,7 @@ public sealed class Donation : AggregateRoot<DonationId>, IAuditableEntity
         RaiseDomainEvent(new DonationCompletedDomainEvent
         {
             DonationId = Id,
+            TransactionId = transactionId,
             DonorUserId = DonorUserId,
             IsAnonymous = IsAnonymous,
             BeneficiaryType = BeneficiaryType,

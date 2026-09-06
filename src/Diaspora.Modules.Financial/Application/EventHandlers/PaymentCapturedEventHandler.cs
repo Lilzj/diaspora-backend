@@ -4,6 +4,7 @@ using Diaspora.Modules.Financial.Domain.Giving;
 using Diaspora.Modules.Financial.Domain.Identifiers;
 using Diaspora.Modules.Financial.Domain.Placements;
 using Diaspora.Modules.Financial.Domain.Purchases;
+using Diaspora.Modules.Financial.Domain.Transactions;
 using Diaspora.Platform.Services.Abstractions;
 
 namespace Diaspora.Modules.Financial.Application.EventHandlers;
@@ -38,6 +39,7 @@ public sealed class PaymentCapturedEventHandler : DomainEventHandler<PaymentCapt
     private readonly ICampaignRepository _campaigns;
     private readonly ICommunityContributionRepository _contributions;
     private readonly IContributionFundRepository _funds;
+    private readonly IFinancialTransactionRepository _transactions;
     private readonly FinancialIntegrationEventRelay _relay;
     private readonly Services.FinancialIdentityService _identities;
     private readonly IClock _clock;
@@ -50,6 +52,7 @@ public sealed class PaymentCapturedEventHandler : DomainEventHandler<PaymentCapt
         ICampaignRepository campaigns,
         ICommunityContributionRepository contributions,
         IContributionFundRepository funds,
+        IFinancialTransactionRepository transactions,
         FinancialIntegrationEventRelay relay,
         Services.FinancialIdentityService identities,
         IClock clock)
@@ -61,6 +64,7 @@ public sealed class PaymentCapturedEventHandler : DomainEventHandler<PaymentCapt
         _campaigns = campaigns;
         _contributions = contributions;
         _funds = funds;
+        _transactions = transactions;
         _relay = relay;
         _identities = identities;
         _clock = clock;
@@ -74,12 +78,46 @@ public sealed class PaymentCapturedEventHandler : DomainEventHandler<PaymentCapt
         var intentId = domainEvent.PaymentIntentId;
         var now = _clock.UtcNow;
 
-        await SettlePurchaseAsync(intentId, now, cancellationToken);
-        await SettleDonationAsync(intentId, now, cancellationToken);
+        // Resolved once and handed down, rather than looked up three times for the same fact.
+        var transactionId = await CaptureTransactionAsync(intentId, cancellationToken);
+
+        await SettlePurchaseAsync(intentId, transactionId, now, cancellationToken);
+        await SettleDonationAsync(intentId, transactionId, now, cancellationToken);
         await SettleContributionAsync(intentId, now, cancellationToken);
 
         await _relay.PublishAsync(domainEvent, cancellationToken);
         await AnnounceDepositAsync(domainEvent, cancellationToken);
+    }
+
+    /// <summary>
+    /// The ledger transaction this capture posted.
+    /// <para>
+    /// <b>Resolved by the reference the posting itself writes</b> — <c>capture:{intentId}</c>, set in
+    /// <c>PaymentProcessor.PostCaptureAsync</c> — because the transaction does not exist at the
+    /// moment the capture event is raised. <c>PaymentIntent.Capture</c> raises it and the posting
+    /// happens after, so the event cannot carry an identity that has not been minted yet, and
+    /// reordering the two would post ledger entries for a capture the aggregate has not accepted.
+    /// </para>
+    /// <para>
+    /// <b>What this replaces was fabricated.</b> The donation path recorded
+    /// <c>TransactionId.From(intentId.Value)</c> — the payment intent's own guid, wearing a
+    /// transaction's type. The ledger mints its identity from <c>NewSequentialGuid()</c>, so that
+    /// value never matched a row in <c>financial_transactions</c>, and the comment above it claimed
+    /// it was what let support walk from a receipt to the ledger entries. It was a reference to
+    /// nothing. Not member-facing — no response contract carries it — which is why it survived.
+    /// </para>
+    /// <para>
+    /// Null is a real answer: a capture whose posting failed is refused upstream, but a purchase can
+    /// also complete with no capture at all.
+    /// </para>
+    /// </summary>
+    private async Task<TransactionId?> CaptureTransactionAsync(
+        PaymentIntentId intentId, CancellationToken cancellationToken)
+    {
+        var transaction = await _transactions.FindByReferenceAsync(
+            $"capture:{intentId.Value:N}", cancellationToken);
+
+        return transaction?.Id;
     }
 
     /// <summary>
@@ -119,7 +157,10 @@ public sealed class PaymentCapturedEventHandler : DomainEventHandler<PaymentCapt
     /// </para>
     /// </summary>
     private async Task SettlePurchaseAsync(
-        PaymentIntentId intentId, DateTimeOffset now, CancellationToken cancellationToken)
+        PaymentIntentId intentId,
+        TransactionId? transactionId,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
     {
         var purchase = await _purchases.FindByPaymentIntentAsync(intentId, cancellationToken);
 
@@ -128,7 +169,7 @@ public sealed class PaymentCapturedEventHandler : DomainEventHandler<PaymentCapt
             return;
         }
 
-        purchase.Complete(now);
+        purchase.Complete(now, transactionId);
         _purchases.Update(purchase);
 
         if (purchase.PlacementId is not { } placementId)
@@ -159,7 +200,10 @@ public sealed class PaymentCapturedEventHandler : DomainEventHandler<PaymentCapt
     }
 
     private async Task SettleDonationAsync(
-        PaymentIntentId intentId, DateTimeOffset now, CancellationToken cancellationToken)
+        PaymentIntentId intentId,
+        TransactionId? transactionId,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
     {
         var donation = await _donations.FindByPaymentIntentAsync(intentId, cancellationToken);
 
@@ -168,10 +212,15 @@ public sealed class PaymentCapturedEventHandler : DomainEventHandler<PaymentCapt
             return;
         }
 
-        // The donation's own transaction is the capture's. Recording it here is what lets a support
-        // agent walk from a receipt reference to the ledger entries and back.
-        donation.Complete(TransactionId.From(intentId.Value), now);
-        _donations.Update(donation);
+        // The donation's own transaction is the capture's, and this now records the one the ledger
+        // actually minted rather than the payment intent's guid wearing a transaction's type. See
+        // `CaptureTransactionAsync`. Null only where no posting was found, which the aggregate
+        // refuses rather than storing a reference to nothing.
+        if (transactionId is { } settled)
+        {
+            donation.Complete(settled, now);
+            _donations.Update(donation);
+        }
 
         if (donation.CauseId is not { } causeId)
         {

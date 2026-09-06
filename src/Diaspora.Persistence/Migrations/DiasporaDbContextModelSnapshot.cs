@@ -5493,6 +5493,7 @@ namespace Diaspora.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<int>("Revision")
+                        .IsConcurrencyToken()
                         .HasColumnType("integer");
 
                     b.Property<DateTimeOffset?>("SettledAt")
@@ -5519,6 +5520,9 @@ namespace Diaspora.Persistence.Migrations
                     b.Property<string>("SubjectType")
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
+
+                    b.Property<Guid?>("TransactionId")
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");

@@ -15,6 +15,12 @@ public sealed record DonationCompletedIntegrationEvent : IntegrationEvent
 {
     public required Guid DonationId { get; init; }
 
+    /// <summary>
+    /// The ledger transaction that settled it, resolvable at
+    /// <c>GET /financial/transactions/{transactionId}</c>.
+    /// </summary>
+    public Guid? TransactionId { get; init; }
+
     /// <summary>Null when the donation is anonymous. Never a placeholder.</summary>
     public Guid? DonorUserId { get; init; }
 

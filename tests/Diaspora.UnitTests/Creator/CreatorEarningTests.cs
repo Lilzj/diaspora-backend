@@ -23,10 +23,12 @@ public sealed class CreatorEarningTests
     private static readonly Guid User = Guid.NewGuid();
     private static readonly DateTimeOffset Now = new(2026, 9, 5, 12, 0, 0, TimeSpan.Zero);
 
+    private static readonly Guid Transaction = Guid.NewGuid();
+
     private static Result<CreatorEarning> Record(long share, long gross) =>
         CreatorEarning.Record(
             Creator, User, CreatorEarningSource.Donation, share, gross, "GBP", 2,
-            "donation.completed:abc", "donation", Guid.NewGuid(), Now);
+            "donation.completed:abc", "donation", Guid.NewGuid(), Transaction, Now);
 
     // ── The share arithmetic ────────────────────────────────────────────────
 
@@ -93,12 +95,36 @@ public sealed class CreatorEarningTests
     }
 
     [Fact]
+    public void An_earning_keeps_the_ledger_transaction_that_settled_it()
+    {
+        // The join the register asked for, and the reason it cannot be derived inside this module:
+        // an earning knows which content produced it, and only Financial knows which transaction
+        // settled it. Carried in from the producing event and stored verbatim.
+        Record(share: 100, gross: 100).Value.TransactionId.Should().Be(Transaction);
+    }
+
+    [Fact]
+    public void An_earning_with_no_posting_behind_it_keeps_a_null_rather_than_inventing_one()
+    {
+        // A purchase can complete with no ledger posting — a zero-priced product, something the
+        // platform granted. Null is the honest answer, and it is the one the revenue screen reads to
+        // decide the row is not tappable. A fabricated reference would offer a link to a transaction
+        // that does not exist, which is the defect this whole field was added to end.
+        var earning = CreatorEarning.Record(
+            Creator, User, CreatorEarningSource.SponsoredContent, 0, 2_500, "GBP", 2,
+            "purchase.completed:def", "listing", Guid.NewGuid(), transactionId: null, Now);
+
+        earning.IsSuccess.Should().BeTrue();
+        earning.Value.TransactionId.Should().BeNull();
+    }
+
+    [Fact]
     public void An_earning_needs_the_reference_of_the_event_that_produced_it()
     {
         // The idempotency barrier. Without it a redelivered event pays twice.
         CreatorEarning.Record(
             Creator, User, CreatorEarningSource.Donation, 100, 100, "GBP", 2,
-            sourceReference: "  ", "donation", Guid.NewGuid(), Now)
+            sourceReference: "  ", "donation", Guid.NewGuid(), Transaction, Now)
             .IsFailure.Should().BeTrue();
     }
 

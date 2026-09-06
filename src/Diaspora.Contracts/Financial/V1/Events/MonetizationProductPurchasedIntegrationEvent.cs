@@ -13,6 +13,17 @@ public sealed record MonetizationProductPurchasedIntegrationEvent : IntegrationE
 {
     public required Guid PurchaseId { get; init; }
 
+    /// <summary>
+    /// The ledger transaction that settled it, resolvable at
+    /// <c>GET /financial/transactions/{transactionId}</c>.
+    /// <para>
+    /// Null where no money moved through the ledger — a zero-priced product, or something the
+    /// platform granted. A consumer must treat null as "there is nothing to link to" rather than as
+    /// a field it can fill in itself.
+    /// </para>
+    /// </summary>
+    public Guid? TransactionId { get; init; }
+
     public required Guid BuyerUserId { get; init; }
 
     public required string ProductCode { get; init; }

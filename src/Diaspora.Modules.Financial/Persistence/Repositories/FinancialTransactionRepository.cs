@@ -54,6 +54,19 @@ public sealed class FinancialTransactionRepository : IFinancialTransactionReposi
 
         var normalized = reference.Trim();
 
+        // **Staged first.** A caller that posts to the ledger and then looks the posting up in the
+        // same unit of work would otherwise get null: the transaction is tracked and not yet
+        // written, and `FirstOrDefaultAsync` runs SQL. The capture path does exactly that — it posts
+        // the transaction, then a domain-event handler needs its identity to record what settled.
+        // Same trap, and the same fix, as `CreatorActivityRepository.ExistsAsync`.
+        var staged = Transactions.Local.FirstOrDefault(
+            transaction => transaction.Reference == normalized);
+
+        if (staged is not null)
+        {
+            return staged;
+        }
+
         return await Transactions.FirstOrDefaultAsync(
             transaction => transaction.Reference == normalized, cancellationToken);
     }

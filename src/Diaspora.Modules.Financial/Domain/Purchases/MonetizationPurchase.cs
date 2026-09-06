@@ -208,7 +208,17 @@ public sealed class MonetizationPurchase : AggregateRoot<MonetizationPurchaseId>
         Revision++;
     }
 
-    public void Complete(DateTimeOffset now)
+    /// <summary>
+    /// Settles the purchase.
+    /// <para>
+    /// <paramref name="transactionId"/> is the ledger transaction the capture posted, and is
+    /// <b>null for a purchase that never went through one</b> — a zero-priced product, or a grant of
+    /// something the platform gave away. Null means "no money moved through the ledger for this",
+    /// which is a different statement from "the reference is missing", and nothing downstream is
+    /// allowed to invent one.
+    /// </para>
+    /// </summary>
+    public void Complete(DateTimeOffset now, TransactionId? transactionId = null)
     {
         if (Status == PurchaseStatus.Completed)
         {
@@ -229,6 +239,7 @@ public sealed class MonetizationPurchase : AggregateRoot<MonetizationPurchaseId>
         RaiseDomainEvent(new MonetizationProductPurchasedDomainEvent
         {
             PurchaseId = Id,
+            TransactionId = transactionId,
             BuyerUserId = BuyerUserId,
             ProductCode = ProductCode,
             Category = Category,

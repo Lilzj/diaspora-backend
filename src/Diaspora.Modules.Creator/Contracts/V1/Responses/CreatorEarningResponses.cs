@@ -37,6 +37,16 @@ public sealed record CreatorEarningResponse
 
     public Guid? SubjectId { get; init; }
 
+    /// <summary>
+    /// The ledger transaction that settled it, where there was one.
+    /// <para>
+    /// Resolvable at <c>GET /financial/transactions/{transactionId}</c>, which is what lets a
+    /// creator open an earning and see the money movement behind it. Null means there is nothing to
+    /// open, and a client must render it as such rather than linking anyway.
+    /// </para>
+    /// </summary>
+    public Guid? TransactionId { get; init; }
+
     /// <summary>When the money moved, not when the row was written.</summary>
     public required DateTimeOffset OccurredAt { get; init; }
 
@@ -221,6 +231,7 @@ public static class CreatorEarningMapper
             Exponent = earning.Exponent,
             SubjectType = earning.SubjectType,
             SubjectId = earning.SubjectId,
+            TransactionId = earning.TransactionId,
             OccurredAt = earning.OccurredAt,
             SettledAt = earning.SettledAt,
             StateReason = earning.StateReason,

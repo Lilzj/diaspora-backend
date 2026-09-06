@@ -57,7 +57,8 @@ public sealed class CreatorEarningRecorder
         DateTimeOffset occurredAt,
         CancellationToken cancellationToken,
         string? subjectType = null,
-        Guid? subjectId = null)
+        Guid? subjectId = null,
+        Guid? transactionId = null)
     {
         if (userId == Guid.Empty || grossMinorUnits <= 0)
         {
@@ -96,6 +97,7 @@ public sealed class CreatorEarningRecorder
             sourceReference,
             subjectType,
             subjectId,
+            transactionId,
             occurredAt);
 
         // A refusal here is a configuration fault — a rate above 100%, a missing currency — and
@@ -153,7 +155,8 @@ public sealed class DonationCompletedEarningConsumer
             integrationEvent.CompletedAt,
             cancellationToken,
             subjectType: "donation",
-            subjectId: integrationEvent.DonationId);
+            subjectId: integrationEvent.DonationId,
+            transactionId: integrationEvent.TransactionId);
     }
 }
 
@@ -242,6 +245,7 @@ public sealed class MonetizationPurchaseEarningConsumer
             integrationEvent.PurchasedAt,
             cancellationToken,
             ledgerSubject,
-            integrationEvent.SubjectId);
+            integrationEvent.SubjectId,
+            integrationEvent.TransactionId);
     }
 }

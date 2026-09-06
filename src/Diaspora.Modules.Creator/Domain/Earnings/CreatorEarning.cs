@@ -48,6 +48,7 @@ public sealed class CreatorEarning : AggregateRoot<CreatorEarningId>
         string sourceReference,
         string? subjectType,
         Guid? subjectId,
+        Guid? transactionId,
         DateTimeOffset occurredAt) : base(id)
     {
         CreatorId = creatorId;
@@ -60,6 +61,7 @@ public sealed class CreatorEarning : AggregateRoot<CreatorEarningId>
         SourceReference = sourceReference;
         SubjectType = subjectType;
         SubjectId = subjectId;
+        TransactionId = transactionId;
         OccurredAt = occurredAt;
         State = CreatorEarningState.Pending;
     }
@@ -99,6 +101,23 @@ public sealed class CreatorEarning : AggregateRoot<CreatorEarningId>
 
     public Guid? SubjectId { get; private set; }
 
+    /// <summary>
+    /// The B15 ledger transaction the payment posted, where there was one.
+    /// <para>
+    /// <b>This is the join the register asked for and it is not derivable here.</b> An earning knows
+    /// which content produced it; only Financial knows which ledger transaction settled it, and it
+    /// mints that identity after the capture event is raised. The producing integration event
+    /// carries it, and this stores what it was given.
+    /// </para>
+    /// <para>
+    /// Null is a real answer rather than a missing one — a purchase can complete with no ledger
+    /// posting behind it — and nothing in this module is permitted to invent a value here. A
+    /// fabricated reference is worse than none: it makes a screen offer a link to a transaction that
+    /// does not exist.
+    /// </para>
+    /// </summary>
+    public Guid? TransactionId { get; private set; }
+
     /// <summary>When the money moved, not when this row was written.</summary>
     public DateTimeOffset OccurredAt { get; private set; }
 
@@ -123,6 +142,7 @@ public sealed class CreatorEarning : AggregateRoot<CreatorEarningId>
         string? sourceReference,
         string? subjectType,
         Guid? subjectId,
+        Guid? transactionId,
         DateTimeOffset occurredAt)
     {
         if (string.IsNullOrWhiteSpace(sourceReference))
@@ -160,6 +180,7 @@ public sealed class CreatorEarning : AggregateRoot<CreatorEarningId>
             sourceReference.Trim(),
             subjectType,
             subjectId,
+            transactionId,
             occurredAt));
     }
 

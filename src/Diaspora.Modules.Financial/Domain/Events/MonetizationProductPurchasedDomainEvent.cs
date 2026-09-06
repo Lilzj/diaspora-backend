@@ -9,6 +9,9 @@ public sealed record MonetizationProductPurchasedDomainEvent : DomainEvent
 {
     public required MonetizationPurchaseId PurchaseId { get; init; }
 
+    /// <summary>The ledger transaction the capture posted. Null when no money moved through it.</summary>
+    public TransactionId? TransactionId { get; init; }
+
     public required Guid BuyerUserId { get; init; }
 
     public required string ProductCode { get; init; }

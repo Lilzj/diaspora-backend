@@ -17,6 +17,9 @@ public sealed record DonationCompletedDomainEvent : DomainEvent
 {
     public required DonationId DonationId { get; init; }
 
+    /// <summary>The ledger transaction the capture posted.</summary>
+    public TransactionId? TransactionId { get; init; }
+
     /// <summary>Null when the donation is anonymous. Never a placeholder.</summary>
     public Guid? DonorUserId { get; init; }
 
