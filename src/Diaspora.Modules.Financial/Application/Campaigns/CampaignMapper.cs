@@ -25,12 +25,17 @@ namespace Diaspora.Modules.Financial.Application.Campaigns;
 /// </summary>
 internal static class CampaignMapper
 {
+    /// <param name="canDecideReview">
+    /// Whether this caller may publish or reject. Filters the transitions offered, so the response
+    /// never names a move the handler would refuse. See <c>CampaignAccessService.CanDecideReview</c>.
+    /// </param>
     public static CampaignResponse ToResponse(
         Campaign campaign,
         DonationCause? cause,
         bool canManage,
         DateTimeOffset now,
-        string? symbol)
+        string? symbol,
+        bool canDecideReview = true)
     {
         ArgumentNullException.ThrowIfNull(campaign);
 
@@ -76,8 +81,15 @@ internal static class CampaignMapper
             ReviewNote = campaign.ReviewNote,
             CanManage = canManage,
             CanDonate = campaign.AcceptsDonations,
+            // Publication and rejection are the review decision, and are listed only for a caller
+            // who may actually make it. Naming a move the handler refuses is how a client ends up
+            // rendering a button that answers 403.
             AvailableTransitions = canManage
-                ? [.. CampaignTransitions.From(campaign.Status).Select(status => status.ToString())]
+                ? [.. CampaignTransitions.From(campaign.Status)
+                    .Where(status =>
+                        canDecideReview
+                        || status is not (CampaignStatus.Published or CampaignStatus.Rejected))
+                    .Select(status => status.ToString())]
                 : []
         };
     }

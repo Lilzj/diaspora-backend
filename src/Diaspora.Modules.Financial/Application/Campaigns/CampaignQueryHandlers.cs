@@ -71,7 +71,8 @@ public sealed class GetCampaignQueryHandler : IQueryHandler<GetCampaignQuery, Ca
             cause,
             canManage,
             _clock.UtcNow,
-            await CampaignMapper.SymbolAsync(_currencies, campaign.Currency, cancellationToken)));
+            await CampaignMapper.SymbolAsync(_currencies, campaign.Currency, cancellationToken),
+            _access.CanDecideReview()));
     }
 }
 
@@ -163,7 +164,8 @@ public sealed class SearchCampaignsQueryHandler
                 cause,
                 await _access.CanManageAsync(campaign, caller, cancellationToken),
                 now,
-                symbols.TryGetValue(campaign.Currency, out var facts) ? facts.Symbol : null));
+                symbols.TryGetValue(campaign.Currency, out var facts) ? facts.Symbol : null,
+                _access.CanDecideReview()));
         }
 
         return Result.Success(new GivingPageResponse<CampaignResponse>

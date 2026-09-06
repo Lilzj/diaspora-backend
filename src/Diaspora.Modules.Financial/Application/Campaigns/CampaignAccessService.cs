@@ -3,6 +3,9 @@ using Diaspora.Modules.Financial.Domain.Giving;
 using Diaspora.Modules.Financial.Extensibility.Campaigns;
 using Diaspora.SharedKernel.Results;
 
+using Diaspora.Modules.Financial.Options;
+using Microsoft.Extensions.Options;
+
 namespace Diaspora.Modules.Financial.Application.Campaigns;
 
 /// <summary>
@@ -26,13 +29,40 @@ public sealed class CampaignAccessService
 {
     private readonly FinancialAuthorizationService _authorization;
     private readonly ICampaignOrganizerAuthority _organizations;
+    private readonly FinancialOptions _options;
 
     public CampaignAccessService(
-        FinancialAuthorizationService authorization, ICampaignOrganizerAuthority organizations)
+        FinancialAuthorizationService authorization,
+        ICampaignOrganizerAuthority organizations,
+        IOptions<FinancialOptions> options)
     {
+        ArgumentNullException.ThrowIfNull(options);
+
         _authorization = authorization;
         _organizations = organizations;
+        _options = options.Value;
     }
+
+    /// <summary>
+    /// Whether this caller may publish or reject a submitted campaign.
+    /// <para>
+    /// <b>The review policy, answered once and served.</b> Publication is the review decision: where
+    /// a deployment reviews campaigns it belongs to staff, and an organizer who could publish their
+    /// own submission would make the review a formality. Where a deployment does <em>not</em> review
+    /// them, the organizer publishes their own.
+    /// </para>
+    /// <para>
+    /// This exists because the answer has to reach the client. `AvailableTransitions` listed
+    /// <c>Published</c> for anybody who could manage the campaign, so it promised a move the
+    /// transition handler then refused — and the app, which hardcoded its own idea of the lifecycle
+    /// instead of reading the field, offered no publish action at all even where one was legal. A
+    /// capability the platform has and the client denies, and a capability the platform refuses and
+    /// the client offers, are the same defect pointing in two directions.
+    /// </para>
+    /// </summary>
+    public bool CanDecideReview() =>
+        !_options.RequireCampaignReview
+        || _authorization.Has(FinancialPermissions.GivingManage);
 
     public Result<Guid> RequireCaller() => _authorization.RequireUserId();
 

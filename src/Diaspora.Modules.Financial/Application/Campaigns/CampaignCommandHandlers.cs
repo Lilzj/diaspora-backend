@@ -86,7 +86,8 @@ public sealed class CreateCampaignCommandHandler
                 null,
                 true,
                 now,
-                await CampaignMapper.SymbolAsync(_currencies, replayed.Currency, cancellationToken)));
+                await CampaignMapper.SymbolAsync(_currencies, replayed.Currency, cancellationToken),
+                _access.CanDecideReview()));
         }
 
         var organizer = await _access.RequireOrganizerAsync(
@@ -157,7 +158,7 @@ public sealed class CreateCampaignCommandHandler
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Result.Success(CampaignMapper.ToResponse(
-            campaign.Value, null, true, now, facts.Symbol));
+            campaign.Value, null, true, now, facts.Symbol, _access.CanDecideReview()));
     }
 
     private static IReadOnlyList<ContributionKind>? ParseKinds(IReadOnlyList<string>? kinds) =>
@@ -281,7 +282,8 @@ public sealed class UpdateCampaignCommandHandler
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return Result.Success(CampaignMapper.ToResponse(campaign, cause, true, now, facts.Symbol));
+        return Result.Success(CampaignMapper.ToResponse(
+            campaign, cause, true, now, facts.Symbol, _access.CanDecideReview()));
     }
 
     private static IReadOnlyList<ContributionKind>? ParseKinds(IReadOnlyList<string>? kinds) =>
@@ -451,7 +453,8 @@ public sealed class TransitionCampaignCommandHandler
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return Result.Success(CampaignMapper.ToResponse(campaign, cause, true, now, facts.Symbol));
+        return Result.Success(CampaignMapper.ToResponse(
+            campaign, cause, true, now, facts.Symbol, _access.CanDecideReview()));
     }
 
     /// <summary>
