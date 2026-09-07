@@ -103,6 +103,26 @@ public sealed class LedgerPostingService : ILedgerPostingService
         var loaded = new Dictionary<Guid, Wallet>();
         var appended = new List<LedgerEntry>(request.Legs.Count);
 
+        // **Every leg is planned before any wallet is touched, and that is a correctness property
+        // rather than a tidiness one.**
+        //
+        // This loop used to check a leg and immediately `Apply` it to its wallet. A posting whose
+        // *second* leg was refused therefore returned a failure having already moved the *first*
+        // wallet’s balance — the entries were discarded, the transaction was never written, and
+        // the mutation stayed in the change tracker. A caller inside a request never saw it, because
+        // a failed command’s unit of work is never saved. A caller that posts in a batch and saves
+        // at the end regardless does: the creator earnings sweep tried to pay a member whose wallet
+        // was not yet active, was refused on the credit leg, and persisted a 100,000 minor-unit
+        // debit to the platform’s revenue wallet with no ledger entry behind it. The ledger and the
+        // balance disagreed, which is the one thing this service exists to prevent.
+        //
+        // The fold still happens — two legs against one wallet still compute against each other —
+        // but against a projection held here rather than against the aggregate. Nothing is applied
+        // until every leg has passed, so a refusal leaves no trace.
+        var projected = new Dictionary<(Guid Wallet, LedgerBucket Bucket), long>();
+        var sequences = new Dictionary<Guid, long>();
+        var planned = new List<(Wallet Wallet, LedgerEntry Entry)>(request.Legs.Count);
+
         foreach (var leg in request.Legs)
         {
             var walletResult = await ResolveAsync(leg, loaded, cancellationToken);
@@ -113,31 +133,50 @@ public sealed class LedgerPostingService : ILedgerPostingService
             }
 
             var wallet = walletResult.Value;
-            var check = Check(wallet, leg);
+            var key = (wallet.Id.Value, leg.Bucket);
+
+            var before = projected.TryGetValue(key, out var folded)
+                ? folded
+                : wallet.BalanceOf(leg.Bucket);
+
+            var check = Check(wallet, leg, before);
 
             if (check is not null)
             {
                 return Result.Failure<LedgerPostingResult>(check);
             }
 
+            var sequence = sequences.TryGetValue(wallet.Id.Value, out var last)
+                ? last + 1
+                : wallet.NextSequence;
+
             var entry = LedgerEntry.Append(
                 LedgerEntryId.From(_guids.NewSequentialGuid()),
                 wallet.Id,
                 transaction.Id,
-                wallet.NextSequence,
+                sequence,
                 leg.EntryType,
                 leg.Direction,
                 leg.Bucket,
                 leg.Amount,
-                wallet.BalanceOf(leg.Bucket),
+                before,
                 request.Audit.Copy(),
                 now,
                 leg.Subject ?? request.Subject,
                 leg.ExternalReference ?? request.Reference,
                 wallet.AllowsNegativeBalance);
 
-            // The projection is folded forward before the next leg reads it, so two legs against one
-            // wallet in one posting compute against each other rather than against the same start.
+            projected[key] = entry.BalanceAfterMinorUnits;
+            sequences[wallet.Id.Value] = sequence;
+
+            planned.Add((wallet, entry));
+        }
+
+        // Past this line nothing can refuse, so nothing can be half-applied. The entries were built
+        // against the same fold the aggregates are about to perform, so each `Apply` finds the
+        // balance its entry was computed against.
+        foreach (var (wallet, entry) in planned)
+        {
             wallet.Apply(entry);
             _wallets.Update(wallet);
 
@@ -210,7 +249,16 @@ public sealed class LedgerPostingService : ILedgerPostingService
         return Result.Success(wallet);
     }
 
-    private static Error? Check(Wallet wallet, LedgerPostingLeg leg)
+    /// <summary>
+    /// Whether a leg may be posted, judged against the balance it will actually meet.
+    /// <para>
+    /// <b><paramref name="balance"/> is the projected balance, not the wallet’s own.</b> Two legs
+    /// against one wallet in one posting must compute against each other, and the wallet is not
+    /// mutated until every leg has passed — so the funds check reads the fold held by the caller
+    /// rather than <c>wallet.CanDebit</c>, which would read the balance before this posting began.
+    /// </para>
+    /// </summary>
+    private static Error? Check(Wallet wallet, LedgerPostingLeg leg, long balance)
     {
         if (!string.Equals(leg.Amount.Currency, wallet.Currency, StringComparison.Ordinal))
         {
@@ -243,7 +291,10 @@ public sealed class LedgerPostingService : ILedgerPostingService
                 "That wallet is not active and cannot be debited.");
         }
 
-        return wallet.CanDebit(leg.Amount, leg.Bucket)
+        // Mirrors Wallet.CanDebit, which cannot be used here: it reads the wallet’s own balance,
+        // and the balance this leg meets is the one the legs before it have folded forward. Status
+        // and currency are checked above, which is the rest of what CanDebit asks.
+        return wallet.AllowsNegativeBalance || balance >= leg.Amount.MinorUnits
             ? null
             : Error.Conflict(
                 FinancialErrorCodes.InsufficientFunds,
