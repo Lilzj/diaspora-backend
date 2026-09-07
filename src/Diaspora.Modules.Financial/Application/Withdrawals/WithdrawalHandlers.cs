@@ -147,6 +147,25 @@ public sealed class CreateWithdrawalCommandHandler
 
         if (!account.CanDebit)
         {
+            // **Two refusals, because they are two different problems for the member.**
+            //
+            // A pending account has simply not been verified yet, and that is now the ordinary
+            // state: wallets open active so anybody can be paid, and verification is the gate on
+            // taking money out. Answering `account.restricted` sent that member the support-ticket
+            // message — "your account is under review, so payments are paused" — for something
+            // they can finish themselves in a few minutes, and the fallback sentence
+            // ("this account cannot move money out right now") named no cause and no remedy.
+            //
+            // A member holding cleared earnings they cannot withdraw is exactly who reads this, so
+            // it has to say what to do.
+            if (account.Status == FinancialAccountStatus.Pending)
+            {
+                return Result.Failure<WithdrawalResponse>(Error.Forbidden(
+                    FinancialErrorCodes.AccountNotEligible,
+                    "Verify your identity before moving money out of Diaspora. "
+                    + "Your balance is safe in the meantime and you can keep receiving."));
+            }
+
             return Result.Failure<WithdrawalResponse>(Error.Forbidden(
                 FinancialErrorCodes.AccountRestricted,
                 account.RestrictionReason ?? "This account cannot move money out right now."));

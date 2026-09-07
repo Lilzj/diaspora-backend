@@ -4,6 +4,7 @@ using Diaspora.Modules.Financial.Domain.Accounts;
 using Diaspora.Modules.Financial.Domain.Enums;
 using Diaspora.Modules.Financial.Domain.Identifiers;
 using Diaspora.Modules.Financial.Domain.ValueObjects;
+using Diaspora.Modules.Financial;
 using Diaspora.Modules.Financial.Domain.Wallets;
 using Diaspora.Modules.Financial.Extensibility.Provisioning;
 using Diaspora.Modules.Financial.Options;
@@ -106,6 +107,18 @@ public sealed class WalletActivationPolicyTests
         Unverified().CanCredit.Should().BeFalse(
             "a pending account is not yet creditable at the account level — the deposit handler "
             + "gates on Restricted rather than on CanCredit, which is what admits it");
+    }
+
+    [Fact]
+    public void The_refusal_an_unverified_member_reads_is_the_one_that_tells_them_what_to_do()
+    {
+        // Pinned as a code rather than as prose: the client maps AccountNotEligible to
+        // "Verification has to be approved before money can move" and AccountRestricted to
+        // "your account is under review" — a support ticket. A member who has simply not verified
+        // yet must not be sent to support for something they can finish themselves, and the
+        // fallback sentence named no cause and no remedy.
+        FinancialErrorCodes.AccountNotEligible.Should().Be("financial.account.not_eligible");
+        FinancialErrorCodes.AccountNotEligible.Should().NotBe(FinancialErrorCodes.AccountRestricted);
     }
 
     // ── Fixtures ────────────────────────────────────────────────────────────────────────────
