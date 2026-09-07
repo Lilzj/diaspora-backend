@@ -155,10 +155,24 @@ public sealed class FinancialIdentityService
                 normalized,
                 _clock.UtcNow);
 
-            if (account.Status == FinancialAccountStatus.Active)
-            {
-                wallet.Activate(_clock.UtcNow);
-            }
+            // **A wallet is open for business from the moment it exists, and the account is what
+            // decides where money may go.**
+            //
+            // This used to activate a wallet only on an Active account, which contradicted every
+            // other layer. `FinancialAccount.CanCredit` admits a pending account, the deposit
+            // handler says so in as many words — "a pending account may receive money and may not
+            // spend it, which is exactly right for a deposit" — and `CreatePaymentIntentCommand`
+            // lets a pending account pay. Only the wallet disagreed, and `Wallet.CanCredit` refuses
+            // anything that is not Active or Frozen.
+            //
+            // The effect on the deployment was total: fourteen member accounts, every one Pending,
+            // so no member could receive money at all. A creator earning could not be paid — the
+            // sweep was refused with "that wallet is closed" — and a card deposit would have been
+            // captured by the gateway and then failed to post, taking money without crediting it.
+            //
+            // What verification gates is moving money *out*: `account.CanDebit` is Active-only and
+            // the withdrawal handler refuses on it. That gate is untouched.
+            wallet.Activate(_clock.UtcNow);
 
             _wallets.Add(wallet);
             opened.Add(wallet);

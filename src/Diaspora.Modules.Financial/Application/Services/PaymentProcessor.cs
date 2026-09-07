@@ -177,6 +177,23 @@ public sealed class PaymentProcessor
         var toCapture = amount ?? intent.Amount;
         var now = _clock.UtcNow;
 
+        // **Asked before the money is taken, not after.**
+        //
+        // The capture used to call the gateway and then post, and a posting that could not be made
+        // left the money captured with nothing crediting it. That is not hypothetical: every member
+        // wallet on the deployment was provisioned and never activated, so a card deposit would have
+        // charged the member and then failed on the credit leg. The gateway had the money and
+        // nothing refunded it.
+        //
+        // Refusing here leaves the authorisation uncaptured, which expires on its own. A member who
+        // cannot be credited is told so instead of being charged.
+        var postable = await CanPostAsync(intent, toCapture, cancellationToken);
+
+        if (postable.IsFailure)
+        {
+            return Result.Failure<PaymentIntent>(postable.Error);
+        }
+
         // A one-step provider has already moved the money during authorisation; calling capture
         // again would take it twice.
         if (gateway.SupportsSeparateAuthorization)
@@ -328,6 +345,49 @@ public sealed class PaymentProcessor
         _ = record;
 
         return Result.Success(intent);
+    }
+
+    /// <summary>
+    /// Whether the capture could be posted, checked before the gateway is asked to take anything.
+    /// <para>
+    /// <b>Deliberately the domain ’s own questions rather than a copy of the ledger’s checks.</b>
+    /// `CanCredit` and `CanDebit` are what the wallets answer; re-implementing the posting service’s
+    /// private rules here would give two places that decide whether money may move, and they would
+    /// drift. This is a pre-flight, not a second gate: the ledger still refuses on its own terms.
+    /// </para>
+    /// </summary>
+    private async Task<Result> CanPostAsync(
+        PaymentIntent intent, Money amount, CancellationToken cancellationToken)
+    {
+        var counterparty = await CounterpartyAsync(intent, amount.Currency, cancellationToken);
+
+        if (counterparty.IsFailure)
+        {
+            return Result.Failure(counterparty.Error);
+        }
+
+        var funding = await FundingWalletAsync(intent, amount.Currency, cancellationToken);
+
+        if (funding.IsFailure)
+        {
+            return Result.Failure(funding.Error);
+        }
+
+        if (!counterparty.Value.CanCredit(amount))
+        {
+            return Result.Failure(Error.Conflict(
+                FinancialErrorCodes.WalletClosed,
+                "That balance cannot receive money right now, so the payment was not taken."));
+        }
+
+        if (!funding.Value.CanDebit(amount))
+        {
+            return Result.Failure(Error.Conflict(
+                FinancialErrorCodes.InsufficientFunds,
+                "The funding balance cannot cover this, so the payment was not taken."));
+        }
+
+        return Result.Success();
     }
 
     private async Task<Result> PostCaptureAsync(
