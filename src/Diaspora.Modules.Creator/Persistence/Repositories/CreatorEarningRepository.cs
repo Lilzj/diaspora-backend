@@ -68,12 +68,23 @@ public sealed class CreatorEarningRepository : ICreatorEarningRepository
 
             query = query.Where(earning =>
                 earning.OccurredAt < occurredAt
-                || (earning.OccurredAt == occurredAt && earning.Id.Value < id));
+                || (earning.OccurredAt == occurredAt
+                    && EF.Property<Guid>(earning, nameof(CreatorEarning.Id)) < id));
         }
 
+        // **`EF.Property<Guid>`, not `Id.Value`.** `CreatorEarningId` reaches the column through a
+        // value converter, and reading `.Value` inside the expression is a member access on the
+        // wrapper that EF cannot translate: the first version of this threw
+        // `The LINQ expression could not be translated` and the route answered 500 for every
+        // request. Nothing caught it, because no unit test runs this query against a database, and
+        // the screen rendered the failure as "you have no earnings".
+        //
+        // The sibling activity repository orders by `entry.Id` directly and works, so ordering
+        // through the converter translates; the comparison does not, and both are written the same
+        // way here so neither can be changed to the form that fails.
         return await query
             .OrderByDescending(earning => earning.OccurredAt)
-            .ThenByDescending(earning => earning.Id.Value)
+            .ThenByDescending(earning => EF.Property<Guid>(earning, nameof(CreatorEarning.Id)))
             .Take(Math.Clamp(take, 1, 200))
             .ToListAsync(cancellationToken);
     }
