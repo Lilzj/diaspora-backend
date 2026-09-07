@@ -1,5 +1,6 @@
 using Diaspora.Contracts.Events;
 using Diaspora.Contracts.Financial.V1.Events;
+using Diaspora.Modules.Financial.Application.Campaigns;
 using Diaspora.Modules.Financial.Domain.Events;
 using Diaspora.Platform.Messaging;
 using Microsoft.Extensions.Logging;
@@ -330,6 +331,10 @@ public sealed class FinancialIntegrationEventRelay
         return PublishSafelyAsync(
             new DonationCompletedIntegrationEvent
             {
+                // The campaign is resolved here, where the encoding is owned, so a consumer never
+                // has to know that a cause code spells one.
+                CampaignId = CampaignMapper.CampaignIdFrom(domainEvent.CauseCode),
+
                 DonationId = domainEvent.DonationId.Value,
                 TransactionId = domainEvent.TransactionId?.Value,
 

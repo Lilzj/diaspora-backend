@@ -33,6 +33,16 @@ public sealed record DonationCompletedIntegrationEvent : IntegrationEvent
 
     public string? CauseCode { get; init; }
 
+    /// <summary>
+    /// The campaign this was given to, where the cause names one.
+    /// <para>
+    /// <b>Resolved here rather than left in the cause code</b>, which is a string in a format only
+    /// this module knows. A consumer that wanted the campaign would have to re-implement the
+    /// encoding, and a consumer that got it wrong would silently attribute nothing.
+    /// </para>
+    /// </summary>
+    public Guid? CampaignId { get; init; }
+
     public required long AmountMinorUnits { get; init; }
 
     public required string Currency { get; init; }

@@ -218,6 +218,33 @@ internal static class CampaignMapper
             $"campaign-{campaign.Id.Value:n}".Length, 64)];
     }
 
+    /// <summary>
+    /// The campaign a cause code names, or null when it names something else.
+    /// <para>
+    /// <b>The companion to <see cref="CauseCodeFor"/>, and deliberately beside it.</b> A donation
+    /// carries no campaign reference of its own — the cause code is the only tie back, so
+    /// something has to read the encoding. Doing it here keeps both directions in one place; doing
+    /// it at the point of need would put a second copy of the format in another module, which is
+    /// how the two drift and a campaign's donations quietly stop being attributed to it.
+    /// </para>
+    /// <para>
+    /// Anything that is not this format is a cause of another kind — a fund, a seeded appeal —
+    /// and answers null rather than throwing.
+    /// </para>
+    /// </summary>
+    public static Guid? CampaignIdFrom(string? causeCode)
+    {
+        const string Prefix = "campaign-";
+
+        if (string.IsNullOrWhiteSpace(causeCode)
+            || !causeCode.StartsWith(Prefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        return Guid.TryParseExact(causeCode[Prefix.Length..], "N", out var id) ? id : null;
+    }
+
     /// <summary>The currency symbol for a campaign, or null.</summary>
     public static async Task<string?> SymbolAsync(
         CurrencyCatalog currencies, string currency, CancellationToken cancellationToken)

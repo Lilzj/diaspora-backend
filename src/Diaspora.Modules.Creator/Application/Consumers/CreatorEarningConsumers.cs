@@ -154,8 +154,22 @@ public sealed class DonationCompletedEarningConsumer
             $"donation.completed:{integrationEvent.DonationId:N}",
             integrationEvent.CompletedAt,
             cancellationToken,
-            subjectType: "donation",
-            subjectId: integrationEvent.DonationId,
+
+            // **The subject is the campaign, not the donation.**
+            //
+            // A donation record is the donor's: `GET /financial/donations/{id}` answers the person
+            // who gave, and a beneficiary opening their own earning is not that person. The
+            // campaign is the thing the earner actually owns and can open, and it is what they
+            // would look for anyway — "who gave me a thousand pounds" is answered by the campaign
+            // page, not by a payment record.
+            //
+            // A donation to a member with no campaign behind it keeps naming the donation, because
+            // there is nothing better to name; the response omits the subject when a client cannot
+            // route to it.
+            subjectType: integrationEvent.CampaignId is null ? "donation" : "campaign",
+            subjectId: integrationEvent.CampaignId ?? integrationEvent.DonationId,
+
+            // Recorded, and no longer published. See CreatorEarningResponse.
             transactionId: integrationEvent.TransactionId);
     }
 }

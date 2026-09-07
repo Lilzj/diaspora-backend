@@ -69,4 +69,17 @@
     <ProjectReference Include="..\Diaspora.Persistence\Diaspora.Persistence.csproj" />
   </ItemGroup>
 
+  <!--
+    CampaignMapper mints the cause code a campaign publishes under and reads it back, and both
+    directions have to stay one format — a second copy of it elsewhere is how a campaign's
+    donations quietly stop being attributed to it. The round trip is worth a test, and the mapper
+    is internal because nothing outside this module should be minting one.
+
+    The same arrangement Diaspora.Modules.Recommendations, Diaspora.Operations and
+    Diaspora.Persistence already use.
+  -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Diaspora.UnitTests" />
+  </ItemGroup>
+
 </Project>

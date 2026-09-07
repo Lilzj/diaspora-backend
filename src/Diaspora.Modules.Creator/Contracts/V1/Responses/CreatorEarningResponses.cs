@@ -32,20 +32,26 @@ public sealed record CreatorEarningResponse
 
     public required int Exponent { get; init; }
 
-    /// <summary>What the money was against. Null for a referral bonus.</summary>
+    /// <summary>
+    /// What the money was against. Null for a referral bonus.
+    /// <para>
+    /// <b>This pair is the openable link, and the ledger transaction is deliberately not here.</b>
+    /// An earning used to publish the <c>transactionId</c> of the capture that funded it, described
+    /// as resolvable at <c>GET /financial/transactions/{id}</c>. It is not resolvable by the person
+    /// who earned it: a donation capture posts clearing to platform revenue, the earner owns
+    /// neither leg and did not initiate the payment, and that route answers 404 on purpose so an
+    /// identifier cannot be used to discover a transaction exists. The revenue screen rendered a
+    /// row that invited a tap and could only fail.
+    /// </para>
+    /// <para>
+    /// Publishing it and asking the client not to link it would leave the same trap for the next
+    /// client. What the earner can open is the thing that produced the money, so that is what is
+    /// named here. The transaction is still recorded on the row for audit.
+    /// </para>
+    /// </summary>
     public string? SubjectType { get; init; }
 
     public Guid? SubjectId { get; init; }
-
-    /// <summary>
-    /// The ledger transaction that settled it, where there was one.
-    /// <para>
-    /// Resolvable at <c>GET /financial/transactions/{transactionId}</c>, which is what lets a
-    /// creator open an earning and see the money movement behind it. Null means there is nothing to
-    /// open, and a client must render it as such rather than linking anyway.
-    /// </para>
-    /// </summary>
-    public Guid? TransactionId { get; init; }
 
     /// <summary>When the money moved, not when the row was written.</summary>
     public required DateTimeOffset OccurredAt { get; init; }
@@ -231,7 +237,6 @@ public static class CreatorEarningMapper
             Exponent = earning.Exponent,
             SubjectType = earning.SubjectType,
             SubjectId = earning.SubjectId,
-            TransactionId = earning.TransactionId,
             OccurredAt = earning.OccurredAt,
             SettledAt = earning.SettledAt,
             StateReason = earning.StateReason,
