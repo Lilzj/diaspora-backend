@@ -84,3 +84,34 @@ public sealed record PayoutDestinationResponse
 
     public DateTimeOffset? VerifiedAt { get; init; }
 }
+
+/// <summary>
+/// Where to send a member to finish setting up a payout account.
+/// <para>
+/// <b>A URL rather than a form, and that is the whole design.</b> The member types their bank
+/// details into the provider's own pages; no credential passes through this platform, so there is
+/// nothing here to fill in. What comes back is a destination that exists and is not yet payable.
+/// </para>
+/// </summary>
+public sealed record PayoutOnboardingResponse
+{
+    /// <summary>False when the provider refused. <see cref="Reason"/> says why, in the member's words.</summary>
+    public required bool Started { get; init; }
+
+    /// <summary>
+    /// The provider's hosted setup page. Open it, do not render it.
+    /// <para>
+    /// Single-use and short-lived — a link kept and reopened later is spent. Ask again rather than
+    /// storing this.
+    /// </para>
+    /// </summary>
+    public string? Url { get; init; }
+
+    /// <summary>The destination this opened, recorded before the member has finished.</summary>
+    public Guid? DestinationId { get; init; }
+
+    public string? Provider { get; init; }
+
+    /// <summary>Why they cannot start. Absent when they can.</summary>
+    public string? Reason { get; init; }
+}

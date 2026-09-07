@@ -72,6 +72,31 @@ public sealed record RegisterPayoutDestinationRequest
 }
 
 /// <summary>Ask for a refund. Nothing moves until a staff member agrees.</summary>
+/// <summary>
+/// Starting a payout provider ’s onboarding.
+/// <para>
+/// <b>No credential, by design.</b> The member types their bank details into the provider ’s own
+/// pages; this carries only where they are and what they will be paid in, which is what the provider
+/// needs to open the right kind of account.
+/// </para>
+/// </summary>
+public sealed record StartPayoutOnboardingRequest
+{
+    public required string Currency { get; init; }
+
+    /// <summary>ISO 3166-1 alpha-2. The provider opens the account here and cannot move it later.</summary>
+    public required string CountryCode { get; init; }
+
+    /// <summary>
+    /// Where the provider returns the member. Absent uses the application ’s own deep link.
+    /// <para>
+    /// Supplied by the client rather than fixed here so a web build and a device build can each name
+    /// somewhere that exists for them.
+    /// </para>
+    /// </summary>
+    public string? ReturnUrl { get; init; }
+}
+
 public sealed record CreateRefundRequestRequest
 {
     /// <summary>

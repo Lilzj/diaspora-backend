@@ -102,6 +102,56 @@ public sealed record RemovePayoutDestinationCommand : ICommand<PayoutDestination
 }
 
 /// <summary>
+/// Opens or resumes the payout provider — own onboarding, and answers where to send the member.
+/// <para>
+/// <b>The member — command, not staff —.</b> Registering a destination and verifying one already
+/// existed, and nothing joined them: a member could not add an account at all, and a destination
+/// arrived unverified with only a staff route out of it. This starts the provider flow that ends in
+/// a verifiable account.
+/// </para>
+/// <para>
+/// <b>It records the destination before the member has finished.</b> The provider opens the account
+/// the moment onboarding starts, and the reference to it has to be stored then or it is lost — a
+/// member who abandons the form and returns would otherwise open a second account with the same
+/// provider. The destination is unverified and says so; <see cref="RefreshPayoutDestinationCommand"/>
+/// is what turns it usable.
+/// </para>
+/// </summary>
+[Authorize(Permission = FinancialPermissions.PaymentsManage)]
+[Auditable(Action = "financial.payout_destination.onboard")]
+public sealed record StartPayoutOnboardingCommand : ICommand<PayoutOnboardingResponse>
+{
+    public required string Currency { get; init; }
+
+    /// <summary>ISO 3166-1 alpha-2. The provider opens the account here and cannot move it later.</summary>
+    public required string CountryCode { get; init; }
+
+    /// <summary>Where the provider returns the member when they finish. The client — deep link.</summary>
+    public string? ReturnUrl { get; init; }
+}
+
+/// <summary>
+/// Asks the provider whether a destination is payable yet, and records the answer.
+/// <para>
+/// <b>The member — own route to being verified.</b> <see cref="VerifyPayoutDestinationCommand"/>
+/// is staff recording that somebody who could check did. This asks the provider directly through
+/// <c>IPayoutProviderVerificationSource</c>, so a member who has just finished onboarding does not
+/// wait on a human for something Stripe already knows.
+/// </para>
+/// <para>
+/// <b>It can only verify, never unverify.</b> A provider that answers "not yet" leaves the
+/// destination exactly as it was. Withdrawing a verification on a transient read — a rate limit, a
+/// timeout — would strand money mid-payout for a reason nobody could see.
+/// </para>
+/// </summary>
+[Authorize(Permission = FinancialPermissions.PaymentsManage)]
+[Auditable(Action = "financial.payout_destination.refresh")]
+public sealed record RefreshPayoutDestinationCommand : ICommand<PayoutDestinationResponse>
+{
+    public required Guid DestinationId { get; init; }
+}
+
+/// <summary>
 /// Marks a destination verified. Staff.
 /// <para>
 /// Verification itself is the settlement provider's — a micro deposit, a name match, an open-banking

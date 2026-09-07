@@ -153,6 +153,41 @@ internal static class WithdrawalEndpoints
             .WithName("RemovePayoutDestination")
             .WithSummary("Stops using it. Never deletes it — old withdrawals still name it.");
 
+        group.MapPost("/payout-destinations/onboarding", async (
+                StartPayoutOnboardingRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new StartPayoutOnboardingCommand
+                        {
+                            Currency = request.Currency,
+                            CountryCode = request.CountryCode,
+                            ReturnUrl = request.ReturnUrl
+                        },
+                        cancellationToken)))
+            .WithName("StartPayoutOnboarding")
+            .WithSummary(
+                "Opens the provider ’s own setup and answers where to send the member. "
+                + "Carries no credential; the link is single-use.");
+
+        group.MapPost("/payout-destinations/{destinationId:guid}/refresh", async (
+                Guid destinationId,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new RefreshPayoutDestinationCommand { DestinationId = destinationId },
+                        cancellationToken)))
+            .WithName("RefreshPayoutDestination")
+            .WithSummary(
+                "Asks the provider whether this is payable yet. The member ’s own route to being "
+                + "verified, and it can only verify, never unverify.");
+
         group.MapPost("/payout-destinations/{destinationId:guid}/verify", async (
                 Guid destinationId,
                 ISender sender,

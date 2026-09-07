@@ -48,14 +48,25 @@ public static class StripePaymentsRegistration
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        // The deployment supplies the member-to-connected-account mapping. Without one every payee
-        // reads as not onboarded, which refuses rather than pretends.
-        services.TryAddSingleton<IStripeAccountResolver, UnmappedStripeAccountResolver>();
+        // **The member-to-connected-account mapping, read off the member’s own destinations.**
+        //
+        // This used to be UnmappedStripeAccountResolver, which answers null for everybody. That is
+        // the safe direction — it refuses rather than pretends — but nothing ever replaced it, so
+        // StripeConnectVerificationSource reported NotStarted for every member on the platform and
+        // every payout route requiring onboarding refused. The mapping was being stored the whole
+        // time on PayoutDestination.ProviderToken; there was simply no reader.
+        //
+        // Still TryAdd, so a deployment that keeps its mapping elsewhere can register its own
+        // before this runs.
+        services.TryAddSingleton<IStripeAccountResolver, StripeDestinationAccountResolver>();
 
         services.AddHttpClient(StripeSettlementProvider.HttpClientName, (provider, client) =>
             client.Timeout = TransportTimeout(provider));
 
         services.AddHttpClient(StripeConnectVerificationSource.HttpClientName, (provider, client) =>
+            client.Timeout = TransportTimeout(provider));
+
+        services.AddHttpClient(StripePayoutOnboarding.HttpClientName, (provider, client) =>
             client.Timeout = TransportTimeout(provider));
 
         services.AddHttpClient(StripeSettlementStatusProvider.HttpClientName, (provider, client) =>
@@ -107,6 +118,14 @@ public static class StripePaymentsRegistration
             provider.GetRequiredService<IOptionsMonitor<StripeOptions>>(),
             provider.GetRequiredService<IClock>(),
             provider.GetRequiredService<ILogger<StripePayoutWebhookProcessor>>()));
+
+        // Onboarding: the half that stood between registering a destination and verifying one.
+        // Without it a member had no way to become payable, and the withdraw screen was a dead end.
+        services.AddSingleton<IPayoutOnboarding>(provider => new StripePayoutOnboarding(
+            provider.GetRequiredService<IOptionsMonitor<StripeOptions>>(),
+            provider.GetRequiredService<IHttpClientFactory>()
+                .CreateClient(StripePayoutOnboarding.HttpClientName),
+            provider.GetRequiredService<ILogger<StripePayoutOnboarding>>()));
 
         services.AddSingleton<IPayoutProviderVerificationSource>(provider =>
             new StripeConnectVerificationSource(

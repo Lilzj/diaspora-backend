@@ -14485,6 +14485,55 @@
         }
       }
     },
+    "/api/v1/financial/payout-destinations/onboarding": {
+      "post": {
+        "tags": [
+          "Financial"
+        ],
+        "summary": "Opens the provider ’s own setup and answers where to send the member. Carries no credential; the link is single-use.",
+        "operationId": "StartPayoutOnboarding",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartPayoutOnboardingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/financial/payout-destinations/{destinationId}/refresh": {
+      "post": {
+        "tags": [
+          "Financial"
+        ],
+        "summary": "Asks the provider whether this is payable yet. The member ’s own route to being verified, and it can only verify, never unverify.",
+        "operationId": "RefreshPayoutDestination",
+        "parameters": [
+          {
+            "name": "destinationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/financial/payout-destinations/{destinationId}/verify": {
       "post": {
         "tags": [
@@ -46419,6 +46468,27 @@
         "type": "object",
         "properties": {
           "message": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "StartPayoutOnboardingRequest": {
+        "required": [
+          "currency",
+          "countryCode"
+        ],
+        "type": "object",
+        "properties": {
+          "currency": {
+            "type": "string"
+          },
+          "countryCode": {
+            "type": "string"
+          },
+          "returnUrl": {
             "type": [
               "null",
               "string"
