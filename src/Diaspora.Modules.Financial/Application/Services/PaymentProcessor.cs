@@ -69,6 +69,19 @@ public sealed class PaymentProcessor
     {
         ArgumentNullException.ThrowIfNull(intent);
 
+        // **A deposit cannot be funded from the balance it credits.** Both legs would be the same
+        // wallet: the member's balance debited and credited by the same amount, a transaction that
+        // balances, posts cleanly, moves nothing and reads on a statement as though something
+        // happened. Refused here rather than at one of the call sites, because every path that opens
+        // a deposit goes through this method and only this one.
+        if (intent.MethodKind == PaymentMethodKind.Wallet && intent.Purpose == PaymentPurpose.Deposit)
+        {
+            return Result.Failure<PaymentIntent>(Error.Validation(
+                FinancialErrorCodes.PaymentMethodNotSupported,
+                "Money cannot be added to a wallet from that same wallet. "
+                + "Top up with a card, a bank transfer or mobile money."));
+        }
+
         var gateway = _gateways.Resolve(intent.MethodKind, intent.Currency, intent.CountryCode);
 
         if (gateway is null)
@@ -327,8 +340,15 @@ public sealed class PaymentProcessor
             return Result.Failure(counterparty.Error);
         }
 
-        var legs = await BuildLegsAsync(
-            amount, counterparty.Value, EntryTypeFor(intent.Purpose), inbound: true, cancellationToken);
+        var funding = await FundingWalletAsync(intent, amount.Currency, cancellationToken);
+
+        if (funding.IsFailure)
+        {
+            return Result.Failure(funding.Error);
+        }
+
+        var legs = BuildLegs(
+            amount, funding.Value, counterparty.Value, EntryTypeFor(intent.Purpose), inbound: true);
 
         if (legs.IsFailure)
         {
@@ -369,8 +389,17 @@ public sealed class PaymentProcessor
             return Result.Failure(counterparty.Error);
         }
 
-        var legs = await BuildLegsAsync(
-            amount, counterparty.Value, LedgerEntryType.Refund, inbound: false, cancellationToken);
+        var funding = await FundingWalletAsync(intent, amount.Currency, cancellationToken);
+
+        if (funding.IsFailure)
+        {
+            return Result.Failure(funding.Error);
+        }
+
+        // Outbound: the counterparty is debited and the funding side credited. For a wallet payment
+        // that puts the money back where it came from, which is the member's own balance.
+        var legs = BuildLegs(
+            amount, funding.Value, counterparty.Value, LedgerEntryType.Refund, inbound: false);
 
         if (legs.IsFailure)
         {
@@ -448,23 +477,53 @@ public sealed class PaymentProcessor
     /// outside have an inside counterparty at all.
     /// </para>
     /// </summary>
-    private async Task<Result<IReadOnlyList<LedgerPostingLeg>>> BuildLegsAsync(
+    /// <summary>
+    /// Where the money comes from, which is not always outside the platform.
+    /// <para>
+    /// <b>Clearing is the account money crosses when it enters or leaves.</b> It is the only wallet
+    /// allowed to run negative, precisely because it stands in for the outside world while a
+    /// provider settles.
+    /// </para>
+    /// <para>
+    /// <b>A wallet payment never crosses it.</b> The money is already inside: it moves from the
+    /// member's own balance to whoever is being paid, and routing it through clearing would post a
+    /// debit against the outside world for money that never came from there — leaving clearing
+    /// permanently short by every wallet payment ever made, and the member's balance untouched.
+    /// </para>
+    /// </summary>
+    private async Task<Result<Wallet>> FundingWalletAsync(
+        PaymentIntent intent, string currency, CancellationToken cancellationToken)
+    {
+        if (intent.MethodKind != PaymentMethodKind.Wallet)
+        {
+            var clearing = await _identities.PlatformWalletAsync(
+                WalletType.Clearing, currency, cancellationToken);
+
+            return clearing is null
+                ? Result.Failure<Wallet>(Error.Unexpected(
+                    FinancialErrorCodes.WalletNotFound,
+                    "The platform has no clearing wallet in this currency. "
+                    + "The reference-data seeder opens them; check that it ran."))
+                : Result.Success(clearing);
+        }
+
+        var payer = await _identities.PrimaryWalletAsync(intent.AccountId, currency, cancellationToken);
+
+        return payer is null
+            ? Result.Failure<Wallet>(Error.Conflict(
+                FinancialErrorCodes.WalletNotFound,
+                $"You do not have a {currency} balance to pay from."))
+            : Result.Success(payer);
+    }
+
+    private static Result<IReadOnlyList<LedgerPostingLeg>> BuildLegs(
         Money amount,
+        Wallet funding,
         Wallet counterparty,
         LedgerEntryType entryType,
-        bool inbound,
-        CancellationToken cancellationToken)
+        bool inbound)
     {
-        var clearing = await _identities.PlatformWalletAsync(
-            WalletType.Clearing, amount.Currency, cancellationToken);
-
-        if (clearing is null)
-        {
-            return Result.Failure<IReadOnlyList<LedgerPostingLeg>>(Error.Unexpected(
-                FinancialErrorCodes.WalletNotFound,
-                "The platform has no clearing wallet in this currency. "
-                + "The reference-data seeder opens them; check that it ran."));
-        }
+        var clearing = funding;
 
         IReadOnlyList<LedgerPostingLeg> legs = inbound
             ?
@@ -516,6 +575,7 @@ public sealed class PaymentProcessor
             ExternalReference = intent.GatewayExternalReference,
             CountryCode = intent.CountryCode,
             PayerUserId = intent.PayerUserId,
+            AccountId = intent.AccountId.Value,
             IdempotencyKey = intent.IdempotencyKey
         };
 }

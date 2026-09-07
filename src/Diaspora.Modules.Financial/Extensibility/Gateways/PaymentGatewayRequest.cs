@@ -32,6 +32,17 @@ public sealed record PaymentGatewayRequest
 
     public Guid? PayerUserId { get; init; }
 
+    /// <summary>
+    /// The financial account the payment is opened against.
+    /// <para>
+    /// Most adapters ignore this: an external provider is told an amount and a reference, not which
+    /// of this platform's accounts is behind it. It is here for the one adapter whose funds are
+    /// <em>inside</em> the platform — paying from a wallet balance needs to know whose balance — and
+    /// it is the account on the intent rather than anything a request body named.
+    /// </para>
+    /// </summary>
+    public Guid? AccountId { get; init; }
+
     /// <summary>Passed to the provider so a replay does not charge twice on their side either.</summary>
     public string? IdempotencyKey { get; init; }
 }

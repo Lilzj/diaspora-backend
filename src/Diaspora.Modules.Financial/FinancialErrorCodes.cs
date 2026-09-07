@@ -64,6 +64,9 @@ public static class FinancialErrorCodes
     public const string PaymentCaptureFailed = "financial.payment.capture_failed";
     public const string PaymentGatewayUnavailable = "financial.payment.gateway_unavailable";
     public const string PaymentGatewayUnknown = "financial.payment.gateway_unknown";
+
+    /// <summary>The method is real, and wrong for what is being paid for.</summary>
+    public const string PaymentMethodNotSupported = "financial.payment.method_not_supported";
     public const string PaymentMethodUnsupported = "financial.payment.method_unsupported";
     public const string WebhookSignatureInvalid = "financial.webhook.signature_invalid";
     public const string WebhookUnrecognized = "financial.webhook.unrecognized";
