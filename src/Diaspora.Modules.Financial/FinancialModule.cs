@@ -26,6 +26,8 @@ using Diaspora.Modules.Financial.Extensibility.Campaigns;
 using Diaspora.Modules.Financial.Extensibility.Catalog;
 using Diaspora.Modules.Financial.Extensibility.Eligibility;
 using Diaspora.Modules.Financial.Extensibility.Fraud;
+using Diaspora.Modules.Financial.Extensibility.Disbursements;
+using Diaspora.Modules.Financial.Infrastructure.Disbursements;
 using Diaspora.Modules.Financial.Extensibility.Gateways;
 using Diaspora.Modules.Financial.Extensibility.Payouts;
 using Diaspora.Modules.Financial.Extensibility.Pricing;
@@ -294,6 +296,11 @@ public sealed class FinancialModule : IPlatformModule
         RegisterAll<IPaymentWebhookProcessor>(services, shipped, ExcludeDevelopmentOnlyPaymentAdapters(services));
         RegisterAll<IPaymentReconciliationProvider>(services, shipped);
         services.AddScoped<IPaymentGatewayRegistry, PaymentGatewayRegistry>();
+
+        // Paying a member money the platform is holding for them — the direction opposite to a
+        // capture. Scoped, and the only door another module has into the ledger: a creator's earning
+        // clears through this rather than through a second posting path of its own.
+        services.AddScoped<IPlatformDisbursement, PlatformDisbursement>();
 
         // Payouts. Sources are additive so a deployment can overlay its own matrix on a shipped one;
         // the router collapses conflicts toward the more cautious row. Scoped like every other seam

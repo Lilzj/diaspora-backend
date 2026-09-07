@@ -18,6 +18,8 @@ using FluentValidation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
+using Diaspora.Modules.Creator.Application.Earnings;
+
 namespace Diaspora.Modules.Creator;
 
 /// <summary>
@@ -180,6 +182,10 @@ public sealed class CreatorModule : IPlatformModule
 
         // Takes B17's IDistributedLock before touching anything, and has a configuration switch —
         // DEBT-049's lesson, applied on the module's first day rather than four phases in.
+        // The sweep resolves this per pass. Scoped, because it writes through the same change
+        // tracker the pass's unit of work saves.
+        services.AddScoped<CreatorEarningClearing>();
+
         services.AddHostedService<CreatorLifecycleSweep>();
     }
 }

@@ -1,11 +1,13 @@
 using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Creator.Application.Services;
 using Diaspora.Modules.Creator.Domain.Repositories;
+using Diaspora.Modules.Creator.Application.Earnings;
 using Diaspora.Modules.Creator.Options;
 using Diaspora.Platform.Operations.Scheduling;
 using Diaspora.Platform.Services.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Diaspora.Modules.Financial.Extensibility.Disbursements;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -193,6 +195,16 @@ public sealed class CreatorLifecycleSweep : BackgroundService
             referrals.UpdateReferral(referral);
         }
 
+        // ── Earnings ──────────────────────────────────────────────────────────
+        //
+        // Cleared earnings paid into their creators' wallets. Its own class because the money it
+        // moves deserves tests that do not need a hosted service and a distributed lock standing up
+        // around them — see CreatorEarningClearing for what was wrong before it existed.
+        await services
+            .GetRequiredService<CreatorEarningClearing>()
+            .ClearAsync(now, BatchSize, cancellationToken);
+
         await unitOfWork.SaveChangesAsync(cancellationToken);
     }
+
 }
