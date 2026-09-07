@@ -266,9 +266,16 @@ public sealed class ProcessPaymentWebhookCommandHandler
 
         // The provider that signed the callback, not one from its body. An intent that has never
         // seen an adapter takes the name from the verified route segment.
+        //
+        // **The reference stored here is the provider's, not the one that found this intent.**
+        // A Checkout session correlates on `client_reference_id`, which is this platform's own id;
+        // storing that as the gateway reference overwrote the `cs_…` the adapter had recorded at
+        // authorisation, and the next call to Stripe quoted a guid it had never heard of. Preferring
+        // what is already on the intent keeps a good reference when an event carries none, and the
+        // correlation handle stays the last resort it always was.
         var gateway = GatewayReference.Create(
             intent.GatewayProvider ?? provider,
-            result.ExternalReference!,
+            result.ProviderReference ?? intent.GatewayExternalReference ?? result.ExternalReference!,
             result.ExternalStatus);
 
         switch (result.EventKind?.Trim().ToLowerInvariant())

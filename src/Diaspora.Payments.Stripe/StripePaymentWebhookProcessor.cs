@@ -175,11 +175,23 @@ public sealed class StripePaymentWebhookProcessor : IPaymentWebhookProcessor
             return PaymentWebhookResult.Ignored() with { EventId = eventId };
         }
 
+        // The session's own PaymentIntent, which is what Stripe wants quoted back when the
+        // platform captures. `reference` above is deliberately `client_reference_id` for a Checkout
+        // session — the platform's id — and quoting that at Stripe is answered `No such
+        // payment_intent`. On the other event shapes this resolves to the same value as
+        // `reference`, which is correct and costs nothing.
+        var providerReference =
+            subject.TryGetProperty("payment_intent", out var providerIntent)
+            && providerIntent.ValueKind is JsonValueKind.String
+                ? providerIntent.GetString()
+                : subject.TryGetProperty("id", out var ownId) ? ownId.GetString() : null;
+
         return new PaymentWebhookResult
         {
             IsVerified = true,
             IsRecognized = true,
             ExternalReference = reference,
+            ProviderReference = providerReference,
             EventKind = kind,
             AmountMinorUnits = ReadAmount(subject, kind),
             Currency = subject.TryGetProperty("currency", out var currency)

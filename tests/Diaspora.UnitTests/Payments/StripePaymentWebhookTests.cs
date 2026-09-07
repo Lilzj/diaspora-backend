@@ -48,6 +48,66 @@ public class StripePaymentWebhookTests
 
         // Not pi_123. The platform stored cs_test_1, so the intent is found by the platform id.
         result.ExternalReference.Should().Be(PlatformPaymentId);
+
+        // ...and pi_123 is carried beside it, because the two answer different questions.
+        result.ProviderReference.Should().Be("pi_123");
+    }
+
+    [Fact]
+    public void The_handle_that_finds_the_intent_is_not_the_handle_Stripe_answers_to()
+    {
+        // **The distinction that cost a capture.** These were one field. The webhook stored the
+        // correlation handle as the gateway reference, overwriting the `cs_...` the adapter had
+        // recorded at authorisation — and the capture that followed quoted this platform's own guid
+        // at Stripe and was answered `No such payment_intent: '01a07ab2...'`.
+        //
+        // Nothing errored on the way in. The money stayed held, the donation stayed pending, and
+        // the campaign showed nothing raised.
+        var result = StripePaymentWebhookProcessor.Translate($$"""
+        {
+          "id": "evt_1",
+          "type": "checkout.session.completed",
+          "data": { "object": {
+            "id": "cs_test_1",
+            "client_reference_id": "{{PlatformPaymentId}}",
+            "payment_intent": "pi_123",
+            "currency": "gbp",
+            "amount_total": 1000,
+            "status": "complete"
+          } }
+        }
+        """);
+
+        result.ExternalReference.Should().NotBe(result.ProviderReference);
+
+        // One is ours, and finds our record.
+        result.ExternalReference.Should().Be(PlatformPaymentId);
+
+        // The other is Stripe's, and is the only handle Stripe will answer to.
+        result.ProviderReference.Should().Be("pi_123");
+        result.ProviderReference.Should().NotBe(PlatformPaymentId);
+    }
+
+    [Fact]
+    public void An_intent_event_is_its_own_provider_reference()
+    {
+        // The other event shapes have one id doing both jobs, and must keep working unchanged:
+        // a `payment_intent.*` event *is* the intent, so its own id is both handles.
+        var result = StripePaymentWebhookProcessor.Translate("""
+        {
+          "id": "evt_2",
+          "type": "payment_intent.succeeded",
+          "data": { "object": {
+            "id": "pi_456",
+            "currency": "gbp",
+            "amount_received": 2500,
+            "status": "succeeded"
+          } }
+        }
+        """);
+
+        result.ExternalReference.Should().Be("pi_456");
+        result.ProviderReference.Should().Be("pi_456");
     }
 
     [Fact]
