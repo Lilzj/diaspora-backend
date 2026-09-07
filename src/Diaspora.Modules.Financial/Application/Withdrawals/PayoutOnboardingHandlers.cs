@@ -8,6 +8,7 @@ using Diaspora.Modules.Financial.Domain.Enums;
 using Diaspora.Modules.Financial.Domain.Identifiers;
 using Diaspora.Modules.Financial.Domain.Withdrawals;
 using Diaspora.Modules.Financial.Extensibility.Payouts;
+using Diaspora.Modules.Financial.Infrastructure.Payouts;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Results;
 
@@ -46,6 +47,7 @@ public sealed class PayoutOnboardingHandlers
     private const string DefaultReturnUrl = "diaspora://wallet/payout-accounts";
 
     private readonly IPayoutDestinationRepository _destinations;
+    private readonly PayoutProviderRouter _router;
     private readonly IEnumerable<IPayoutOnboarding> _onboarding;
     private readonly IEnumerable<IPayoutProviderVerificationSource> _verification;
     private readonly FinancialIdentityService _identities;
@@ -57,6 +59,7 @@ public sealed class PayoutOnboardingHandlers
 
     public PayoutOnboardingHandlers(
         IPayoutDestinationRepository destinations,
+        PayoutProviderRouter router,
         IEnumerable<IPayoutOnboarding> onboarding,
         IEnumerable<IPayoutProviderVerificationSource> verification,
         FinancialIdentityService identities,
@@ -67,6 +70,7 @@ public sealed class PayoutOnboardingHandlers
         IUnitOfWork unitOfWork)
     {
         _destinations = destinations;
+        _router = router;
         _onboarding = onboarding;
         _verification = verification;
         _identities = identities;
@@ -102,6 +106,33 @@ public sealed class PayoutOnboardingHandlers
                 "This deployment cannot set up payout accounts yet."));
         }
 
+        // **The matrix is asked before the provider is, and the first cut of this did not ask it
+        // at all.**
+        //
+        // It handed whatever country the client sent straight to Stripe, so a member in Mauritius
+        // — where neither Stripe nor Flutterwave publishes a payout corridor — got Stripe's own
+        // words about a Connect signup, which is a problem they cannot act on and is not the reason
+        // they cannot be paid. `Financial:PayoutRouting` exists to answer exactly this, and refusing
+        // here also means not opening an account at a provider that will never be able to use it.
+        //
+        // An empty matrix is not a free pass: it means this deployment pays out nowhere, and the
+        // capabilities endpoint already tells the client so.
+        var country = command.CountryCode.Trim().ToUpperInvariant();
+        var supported = _router.SupportedCountries();
+
+        if (!supported.Contains(country, StringComparer.OrdinalIgnoreCase))
+        {
+            return Result.Success(new PayoutOnboardingResponse
+            {
+                Started = false,
+                Provider = adapter.Provider,
+                Reason = supported.Count == 0
+                    ? "Diaspora cannot send money to a bank account from this deployment yet."
+                    : $"Diaspora cannot pay out to {country} yet. Payouts currently reach "
+                        + $"{string.Join(", ", supported)} accounts only.",
+            });
+        }
+
         var facts = await _currencies.FactsAsync(command.Currency, cancellationToken);
 
         var mine = await _destinations.ListForUserAsync(
@@ -118,7 +149,7 @@ public sealed class PayoutOnboardingHandlers
             new PayoutOnboardingRequest
             {
                 PayeeUserId = caller.Value,
-                CountryCode = command.CountryCode,
+                CountryCode = country,
                 Currency = facts.Code,
                 ExistingAccountReference = existing?.ProviderToken,
                 ReturnUrl = command.ReturnUrl ?? DefaultReturnUrl,
@@ -137,7 +168,7 @@ public sealed class PayoutOnboardingHandlers
         if (destination is null && session.AccountReference is { } reference)
         {
             destination = await OpenDestinationAsync(
-                caller.Value, adapter.Provider, reference, facts.Code, command.CountryCode,
+                caller.Value, adapter.Provider, reference, facts.Code, country,
                 cancellationToken);
         }
 
