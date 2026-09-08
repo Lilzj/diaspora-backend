@@ -109,7 +109,7 @@ public sealed class LivePayPalSandboxTests
     [LivePayPalPayout]
     public async Task A_payout_batch_is_accepted_by_paypal()
     {
-        var outcome = await Provider().SubmitAsync(Instruction());
+        var outcome = await Provider().SubmitAsync(Instruction("accept"));
 
         outcome.Disposition.Should().Be(
             SettlementDisposition.Accepted,
@@ -135,23 +135,37 @@ public sealed class LivePayPalSandboxTests
     public async Task The_same_instruction_twice_does_not_pay_twice()
     {
         var provider = Provider();
-        var instruction = Instruction();
+        var instruction = Instruction("duplicate");
 
         var first = await provider.SubmitAsync(instruction);
         var second = await provider.SubmitAsync(instruction);
 
-        first.Disposition.Should().Be(SettlementDisposition.Accepted);
+        first.Disposition.Should().Be(
+            SettlementDisposition.Accepted,
+            "PayPal refused the payload: {0} {1}",
+            first.Code,
+            first.Message);
 
-        // Refused or Accepted-with-the-same-reference are both correct. What must not happen is a
-        // second, different batch: that is one member paid twice.
-        if (second.IsAccepted)
-        {
-            second.ProviderReference.Should().Be(first.ProviderReference);
-        }
-        else
-        {
-            second.Disposition.Should().Be(SettlementDisposition.Refused);
-        }
+        // **A duplicate must come back Accepted, and Refused here is a double-payment bug.**
+        //
+        // The adapter says so itself: "a batch PayPal has already seen is one it already acted on.
+        // That is a success being reported as a conflict, and treating it as a refusal would release
+        // a hold on money that has gone." The sweep acts on exactly that distinction — an unknown
+        // outcome holds the balance, a refusal releases it — so a misread duplicate hands the money
+        // back to somebody PayPal has already paid.
+        //
+        // The first live run refused it: PayPal answered USER_BUSINESS_ERROR and `IsDuplicateBatch`
+        // looks for BATCH_ID_ALREADY_EXISTS. Whether that marker is simply wrong is what the
+        // detail-carrying error message now answers.
+        second.Disposition.Should().Be(
+            SettlementDisposition.Accepted,
+            "a resubmitted batch must not release the hold: {0} {1}",
+            second.Code,
+            second.Message);
+
+        second.ProviderReference.Should().Be(
+            first.ProviderReference,
+            "the second submission must name the batch the first created, not a new one");
     }
 
     // ── Fixtures ────────────────────────────────────────────────────────────────────────────
@@ -185,7 +199,7 @@ public sealed class LivePayPalSandboxTests
     /// deliberately. A new one each time would make that test pass by never colliding.
     /// </para>
     /// </summary>
-    private static SettlementInstruction Instruction()
+    private static SettlementInstruction Instruction(string key)
     {
         var now = DateTimeOffset.UtcNow;
 
@@ -195,7 +209,18 @@ public sealed class LivePayPalSandboxTests
             Amount = Money.FromMinorUnits(100, "GBP", 2),
             PeriodStart = now.AddDays(-1),
             PeriodEnd = now,
-            Reference = $"diaspora-live-{now:yyyyMMddHHmm}",
+
+            // **A key per test, and the first run of this suite proved why.**
+            //
+            // It was `diaspora-live-{yyyyMMddHHmm}` — minute resolution, shared by every test in
+            // the run. Both payout tests submitted the same `sender_batch_id`, PayPal refused the
+            // second as a duplicate, and the failure read as "PayPal refused the payload this
+            // adapter builds" when the payload was fine. A test fixture accused the code under test.
+            //
+            // PayPal remembers a sender_batch_id for **thirty days**, so the key carries the tick
+            // count as well: re-running this suite twice in one minute must not resurrect the same
+            // false failure.
+            Reference = $"diaspora-live-{key}-{now:yyyyMMddHHmmss}-{now.Ticks % 100_000}",
             DestinationReference = Environment.GetEnvironmentVariable(ReceiverVariable),
             DestinationProvider = "paypal",
             DestinationKind = PayoutDestinationKind.ProviderManaged,

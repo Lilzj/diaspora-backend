@@ -273,6 +273,20 @@ public sealed class PayPalSettlementProvider : ISettlementProvider
         }
     }
 
+    /// <summary>
+    /// What PayPal actually said, rather than which bucket it filed the complaint under.
+    /// <para>
+    /// <b>This used to read only <c>name</c> and <c>message</c>, and that made a refusal
+    /// undiagnosable.</b> PayPal's top level is a category — <c>USER_BUSINESS_ERROR</c> with the
+    /// message "User business error." — and the actual cause lives in <c>details[]</c> as an
+    /// <c>issue</c> and a <c>description</c>. The first live sandbox run refused with exactly that
+    /// pair and named nothing anybody could act on.
+    /// </para>
+    /// <para>
+    /// <c>debug_id</c> is included because it is the only handle PayPal support will accept when
+    /// asked why a payout was refused, and it is gone once the response is discarded.
+    /// </para>
+    /// </summary>
     internal static string ReadError(string payload)
     {
         try
@@ -286,7 +300,46 @@ public sealed class PayPalSettlementProvider : ISettlementProvider
                 ? messageElement.GetString()
                 : null;
 
-            return string.IsNullOrWhiteSpace(name) ? message ?? "unspecified" : $"{name}: {message}";
+            var headline = string.IsNullOrWhiteSpace(name)
+                ? message ?? "unspecified"
+                : $"{name}: {message}";
+
+            var parts = new List<string> { headline };
+
+            if (root.TryGetProperty("details", out var details)
+                && details.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var detail in details.EnumerateArray())
+                {
+                    var issue = detail.TryGetProperty("issue", out var issueElement)
+                        ? issueElement.GetString()
+                        : null;
+
+                    var description = detail.TryGetProperty("description", out var descriptionElement)
+                        ? descriptionElement.GetString()
+                        : null;
+
+                    var field = detail.TryGetProperty("field", out var fieldElement)
+                        ? fieldElement.GetString()
+                        : null;
+
+                    var rendered = string.Join(" ", new[] { issue, field, description }
+                        .Where(part => !string.IsNullOrWhiteSpace(part)));
+
+                    if (rendered.Length > 0)
+                    {
+                        parts.Add(rendered);
+                    }
+                }
+            }
+
+            if (root.TryGetProperty("debug_id", out var debugElement)
+                && debugElement.GetString() is { Length: > 0 } debugId)
+            {
+                parts.Add($"debug_id={debugId}");
+            }
+
+            return string.Join(" | ", parts);
         }
         catch (JsonException)
         {
