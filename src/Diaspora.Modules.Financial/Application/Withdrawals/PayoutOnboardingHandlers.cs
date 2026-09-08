@@ -257,6 +257,23 @@ public sealed class PayoutOnboardingHandlers
             countryCode: country,
             cancellationToken: cancellationToken);
 
+        // **A destination nobody can verify must not wait for verification.**
+        //
+        // `IsUsable` is `IsVerified && !IsRemoved`, and `Register` leaves a destination unverified
+        // because for a bank account that is right: somebody has to confirm it belongs to the
+        // member. There is no such check for an address. PayPal does not pre-confirm an email — it
+        // sends to it, and the recipient need not even hold an account — so a PayPal destination
+        // held pending verification says "your provider is still checking this" about a provider
+        // that will never answer. The member reads "you can withdraw as soon as they are done" and
+        // never can.
+        //
+        // So the rule is the provider's own capability rather than the shape of the destination:
+        // verified on registration when nothing exists that could verify it, left pending when
+        // something does. The day a Flutterwave mobile-money verification source is registered, its
+        // destinations correctly start waiting again with no edit here.
+        var verifiable = _verification.Any(source =>
+            string.Equals(source.Provider, route.Provider, StringComparison.OrdinalIgnoreCase));
+
         var destination = PayoutDestination.Register(
             PayoutDestinationId.From(_guids.NewSequentialGuid()),
             caller.Value,
@@ -268,6 +285,11 @@ public sealed class PayoutOnboardingHandlers
             route.Provider,
             identity,
             country);
+
+        if (!verifiable)
+        {
+            destination.Verify(_clock.UtcNow, route.Provider, identity);
+        }
 
         _destinations.Add(destination);
 
@@ -294,9 +316,17 @@ public sealed class PayoutOnboardingHandlers
     /// <summary>
     /// The label a member reads, produced here rather than accepted from a client.
     /// <para>
-    /// **An address is shown partly hidden even though the member typed it themselves.** A payout
-    /// list is read over somebody's shoulder as often as any other screen, and a full email address
-    /// beside a balance is more than the row needs to say.
+    /// <b>An email address is shown whole, and it was masked at first.</b> The reason for masking
+    /// — a payout list is read over somebody's shoulder — is real, and it is outweighed. This is
+    /// the only place a member can check that the address their money is about to be sent to is the
+    /// one they meant: <c>sb•••@business.example.com</c> confirms nothing, and
+    /// a mistyped address sends a payout to whoever owns it. Somebody reading an email over a
+    /// shoulder is a smaller harm than a member unable to catch their own typo before confirming a
+    /// withdrawal.
+    /// </para>
+    /// <para>
+    /// A phone number or an opaque provider id keeps its tail instead: those are recognised by their
+    /// last digits, and nobody proof-reads one character by character.
     /// </para>
     /// </summary>
     private static string Mask(string provider, string identity)
@@ -305,21 +335,14 @@ public sealed class PayoutOnboardingHandlers
             ? "Payout"
             : char.ToUpperInvariant(provider[0]) + provider[1..];
 
-        var at = identity.IndexOf('@', StringComparison.Ordinal);
-
-        if (at <= 0)
+        if (identity.Contains('@', StringComparison.Ordinal))
         {
-            // A phone number or an opaque id: keep the tail, which is what somebody recognises.
-            var tail = identity.Length <= 4 ? identity : identity[^4..];
-
-            return $"{name} ••••{tail}";
+            return $"{name} {identity}";
         }
 
-        var local = identity[..at];
-        var domain = identity[at..];
-        var head = local.Length <= 2 ? local : local[..2];
+        var tail = identity.Length <= 4 ? identity : identity[^4..];
 
-        return $"{name} {head}•••{domain}";
+        return $"{name} ••••{tail}";
     }
 
     // ── Refreshing ──────────────────────────────────────────────────────────────────────────

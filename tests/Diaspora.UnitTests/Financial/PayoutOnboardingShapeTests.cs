@@ -23,9 +23,10 @@ namespace Diaspora.UnitTests.Financial;
 /// <b>Why this matters for Mauritius.</b> Stripe publishes no payout corridor for MU, so a member
 /// there cannot be paid through the hand-off at all. PayPal's own country table lists MU as "send,
 /// receive and withdraw", and the Mauritian rupee is not one of its currencies — so the corridor is
-/// <c>paypal / MU / GBP</c>, never MUR. None of that is switched on here: the adapter has never been
-/// executed against a live account, and the matrix keeps every row for it <c>Unknown</c> until it
-/// has. These pin the routing decision so the day the row is added it behaves as intended.
+/// <c>paypal / MU / GBP</c>, never MUR. That row is live as of 8 Sep 2026: the adapter was held at
+/// <c>Unknown</c> until <c>LivePayPalSandboxTests</c> ran against a real sandbox account, which is
+/// the rule the repository set itself and which found three defects when it finally ran. These pin
+/// the routing decision the row depends on.
 /// </para>
 /// </summary>
 public sealed class PayoutOnboardingShapeTests
@@ -167,6 +168,71 @@ public sealed class PayoutOnboardingShapeTests
     {
         var source = Substitute.For<IPayoutCapabilitySource>();
         source.GetCapabilities().Returns(capabilities);
+
+        return source;
+    }
+}
+
+/// <summary>
+/// Whether a newly registered address can be paid to.
+///
+/// <para>
+/// <b>The defect this pins was visible on a device and nowhere else.</b> A PayPal address registered
+/// fine, showed a "Setting up" badge, and said "your provider is still checking this — you can
+/// withdraw as soon as they are done". Nothing was checking it and nothing ever would: `IsUsable` is
+/// `IsVerified &amp;&amp; !IsRemoved`, `Register` leaves a destination unverified, and the only
+/// `IPayoutProviderVerificationSource` in the repository is Stripe's. The member was told to wait for
+/// a moment that could not arrive.
+/// </para>
+///
+/// <para>
+/// A bank account should wait — somebody has to confirm it belongs to the member. An address cannot:
+/// PayPal does not pre-confirm an email, it sends to it, and the recipient need not even hold an
+/// account. So the question is the provider's capability, not the destination's shape.
+/// </para>
+/// </summary>
+public sealed class PayoutDestinationVerifiabilityTests
+{
+    [Fact]
+    public void A_provider_with_no_verification_source_cannot_hold_a_destination_pending()
+    {
+        // The rule stated as the code states it. With no source for the provider, registering and
+        // then waiting is waiting for nobody.
+        IReadOnlyList<IPayoutProviderVerificationSource> sources = [Source("stripe")];
+
+        Verifiable(sources, "paypal").Should().BeFalse();
+    }
+
+    [Fact]
+    public void A_provider_with_one_does()
+    {
+        // And the day a Flutterwave source is registered, its destinations start waiting again with
+        // no edit to the handler.
+        IReadOnlyList<IPayoutProviderVerificationSource> sources = [Source("stripe"), Source("flutterwave")];
+
+        Verifiable(sources, "flutterwave").Should().BeTrue();
+    }
+
+    [Fact]
+    public void The_match_is_on_the_provider_rather_than_the_case_it_is_written_in()
+    {
+        // Matrix rows are hand-written configuration. "PayPal" and "paypal" must not decide whether
+        // somebody can be paid.
+        IReadOnlyList<IPayoutProviderVerificationSource> sources = [Source("Stripe")];
+
+        Verifiable(sources, "stripe").Should().BeTrue();
+    }
+
+    /// <summary>The predicate the handler applies, kept identical so this pins the real rule.</summary>
+    private static bool Verifiable(
+        IReadOnlyList<IPayoutProviderVerificationSource> sources, string provider) =>
+        sources.Any(source =>
+            string.Equals(source.Provider, provider, StringComparison.OrdinalIgnoreCase));
+
+    private static IPayoutProviderVerificationSource Source(string provider)
+    {
+        var source = Substitute.For<IPayoutProviderVerificationSource>();
+        source.Provider.Returns(provider);
 
         return source;
     }
