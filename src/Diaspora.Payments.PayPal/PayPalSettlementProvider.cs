@@ -154,12 +154,19 @@ public sealed class PayPalSettlementProvider : ISettlementProvider
             // that has gone.
             if (IsDuplicateBatch(response.StatusCode, payload))
             {
-                _logger.LogInformation(
-                    "PayPal reports settlement {Reference} as an already-submitted batch. Treating "
-                    + "it as accepted.",
-                    instruction.Reference);
+                var original = ReadBatchId(payload);
 
-                return SettlementOutcome.Accepted(ReadBatchId(payload));
+                // The detail is carried into the log because this branch discards it otherwise, and
+                // it is the only place the original batch is named. An operator asking "which batch
+                // did it already have?" has nowhere else to look.
+                _logger.LogInformation(
+                    "PayPal reports settlement {Reference} as an already-submitted batch {BatchId}. "
+                    + "Treating it as accepted. {Detail}",
+                    instruction.Reference,
+                    original ?? "(unnamed)",
+                    detail);
+
+                return SettlementOutcome.Accepted(original);
             }
 
             if (response.StatusCode == HttpStatusCode.Unauthorized)
@@ -437,6 +444,29 @@ public sealed class PayPalSettlementProvider : ISettlementProvider
                     if (rendered.Length > 0)
                     {
                         parts.Add(rendered);
+                    }
+                }
+            }
+
+            // **The links, because PayPal's documentation has been wrong twice about this body.**
+            //
+            // It described the duplicate marker as BATCH_ID_ALREADY_EXISTS — a live account says
+            // otherwise — and it describes a duplicate as carrying "a HATEOAS link to the original
+            // payout", which the first run looking for one did not find. A refusal that names where
+            // to look is the difference between a support ticket somebody can act on and one that
+            // starts with asking PayPal to resend the body.
+            //
+            // Hrefs only. A payouts error body can carry a receiver's email address, and a failure
+            // message is copied into logs and tickets.
+            if (root.TryGetProperty("links", out var links)
+                && links.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var link in links.EnumerateArray())
+                {
+                    if (link.TryGetProperty("href", out var href)
+                        && href.GetString() is { Length: > 0 } value)
+                    {
+                        parts.Add($"link={value}");
                     }
                 }
             }

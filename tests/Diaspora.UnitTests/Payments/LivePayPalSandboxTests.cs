@@ -4,6 +4,7 @@ using Diaspora.Modules.Financial.Extensibility.Settlement;
 using Diaspora.Payments.PayPal;
 using Diaspora.Platform.Services.Abstractions;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;
@@ -134,7 +135,8 @@ public sealed class LivePayPalSandboxTests
     [LivePayPalPayout]
     public async Task The_same_instruction_twice_does_not_pay_twice()
     {
-        var provider = Provider();
+        var log = new CapturingLogger();
+        var provider = Provider(log);
         var instruction = Instruction("duplicate");
 
         var first = await provider.SubmitAsync(instruction);
@@ -165,7 +167,9 @@ public sealed class LivePayPalSandboxTests
 
         second.ProviderReference.Should().Be(
             first.ProviderReference,
-            "the second submission must name the batch the first created, not a new one");
+            "the second submission must name the batch the first created, not a new one. "
+            + "PayPal said: {0}",
+            log.Text);
     }
 
     // ── Fixtures ────────────────────────────────────────────────────────────────────────────
@@ -185,12 +189,44 @@ public sealed class LivePayPalSandboxTests
         new HttpClient(),
         NullLogger<PayPalAccessTokenCache>.Instance);
 
-    private static PayPalSettlementProvider Provider() => new(
+    private static PayPalSettlementProvider Provider(
+        ILogger<PayPalSettlementProvider>? logger = null) => new(
         new StaticOptions(Settings()),
         Tokens(),
         new HttpClient(),
         new SystemClock(),
-        NullLogger<PayPalSettlementProvider>.Instance);
+        logger ?? NullLogger<PayPalSettlementProvider>.Instance);
+
+    /// <summary>
+    /// Keeps what the adapter logged so a failing assertion can quote PayPal.
+    /// <para>
+    /// The duplicate branch answers <c>Accepted</c> and carries no message, so the only place
+    /// PayPal's own words survive is the log line. Without this a failure here says "expected a
+    /// batch id, found null" and nothing about why.
+    /// </para>
+    /// </summary>
+    private sealed class CapturingLogger : ILogger<PayPalSettlementProvider>
+    {
+        private readonly List<string> _lines = [];
+
+        public string Text => _lines.Count == 0 ? "(nothing logged)" : string.Join(" // ", _lines);
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            ArgumentNullException.ThrowIfNull(formatter);
+
+            _lines.Add(formatter(state, exception));
+        }
+    }
 
     /// <summary>
     /// One small payout to the sandbox receiver.
