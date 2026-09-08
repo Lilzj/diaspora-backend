@@ -244,28 +244,136 @@ public sealed class PayPalSettlementProvider : ISettlementProvider
         || string.Equals(issuer.Trim(), provider, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Whether PayPal is saying it already has this batch. Matched on its own error name rather
-    /// than on the status alone, because a 400 covers a great many other things that are genuine
-    /// refusals.
+    /// Whether PayPal is saying it already has this batch.
+    /// <para>
+    /// <b>This matched <c>BATCH_ID_ALREADY_EXISTS</c> and PayPal says something else.</b> A live
+    /// sandbox run answered <c>USER_BUSINESS_ERROR</c> with the detail "Batch with given
+    /// sender_batch_id already exists" on field <c>SENDER_BATCH_ID</c>, so every duplicate was read
+    /// as a refusal — and a refusal releases the hold. A resubmission after a lost response is
+    /// exactly what the two-phase sweep produces, so the platform would have given the balance back
+    /// to somebody PayPal had already paid. The marker was written from documentation and never
+    /// executed; the first real call found it.
+    /// </para>
+    /// <para>
+    /// <b>Both directions are dangerous, so this is precise rather than generous.</b> Missing a
+    /// duplicate pays twice. Mistaking a genuine refusal for one marks a withdrawal complete that
+    /// never happened, debiting a member for a payout nobody sent. It therefore requires the field
+    /// PayPal names <em>and</em> the words it uses, not either alone.
+    /// </para>
     /// </summary>
-    internal static bool IsDuplicateBatch(HttpStatusCode status, string payload) =>
-        status is HttpStatusCode.BadRequest or HttpStatusCode.Conflict
-        && payload.Contains("BATCH_ID_ALREADY_EXISTS", StringComparison.OrdinalIgnoreCase);
+    internal static bool IsDuplicateBatch(HttpStatusCode status, string payload)
+    {
+        if (status is not (HttpStatusCode.BadRequest or HttpStatusCode.Conflict))
+        {
+            return false;
+        }
+
+        // Kept: it is what PayPal's documentation describes, and an account or an API version that
+        // answers it is still telling us the same thing.
+        if (payload.Contains("BATCH_ID_ALREADY_EXISTS", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(payload);
+
+            if (!document.RootElement.TryGetProperty("details", out var details)
+                || details.ValueKind != JsonValueKind.Array)
+            {
+                return false;
+            }
+
+            foreach (var detail in details.EnumerateArray())
+            {
+                var text = string.Join(
+                    ' ',
+                    new[] { "issue", "description", "field" }
+                        .Select(name => detail.TryGetProperty(name, out var value)
+                            ? value.GetString()
+                            : null)
+                        .Where(value => !string.IsNullOrWhiteSpace(value)));
+
+                if (text.Contains("SENDER_BATCH_ID", StringComparison.OrdinalIgnoreCase)
+                    && text.Contains("already exists", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+
+        return false;
+    }
 
     private static bool IsUnknownOutcome(HttpStatusCode status) =>
         status is HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests
         || (int)status >= 500;
 
+    /// <summary>
+    /// PayPal's own handle for the batch.
+    /// <para>
+    /// <b>A duplicate refusal has no <c>batch_header</c>, and this used to answer null for it.</b>
+    /// PayPal's documented behaviour is to reject a repeated <c>sender_batch_id</c> with a link to
+    /// the payout it already created, so the id is there — in a HATEOAS href rather than in the
+    /// body a success returns. Without reading it, a resubmission was accepted while naming no
+    /// batch, and reconciliation had nothing to match the withdrawal against.
+    /// </para>
+    /// </summary>
     internal static string? ReadBatchId(string payload)
     {
         try
         {
             using var document = JsonDocument.Parse(payload);
+            var root = document.RootElement;
 
-            return document.RootElement.TryGetProperty("batch_header", out var header)
+            if (root.TryGetProperty("batch_header", out var header)
                 && header.TryGetProperty("payout_batch_id", out var id)
-                    ? id.GetString()
-                    : null;
+                && id.GetString() is { Length: > 0 } batchId)
+            {
+                return batchId;
+            }
+
+            if (!root.TryGetProperty("links", out var links)
+                || links.ValueKind != JsonValueKind.Array)
+            {
+                return null;
+            }
+
+            foreach (var link in links.EnumerateArray())
+            {
+                if (!link.TryGetProperty("href", out var hrefElement)
+                    || hrefElement.GetString() is not { Length: > 0 } href)
+                {
+                    continue;
+                }
+
+                const string Marker = "/payments/payouts/";
+                var at = href.IndexOf(Marker, StringComparison.OrdinalIgnoreCase);
+
+                if (at < 0)
+                {
+                    continue;
+                }
+
+                var tail = href[(at + Marker.Length)..].Trim('/');
+
+                // Only the batch's own segment. A link to an item lives under the batch and would
+                // name the wrong thing.
+                var end = tail.IndexOfAny(['/', '?', '#']);
+                var candidate = end < 0 ? tail : tail[..end];
+
+                if (candidate.Length > 0)
+                {
+                    return candidate;
+                }
+            }
+
+            return null;
         }
         catch (JsonException)
         {

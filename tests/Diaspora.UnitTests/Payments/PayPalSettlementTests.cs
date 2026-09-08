@@ -110,6 +110,73 @@ public class PayPalSettlementTests
             .Should().BeFalse("an ordinary validation failure is a genuine refusal");
     }
 
+    /// <summary>
+    /// The refusal PayPal actually sends, taken from a live sandbox run.
+    ///
+    /// <para>
+    /// <b>The test above was written from the same documentation as the code, so it agreed with the
+    /// bug.</b> <c>BATCH_ID_ALREADY_EXISTS</c> is what the docs describe; what a real account
+    /// answered on 8 Sep 2026 was <c>USER_BUSINESS_ERROR</c> with the detail "Batch with given
+    /// sender_batch_id already exists" on field <c>SENDER_BATCH_ID</c>. Every duplicate was
+    /// therefore read as a refusal, and a refusal releases the hold — so the platform would have
+    /// handed the balance back to somebody PayPal had already paid.
+    /// </para>
+    ///
+    /// <para>
+    /// This body is copied from that run rather than imagined, which is the only reason it is worth
+    /// more than the one above it.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_refusal_a_real_account_sends_for_a_duplicate_is_recognised()
+    {
+        PayPalSettlementProvider.IsDuplicateBatch(HttpStatusCode.BadRequest, LiveDuplicate)
+            .Should().BeTrue();
+    }
+
+    [Fact]
+    public void A_refusal_naming_a_different_field_is_not_mistaken_for_a_duplicate()
+    {
+        // The other direction, and it is just as expensive: a genuine refusal read as a duplicate
+        // marks a withdrawal complete that never happened, debiting a member for a payout nobody
+        // sent. Both halves of the marker are required, so neither the field nor the words alone
+        // will do it.
+        const string OtherField =
+            """
+            {
+              "name": "USER_BUSINESS_ERROR",
+              "message": "User business error.",
+              "details": [
+                { "field": "RECEIVER", "issue": "Receiver is invalid" }
+              ]
+            }
+            """;
+
+        const string SameFieldDifferentProblem =
+            """
+            {
+              "name": "VALIDATION_ERROR",
+              "message": "Invalid request.",
+              "details": [
+                { "field": "SENDER_BATCH_ID", "issue": "Must be alphanumeric" }
+              ]
+            }
+            """;
+
+        PayPalSettlementProvider.IsDuplicateBatch(HttpStatusCode.BadRequest, OtherField)
+            .Should().BeFalse();
+
+        PayPalSettlementProvider.IsDuplicateBatch(HttpStatusCode.BadRequest, SameFieldDifferentProblem)
+            .Should().BeFalse();
+    }
+
+    [Fact]
+    public void A_duplicate_is_only_a_duplicate_on_a_status_that_could_be_one()
+    {
+        PayPalSettlementProvider.IsDuplicateBatch(HttpStatusCode.InternalServerError, LiveDuplicate)
+            .Should().BeFalse("a 500 is unresolved, and unresolved holds the money");
+    }
+
     [Fact]
     public void The_batch_id_is_read_back_off_an_accepted_payout()
     {
@@ -118,6 +185,62 @@ public class PayPalSettlementTests
 
         PayPalSettlementProvider.ReadBatchId("not json").Should().BeNull();
     }
+
+    /// <summary>
+    /// A duplicate refusal carries no <c>batch_header</c>, so the id comes off the link PayPal sends
+    /// to the payout it already made. Without it a resubmission is accepted naming no batch, and
+    /// reconciliation has nothing to match the withdrawal against.
+    /// </summary>
+    [Fact]
+    public void The_batch_id_is_read_off_the_link_a_duplicate_refusal_carries()
+    {
+        PayPalSettlementProvider.ReadBatchId(LiveDuplicate).Should().Be("PB-ORIGINAL-1");
+    }
+
+    [Fact]
+    public void A_link_to_something_that_is_not_a_payout_batch_is_ignored()
+    {
+        const string Unrelated =
+            """
+            {
+              "links": [
+                { "href": "https://api.sandbox.paypal.com/v1/notifications/webhooks/WH-1" }
+              ]
+            }
+            """;
+
+        PayPalSettlementProvider.ReadBatchId(Unrelated).Should().BeNull();
+    }
+
+    /// <summary>
+    /// The body a real sandbox account returned for a repeated <c>sender_batch_id</c>.
+    /// <para>
+    /// The link is what PayPal's documentation describes — "a HATEOAS link to the original payout
+    /// with the same sender_batch_id" — and is how a resubmission names the batch it did not
+    /// create.
+    /// </para>
+    /// </summary>
+    private const string LiveDuplicate =
+        """
+        {
+          "name": "USER_BUSINESS_ERROR",
+          "message": "User business error.",
+          "debug_id": "ca37a1708b9b4",
+          "details": [
+            {
+              "field": "SENDER_BATCH_ID",
+              "issue": "Batch with given sender_batch_id already exists"
+            }
+          ],
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v1/payments/payouts/PB-ORIGINAL-1",
+              "rel": "self",
+              "method": "GET"
+            }
+          ]
+        }
+        """;
 
     [Fact]
     public void An_error_is_described_by_paypals_own_name_and_message()
