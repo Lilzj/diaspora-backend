@@ -14509,6 +14509,30 @@
         }
       }
     },
+    "/api/v1/financial/payout-destinations/identity": {
+      "post": {
+        "tags": [
+          "Financial"
+        ],
+        "summary": "Records an address a provider already knows the member by — a PayPal email, a mobile money number. Not a credential: it names where a payout arrives.",
+        "operationId": "RegisterPayoutIdentity",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPayoutIdentityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/financial/payout-destinations/{destinationId}/refresh": {
       "post": {
         "tags": [
@@ -43590,6 +43614,25 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "RegisterPayoutIdentityRequest": {
+        "required": [
+          "identity",
+          "currency",
+          "countryCode"
+        ],
+        "type": "object",
+        "properties": {
+          "identity": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "countryCode": {
+            "type": "string"
           }
         }
       },

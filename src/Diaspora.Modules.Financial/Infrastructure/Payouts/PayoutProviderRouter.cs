@@ -192,6 +192,45 @@ public sealed class PayoutProviderRouter
     }
 
     /// <summary>
+    /// The routes into one country, best first, for deciding how an account gets added.
+    /// <para>
+    /// <b>Separate from <see cref="Resolve"/> because there is no amount yet.</b> Resolving a real
+    /// payout needs one — limits are part of the decision — and a member who has not asked to
+    /// withdraw anything has none. Inventing a nominal amount here would silently apply a minimum
+    /// to a question that is not about money.
+    /// </para>
+    /// <para>
+    /// What the caller wants from this is <c>RequiresProviderOnboarding</c>: a route that has it
+    /// sends the member to the provider's own hosted setup, and a route without it asks them for an
+    /// identifier the provider already knows them by — a PayPal address, a mobile-money number.
+    /// The two are different screens, and only the matrix knows which one a country needs.
+    /// </para>
+    /// <para>
+    /// Ordered exactly as <see cref="Resolve"/> orders, so the route offered here is the route a
+    /// withdrawal will actually take.
+    /// </para>
+    /// </summary>
+    public IReadOnlyList<PayoutCapability> RoutesInto(string country)
+    {
+        var normalized = NormalizeCountry(country);
+
+        if (normalized is null)
+        {
+            return [];
+        }
+
+        return
+        [
+            .. Collapse(_sources.SelectMany(source => source.GetCapabilities()))
+                .Where(capability => capability.IsRoutable
+                    && _registeredProviders.Contains(capability.Provider)
+                    && Matches(capability.Country, normalized))
+                .OrderBy(capability => capability.Priority)
+                .ThenBy(capability => capability.Provider, StringComparer.OrdinalIgnoreCase)
+        ];
+    }
+
+    /// <summary>
     /// Every country this deployment can pay into over any rail, for the capability surface. Sorted,
     /// so a client rendering it does not have to.
     /// </summary>

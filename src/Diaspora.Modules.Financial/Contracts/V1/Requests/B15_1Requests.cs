@@ -97,6 +97,29 @@ public sealed record StartPayoutOnboardingRequest
     public string? ReturnUrl { get; init; }
 }
 
+/// <summary>
+/// An address a payout provider already knows the member by.
+/// <para>
+/// <b>Not a credential, which is why it may be typed.</b> An email or a phone number names where
+/// money should arrive, the way a postal address does; it cannot move anything on its own. An
+/// account number can, and never appears in any request this platform accepts.
+/// </para>
+/// <para>
+/// The provider is not named here. Which one an address is registered against is the payout matrix's
+/// answer for the member's country, because a client naming it would be a client-supplied claim
+/// about where somebody's money goes.
+/// </para>
+/// </summary>
+public sealed record RegisterPayoutIdentityRequest
+{
+    public required string Identity { get; init; }
+
+    public required string Currency { get; init; }
+
+    /// <summary>ISO 3166-1 alpha-2.</summary>
+    public required string CountryCode { get; init; }
+}
+
 public sealed record CreateRefundRequestRequest
 {
     /// <summary>

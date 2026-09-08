@@ -114,4 +114,22 @@ public sealed record PayoutOnboardingResponse
 
     /// <summary>Why they cannot start. Absent when they can.</summary>
     public string? Reason { get; init; }
+
+    /// <summary>
+    /// True when this country is served by a provider that wants an identifier, not a setup page.
+    /// <para>
+    /// <b>Two shapes of "add an account", and only the matrix knows which one applies.</b> Stripe
+    /// Connect hands the member to its own hosted pages and gives back an account reference; PayPal
+    /// pays to an address the member already has — an email, a phone number — and has no setup to
+    /// hand off to. A client that assumed one shape would be wrong in half the world.
+    /// </para>
+    /// <para>
+    /// When true, <see cref="Url"/> is absent and nothing has been created: the client collects the
+    /// identifier and posts it to <c>/payout-destinations/identity</c>.
+    /// </para>
+    /// </summary>
+    public bool RequiresIdentity { get; init; }
+
+    /// <summary>What to ask the member for, in their words. "your PayPal email".</summary>
+    public string? IdentityHint { get; init; }
 }

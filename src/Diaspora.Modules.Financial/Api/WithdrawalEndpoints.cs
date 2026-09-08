@@ -173,6 +173,26 @@ internal static class WithdrawalEndpoints
                 "Opens the provider ’s own setup and answers where to send the member. "
                 + "Carries no credential; the link is single-use.");
 
+        group.MapPost("/payout-destinations/identity", async (
+                RegisterPayoutIdentityRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new RegisterPayoutIdentityCommand
+                        {
+                            Identity = request.Identity,
+                            Currency = request.Currency,
+                            CountryCode = request.CountryCode
+                        },
+                        cancellationToken)))
+            .WithName("RegisterPayoutIdentity")
+            .WithSummary(
+                "Records an address a provider already knows the member by — a PayPal email, a "
+                + "mobile money number. Not a credential: it names where a payout arrives.");
+
         group.MapPost("/payout-destinations/{destinationId:guid}/refresh", async (
                 Guid destinationId,
                 ISender sender,

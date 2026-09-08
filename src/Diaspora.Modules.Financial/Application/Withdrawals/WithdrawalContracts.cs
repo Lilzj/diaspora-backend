@@ -131,6 +131,38 @@ public sealed record StartPayoutOnboardingCommand : ICommand<PayoutOnboardingRes
 }
 
 /// <summary>
+/// Records an address a provider already knows the member by.
+/// <para>
+/// <b>The other half of adding an account, and it is a form rather than a hand-off.</b> A PayPal
+/// payout goes to an email, a phone number or a PayPal id — things the member already has and can
+/// simply tell us. There is no hosted setup to send them to, so
+/// <see cref="StartPayoutOnboardingCommand"/> answers <c>RequiresIdentity</c> and the client posts
+/// here instead.
+/// </para>
+/// <para>
+/// <b>An address is not a credential.</b> Nothing here can move money on its own: it names where a
+/// payout should arrive, the way a postal address does. That is why it may be typed into the
+/// application when an account number may never be.
+/// </para>
+/// <para>
+/// <b>The label is produced here, not accepted.</b> A client-supplied label is a client-supplied
+/// claim about somebody's money, and the response contract has always described it as the server's.
+/// </para>
+/// </summary>
+[Authorize(Permission = FinancialPermissions.PaymentsManage)]
+[Auditable(Action = "financial.payout_destination.identity")]
+public sealed record RegisterPayoutIdentityCommand : ICommand<PayoutDestinationResponse>
+{
+    /// <summary>The address itself — an email, a phone number, a provider id.</summary>
+    public required string Identity { get; init; }
+
+    public required string Currency { get; init; }
+
+    /// <summary>ISO 3166-1 alpha-2. Decides which provider this may be registered against.</summary>
+    public required string CountryCode { get; init; }
+}
+
+/// <summary>
 /// Asks the provider whether a destination is payable yet, and records the answer.
 /// <para>
 /// <b>The member — own route to being verified.</b> <see cref="VerifyPayoutDestinationCommand"/>
