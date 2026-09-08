@@ -1,3 +1,4 @@
+using Diaspora.Modules.Financial.Extensibility.Payouts;
 using Diaspora.Modules.Financial.Extensibility.Settlement;
 using Diaspora.Platform.Services.Abstractions;
 using Microsoft.Extensions.Configuration;
@@ -52,6 +53,9 @@ public static class PayPalPaymentsRegistration
         services.AddHttpClient(PayPalSettlementProvider.HttpClientName, (provider, client) =>
             client.Timeout = TransportTimeout(provider));
 
+        services.AddHttpClient(PayPalPayoutWebhookProcessor.HttpClientName, (provider, client) =>
+            client.Timeout = TransportTimeout(provider));
+
         // Singleton because the token it holds is account-wide and refreshing it is single-flight.
         // A scoped cache would mint a token per request, which is the behaviour it exists to avoid.
         services.AddSingleton(provider => new PayPalAccessTokenCache(
@@ -67,6 +71,19 @@ public static class PayPalPaymentsRegistration
                 .CreateClient(PayPalSettlementProvider.HttpClientName),
             provider.GetRequiredService<IClock>(),
             provider.GetRequiredService<ILogger<PayPalSettlementProvider>>()));
+
+        // **The only way a lost-response PayPal payout is ever resolved.**
+        //
+        // ISettlementStatusProvider cannot serve this adapter: the resolution sweep only sees
+        // withdrawals whose settlement reference is null, and PayPal has no lookup by
+        // sender_batch_id. Resubmitting the batch to read it back would create the payout if the
+        // original never landed. So PayPal settles by being told, and this is the telling.
+        services.AddSingleton<IPayoutWebhookProcessor>(provider => new PayPalPayoutWebhookProcessor(
+            provider.GetRequiredService<IOptionsMonitor<PayPalOptions>>(),
+            provider.GetRequiredService<PayPalAccessTokenCache>(),
+            provider.GetRequiredService<IHttpClientFactory>()
+                .CreateClient(PayPalPayoutWebhookProcessor.HttpClientName),
+            provider.GetRequiredService<ILogger<PayPalPayoutWebhookProcessor>>()));
 
         return services;
     }

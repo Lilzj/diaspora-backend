@@ -65,6 +65,18 @@ public sealed class PayPalOptions
         && !string.IsNullOrWhiteSpace(ApiBase);
 
     /// <summary>
+    /// The webhook PayPal signs its payout callbacks against, from the developer dashboard.
+    /// <para>
+    /// <b>Required to verify anything, and its absence refuses rather than waves through.</b>
+    /// PayPal does not sign with a shared secret the way Stripe does: verification is a call back to
+    /// PayPal carrying this id alongside the transmission headers, and without the id there is no
+    /// question to ask. An unverifiable callback about somebody being paid is exactly the one an
+    /// attacker would send.
+    /// </para>
+    /// </summary>
+    public string WebhookId { get; set; } = string.Empty;
+
+    /// <summary>
     /// Whether this is pointed at the sandbox. Read from the host because PayPal's credentials carry
     /// no marker of their own — see the type summary.
     /// </summary>
