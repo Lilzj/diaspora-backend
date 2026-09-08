@@ -159,12 +159,28 @@ public sealed class PayPalSettlementProvider : ISettlementProvider
                 // The detail is carried into the log because this branch discards it otherwise, and
                 // it is the only place the original batch is named. An operator asking "which batch
                 // did it already have?" has nowhere else to look.
-                _logger.LogInformation(
-                    "PayPal reports settlement {Reference} as an already-submitted batch {BatchId}. "
-                    + "Treating it as accepted. {Detail}",
-                    instruction.Reference,
-                    original ?? "(unnamed)",
-                    detail);
+                // **A warning when it cannot be named, and information when it can.** A
+                // withdrawal completing with no provider reference is a reconciliation problem
+                // somebody should see: the money moved and the platform holds no handle on it.
+                // PayPal returns none on a duplicate, so this is the expected shape of a
+                // resubmission after a lost response rather than a fault — but it is still a
+                // payout nobody can match, and logging it at Information would bury it.
+                if (original is null)
+                {
+                    _logger.LogWarning(
+                        "PayPal reports settlement {Reference} as an already-submitted batch and "
+                        + "names no batch id. It is complete and unmatchable. {Detail}",
+                        instruction.Reference,
+                        detail);
+                }
+                else
+                {
+                    _logger.LogInformation(
+                        "PayPal reports settlement {Reference} as already-submitted batch {BatchId}. "
+                        + "Treating it as accepted.",
+                        instruction.Reference,
+                        original);
+                }
 
                 return SettlementOutcome.Accepted(original);
             }
@@ -324,11 +340,18 @@ public sealed class PayPalSettlementProvider : ISettlementProvider
     /// <summary>
     /// PayPal's own handle for the batch.
     /// <para>
-    /// <b>A duplicate refusal has no <c>batch_header</c>, and this used to answer null for it.</b>
-    /// PayPal's documented behaviour is to reject a repeated <c>sender_batch_id</c> with a link to
-    /// the payout it already created, so the id is there — in a HATEOAS href rather than in the
-    /// body a success returns. Without reading it, a resubmission was accepted while naming no
-    /// batch, and reconciliation had nothing to match the withdrawal against.
+    /// <b>The link fallback is kept, and a live account does not use it.</b> PayPal's documentation
+    /// says a repeated <c>sender_batch_id</c> is rejected with "a HATEOAS link to the original
+    /// payout with the same sender_batch_id". A sandbox account on 8 Sep 2026 returned no links at
+    /// all — only the name, the message, the detail and a debug id. The branch stays because it is
+    /// a pure read that costs nothing and would work on an account or API version that does send
+    /// one; it is documented as unobserved so nobody plans around it.
+    /// </para>
+    /// <para>
+    /// <b>So a duplicate is accepted unnamed, and that is PayPal's limitation rather than a gap
+    /// here.</b> The case only arises when the first response was lost, which is exactly when
+    /// nobody ever learned the batch id. There is no lookup by <c>sender_batch_id</c> to recover
+    /// it with.
     /// </para>
     /// </summary>
     internal static string? ReadBatchId(string payload)

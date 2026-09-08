@@ -165,11 +165,25 @@ public sealed class LivePayPalSandboxTests
             second.Code,
             second.Message);
 
-        second.ProviderReference.Should().Be(
-            first.ProviderReference,
-            "the second submission must name the batch the first created, not a new one. "
-            + "PayPal said: {0}",
-            log.Text);
+        // **Never a different batch, and often no batch at all.**
+        //
+        // This asserted equality with the first reference, and three live runs established that
+        // PayPal returns no batch id on a duplicate — no `batch_header`, and no HATEOAS link
+        // either, whatever the documentation says. So the guarantee is narrower than it looked: a
+        // resubmission must not name a *new* batch, because that would mean a second payout was
+        // created. Naming nothing is the honest answer to "which batch?" when the response that
+        // carried it was lost.
+        //
+        // Asserting equality here would be asserting something PayPal does not offer, and the test
+        // would fail for ever while the behaviour it guards was correct.
+        if (second.ProviderReference is not null)
+        {
+            second.ProviderReference.Should().Be(
+                first.ProviderReference,
+                "a resubmission must never name a batch other than the one it already made. "
+                + "PayPal said: {0}",
+                log.Text);
+        }
     }
 
     // ── Fixtures ────────────────────────────────────────────────────────────────────────────
