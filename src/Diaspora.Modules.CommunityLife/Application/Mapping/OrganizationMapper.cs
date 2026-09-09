@@ -22,7 +22,8 @@ public static class OrganizationMapper
         Organization organization,
         OrganizationType? type = null,
         OrganizationMembership? viewerMembership = null,
-        bool viewerIsAdministrator = false)
+        bool viewerIsAdministrator = false,
+        Guid? ownerUserId = null)
     {
         ArgumentNullException.ThrowIfNull(organization);
 
@@ -103,6 +104,10 @@ public static class OrganizationMapper
             IsFeatured = organization.IsFeatured,
             Statistics = ToResponse(organization, viewerIsAdministrator),
             ProviderId = organization.ProviderId,
+
+            // Who a message to this organization reaches. An organization is not a user and
+            // cannot be the other party in a conversation — see the field's own summary.
+            OwnerUserId = ownerUserId,
             ViewerMembershipStatus = viewerMembership?.Status.ToString(),
             ViewerMembershipRole = viewerMembership?.Role.ToString(),
             Completeness = organization.Completeness,

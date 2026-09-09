@@ -219,6 +219,23 @@ public sealed class OrganizationMembershipRepository : IOrganizationMembershipRe
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<OrganizationMembership?> FindOwnerAsync(
+        OrganizationId organizationId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(organizationId);
+
+        // Exactly equal to Owner, not `>=`. The count above uses a floor because it is asking
+        // "how many can do at least this"; this is asking who holds the one role there is one of.
+        return await Memberships
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                membership => membership.OrganizationId == organizationId
+                    && membership.Status == MembershipStatus.Active
+                    && membership.Role == MembershipRole.Owner,
+                cancellationToken);
+    }
+
     public async Task<int> CountByRoleAsync(
         OrganizationId organizationId,
         MembershipRole role,

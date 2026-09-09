@@ -50,6 +50,23 @@ public static class ConversationErrors
         ConversationErrorCodes.RequestPending,
         "This conversation is a pending request. The recipient has to accept it first.");
 
+    /// <summary>
+    /// The other party is not a person on this platform.
+    /// <para>
+    /// Nothing used to check. A conversation could be opened against any identifier at all — an
+    /// organization's, a listing's, a typo's — and the platform stored it: a conversation whose
+    /// counterparty was not a user, which nothing could deliver to, which the other side could
+    /// never open, and which rendered as "Unknown" above a context card naming the subject.
+    /// </para>
+    /// <para>
+    /// Deliberately not "that user does not exist", which would let somebody test identifiers for
+    /// account existence one request at a time.
+    /// </para>
+    /// </summary>
+    public static readonly Error RecipientNotFound = Error.Validation(
+        ConversationErrorCodes.RecipientNotFound,
+        "You cannot start a conversation with this recipient.");
+
     public static readonly Error SelfConversation = Error.Validation(
         ConversationErrorCodes.SelfConversation,
         "A conversation needs two different people.");

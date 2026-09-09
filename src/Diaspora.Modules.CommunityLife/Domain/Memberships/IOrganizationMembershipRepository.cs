@@ -79,6 +79,19 @@ public interface IOrganizationMembershipRepository
         CancellationToken cancellationToken = default);
 
     /// <summary>How many members hold at least the given role. The last-owner check.</summary>
+    /// <summary>
+    /// The member who owns an organization, or null when it has none.
+    /// <para>
+    /// Exactly one at a time — <see cref="MembershipRole.Owner"/> says so — and every
+    /// organization is created with one. Null therefore means something is wrong rather than
+    /// something ordinary, and callers should treat it as "nobody to reach" rather than
+    /// substituting an administrator on their own authority.
+    /// </para>
+    /// </summary>
+    Task<OrganizationMembership?> FindOwnerAsync(
+        OrganizationId organizationId,
+        CancellationToken cancellationToken = default);
+
     Task<int> CountByRoleAsync(
         OrganizationId organizationId,
         MembershipRole role,

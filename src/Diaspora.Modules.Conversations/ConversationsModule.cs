@@ -122,7 +122,13 @@ public sealed class ConversationsModule : IPlatformModule
 
         // Single-implementation seams. Each ships a default that is a complete answer rather than a
         // stub — see ConversationDefaults.
-        services.AddScoped<IConversationParticipantDirectory, IdentifierOnlyParticipantDirectory>();
+        // **The real one, not the placeholder.** `IdentifierOnlyParticipantDirectory` is what
+        // shipped, and nothing ever replaced it — so every conversation on the platform came back
+        // with a counterparty carrying no name and the client rendered every thread as "Unknown".
+        // `MemberParticipantDirectory` reads the kernel's member port, which the identity layer
+        // answers, and falls back to the same silence the placeholder gave when that port is
+        // itself a placeholder.
+        services.AddScoped<IConversationParticipantDirectory, MemberParticipantDirectory>();
         services.AddScoped<IConversationContextResolver, UnavailableContextResolver>();
         services.AddScoped<IConversationAttachmentValidator, DefaultAttachmentValidator>();
         services.AddScoped<IConversationSearchEngine, EfConversationSearchEngine>();

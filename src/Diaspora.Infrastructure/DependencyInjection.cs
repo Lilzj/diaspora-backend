@@ -36,6 +36,10 @@ public static class DependencyInjection
         services.AddScoped<IEligibilityService, DefaultEligibilityService>();
         services.AddScoped<ITrustService, DefaultTrustService>();
 
+        // Not a placeholder: identity's users live in this layer, so this is the real answer and
+        // there is nothing for a module to take over. See `IMemberProfileService`.
+        services.AddScoped<IMemberProfileService, MemberProfileService>();
+
         // Subject rate limiter. Singleton because its whole job is to hold state across
         // requests. The in-memory implementation is correct on one instance and approximate
         // across several; swapping it for the Redis-backed one is a single line here and

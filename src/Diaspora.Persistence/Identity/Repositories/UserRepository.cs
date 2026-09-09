@@ -31,6 +31,25 @@ public sealed class UserRepository : IUserRepository
     public async Task<User?> GetByIdAsync(UserId userId, CancellationToken cancellationToken = default) =>
         await Users.FirstOrDefaultAsync(user => user.Id == userId, cancellationToken);
 
+    public async Task<IReadOnlyList<User>> GetByIdsAsync(
+        IReadOnlyCollection<UserId> userIds,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(userIds);
+
+        var ids = userIds.Where(id => id is not null).Distinct().ToList();
+
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        return await Users
+            .AsNoTracking()
+            .Where(user => ids.Contains(user.Id))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<User?> GetByIdWithPasswordHistoryAsync(
         UserId userId,
         CancellationToken cancellationToken = default) =>

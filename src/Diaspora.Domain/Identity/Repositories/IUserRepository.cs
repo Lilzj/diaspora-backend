@@ -20,6 +20,22 @@ public interface IUserRepository
     /// Loads a member together with password history, for flows that must enforce
     /// the reuse policy.
     /// </summary>
+    /// <summary>
+    /// The members among these identifiers, in one round trip.
+    /// <para>
+    /// For callers that hold a page of identifiers and need a name for each — a list of
+    /// conversations, a page of comments. Asking one at a time is the same query twenty times, and
+    /// a repository with only a single-row read invites exactly that.
+    /// </para>
+    /// <para>
+    /// An identifier with no member is simply absent from the result, which is the only honest
+    /// answer to "is this a person".
+    /// </para>
+    /// </summary>
+    Task<IReadOnlyList<User>> GetByIdsAsync(
+        IReadOnlyCollection<UserId> userIds,
+        CancellationToken cancellationToken = default);
+
     Task<User?> GetByIdWithPasswordHistoryAsync(UserId userId, CancellationToken cancellationToken = default);
 
     Task<User?> GetByPhoneNumberAsync(PhoneNumber phoneNumber, CancellationToken cancellationToken = default);

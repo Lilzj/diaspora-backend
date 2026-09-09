@@ -1,6 +1,7 @@
 using Diaspora.Modules.CommunityLife.Application.Mapping;
 using Diaspora.Modules.CommunityLife.Contracts.V1.Responses;
 using Diaspora.Modules.CommunityLife.Domain.Enums;
+using Diaspora.Modules.CommunityLife.Domain.Memberships;
 using Diaspora.Modules.CommunityLife.Domain.Organizations;
 
 namespace Diaspora.Modules.CommunityLife.Application.Services;
@@ -26,12 +27,16 @@ public sealed class OrganizationReadContext
 {
     private readonly CommunityLifeCatalogResolver _catalog;
     private readonly CommunityLifeAuthorizationService _authorization;
+    private readonly IOrganizationMembershipRepository _memberships;
 
     public OrganizationReadContext(
-        CommunityLifeCatalogResolver catalog, CommunityLifeAuthorizationService authorization)
+        CommunityLifeCatalogResolver catalog,
+        CommunityLifeAuthorizationService authorization,
+        IOrganizationMembershipRepository memberships)
     {
         _catalog = catalog;
         _authorization = authorization;
+        _memberships = memberships;
     }
 
     /// <summary>The full detail response for one organization.</summary>
@@ -50,10 +55,22 @@ public sealed class OrganizationReadContext
             || organization.CreatedByUserId == _authorization.CallerId
             || membership?.HasAtLeast(MembershipRole.Administrator) == true;
 
+        // **Who a message to this organization reaches.**
+        //
+        // An organization is not a user, so it cannot be the other party in a conversation. The
+        // client had nothing to address but the organization's own identifier and sent that —
+        // and `POST /conversations` took it, storing a conversation whose counterparty was not a
+        // person. Nothing could deliver to it and it rendered as "Unknown".
+        //
+        // The owner rather than `CreatedByUserId`: ownership can be handed on, and the person who
+        // answers is whoever holds it now.
+        var owner = await _memberships.FindOwnerAsync(organization.Id, cancellationToken);
+
         return OrganizationMapper.ToResponse(
             organization,
             type.IsSuccess ? type.Value : null,
             membership,
-            isAdministrator);
+            isAdministrator,
+            owner?.MemberUserId.Value);
     }
 }

@@ -607,6 +607,43 @@ public sealed class ConversationsModuleTests : IdentityTestBase
     private static Task<T> ReadDataAsync<T>(HttpResponseMessage response) =>
         IdentityApiClient.ReadDataAsync<T>(response);
 
+    [Fact]
+    public async Task A_conversation_cannot_be_opened_with_something_that_is_not_a_person()
+    {
+        // **Nothing used to check.** `Conversation.Open` took the identifier on faith, so a
+        // conversation could be opened against anything at all — an organization's identifier, a
+        // listing's, a typo's — and the platform stored it. Nothing could deliver to it, the
+        // other side could never open it, and the client rendered it as "Unknown" above a context
+        // card naming the subject. That is what an organization's Message button was producing.
+        var (member, _) = await TwoMembersAsync();
+
+        Api.Authenticate(member.Token);
+
+        var response = await OpenConversationAsync(
+            Guid.NewGuid(), "listing-not-a-person", "Something nobody can answer");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task The_other_party_comes_back_with_a_name_on_it()
+    {
+        // The symptom the refusal above prevents: a counterparty row with nothing in it. The
+        // client read `displayName` off this and, finding it empty, said "Unknown".
+        var (buyer, seller) = await TwoMembersAsync();
+
+        Api.Authenticate(buyer.Token);
+
+        var created = await OpenConversationAsync(seller.UserId, "listing-named", "A real listing");
+        created.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var conversation = await ReadDataAsync<ConversationShape>(created);
+        var other = conversation.Participants.Single(participant => !participant.IsCurrentUser);
+
+        other.UserId.Should().Be(seller.UserId);
+        other.DisplayName.Should().NotBeNullOrWhiteSpace();
+    }
+
     private Task<HttpResponseMessage> OpenConversationAsync(
         Guid recipientId, string entityId, string title) =>
         HttpClient.PostAsJsonAsync(

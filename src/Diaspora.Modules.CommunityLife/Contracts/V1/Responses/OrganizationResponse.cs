@@ -79,6 +79,22 @@ public sealed record OrganizationResponse
     /// <summary>The B7 provider behind it, when there is one.</summary>
     public Guid? ProviderId { get; init; }
 
+    /// <summary>
+    /// The member who owns this organization, and therefore who a message to it reaches.
+    /// <para>
+    /// An organization is not a user, so it cannot be the other party in a conversation. Without
+    /// this the client had nothing to address but the organization's own identifier, and
+    /// <c>POST /conversations</c> accepted it — storing a conversation whose counterparty was not
+    /// a person, which nothing could deliver to and which rendered as "Unknown".
+    /// </para>
+    /// <para>
+    /// Null only when the organization has no active owner, which should not happen: one is created
+    /// with it. A caller that finds it null has nobody to reach and should say so rather than
+    /// picking somebody.
+    /// </para>
+    /// </summary>
+    public Guid? OwnerUserId { get; init; }
+
     /// <summary>The caller's own standing, when they have one. Null for a stranger.</summary>
     public string? ViewerMembershipStatus { get; init; }
 
