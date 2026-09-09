@@ -81,7 +81,6 @@ public sealed class CreateConversationCommandHandler
     private readonly ConversationMapper _mapper;
     private readonly IEnumerable<IConversationPolicy> _policies;
     private readonly IOptionsMonitor<ConversationOptions> _options;
-    private readonly IConversationParticipantDirectory _directory;
     private readonly IGuidGenerator _guids;
     private readonly IClock _clock;
     private readonly IUnitOfWork _unitOfWork;
@@ -94,12 +93,10 @@ public sealed class CreateConversationCommandHandler
         ConversationMapper mapper,
         IEnumerable<IConversationPolicy> policies,
         IOptionsMonitor<ConversationOptions> options,
-        IConversationParticipantDirectory directory,
         IGuidGenerator guids,
         IClock clock,
         IUnitOfWork unitOfWork)
     {
-        _directory = directory;
         _conversations = conversations;
         _messages = messages;
         _access = access;
@@ -132,26 +129,25 @@ public sealed class CreateConversationCommandHandler
             return Result.Failure<ConversationResponse>(ConversationErrors.SelfConversation);
         }
 
-        // **The other party has to be a person.**
+        // **Every other party here should be a person, and several are not.**
         //
-        // Nothing checked. `Conversation.Open` takes the identifier on faith, so a conversation
-        // could be opened against anything at all — an organization's identifier, a listing's, a
-        // typo's — and the platform stored it. Nothing could deliver to it, the other side could
-        // never open it, and it rendered as "Unknown" above a card naming the subject. That is
-        // what an organization's Message button was producing.
+        // `Conversation.Open` takes the identifier on faith. A check was written here — resolve
+        // the recipient through the participant directory, refuse what is not a member — and
+        // then removed, because measuring its blast radius found that most of the platform's own
+        // Message buttons send something that is not a user:
         //
-        // Only asked when the directory can answer. An unavailable directory does not know that
-        // somebody is missing; it knows nothing about anybody, and refusing on its silence would
-        // refuse every conversation on the platform. Not answered is not a no.
-        if (_directory.IsAvailable)
-        {
-            var known = await _directory.ResolveAsync([recipient], cancellationToken);
-
-            if (!known.ContainsKey(recipient.Value))
-            {
-                return Result.Failure<ConversationResponse>(ConversationErrors.RecipientNotFound);
-            }
-        }
+        //     marketplace   listing.seller.sellerId    a seller profile's id
+        //     jobs          employer.providerId        a provider's id
+        //     housing host  host.providerId            a provider's id
+        //     causes        causeId                    a cause's id
+        //     organisations organizationId             fixed; sends the owner now
+        //
+        // So those conversations have never been deliverable, and refusing them would turn four
+        // quietly broken buttons into four loudly broken ones without fixing any of them. The
+        // check belongs here, and it goes back in once each caller sends the user who answers.
+        //
+        // Until then this is knowingly permissive, which is worth writing down rather than
+        // leaving as an absence somebody later reads as an oversight.
 
         var contextType = await _catalog.FindAsync(command.Context.Type, cancellationToken);
 

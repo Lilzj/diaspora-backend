@@ -608,21 +608,26 @@ public sealed class ConversationsModuleTests : IdentityTestBase
         IdentityApiClient.ReadDataAsync<T>(response);
 
     [Fact]
-    public async Task A_conversation_cannot_be_opened_with_something_that_is_not_a_person()
+    public async Task A_conversation_can_still_be_opened_with_something_that_is_not_a_person()
     {
-        // **Nothing used to check.** `Conversation.Open` took the identifier on faith, so a
-        // conversation could be opened against anything at all — an organization's identifier, a
-        // listing's, a typo's — and the platform stored it. Nothing could deliver to it, the
-        // other side could never open it, and the client rendered it as "Unknown" above a context
-        // card naming the subject. That is what an organization's Message button was producing.
+        // **Deliberately asserting the permissive behaviour, so the day it changes is loud.**
+        //
+        // `Conversation.Open` takes the recipient on faith, so a conversation can be opened
+        // against anything — a seller profile's id, a provider's, a cause's. Those are exactly
+        // what four of this platform's own Message buttons send, so refusing here would turn four
+        // quietly broken flows into four loudly broken ones without fixing any of them.
+        //
+        // This is not the behaviour anybody wants. It is pinned so that closing the hole is a
+        // deliberate act with a failing test in front of it, rather than a change somebody makes
+        // and discovers the blast radius of afterwards — which is how it was discovered here.
         var (member, _) = await TwoMembersAsync();
 
         Api.Authenticate(member.Token);
 
         var response = await OpenConversationAsync(
-            Guid.NewGuid(), "listing-not-a-person", "Something nobody can answer");
+            Guid.NewGuid(), "listing-not-a-person", "Nobody can answer this");
 
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
     [Fact]
