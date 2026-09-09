@@ -320,7 +320,7 @@ public static class CommunityEventMapper
     /// that serves this is behind the check-in permission.
     /// </para>
     /// </summary>
-    public static AttendeeResponse ToAttendee(EventRsvp rsvp)
+    public static AttendeeResponse ToAttendee(EventRsvp rsvp, string? displayName = null)
     {
         ArgumentNullException.ThrowIfNull(rsvp);
 
@@ -328,6 +328,7 @@ public static class CommunityEventMapper
         {
             RsvpId = rsvp.Id.Value,
             AttendeeUserId = rsvp.AttendeeUserId.Value,
+            DisplayName = displayName,
             Status = rsvp.Status.ToString(),
             PartySize = rsvp.PartySize,
             Note = rsvp.Note,

@@ -8,6 +8,7 @@ using Diaspora.Modules.CommunityLife.Domain.Errors;
 using Diaspora.Modules.CommunityLife.Domain.Identifiers;
 using Diaspora.Modules.CommunityLife.Domain.Policies;
 using Diaspora.Modules.CommunityLife.Domain.Rsvps;
+using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Results;
 
 namespace Diaspora.Modules.CommunityLife.Application.Rsvps;
@@ -31,15 +32,18 @@ public sealed class ListAttendeesQueryHandler
     private readonly ICommunityEventRepository _events;
     private readonly IEventRsvpRepository _rsvps;
     private readonly CommunityLifeAuthorizationService _authorization;
+    private readonly IMemberProfileService _members;
 
     public ListAttendeesQueryHandler(
         ICommunityEventRepository events,
         IEventRsvpRepository rsvps,
-        CommunityLifeAuthorizationService authorization)
+        CommunityLifeAuthorizationService authorization,
+        IMemberProfileService members)
     {
         _events = events;
         _rsvps = rsvps;
         _authorization = authorization;
+        _members = members;
     }
 
     public async Task<Result<AttendeePageResponse>> Handle(
@@ -85,9 +89,23 @@ public sealed class ListAttendeesQueryHandler
             },
             cancellationToken);
 
+        // **The list had no names on it.** An attendee came back as an identifier, a status and a
+        // party size, so an organizer checking people in at a door was reading rows of nothing.
+        // One call for the page, through the same member port that named the people in a
+        // conversation — not one lookup per row.
+        var names = await _members.ResolveAsync(
+            [.. page.Items.Select(rsvp => rsvp.AttendeeUserId)], cancellationToken);
+
         return Result.Success(new AttendeePageResponse
         {
-            Items = [.. page.Items.Select(CommunityEventMapper.ToAttendee)],
+            Items =
+            [
+                .. page.Items.Select(rsvp => CommunityEventMapper.ToAttendee(
+                    rsvp,
+                    names.TryGetValue(rsvp.AttendeeUserId.Value, out var profile)
+                        ? profile.DisplayName
+                        : null))
+            ],
             NextCursor = page.NextCursor,
             HasMore = page.HasMore,
             GoingCount = communityEvent.Capacity.GoingCount,
