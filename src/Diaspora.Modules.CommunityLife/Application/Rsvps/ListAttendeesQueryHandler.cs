@@ -33,17 +33,20 @@ public sealed class ListAttendeesQueryHandler
     private readonly IEventRsvpRepository _rsvps;
     private readonly CommunityLifeAuthorizationService _authorization;
     private readonly IMemberProfileService _members;
+    private readonly IClock _clock;
 
     public ListAttendeesQueryHandler(
         ICommunityEventRepository events,
         IEventRsvpRepository rsvps,
         CommunityLifeAuthorizationService authorization,
-        IMemberProfileService members)
+        IMemberProfileService members,
+        IClock clock)
     {
         _events = events;
         _rsvps = rsvps;
         _authorization = authorization;
         _members = members;
+        _clock = clock;
     }
 
     public async Task<Result<AttendeePageResponse>> Handle(
@@ -109,7 +112,14 @@ public sealed class ListAttendeesQueryHandler
             NextCursor = page.NextCursor,
             HasMore = page.HasMore,
             GoingCount = communityEvent.Capacity.GoingCount,
-            RemainingPlaces = communityEvent.Capacity.RemainingPlaces
+            RemainingPlaces = communityEvent.Capacity.RemainingPlaces,
+
+            // The platform's own answer about the door, so a screen renders a decision rather
+            // than reimplementing the rule behind it.
+            AcceptsCheckIn = communityEvent.Schedule.AcceptsCheckInAt(_clock.UtcNow),
+            CheckInOpensAt =
+                communityEvent.Schedule.CheckInOpensAt
+                ?? communityEvent.Schedule.StartsAt.AddHours(-1)
         });
     }
 
