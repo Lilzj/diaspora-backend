@@ -54,6 +54,7 @@ public sealed class AutomationEndpointContributor : IEndpointContributor
         MapRegistry(group);
         MapExecution(group);
         MapCapabilities(group);
+        MapTriggerContext(group);
         MapSchedule(group);
         MapReminders(group);
         MapSavedSearches(group);
@@ -368,6 +369,33 @@ public sealed class AutomationEndpointContributor : IEndpointContributor
             .WithSummary(
                 "What this member may do. Self only; there is no read-another-member's-capabilities "
                 + "variant.");
+
+    // ── Trigger context — Phase 5 ───────────────────────────────────────────────────────────────
+    //
+    // One route, where the client's register asked for thirteen — one per domain, each with its own
+    // response shape, and six of them naming a path parameter their own declared endpoint had no
+    // room for. What they all describe is a single type this module already builds on every run.
+
+    private static void MapTriggerContext(RouteGroupBuilder group) =>
+        group.MapGet("/trigger-context", async (
+                string triggerKey,
+                Guid? subjectId,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await sender.Send(
+                    new GetTriggerContextQuery { TriggerKey = triggerKey, SubjectId = subjectId },
+                    cancellationToken);
+
+                return PlatformResults.Ok(context, result);
+            })
+            .RequireAuthorization(AutomationPolicies.Read)
+            .WithName("GetAutomationTriggerContext")
+            .WithSummary(
+                "What a trigger would be checked against for one subject, so a member can see a rule "
+                + "will match before they save it. Public fields and non-sensitive condition values "
+                + "only, and it says plainly when a subject cannot be described.");
 
     // ── Schedule — GAP-003 ──────────────────────────────────────────────────────────────────────
 

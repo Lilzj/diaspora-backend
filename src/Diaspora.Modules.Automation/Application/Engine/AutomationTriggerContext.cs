@@ -110,6 +110,22 @@ public sealed record AutomationTriggerContext
     /// <summary>The identity of the whole chain, so an operator can see all of it at once.</summary>
     public string ChainId { get; init; } = string.Empty;
 
+    /// <summary>
+    /// Whether this context is a dry run's rather than a real fact's — Phase 5.
+    /// <para>
+    /// <b>It changes one thing: what a member is told when a value is absent.</b> A real trigger that
+    /// does not carry a condition's key genuinely does not carry it, and the honest answer names the
+    /// trigger. A preview that could not describe its subject has a different reason for the same
+    /// absence, and telling a member their trigger is at fault — for a trigger that carries the field
+    /// perfectly well when it really fires — sends them to change a rule that was never wrong.
+    /// </para>
+    /// <para>
+    /// Set by the engine from the run's own <c>isSimulated</c>, never by a caller, so the two cannot
+    /// disagree about which kind of run this is.
+    /// </para>
+    /// </summary>
+    public bool IsPreview { get; init; }
+
     /// <summary>Set only when a member pressed the button. The engine refuses any other manual claim.</summary>
     public UserId? ManualActor { get; init; }
 

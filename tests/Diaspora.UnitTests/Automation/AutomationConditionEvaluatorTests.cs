@@ -216,6 +216,80 @@ public sealed class AutomationConditionEvaluatorTests
 
     // ── Helpers ─────────────────────────────────────────────────────────────────────────────
 
+    // ── The two absences — Phase 5 ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// A real run blames the trigger; a preview blames the preview.
+    /// <para>
+    /// <b>Both are "no value", and telling a member the wrong one sends them to change a rule that
+    /// was never wrong.</b> For as long as <c>POST /automations/simulate</c> has existed it built a
+    /// trigger context with an empty values dictionary, so every dry run took the first branch — and
+    /// a member testing a rule on an event's country was told the event trigger does not carry a
+    /// country. Confirmed against the deployed platform on 10 Sep 2026 and fixed with the sample
+    /// subject's real state; this pins the wording that made it invisible.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_missing_value_on_a_real_run_names_the_trigger()
+    {
+        var verdict = Evaluate("country", "equals", "NG", null, preview: false);
+
+        verdict.Matched.Should().BeFalse();
+        verdict.Evaluable.Should().BeFalse();
+        verdict.Explanation.Should().Contain("does not carry");
+    }
+
+    [Fact]
+    public void A_missing_value_on_a_preview_says_it_was_not_tested()
+    {
+        var verdict = Evaluate("country", "equals", "NG", null, preview: true);
+
+        verdict.Matched.Should().BeFalse();
+        verdict.Evaluable.Should().BeFalse();
+
+        verdict.Explanation.Should().NotContain(
+            "does not carry",
+            "the trigger carries country perfectly well — it is the test run that had nothing to "
+            + "check against, and blaming the trigger sends a member to rewrite a working rule");
+
+        verdict.Explanation.Should().Contain("no real subject");
+    }
+
+    /// <summary>A preview with the subject's real state evaluates exactly as the real run does.</summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void A_value_that_is_present_is_compared_the_same_either_way(bool preview)
+    {
+        var verdict = Evaluate(
+            "country", "equals", "MU", null, preview, ("country", "MU"));
+
+        verdict.Matched.Should().BeTrue();
+        verdict.Evaluable.Should().BeTrue();
+    }
+
+    private static AutomationConditionVerdict Evaluate(
+        string key,
+        string @operator,
+        string? value,
+        string? secondary,
+        bool preview,
+        params (string Key, string? Value)[] payload)
+    {
+        var automation = Draft();
+        automation.ReplaceConditions([(null, key, @operator, value, secondary)]);
+
+        var values = AutomationTriggerContext.NewValues();
+
+        foreach (var (name, entry) in payload)
+        {
+            values[name] = entry;
+        }
+
+        return AutomationConditionEvaluator.Evaluate(
+            automation.Conditions[0], Context(values) with { IsPreview = preview });
+    }
+
     private static AutomationConditionVerdict Evaluate(
         string key,
         string @operator,

@@ -118,6 +118,16 @@ public sealed class CommunityLifeModule : IPlatformModule
             Diaspora.Contracts.Automation.V1.Extensibility.IAutomationScopeAuthority,
             Extensibility.Automation.OrganizationAutomationAuthority>();
 
+        // Phase 5. What an event answers when a member is building or testing a rule about it. The
+        // automation platform had no way to describe a subject, so `POST /automations/simulate` took
+        // a sample event's identifier, carried it into an otherwise empty trigger context, and told
+        // every member that the event trigger does not carry a country. It does — the consumer three
+        // directories away puts it there. This is the same values, from the same module, behind the
+        // same visibility gate the event endpoint uses.
+        services.AddScoped<
+            Diaspora.Contracts.Automation.V1.Extensibility.IAutomationSubjectSource,
+            Extensibility.Automation.EventAutomationSubjectSource>();
+
         // B12.1. The single place an occurrence is ever written — creation, top-up and regeneration
         // after a rule change all come through it, so there is one answer to what an occurrence is
         // stamped with.

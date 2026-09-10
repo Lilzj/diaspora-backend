@@ -608,3 +608,65 @@ public sealed record AutomationActionFailureResponse
 
     public required int Failures { get; init; }
 }
+
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+// Trigger context — Phase 5.
+//
+// The client's register asked for this as **thirteen** routes, one per domain, each with its own
+// response shape — `/triggers/events/{eventId}/context`, `/triggers/jobs/context`,
+// `/triggers/marketplace/context` and so on. Six of the thirteen named a path parameter their own
+// declared endpoint had no room for, which is how long that list had gone unread.
+//
+// It is one route, because the thing it describes is one type. Every consumer in this module already
+// builds an `AutomationTriggerContext` — subject kind, identifier, title, moment, zone, and the
+// values a condition may be answered from — and a preview that invented a per-domain shape would be
+// describing the engine's input in a vocabulary the engine does not use.
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+
+/// <summary>What a trigger would carry about one subject, before a member commits to a rule.</summary>
+public sealed record AutomationTriggerContextResponse
+{
+    public required string TriggerKey { get; init; }
+
+    /// <summary>What kind of thing this trigger is about, or null where it is about no one thing.</summary>
+    public string? SubjectKind { get; init; }
+
+    public Guid? SubjectId { get; init; }
+
+    /// <summary>The subject's own title. Null when nothing could describe it.</summary>
+    public string? Title { get; init; }
+
+    /// <summary>The moment the trigger turns on, where the subject has one.</summary>
+    public DateTimeOffset? Moment { get; init; }
+
+    /// <summary>The subject's own zone. §42: the offset is computed where the subject is.</summary>
+    public string? TimeZoneId { get; init; }
+
+    /// <summary>
+    /// Whether the platform could describe this subject at all.
+    /// <para>
+    /// <b>False is a real and useful answer, not an error.</b> A subject whose module has no source
+    /// registered, one the member cannot see, and one that does not exist all land here — and the
+    /// builder says "this cannot be previewed" rather than showing an empty rule that looks tested.
+    /// </para>
+    /// </summary>
+    public required bool IsObservable { get; init; }
+
+    /// <summary>What this would fire on, in the member's words.</summary>
+    public required string Summary { get; init; }
+
+    /// <summary>
+    /// The condition keys this subject answers, and what it answers them with.
+    /// <para>
+    /// <b>Sensitive conditions are named and never quoted.</b> A run record does not print the value
+    /// of a sensitive condition — <c>amountAbove</c>, <c>priceAbove</c>, <c>walletBalance</c> — and a
+    /// preview that did would be a way to read through this route what the run record withholds. The
+    /// key appears in <see cref="Answers"/> so a member can see the check will be made; the figure
+    /// stays where it was.
+    /// </para>
+    /// </summary>
+    public required IReadOnlyDictionary<string, string?> Values { get; init; }
+
+    /// <summary>Every condition key this subject can answer, sensitive ones included.</summary>
+    public required IReadOnlyList<string> Answers { get; init; }
+}

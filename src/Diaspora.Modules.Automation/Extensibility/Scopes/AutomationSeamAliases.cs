@@ -28,3 +28,12 @@ global using AutomationConditionQuery =
     Diaspora.Contracts.Automation.V1.Extensibility.AutomationConditionQuery;
 global using AutomationConditionSources =
     Diaspora.Contracts.Automation.V1.Extensibility.AutomationConditionSources;
+
+// Phase 5. The subject-state seam, declared beside the condition seam and for the same reason: the
+// modules that own a subject compose before this one.
+global using IAutomationSubjectSource =
+    Diaspora.Contracts.Automation.V1.Extensibility.IAutomationSubjectSource;
+global using AutomationSubjectQuery =
+    Diaspora.Contracts.Automation.V1.Extensibility.AutomationSubjectQuery;
+global using AutomationSubjectSnapshot =
+    Diaspora.Contracts.Automation.V1.Extensibility.AutomationSubjectSnapshot;

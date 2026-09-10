@@ -116,13 +116,25 @@ public static class AutomationConditionEvaluator
 
         if (!context.Values.TryGetValue(condition.Key, out var actual))
         {
-            // The trigger simply does not carry this field. A rule that checks a listing's price
-            // against a guide publication is a member's mistake rather than a defect, and the honest
-            // outcome is a skip that names the check.
+            // Two different absences, and saying the wrong one sends a member to fix a rule that was
+            // never wrong.
+            //
+            // On a real run the trigger simply does not carry this field. A rule that checks a
+            // listing's price against a guide publication is a member's mistake rather than a defect,
+            // and the honest outcome is a skip that names the check.
+            //
+            // On a preview it usually means the subject could not be described — no sample subject
+            // was given, or nothing could answer for the one that was. Phase 5: for a year every dry
+            // run took the first branch, because a simulation's values dictionary was always empty,
+            // and members testing a rule on an event's country were told the event trigger does not
+            // carry a country. It does.
             return new AutomationConditionVerdict(
                 false,
                 false,
-                $"This trigger does not carry the information the '{condition.Key}' check needs.");
+                context.IsPreview
+                    ? $"The '{condition.Key}' check was not tested, because this test run had no real "
+                      + "subject to check it against. It will be checked when the automation runs."
+                    : $"This trigger does not carry the information the '{condition.Key}' check needs.");
         }
 
         var matched = Compare(condition.Operator, actual, condition.Value, condition.SecondaryValue);

@@ -278,3 +278,119 @@ public interface IAutomationConditionSource
     Task<IReadOnlyDictionary<string, string?>> ReadAsync(
         AutomationConditionQuery request, CancellationToken cancellationToken = default);
 }
+
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+// Subject state — Phase 5.
+//
+// **The defect this exists to close.** `POST /automations/simulate` accepts a `SampleSubjectId`,
+// documented as "an optional real subject to evaluate against, so a dry run borrows real state". It
+// borrowed none. The identifier was copied onto the trigger context and every other field was left
+// at its default — including `Values`, which the context's own summary calls "the entire surface a
+// condition can be answered from". So every payload-carried condition in every dry run resolved to
+// the same sentence:
+//
+//     "This trigger does not carry the information the 'country' check needs."
+//
+// That sentence is false. Verified against the deployed platform on 10 Sep 2026: an event whose
+// country is MU, a condition reading `country equals MU`, that event's own identifier passed as the
+// sample subject — and the run came back SKIPPED with those words. The trigger carries `country`;
+// `EventCreatedAutomationConsumer` puts it there, and the `event.startingSoon` horizon carries it
+// too. The *simulation* carried nothing, and told the member it was the trigger's fault.
+//
+// **Why a seam rather than a read.** The Automation module cannot open Community Life's tables to
+// find out what an event's country is, for the same reason it cannot open the ledger to find a
+// balance — <see cref="IAutomationConditionSource"/> exists precisely so it does not have to. This
+// is that argument applied to the other half of the dictionary: a module that owns a subject
+// answers for it, and nothing in the automation assembly learns what an event is.
+//
+// **Why it is not <see cref="IAutomationConditionSource"/> with a wider key set.** The two answer
+// different questions and must not share a dictionary. A condition source answers about *a member*
+// — their balance, their creator standing — and its answers land in `ResolvedValues`, which the
+// evaluator consults instead of the payload for exactly those keys, so that no module publishing an
+// event can decide whether a balance condition matched. A subject source answers about *a thing*,
+// and its answers are the payload: the same values the owning module's own consumer would have put
+// there had the trigger really fired. Keeping them apart keeps that security property intact.
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+
+/// <summary>What is being asked about, and by whom.</summary>
+/// <param name="SubjectKind">
+/// The kind, from the automation platform's closed set — <c>event</c>, <c>listing</c>, <c>job</c>,
+/// <c>housing</c>, <c>guide</c>, <c>provider</c>. A source declares the kinds it answers.
+/// </param>
+/// <param name="SubjectId">The subject's own identifier, as the owning module issued it.</param>
+/// <param name="Member">
+/// Who is asking.
+/// <para>
+/// <b>Passed so an implementation can refuse, not so it can widen.</b> A preview is built from a
+/// subject the member named, and the honest answer for one they cannot see is no answer at all — a
+/// source that returned an unpublished listing's price would make this route a way to read drafts.
+/// Implementations apply the same visibility their own read paths apply.
+/// </para>
+/// </param>
+public readonly record struct AutomationSubjectQuery(
+    string SubjectKind,
+    Guid SubjectId,
+    UserId Member);
+
+/// <summary>
+/// A subject's current state, in the shape a trigger over it would carry.
+/// </summary>
+public sealed record AutomationSubjectSnapshot
+{
+    /// <summary>Echoed back, so a caller holding several can tell them apart.</summary>
+    public required string SubjectKind { get; init; }
+
+    public required Guid SubjectId { get; init; }
+
+    /// <summary>The subject's own title, for the preview's wording. Public field, always.</summary>
+    public required string Title { get; init; }
+
+    /// <summary>The moment the subject is about, where it has one — an event's start, a closing date.</summary>
+    public DateTimeOffset? Moment { get; init; }
+
+    /// <summary>The subject's own IANA zone, where it has one. §42: an event in Lagos stays in Lagos.</summary>
+    public string? TimeZoneId { get; init; }
+
+    /// <summary>
+    /// The condition values a real trigger over this subject would carry.
+    /// <para>
+    /// <b>Keys are catalogue condition keys and the values are in the evaluator's comparison form</b>
+    /// — the same dictionary the owning module's automation consumer builds from its own published
+    /// contract. That is the point: a preview that derived them differently would be a second
+    /// definition of what a rule matches, and the member would be shown one answer and get another.
+    /// </para>
+    /// <para>
+    /// A key the subject genuinely has no value for is <b>omitted</b>, never nulled — the same rule
+    /// <see cref="IAutomationConditionSource"/> states, for the same reason.
+    /// </para>
+    /// </summary>
+    public required IReadOnlyDictionary<string, string?> Values { get; init; }
+}
+
+/// <summary>
+/// The seam by which the module that owns a subject describes it to a preview — Phase 5.
+///
+/// <para><b>Read-only, and never on the execution path.</b> A real run is driven by a published
+/// contract and this is not consulted. It answers two things a member asked for directly: a dry run
+/// against a subject they named, and the builder's "here is what this would be checked against".</para>
+///
+/// <para><b>Implementations must not throw and must fail closed.</b> A subject the member cannot see,
+/// a subject that does not exist and a module having a bad minute all produce <c>null</c> — and the
+/// caller says "this could not be previewed", which is true in all three cases. Inventing a default
+/// would put a match in front of a member that the real run would not produce.</para>
+/// </summary>
+public interface IAutomationSubjectSource
+{
+    /// <summary>
+    /// Which subject kinds this source answers.
+    /// <para>
+    /// Two sources claiming one kind is a configuration error rather than a merge, exactly as it is
+    /// for a condition key: the resolver takes the first that answers.
+    /// </para>
+    /// </summary>
+    IReadOnlyList<string> Answers { get; }
+
+    /// <summary>The subject's state, or <c>null</c> where it cannot be described to this member.</summary>
+    Task<AutomationSubjectSnapshot?> ReadAsync(
+        AutomationSubjectQuery request, CancellationToken cancellationToken = default);
+}

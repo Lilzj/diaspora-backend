@@ -406,6 +406,7 @@ public sealed class SimulateAutomationCommandHandler
     private readonly AutomationRuleValidator _validator;
     private readonly AutomationEngine _engine;
     private readonly AutomationScopeAuthorityResolver _scopes;
+    private readonly AutomationSubjectContextService _subjects;
     private readonly ISubjectRateLimiter _rateLimiter;
     private readonly IClock _clock;
     private readonly IOptions<AutomationOptions> _options;
@@ -415,6 +416,7 @@ public sealed class SimulateAutomationCommandHandler
         AutomationRuleValidator validator,
         AutomationEngine engine,
         AutomationScopeAuthorityResolver scopes,
+        AutomationSubjectContextService subjects,
         ISubjectRateLimiter rateLimiter,
         IClock clock,
         IOptions<AutomationOptions> options)
@@ -423,6 +425,7 @@ public sealed class SimulateAutomationCommandHandler
         _validator = validator;
         _engine = engine;
         _scopes = scopes;
+        _subjects = subjects;
         _rateLimiter = rateLimiter;
         _clock = clock;
         _options = options;
@@ -517,6 +520,26 @@ public sealed class SimulateAutomationCommandHandler
             (request.Actions ?? []).Select(action =>
                 ((AutomationActionId?)null, action.Key, action.Parameters ?? "{}")));
 
+        // ── The sample subject's real state — Phase 5 ───────────────────────────────────────────
+        //
+        // **This request has carried `SampleSubjectId` since the day it shipped, documented as "an
+        // optional real subject to evaluate against, so a dry run borrows real state", and it
+        // borrowed none.** The identifier was copied onto the context below and every other field
+        // was left at its default, `Values` included — and `Values` is, in that record's own words,
+        // "the entire surface a condition can be answered from". So every payload-carried condition
+        // in every dry run this platform has ever served came back unevaluable.
+        //
+        // Confirmed against the deployed platform, 10 Sep 2026: an event whose country is MU, a rule
+        // reading `country equals MU`, that event's identifier as the sample subject — SKIPPED, with
+        // "This trigger does not carry the information the 'country' check needs". It carries it.
+        // `EventCreatedAutomationConsumer` writes it, and so does the `event.startingSoon` horizon.
+        //
+        // Null when nothing can describe the subject, and the run then says so in those words rather
+        // than blaming the trigger. See `AutomationConditionEvaluator`.
+        var subject = request.SampleSubjectId is { } sampleId
+            ? await _subjects.ReadAsync(draft.TriggerKey, sampleId, member.Value, cancellationToken)
+            : null;
+
         var run = await _engine.RunOneAsync(
             draft,
             new AutomationTriggerContext
@@ -524,9 +547,17 @@ public sealed class SimulateAutomationCommandHandler
                 TriggerKey = draft.TriggerKey,
                 TriggerEventId = $"simulation:{Guid.NewGuid():N}",
                 ConcernedOwnerIds = [ownerId],
+                SubjectType = subject?.SubjectKind,
                 SubjectId = request.SampleSubjectId,
-                Summary = "A test run. Nothing was sent, nothing was charged and nobody was notified.",
-                OccurredAt = now
+                SubjectTitle = subject?.Title,
+                SubjectMoment = subject?.Moment,
+                SubjectTimeZoneId = subject?.TimeZoneId,
+                Summary = subject is null
+                    ? "A test run. Nothing was sent, nothing was charged and nobody was notified."
+                    : $"A test run against {subject.Title}. Nothing was sent, nothing was charged "
+                      + "and nobody was notified.",
+                OccurredAt = now,
+                Values = subject?.Values ?? AutomationTriggerContext.NewValues()
             },
             AutomationRunReason.Simulation,
             isSimulated: true,
@@ -747,5 +778,126 @@ public sealed class GetScheduleQueryHandler
         var plan = _schedule.Preview(automation);
 
         return Result.Success(AutomationMapper.ToResponse(plan, pending.Count));
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+// Trigger context — Phase 5.
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+
+/// <summary>What a trigger would carry about a subject the member named.</summary>
+public sealed record GetTriggerContextQuery : IQuery<AutomationTriggerContextResponse>
+{
+    public string TriggerKey { get; init; } = string.Empty;
+
+    public Guid? SubjectId { get; init; }
+}
+
+public sealed class GetTriggerContextQueryHandler
+    : IQueryHandler<GetTriggerContextQuery, AutomationTriggerContextResponse>
+{
+    private readonly AutomationAccessService _access;
+    private readonly AutomationSubjectContextService _subjects;
+
+    public GetTriggerContextQueryHandler(
+        AutomationAccessService access,
+        AutomationSubjectContextService subjects)
+    {
+        _access = access;
+        _subjects = subjects;
+    }
+
+    public async Task<Result<AutomationTriggerContextResponse>> Handle(
+        GetTriggerContextQuery query, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var member = _access.RequireMember();
+
+        if (member.IsFailure)
+        {
+            return Result.Failure<AutomationTriggerContextResponse>(member.Error);
+        }
+
+        var trigger = AutomationCatalog.FindTrigger(query.TriggerKey);
+
+        if (trigger is null)
+        {
+            return Result.Failure<AutomationTriggerContextResponse>(
+                AutomationErrors.UnknownTrigger(query.TriggerKey));
+        }
+
+        var kind = AutomationSubjectContextService.SubjectKindFor(query.TriggerKey);
+
+        var subject = query.SubjectId is { } subjectId
+            ? await _subjects.ReadAsync(query.TriggerKey, subjectId, member.Value, cancellationToken)
+            : null;
+
+        if (subject is null)
+        {
+            return Result.Success(new AutomationTriggerContextResponse
+            {
+                TriggerKey = query.TriggerKey,
+                SubjectKind = kind,
+                SubjectId = query.SubjectId,
+                IsObservable = false,
+                Summary = Unobservable(query, trigger, kind),
+                Values = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase),
+                Answers = []
+            });
+        }
+
+        // A run record never quotes a sensitive condition's value, and this must not become the way
+        // to read one. The key stays visible so a member sees the check will be made.
+        var quotable = subject.Values
+            .Where(pair => AutomationCatalog.FindCondition(pair.Key)?.IsSensitive != true)
+            .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase);
+
+        return Result.Success(new AutomationTriggerContextResponse
+        {
+            TriggerKey = query.TriggerKey,
+            SubjectKind = subject.SubjectKind,
+            SubjectId = subject.SubjectId,
+            Title = subject.Title,
+            Moment = subject.Moment,
+            TimeZoneId = subject.TimeZoneId,
+            IsObservable = true,
+            Summary = subject.Moment is { } moment
+                ? $"{subject.Title} — {moment:dd MMM yyyy, HH:mm}"
+                    + (string.IsNullOrWhiteSpace(subject.TimeZoneId)
+                        ? string.Empty
+                        : $" ({subject.TimeZoneId})")
+                : subject.Title,
+            Values = quotable,
+            Answers = [.. subject.Values.Keys.OrderBy(key => key, StringComparer.Ordinal)]
+        });
+    }
+
+    /// <summary>
+    /// Why nothing could be described, in words a member can act on.
+    /// <para>
+    /// Three different absences, and a member can do something about two of them. Collapsing them
+    /// into one sentence is what made the dry run unhelpful for as long as it was.
+    /// </para>
+    /// </summary>
+    private static string Unobservable(
+        GetTriggerContextQuery query, TriggerCatalogEntry trigger, string? kind)
+    {
+        if (!trigger.IsAvailable)
+        {
+            return trigger.UnavailableReason
+                ?? "Diaspora cannot watch for this yet.";
+        }
+
+        if (kind is null)
+        {
+            return "This trigger is not about one particular thing, so there is nothing to preview. "
+                + "It will still run.";
+        }
+
+        return query.SubjectId is null
+            ? $"Choose a {kind} to see what this would be checked against."
+            : $"Diaspora could not read that {kind}. It may have been removed, or it may not be one "
+                + "you can see.";
     }
 }

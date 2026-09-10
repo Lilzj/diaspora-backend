@@ -3665,6 +3665,38 @@
         }
       }
     },
+    "/api/v1/automations/trigger-context": {
+      "get": {
+        "tags": [
+          "Automation"
+        ],
+        "summary": "What a trigger would be checked against for one subject, so a member can see a rule will match before they save it. Public fields and non-sensitive condition values only, and it says plainly when a subject cannot be described.",
+        "operationId": "GetAutomationTriggerContext",
+        "parameters": [
+          {
+            "name": "triggerKey",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subjectId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/automations/{automationId}/schedule": {
       "get": {
         "tags": [

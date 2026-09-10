@@ -96,6 +96,11 @@ public sealed class AutomationModule : IPlatformModule
         services.AddScoped<AutomationScheduleService>();
         services.AddScoped<AutomationSubjectHorizonService>();
         services.AddScoped<AutomationConditionResolver>();
+
+        // Phase 5. Answers "what would this trigger carry about that subject", for a dry run and for
+        // the builder's preview. Reads this module's own horizon rows first and only then asks the
+        // module that owns the subject, through the contracts-declared `IAutomationSubjectSource`.
+        services.AddScoped<AutomationSubjectContextService>();
         services.AddScoped<SavedSearchMatcher>();
 
         // B24. The reporter is scoped because it publishes into the caller's unit of work; the

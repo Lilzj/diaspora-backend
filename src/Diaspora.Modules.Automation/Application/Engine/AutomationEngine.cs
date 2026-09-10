@@ -178,12 +178,19 @@ public sealed class AutomationEngine
 
     private async Task<AutomationRun?> ExecuteAsync(
         AutomationDefinition automation,
-        AutomationTriggerContext context,
+        AutomationTriggerContext contextAsGiven,
         AutomationRunReason reason,
         bool isSimulated,
         CancellationToken cancellationToken)
     {
         var now = _clock.UtcNow;
+
+        // Phase 5. Stamped here rather than trusted from the caller, so a context's idea of whether
+        // it is a preview cannot disagree with the run's. It changes nothing about what runs; it
+        // changes what a member is told when a condition has no value to compare against.
+        var context = contextAsGiven.IsPreview == isSimulated
+            ? contextAsGiven
+            : contextAsGiven with { IsPreview = isSimulated };
 
         using var activity = AutomationTelemetry.Source.StartActivity("automation.execute");
 
