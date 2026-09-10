@@ -42,6 +42,8 @@ public static class HousingLandlordMapper
         return new LandlordSummaryResponse
         {
             Id = landlord.Id.Value,
+            // Who a message about this reaches. See the field's own summary.
+            OwnerUserId = landlord.OwnerUserId.Value,
             Slug = landlord.Slug.Value,
             DisplayName = landlord.Identity.DisplayName,
             Kind = landlord.Identity.Kind.ToString(),
@@ -71,6 +73,8 @@ public static class HousingLandlordMapper
         return new LandlordProfileResponse
         {
             Id = landlord.Id.Value,
+            // Who a message about this reaches. See the field's own summary.
+            OwnerUserId = landlord.OwnerUserId.Value,
             Slug = landlord.Slug.Value,
             DisplayName = landlord.Identity.DisplayName,
             Kind = landlord.Identity.Kind.ToString(),

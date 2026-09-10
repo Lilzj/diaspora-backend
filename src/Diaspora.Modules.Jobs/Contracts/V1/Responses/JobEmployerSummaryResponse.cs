@@ -13,6 +13,16 @@ namespace Diaspora.Modules.Jobs.Contracts.V1.Responses;
 public sealed record JobEmployerSummaryResponse
 {
     public required Guid EmployerId { get; init; }
+    /// <summary>
+    /// The member who owns this employer, and therefore who a message about it reaches.
+    /// <para>
+    /// **An employer is not a user.** Its identifier is a profile's, and the client was sending that
+    /// as a conversation's recipient — so the thread was addressed to something that is not a
+    /// person. Nothing could deliver to it, the other side could never open it, and it rendered
+    /// with no name on it.
+    /// </para>
+    /// </summary>
+    public Guid? OwnerUserId { get; init; }
 
     public required string Slug { get; init; }
 

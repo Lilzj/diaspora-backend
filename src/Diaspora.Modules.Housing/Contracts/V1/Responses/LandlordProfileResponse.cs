@@ -5,6 +5,16 @@ public sealed record LandlordProfileResponse
 {
     public required Guid Id { get; init; }
 
+    /// <summary>
+    /// The member who owns this landlord profile, and therefore who a message about it reaches.
+    /// <para>
+    /// A landlord profile is not a user. Its identifier is a profile's, and the client was
+    /// sending that as a conversation's recipient — so the thread was addressed to something
+    /// that is not a person and nothing could deliver to it.
+    /// </para>
+    /// </summary>
+    public Guid? OwnerUserId { get; init; }
+
     public required string Slug { get; init; }
 
     public required string DisplayName { get; init; }

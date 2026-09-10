@@ -89,6 +89,8 @@ public static class EmployerMapper
         return new JobEmployerSummaryResponse
         {
             EmployerId = employer.Id.Value,
+            // Who a message about this reaches. See the field's own summary.
+            OwnerUserId = employer.OwnerUserId.Value,
             Slug = employer.Slug.Value,
             DisplayName = employer.Identity.DisplayName,
             Tagline = employer.Branding.Tagline,

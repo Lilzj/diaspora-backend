@@ -50,6 +50,29 @@ public static class ConversationErrors
         ConversationErrorCodes.RequestPending,
         "This conversation is a pending request. The recipient has to accept it first.");
 
+    /// <summary>
+    /// The other party is not a person on this platform.
+    /// <para>
+    /// Nothing used to check, so a conversation could be opened against any identifier at all —
+    /// a seller profile's, a landlord's, an employer's, a cause's — and the platform stored it:
+    /// a thread whose counterparty was not a user, which nothing could deliver to and which the
+    /// other side could never open.
+    /// </para>
+    /// <para>
+    /// This was added, reverted the same day, and is back. The revert was not a change of mind:
+    /// measuring it found that five of the platform's own Message buttons sent exactly those
+    /// identifiers, so closing the door first would have turned five quietly broken flows into
+    /// five loudly broken ones. Each of them sends the member who answers now.
+    /// </para>
+    /// <para>
+    /// Deliberately not "that user does not exist", which would let somebody test identifiers for
+    /// account existence one request at a time.
+    /// </para>
+    /// </summary>
+    public static readonly Error RecipientNotFound = Error.Validation(
+        ConversationErrorCodes.RecipientNotFound,
+        "You cannot start a conversation with this recipient.");
+
     public static readonly Error SelfConversation = Error.Validation(
         ConversationErrorCodes.SelfConversation,
         "A conversation needs two different people.");

@@ -81,6 +81,7 @@ public sealed class CreateConversationCommandHandler
     private readonly ConversationMapper _mapper;
     private readonly IEnumerable<IConversationPolicy> _policies;
     private readonly IOptionsMonitor<ConversationOptions> _options;
+    private readonly IConversationParticipantDirectory _directory;
     private readonly IGuidGenerator _guids;
     private readonly IClock _clock;
     private readonly IUnitOfWork _unitOfWork;
@@ -93,10 +94,12 @@ public sealed class CreateConversationCommandHandler
         ConversationMapper mapper,
         IEnumerable<IConversationPolicy> policies,
         IOptionsMonitor<ConversationOptions> options,
+        IConversationParticipantDirectory directory,
         IGuidGenerator guids,
         IClock clock,
         IUnitOfWork unitOfWork)
     {
+        _directory = directory;
         _conversations = conversations;
         _messages = messages;
         _access = access;
@@ -129,25 +132,24 @@ public sealed class CreateConversationCommandHandler
             return Result.Failure<ConversationResponse>(ConversationErrors.SelfConversation);
         }
 
-        // **Every other party here should be a person, and several are not.**
+        // **The other party has to be a person.**
         //
-        // `Conversation.Open` takes the identifier on faith. A check was written here — resolve
-        // the recipient through the participant directory, refuse what is not a member — and
-        // then removed, because measuring its blast radius found that most of the platform's own
-        // Message buttons send something that is not a user:
+        // `Conversation.Open` takes the identifier on faith, so without this a conversation could
+        // be opened against anything — a seller profile's identifier, a landlord's, a cause's —
+        // and the platform would store a thread nothing could deliver to.
         //
-        //     marketplace   listing.seller.sellerId    a seller profile's id
-        //     jobs          employer.providerId        a provider's id
-        //     housing host  host.providerId            a provider's id
-        //     causes        causeId                    a cause's id
-        //     organisations organizationId             fixed; sends the owner now
-        //
-        // So those conversations have never been deliverable, and refusing them would turn four
-        // quietly broken buttons into four loudly broken ones without fixing any of them. The
-        // check belongs here, and it goes back in once each caller sends the user who answers.
-        //
-        // Until then this is knowingly permissive, which is worth writing down rather than
-        // leaving as an absence somebody later reads as an oversight.
+        // Only asked when the directory can answer. An unavailable directory does not know that
+        // somebody is missing; it knows nothing about anybody, and refusing on its silence would
+        // refuse every conversation on the platform. Not answered is not a no.
+        if (_directory.IsAvailable)
+        {
+            var known = await _directory.ResolveAsync([recipient], cancellationToken);
+
+            if (!known.ContainsKey(recipient.Value))
+            {
+                return Result.Failure<ConversationResponse>(ConversationErrors.RecipientNotFound);
+            }
+        }
 
         var contextType = await _catalog.FindAsync(command.Context.Type, cancellationToken);
 

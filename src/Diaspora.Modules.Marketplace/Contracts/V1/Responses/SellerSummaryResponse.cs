@@ -12,6 +12,16 @@
 public sealed record SellerSummaryResponse
 {
     public required Guid SellerId { get; init; }
+    /// <summary>
+    /// The member who owns this seller profile, and therefore who a message about it reaches.
+    /// <para>
+    /// **A seller profile is not a user.** Its identifier is a profile's, and the client was sending that
+    /// as a conversation's recipient — so the thread was addressed to something that is not a
+    /// person. Nothing could deliver to it, the other side could never open it, and it rendered
+    /// with no name on it.
+    /// </para>
+    /// </summary>
+    public Guid? OwnerUserId { get; init; }
 
     public required string DisplayName { get; init; }
 

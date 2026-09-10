@@ -608,18 +608,17 @@ public sealed class ConversationsModuleTests : IdentityTestBase
         IdentityApiClient.ReadDataAsync<T>(response);
 
     [Fact]
-    public async Task A_conversation_can_still_be_opened_with_something_that_is_not_a_person()
+    public async Task A_conversation_cannot_be_opened_with_something_that_is_not_a_person()
     {
-        // **Deliberately asserting the permissive behaviour, so the day it changes is loud.**
+        // **This assertion was inverted for a day, and the inversion is the point.**
         //
-        // `Conversation.Open` takes the recipient on faith, so a conversation can be opened
-        // against anything — a seller profile's id, a provider's, a cause's. Those are exactly
-        // what four of this platform's own Message buttons send, so refusing here would turn four
-        // quietly broken flows into four loudly broken ones without fixing any of them.
+        // `Conversation.Open` took the recipient on faith, so a thread could be opened against a
+        // seller profile's identifier, a landlord's, an employer's or a cause's — which is
+        // exactly what five of this platform's own Message buttons were sending. Closing the door
+        // first turned five quietly broken flows into five loudly broken ones, so it was reverted
+        // and pinned open until each caller sent the member who answers.
         //
-        // This is not the behaviour anybody wants. It is pinned so that closing the hole is a
-        // deliberate act with a failing test in front of it, rather than a change somebody makes
-        // and discovers the blast radius of afterwards — which is how it was discovered here.
+        // They all do now.
         var (member, _) = await TwoMembersAsync();
 
         Api.Authenticate(member.Token);
@@ -627,7 +626,7 @@ public sealed class ConversationsModuleTests : IdentityTestBase
         var response = await OpenConversationAsync(
             Guid.NewGuid(), "listing-not-a-person", "Nobody can answer this");
 
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]

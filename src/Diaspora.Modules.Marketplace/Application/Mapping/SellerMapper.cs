@@ -28,6 +28,8 @@ internal static class SellerMapper
         return new SellerSummaryResponse
         {
             SellerId = seller.Id.Value,
+            // Who a message about this reaches. See the field's own summary.
+            OwnerUserId = seller.OwnerUserId.Value,
             DisplayName = seller.Identity.DisplayName,
             Slug = seller.Slug.Value,
             SellerType = seller.SellerType.ToString(),
@@ -86,6 +88,8 @@ internal static class SellerMapper
         return new SellerProfileResponse
         {
             SellerId = seller.Id.Value,
+            // Who a message about this reaches. See the field's own summary.
+            OwnerUserId = seller.OwnerUserId.Value,
             DisplayName = seller.Identity.DisplayName,
             Slug = seller.Slug.Value,
             Kind = seller.Identity.Kind.ToString(),

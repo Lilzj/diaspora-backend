@@ -39,6 +39,8 @@ public static class ConversationErrorCodes
     /// <summary>A conversation needs two distinct people.</summary>
     public const string SelfConversation = Prefix + "self_conversation";
 
+    public const string RecipientNotFound = Prefix + "recipient_not_found";
+
     /// <summary>The pin limit is reached.</summary>
     public const string PinLimitReached = Prefix + "pin_limit_reached";
 
