@@ -112,7 +112,17 @@ public sealed class SeriesSchedule : ValueObject
             ? zone.GetAmbiguousTimeOffsets(local).Max()
             : zone.GetUtcOffset(local);
 
-        return new DateTimeOffset(local, offset);
+        // Normalised to UTC, which this summary has always claimed and the code did not do.
+        //
+        // The instant was right; the *representation* carried the zone's own offset, and Npgsql
+        // refuses to write a `DateTimeOffset` with a non-zero offset to `timestamp with time zone`.
+        // So creating a series in any zone that is not on UTC threw at `SaveChangesAsync` — every
+        // series in Mauritius, Lagos, or London in summer. It went unseen because a single event
+        // takes its instant from the client, already `Z`; only a series composes its own.
+        //
+        // Two unit tests asserted on `.Offset` and so agreed with the bug. They ask about which
+        // instant was chosen, and now say so in the only vocabulary the database keeps.
+        return new DateTimeOffset(local, offset).ToUniversalTime();
     }
 
     /// <summary>The instant an occurrence on a given local date ends.</summary>

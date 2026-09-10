@@ -284,22 +284,40 @@ public class RecurrenceExpanderTests
 
         var start = schedule.ToStart(new DateOnly(2026, 10, 25));
 
-        start.Offset.Should().Be(
-            TimeSpan.FromHours(1), "the daylight offset, which is the earlier of the two");
+        // 01:30 BST is 00:30 UTC; 01:30 GMT is 01:30 UTC. The earlier instant is the daylight one.
+        //
+        // This used to assert `start.Offset == +1h`, which passed and pinned a value that could
+        // not be written: Npgsql refuses a non-zero offset on `timestamp with time zone`, so every
+        // series outside UTC threw on save. The question was always which instant, not which
+        // offset it was spelled with.
+        start.UtcDateTime.Should().Be(
+            new DateTime(2026, 10, 25, 0, 30, 0, DateTimeKind.Utc),
+            "the earlier of the two instants that local time names");
+
+        start.Offset.Should().Be(TimeSpan.Zero, "an instant is stored in UTC");
     }
 
-    /// <summary>A zone with no daylight saving is unaffected, which is most of the diaspora.</summary>
+    /// <summary>A zone with no daylight saving keeps one local time, which is most of the diaspora.</summary>
     [Fact]
-    public void A_zone_without_daylight_saving_keeps_one_offset()
+    public void A_zone_without_daylight_saving_keeps_one_local_time()
     {
+        var lagos = TimeZoneInfo.FindSystemTimeZoneById("Africa/Lagos");
+
         var schedule = SeriesSchedule.Create(
             new DateOnly(2026, 3, 15), new TimeOnly(19, 0), 120, "Africa/Lagos").Value;
 
         var slots = RecurrenceExpander.Expand(
             Rule(RecurrenceFrequency.Weekly), schedule, maxSlots: 4);
 
-        slots.Select(slot => slot.StartsAt.Offset).Should().AllBeEquivalentTo(
-            TimeSpan.FromHours(1));
+        // Read back in the series' own zone. This used to assert `.Offset == +1h` on every slot,
+        // which pinned a representation the database cannot store — see `SeriesSchedule.ToStart`.
+        // Nineteen hundred in Lagos, every week, is what the organiser actually said.
+        slots
+            .Select(slot => TimeZoneInfo.ConvertTime(slot.StartsAt, lagos).TimeOfDay)
+            .Should()
+            .AllBeEquivalentTo(new TimeOnly(19, 0).ToTimeSpan());
+
+        slots.Select(slot => slot.StartsAt.Offset).Should().AllBeEquivalentTo(TimeSpan.Zero);
     }
 
     /// <summary>The end instant is the start plus the duration, so an event may cross midnight.</summary>
@@ -330,6 +348,61 @@ public class RecurrenceExpanderTests
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Every instant an expansion produces can actually be written.
+    /// <para>
+    /// Npgsql refuses a <c>DateTimeOffset</c> whose offset is not zero on
+    /// <c>timestamp with time zone</c>, so a slot carrying its zone's own offset threw at
+    /// <c>SaveChangesAsync</c> — not at validation, and not anywhere a test was looking. Creating a
+    /// series in Port Louis failed with "Not created" and no more; so did Lagos, and so did London
+    /// between March and October.
+    /// </para>
+    /// <para>
+    /// It survived a full suite because the shared <c>Schedule</c> helper below uses <c>UTC</c>,
+    /// the single zone for which the bug cannot fire, and the two tests that did use a real zone
+    /// asserted on <c>.Offset</c> — agreeing with it. The zones here are deliberately ones the
+    /// diaspora actually lives in, either side of UTC and with and without daylight saving.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [InlineData("Indian/Mauritius")]
+    [InlineData("Africa/Lagos")]
+    [InlineData("Europe/London")]
+    [InlineData("America/New_York")]
+    [InlineData("Asia/Dubai")]
+    [InlineData("UTC")]
+    public void Every_expanded_instant_is_storable(string timeZoneId)
+    {
+        var schedule = SeriesSchedule.Create(
+            new DateOnly(2026, 6, 4), new TimeOnly(18, 0), 120, timeZoneId).Value;
+
+        var slots = RecurrenceExpander.Expand(
+            Rule(RecurrenceFrequency.Weekly), schedule, maxSlots: 12);
+
+        slots.Should().NotBeEmpty();
+
+        slots.Select(slot => slot.StartsAt.Offset).Should().AllBeEquivalentTo(TimeSpan.Zero);
+        slots.Select(slot => slot.EndsAt.Offset).Should().AllBeEquivalentTo(TimeSpan.Zero);
+    }
+
+    /// <summary>Normalising the offset must not move the occurrence.</summary>
+    [Fact]
+    public void Storing_in_utc_keeps_the_local_time_the_organiser_chose()
+    {
+        var mauritius = TimeZoneInfo.FindSystemTimeZoneById("Indian/Mauritius");
+
+        var schedule = SeriesSchedule.Create(
+            new DateOnly(2026, 9, 17), new TimeOnly(18, 0), 120, "Indian/Mauritius").Value;
+
+        var start = schedule.ToStart(new DateOnly(2026, 9, 17));
+
+        // Eighteen hundred in Port Louis is fourteen hundred UTC. Both are the same instant, and
+        // only one of them can be written.
+        start.UtcDateTime.Should().Be(new DateTime(2026, 9, 17, 14, 0, 0, DateTimeKind.Utc));
+        TimeZoneInfo.ConvertTime(start, mauritius).TimeOfDay.Should().Be(
+            new TimeOnly(18, 0).ToTimeSpan());
+    }
 
     private static IReadOnlyList<RecurrenceSlot> Expand(
         RecurrenceRule rule, int maxSlots, int fromSequence = 1) =>
