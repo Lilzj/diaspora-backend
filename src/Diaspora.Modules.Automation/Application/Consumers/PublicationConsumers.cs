@@ -545,14 +545,76 @@ public sealed class ProviderReviewAutomationConsumer
     }
 }
 
-/// <summary>An event was published. Feeds saved searches over events.</summary>
+/// <summary>
+/// An event was published.
+/// <para>
+/// <b>Two things follow from one publication, and one consumer does both</b> — a saved search may
+/// match it now, and the event starts at a moment the platform must come back to before. The second
+/// is added here rather than in a consumer of its own because
+/// <c>No_module_consumes_one_integration_event_twice</c> forbids the second, exactly as the job and
+/// listing consumers above record.
+/// </para>
+/// <para>
+/// <b><c>event.startingSoon</c> was published in the catalogue and nothing could fire it.</b> The
+/// trigger has been offered to members since Phase 18 — configurable in the builder, and reachable
+/// in two taps from an event screen — while the only dated subjects the horizon store knew were a
+/// job closing, a listing expiring, a reservation expiring and a viewing scheduled. A member could
+/// set a reminder for an event and never be reminded.
+/// </para>
+/// <para>
+/// It is a projection over start times rather than a fact anybody publishes, which is why no
+/// integration event was ever going to carry it and why arming a horizon is the shape of the answer.
+/// <c>StartsAt</c> is <c>required</c> on this contract, so there is no null case to defend against
+/// — unlike a job's <c>ClosingAt</c>, which means "open until the employer closes it".
+/// </para>
+/// </summary>
 public sealed class EventPublishedAutomationConsumer
     : SavedSearchConsumer<EventPublishedIntegrationEvent>
 {
-    public EventPublishedAutomationConsumer(SavedSearchMatcher matcher, AutomationEngine engine)
-        : base(matcher, engine) { }
+    private readonly AutomationSubjectHorizonService _horizons;
+
+    public EventPublishedAutomationConsumer(
+        SavedSearchMatcher matcher, AutomationEngine engine, AutomationSubjectHorizonService horizons)
+        : base(matcher, engine) => _horizons = horizons;
 
     protected override SavedSearchSubject Subject => SavedSearchSubject.Events;
+
+    protected override async Task HandleAsync(
+        EventPublishedIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+
+        await base.HandleAsync(integrationEvent, cancellationToken);
+
+        // An event that has already started has no "before" left to remind anybody about. A
+        // republished edit of a past event would otherwise arm a horizon in the past, which the
+        // sweep would fire immediately and a member would read as a reminder arriving late.
+        if (integrationEvent.StartsAt <= integrationEvent.OccurredAt)
+        {
+            return;
+        }
+
+        var horizonValues = Values();
+        horizonValues["country"] = integrationEvent.CountryCode;
+        horizonValues["category"] = integrationEvent.CategoryKey;
+        horizonValues["city"] = integrationEvent.CityName;
+
+        await _horizons.ArmAsync(
+            "event.startingSoon",
+            AutomationSubjectKinds.Event,
+            integrationEvent.CommunityEventId,
+            integrationEvent.Title,
+            integrationEvent.StartsAt,
+            null,
+            // The organizer is not the audience for "this is starting soon" — anybody watching for
+            // it is, narrowed by their own conditions. The job consumer above states the same
+            // reasoning: reading another module's bookmarks here would be the cross-module read
+            // this arrangement exists without.
+            [],
+            horizonValues,
+            $"{integrationEvent.Title} is starting soon.",
+            cancellationToken);
+    }
 
     protected override SavedSearchCandidate? ToCandidate(
         EventPublishedIntegrationEvent integrationEvent)

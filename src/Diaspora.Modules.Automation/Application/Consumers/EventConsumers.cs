@@ -3,6 +3,7 @@ using Diaspora.Contracts.CommunityLife.V1.Events;
 using Diaspora.Contracts.CommunityProgramme.V1.Events;
 using Diaspora.Modules.Automation.Application.Engine;
 using Diaspora.Modules.Automation.Application.Services;
+using Diaspora.Modules.Automation.Domain.Catalog;
 using Diaspora.Modules.Automation.Domain.Enums;
 using Diaspora.Modules.Automation.Domain.Repositories;
 using Diaspora.Modules.Automation.Domain.Scheduling;
@@ -65,13 +66,18 @@ public sealed class EventUpdatedAutomationConsumer
     : AutomationEventConsumer<EventUpdatedIntegrationEvent>
 {
     private readonly IAutomationReminderRepository _reminders;
+    private readonly AutomationSubjectHorizonService _horizons;
     private readonly IClock _clock;
 
     public EventUpdatedAutomationConsumer(
-        AutomationEngine engine, IAutomationReminderRepository reminders, IClock clock)
+        AutomationEngine engine,
+        IAutomationReminderRepository reminders,
+        AutomationSubjectHorizonService horizons,
+        IClock clock)
         : base(engine)
     {
         _reminders = reminders;
+        _horizons = horizons;
         _clock = clock;
     }
 
@@ -87,6 +93,40 @@ public sealed class EventUpdatedAutomationConsumer
             // A corrected typo does not move a reminder. Rebasing on every edit would rewrite a
             // member's reminder for a change that did not affect when they need to leave.
             return;
+        }
+
+        // **Before the reminder rebase, and before its early return.** An event with no reminders
+        // on it still has an `event.startingSoon` horizon: a member who set that trigger up in the
+        // builder rather than from the event screen has no reminder row at all. Rebasing only the
+        // reminders would leave the horizon on the old date, to fire while the event is elsewhere.
+        //
+        // `ArmAsync` replaces rather than duplicates — a horizon already written for an earlier
+        // date is cancelled rather than left pending.
+        if (integrationEvent.StartsAt > _clock.UtcNow)
+        {
+            var horizonValues = Values();
+
+            await _horizons.ArmAsync(
+                "event.startingSoon",
+                AutomationSubjectKinds.Event,
+                integrationEvent.CommunityEventId,
+                integrationEvent.Title,
+                integrationEvent.StartsAt,
+                null,
+                [],
+                horizonValues,
+                $"{integrationEvent.Title} is starting soon.",
+                cancellationToken);
+        }
+        else
+        {
+            // Moved into the past. The same judgement the reminder rebase makes below: cancelled
+            // rather than fired, because a "starting soon" arriving afterwards is worse than
+            // silence.
+            await _horizons.CancelForSubjectAsync(
+                integrationEvent.CommunityEventId,
+                "The event was moved to a time that has already passed.",
+                cancellationToken);
         }
 
         var pending = await _reminders.ListPendingBySubjectAsync(
@@ -148,10 +188,17 @@ public sealed class EventCancelledAutomationConsumer
     : AutomationEventConsumer<EventCancelledIntegrationEvent>
 {
     private readonly IAutomationReminderRepository _reminders;
+    private readonly AutomationSubjectHorizonService _horizons;
 
     public EventCancelledAutomationConsumer(
-        AutomationEngine engine, IAutomationReminderRepository reminders)
-        : base(engine) => _reminders = reminders;
+        AutomationEngine engine,
+        IAutomationReminderRepository reminders,
+        AutomationSubjectHorizonService horizons)
+        : base(engine)
+    {
+        _reminders = reminders;
+        _horizons = horizons;
+    }
 
     protected override async Task HandleAsync(
         EventCancelledIntegrationEvent integrationEvent, CancellationToken cancellationToken)
@@ -159,6 +206,14 @@ public sealed class EventCancelledAutomationConsumer
         ArgumentNullException.ThrowIfNull(integrationEvent);
 
         await base.HandleAsync(integrationEvent, cancellationToken);
+
+        // The reminders go, and so does the horizon behind `event.startingSoon`. By subject rather
+        // than by trigger key, for the reason the service documents: a caller naming each one would
+        // eventually forget one and remind somebody about an event that is not happening.
+        await _horizons.CancelForSubjectAsync(
+            integrationEvent.CommunityEventId,
+            "The event was cancelled.",
+            cancellationToken);
 
         var pending = await _reminders.ListPendingBySubjectAsync(
             integrationEvent.CommunityEventId, cancellationToken);
