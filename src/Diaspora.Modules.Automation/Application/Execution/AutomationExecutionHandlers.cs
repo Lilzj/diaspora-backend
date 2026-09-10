@@ -862,12 +862,7 @@ public sealed class GetTriggerContextQueryHandler
             Moment = subject.Moment,
             TimeZoneId = subject.TimeZoneId,
             IsObservable = true,
-            Summary = subject.Moment is { } moment
-                ? $"{subject.Title} — {moment:dd MMM yyyy, HH:mm}"
-                    + (string.IsNullOrWhiteSpace(subject.TimeZoneId)
-                        ? string.Empty
-                        : $" ({subject.TimeZoneId})")
-                : subject.Title,
+            Summary = Describe(subject),
             Values = quotable,
             Answers = [.. subject.Values.Keys.OrderBy(key => key, StringComparer.Ordinal)]
         });
@@ -896,8 +891,50 @@ public sealed class GetTriggerContextQueryHandler
         }
 
         return query.SubjectId is null
-            ? $"Choose a {kind} to see what this would be checked against."
+            ? $"Choose {Article(kind)} {kind} to see what this would be checked against."
             : $"Diaspora could not read that {kind}. It may have been removed, or it may not be one "
                 + "you can see.";
     }
+
+    /// <summary>
+    /// The subject in one line, in the subject's own zone.
+    /// <para>
+    /// <b>The moment is stored as an instant and must be converted before it is labelled.</b>
+    /// Printing the instant beside the subject's zone name — "17:00 (Africa/Lagos)" for an event
+    /// that starts at 18:00 in Lagos — states something false while looking like §42 being honoured.
+    /// A zone this deployment does not recognise falls back to the instant, marked UTC, rather than
+    /// throwing inside a builder screen.
+    /// </para>
+    /// </summary>
+    private static string Describe(AutomationSubjectSnapshot subject)
+    {
+        if (subject.Moment is not { } moment)
+        {
+            return subject.Title;
+        }
+
+        if (string.IsNullOrWhiteSpace(subject.TimeZoneId))
+        {
+            return $"{subject.Title} — {moment:dd MMM yyyy, HH:mm} (UTC)";
+        }
+
+        try
+        {
+            var zone = TimeZoneInfo.FindSystemTimeZoneById(subject.TimeZoneId);
+            var local = TimeZoneInfo.ConvertTime(moment, zone);
+
+            return $"{subject.Title} — {local:dd MMM yyyy, HH:mm} ({subject.TimeZoneId})";
+        }
+        catch (Exception exception)
+            when (exception is TimeZoneNotFoundException or InvalidTimeZoneException)
+        {
+            return $"{subject.Title} — {moment:dd MMM yyyy, HH:mm} (UTC)";
+        }
+    }
+
+    /// <summary>"an event", "a job". A member reads this sentence.</summary>
+    private static string Article(string noun) =>
+        noun.Length > 0 && "aeiou".Contains(char.ToLowerInvariant(noun[0]))
+            ? "an"
+            : "a";
 }
