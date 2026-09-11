@@ -188,6 +188,19 @@ public static class AutomationCatalog
     private static readonly string[] Membership = ["equals", "includes", "excludes"];
     private static readonly string[] Numeric = ["greaterThan", "lessThan"];
 
+    /// <summary>
+    /// For a trigger that needs a contract <i>and</i> an owner kind this deployment grants to nobody.
+    /// <para>
+    /// Separate from <c>NoContract</c> on purpose. A reason naming only the missing contract invites
+    /// somebody to publish it and discover the trigger is still unreachable, which is the more
+    /// expensive half of the work wasted.
+    /// </para>
+    /// </summary>
+    private const string NoContractAndNoCommunityOwner =
+        "Two things are missing. The owning module does not publish a contract for this yet, and "
+        + "nobody administers a community on this platform — a community has members and no roles, "
+        + "so there is no one an automation about it could belong to.";
+
     /// <summary>The reason string used wherever an owning module has not published the contract.</summary>
     private const string NoContract =
         "The owning module does not publish a contract for this yet, so the platform cannot observe it.";
@@ -295,21 +308,45 @@ public static class AutomationCatalog
                 null, true, null, null, UserOnly, false),
 
             // ── Community and organizations ─────────────────────────────────────────────────
+            // Organization as well as Community, because the consumer already names both.
+            // `CommunityAnnouncementPublishedIntegrationEvent` carries a `Scope` that may be
+            // `Organization`, and `CommunityAnnouncementAutomationConsumer` passes
+            // `Owners(ScopeId, OrganizationId)` — so an organisation-owned automation on this
+            // trigger matches the moment its organisation publishes an announcement.
+            //
+            // It could not be created. This entry allowed the Community owner kind alone, and no
+            // module implements `IAutomationScopeAuthority` for it: `SelfOnlyScopeAuthority` returns
+            // `None()` and nothing overrides that, because a community in this platform has members
+            // and no administrators — roles exist for organisations only. So a complete capability
+            // was served, consumed, matched and unreachable, and the catalogue reported it
+            // available the whole time.
             new("community.announcementPublished", "community", AutomationTriggerDelivery.DomainEvent,
                 "Diaspora.Contracts.CommunityProgramme.V1.Events.CommunityAnnouncementPublishedIntegrationEvent",
                 true, null, AutomationCapabilities.Community,
-                [AutomationOwnerKind.Community], false),
+                [AutomationOwnerKind.Community, AutomationOwnerKind.Organization], false),
             new("community.updatePublished", "community", AutomationTriggerDelivery.DomainEvent,
                 "Diaspora.Contracts.Community.V1.Events.CommunityPostPublishedIntegrationEvent",
                 true, null, null, UserOnly, false),
+            // ── Two obstacles each, and the reason strings used to name one ──────────────────
+            //
+            // `NoContract` is true: nothing publishes a community membership, milestone or event.
+            // It is also not the binding one. Every one of these is owned by the Community kind,
+            // and **no module grants that kind** — `SelfOnlyScopeAuthority` answers `None()` for it
+            // and nothing overrides it, because a community here has members and no administrators.
+            // `CommunityMembership` carries a state (Discovering, Interested, Following, Member)
+            // and no role; roles are an organisation concept.
+            //
+            // Publishing the three contracts would leave all three still unreachable. Saying so
+            // here is the difference between a gap somebody can close and a gap somebody closes
+            // half of and finds nothing changed.
             new("community.memberJoined", "community", AutomationTriggerDelivery.DomainEvent,
-                null, false, NoContract, AutomationCapabilities.Community,
+                null, false, NoContractAndNoCommunityOwner, AutomationCapabilities.Community,
                 [AutomationOwnerKind.Community], false),
             new("community.milestoneReached", "community", AutomationTriggerDelivery.DomainEvent,
-                null, false, NoContract, AutomationCapabilities.Community,
+                null, false, NoContractAndNoCommunityOwner, AutomationCapabilities.Community,
                 [AutomationOwnerKind.Community], false),
             new("community.eventCreated", "community", AutomationTriggerDelivery.DomainEvent,
-                null, false, NoContract, AutomationCapabilities.Community,
+                null, false, NoContractAndNoCommunityOwner, AutomationCapabilities.Community,
                 [AutomationOwnerKind.Community], false),
 
             new("organization.memberJoined", "organizations", AutomationTriggerDelivery.DomainEvent,
