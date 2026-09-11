@@ -40,13 +40,15 @@ public sealed class AutomationOwnerReachabilityTests
     private static readonly IReadOnlyDictionary<string, string> KnownUnownable =
         new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["notify.community"] =
-                "Broadcasts to a community through the scope authority's recipient resolution, and "
-                + "no module claims the Community kind, so nobody would be resolved. Unlike "
-                + "community.announcementPublished this cannot be re-pointed at organisations — "
-                + "notify.organization already exists and reaches a different audience. It waits on "
-                + "the same product decision the three unavailable community triggers wait on: who "
-                + "administers a community.",
+            // Empty, and that is the finished state rather than an unfilled one.
+            //
+            // `notify.community` stood here. It is now `IsAvailable: false` with the platform's own
+            // reason — a community has members and nobody who may address them, which is what
+            // `PublishAnnouncementCommandHandler` says when it refuses every announcement scope but
+            // Organization. An unavailable part is not advertised, so it needs no exemption; the
+            // exemption was recording the wrong thing about it.
+            //
+            // The dictionary stays because the next entry should have to justify itself.
         };
 
     /// <summary>The kinds a member can actually be granted today.</summary>

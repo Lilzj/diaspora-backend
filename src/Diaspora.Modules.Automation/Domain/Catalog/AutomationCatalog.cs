@@ -189,6 +189,19 @@ public static class AutomationCatalog
     private static readonly string[] Numeric = ["greaterThan", "lessThan"];
 
     /// <summary>
+    /// For anything that would have to address a community.
+    /// <para>
+    /// Not a gap in this module. <c>PublishAnnouncementCommandHandler</c> refuses every announcement
+    /// scope but <c>Organization</c> and states why: an announcement needs "an owner that can say
+    /// who may address them", and a community has members and no such owner. Quoted here rather
+    /// than paraphrased, so the two cannot drift into disagreeing about the same decision.
+    /// </para>
+    /// </summary>
+    private const string NoCommunityAudience =
+        "A community has members and nobody who may address them. Diaspora only lets an "
+        + "organization send to its own members, so there is no audience for this yet.";
+
+    /// <summary>
     /// For a trigger that needs a contract <i>and</i> an owner kind this deployment grants to nobody.
     /// <para>
     /// Separate from <c>NoContract</c> on purpose. A reason naming only the missing contract invites
@@ -335,7 +348,7 @@ public static class AutomationCatalog
             new("community.announcementPublished", "community", AutomationTriggerDelivery.DomainEvent,
                 "Diaspora.Contracts.CommunityProgramme.V1.Events.CommunityAnnouncementPublishedIntegrationEvent",
                 true, null, AutomationCapabilities.Organization,
-                [AutomationOwnerKind.Community, AutomationOwnerKind.Organization], false),
+                [AutomationOwnerKind.Organization], false),
             new("community.updatePublished", "community", AutomationTriggerDelivery.DomainEvent,
                 "Diaspora.Contracts.Community.V1.Events.CommunityPostPublishedIntegrationEvent",
                 true, null, null, UserOnly, false),
@@ -568,9 +581,19 @@ public static class AutomationCatalog
                 AutomationRepeatRisk.Deduplicated, AutomationCategoryKeys.Reminder,
                 null, false, true, null, EveryBusinessOwner),
 
+            // Unavailable, and not for want of an implementation — `BroadcastAsync` is written and
+            // the dispatcher routes to it. It has no audience it could ever resolve.
+            // `PublishAnnouncementCommandHandler` refuses every announcement scope but Organization,
+            // saying the platform's decision plainly: "Neighbourhood, event and campaign
+            // announcements need an owner that can say who may address them." A community is one of
+            // those. It has members and nobody who may address them.
+            //
+            // It was `IsAvailable: true` and allowed only the Community owner kind, which is granted
+            // to nobody — so the catalogue advertised an action no member could select and the
+            // platform could not have performed.
             new("notify.community", "community", AutomationActionExecutor.Server,
                 AutomationRepeatRisk.Deduplicated, AutomationCategoryKeys.Community,
-                AutomationCapabilities.Community, true, true, null,
+                AutomationCapabilities.Community, true, false, NoCommunityAudience,
                 [AutomationOwnerKind.Community]),
 
             new("notify.organization", "organizations", AutomationActionExecutor.Server,
