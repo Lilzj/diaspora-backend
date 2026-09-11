@@ -81,17 +81,30 @@ public static class AutomationConditionEvaluator
         // balance condition matched by putting a number in a payload.
         if (definition.ExternalSource is not null)
         {
-            if (!context.ResolvedValues.TryGetValue(condition.Key, out var answered) ||
-                answered is null)
+            if (!context.ResolvedValues.TryGetValue(condition.Key, out var answered))
             {
-                // Nothing answered: no source is registered for it in this deployment, or the one
-                // that is could not answer. Fails closed with the catalogue's own reason, which is
-                // exactly Wave 11's behaviour and is the answer a member can act on.
+                // No source for this key in this deployment. The catalogue's own reason is the
+                // right one and is what `GET /automations/catalog` reports alongside it.
                 return new AutomationConditionVerdict(
                     false,
                     false,
                     definition.UnavailableReason
                     ?? "The platform could not check this, so nothing was done.");
+            }
+
+            if (answered is null)
+            {
+                // A source exists and had nothing for this member — an analytics rollup not yet
+                // computed, a creator record that is not there, a module having a bad minute.
+                // Distinct from the branch above since Phase 5, because the catalogue now reports
+                // these conditions available when a module claims the seam, and answering a member
+                // "nothing in this deployment answers for them" about a figure the deployment
+                // answers for other people is false and sends them to change the wrong thing.
+                return new AutomationConditionVerdict(
+                    false,
+                    false,
+                    $"The '{condition.Key}' check could not be answered for you this time, so "
+                    + "nothing was done.");
             }
 
             var externallyMatched = Compare(

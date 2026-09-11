@@ -6,20 +6,34 @@ using Xunit;
 namespace Diaspora.ArchitectureTests;
 
 /// <summary>
-/// A scheduled trigger nobody arms is a promise the platform cannot keep.
+/// A scheduled trigger nobody fires is a promise the platform cannot keep.
 /// <para>
 /// <c>AutomationCatalogTests.Every_available_trigger_names_a_real_published_contract</c> guards the
 /// <see cref="AutomationTriggerDelivery.DomainEvent"/> family: a trigger keyed on a contract that
 /// does not exist matches nothing. There was no equivalent for the
 /// <see cref="AutomationTriggerDelivery.Schedule"/> family, and that is the hole
 /// <c>event.startingSoon</c> shipped through — offered in the builder since Phase 18, reachable in
-/// two taps from an event screen, and armed by nothing at all. A member could set a reminder for an
-/// event and never be reminded.
+/// two taps from an event screen, and armed by nothing at all.
 /// </para>
 /// <para>
-/// A scheduled trigger reaches the engine through the subject-horizon store, so the check is that
-/// something calls <c>ArmAsync</c> with the trigger's key. Source rather than reflection, because
-/// the key is a string argument and no type carries it.
+/// <b>The Schedule family fires two different ways, and the first version of this test knew only
+/// one.</b> A <i>horizon</i> trigger is armed by a consumer when a dated subject appears — a job
+/// publication writes a row and the row fires a day before the posting closes — so the check is that
+/// something calls <c>ArmAsync</c> with its key. An <i>occurrence</i> trigger has no dated subject:
+/// it recurs on a schedule the member sets, `AutomationScheduleService.SynchroniseAsync` writes the
+/// next occurrence when the rule is saved, and `SweepOccurrencesAsync` runs it. Nothing arms it
+/// because there is nothing to arm — the member's own schedule is the arming.
+/// </para>
+/// <para>
+/// <c>creator.performanceThreshold</c> was exempted here as "armed by nothing", which was true of
+/// <c>ArmAsync</c> and false of the trigger. It fires from the member's own schedule, which the
+/// builder attaches to every <c>delivery: schedule</c> trigger, and its condition is answered by
+/// <c>AnalyticsAutomationConditionSource</c>. Every part of it was built. What stopped it was a
+/// capability gate, not a missing sweep — see <c>AutomationOwnerReachabilityTests</c>.
+/// </para>
+/// <para>
+/// Source rather than reflection for the arming, because the key is a string argument and no type
+/// carries it.
 /// </para>
 /// </summary>
 public sealed class AutomationScheduleArchitectureTests
@@ -27,41 +41,93 @@ public sealed class AutomationScheduleArchitectureTests
     /// <summary>
     /// Scheduled triggers that are offered and cannot fire, with the reason each is exempt.
     /// <para>
-    /// An explicit set rather than a null check, for the reason
-    /// <c>AutomationCatalog.MultiSourceTriggers</c> states about its own exemption: it is what stops
-    /// a future entry acquiring the exemption silently. Anything added here should be a decision
-    /// somebody took, not a gap somebody left.
+    /// Empty, and that is the finished state. <c>creator.performanceThreshold</c> stood here and was
+    /// misfiled: it is an occurrence trigger, and the check below no longer asks occurrence triggers
+    /// to be armed. The dictionary stays because the next entry should have to justify itself.
     /// </para>
     /// </summary>
     private static readonly IReadOnlyDictionary<string, string> KnownUnarmed =
-        new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["creator.performanceThreshold"] =
-                "Offered to creators and armed by nothing. Firing it needs a scheduled pass over "
-                + "creator analytics comparing a metric against a member-set threshold, and which "
-                + "metrics and what cadence are product decisions rather than mechanical ones. "
-                + "Recorded here so it is visible rather than silent.",
-        };
+        new Dictionary<string, string>(StringComparer.Ordinal);
 
-    [Fact]
-    public void Every_available_scheduled_trigger_is_armed_by_something()
-    {
-        var armed = ArmedTriggerKeys();
-
-        var unarmed = AutomationCatalog.Triggers.Values
+    /// <summary>Every available trigger that fires on a schedule, either way.</summary>
+    private static string[] ScheduledTriggers() =>
+    [
+        .. AutomationCatalog.Triggers.Values
             .Where(trigger =>
                 trigger.IsAvailable &&
                 trigger.Delivery == AutomationTriggerDelivery.Schedule)
             .Select(trigger => trigger.Key)
+            .OrderBy(key => key, StringComparer.Ordinal)
+    ];
+
+    [Fact]
+    public void Every_horizon_trigger_is_armed_by_something()
+    {
+        var armed = ArmedTriggerKeys();
+
+        var unarmed = ScheduledTriggers()
+            .Where(AutomationCatalog.SubjectHorizonTriggers.Contains)
             .Where(key => !armed.Contains(key))
             .Where(key => !KnownUnarmed.ContainsKey(key))
-            .OrderBy(key => key, StringComparer.Ordinal)
             .ToArray();
 
         unarmed.Should().BeEmpty(
-            "a scheduled trigger the builder offers and no consumer arms is configured by a member "
+            "a horizon trigger the builder offers and no consumer arms is configured by a member "
             + "and then never fires — which reads to them as the platform forgetting, not as a "
             + "feature that was never wired");
+    }
+
+    /// <summary>
+    /// Every scheduled trigger is classified, so a new one cannot be neither.
+    /// <para>
+    /// The failure this prevents is the quiet one: a trigger added to the Schedule family that is
+    /// not a horizon and has no member schedule behind it would pass the check above by not being in
+    /// the set, which is how an exemption gets acquired without anybody writing one.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Every_scheduled_trigger_is_a_horizon_or_a_member_schedule()
+    {
+        // The occurrence family, named so adding to it is a decision rather than a default.
+        var memberScheduled = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "creator.performanceThreshold"
+        };
+
+        ScheduledTriggers()
+            .Where(key =>
+                !AutomationCatalog.SubjectHorizonTriggers.Contains(key) &&
+                !memberScheduled.Contains(key))
+            .Should().BeEmpty(
+                "a scheduled trigger that is neither armed by a consumer nor recurring on the "
+                + "member's own schedule has nothing that would ever fire it");
+
+        memberScheduled
+            .Where(key => AutomationCatalog.SubjectHorizonTriggers.Contains(key))
+            .Should().BeEmpty("a trigger cannot fire both ways; one of the two lists is wrong");
+    }
+
+    /// <summary>
+    /// <c>SubjectHorizonTriggers</c> lists what is actually armed, and nothing else.
+    /// <para>
+    /// It had gone stale and nothing noticed, because its own summary named the test it existed for
+    /// and no test read it. <c>event.startingSoon</c> acquired a horizon in Phase 5 and the set kept
+    /// four entries.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_horizon_set_matches_what_is_armed()
+    {
+        var armed = ArmedTriggerKeys();
+
+        AutomationCatalog.SubjectHorizonTriggers
+            .Where(key => !armed.Contains(key))
+            .Should().BeEmpty("the set names a trigger nothing arms");
+
+        armed
+            .Where(key => AutomationCatalog.FindTrigger(key)?.IsAvailable == true)
+            .Where(key => !AutomationCatalog.SubjectHorizonTriggers.Contains(key))
+            .Should().BeEmpty("something arms a trigger the set does not name");
     }
 
     /// <summary>An exemption for a trigger that has since been armed is an exemption nobody removed.</summary>
@@ -103,6 +169,8 @@ public sealed class AutomationScheduleArchitectureTests
                 keys.Add(match.Groups[1].Value);
             }
         }
+
+        keys.Should().NotBeEmpty("a sweep that parses nothing passes for the wrong reason");
 
         return keys;
     }

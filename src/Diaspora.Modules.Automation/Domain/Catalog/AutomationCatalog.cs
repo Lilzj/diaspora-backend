@@ -403,24 +403,48 @@ public static class AutomationCatalog
                 true, null, null, [AutomationOwnerKind.User, AutomationOwnerKind.Creator], false),
 
             // ── Creator ─────────────────────────────────────────────────────────────────────
+            // ── No capability, because none of these reaches anybody ────────────────────────
+            //
+            // `CreatorAutomationAuthority` grants `automations.creator` only where the creator may
+            // broadcast, and states the rule it is enforcing: *"The bar for owning is lower than the
+            // bar for broadcasting, deliberately. Any recognised creator may automate their own
+            // affairs - a milestone reaching them, a reward becoming available."*
+            //
+            // These four notify nobody but the owner - every action they offer is personal - and all
+            // four required that capability. So a Contributor, an EmergingCreator or somebody
+            // PendingVerification was granted `CanOwn: true` and could select no creator trigger at
+            // all, including the two that sentence names by example. The catalogue was enforcing the
+            // opposite of the rule the authority had written down.
+            //
+            // Broadcasting is unaffected and stays gated where it belongs: `notify.followers` keeps
+            // `AutomationCapabilities.Creator`, and it is the only creator part that reaches anyone.
+            // Ownership is still gated too - the authority refuses a status outside `MayOwn`, and
+            // refuses a suspended or restricted creator in the moment before every dispatch.
             new("creator.milestoneReached", "creator", AutomationTriggerDelivery.DomainEvent,
                 "Diaspora.Contracts.Creator.V1.Events.CreatorMilestoneCompletedIntegrationEvent",
-                true, null, AutomationCapabilities.Creator,
+                true, null, null,
                 [AutomationOwnerKind.Creator], false),
             new("creator.referralCompleted", "creator", AutomationTriggerDelivery.DomainEvent,
                 "Diaspora.Contracts.Creator.V1.Events.CreatorReferralQualifiedIntegrationEvent",
-                true, null, AutomationCapabilities.Creator,
+                true, null, null,
                 [AutomationOwnerKind.Creator], false),
             new("creator.rewardAvailable", "creator", AutomationTriggerDelivery.DomainEvent,
                 "Diaspora.Contracts.Financial.V1.Events.RewardPointsGrantedIntegrationEvent",
-                true, null, AutomationCapabilities.Creator,
+                true, null, null,
                 [AutomationOwnerKind.Creator], false),
             // Wave 12. Answered by the Analytics Platform through `IAutomationConditionSource`, on a
             // schedule the member sets: the trigger is a scheduled automation whose `metricAbove` or
             // `metricBelow` condition is resolved from B19 at run time. Available in the catalogue,
             // and every run of it still fails closed if no deployment registers the source.
+            // Same rule, and this is the one it was hiding. Armed by the member's own schedule
+            // through the occurrence sweep - the builder attaches a daily one to any
+            // `delivery: schedule` trigger - and answered by
+            // `AnalyticsAutomationConditionSource`, which fixes the figure at ContentViews over the
+            // last thirty days and says why. Every part of it was built. It asked a creator for a
+            // capability granted only to somebody allowed to address other people, to be told about
+            // their own view count.
             new("creator.performanceThreshold", "analytics", AutomationTriggerDelivery.Schedule,
-                null, true, null, AutomationCapabilities.Creator,
+                null, true, null, null,
                 [AutomationOwnerKind.Creator], false),
 
             // ── Money — notified about, never moved ──────────────────────────────────────────
@@ -675,6 +699,10 @@ public static class AutomationCatalog
     public static readonly IReadOnlySet<string> SubjectHorizonTriggers =
         new HashSet<string>(StringComparer.Ordinal)
         {
+            // Added Phase 5, when the arming for it was written. The set had gone stale the moment
+            // `event.startingSoon` acquired a horizon, and nothing noticed because — despite this
+            // summary naming the test it exists for — **no test read it.** One does now.
+            "event.startingSoon",
             "job.closingSoon",
             "listing.expiring",
             "listing.reservationEnding",

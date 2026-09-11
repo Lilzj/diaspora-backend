@@ -74,6 +74,22 @@ public sealed class AutomationConditionResolver
                 .Where(key => !resolved.ContainsKey(key))
                 .ToArray();
 
+            // ── Asked, and the asking is recorded ───────────────────────────────────────────────
+            //
+            // A null entry means "a source for this key exists in this deployment and had no answer
+            // for this member"; an absent entry means "no source for it exists at all". The
+            // evaluator tells a member two different things for those, and before Phase 5 it could
+            // not tell them apart: the resolver dropped nulls, so a creator whose analytics rollup
+            // had not been computed was told the platform has no analytics at all.
+            //
+            // Written before the call rather than after, so a source that throws leaves the same
+            // mark as one that answers nothing — both are "we asked and got nothing", which is what
+            // the member needs to know.
+            foreach (var key in keys)
+            {
+                resolved[key] = null;
+            }
+
             if (keys.Length == 0)
             {
                 continue;

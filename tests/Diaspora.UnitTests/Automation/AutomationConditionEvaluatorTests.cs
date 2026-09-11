@@ -216,6 +216,83 @@ public sealed class AutomationConditionEvaluatorTests
 
     // ── Helpers ─────────────────────────────────────────────────────────────────────────────
 
+    // ── An externally-sourced condition has two absences of its own — Phase 5 ────────────────
+
+    /// <summary>
+    /// A deployment that cannot answer, and a deployment that answers for others but not this member.
+    /// <para>
+    /// <b>The catalogue reports these five available when a module claims the seam</b>, which it does
+    /// for all five. So the old message — the catalogue's "nothing in this deployment answers for
+    /// them" — became false the moment a source was registered, and it was what a creator saw when
+    /// their analytics rollup had not been computed yet. The deployment answers; it had nothing for
+    /// them.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void No_source_in_this_deployment_says_so()
+    {
+        var verdict = EvaluateExternal("metricAbove", "greaterThan", "100", resolved: null);
+
+        verdict.Matched.Should().BeFalse();
+        verdict.Evaluable.Should().BeFalse();
+        verdict.Explanation.Should().Contain("nothing in this deployment answers");
+    }
+
+    [Fact]
+    public void A_source_with_nothing_for_this_member_says_something_else()
+    {
+        var verdict = EvaluateExternal("metricAbove", "greaterThan", "100", resolved: (string?)null,
+            sourceWasAsked: true);
+
+        verdict.Matched.Should().BeFalse();
+        verdict.Evaluable.Should().BeFalse();
+
+        verdict.Explanation.Should().NotContain(
+            "nothing in this deployment answers",
+            "something does — it had no figure for this member, which is a different thing and one "
+            + "they can act on differently");
+
+        verdict.Explanation.Should().Contain("could not be answered for you");
+    }
+
+    [Fact]
+    public void A_source_that_answered_is_compared()
+    {
+        EvaluateExternal("metricAbove", "greaterThan", "100", resolved: "250", sourceWasAsked: true)
+            .Matched.Should().BeTrue();
+
+        EvaluateExternal("metricAbove", "greaterThan", "100", resolved: "50", sourceWasAsked: true)
+            .Matched.Should().BeFalse();
+    }
+
+    /// <summary>
+    /// One externally-sourced condition, with the three states the resolver can leave behind.
+    /// <para>
+    /// Absent key: no source. Present and null: asked, nothing back. Present with a value: answered.
+    /// </para>
+    /// </summary>
+    private static AutomationConditionVerdict EvaluateExternal(
+        string key,
+        string @operator,
+        string? value,
+        string? resolved,
+        bool sourceWasAsked = false)
+    {
+        var automation = Draft();
+        automation.ReplaceConditions([(null, key, @operator, value, null)]);
+
+        var answers = AutomationTriggerContext.NewValues();
+
+        if (sourceWasAsked)
+        {
+            answers[key] = resolved;
+        }
+
+        return AutomationConditionEvaluator.Evaluate(
+            automation.Conditions[0],
+            Context(AutomationTriggerContext.NewValues()) with { ResolvedValues = answers });
+    }
+
     // ── The two absences — Phase 5 ──────────────────────────────────────────────────────────
 
     /// <summary>
