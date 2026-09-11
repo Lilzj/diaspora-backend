@@ -65,6 +65,20 @@ public sealed class CommunityProgrammeAccessService
     /// <summary>Whether the caller holds a platform staff role.</summary>
     public bool IsStaff => _currentUser.Role is { } role && StaffRoles.Contains(role);
 
+    /// <summary>
+    /// Admin or SuperAdmin — not a platform Moderator.
+    /// <para>
+    /// Narrower than <see cref="IsStaff"/> on purpose. Moderating content in a community one does not
+    /// belong to is a staff act; opening a community into the directory, or making somebody the owner
+    /// of "Nigerian Diaspora", is an administrative one, and a moderator reviewing reports should not
+    /// be able to hand out communities as a side effect.
+    /// </para>
+    /// </summary>
+    public bool IsPlatformAdministrator =>
+        _currentUser.Role is { } role
+        && (string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(role, "SuperAdmin", StringComparison.OrdinalIgnoreCase));
+
     /// <summary>The caller, or a failure. The first line of every write handler.</summary>
     public Result<UserId> RequireCaller() =>
         _currentUser.UserId is { } userId

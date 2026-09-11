@@ -171,3 +171,34 @@ public sealed record CommunityAnnouncementPublishedIntegrationEvent : Integratio
 
     public required DateTimeOffset PublishedAt { get; init; }
 }
+
+/// <summary>
+/// A community reached a size it had never reached before.
+/// <para>
+/// <b>The fourth event the Backend Gap Build Order called genuinely missing, and the last.</b> It
+/// waited on two things, not one: a contract, and somebody an automation about a community could
+/// belong to. Communities had members and nobody who ran them until 11 Sep 2026, when founding a
+/// community began making its founder the owner.
+/// </para>
+/// <para>
+/// <b>Published once per milestone, ever.</b> <c>Community.HighestMemberMilestone</c> only rises,
+/// so a community that dips below 100 and comes back has not reached 100 twice.
+/// </para>
+/// <para>
+/// The name travels with it because the one sentence anybody will read — "Nigerians in Leeds
+/// reached 100 members" — needs it, and a consumer that had to look it up would be reading
+/// another module's table to write a notice.
+/// </para>
+/// </summary>
+public sealed record CommunityMilestoneReachedIntegrationEvent : IntegrationEvent
+{
+    public required Guid CommunityId { get; init; }
+
+    public required string CommunityName { get; init; }
+
+    public required int Milestone { get; init; }
+
+    public required int MemberCount { get; init; }
+
+    public required DateTimeOffset ReachedAt { get; init; }
+}

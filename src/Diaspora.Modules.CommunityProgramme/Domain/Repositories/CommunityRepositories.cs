@@ -142,5 +142,34 @@ public interface ICommunityMembershipRepository
     Task<CommunityMembership?> FindPrimaryAsync(
         UserId memberId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Current members another member may see: those whose membership is visible to the community,
+    /// and the viewer's own row. Newest first.
+    /// <para>
+    /// A private membership is left out even for an administrator. §41 is about who may learn that a
+    /// person belongs, and an administrator is another person.
+    /// </para>
+    /// </summary>
+    Task<CursorPagedResult<CommunityMembership>> ListVisibleMembersAsync(
+        CommunityId communityId,
+        UserId viewer,
+        string? cursor,
+        int limit,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>The current member holding the Owner role, if the community has one.</summary>
+    Task<CommunityMembership?> FindOwnerAsync(
+        CommunityId communityId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Every current member, up to a ceiling — the recipients of a community notice.
+    /// <para>
+    /// Not the visible list: receiving a notice discloses nothing to anybody, so a private member is
+    /// as much a recipient as a public one.
+    /// </para>
+    /// </summary>
+    Task<IReadOnlyList<Guid>> ListCurrentMemberIdsAsync(
+        CommunityId communityId, int skip, int take, CancellationToken cancellationToken = default);
+
     void Add(CommunityMembership membership);
 }

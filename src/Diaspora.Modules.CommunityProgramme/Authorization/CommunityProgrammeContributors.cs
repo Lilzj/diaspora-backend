@@ -66,6 +66,14 @@ public sealed class CommunityProgrammePermissionContributor : IPermissionContrib
         };
 
         yield return new PermissionDefinition(
+            CommunityProgrammePermissions.ProposeCommunity,
+            Module,
+            "Found a community, becoming its owner.")
+        {
+            MinimumTier = AccessTier.Verified
+        };
+
+        yield return new PermissionDefinition(
             CommunityProgrammePermissions.PublishAnnouncements,
             Module,
             "Publish an announcement to a scope.")

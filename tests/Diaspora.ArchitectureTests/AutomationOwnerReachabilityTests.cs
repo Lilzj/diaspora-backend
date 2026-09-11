@@ -115,14 +115,23 @@ public sealed class AutomationOwnerReachabilityTests
             "Organization", "CommunityLife claims it in `OrganizationAutomationAuthority`");
     }
 
+    /// <summary>
+    /// Community is granted now, by the module that knows who runs one.
+    /// <para>
+    /// This was <c>Community_is_still_granted_by_nobody</c>, the premise every community exemption
+    /// rested on, written to fail the day a module claimed the kind. It failed on 11 Sep 2026, as
+    /// designed: communities gained an Owner and administrators, and
+    /// <c>CommunityAutomationAuthority</c> answers for them. The exemptions had already gone; the
+    /// premise goes with them, and the grant is pinned instead.
+    /// </para>
+    /// </summary>
     [Fact]
-    public void Community_is_still_granted_by_nobody()
+    public void Community_is_granted_by_the_module_that_knows_who_runs_one()
     {
-        // The premise of every exemption below. When a module claims it, this fails, and the
-        // exemptions should be removed along with it.
-        GrantableOwnerKinds().Should().NotContain(
+        GrantableOwnerKinds().Should().Contain(
             "Community",
-            "if a module grants it now, `notify.community` is reachable and its exemption is dead text");
+            "CommunityProgramme claims it in `CommunityAutomationAuthority`, and without it every "
+            + "community-owned part is reachable by nobody again");
     }
 
     [Fact]

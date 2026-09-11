@@ -1,5 +1,6 @@
 using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.CommunityProgramme.Domain.Errors;
+using Diaspora.Modules.CommunityProgramme.Domain.Events;
 using Diaspora.Modules.CommunityProgramme.Domain.Identifiers;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Primitives;
@@ -394,10 +395,51 @@ public sealed class Community : AggregateRoot<CommunityId>, IAuditableEntity
     // ── Membership counting ─────────────────────────────────────────────────────────────────
 
     /// <summary>
+    /// The sizes worth marking. A milestone is reached the first time the count arrives at one.
+    /// </summary>
+    public static readonly IReadOnlyList<int> MemberMilestones =
+        [10, 25, 50, 100, 250, 500, 1_000, 2_500, 5_000, 10_000, 25_000, 50_000, 100_000];
+
+    /// <summary>
+    /// The largest milestone this community has ever reached. Zero before the first.
+    /// <para>
+    /// <b>Stored, so a milestone is reached once.</b> A community that goes from 100 to 99 when
+    /// somebody leaves and back to 100 when somebody joins has not reached 100 members twice, and a
+    /// notice that said so would teach its administrators to ignore the next one. Only ever rises.
+    /// </para>
+    /// </summary>
+    public int HighestMemberMilestone { get; private set; }
+
+    /// <summary>
     /// Called by the membership path when somebody joins. Not public API: a count anybody could set
     /// is a count nobody can trust, and §31 forbids sorting the directory by an unreliable one.
+    /// <para>
+    /// Raises <see cref="CommunityMilestoneReachedDomainEvent"/> when the count arrives at a
+    /// milestone it has never reached — the event behind <c>community.milestoneReached</c>, and the
+    /// last of the four the Backend Gap Build Order called genuinely missing.
+    /// </para>
     /// </summary>
-    public void RecordMemberJoined() => MemberCount++;
+    public void RecordMemberJoined()
+    {
+        MemberCount++;
+
+        var reached = MemberMilestones.LastOrDefault(milestone => milestone <= MemberCount);
+
+        if (reached <= HighestMemberMilestone)
+        {
+            return;
+        }
+
+        HighestMemberMilestone = reached;
+
+        RaiseDomainEvent(new CommunityMilestoneReachedDomainEvent
+        {
+            CommunityId = Id,
+            CommunityName = Name,
+            Milestone = reached,
+            MemberCount = MemberCount
+        });
+    }
 
     /// <summary>
     /// Called when somebody leaves or is removed. Floors at zero rather than throwing: a negative

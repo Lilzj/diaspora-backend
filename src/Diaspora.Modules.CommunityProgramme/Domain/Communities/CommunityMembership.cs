@@ -160,6 +160,48 @@ public sealed class CommunityMembership : AggregateRoot<CommunityMembershipId>, 
     }
 
     /// <summary>
+    /// The founder's membership, minted at the moment the community is proposed.
+    /// <para>
+    /// <b>The second way to mint a Member row, and the only other one.</b> <see cref="Join"/> reads
+    /// the community's own rules and refuses a community that is not open — and a proposed community
+    /// is not open until staff open it. The person who proposed it is not asking to join; they are
+    /// the reason it exists, and they belong to it from the first moment or the Owner role has
+    /// nobody to sit on.
+    /// </para>
+    /// <para>
+    /// <b>Visible to the community, not private.</b> §41 makes a member's belonging private until
+    /// they choose otherwise, and that default is right for joining. Founding is a different act and
+    /// an explicit, public one; an owner the members cannot see is an owner they cannot contact or
+    /// hold to account. The founder may still change it — it is their membership.
+    /// </para>
+    /// </summary>
+    public static Result<CommunityMembership> Found(
+        CommunityMembershipId id,
+        Community community,
+        UserId founder,
+        DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+        ArgumentNullException.ThrowIfNull(community);
+        ArgumentNullException.ThrowIfNull(founder);
+
+        if (community.Status == CommunityStatus.Archived)
+        {
+            return Result.Failure<CommunityMembership>(CommunityErrors.NotJoinable);
+        }
+
+        var membership = new CommunityMembership(
+            id, community.Id, founder, CommunityMembershipState.Discovering);
+
+        membership.Become(CommunityMembershipState.Member, now);
+        membership.Visibility = CommunityMembershipVisibility.CommunityOnly;
+        membership._roles.Add(nameof(CommunityMembershipRole.Owner));
+        membership._roles.Add(nameof(CommunityMembershipRole.Administrator));
+
+        return Result.Success(membership);
+    }
+
+    /// <summary>
     /// Asks to join. The community decides whether that is immediate or a request.
     /// <para>
     /// <paramref name="community"/> is passed rather than looked up so the decision reads in one
@@ -353,6 +395,15 @@ public sealed class CommunityMembership : AggregateRoot<CommunityMembershipId>, 
             return Result.Failure(CommunityErrors.NotAMember);
         }
 
+        // A role is an office in the community, and holding one shows other members that you
+        // belong. Somebody who kept their membership private made a choice §41 protects, and giving
+        // them a role would undo it without asking. So the member makes themselves visible first,
+        // and the role follows. Checked here, not at the route, so no later caller can skip it.
+        if (role != CommunityMembershipRole.Member && Visibility == CommunityMembershipVisibility.Private)
+        {
+            return Result.Failure(CommunityErrors.RoleNeedsVisibleMembership);
+        }
+
         var name = role.ToString();
 
         if (!_roles.Contains(name, StringComparer.Ordinal))
@@ -363,9 +414,68 @@ public sealed class CommunityMembership : AggregateRoot<CommunityMembershipId>, 
         return Result.Success();
     }
 
-    /// <summary>Removes a role. Removing one not held is what was asked for, not an error.</summary>
-    public void RevokeRole(CommunityMembershipRole role) =>
+    /// <summary>
+    /// Removes a role. Removing one not held is what was asked for, not an error.
+    /// <para>
+    /// <b>Refused for the Owner's own standing.</b> The Owner role is not removed here at all — that
+    /// is a transfer, and a separate act. And the Owner keeps Administrator, because an owner who
+    /// cannot administer their own community is a state nobody could get out of.
+    /// </para>
+    /// </summary>
+    public Result RevokeRole(CommunityMembershipRole role)
+    {
+        if (role == CommunityMembershipRole.Owner)
+        {
+            return Result.Failure(CommunityErrors.OwnerRoleNotAssignable);
+        }
+
+        if (role == CommunityMembershipRole.Administrator && Holds(CommunityMembershipRole.Owner))
+        {
+            return Result.Failure(CommunityErrors.OwnerKeepsAdministration);
+        }
+
         _roles.RemoveAll(held => string.Equals(held, role.ToString(), StringComparison.Ordinal));
+        Revision++;
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Makes this member the Owner of a community that has none — a staff act.
+    /// <para>
+    /// <b>Why this exists at all.</b> The founding communities were put into the directory by a
+    /// seeder, not by a person, so "whoever creates it owns it" gives them nobody. These are the
+    /// communities launch actually looks like, and without this the rule would reach every community
+    /// except the ones that matter most. The caller checks that the community has no owner; this
+    /// checks that the person can hold the office.
+    /// </para>
+    /// </summary>
+    public Result AppointOwner()
+    {
+        if (!IsCurrentMember)
+        {
+            return Result.Failure(CommunityErrors.NotAMember);
+        }
+
+        if (Visibility == CommunityMembershipVisibility.Private)
+        {
+            return Result.Failure(CommunityErrors.RoleNeedsVisibleMembership);
+        }
+
+        foreach (var role in new[] { CommunityMembershipRole.Owner, CommunityMembershipRole.Administrator })
+        {
+            if (!Holds(role))
+            {
+                _roles.Add(role.ToString());
+            }
+        }
+
+        Revision++;
+        return Result.Success();
+    }
+
+    /// <summary>Whether this membership holds a role.</summary>
+    public bool Holds(CommunityMembershipRole role) =>
+        _roles.Contains(role.ToString(), StringComparer.Ordinal);
 
     /// <summary>
     /// Sets who may see this membership. The member's own choice, and nobody else's.

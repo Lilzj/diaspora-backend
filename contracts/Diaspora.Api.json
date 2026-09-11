@@ -8144,6 +8144,28 @@
             "description": "OK"
           }
         }
+      },
+      "post": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "Found a community. The caller becomes its owner and an administrator. It opens pending, and nobody else can join until it is opened.",
+        "operationId": "ProposeCommunity",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProposeCommunityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     },
     "/api/v1/communities/{idOrSlug}": {
@@ -8339,6 +8361,150 @@
               }
             }
           }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/communities/{idOrSlug}/members": {
+      "get": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "Members the caller may see: those who made their membership visible, and the caller. For members only.",
+        "operationId": "ListCommunityMembers",
+        "parameters": [
+          {
+            "name": "idOrSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/communities/{idOrSlug}/members/{userId}/roles": {
+      "put": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "Grant or revoke Moderator, Ambassador or Administrator. Administrator is the owner's to give; the others are any administrator's.",
+        "operationId": "ChangeCommunityMemberRole",
+        "parameters": [
+          {
+            "name": "idOrSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeCommunityRoleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/communities/{idOrSlug}/open": {
+      "post": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "Open a pending community into the directory. Platform administrators only.",
+        "operationId": "OpenCommunity",
+        "parameters": [
+          {
+            "name": "idOrSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/communities/{idOrSlug}/owner": {
+      "put": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "Make a member the owner of a community that has none — the curated ones nobody founded. Platform administrators only.",
+        "operationId": "AppointCommunityOwner",
+        "parameters": [
+          {
+            "name": "idOrSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppointCommunityOwnerRequest"
+              }
+            }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -34463,6 +34629,15 @@
           }
         }
       },
+      "AppointCommunityOwnerRequest": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
       "ArchiveEventRequest": {
         "type": "object",
         "properties": {
@@ -35604,6 +35779,20 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "ChangeCommunityRoleRequest": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "granted": {
+            "type": "boolean"
           }
         }
       },
@@ -42585,6 +42774,53 @@
             ]
           },
           "instance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ProposeCommunityRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "visibility": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "originCountryCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "originRegionName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tagline": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
             "type": [
               "null",
               "string"

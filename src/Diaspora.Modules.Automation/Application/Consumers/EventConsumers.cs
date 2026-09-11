@@ -488,3 +488,47 @@ public sealed class CommunityAnnouncementAutomationConsumer
             values);
     }
 }
+
+/// <summary>
+/// A community reached a size it had never reached — 11 Sep 2026.
+/// <para>
+/// <b>The last of the four events the Backend Gap Build Order called genuinely missing.</b> It
+/// waited on two things. The contract is published once per milestone, ever, from
+/// <c>Community.RecordMemberJoined</c>; and the automation has somebody to belong to, since founding
+/// a community makes its founder the Owner and an Administrator.
+/// </para>
+/// <para>
+/// The community is the concerned owner, so a community-owned automation — owned by its Owner or an
+/// Administrator — matches. The member count rides in <c>countAbove</c>, so a rule can say "only from
+/// a thousand".
+/// </para>
+/// </summary>
+public sealed class CommunityMilestoneAutomationConsumer
+    : AutomationEventConsumer<CommunityMilestoneReachedIntegrationEvent>
+{
+    public CommunityMilestoneAutomationConsumer(AutomationEngine engine) : base(engine) { }
+
+    protected override IEnumerable<AutomationTriggerContext> Translate(
+        CommunityMilestoneReachedIntegrationEvent integrationEvent)
+    {
+        var values = Values();
+        values["countAbove"] = integrationEvent.MemberCount.ToString(CultureInfo.InvariantCulture);
+        values["community"] = integrationEvent.CommunityId.ToString("D");
+
+        var milestone = integrationEvent.Milestone.ToString("N0", CultureInfo.InvariantCulture);
+
+        yield return Context(
+            "community.milestoneReached",
+            integrationEvent.EventId,
+            Owners(integrationEvent.CommunityId),
+            $"{integrationEvent.CommunityName} reached {milestone} members.",
+            integrationEvent.OccurredAt,
+            "community",
+            integrationEvent.CommunityId,
+            integrationEvent.CommunityName,
+            null,
+            null,
+            values);
+    }
+}
+

@@ -387,3 +387,46 @@ public sealed record SetMembershipVisibilityRequest
     /// <summary><c>Private</c>, <c>CommunityOnly</c> or <c>Public</c>.</summary>
     public string? Visibility { get; init; }
 }
+
+/// <summary>
+/// Founding a community. The caller becomes its Owner and one of its Administrators.
+/// <para>
+/// It opens <c>Pending</c> and joins nobody else until staff open it — the domain's own rule, and the
+/// answer to the question the directory seeder left open: "what happens to a name somebody squatted".
+/// </para>
+/// </summary>
+public sealed record ProposeCommunityRequest
+{
+    public string? Name { get; init; }
+
+    /// <summary>A <c>CommunityType</c> name — <c>NationalDiaspora</c>, <c>RegionalDiaspora</c>, and so on.</summary>
+    public string? Type { get; init; }
+
+    /// <summary><c>Public</c> when absent. <c>Unlisted</c>, <c>Private</c> and <c>InviteOnly</c> are the others.</summary>
+    public string? Visibility { get; init; }
+
+    /// <summary>Required for a national or regional diaspora, where "from where" is the whole point.</summary>
+    public string? OriginCountryCode { get; init; }
+
+    public string? OriginRegionName { get; init; }
+
+    public string? Tagline { get; init; }
+
+    public string? Description { get; init; }
+}
+
+/// <summary>Give a member a role, or take one away.</summary>
+public sealed record ChangeCommunityRoleRequest
+{
+    /// <summary><c>Moderator</c>, <c>Ambassador</c> or <c>Administrator</c>. The last is the Owner's to give.</summary>
+    public string? Role { get; init; }
+
+    /// <summary>True to grant, false to revoke.</summary>
+    public bool Granted { get; init; } = true;
+}
+
+/// <summary>Staff appointing an owner to a community that has none — the curated ones.</summary>
+public sealed record AppointCommunityOwnerRequest
+{
+    public Guid UserId { get; init; }
+}

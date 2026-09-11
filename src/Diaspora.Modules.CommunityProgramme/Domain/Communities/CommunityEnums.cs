@@ -161,6 +161,25 @@ public enum CommunityMembershipRole
 
     /// <summary>Runs the community: rules, roles, notices.</summary>
     Administrator = 4,
+
+    /// <summary>
+    /// The person who founded the community, or the one staff appointed to a community that had
+    /// none. Always holds <see cref="Administrator"/> as well, and is the only role that may appoint
+    /// or remove administrators.
+    /// <para>
+    /// <b>Added 11 Sep 2026, by decision:</b> "the person that creates the community is the owner of
+    /// the community and can also assign roles to members, and a community creator is automatically
+    /// member of the administrator". Until then the four roles above existed, <c>Grant</c> and
+    /// <c>RevokeRole</c> existed, and nothing called either — so every community had members and
+    /// nobody who ran it.
+    /// </para>
+    /// <para>
+    /// <b>Not assignable through the role route.</b> A founder is made one by founding, a curated
+    /// community gets one from staff, and handing the community to somebody else is a transfer —
+    /// a different, deliberate act that this increment does not build.
+    /// </para>
+    /// </summary>
+    Owner = 5,
 }
 
 /// <summary>

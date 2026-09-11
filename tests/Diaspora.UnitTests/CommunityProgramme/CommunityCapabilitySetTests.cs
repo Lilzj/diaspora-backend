@@ -89,7 +89,7 @@ public class CommunityCapabilitySetTests
     public void A_moderator_moderates_and_does_not_administer()
     {
         var (community, membership) = Member();
-        membership.Grant(CommunityMembershipRole.Moderator);
+        membership.Grant(CommunityMembershipRole.Moderator).IsSuccess.Should().BeTrue();
 
         var set = CommunityCapabilitySet.For(community, membership);
 
@@ -109,7 +109,7 @@ public class CommunityCapabilitySetTests
         // Otherwise the person who runs the community would have to grant themselves a second role
         // to act on a report, which nobody would remember to do.
         var (community, membership) = Member();
-        membership.Grant(CommunityMembershipRole.Administrator);
+        membership.Grant(CommunityMembershipRole.Administrator).IsSuccess.Should().BeTrue();
 
         var set = CommunityCapabilitySet.For(community, membership);
 
@@ -124,7 +124,7 @@ public class CommunityCapabilitySetTests
     public void An_ambassador_represents_and_does_not_moderate()
     {
         var (community, membership) = Member();
-        membership.Grant(CommunityMembershipRole.Ambassador);
+        membership.Grant(CommunityMembershipRole.Ambassador).IsSuccess.Should().BeTrue();
 
         var set = CommunityCapabilitySet.For(community, membership);
 
@@ -137,7 +137,7 @@ public class CommunityCapabilitySetTests
     public void Roles_are_echoed_for_display()
     {
         var (community, membership) = Member();
-        membership.Grant(CommunityMembershipRole.Moderator);
+        membership.Grant(CommunityMembershipRole.Moderator).IsSuccess.Should().BeTrue();
 
         CommunityCapabilitySet.For(community, membership)
             .Roles.Should().ContainSingle().Which.Should().Be("Moderator");
@@ -176,7 +176,7 @@ public class CommunityCapabilitySetTests
         // Suspension usually exists precisely so somebody can review what happened. Taking the
         // queue away from the people reviewing it would be the wrong way round.
         var (community, membership) = Member();
-        membership.Grant(CommunityMembershipRole.Moderator);
+        membership.Grant(CommunityMembershipRole.Moderator).IsSuccess.Should().BeTrue();
         community.Suspend("Under review.");
 
         var set = CommunityCapabilitySet.For(community, membership);
@@ -190,7 +190,7 @@ public class CommunityCapabilitySetTests
     public void An_archived_community_grants_nothing_but_reading()
     {
         var (community, membership) = Member();
-        membership.Grant(CommunityMembershipRole.Administrator);
+        membership.Grant(CommunityMembershipRole.Administrator).IsSuccess.Should().BeTrue();
         community.Archive("Closed by its organizers.");
 
         var set = CommunityCapabilitySet.For(community, membership);
@@ -219,7 +219,7 @@ public class CommunityCapabilitySetTests
     {
         // A revoked moderator who kept the badge would keep it on every screen that reads roles.
         var (community, membership) = Member();
-        membership.Grant(CommunityMembershipRole.Moderator);
+        membership.Grant(CommunityMembershipRole.Moderator).IsSuccess.Should().BeTrue();
 
         membership.Revoke(UserId.New(), "Removed.", Now);
 
@@ -258,6 +258,11 @@ public class CommunityCapabilitySetTests
     {
         var (community, membership) = Following();
         membership.Join(community, requiresApproval: false, Now);
+
+        // Visible to the community. Since 11 Sep 2026 a role can only be held with a visible
+        // membership — a role shows other members that you belong, and a private member chose
+        // otherwise — so every test here that grants one starts from a member who made that choice.
+        membership.SetVisibility(CommunityMembershipVisibility.CommunityOnly);
         return (community, membership);
     }
 }

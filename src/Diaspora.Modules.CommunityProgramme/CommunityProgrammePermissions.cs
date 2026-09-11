@@ -40,6 +40,13 @@ public static class CommunityProgrammePermissions
     /// <summary>Run polls: creation, closing, publishing results.</summary>
     public const string ManagePolls = Prefix + ":poll:manage";
 
+    /// <summary>
+    /// Found a community. The founder becomes its Owner, which is authority over other members —
+    /// the progression B2.0.1 gates on proven identity, like every other permission in this list
+    /// that puts one member over another.
+    /// </summary>
+    public const string ProposeCommunity = Prefix + ":community:propose";
+
     /// <summary>Publish an announcement to a scope.</summary>
     public const string PublishAnnouncements = Prefix + ":announcement:publish";
 

@@ -228,6 +228,9 @@ public sealed record CommunityMemberCapabilitiesResponse
 
     public required bool CanManageRoles { get; init; }
 
+    /// <summary>Appoint or remove administrators. The Owner's alone.</summary>
+    public required bool CanAppointAdministrators { get; init; }
+
     public required bool CanViewModerationQueue { get; init; }
 
     public required bool CanViewAmbassadorDirectory { get; init; }
@@ -295,4 +298,31 @@ public sealed record CommunityMembershipSetResponse
 
     /// <summary>When this was read. Drives the client's "showing information from…" line (§45).</summary>
     public required DateTimeOffset FetchedAt { get; init; }
+}
+
+/// <summary>
+/// One member of a community, as another member sees them.
+/// <para>
+/// <b>Only members who chose to be visible appear</b>, and the caller themselves. §41 makes belonging
+/// private by default, and a member list that showed everybody to every member would publish exactly
+/// what that rule keeps quiet. A role can only be held with a visible membership, so everybody who
+/// holds one is on this list.
+/// </para>
+/// </summary>
+public sealed record CommunityMemberResponse
+{
+    public required Guid UserId { get; init; }
+
+    /// <summary>Null only when the identity store could not answer, never invented.</summary>
+    public string? DisplayName { get; init; }
+
+    /// <summary><c>Owner</c>, <c>Administrator</c>, <c>Moderator</c>, <c>Ambassador</c>. Empty for a member.</summary>
+    public required IReadOnlyList<string> Roles { get; init; }
+
+    public required string Visibility { get; init; }
+
+    public DateTimeOffset? JoinedAt { get; init; }
+
+    /// <summary>Whether this row is the caller's own.</summary>
+    public required bool IsYou { get; init; }
 }

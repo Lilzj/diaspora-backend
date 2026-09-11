@@ -281,6 +281,76 @@ public sealed class CommunityMembershipRepository : ICommunityMembershipReposito
             cancellationToken);
     }
 
+    public async Task<CursorPagedResult<CommunityMembership>> ListVisibleMembersAsync(
+        CommunityId communityId,
+        UserId viewer,
+        string? cursor,
+        int limit,
+        CancellationToken cancellationToken = default)
+    {
+        // States spelled out: `IsCurrentMember` is a computed property and does not translate.
+        var query = Memberships
+            .AsNoTracking()
+            .Where(membership =>
+                membership.CommunityId == communityId
+                && (membership.State == CommunityMembershipState.Member
+                    || membership.State == CommunityMembershipState.VerifiedMember)
+                && (membership.Visibility != CommunityMembershipVisibility.Private
+                    || membership.MemberId == viewer));
+
+        var page = CommunityProgrammeCursor.Parse(cursor);
+
+        query = CursorPage.Apply(
+            query,
+            page,
+            CommunityMembershipId.From,
+            membership => membership.CreatedAt,
+            membership => membership.Id);
+
+        query = query
+            .OrderByDescending(membership => membership.CreatedAt)
+            .ThenBy(membership => membership.Id);
+
+        return await CursorPage.MaterialiseAsync(
+            query,
+            page,
+            Math.Clamp(limit, 1, CommunityProgrammeLimits.MaxPageSize),
+            membership => membership.CreatedAt,
+            membership => membership.Id.Value,
+            cancellationToken);
+    }
+
+    public Task<CommunityMembership?> FindOwnerAsync(
+        CommunityId communityId, CancellationToken cancellationToken = default) =>
+        Memberships.FirstOrDefaultAsync(
+            membership =>
+                membership.CommunityId == communityId
+                && (membership.State == CommunityMembershipState.Member
+                    || membership.State == CommunityMembershipState.VerifiedMember)
+                && membership.Roles.Contains("Owner"),
+            cancellationToken);
+
+    public async Task<IReadOnlyList<Guid>> ListCurrentMemberIdsAsync(
+        CommunityId communityId, int skip, int take, CancellationToken cancellationToken = default)
+    {
+        var members = await Memberships
+            .AsNoTracking()
+            .Where(membership =>
+                membership.CommunityId == communityId
+                && (membership.State == CommunityMembershipState.Member
+                    || membership.State == CommunityMembershipState.VerifiedMember))
+            // A stable order, or a page boundary moves under a large broadcast and somebody is
+            // notified twice while somebody else is skipped.
+            .OrderBy(membership => membership.CreatedAt)
+            .ThenBy(membership => membership.Id)
+            .Skip(Math.Max(0, skip))
+            .Take(Math.Max(0, take))
+            .Select(membership => membership.MemberId)
+            .ToListAsync(cancellationToken);
+
+        return [.. members.Select(member => member.Value)];
+    }
+
     public void Add(CommunityMembership membership)
     {
         ArgumentNullException.ThrowIfNull(membership);

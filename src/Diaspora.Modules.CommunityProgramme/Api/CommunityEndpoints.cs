@@ -228,5 +228,102 @@ internal static class CommunityEndpoints
                         cancellationToken)))
             .WithName("SetCommunityMembershipVisibility")
             .WithSummary("Who may see the caller belongs here. Set by the member alone.");
+
+        // ── Administration ──────────────────────────────────────────────────────────────────
+        //
+        // Founding, roles, and the two acts staff keep. The rules are in CommunityAdministration.cs;
+        // the short version is that the founder owns the community, the owner and administrators
+        // give roles, only the owner gives Administrator, and nobody is made Owner through a route
+        // a member can call.
+
+        group.MapPost("/", async (
+                ProposeCommunityRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new ProposeCommunityCommand { Request = request }, cancellationToken)))
+            .WithName("ProposeCommunity")
+            .WithSummary(
+                "Found a community. The caller becomes its owner and an administrator. It opens "
+                + "pending, and nobody else can join until it is opened.");
+
+        group.MapGet("/{idOrSlug}/members", async (
+                string idOrSlug,
+                string? cursor,
+                int? limit,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new ListCommunityMembersQuery
+                        {
+                            IdOrSlug = idOrSlug,
+                            Cursor = cursor,
+                            Limit = limit ?? 25
+                        },
+                        cancellationToken)))
+            .WithName("ListCommunityMembers")
+            .WithSummary(
+                "Members the caller may see: those who made their membership visible, and the caller. "
+                + "For members only.");
+
+        group.MapPut("/{idOrSlug}/members/{userId:guid}/roles", async (
+                string idOrSlug,
+                Guid userId,
+                ChangeCommunityRoleRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new ChangeCommunityRoleCommand
+                        {
+                            IdOrSlug = idOrSlug,
+                            UserId = userId,
+                            Request = request
+                        },
+                        cancellationToken)))
+            .WithName("ChangeCommunityMemberRole")
+            .WithSummary(
+                "Grant or revoke Moderator, Ambassador or Administrator. Administrator is the owner's "
+                + "to give; the others are any administrator's.");
+
+        group.MapPost("/{idOrSlug}/open", async (
+                string idOrSlug,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new OpenCommunityCommand { IdOrSlug = idOrSlug }, cancellationToken)))
+            .WithName("OpenCommunity")
+            .WithSummary("Open a pending community into the directory. Platform administrators only.");
+
+        group.MapPut("/{idOrSlug}/owner", async (
+                string idOrSlug,
+                AppointCommunityOwnerRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new AppointCommunityOwnerCommand
+                        {
+                            IdOrSlug = idOrSlug,
+                            Request = request
+                        },
+                        cancellationToken)))
+            .WithName("AppointCommunityOwner")
+            .WithSummary(
+                "Make a member the owner of a community that has none — the curated ones nobody "
+                + "founded. Platform administrators only.");
     }
 }

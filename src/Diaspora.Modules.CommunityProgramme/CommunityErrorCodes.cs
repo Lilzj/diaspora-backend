@@ -48,4 +48,13 @@ public static class CommunityErrorCodes
     public const string MembershipRevoked = Prefix + ".membership.revoked";
     public const string InviteRequired = Prefix + ".membership.invite-required";
     public const string PrimaryRequiresMembership = Prefix + ".primary.requires-membership";
+    public const string RoleNeedsVisibleMembership = Prefix + ".role.needs-visible-membership";
+    public const string OwnerRoleNotAssignable = Prefix + ".role.owner-not-assignable";
+    public const string OwnerKeepsAdministration = Prefix + ".role.owner-keeps-administration";
+    public const string OnlyOwnerAppointsAdministrators = Prefix + ".role.only-owner-appoints-administrators";
+    public const string AlreadyHasOwner = Prefix + ".owner.already-has-owner";
+    public const string CannotManageRoles = Prefix + ".role.cannot-manage";
+    public const string TargetNotAMember = Prefix + ".role.target-not-a-member";
+    public const string UnknownRole = Prefix + ".role.unknown";
+    public const string PlatformAdministratorsOnly = Prefix + ".platform-administrators-only";
 }

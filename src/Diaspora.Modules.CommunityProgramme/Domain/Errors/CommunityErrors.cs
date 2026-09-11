@@ -155,4 +155,41 @@ public static class CommunityErrors
     public static readonly Error PrimaryRequiresMembership = Error.Conflict(
         CommunityErrorCodes.PrimaryRequiresMembership,
         "You can only make a community your primary one if you belong to it.");
+
+    public static readonly Error RoleNeedsVisibleMembership = Error.Conflict(
+        CommunityErrorCodes.RoleNeedsVisibleMembership,
+        "This member keeps their membership private. They need to make it visible to the community "
+        + "before they can hold a role.");
+
+    public static readonly Error OwnerRoleNotAssignable = Error.Conflict(
+        CommunityErrorCodes.OwnerRoleNotAssignable,
+        "Ownership comes from founding a community and cannot be given or taken away here.");
+
+    public static readonly Error OwnerKeepsAdministration = Error.Conflict(
+        CommunityErrorCodes.OwnerKeepsAdministration,
+        "The owner of a community is always one of its administrators.");
+
+    public static readonly Error OnlyOwnerAppointsAdministrators = Error.Forbidden(
+        CommunityErrorCodes.OnlyOwnerAppointsAdministrators,
+        "Only the owner of this community can appoint or remove administrators.");
+
+    public static readonly Error CannotManageRoles = Error.Forbidden(
+        CommunityErrorCodes.CannotManageRoles,
+        "Only this community's owner and administrators can change roles.");
+
+    public static readonly Error TargetNotAMember = Error.Conflict(
+        CommunityErrorCodes.TargetNotAMember,
+        "That person is not a member of this community.");
+
+    public static readonly Error UnknownRole = Error.Validation(
+        CommunityErrorCodes.UnknownRole,
+        "Choose Moderator, Ambassador or Administrator.");
+
+    public static readonly Error PlatformAdministratorsOnly = Error.Forbidden(
+        CommunityErrorCodes.PlatformAdministratorsOnly,
+        "Only a Diaspora administrator can do this.");
+
+    public static readonly Error AlreadyHasOwner = Error.Conflict(
+        CommunityErrorCodes.AlreadyHasOwner,
+        "This community already has an owner.");
 }

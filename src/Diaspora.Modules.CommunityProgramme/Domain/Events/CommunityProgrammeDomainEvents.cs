@@ -173,3 +173,22 @@ public sealed record CommunityAnnouncementPublishedDomainEvent : DomainEvent
 
     public required DateTimeOffset PublishedAt { get; init; }
 }
+
+/// <summary>
+/// A community reached a size it had never reached before.
+/// <para>
+/// Raised by <c>Community.RecordMemberJoined</c>, once per milestone, ever — see
+/// <c>Community.HighestMemberMilestone</c>. The count rides with the milestone because a community
+/// that jumped from 9 to 11 in one save reached 10 on the way and the figure should say where it is.
+/// </para>
+/// </summary>
+public sealed record CommunityMilestoneReachedDomainEvent : DomainEvent
+{
+    public required CommunityId CommunityId { get; init; }
+
+    public required string CommunityName { get; init; }
+
+    public required int Milestone { get; init; }
+
+    public required int MemberCount { get; init; }
+}

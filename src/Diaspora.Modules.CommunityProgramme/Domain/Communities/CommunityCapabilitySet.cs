@@ -47,6 +47,17 @@ public sealed record CommunityCapabilitySet
 
     public required bool CanManageRoles { get; init; }
 
+    /// <summary>
+    /// Appoint or remove administrators. The Owner only.
+    /// <para>
+    /// Separate from <see cref="CanManageRoles"/> because the two differ and the client must not
+    /// work out which from <see cref="Roles"/> — it evaluates none of this. An administrator who
+    /// could create administrators could hand the community to anybody, and one who could remove
+    /// them could remove the person who founded it.
+    /// </para>
+    /// </summary>
+    public required bool CanAppointAdministrators { get; init; }
+
     public required bool CanViewModerationQueue { get; init; }
 
     public required bool CanViewAmbassadorDirectory { get; init; }
@@ -67,6 +78,7 @@ public sealed record CommunityCapabilitySet
         CanPublishNotice = false,
         CanManageRules = false,
         CanManageRoles = false,
+        CanAppointAdministrators = false,
         CanViewModerationQueue = false,
         CanViewAmbassadorDirectory = false,
         CanManageInitiatives = false
@@ -99,7 +111,11 @@ public sealed record CommunityCapabilitySet
         var isArchived = community.Status == CommunityStatus.Archived;
         var isLive = community.Status == CommunityStatus.Active;
 
-        var administers = Holds(roles, CommunityMembershipRole.Administrator);
+        // The Owner always administers. Granted both roles on founding, and this reads either so a
+        // row that somehow lost its Administrator entry still cannot lock out the person who owns
+        // the community — the refusal in `RevokeRole` is the first line, and this is the second.
+        var owns = Holds(roles, CommunityMembershipRole.Owner);
+        var administers = owns || Holds(roles, CommunityMembershipRole.Administrator);
         var moderates = administers || Holds(roles, CommunityMembershipRole.Moderator);
         var represents = administers || Holds(roles, CommunityMembershipRole.Ambassador);
 
@@ -126,6 +142,7 @@ public sealed record CommunityCapabilitySet
             CanPublishNotice = administers && !isArchived,
             CanManageRules = administers && !isArchived,
             CanManageRoles = administers && !isArchived,
+            CanAppointAdministrators = owns && !isArchived,
             CanManageInitiatives = represents && !isArchived
         };
     }

@@ -127,6 +127,15 @@ public sealed class CommunityProgrammeModule : IPlatformModule
         // explicitly rather than scanned because it is a collaborator of the event handlers, not a
         // seam — MediatR finds the handlers, and the handlers ask for this.
         services.AddScoped<CommunityProgrammeIntegrationEventRelay>();
+
+        // 11 Sep 2026. This module's answer for the Community owner kind, which until now nobody
+        // gave: the floor answers None() for it, so every community-owned automation part was
+        // reachable by nobody. Registered here rather than in the automation module because the seam
+        // lives in Diaspora.Contracts for exactly this reason — the module that knows who runs a
+        // community is the one that says so.
+        services.AddScoped<
+            Diaspora.Contracts.Automation.V1.Extensibility.IAutomationScopeAuthority,
+            Extensibility.Automation.CommunityAutomationAuthority>();
     }
 
     private static void RegisterHostedServices(IServiceCollection services)

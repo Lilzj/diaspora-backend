@@ -188,32 +188,6 @@ public static class AutomationCatalog
     private static readonly string[] Membership = ["equals", "includes", "excludes"];
     private static readonly string[] Numeric = ["greaterThan", "lessThan"];
 
-    /// <summary>
-    /// For anything that would have to address a community.
-    /// <para>
-    /// Not a gap in this module. <c>PublishAnnouncementCommandHandler</c> refuses every announcement
-    /// scope but <c>Organization</c> and states why: an announcement needs "an owner that can say
-    /// who may address them", and a community has members and no such owner. Quoted here rather
-    /// than paraphrased, so the two cannot drift into disagreeing about the same decision.
-    /// </para>
-    /// </summary>
-    private const string NoCommunityAudience =
-        "A community has members and nobody who may address them. Diaspora only lets an "
-        + "organization send to its own members, so there is no audience for this yet.";
-
-    /// <summary>
-    /// For a trigger that needs a contract <i>and</i> an owner kind this deployment grants to nobody.
-    /// <para>
-    /// Separate from <c>NoContract</c> on purpose. A reason naming only the missing contract invites
-    /// somebody to publish it and discover the trigger is still unreachable, which is the more
-    /// expensive half of the work wasted.
-    /// </para>
-    /// </summary>
-    private const string NoContractAndNoCommunityOwner =
-        "Two things are missing. The owning module does not publish a contract for this yet, and "
-        + "nobody administers a community on this platform — a community has members and no roles, "
-        + "so there is no one an automation about it could belong to.";
-
     /// <summary>The reason string used wherever an owning module has not published the contract.</summary>
     private const string NoContract =
         "The owning module does not publish a contract for this yet, so the platform cannot observe it.";
@@ -352,26 +326,26 @@ public static class AutomationCatalog
             new("community.updatePublished", "community", AutomationTriggerDelivery.DomainEvent,
                 "Diaspora.Contracts.Community.V1.Events.CommunityPostPublishedIntegrationEvent",
                 true, null, null, UserOnly, false),
-            // ── Two obstacles each, and the reason strings used to name one ──────────────────
+            // ── A community has an owner now, so one obstacle is left for two of these ───────
             //
-            // `NoContract` is true: nothing publishes a community membership, milestone or event.
-            // It is also not the binding one. Every one of these is owned by the Community kind,
-            // and **no module grants that kind** — `SelfOnlyScopeAuthority` answers `None()` for it
-            // and nothing overrides it, because a community here has members and no administrators.
-            // `CommunityMembership` carries a state (Discovering, Interested, Following, Member)
-            // and no role; roles are an organisation concept.
+            // These three carried two obstacles until 11 Sep 2026: no contract, and no owner — the
+            // Community kind was granted by nobody, because a community had members and nobody who
+            // ran it. Founding a community now makes its founder the Owner and an Administrator, and
+            // `CommunityAutomationAuthority` answers for the kind.
             //
-            // Publishing the three contracts would leave all three still unreachable. Saying so
-            // here is the difference between a gap somebody can close and a gap somebody closes
-            // half of and finds nothing changed.
+            // The milestone has its contract too, published once per milestone from
+            // `Community.RecordMemberJoined`, and is the last of the four events the Backend Gap
+            // Build Order called genuinely missing. `memberJoined` and `eventCreated` are left with
+            // the contract alone, and their reason says only that — the owner half is answered.
             new("community.memberJoined", "community", AutomationTriggerDelivery.DomainEvent,
-                null, false, NoContractAndNoCommunityOwner, AutomationCapabilities.Community,
+                null, false, NoContract, AutomationCapabilities.Community,
                 [AutomationOwnerKind.Community], false),
             new("community.milestoneReached", "community", AutomationTriggerDelivery.DomainEvent,
-                null, false, NoContractAndNoCommunityOwner, AutomationCapabilities.Community,
+                "Diaspora.Contracts.CommunityProgramme.V1.Events.CommunityMilestoneReachedIntegrationEvent",
+                true, null, AutomationCapabilities.Community,
                 [AutomationOwnerKind.Community], false),
             new("community.eventCreated", "community", AutomationTriggerDelivery.DomainEvent,
-                null, false, NoContractAndNoCommunityOwner, AutomationCapabilities.Community,
+                null, false, NoContract, AutomationCapabilities.Community,
                 [AutomationOwnerKind.Community], false),
 
             new("organization.memberJoined", "organizations", AutomationTriggerDelivery.DomainEvent,
@@ -619,19 +593,17 @@ public static class AutomationCatalog
                 AutomationRepeatRisk.Deduplicated, AutomationCategoryKeys.Reminder,
                 null, false, true, null, EveryBusinessOwner),
 
-            // Unavailable, and not for want of an implementation — `BroadcastAsync` is written and
-            // the dispatcher routes to it. It has no audience it could ever resolve.
-            // `PublishAnnouncementCommandHandler` refuses every announcement scope but Organization,
-            // saying the platform's decision plainly: "Neighbourhood, event and campaign
-            // announcements need an owner that can say who may address them." A community is one of
-            // those. It has members and nobody who may address them.
+            // Available again, 11 Sep 2026. `BroadcastAsync` was always written; what it lacked was
+            // anybody who might address a community and anybody to address. Its owner is now the
+            // community's Owner or an Administrator, and `CommunityAutomationAuthority` lists every
+            // current member as a recipient — private ones included, because receiving a notice
+            // discloses nothing to anybody.
             //
-            // It was `IsAvailable: true` and allowed only the Community owner kind, which is granted
-            // to nobody — so the catalogue advertised an action no member could select and the
-            // platform could not have performed.
+            // It reaches people, so `CanReachMembers` still decides, per run: true only for an
+            // administrator of an active community, and banded below ten in the audience preview.
             new("notify.community", "community", AutomationActionExecutor.Server,
                 AutomationRepeatRisk.Deduplicated, AutomationCategoryKeys.Community,
-                AutomationCapabilities.Community, true, false, NoCommunityAudience,
+                AutomationCapabilities.Community, true, true, null,
                 [AutomationOwnerKind.Community]),
 
             new("notify.organization", "organizations", AutomationActionExecutor.Server,

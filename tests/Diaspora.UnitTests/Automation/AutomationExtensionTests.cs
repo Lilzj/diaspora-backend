@@ -67,22 +67,46 @@ public sealed class AutomationExtensionTests
         AutomationCatalog.FindTrigger(key)!.IsAvailable.Should().BeTrue();
 
     /// <summary>
-    /// The community scope stays deferred, and stays explained.
+    /// Two community triggers stay deferred, and stay explained.
     /// <para>
-    /// It depends on a Community Directory backend that does not exist. Deferring it is the decision;
-    /// asserting it is what stops a later phase quietly marking it available without building one.
+    /// This test's first purpose was to stop a later phase "quietly marking it available without
+    /// building one". On 11 Sep 2026 one was built, not quietly: communities gained an Owner and
+    /// administrators, <c>CommunityAutomationAuthority</c> answers for the Community kind, and the
+    /// milestone got a contract. It moved to the test below. These two still have no contract, and
+    /// their reason now says only that — the owner half is answered.
     /// </para>
     /// </summary>
     [Theory]
     [InlineData("community.memberJoined")]
-    [InlineData("community.milestoneReached")]
     [InlineData("community.eventCreated")]
     public void The_community_triggers_stay_deferred_and_explained(string key)
     {
         var trigger = AutomationCatalog.FindTrigger(key)!;
 
-        trigger.IsAvailable.Should().BeFalse("no module owns community membership");
+        trigger.IsAvailable.Should().BeFalse("nothing publishes this yet");
         trigger.UnavailableReason.Should().NotBeNullOrWhiteSpace();
+        trigger.UnavailableReason.Should().NotContain(
+            "nobody administers",
+            "a community has an owner now, and a reason naming both obstacles would send somebody "
+            + "to build an owner that already exists");
+    }
+
+    /// <summary>
+    /// The milestone is available, and it is available because both halves exist.
+    /// <para>
+    /// The last of the four events the Backend Gap Build Order called genuinely missing. Asserted
+    /// with its contract, so it cannot become available on a flag alone.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_community_milestone_is_served_by_its_own_contract()
+    {
+        var trigger = AutomationCatalog.FindTrigger("community.milestoneReached")!;
+
+        trigger.IsAvailable.Should().BeTrue();
+        trigger.SourceEventName.Should().Be(
+            "Diaspora.Contracts.CommunityProgramme.V1.Events.CommunityMilestoneReachedIntegrationEvent");
+        trigger.AllowedOwners.Should().Equal(AutomationOwnerKind.Community);
     }
 
     /// <summary>Government stays out of the vocabulary entirely. Unchanged by Wave 12.</summary>

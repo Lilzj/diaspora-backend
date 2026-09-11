@@ -189,6 +189,24 @@ public sealed class CommunityProgrammeIntegrationEventRelay
             cancellationToken);
     }
 
+    public Task PublishAsync(
+        CommunityMilestoneReachedDomainEvent domainEvent,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(domainEvent);
+
+        return PublishSafelyAsync(
+            new CommunityMilestoneReachedIntegrationEvent
+            {
+                CommunityId = domainEvent.CommunityId.Value,
+                CommunityName = domainEvent.CommunityName,
+                Milestone = domainEvent.Milestone,
+                MemberCount = domainEvent.MemberCount,
+                ReachedAt = domainEvent.OccurredAt
+            },
+            cancellationToken);
+    }
+
     private async Task PublishSafelyAsync(
         IIntegrationEvent integrationEvent, CancellationToken cancellationToken)
     {
@@ -304,5 +322,18 @@ public sealed class CommunityAnnouncementPublishedEventHandler
 
     protected override Task HandleAsync(
         CommunityAnnouncementPublishedDomainEvent domainEvent, CancellationToken cancellationToken) =>
+        _relay.PublishAsync(domainEvent, cancellationToken);
+}
+
+public sealed class CommunityMilestoneReachedEventHandler
+    : DomainEventHandler<CommunityMilestoneReachedDomainEvent>
+{
+    private readonly CommunityProgrammeIntegrationEventRelay _relay;
+
+    public CommunityMilestoneReachedEventHandler(
+        CommunityProgrammeIntegrationEventRelay relay) => _relay = relay;
+
+    protected override Task HandleAsync(
+        CommunityMilestoneReachedDomainEvent domainEvent, CancellationToken cancellationToken) =>
         _relay.PublishAsync(domainEvent, cancellationToken);
 }

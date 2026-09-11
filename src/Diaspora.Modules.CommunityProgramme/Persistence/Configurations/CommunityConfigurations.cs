@@ -90,6 +90,10 @@ public sealed class CommunityConfiguration : IEntityTypeConfiguration<CommunityA
 
         builder.Property(community => community.MemberCount).IsRequired();
 
+        // The largest milestone ever reached, so each is announced once. Backfilled by the
+        // migration that adds it: a community already at 150 members has already passed 100.
+        builder.Property(community => community.HighestMemberMilestone).IsRequired();
+
         builder.Property(community => community.RequiresApproval).IsRequired();
 
         // The directory pages on these three together.
