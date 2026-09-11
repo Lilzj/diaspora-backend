@@ -53,6 +53,8 @@ public static class CommunityErrorCodes
     public const string OwnerKeepsAdministration = Prefix + ".role.owner-keeps-administration";
     public const string OnlyOwnerAppointsAdministrators = Prefix + ".role.only-owner-appoints-administrators";
     public const string AlreadyHasOwner = Prefix + ".owner.already-has-owner";
+    public const string OwnerCannotLeave = Prefix + ".owner.cannot-leave";
+    public const string OwnerCannotBeRemoved = Prefix + ".owner.cannot-be-removed";
     public const string CannotManageRoles = Prefix + ".role.cannot-manage";
     public const string TargetNotAMember = Prefix + ".role.target-not-a-member";
     public const string UnknownRole = Prefix + ".role.unknown";

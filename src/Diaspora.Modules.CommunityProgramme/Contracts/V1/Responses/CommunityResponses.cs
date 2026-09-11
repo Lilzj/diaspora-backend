@@ -231,6 +231,9 @@ public sealed record CommunityMemberCapabilitiesResponse
     /// <summary>Appoint or remove administrators. The Owner's alone.</summary>
     public required bool CanAppointAdministrators { get; init; }
 
+    /// <summary>Leave the community. Every current member except its Owner.</summary>
+    public required bool CanLeave { get; init; }
+
     public required bool CanViewModerationQueue { get; init; }
 
     public required bool CanViewAmbassadorDirectory { get; init; }

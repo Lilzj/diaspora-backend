@@ -192,4 +192,13 @@ public static class CommunityErrors
     public static readonly Error AlreadyHasOwner = Error.Conflict(
         CommunityErrorCodes.AlreadyHasOwner,
         "This community already has an owner.");
+
+    public static readonly Error OwnerCannotLeave = Error.Conflict(
+        CommunityErrorCodes.OwnerCannotLeave,
+        "You own this community, so you can't leave it. Someone else has to become its owner "
+        + "first, and that can't be done in the app yet.");
+
+    public static readonly Error OwnerCannotBeRemoved = Error.Conflict(
+        CommunityErrorCodes.OwnerCannotBeRemoved,
+        "The owner of a community can't be removed from it.");
 }

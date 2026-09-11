@@ -347,6 +347,18 @@ public sealed class CommunityMembership : AggregateRoot<CommunityMembershipId>, 
             return Result.Failure(CommunityErrors.NotAMember);
         }
 
+        // **The owner is the one member a community cannot lose by accident.** Ending a membership
+        // clears every role, so an owner who left took the community's Owner with them, and — as its
+        // only administrator, which every founder starts as — the last person who could appoint
+        // anyone. A community still pending has nobody else in it at all, so not even Diaspora's
+        // appoint-an-owner route has a member to appoint. Found on the device on 11 Sep 2026, where
+        // the founder's own community page offered "Leave" beside the owner badge. Handing a
+        // community to somebody else is a transfer, and a separate act.
+        if (Holds(CommunityMembershipRole.Owner))
+        {
+            return Result.Failure(CommunityErrors.OwnerCannotLeave);
+        }
+
         End(CommunityMembershipState.Left, now, reason: null, decidedBy: null);
         return Result.Success();
     }
@@ -357,6 +369,14 @@ public sealed class CommunityMembership : AggregateRoot<CommunityMembershipId>, 
         if (!IsCurrentMember)
         {
             return Result.Failure(CommunityErrors.NotAMember);
+        }
+
+        // Nothing calls this yet. When something does, removing the owner would orphan the community
+        // exactly as the owner leaving would — see `Leave` — so it is refused here, where no future
+        // caller can skip it.
+        if (Holds(CommunityMembershipRole.Owner))
+        {
+            return Result.Failure(CommunityErrors.OwnerCannotBeRemoved);
         }
 
         End(CommunityMembershipState.Revoked, now, reason, decidedBy);

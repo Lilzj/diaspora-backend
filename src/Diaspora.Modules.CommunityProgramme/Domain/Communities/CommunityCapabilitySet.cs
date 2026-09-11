@@ -58,6 +58,17 @@ public sealed record CommunityCapabilitySet
     /// </summary>
     public required bool CanAppointAdministrators { get; init; }
 
+    /// <summary>
+    /// Leave the community: every current member except its Owner.
+    /// <para>
+    /// <c>CommunityMembership.Leave</c> refuses the Owner, because leaving clears every role and a
+    /// community whose owner walked away has nobody who can appoint anyone. Reported here so the
+    /// client offers exactly what that refusal allows — the founder's own page offered "Leave"
+    /// beside the owner badge until 11 Sep 2026 — rather than working it out from <see cref="Roles"/>.
+    /// </para>
+    /// </summary>
+    public required bool CanLeave { get; init; }
+
     public required bool CanViewModerationQueue { get; init; }
 
     public required bool CanViewAmbassadorDirectory { get; init; }
@@ -79,6 +90,7 @@ public sealed record CommunityCapabilitySet
         CanManageRules = false,
         CanManageRoles = false,
         CanAppointAdministrators = false,
+        CanLeave = false,
         CanViewModerationQueue = false,
         CanViewAmbassadorDirectory = false,
         CanManageInitiatives = false
@@ -143,6 +155,7 @@ public sealed record CommunityCapabilitySet
             CanManageRules = administers && !isArchived,
             CanManageRoles = administers && !isArchived,
             CanAppointAdministrators = owns && !isArchived,
+            CanLeave = isMember && !owns,
             CanManageInitiatives = represents && !isArchived
         };
     }

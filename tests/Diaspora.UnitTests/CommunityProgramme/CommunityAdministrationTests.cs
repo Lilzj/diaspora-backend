@@ -123,6 +123,75 @@ public sealed class CommunityAdministrationTests
         founder.Holds(CommunityMembershipRole.Owner).Should().BeTrue();
     }
 
+    // ── The owner stays — 11 Sep 2026 ───────────────────────────────────────────────────────
+    //
+    // The founder's own community page offered "Leave" beside the owner badge, and leaving clears
+    // every role: the community lost its Owner and its only administrator in one tap, and a pending
+    // community lost the only member Diaspora's appoint-an-owner route could ever have appointed.
+
+    [Fact]
+    public void The_owner_cannot_leave_their_community()
+    {
+        var founder = CommunityMembership.Found(
+            CommunityMembershipId.New(), Proposed(), UserId.New(), Now).Value;
+
+        founder.Leave(Now).Error.Should().Be(CommunityErrors.OwnerCannotLeave);
+
+        founder.IsCurrentMember.Should().BeTrue();
+        founder.Holds(CommunityMembershipRole.Owner).Should().BeTrue();
+        founder.Holds(CommunityMembershipRole.Administrator).Should().BeTrue();
+    }
+
+    [Fact]
+    public void An_administrator_who_is_not_the_owner_can_still_leave()
+    {
+        // The rule is about the office nobody else can fill, not about administrators.
+        var (_, member) = VisibleMember();
+        member.Grant(CommunityMembershipRole.Administrator).IsSuccess.Should().BeTrue();
+
+        member.Leave(Now).IsSuccess.Should().BeTrue();
+
+        member.State.Should().Be(CommunityMembershipState.Left);
+        member.Roles.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void The_owner_cannot_be_removed_either()
+    {
+        // Nothing removes members yet. This is the check that will be waiting when something does.
+        var founder = CommunityMembership.Found(
+            CommunityMembershipId.New(), Proposed(), UserId.New(), Now).Value;
+
+        founder.Revoke(UserId.New(), "Testing", Now).Error
+            .Should().Be(CommunityErrors.OwnerCannotBeRemoved);
+
+        founder.Holds(CommunityMembershipRole.Owner).Should().BeTrue();
+    }
+
+    [Fact]
+    public void The_capability_set_tells_the_screen_who_may_leave()
+    {
+        // The client offers "Leave" from this, not from `Roles` — it derives nothing from a role.
+        var community = Proposed();
+        var founder = CommunityMembership.Found(
+            CommunityMembershipId.New(), community, UserId.New(), Now).Value;
+
+        CommunityCapabilitySet.For(community, founder).CanLeave.Should().BeFalse();
+
+        var (openCommunity, member) = VisibleMember();
+        CommunityCapabilitySet.For(openCommunity, member).CanLeave.Should().BeTrue();
+
+        CommunityCapabilitySet.For(openCommunity, null).CanLeave.Should().BeFalse(
+            "a stranger has nothing to leave");
+    }
+
+    [Fact]
+    public void The_refusal_tells_the_owner_why_and_what_it_would_take()
+    {
+        CommunityErrors.OwnerCannotLeave.Description.Should().Contain("own this community")
+            .And.Contain("owner first");
+    }
+
     [Fact]
     public void A_role_that_was_granted_can_be_revoked()
     {
