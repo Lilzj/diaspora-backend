@@ -182,6 +182,30 @@ public static class AutomationCatalog
         AutomationOwnerKind.Seller
     ];
 
+    /// <summary>
+    /// <c>notify.self</c>'s owners: every kind with a person at the end of "tell me".
+    /// <para>
+    /// The six business kinds are owned by the member, so "me" is the owner. A community's or an
+    /// organisation's automation is owned by the group, and "me" is the member who wrote it — which
+    /// is what <c>AutomationActionDispatcher.ResolveOwnerRecipient</c> has said since it was written.
+    /// The catalogue left both groups out, so that branch could not be reached: on 11 Sep 2026 the
+    /// founder of a community who built "tell me when it reaches a milestone" was refused at Save,
+    /// and an organisation's administrator could answer "somebody registered for our event" only by
+    /// telling every member of the organisation.
+    /// </para>
+    /// <para>
+    /// It reaches one person, the author, whose own notification settings still apply; nothing about
+    /// the group's members is disclosed or sent. The other personal actions keep the business kinds:
+    /// a push or an email on a group's behalf is a different question nobody has asked yet.
+    /// </para>
+    /// </summary>
+    private static readonly AutomationOwnerKind[] EveryOwnerWithAnAuthor =
+    [
+        .. EveryBusinessOwner,
+        AutomationOwnerKind.Community,
+        AutomationOwnerKind.Organization
+    ];
+
     private static readonly AutomationOwnerKind[] UserOnly = [AutomationOwnerKind.User];
 
     private static readonly string[] Equality = ["equals", "notEquals", "includes"];
@@ -579,7 +603,7 @@ public static class AutomationCatalog
         {
             new("notify.self", "notifications", AutomationActionExecutor.Server,
                 AutomationRepeatRisk.Deduplicated, AutomationCategoryKeys.Personal,
-                null, false, true, null, EveryBusinessOwner),
+                null, false, true, null, EveryOwnerWithAnAuthor),
 
             new("notify.push", "notifications", AutomationActionExecutor.Server,
                 AutomationRepeatRisk.Deduplicated, AutomationCategoryKeys.Personal,

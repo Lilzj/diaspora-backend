@@ -408,10 +408,11 @@ public sealed class AutomationExtensionTests : IdentityTestBase
         var (organizer, organizerToken) = await NewMemberAsync();
         var organizationId = await CreateOrganizationAsync();
 
-        // `notify.organization` rather than `notify.self`: an organization-owned automation may only
-        // carry actions that name the organization owner kind, and this is the broadcast Wave 11
-        // shipped granted to nobody. Creating and activating it at all is the assertion that B12's new
-        // authority grants `automations.organization` to an administrator — the creator of the body.
+        // `notify.organization`, the broadcast Wave 11 shipped granted to nobody. Creating and
+        // activating it at all is the assertion that B12's new authority grants
+        // `automations.organization` to an administrator — the creator of the body. (Since 11 Sep 2026
+        // an organization's automation may also carry `notify.self`, which tells the member who wrote
+        // it; this test is about the grant, so it keeps the action only the grant unlocks.)
         var organizationRule = await CreateAutomationAsync(
             "When somebody registers for ours",
             trigger: "organization.registrationReceived",
