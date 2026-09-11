@@ -146,6 +146,90 @@ public sealed class AutomationOwnerReachabilityTests
                 "an action the platform can perform and no member can own reaches nobody");
     }
 
+    /// <summary>
+    /// A capability nobody can hold gates as absolutely as an owner kind nobody can be.
+    /// <para>
+    /// <c>community.announcementPublished</c> required <c>automations.community</c>, and the three
+    /// grants in this platform are <c>SelfOnlyScopeAuthority.PersonalCapabilities</c>,
+    /// CommunityLife's <c>automations.organization</c> and Creator's <c>automations.creator</c>.
+    /// Nothing grants the community one. The same defect as the owner kind, one layer down, from
+    /// the same cause — and it would have kept the trigger unreachable after the owner list was
+    /// widened, which is exactly the half-finished opening that reads as finished.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Every_available_part_requires_a_capability_somebody_is_granted()
+    {
+        var granted = GrantedCapabilities();
+
+        granted.Should().NotBeEmpty("a sweep that parses no grants passes for the wrong reason");
+
+        var unobtainable = AutomationCatalog.Triggers.Values
+            .Where(trigger => trigger.IsAvailable)
+            .Select(trigger => (trigger.Key, trigger.RequiredCapability))
+            .Concat(AutomationCatalog.Actions.Values
+                .Where(action => action.IsAvailable)
+                .Select(action => (action.Key, action.RequiredCapability)))
+            .Where(part => part.RequiredCapability is not null)
+            .Where(part => !granted.Contains(part.RequiredCapability!))
+            .Where(part => !KnownUnownable.ContainsKey(part.Key))
+            .Select(part => $"{part.Key} needs {part.RequiredCapability}")
+            .OrderBy(line => line, StringComparer.Ordinal)
+            .ToArray();
+
+        unobtainable.Should().BeEmpty(
+            "a part gated on a capability no authority grants is refused for every member, however "
+            + "the owner kinds are set");
+    }
+
+    /// <summary>
+    /// Every capability string some scope authority actually hands out.
+    /// <para>
+    /// <b>The first version of this could not fail.</b> It read any file mentioning
+    /// <c>IAutomationScopeAuthority</c>, and <c>AutomationCatalog.cs</c> mentions it in a comment
+    /// while naming every capability in the platform — as a <i>requirement</i>, which is the
+    /// opposite of a grant. So the catalogue vouched for itself and
+    /// <c>automations.community</c> looked granted. Caught by reintroducing the defect and watching
+    /// the guard pass.
+    /// </para>
+    /// <para>
+    /// A grant is a construction of <see cref="AutomationScopeGrant"/>, so that is what this looks
+    /// for, with comments stripped first.
+    /// </para>
+    /// </summary>
+    private static IReadOnlySet<string> GrantedCapabilities()
+    {
+        var granted = new HashSet<string>(StringComparer.Ordinal);
+        var source = Path.Combine(SourceTree.Root.FullName, "src");
+
+        foreach (var path in Directory.EnumerateFiles(source, "*.cs", SearchOption.AllDirectories))
+        {
+            var code = WithoutComments(File.ReadAllText(path));
+
+            if (!code.Contains("new AutomationScopeGrant(", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            // Both spellings a grant takes: a bare literal, and the shared constant.
+            foreach (Match literal in Regex.Matches(code, @"""(automations\.[a-z]+)"""))
+            {
+                granted.Add(literal.Groups[1].Value);
+            }
+
+            foreach (Match named in Regex.Matches(code, @"AutomationCapabilities\.([A-Za-z]+)"))
+            {
+                granted.Add($"automations.{named.Groups[1].Value.ToLowerInvariant()}");
+            }
+        }
+
+        return granted;
+    }
+
+    private static string WithoutComments(string text) =>
+        Regex.Replace(
+            Regex.Replace(text, @"/\*[\s\S]*?\*/", " "),
+            @"//[^\n]*", " ");
     [Fact]
     public void No_exemption_outlives_the_gap_it_records()
     {

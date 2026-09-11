@@ -314,6 +314,18 @@ public static class AutomationCatalog
             // `Owners(ScopeId, OrganizationId)` — so an organisation-owned automation on this
             // trigger matches the moment its organisation publishes an announcement.
             //
+            // The capability moved for the same reason the owner kind did. **Nothing grants
+            // `automations.community`** — the three grants in this platform are
+            // `SelfOnlyScopeAuthority.PersonalCapabilities`, CommunityLife's
+            // `automations.organization` and Creator's `automations.creator` — so the trigger was
+            // gated on a capability no member can hold. That is the same defect one layer down and
+            // from the same cause. `automations.organization` is the one an organisation
+            // administrator actually holds, and the one `notify.organization` already requires.
+            //
+            // When a module grants community administration, this needs revisiting: a catalogue
+            // entry carries one capability and there would then be two owners with different ones.
+            // `AutomationOwnerReachabilityTests` fails the day that happens, which is the reminder.
+            //
             // It could not be created. This entry allowed the Community owner kind alone, and no
             // module implements `IAutomationScopeAuthority` for it: `SelfOnlyScopeAuthority` returns
             // `None()` and nothing overrides that, because a community in this platform has members
@@ -322,7 +334,7 @@ public static class AutomationCatalog
             // available the whole time.
             new("community.announcementPublished", "community", AutomationTriggerDelivery.DomainEvent,
                 "Diaspora.Contracts.CommunityProgramme.V1.Events.CommunityAnnouncementPublishedIntegrationEvent",
-                true, null, AutomationCapabilities.Community,
+                true, null, AutomationCapabilities.Organization,
                 [AutomationOwnerKind.Community, AutomationOwnerKind.Organization], false),
             new("community.updatePublished", "community", AutomationTriggerDelivery.DomainEvent,
                 "Diaspora.Contracts.Community.V1.Events.CommunityPostPublishedIntegrationEvent",
