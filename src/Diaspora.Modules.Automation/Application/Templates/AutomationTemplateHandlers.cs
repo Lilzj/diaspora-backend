@@ -77,9 +77,29 @@ public sealed record GetCatalogQuery : IQuery<AutomationCatalogResponse>;
 
 public sealed class GetCatalogQueryHandler : IQueryHandler<GetCatalogQuery, AutomationCatalogResponse>
 {
+    private readonly IReadOnlySet<string> _answeredExternally;
+
+    /// <summary>
+    /// Reads which condition seams this deployment has claimed.
+    /// <para>
+    /// The same <c>IAutomationConditionSource</c> set the engine resolves from, so the catalogue and
+    /// the evaluator cannot disagree about whether a balance can be checked. They did disagree: the
+    /// catalogue read a static flag that predated the seam and told every member "nothing in this
+    /// deployment answers for it" about five conditions three modules answer.
+    /// </para>
+    /// </summary>
+    public GetCatalogQueryHandler(IEnumerable<IAutomationConditionSource> sources)
+    {
+        ArgumentNullException.ThrowIfNull(sources);
+
+        _answeredExternally = sources
+            .SelectMany(source => source.Answers)
+            .ToHashSet(StringComparer.Ordinal);
+    }
+
     public Task<Result<AutomationCatalogResponse>> Handle(
         GetCatalogQuery query, CancellationToken cancellationToken) =>
-        Task.FromResult(Result.Success(AutomationMapper.Catalog()));
+        Task.FromResult(Result.Success(AutomationMapper.Catalog(_answeredExternally)));
 }
 
 /// <summary>

@@ -293,8 +293,34 @@ public static class AutomationMapper
         };
     }
 
-    /// <summary>The catalogue, so the builder offers only what the deployment can do.</summary>
-    public static AutomationCatalogResponse Catalog() => new()
+    /// <summary>
+    /// The catalogue, so the builder offers only what the deployment can do.
+    /// </summary>
+    /// <param name="answeredExternally">
+    /// The condition keys a registered <c>IAutomationConditionSource</c> claims in this deployment.
+    /// <para>
+    /// <b>Five conditions were reported unavailable to every member while the engine evaluated them
+    /// perfectly well.</b> `walletBalance`, `subscriptionActive`, `creatorStatus`, `metricAbove` and
+    /// `metricBelow` carry <c>IsServerEvaluable: false</c> in the static catalogue, which was right
+    /// in Wave 11 when nothing answered them. Wave 12 added the seam and three modules claimed it —
+    /// Financial, Creator and Analytics — and the evaluator has read their answers out of
+    /// <c>ResolvedValues</c> ever since. This projection kept reading the static flag, so the
+    /// catalogue told members "nothing in this deployment answers for it" about five conditions this
+    /// deployment answers.
+    /// </para>
+    /// <para>
+    /// The entry's own comment said what was meant: the reason strings are "what a member is told
+    /// when that module has <i>not</i> claimed the seam in this deployment". The intent was always
+    /// dynamic; only the reading was static.
+    /// </para>
+    /// <para>
+    /// A claimed seam means the deployment has an answer path, not that every answer will arrive. A
+    /// source having a bad minute still fails the condition closed, with the same reason — that is
+    /// the evaluator's job and it is unchanged.
+    /// </para>
+    /// </param>
+    public static AutomationCatalogResponse Catalog(
+        IReadOnlySet<string>? answeredExternally = null) => new()
     {
         Triggers =
         [
@@ -318,8 +344,10 @@ public static class AutomationMapper
                 {
                     Key = condition.Key,
                     Domain = condition.Domain,
-                    IsAvailable = condition.IsServerEvaluable,
-                    UnavailableReason = condition.UnavailableReason,
+                    IsAvailable = IsConditionAvailable(condition, answeredExternally),
+                    UnavailableReason = IsConditionAvailable(condition, answeredExternally)
+                        ? null
+                        : condition.UnavailableReason,
                     RequiredCapability = null,
                     AllowedOwners = [],
                     RequiresServerEvaluation = condition.RequiresServerEvaluation,
@@ -536,4 +564,18 @@ public static class AutomationMapper
 
     private static string Iso(DateTimeOffset value) =>
         value.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// Whether this deployment can answer a condition.
+    /// <para>
+    /// An externally-sourced condition is available exactly when a source claims its key. Everything
+    /// else keeps the static answer, because nothing at run time can change whether a payload
+    /// carries a field.
+    /// </para>
+    /// </summary>
+    private static bool IsConditionAvailable(
+        ConditionCatalogEntry condition, IReadOnlySet<string>? answeredExternally) =>
+        condition.ExternalSource is not null
+            ? answeredExternally?.Contains(condition.Key) == true
+            : condition.IsServerEvaluable;
 }
