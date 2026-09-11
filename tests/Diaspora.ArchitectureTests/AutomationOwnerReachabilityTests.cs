@@ -37,7 +37,7 @@ public sealed class AutomationOwnerReachabilityTests
     /// future entry acquiring the exemption in silence.
     /// </para>
     /// </summary>
-    private static readonly IReadOnlyDictionary<string, string> KnownUnownable =
+    private static readonly Dictionary<string, string> KnownUnownable =
         new Dictionary<string, string>(StringComparer.Ordinal)
         {
             // Empty, and that is the finished state rather than an unfilled one.
@@ -52,7 +52,7 @@ public sealed class AutomationOwnerReachabilityTests
         };
 
     /// <summary>The kinds a member can actually be granted today.</summary>
-    private static IReadOnlySet<string> GrantableOwnerKinds()
+    private static HashSet<string> GrantableOwnerKinds()
     {
         // The floor grants a member their own record for every kind except the three that describe a
         // group somebody administers rather than a role somebody plays. That exclusion is written in
@@ -208,7 +208,7 @@ public sealed class AutomationOwnerReachabilityTests
     /// for, with comments stripped first.
     /// </para>
     /// </summary>
-    private static IReadOnlySet<string> GrantedCapabilities()
+    private static HashSet<string> GrantedCapabilities()
     {
         var granted = new HashSet<string>(StringComparer.Ordinal);
         var source = Path.Combine(SourceTree.Root.FullName, "src");
