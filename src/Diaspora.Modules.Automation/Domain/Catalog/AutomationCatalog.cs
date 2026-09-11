@@ -432,6 +432,20 @@ public static class AutomationCatalog
                 "Diaspora.Contracts.Financial.V1.Events.RewardPointsGrantedIntegrationEvent",
                 true, null, null,
                 [AutomationOwnerKind.Creator], false),
+            // Phase 5. The Backend Gap Build Order listed `ChallengeCompleted` among the four
+            // "genuinely missing" events behind the automation triggers. It was not missing.
+            // `CreatorChallengeCompletedIntegrationEvent` is published by `CreatorEventHandlers`,
+            // once, on the transition to complete - and nothing here consumed it. The client
+            // register went further and recorded "no challenge contract at all"; that was written
+            // on 11 Sep 2026 without a grep, and was false the day it was written.
+            //
+            // No capability, for the rule its three siblings follow: a challenge enrollment is "one
+            // creator's participation in one challenge", so completing one is the creator's own
+            // affair and notifies nobody else.
+            new("creator.challengeCompleted", "creator", AutomationTriggerDelivery.DomainEvent,
+                "Diaspora.Contracts.Creator.V1.Events.CreatorChallengeCompletedIntegrationEvent",
+                true, null, null,
+                [AutomationOwnerKind.Creator], false),
             // Wave 12. Answered by the Analytics Platform through `IAutomationConditionSource`, on a
             // schedule the member sets: the trigger is a scheduled automation whose `metricAbove` or
             // `metricBelow` condition is resolved from B19 at run time. Available in the catalogue,

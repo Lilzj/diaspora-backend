@@ -30,8 +30,14 @@ public sealed class AutomationExtensionTests
     [Fact]
     public void The_vocabulary_is_the_same_size_it_was()
     {
+        // 50 since Phase 5, and the one addition is the exception this assertion exists to make
+        // deliberate rather than to forbid. The Backend Gap Build Order named `ChallengeCompleted`
+        // among four events the creator triggers were waiting on; the contract turned out to be
+        // published already, and the frontend register had been asking for
+        // `creator.challengeCompleted` all along. Both catalogues gained it together — the rule
+        // this test states is that they move as one, not that they never move.
         AutomationCatalog.Triggers.Should().HaveCount(
-            49, "the frontend offers 51 and two are government, which stays deferred");
+            50, "the frontend's catalogue, which gained creator.challengeCompleted in Phase 5");
 
         AutomationCatalog.Conditions.Should().HaveCount(22, "the frontend's condition catalogue");
         AutomationCatalog.Actions.Should().HaveCount(12, "the frontend's action catalogue");

@@ -310,6 +310,47 @@ public sealed class CreatorMilestoneAutomationConsumer
     }
 }
 
+/// <summary>
+/// A creator completed a challenge - Phase 5.
+/// <para>
+/// <b>The contract was on the wire and nothing consumed it.</b> The Backend Gap Build Order counted
+/// this among four events the automation triggers were waiting on; the Creator module had been
+/// publishing it, once, on the transition to complete. What was missing was this class.
+/// </para>
+/// <para>
+/// Both identities are owners, for the reason the milestone consumer above names both: an
+/// automation may be owned by the creator record or by the member behind it, and
+/// <c>CreatorAutomationAuthority</c> accepts either. They are the same person - an enrollment is one
+/// creator's own participation - so this concerns nobody else.
+/// </para>
+/// <para>
+/// <b>No title, and the summary does not pretend to one.</b> The contract carries the challenge's
+/// identifier and not its name; inventing a name here would be a second source of truth for it.
+/// </para>
+/// </summary>
+public sealed class CreatorChallengeAutomationConsumer
+    : AutomationEventConsumer<CreatorChallengeCompletedIntegrationEvent>
+{
+    public CreatorChallengeAutomationConsumer(AutomationEngine engine) : base(engine) { }
+
+    protected override IEnumerable<AutomationTriggerContext> Translate(
+        CreatorChallengeCompletedIntegrationEvent integrationEvent)
+    {
+        yield return Context(
+            "creator.challengeCompleted",
+            integrationEvent.EventId,
+            Owners(integrationEvent.CreatorId, integrationEvent.MemberUserId),
+            "You completed a creator challenge.",
+            integrationEvent.OccurredAt,
+            "challenge",
+            integrationEvent.ChallengeId,
+            null,
+            null,
+            null,
+            Values());
+    }
+}
+
 /// <summary>Somebody a creator referred qualified.</summary>
 public sealed class CreatorReferralAutomationConsumer
     : AutomationEventConsumer<CreatorReferralQualifiedIntegrationEvent>
