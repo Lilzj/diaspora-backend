@@ -80,12 +80,23 @@ public enum AutomationOwnerKind
 /// The capability keys this scope grants — <c>automations.community</c> and its siblings. Read by the
 /// capability endpoint and re-checked on every write.
 /// </param>
+/// <param name="ReachRefusal">
+/// Why <paramref name="CanReachMembers"/> is false, when the reason is not the owner's standing.
+/// <para>
+/// <b>Added 11 Sep 2026 because one sentence was covering two facts.</b> The dispatcher refused a
+/// broadcast with "Whoever set this up no longer has permission to notify these members" — true when
+/// an administrator lost their role, and false when the scope simply cannot be addressed yet. The
+/// owner of a community that staff have not opened was told they had lost a permission they held.
+/// Null keeps the old sentence, which is still right for the case it was written for.
+/// </para>
+/// </param>
 public readonly record struct AutomationScopeGrant(
     bool CanOwn,
     bool CanManage,
     bool CanReachMembers,
     string Label,
-    IReadOnlyList<string> Capabilities)
+    IReadOnlyList<string> Capabilities,
+    string? ReachRefusal = null)
 {
     /// <summary>The safe answer whenever nothing has said otherwise.</summary>
     public static AutomationScopeGrant None(string label = "") =>

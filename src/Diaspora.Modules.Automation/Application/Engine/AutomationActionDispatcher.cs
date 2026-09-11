@@ -143,9 +143,14 @@ public sealed class AutomationActionDispatcher
 
         if (definition.ReachesOtherPeople && !grant.CanReachMembers)
         {
+            // The authority's own reason where it gave one. "No longer has permission" is the right
+            // sentence for an administrator who lost their role, and the wrong one for the owner of
+            // a community that has not been opened yet — they hold the permission, and there is
+            // simply nobody to address.
             Record(run, action, definition.Key, AutomationActionOutcomeStatus.Failed,
                 null, AutomationFailureKind.PermissionDenied,
-                "Whoever set this up no longer has permission to notify these members.", now);
+                grant.ReachRefusal
+                ?? "Whoever set this up no longer has permission to notify these members.", now);
             return;
         }
 

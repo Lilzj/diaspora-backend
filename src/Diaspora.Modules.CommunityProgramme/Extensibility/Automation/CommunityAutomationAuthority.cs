@@ -94,7 +94,18 @@ public sealed class CommunityAutomationAuthority : IAutomationScopeAuthority
             CanManage: true,
             CanReachMembers: canReach,
             Label: community.Name,
-            Capabilities: [CommunityCapability]);
+            Capabilities: [CommunityCapability],
+            ReachRefusal: community.Status switch
+            {
+                CommunityStatus.Active => null,
+                CommunityStatus.Pending =>
+                    "This community has not been opened yet, so there is nobody to notify. It will "
+                    + "reach members once Diaspora opens it.",
+                CommunityStatus.Suspended =>
+                    "This community is suspended, so its members cannot be notified until it is "
+                    + "reopened.",
+                _ => "This community is closed, so its members can no longer be notified."
+            });
     }
 
     public async Task<AutomationAudienceEstimate> EstimateAudienceAsync(
