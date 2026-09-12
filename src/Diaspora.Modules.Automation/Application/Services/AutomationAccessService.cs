@@ -56,6 +56,22 @@ public sealed record AutomationAccess
 
     public required IReadOnlyList<string> GrantedCapabilities { get; init; }
 
+    /// <summary>
+    /// Whether an action that reaches other people would reach anyone in the scope that was asked
+    /// about. False for a community that is not open, or one that is suspended or closed.
+    /// </summary>
+    public required bool CanReachMembers { get; init; }
+
+    /// <summary>
+    /// Why it would reach nobody, in the scope owner's own words, or null when it would.
+    /// <para>
+    /// <b>Served so a builder can say this before the rule is turned on.</b> The dispatcher has
+    /// always read it and recorded it as the reason an action did nothing, which means the member
+    /// found out after the fact, from a run record — the sentence existed and reached nobody.
+    /// </para>
+    /// </summary>
+    public string? ReachRefusal { get; init; }
+
     /// <summary>Nothing allowed. The safe default whenever nothing has said otherwise.</summary>
     public static AutomationAccess None() => new()
     {
@@ -74,7 +90,11 @@ public sealed record AutomationAccess
         MaxActiveAutomations = null,
         ActiveAutomations = 0,
         Provenance = "unavailable",
-        GrantedCapabilities = []
+        GrantedCapabilities = [],
+
+        // Nothing is reachable when nothing has been granted, and there is no scope to explain.
+        CanReachMembers = false,
+        ReachRefusal = null
     };
 }
 
@@ -193,7 +213,13 @@ public sealed class AutomationAccessService
             MaxActiveAutomations = _options.Value.MaximumActiveAutomationsPerOwner,
             ActiveAutomations = active,
             Provenance = "server",
-            GrantedCapabilities = capabilities
+            GrantedCapabilities = capabilities,
+
+            // The grant for the scope that was *asked about*, not the union above: "can this rule
+            // reach anyone" is a question about one community, and answering it from the union
+            // would say yes because some other scope of this member's is open.
+            CanReachMembers = grant.CanReachMembers,
+            ReachRefusal = grant.CanReachMembers ? null : grant.ReachRefusal
         });
     }
 

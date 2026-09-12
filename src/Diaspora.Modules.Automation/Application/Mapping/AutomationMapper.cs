@@ -194,7 +194,9 @@ public static class AutomationMapper
             MaxActiveAutomations = access.MaxActiveAutomations,
             ActiveAutomations = access.ActiveAutomations,
             Provenance = access.Provenance,
-            GrantedCapabilities = access.GrantedCapabilities
+            GrantedCapabilities = access.GrantedCapabilities,
+            CanReachMembers = access.CanReachMembers,
+            ReachRefusal = access.ReachRefusal
         };
     }
 

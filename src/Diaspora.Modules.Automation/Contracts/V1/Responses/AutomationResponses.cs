@@ -294,6 +294,12 @@ public sealed record AutomationAccessResponse
     public required string Provenance { get; init; }
 
     public required IReadOnlyList<string> GrantedCapabilities { get; init; }
+
+    /// <summary>Whether an action that reaches other people would reach anyone in this scope.</summary>
+    public required bool CanReachMembers { get; init; }
+
+    /// <summary>Why it would reach nobody, shown to the member as written, or null when it would.</summary>
+    public string? ReachRefusal { get; init; }
 }
 
 /// <summary>A count and prose. Never a member list.</summary>
