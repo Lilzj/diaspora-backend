@@ -191,3 +191,139 @@ public sealed class CommunityMembershipConfiguration : IEntityTypeConfiguration<
             .OnDelete(DeleteBehavior.Cascade);
     }
 }
+
+/// <summary>
+/// A request to close a community — 11 Sep 2026.
+/// <para>
+/// <b>Rows are kept after the request is over.</b> A community that was nearly closed and kept is a
+/// fact worth reading a year later, and a request that was carried out is the record of why a
+/// community that people remember is no longer there.
+/// </para>
+/// <para>
+/// <b>The deadline is indexed because a sweep asks for it every fifteen minutes.</b> "Which approved
+/// requests has the wait run out on" is the one query that runs whether or not anybody is looking.
+/// </para>
+/// </summary>
+public sealed class CommunityDeletionRequestConfiguration
+    : IEntityTypeConfiguration<CommunityDeletionRequest>
+{
+    public void Configure(EntityTypeBuilder<CommunityDeletionRequest> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.ToTable(
+            CommunityProgrammePersistenceConstants.CommunityDeletionRequestsTable,
+            CommunityProgrammeModuleMetadata.Schema);
+
+        builder.HasKey(request => request.Id);
+
+        builder.Property(request => request.Id)
+            .HasConversion(CommunityProgrammeValueConverters.Id<CommunityDeletionRequestId>())
+            .ValueGeneratedNever();
+
+        builder.Property(request => request.CommunityId)
+            .HasConversion(CommunityProgrammeValueConverters.Id<CommunityId>())
+            .IsRequired();
+
+        builder.Property(request => request.RequestedBy)
+            .HasConversion(CommunityProgrammeValueConverters.Id<UserId>())
+            .IsRequired();
+
+        builder.Property(request => request.ReviewedBy)
+            .HasConversion(CommunityProgrammeValueConverters.Id<UserId>());
+
+        builder.Property(request => request.Reason)
+            .HasMaxLength(CommunityDeletionRequest.ReasonMaximumLength)
+            .IsRequired();
+
+        builder.Property(request => request.DecisionReason)
+            .HasMaxLength(CommunityDeletionRequest.ReasonMaximumLength);
+
+        // As a string, for the reason every enum in this module is stored that way: reordering the
+        // enum must never silently reassign what a stored row means.
+        builder.Property(request => request.Status)
+            .HasConversion<string>()
+            .HasMaxLength(32)
+            .IsRequired();
+
+        builder.Property(request => request.RequestedAt).IsRequired();
+        builder.Property(request => request.EffectiveAt).IsRequired();
+
+        builder.HasIndex(request => new { request.CommunityId, request.Status })
+            .HasDatabaseName("ix_community_deletion_requests_community_status");
+
+        builder.HasIndex(request => new { request.Status, request.EffectiveAt })
+            .HasDatabaseName("ix_community_deletion_requests_status_effective");
+
+        builder.HasOne<CommunityAggregate>()
+            .WithMany()
+            .HasForeignKey(request => request.CommunityId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+/// <summary>
+/// An offer to hand a community over — 11 Sep 2026.
+/// <para>
+/// Indexed from both sides, because both sides ask: the community, for "is there an offer out on
+/// this one", and the person offered it, for "does anybody want me to take over theirs".
+/// </para>
+/// </summary>
+public sealed class CommunityOwnershipTransferConfiguration
+    : IEntityTypeConfiguration<CommunityOwnershipTransfer>
+{
+    public void Configure(EntityTypeBuilder<CommunityOwnershipTransfer> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.ToTable(
+            CommunityProgrammePersistenceConstants.CommunityOwnershipTransfersTable,
+            CommunityProgrammeModuleMetadata.Schema);
+
+        builder.HasKey(transfer => transfer.Id);
+
+        builder.Property(transfer => transfer.Id)
+            .HasConversion(CommunityProgrammeValueConverters.Id<CommunityOwnershipTransferId>())
+            .ValueGeneratedNever();
+
+        builder.Property(transfer => transfer.CommunityId)
+            .HasConversion(CommunityProgrammeValueConverters.Id<CommunityId>())
+            .IsRequired();
+
+        builder.Property(transfer => transfer.OfferedBy)
+            .HasConversion(CommunityProgrammeValueConverters.Id<UserId>())
+            .IsRequired();
+
+        builder.Property(transfer => transfer.OfferedTo)
+            .HasConversion(CommunityProgrammeValueConverters.Id<UserId>())
+            .IsRequired();
+
+        builder.Property(transfer => transfer.Message)
+            .HasMaxLength(CommunityOwnershipTransfer.MessageMaximumLength);
+
+        builder.Property(transfer => transfer.DeclineReason)
+            .HasMaxLength(CommunityOwnershipTransfer.MessageMaximumLength);
+
+        builder.Property(transfer => transfer.Status)
+            .HasConversion<string>()
+            .HasMaxLength(32)
+            .IsRequired();
+
+        builder.Property(transfer => transfer.OfferedAt).IsRequired();
+        builder.Property(transfer => transfer.ExpiresAt).IsRequired();
+
+        builder.HasIndex(transfer => new { transfer.CommunityId, transfer.Status })
+            .HasDatabaseName("ix_community_ownership_transfers_community_status");
+
+        builder.HasIndex(transfer => new { transfer.OfferedTo, transfer.Status })
+            .HasDatabaseName("ix_community_ownership_transfers_offered_to_status");
+
+        builder.HasIndex(transfer => new { transfer.Status, transfer.ExpiresAt })
+            .HasDatabaseName("ix_community_ownership_transfers_status_expiry");
+
+        builder.HasOne<CommunityAggregate>()
+            .WithMany()
+            .HasForeignKey(transfer => transfer.CommunityId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}

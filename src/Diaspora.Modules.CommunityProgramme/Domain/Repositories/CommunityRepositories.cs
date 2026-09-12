@@ -173,3 +173,69 @@ public interface ICommunityMembershipRepository
 
     void Add(CommunityMembership membership);
 }
+
+/// <summary>
+/// Reads and writes requests to close a community — 11 Sep 2026.
+/// <para>
+/// Two questions this has to answer that the community itself cannot: whether a community already
+/// has an open request, and which approved requests the wait has run out on. The second is what the
+/// lifecycle sweep asks, and it is why the deadline is indexed.
+/// </para>
+/// </summary>
+public interface ICommunityDeletionRequestRepository
+{
+    Task<CommunityDeletionRequest?> GetAsync(
+        CommunityDeletionRequestId id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The request still going for this community, if there is one — asked but not answered, or
+    /// answered and not yet carried out.
+    /// </summary>
+    Task<CommunityDeletionRequest?> FindOpenAsync(
+        CommunityId communityId, CancellationToken cancellationToken = default);
+
+    /// <summary>The most recent request for this community, whatever became of it.</summary>
+    Task<CommunityDeletionRequest?> FindLatestAsync(
+        CommunityId communityId, CancellationToken cancellationToken = default);
+
+    /// <summary>What a Diaspora administrator has to decide, oldest first: the queue.</summary>
+    Task<CursorPagedResult<CommunityDeletionRequest>> ListAsync(
+        CommunityDeletionStatus? status,
+        string? cursor,
+        int limit,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Approved, and the wait is over. The sweep's question.</summary>
+    Task<IReadOnlyList<CommunityDeletionRequest>> ListDueAsync(
+        DateTimeOffset now, int batchSize, CancellationToken cancellationToken = default);
+
+    void Add(CommunityDeletionRequest request);
+}
+
+/// <summary>
+/// Reads and writes offers to hand a community over — 11 Sep 2026.
+/// <para>
+/// An offer is answered by the person it was made to, so it has to be findable from their side as
+/// well as the community's: <see cref="ListOpenForMemberAsync"/> is what puts "somebody wants you to
+/// take over Nigerians in Leeds" in front of them.
+/// </para>
+/// </summary>
+public interface ICommunityOwnershipTransferRepository
+{
+    Task<CommunityOwnershipTransfer?> GetAsync(
+        CommunityOwnershipTransferId id, CancellationToken cancellationToken = default);
+
+    /// <summary>The offer still waiting for an answer on this community, if there is one.</summary>
+    Task<CommunityOwnershipTransfer?> FindOpenAsync(
+        CommunityId communityId, CancellationToken cancellationToken = default);
+
+    /// <summary>Every open offer made to this member, newest first.</summary>
+    Task<IReadOnlyList<CommunityOwnershipTransfer>> ListOpenForMemberAsync(
+        UserId memberId, CancellationToken cancellationToken = default);
+
+    /// <summary>Offers nobody answered in time. The sweep's question.</summary>
+    Task<IReadOnlyList<CommunityOwnershipTransfer>> ListLapsedAsync(
+        DateTimeOffset now, int batchSize, CancellationToken cancellationToken = default);
+
+    void Add(CommunityOwnershipTransfer transfer);
+}

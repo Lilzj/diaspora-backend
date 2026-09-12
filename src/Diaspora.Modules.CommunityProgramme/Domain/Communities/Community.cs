@@ -280,6 +280,43 @@ public sealed class Community : AggregateRoot<CommunityId>, IAuditableEntity
         return Result.Success();
     }
 
+    /// <summary>
+    /// Closes a community at the end of an approved deletion request — 11 Sep 2026.
+    /// <para>
+    /// <b>Closed, not erased.</b> A community is never hard-deleted here: everything written in it
+    /// belongs to the people who wrote it, and the links that point at it resolve to an explanation
+    /// rather than a 404. What ends is the community as a going concern — nobody joins, nobody posts,
+    /// and it leaves the directory.
+    /// </para>
+    /// <para>
+    /// Separate from <see cref="Archive"/>, which is silent and idempotent, because this one has to
+    /// be heard: the owner who asked for it is told it happened. Archiving twice must not announce a
+    /// closure twice, so an already-archived community is refused rather than waved through.
+    /// </para>
+    /// </summary>
+    public Result CloseForDeletion(UserId closedFor, string? reason)
+    {
+        ArgumentNullException.ThrowIfNull(closedFor);
+
+        if (Status == CommunityStatus.Archived)
+        {
+            return Result.Failure(CommunityErrors.ArchivedIsFinal);
+        }
+
+        Status = CommunityStatus.Archived;
+        StatusReason = reason?.Trim();
+
+        RaiseDomainEvent(new CommunityDeletedDomainEvent
+        {
+            CommunityId = Id,
+            CommunityName = Name,
+            ClosedFor = closedFor,
+            Reason = StatusReason
+        });
+
+        return Result.Success();
+    }
+
     // ── Description ─────────────────────────────────────────────────────────────────────────
 
     /// <summary>Renames the community. The slug is untouched — see the type summary.</summary>

@@ -207,6 +207,100 @@ public sealed class CommunityProgrammeIntegrationEventRelay
             cancellationToken);
     }
 
+    /// <summary>
+    /// A community's owner asking for it to be closed is not published — deliberately.
+    /// <para>
+    /// Nobody is notified when a request is made: the members are not told (the community carries on
+    /// as normal, and telling everybody it might close would end it early by itself) and Diaspora
+    /// administrators read the queue rather than their inbox. What is published is what was
+    /// <em>decided</em>, and what finally happened.
+    /// </para>
+    /// </summary>
+    public Task PublishAsync(
+        CommunityDeletionDecidedDomainEvent domainEvent,
+        string communitySlug,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(domainEvent);
+
+        return PublishSafelyAsync(
+            new CommunityDeletionDecidedIntegrationEvent
+            {
+                RequestId = domainEvent.RequestId.Value,
+                CommunityId = domainEvent.CommunityId.Value,
+                CommunityName = domainEvent.CommunityName,
+                CommunitySlug = communitySlug,
+                OwnerUserId = domainEvent.OwnerUserId.Value,
+                Approved = domainEvent.Approved,
+                DecisionReason = domainEvent.DecisionReason,
+                EffectiveAt = domainEvent.EffectiveAt
+            },
+            cancellationToken);
+    }
+
+    public Task PublishAsync(
+        CommunityDeletedDomainEvent domainEvent,
+        string communitySlug,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(domainEvent);
+
+        return PublishSafelyAsync(
+            new CommunityDeletedIntegrationEvent
+            {
+                CommunityId = domainEvent.CommunityId.Value,
+                CommunityName = domainEvent.CommunityName,
+                CommunitySlug = communitySlug,
+                OwnerUserId = domainEvent.ClosedFor.Value,
+                Reason = domainEvent.Reason,
+                ClosedAt = domainEvent.OccurredAt
+            },
+            cancellationToken);
+    }
+
+    public Task PublishAsync(
+        CommunityOwnershipOfferedDomainEvent domainEvent,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(domainEvent);
+
+        return PublishSafelyAsync(
+            new CommunityOwnershipOfferedIntegrationEvent
+            {
+                TransferId = domainEvent.TransferId.Value,
+                CommunityId = domainEvent.CommunityId.Value,
+                CommunityName = domainEvent.CommunityName,
+                CommunitySlug = domainEvent.CommunitySlug,
+                OfferedByUserId = domainEvent.OfferedBy.Value,
+                OfferedToUserId = domainEvent.OfferedTo.Value,
+                Message = domainEvent.Message,
+                ExpiresAt = domainEvent.ExpiresAt
+            },
+            cancellationToken);
+    }
+
+    public Task PublishAsync(
+        CommunityOwnershipDecidedDomainEvent domainEvent,
+        string communitySlug,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(domainEvent);
+
+        return PublishSafelyAsync(
+            new CommunityOwnershipDecidedIntegrationEvent
+            {
+                TransferId = domainEvent.TransferId.Value,
+                CommunityId = domainEvent.CommunityId.Value,
+                CommunityName = domainEvent.CommunityName,
+                CommunitySlug = communitySlug,
+                OfferedByUserId = domainEvent.OfferedBy.Value,
+                OfferedToUserId = domainEvent.OfferedTo.Value,
+                Accepted = domainEvent.Accepted,
+                DeclineReason = domainEvent.DeclineReason
+            },
+            cancellationToken);
+    }
+
     private async Task PublishSafelyAsync(
         IIntegrationEvent integrationEvent, CancellationToken cancellationToken)
     {
@@ -336,4 +430,92 @@ public sealed class CommunityMilestoneReachedEventHandler
     protected override Task HandleAsync(
         CommunityMilestoneReachedDomainEvent domainEvent, CancellationToken cancellationToken) =>
         _relay.PublishAsync(domainEvent, cancellationToken);
+}
+
+
+// ── Closing a community, and handing one over — 11 Sep 2026 ────────────────────────────
+//
+// Each of these reads the community for one field the domain event does not carry: the slug, which
+// is what a notification links to. The alternative was putting the slug on every domain event, and a
+// domain event is not the place to carry a field only a deep link needs.
+
+public sealed class CommunityDeletionDecidedEventHandler
+    : DomainEventHandler<CommunityDeletionDecidedDomainEvent>
+{
+    private readonly CommunityProgrammeIntegrationEventRelay _relay;
+    private readonly ICommunityRepository _communities;
+
+    public CommunityDeletionDecidedEventHandler(
+        CommunityProgrammeIntegrationEventRelay relay, ICommunityRepository communities)
+    {
+        _relay = relay;
+        _communities = communities;
+    }
+
+    protected override async Task HandleAsync(
+        CommunityDeletionDecidedDomainEvent domainEvent, CancellationToken cancellationToken)
+    {
+        var community = await _communities.GetAsync(domainEvent.CommunityId, cancellationToken);
+
+        await _relay.PublishAsync(
+            domainEvent, community?.Slug.Value ?? string.Empty, cancellationToken);
+    }
+}
+
+public sealed class CommunityDeletedEventHandler : DomainEventHandler<CommunityDeletedDomainEvent>
+{
+    private readonly CommunityProgrammeIntegrationEventRelay _relay;
+    private readonly ICommunityRepository _communities;
+
+    public CommunityDeletedEventHandler(
+        CommunityProgrammeIntegrationEventRelay relay, ICommunityRepository communities)
+    {
+        _relay = relay;
+        _communities = communities;
+    }
+
+    protected override async Task HandleAsync(
+        CommunityDeletedDomainEvent domainEvent, CancellationToken cancellationToken)
+    {
+        var community = await _communities.GetAsync(domainEvent.CommunityId, cancellationToken);
+
+        await _relay.PublishAsync(
+            domainEvent, community?.Slug.Value ?? string.Empty, cancellationToken);
+    }
+}
+
+public sealed class CommunityOwnershipOfferedEventHandler
+    : DomainEventHandler<CommunityOwnershipOfferedDomainEvent>
+{
+    private readonly CommunityProgrammeIntegrationEventRelay _relay;
+
+    public CommunityOwnershipOfferedEventHandler(
+        CommunityProgrammeIntegrationEventRelay relay) => _relay = relay;
+
+    protected override Task HandleAsync(
+        CommunityOwnershipOfferedDomainEvent domainEvent, CancellationToken cancellationToken) =>
+        _relay.PublishAsync(domainEvent, cancellationToken);
+}
+
+public sealed class CommunityOwnershipDecidedEventHandler
+    : DomainEventHandler<CommunityOwnershipDecidedDomainEvent>
+{
+    private readonly CommunityProgrammeIntegrationEventRelay _relay;
+    private readonly ICommunityRepository _communities;
+
+    public CommunityOwnershipDecidedEventHandler(
+        CommunityProgrammeIntegrationEventRelay relay, ICommunityRepository communities)
+    {
+        _relay = relay;
+        _communities = communities;
+    }
+
+    protected override async Task HandleAsync(
+        CommunityOwnershipDecidedDomainEvent domainEvent, CancellationToken cancellationToken)
+    {
+        var community = await _communities.GetAsync(domainEvent.CommunityId, cancellationToken);
+
+        await _relay.PublishAsync(
+            domainEvent, community?.Slug.Value ?? string.Empty, cancellationToken);
+    }
 }

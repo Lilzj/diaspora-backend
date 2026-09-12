@@ -50,6 +50,29 @@ public sealed class CommunityProgrammeOptions
     public int SweepBatchSize { get; set; } = 200;
 
     /// <summary>
+    /// How long a community waits between its owner asking for it to be closed and it closing.
+    /// <para>
+    /// Thirty days, and the wait is the feature: a community is a place other people meet in, and
+    /// the owner of a large one changing their mind on a Tuesday must not be able to take it away on
+    /// the Tuesday. Nothing about the community changes while it runs, and a Diaspora administrator
+    /// decides in the meantime — an approved request still waits, and an unreviewed one never
+    /// completes at all.
+    /// </para>
+    /// </summary>
+    [Range(1, 365)]
+    public int CommunityDeletionWaitDays { get; set; } = 30;
+
+    /// <summary>
+    /// How long an offer to hand a community over waits for an answer.
+    /// <para>
+    /// Fourteen days. An offer nobody answered must not sit open for ever: the community would have
+    /// a pending owner nobody remembers, and the owner could not offer it to anybody else.
+    /// </para>
+    /// </summary>
+    [Range(1, 90)]
+    public int CommunityOwnershipOfferDays { get; set; } = 14;
+
+    /// <summary>
     /// The key a poll voter's fingerprint is derived with.
     /// <para>
     /// <b>Change it and every anonymous poll's uniqueness rule resets</b>, because the fingerprints

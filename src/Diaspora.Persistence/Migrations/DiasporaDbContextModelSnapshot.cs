@@ -3753,6 +3753,69 @@ namespace Diaspora.Persistence.Migrations
                     b.ToTable("communities", "community_programme");
                 });
 
+            modelBuilder.Entity("Diaspora.Modules.CommunityProgramme.Domain.Communities.CommunityDeletionRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CommunityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DecisionReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTimeOffset>("EffectiveAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTimeOffset>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RequestedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ReviewedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ReviewedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CommunityId", "Status")
+                        .HasDatabaseName("ix_community_deletion_requests_community_status");
+
+                    b.HasIndex("Status", "EffectiveAt")
+                        .HasDatabaseName("ix_community_deletion_requests_status_effective");
+
+                    b.ToTable("community_deletion_requests", "community_programme");
+                });
+
             modelBuilder.Entity("Diaspora.Modules.CommunityProgramme.Domain.Communities.CommunityMembership", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3828,6 +3891,68 @@ namespace Diaspora.Persistence.Migrations
                         .HasDatabaseName("ix_community_memberships_member_state");
 
                     b.ToTable("community_memberships", "community_programme");
+                });
+
+            modelBuilder.Entity("Diaspora.Modules.CommunityProgramme.Domain.Communities.CommunityOwnershipTransfer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CommunityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DeclineReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("OfferedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("OfferedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("OfferedTo")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("RespondedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CommunityId", "Status")
+                        .HasDatabaseName("ix_community_ownership_transfers_community_status");
+
+                    b.HasIndex("OfferedTo", "Status")
+                        .HasDatabaseName("ix_community_ownership_transfers_offered_to_status");
+
+                    b.HasIndex("Status", "ExpiresAt")
+                        .HasDatabaseName("ix_community_ownership_transfers_status_expiry");
+
+                    b.ToTable("community_ownership_transfers", "community_programme");
                 });
 
             modelBuilder.Entity("Diaspora.Modules.CommunityProgramme.Domain.Memberships.MembershipProgramme", b =>
@@ -20342,7 +20467,25 @@ namespace Diaspora.Persistence.Migrations
                     b.Navigation("Media");
                 });
 
+            modelBuilder.Entity("Diaspora.Modules.CommunityProgramme.Domain.Communities.CommunityDeletionRequest", b =>
+                {
+                    b.HasOne("Diaspora.Modules.CommunityProgramme.Domain.Communities.Community", null)
+                        .WithMany()
+                        .HasForeignKey("CommunityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Diaspora.Modules.CommunityProgramme.Domain.Communities.CommunityMembership", b =>
+                {
+                    b.HasOne("Diaspora.Modules.CommunityProgramme.Domain.Communities.Community", null)
+                        .WithMany()
+                        .HasForeignKey("CommunityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Diaspora.Modules.CommunityProgramme.Domain.Communities.CommunityOwnershipTransfer", b =>
                 {
                     b.HasOne("Diaspora.Modules.CommunityProgramme.Domain.Communities.Community", null)
                         .WithMany()

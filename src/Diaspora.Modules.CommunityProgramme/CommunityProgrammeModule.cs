@@ -77,6 +77,8 @@ public sealed class CommunityProgrammeModule : IPlatformModule
         // repositories because a community is what a programme's organization serves.
         services.AddScoped<ICommunityRepository, CommunityRepository>();
         services.AddScoped<ICommunityMembershipRepository, CommunityMembershipRepository>();
+        services.AddScoped<ICommunityDeletionRequestRepository, CommunityDeletionRequestRepository>();
+        services.AddScoped<ICommunityOwnershipTransferRepository, CommunityOwnershipTransferRepository>();
 
         services.AddScoped<IMembershipProgrammeRepository, MembershipProgrammeRepository>();
         services.AddScoped<IProgrammeMembershipRepository, ProgrammeMembershipRepository>();

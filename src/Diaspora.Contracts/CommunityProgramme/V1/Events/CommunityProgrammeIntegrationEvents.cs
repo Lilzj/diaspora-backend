@@ -202,3 +202,94 @@ public sealed record CommunityMilestoneReachedIntegrationEvent : IntegrationEven
 
     public required DateTimeOffset ReachedAt { get; init; }
 }
+
+
+// ══ Closing a community, and handing one over — 11 Sep 2026 ═════════════════════════════
+//
+// Every field below is a primitive, as every contract in this file is: a consumer in another module
+// must not need this module's identifiers to read what happened.
+
+/// <summary>
+/// A Diaspora administrator decided what happens to a community whose owner asked for it to be
+/// closed. The owner is told either way, and on a refusal the reason is the message.
+/// </summary>
+public sealed record CommunityDeletionDecidedIntegrationEvent : IntegrationEvent
+{
+    public required Guid RequestId { get; init; }
+
+    public required Guid CommunityId { get; init; }
+
+    public required string CommunityName { get; init; }
+
+    public required string CommunitySlug { get; init; }
+
+    /// <summary>The owner who asked — the person notified.</summary>
+    public required Guid OwnerUserId { get; init; }
+
+    public required bool Approved { get; init; }
+
+    /// <summary>Required on a refusal. Shown to the owner verbatim.</summary>
+    public string? DecisionReason { get; init; }
+
+    /// <summary>When the community closes, if it is going to.</summary>
+    public required DateTimeOffset EffectiveAt { get; init; }
+}
+
+/// <summary>The wait ran out on an approved request and the community is closed.</summary>
+public sealed record CommunityDeletedIntegrationEvent : IntegrationEvent
+{
+    public required Guid CommunityId { get; init; }
+
+    public required string CommunityName { get; init; }
+
+    public required string CommunitySlug { get; init; }
+
+    /// <summary>The owner who asked for it.</summary>
+    public required Guid OwnerUserId { get; init; }
+
+    public string? Reason { get; init; }
+
+    public required DateTimeOffset ClosedAt { get; init; }
+}
+
+/// <summary>An owner asked somebody who helps run their community to take it over.</summary>
+public sealed record CommunityOwnershipOfferedIntegrationEvent : IntegrationEvent
+{
+    public required Guid TransferId { get; init; }
+
+    public required Guid CommunityId { get; init; }
+
+    public required string CommunityName { get; init; }
+
+    public required string CommunitySlug { get; init; }
+
+    public required Guid OfferedByUserId { get; init; }
+
+    /// <summary>The moderator or administrator being asked — the person notified.</summary>
+    public required Guid OfferedToUserId { get; init; }
+
+    public string? Message { get; init; }
+
+    public required DateTimeOffset ExpiresAt { get; init; }
+}
+
+/// <summary>The person asked has answered. The owner who asked is told either way.</summary>
+public sealed record CommunityOwnershipDecidedIntegrationEvent : IntegrationEvent
+{
+    public required Guid TransferId { get; init; }
+
+    public required Guid CommunityId { get; init; }
+
+    public required string CommunityName { get; init; }
+
+    public required string CommunitySlug { get; init; }
+
+    /// <summary>The owner who offered — the person notified.</summary>
+    public required Guid OfferedByUserId { get; init; }
+
+    public required Guid OfferedToUserId { get; init; }
+
+    public required bool Accepted { get; init; }
+
+    public string? DeclineReason { get; init; }
+}

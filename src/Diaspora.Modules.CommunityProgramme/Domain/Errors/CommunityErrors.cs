@@ -201,4 +201,79 @@ public static class CommunityErrors
     public static readonly Error OwnerCannotBeRemoved = Error.Conflict(
         CommunityErrorCodes.OwnerCannotBeRemoved,
         "The owner of a community can't be removed from it.");
+
+    // ── Closing a community, and handing one over — 11 Sep 2026 ─────────────────────────────
+    //
+    // Every description here is read by the owner of a community at a moment when they are trying
+    // to stop running it, so each says what to do next rather than only what went wrong.
+
+    public static readonly Error OnlyOwnerRequestsDeletion = Error.Forbidden(
+        CommunityErrorCodes.OnlyOwnerRequestsDeletion,
+        "Only the owner of a community can ask Diaspora to close it.");
+
+    public static readonly Error DeletionNeedsReason = Error.Validation(
+        CommunityErrorCodes.DeletionNeedsReason,
+        "Tell Diaspora why you want this community closed. A sentence is enough, and the person "
+        + "reviewing it reads what you write.");
+
+    public static readonly Error DeletionReasonTooLong = Error.Validation(
+        CommunityErrorCodes.DeletionReasonTooLong,
+        "That reason is too long. Keep it under 1,000 characters.");
+
+    public static readonly Error DeletionAlreadyRequested = Error.Conflict(
+        CommunityErrorCodes.DeletionAlreadyRequested,
+        "You have already asked Diaspora to close this community.");
+
+    public static readonly Error DeletionNotRequested = Error.NotFound(
+        CommunityErrorCodes.DeletionNotRequested,
+        "There is no open request to close this community.");
+
+    public static readonly Error DeletionAlreadyDecided = Error.Conflict(
+        CommunityErrorCodes.DeletionAlreadyDecided,
+        "This request has already been decided.");
+
+    public static readonly Error DeletionDecisionNeedsReason = Error.Validation(
+        CommunityErrorCodes.DeletionDecisionNeedsReason,
+        "Say why the community is not being closed. The owner is shown this, word for word.");
+
+    public static readonly Error DeletionNotDue = Error.Conflict(
+        CommunityErrorCodes.DeletionNotDue,
+        "This community is not due to close yet.");
+
+    public static readonly Error OnlyOwnerOffersOwnership = Error.Forbidden(
+        CommunityErrorCodes.OnlyOwnerOffersOwnership,
+        "Only the owner of a community can hand it to somebody else.");
+
+    public static readonly Error OwnershipOfferToSelf = Error.Validation(
+        CommunityErrorCodes.OwnershipOfferToSelf,
+        "You already own this community.");
+
+    public static readonly Error OwnershipNeedsHelper = Error.Conflict(
+        CommunityErrorCodes.OwnershipNeedsHelper,
+        "A community can only be handed to one of its moderators or administrators, and their "
+        + "membership has to be visible to the community.");
+
+    public static readonly Error OwnershipOfferAlreadyOpen = Error.Conflict(
+        CommunityErrorCodes.OwnershipOfferAlreadyOpen,
+        "You have already offered this community to somebody. Take that offer back first.");
+
+    public static readonly Error OwnershipOfferAlreadyAnswered = Error.Conflict(
+        CommunityErrorCodes.OwnershipOfferAlreadyAnswered,
+        "This offer has already been answered.");
+
+    public static readonly Error OwnershipOfferExpired = Error.Conflict(
+        CommunityErrorCodes.OwnershipOfferExpired,
+        "This offer has run out of time. Ask the owner to send it again.");
+
+    public static readonly Error OwnershipOfferNotYours = Error.Forbidden(
+        CommunityErrorCodes.OwnershipOfferNotYours,
+        "This offer was made to somebody else.");
+
+    public static readonly Error OwnershipOfferStale = Error.Conflict(
+        CommunityErrorCodes.OwnershipOfferStale,
+        "This community has changed hands since the offer was made, so the offer no longer stands.");
+
+    public static readonly Error NotTheOwner = Error.Conflict(
+        CommunityErrorCodes.NotTheOwner,
+        "This member does not own the community.");
 }

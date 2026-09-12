@@ -234,6 +234,12 @@ public sealed record CommunityMemberCapabilitiesResponse
     /// <summary>Leave the community. Every current member except its Owner.</summary>
     public required bool CanLeave { get; init; }
 
+    /// <summary>Ask Diaspora to close this community. The Owner's alone.</summary>
+    public required bool CanRequestDeletion { get; init; }
+
+    /// <summary>Offer the community to one of its moderators or administrators. The Owner's alone.</summary>
+    public required bool CanTransferOwnership { get; init; }
+
     public required bool CanViewModerationQueue { get; init; }
 
     public required bool CanViewAmbassadorDirectory { get; init; }
@@ -328,4 +334,76 @@ public sealed record CommunityMemberResponse
 
     /// <summary>Whether this row is the caller's own.</summary>
     public required bool IsYou { get; init; }
+}
+
+// ── Closing a community, and handing one over — 11 Sep 2026 ─────────────────────────────────
+
+/// <summary>
+/// A request to close a community, as its owner and the administrators reviewing it see it.
+/// <para>
+/// The names ride along because every screen that shows one of these shows who asked, and a client
+/// that had to resolve a user id would either make a second request or print a Guid.
+/// </para>
+/// </summary>
+public sealed record CommunityDeletionRequestResponse
+{
+    public required Guid Id { get; init; }
+
+    public required Guid CommunityId { get; init; }
+
+    public required string CommunityName { get; init; }
+
+    public required string CommunitySlug { get; init; }
+
+    /// <summary><c>AwaitingReview | Approved | Rejected | Withdrawn | Completed</c>.</summary>
+    public required string Status { get; init; }
+
+    /// <summary>The owner's words.</summary>
+    public required string Reason { get; init; }
+
+    public required Guid RequestedBy { get; init; }
+
+    public string? RequestedByName { get; init; }
+
+    public required DateTimeOffset RequestedAt { get; init; }
+
+    /// <summary>The earliest the community can close. Thirty days after it was asked for.</summary>
+    public required DateTimeOffset EffectiveAt { get; init; }
+
+    public DateTimeOffset? ReviewedAt { get; init; }
+
+    /// <summary>The administrator's words, shown to the owner verbatim.</summary>
+    public string? DecisionReason { get; init; }
+}
+
+/// <summary>An offer to hand a community over, as either side sees it.</summary>
+public sealed record CommunityOwnershipOfferResponse
+{
+    public required Guid Id { get; init; }
+
+    public required Guid CommunityId { get; init; }
+
+    public required string CommunityName { get; init; }
+
+    /// <summary>So a notification can link to the community by handle.</summary>
+    public required string CommunitySlug { get; init; }
+
+    /// <summary><c>Offered | Accepted | Declined | Withdrawn | Expired</c>.</summary>
+    public required string Status { get; init; }
+
+    public required Guid OfferedBy { get; init; }
+
+    public string? OfferedByName { get; init; }
+
+    public required Guid OfferedTo { get; init; }
+
+    public string? OfferedToName { get; init; }
+
+    public string? Message { get; init; }
+
+    public required DateTimeOffset OfferedAt { get; init; }
+
+    public required DateTimeOffset ExpiresAt { get; init; }
+
+    public string? DeclineReason { get; init; }
 }

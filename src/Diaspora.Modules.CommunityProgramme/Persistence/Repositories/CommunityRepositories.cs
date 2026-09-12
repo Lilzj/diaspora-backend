@@ -357,3 +357,172 @@ public sealed class CommunityMembershipRepository : ICommunityMembershipReposito
         Memberships.Add(membership);
     }
 }
+
+/// <summary>
+/// Reads and writes requests to close a community — 11 Sep 2026.
+/// <para>
+/// Nothing here filters on who may see a request: this layer answers "what is stored", and whether
+/// the caller is the owner or a Diaspora administrator is the handler's decision, made once.
+/// </para>
+/// </summary>
+public sealed class CommunityDeletionRequestRepository : ICommunityDeletionRequestRepository
+{
+    private readonly DiasporaDbContext _dbContext;
+
+    public CommunityDeletionRequestRepository(DiasporaDbContext dbContext) => _dbContext = dbContext;
+
+    private DbSet<CommunityDeletionRequest> Requests => _dbContext.Set<CommunityDeletionRequest>();
+
+    public async Task<CommunityDeletionRequest?> GetAsync(
+        CommunityDeletionRequestId id, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+
+        return await Requests.FirstOrDefaultAsync(request => request.Id == id, cancellationToken);
+    }
+
+    public async Task<CommunityDeletionRequest?> FindOpenAsync(
+        CommunityId communityId, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(communityId);
+
+        return await Requests
+            .Where(request =>
+                request.CommunityId == communityId
+                && (request.Status == CommunityDeletionStatus.AwaitingReview
+                    || request.Status == CommunityDeletionStatus.Approved))
+            .OrderByDescending(request => request.RequestedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<CommunityDeletionRequest?> FindLatestAsync(
+        CommunityId communityId, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(communityId);
+
+        return await Requests
+            .Where(request => request.CommunityId == communityId)
+            .OrderByDescending(request => request.RequestedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<CursorPagedResult<CommunityDeletionRequest>> ListAsync(
+        CommunityDeletionStatus? status,
+        string? cursor,
+        int limit,
+        CancellationToken cancellationToken = default)
+    {
+        var query = Requests.AsNoTracking();
+
+        if (status is { } wanted)
+        {
+            query = query.Where(request => request.Status == wanted);
+        }
+
+        var parsed = CommunityProgrammeCursor.Parse(cursor);
+
+        query = CursorPage.Apply(
+            query,
+            parsed,
+            CommunityDeletionRequestId.From,
+            request => request.RequestedAt,
+            request => request.Id);
+
+        query = query
+            .OrderByDescending(request => request.RequestedAt)
+            .ThenBy(request => request.Id);
+
+        return await CursorPage.MaterialiseAsync(
+            query,
+            parsed,
+            Math.Clamp(limit, 1, CommunityProgrammeLimits.MaxPageSize),
+            request => request.RequestedAt,
+            request => request.Id.Value,
+            cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<CommunityDeletionRequest>> ListDueAsync(
+        DateTimeOffset now, int batchSize, CancellationToken cancellationToken = default)
+    {
+        var due = await Requests
+            .Where(request =>
+                request.Status == CommunityDeletionStatus.Approved
+                && request.EffectiveAt <= now)
+            .OrderBy(request => request.EffectiveAt)
+            .Take(Math.Clamp(batchSize, 1, CommunityProgrammeLimits.MaxPageSize))
+            .ToListAsync(cancellationToken);
+
+        return due;
+    }
+
+    public void Add(CommunityDeletionRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        Requests.Add(request);
+    }
+}
+
+/// <summary>Reads and writes offers to hand a community over — 11 Sep 2026.</summary>
+public sealed class CommunityOwnershipTransferRepository : ICommunityOwnershipTransferRepository
+{
+    private readonly DiasporaDbContext _dbContext;
+
+    public CommunityOwnershipTransferRepository(DiasporaDbContext dbContext) =>
+        _dbContext = dbContext;
+
+    private DbSet<CommunityOwnershipTransfer> Transfers =>
+        _dbContext.Set<CommunityOwnershipTransfer>();
+
+    public async Task<CommunityOwnershipTransfer?> GetAsync(
+        CommunityOwnershipTransferId id, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+
+        return await Transfers.FirstOrDefaultAsync(transfer => transfer.Id == id, cancellationToken);
+    }
+
+    public async Task<CommunityOwnershipTransfer?> FindOpenAsync(
+        CommunityId communityId, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(communityId);
+
+        return await Transfers
+            .Where(transfer =>
+                transfer.CommunityId == communityId
+                && transfer.Status == CommunityOwnershipTransferStatus.Offered)
+            .OrderByDescending(transfer => transfer.OfferedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<CommunityOwnershipTransfer>> ListOpenForMemberAsync(
+        UserId memberId, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(memberId);
+
+        return await Transfers
+            .Where(transfer =>
+                transfer.OfferedTo == memberId
+                && transfer.Status == CommunityOwnershipTransferStatus.Offered)
+            .OrderByDescending(transfer => transfer.OfferedAt)
+            .Take(CommunityProgrammeLimits.DefaultPageSize)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<CommunityOwnershipTransfer>> ListLapsedAsync(
+        DateTimeOffset now, int batchSize, CancellationToken cancellationToken = default)
+    {
+        return await Transfers
+            .Where(transfer =>
+                transfer.Status == CommunityOwnershipTransferStatus.Offered
+                && transfer.ExpiresAt <= now)
+            .OrderBy(transfer => transfer.ExpiresAt)
+            .Take(Math.Clamp(batchSize, 1, CommunityProgrammeLimits.MaxPageSize))
+            .ToListAsync(cancellationToken);
+    }
+
+    public void Add(CommunityOwnershipTransfer transfer)
+    {
+        ArgumentNullException.ThrowIfNull(transfer);
+        Transfers.Add(transfer);
+    }
+}

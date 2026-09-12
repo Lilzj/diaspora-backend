@@ -106,6 +106,32 @@ public static class NotificationTemplateKeys
     /// <summary>An organiser confirmed the hours worked. A receipt, and the credential behind it.</summary>
     public const string VolunteerHoursConfirmed = "communities.volunteer.hours.confirmed";
 
+    // ── Closing a community, and handing one over ────────────────────────
+    //
+    // Two things an owner sets in motion and then stops watching a screen for: asking Diaspora to
+    // close the community, and asking somebody who already helps run it to take it over. Both are
+    // answered elsewhere — by an administrator reading a queue, or by the person who was asked —
+    // hours or days later. Every key below exists because the person waiting is owed the answer
+    // rather than left to find it.
+
+    /// <summary>Diaspora agreed to close a community. Names the day it closes.</summary>
+    public const string CommunityClosureApproved = "communities.closure.approved";
+
+    /// <summary>Diaspora refused to. Carries the administrator's own words.</summary>
+    public const string CommunityClosureRefused = "communities.closure.refused";
+
+    /// <summary>The wait ran out on an approved request and the community is closed.</summary>
+    public const string CommunityClosed = "communities.closed";
+
+    /// <summary>Somebody was asked to take a community on. Names the day the offer lapses.</summary>
+    public const string CommunityOwnershipOffered = "communities.ownership.offered";
+
+    /// <summary>The person asked said yes. To the owner who asked.</summary>
+    public const string CommunityOwnershipAccepted = "communities.ownership.accepted";
+
+    /// <summary>The person asked said no. Carries their words, when they gave any.</summary>
+    public const string CommunityOwnershipDeclined = "communities.ownership.declined";
+
     public const string CommunityMention = "community.mention";
     public const string CommunityReply = "community.reply";
     public const string CommunityComment = "community.comment";

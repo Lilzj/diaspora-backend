@@ -147,3 +147,34 @@ public sealed record CommunityMembershipId(Guid Value) : StronglyTypedId(Value)
     public static CommunityMembershipId New() => new(Guid.NewGuid());
     public static CommunityMembershipId From(Guid value) => new(value);
 }
+
+/// <summary>
+/// One owner's request that Diaspora close their community — 11 Sep 2026.
+/// <para>
+/// Its own row rather than a set of columns on the community, because a request has a life of its
+/// own: it is made, it waits, it is reviewed, and it is either carried out or refused. A community
+/// that was nearly deleted and kept is a fact worth being able to read afterwards, and a column
+/// that had been overwritten by the next request could not answer it.
+/// </para>
+/// </summary>
+public sealed record CommunityDeletionRequestId(Guid Value) : StronglyTypedId(Value)
+{
+    public static CommunityDeletionRequestId New() => new(Guid.NewGuid());
+
+    public static CommunityDeletionRequestId From(Guid value) => new(value);
+}
+
+/// <summary>
+/// An offer to hand a community to somebody who helps run it — 11 Sep 2026.
+/// <para>
+/// Separate from the membership it will eventually change, for the reason every invitation on this
+/// platform is its own row: it is pending until the person answers, and a membership that recorded
+/// "will be the owner" would be asserting something nobody agreed to.
+/// </para>
+/// </summary>
+public sealed record CommunityOwnershipTransferId(Guid Value) : StronglyTypedId(Value)
+{
+    public static CommunityOwnershipTransferId New() => new(Guid.NewGuid());
+
+    public static CommunityOwnershipTransferId From(Guid value) => new(value);
+}

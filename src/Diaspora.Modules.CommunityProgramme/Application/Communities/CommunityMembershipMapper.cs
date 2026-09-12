@@ -67,6 +67,8 @@ internal static class CommunityMembershipMapper
             CanManageRoles = capabilities.CanManageRoles,
             CanAppointAdministrators = capabilities.CanAppointAdministrators,
             CanLeave = capabilities.CanLeave,
+            CanRequestDeletion = capabilities.CanRequestDeletion,
+            CanTransferOwnership = capabilities.CanTransferOwnership,
             CanViewModerationQueue = capabilities.CanViewModerationQueue,
             CanViewAmbassadorDirectory = capabilities.CanViewAmbassadorDirectory,
             CanManageInitiatives = capabilities.CanManageInitiatives

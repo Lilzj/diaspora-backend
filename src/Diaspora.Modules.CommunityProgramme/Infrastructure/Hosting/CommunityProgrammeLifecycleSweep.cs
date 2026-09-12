@@ -152,6 +152,9 @@ public sealed class CommunityProgrammeLifecycleSweep : BackgroundService
         var memberships = services.GetRequiredService<IProgrammeMembershipRepository>();
         var polls = services.GetRequiredService<ICommunityPollRepository>();
         var opportunities = services.GetRequiredService<IVolunteerOpportunityRepository>();
+        var communities = services.GetRequiredService<ICommunityRepository>();
+        var deletions = services.GetRequiredService<ICommunityDeletionRequestRepository>();
+        var transfers = services.GetRequiredService<ICommunityOwnershipTransferRepository>();
 
         var now = clock.UtcNow;
         var batch = _options.Value.SweepBatchSize;
@@ -215,6 +218,57 @@ public sealed class CommunityProgrammeLifecycleSweep : BackgroundService
             now, batch, cancellationToken))
         {
             if (opportunity.MoveTo(VolunteerOpportunityStatus.Closed, now).IsSuccess)
+            {
+                moved++;
+            }
+        }
+
+        // ── Communities their owners asked Diaspora to close — 11 Sep 2026 ───────────────
+        //
+        // **Only what was approved, and only after the wait.** `ListDueAsync` asks for both, and the
+        // aggregate refuses anything else, so a request nobody reviewed is never carried out however
+        // long it sits here. The thirty days are the member-facing promise; this is where it is kept.
+
+        foreach (var request in await deletions.ListDueAsync(now, batch, cancellationToken))
+        {
+            var community = await communities.GetAsync(request.CommunityId, cancellationToken);
+
+            if (community is null)
+            {
+                // The community is gone from under the request. Nothing to close, and nothing to
+                // announce — close the request so the queue does not keep finding it.
+                if (request.Complete(now).IsSuccess)
+                {
+                    moved++;
+                }
+
+                continue;
+            }
+
+            var closed = community.CloseForDeletion(request.RequestedBy, request.Reason);
+
+            if (closed.IsFailure)
+            {
+                // Already archived by some other path. The request is finished either way.
+                if (request.Complete(now).IsSuccess)
+                {
+                    moved++;
+                }
+
+                continue;
+            }
+
+            if (request.Complete(now).IsSuccess)
+            {
+                moved++;
+            }
+        }
+
+        // ── Offers to hand a community over that nobody answered ───────────────────────
+
+        foreach (var transfer in await transfers.ListLapsedAsync(now, batch, cancellationToken))
+        {
+            if (transfer.Expire(now).IsSuccess)
             {
                 moved++;
             }

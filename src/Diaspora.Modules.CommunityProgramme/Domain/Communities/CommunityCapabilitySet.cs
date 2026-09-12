@@ -69,6 +69,24 @@ public sealed record CommunityCapabilitySet
     /// </summary>
     public required bool CanLeave { get; init; }
 
+    /// <summary>
+    /// Ask Diaspora to close this community. The Owner's alone, and never for one already closed.
+    /// <para>
+    /// It performs nothing on its own: the request waits thirty days and a Diaspora administrator
+    /// decides in the meantime. See <see cref="CommunityDeletionRequest"/>.
+    /// </para>
+    /// </summary>
+    public required bool CanRequestDeletion { get; init; }
+
+    /// <summary>
+    /// Offer the community to one of its moderators or administrators. The Owner's alone.
+    /// <para>
+    /// The way out of owning a community: an owner cannot leave, so handing it on is what stepping
+    /// back looks like. The person offered it has to accept.
+    /// </para>
+    /// </summary>
+    public required bool CanTransferOwnership { get; init; }
+
     public required bool CanViewModerationQueue { get; init; }
 
     public required bool CanViewAmbassadorDirectory { get; init; }
@@ -91,6 +109,8 @@ public sealed record CommunityCapabilitySet
         CanManageRoles = false,
         CanAppointAdministrators = false,
         CanLeave = false,
+        CanRequestDeletion = false,
+        CanTransferOwnership = false,
         CanViewModerationQueue = false,
         CanViewAmbassadorDirectory = false,
         CanManageInitiatives = false
@@ -156,6 +176,8 @@ public sealed record CommunityCapabilitySet
             CanManageRoles = administers && !isArchived,
             CanAppointAdministrators = owns && !isArchived,
             CanLeave = isMember && !owns,
+            CanRequestDeletion = owns && !isArchived,
+            CanTransferOwnership = owns && !isArchived,
             CanManageInitiatives = represents && !isArchived
         };
     }

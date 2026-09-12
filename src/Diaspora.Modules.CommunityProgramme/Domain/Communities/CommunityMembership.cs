@@ -493,6 +493,38 @@ public sealed class CommunityMembership : AggregateRoot<CommunityMembershipId>, 
         return Result.Success();
     }
 
+    /// <summary>
+    /// Hands the office on — 11 Sep 2026.
+    /// <para>
+    /// The Owner role goes and Administrator stays: the person who founded a community usually knows
+    /// best how it is run, and the new owner can remove them if that is not wanted. Being no longer
+    /// the owner, they may also leave now, which as owner they could not.
+    /// </para>
+    /// <para>
+    /// Reachable only from an accepted <see cref="CommunityOwnershipTransfer"/>. There is no route
+    /// that gives up ownership into thin air: a community with no owner is one nobody can appoint
+    /// anybody in, and the only cure is a Diaspora administrator.
+    /// </para>
+    /// </summary>
+    public Result StepDownAsOwner()
+    {
+        if (!Holds(CommunityMembershipRole.Owner))
+        {
+            return Result.Failure(CommunityErrors.NotTheOwner);
+        }
+
+        _roles.RemoveAll(held =>
+            string.Equals(held, CommunityMembershipRole.Owner.ToString(), StringComparison.Ordinal));
+
+        if (!Holds(CommunityMembershipRole.Administrator))
+        {
+            _roles.Add(CommunityMembershipRole.Administrator.ToString());
+        }
+
+        Revision++;
+        return Result.Success();
+    }
+
     /// <summary>Whether this membership holds a role.</summary>
     public bool Holds(CommunityMembershipRole role) =>
         _roles.Contains(role.ToString(), StringComparer.Ordinal);

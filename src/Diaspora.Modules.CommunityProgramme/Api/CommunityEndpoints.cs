@@ -325,5 +325,161 @@ internal static class CommunityEndpoints
             .WithSummary(
                 "Make a member the owner of a community that has none — the curated ones nobody "
                 + "founded. Platform administrators only.");
+
+        // ── Closing a community, and handing one over — 11 Sep 2026 ────────────────
+        //
+        // The staff routes are literal segments (`/deletion-requests`), which routing prefers over
+        // `{idOrSlug}`, so a community can never be mistaken for the queue.
+
+        group.MapPost("/{idOrSlug}/deletion-request", async (
+                string idOrSlug,
+                RequestCommunityDeletionRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new RequestCommunityDeletionCommand
+                        {
+                            IdOrSlug = idOrSlug,
+                            Request = request
+                        },
+                        cancellationToken)))
+            .WithName("RequestCommunityDeletion")
+            .WithSummary(
+                "Ask Diaspora to close this community. The owner's alone, needs a reason, and "
+                + "performs nothing: it waits thirty days while a Diaspora administrator decides.");
+
+        group.MapDelete("/{idOrSlug}/deletion-request", async (
+                string idOrSlug,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new WithdrawCommunityDeletionCommand { IdOrSlug = idOrSlug },
+                        cancellationToken)))
+            .WithName("WithdrawCommunityDeletion")
+            .WithSummary("Change your mind. The owner's, at any point before the community closes.");
+
+        group.MapGet("/{idOrSlug}/deletion-request", async (
+                string idOrSlug,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new GetCommunityDeletionRequestQuery { IdOrSlug = idOrSlug },
+                        cancellationToken)))
+            .WithName("GetCommunityDeletionRequest")
+            .WithSummary(
+                "What is happening to this community, if anything. Whoever runs it, and Diaspora — "
+                + "not its members, who are told nothing while the wait runs.");
+
+        group.MapGet("/deletion-requests", async (
+                string? status,
+                string? cursor,
+                int? limit,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new ListCommunityDeletionRequestsQuery
+                        {
+                            Status = status,
+                            Cursor = cursor,
+                            Limit = limit ?? 20
+                        },
+                        cancellationToken)))
+            .WithName("ListCommunityDeletionRequests")
+            .WithSummary("The review queue. Platform administrators only.");
+
+        group.MapPost("/deletion-requests/{requestId:guid}/decision", async (
+                Guid requestId,
+                DecideCommunityDeletionRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new DecideCommunityDeletionCommand
+                        {
+                            RequestId = requestId,
+                            Request = request
+                        },
+                        cancellationToken)))
+            .WithName("DecideCommunityDeletion")
+            .WithSummary(
+                "Approve or refuse a request to close a community. Platform administrators only. A "
+                + "refusal needs a reason, which the owner is shown word for word.");
+
+        group.MapPost("/{idOrSlug}/ownership-offers", async (
+                string idOrSlug,
+                OfferCommunityOwnershipRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new OfferCommunityOwnershipCommand
+                        {
+                            IdOrSlug = idOrSlug,
+                            Request = request
+                        },
+                        cancellationToken)))
+            .WithName("OfferCommunityOwnership")
+            .WithSummary(
+                "Offer the community to one of its moderators or administrators. The owner's alone, "
+                + "and it is an offer: they accept or refuse.");
+
+        group.MapDelete("/{idOrSlug}/ownership-offers", async (
+                string idOrSlug,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new WithdrawCommunityOwnershipOfferCommand { IdOrSlug = idOrSlug },
+                        cancellationToken)))
+            .WithName("WithdrawCommunityOwnershipOffer")
+            .WithSummary("Take back an offer nobody has answered yet.");
+
+        group.MapGet("/ownership-offers/mine", async (
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(new ListMyCommunityOwnershipOffersQuery(), cancellationToken)))
+            .WithName("ListMyCommunityOwnershipOffers")
+            .WithSummary("Communities somebody has asked you to take over.");
+
+        group.MapPost("/ownership-offers/{transferId:guid}/decision", async (
+                Guid transferId,
+                DecideCommunityOwnershipRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new DecideCommunityOwnershipCommand
+                        {
+                            TransferId = transferId,
+                            Request = request
+                        },
+                        cancellationToken)))
+            .WithName("DecideCommunityOwnership")
+            .WithSummary(
+                "Accept or refuse a community somebody offered you. Only the person it was offered "
+                + "to may answer. Accepting makes you its owner.");
     }
 }

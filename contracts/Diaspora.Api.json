@@ -8513,6 +8513,266 @@
         }
       }
     },
+    "/api/v1/communities/{idOrSlug}/deletion-request": {
+      "post": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "Ask Diaspora to close this community. The owner's alone, needs a reason, and performs nothing: it waits thirty days while a Diaspora administrator decides.",
+        "operationId": "RequestCommunityDeletion",
+        "parameters": [
+          {
+            "name": "idOrSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestCommunityDeletionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "Change your mind. The owner's, at any point before the community closes.",
+        "operationId": "WithdrawCommunityDeletion",
+        "parameters": [
+          {
+            "name": "idOrSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "What is happening to this community, if anything. Whoever runs it, and Diaspora — not its members, who are told nothing while the wait runs.",
+        "operationId": "GetCommunityDeletionRequest",
+        "parameters": [
+          {
+            "name": "idOrSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/communities/deletion-requests": {
+      "get": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "The review queue. Platform administrators only.",
+        "operationId": "ListCommunityDeletionRequests",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/communities/deletion-requests/{requestId}/decision": {
+      "post": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "Approve or refuse a request to close a community. Platform administrators only. A refusal needs a reason, which the owner is shown word for word.",
+        "operationId": "DecideCommunityDeletion",
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecideCommunityDeletionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/communities/{idOrSlug}/ownership-offers": {
+      "post": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "Offer the community to one of its moderators or administrators. The owner's alone, and it is an offer: they accept or refuse.",
+        "operationId": "OfferCommunityOwnership",
+        "parameters": [
+          {
+            "name": "idOrSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfferCommunityOwnershipRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "Take back an offer nobody has answered yet.",
+        "operationId": "WithdrawCommunityOwnershipOffer",
+        "parameters": [
+          {
+            "name": "idOrSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/communities/ownership-offers/mine": {
+      "get": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "Communities somebody has asked you to take over.",
+        "operationId": "ListMyCommunityOwnershipOffers",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/communities/ownership-offers/{transferId}/decision": {
+      "post": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "Accept or refuse a community somebody offered you. Only the person it was offered to may answer. Accepting makes you its owner.",
+        "operationId": "DecideCommunityOwnership",
+        "parameters": [
+          {
+            "name": "transferId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecideCommunityOwnershipRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/communities/organizations/me": {
       "get": {
         "tags": [
@@ -39486,6 +39746,34 @@
           }
         }
       },
+      "DecideCommunityDeletionRequest": {
+        "type": "object",
+        "properties": {
+          "approve": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "DecideCommunityOwnershipRequest": {
+        "type": "object",
+        "properties": {
+          "accept": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "DecideCreatorVerificationRequest": {
         "required": [
           "action"
@@ -41715,6 +42003,21 @@
             "format": "uuid"
           },
           "label": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "OfferCommunityOwnershipRequest": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "message": {
             "type": [
               "null",
               "string"
@@ -44362,6 +44665,17 @@
             "type": "string"
           },
           "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "RequestCommunityDeletionRequest": {
+        "type": "object",
+        "properties": {
+          "reason": {
             "type": [
               "null",
               "string"

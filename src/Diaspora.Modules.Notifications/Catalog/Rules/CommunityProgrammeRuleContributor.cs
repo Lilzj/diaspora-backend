@@ -27,6 +27,18 @@ public sealed class CommunityProgrammeRuleContributor : INotificationRuleContrib
     private static readonly NotificationChannelKind[] InAppOnly =
         [NotificationChannelKind.InApp];
 
+    /// <summary>
+    /// In-app and email, and deliberately no push.
+    /// <para>
+    /// The six closure and hand-over rules below are the only ones in this file that send mail. Each
+    /// of them is a decision about who owns a community or whether it survives — the kind of thing a
+    /// member forwards, keeps, or comes back to in a month to check what they were told. A push
+    /// banner is read once and gone, and none of these fits in one.
+    /// </para>
+    /// </summary>
+    private static readonly NotificationChannelKind[] InAppAndEmail =
+        [NotificationChannelKind.InApp, NotificationChannelKind.Email];
+
     public string Module => NotificationsModuleMetadata.Name;
 
     public IEnumerable<NotificationRuleSeed> GetRules()
@@ -123,6 +135,102 @@ public sealed class CommunityProgrammeRuleContributor : INotificationRuleContrib
             // In-app only, low priority. A receipt for work already done, delivered to somebody who
             // was there — the same call B13 makes for an event check-in.
             Priority = NotificationPriority.Low,
+            Channels = InAppOnly
+        };
+
+        // ── Closing a community, and handing one over ────────────────────────────────────────
+        //
+        // Two contracts carry two outcomes each, and the consumer picks the audience from the
+        // outcome — the same shape as the membership rules above, and for the same reason. A
+        // refusal and an approval are not the same message at a different volume; they say
+        // different things, to somebody in a different position, and one of them has a deadline.
+
+        var deletionDecidedEvent =
+            typeof(CommunityDeletionDecidedIntegrationEvent).FullName!;
+
+        var ownershipDecidedEvent =
+            typeof(CommunityOwnershipDecidedIntegrationEvent).FullName!;
+
+        yield return new NotificationRuleSeed
+        {
+            Key = "communities.closure.approved",
+            EventName = deletionDecidedEvent,
+            Audience = "closure-approved",
+            TemplateKey = NotificationTemplateKeys.CommunityClosureApproved,
+            CategoryKey = NotificationCategoryKeys.Community,
+            Priority = NotificationPriority.High,
+            Channels = InAppAndEmail
+        };
+
+        yield return new NotificationRuleSeed
+        {
+            Key = "communities.closure.refused",
+            EventName = deletionDecidedEvent,
+            Audience = "closure-refused",
+            TemplateKey = NotificationTemplateKeys.CommunityClosureRefused,
+            CategoryKey = NotificationCategoryKeys.Community,
+            Priority = NotificationPriority.Normal,
+
+            // Email on a refusal too. The reason is the message, and an owner who was told no is
+            // owed a copy of it they can read again rather than a card they swipe away.
+            Channels = InAppAndEmail
+        };
+
+        yield return new NotificationRuleSeed
+        {
+            Key = "communities.closed",
+            EventName = typeof(CommunityDeletedIntegrationEvent).FullName!,
+            Audience = "owner",
+            TemplateKey = NotificationTemplateKeys.CommunityClosed,
+            CategoryKey = NotificationCategoryKeys.Community,
+            Priority = NotificationPriority.Normal,
+            Channels = InAppAndEmail,
+
+            // A day, on the same reasoning as the membership sweeps: this is raised by the sweep
+            // that closes a community when its wait runs out, and a sweep that was down and catches
+            // up must not tell somebody twice that the thing they built is gone.
+            DeduplicationWindow = TimeSpan.FromDays(1)
+        };
+
+        yield return new NotificationRuleSeed
+        {
+            Key = "communities.ownership.offered",
+            EventName = typeof(CommunityOwnershipOfferedIntegrationEvent).FullName!,
+
+            // Not "owner": this one goes to the person being asked, who is a moderator or an
+            // administrator today and may be the owner tomorrow.
+            Audience = "successor",
+            TemplateKey = NotificationTemplateKeys.CommunityOwnershipOffered,
+            CategoryKey = NotificationCategoryKeys.Community,
+            Priority = NotificationPriority.High,
+            Channels = InAppAndEmail
+        };
+
+        yield return new NotificationRuleSeed
+        {
+            Key = "communities.ownership.accepted",
+            EventName = ownershipDecidedEvent,
+            Audience = "ownership-accepted",
+            TemplateKey = NotificationTemplateKeys.CommunityOwnershipAccepted,
+            CategoryKey = NotificationCategoryKeys.Community,
+            Priority = NotificationPriority.High,
+
+            // Email, because it changes who runs the community. The member who was the owner an
+            // hour ago should have a record of when that stopped being true.
+            Channels = InAppAndEmail
+        };
+
+        yield return new NotificationRuleSeed
+        {
+            Key = "communities.ownership.declined",
+            EventName = ownershipDecidedEvent,
+            Audience = "ownership-declined",
+            TemplateKey = NotificationTemplateKeys.CommunityOwnershipDeclined,
+            CategoryKey = NotificationCategoryKeys.Community,
+            Priority = NotificationPriority.Normal,
+
+            // In-app only. Nothing changed — the owner is still the owner — and a no does not need
+            // to follow somebody into their inbox.
             Channels = InAppOnly
         };
     }

@@ -430,3 +430,43 @@ public sealed record AppointCommunityOwnerRequest
 {
     public Guid UserId { get; init; }
 }
+
+// ── Closing a community, and handing one over — 11 Sep 2026 ─────────────────────────────────
+
+/// <summary>An owner asking Diaspora to close their community.</summary>
+public sealed record RequestCommunityDeletionRequest
+{
+    /// <summary>
+    /// Why. Required, and read by the administrator who decides — "no longer needed" and "this has
+    /// become a place I cannot moderate" get different answers.
+    /// </summary>
+    public string? Reason { get; init; }
+}
+
+/// <summary>A Diaspora administrator deciding what happens to a community.</summary>
+public sealed record DecideCommunityDeletionRequest
+{
+    /// <summary>True to let it close when the wait is over; false to keep the community.</summary>
+    public bool Approve { get; init; }
+
+    /// <summary>Required on a refusal: the owner is shown this word for word.</summary>
+    public string? Reason { get; init; }
+}
+
+/// <summary>An owner offering their community to one of its moderators or administrators.</summary>
+public sealed record OfferCommunityOwnershipRequest
+{
+    public Guid UserId { get; init; }
+
+    /// <summary>A note to the person being asked. Optional, shown as written.</summary>
+    public string? Message { get; init; }
+}
+
+/// <summary>The answer from the person who was offered a community.</summary>
+public sealed record DecideCommunityOwnershipRequest
+{
+    public bool Accept { get; init; }
+
+    /// <summary>Why not, if they want to say. The owner reads it.</summary>
+    public string? Reason { get; init; }
+}

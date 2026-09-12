@@ -45,6 +45,11 @@ public sealed class CommunityProgrammeDatabaseContributor : IDatabaseContributor
         modelBuilder.ApplyConfiguration(new CommunityConfiguration());
         modelBuilder.ApplyConfiguration(new CommunityMembershipConfiguration());
 
+        // Closing a community, and handing one over. Both hang off the community and are kept after
+        // they are over: what nearly happened to a community is part of its record.
+        modelBuilder.ApplyConfiguration(new CommunityDeletionRequestConfiguration());
+        modelBuilder.ApplyConfiguration(new CommunityOwnershipTransferConfiguration());
+
         modelBuilder.ApplyConfiguration(new MembershipProgrammeConfiguration());
 
         // Who bought one, and where that is in its fourteen-state life. Its own aggregate for the

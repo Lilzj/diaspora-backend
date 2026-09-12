@@ -192,3 +192,101 @@ public sealed record CommunityMilestoneReachedDomainEvent : DomainEvent
 
     public required int MemberCount { get; init; }
 }
+
+// ── Closing a community, and handing one over — 11 Sep 2026 ─────────────────────────────────
+//
+// Until now a community's lifecycle raised nothing at all: it was opened, suspended and archived in
+// silence, because nobody outside the module needed to hear. Closing one is different — the people
+// in it have to be told, and the owner has to be told what was decided about the request they made.
+
+/// <summary>An owner has asked Diaspora to close their community. Nothing has happened to it yet.</summary>
+public sealed record CommunityDeletionRequestedDomainEvent : DomainEvent
+{
+    public required CommunityDeletionRequestId RequestId { get; init; }
+
+    public required CommunityId CommunityId { get; init; }
+
+    public required string CommunityName { get; init; }
+
+    public required UserId RequestedBy { get; init; }
+
+    /// <summary>The owner's words. Read by the administrator who decides.</summary>
+    public required string Reason { get; init; }
+
+    /// <summary>The earliest it could be carried out.</summary>
+    public required DateTimeOffset EffectiveAt { get; init; }
+}
+
+/// <summary>
+/// A Diaspora administrator has decided. The owner is told either way, and on a refusal the reason
+/// is the whole point of the message.
+/// </summary>
+public sealed record CommunityDeletionDecidedDomainEvent : DomainEvent
+{
+    public required CommunityDeletionRequestId RequestId { get; init; }
+
+    public required CommunityId CommunityId { get; init; }
+
+    public required string CommunityName { get; init; }
+
+    /// <summary>The owner who asked, who is the person told.</summary>
+    public required UserId OwnerUserId { get; init; }
+
+    public required bool Approved { get; init; }
+
+    /// <summary>Required on a refusal, optional on an approval. Shown verbatim.</summary>
+    public string? DecisionReason { get; init; }
+
+    public required DateTimeOffset EffectiveAt { get; init; }
+}
+
+/// <summary>The wait ran out on an approved request and the community is closed.</summary>
+public sealed record CommunityDeletedDomainEvent : DomainEvent
+{
+    public required CommunityId CommunityId { get; init; }
+
+    public required string CommunityName { get; init; }
+
+    public required UserId ClosedFor { get; init; }
+
+    public string? Reason { get; init; }
+}
+
+/// <summary>An owner has asked somebody who helps run the community to take it over.</summary>
+public sealed record CommunityOwnershipOfferedDomainEvent : DomainEvent
+{
+    public required CommunityOwnershipTransferId TransferId { get; init; }
+
+    public required CommunityId CommunityId { get; init; }
+
+    public required string CommunityName { get; init; }
+
+    /// <summary>So the notification can link to the community by handle.</summary>
+    public required string CommunitySlug { get; init; }
+
+    public required UserId OfferedBy { get; init; }
+
+    public required UserId OfferedTo { get; init; }
+
+    public string? Message { get; init; }
+
+    public required DateTimeOffset ExpiresAt { get; init; }
+}
+
+/// <summary>The person asked has answered. The owner who asked is told either way.</summary>
+public sealed record CommunityOwnershipDecidedDomainEvent : DomainEvent
+{
+    public required CommunityOwnershipTransferId TransferId { get; init; }
+
+    public required CommunityId CommunityId { get; init; }
+
+    public required string CommunityName { get; init; }
+
+    public required UserId OfferedBy { get; init; }
+
+    public required UserId OfferedTo { get; init; }
+
+    public required bool Accepted { get; init; }
+
+    public string? DeclineReason { get; init; }
+}

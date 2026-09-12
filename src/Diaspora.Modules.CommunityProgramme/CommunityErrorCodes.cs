@@ -55,6 +55,25 @@ public static class CommunityErrorCodes
     public const string AlreadyHasOwner = Prefix + ".owner.already-has-owner";
     public const string OwnerCannotLeave = Prefix + ".owner.cannot-leave";
     public const string OwnerCannotBeRemoved = Prefix + ".owner.cannot-be-removed";
+
+    // Closing a community, and handing one over — 11 Sep 2026.
+    public const string DeletionNeedsReason = Prefix + ".deletion.needs-reason";
+    public const string DeletionReasonTooLong = Prefix + ".deletion.reason-too-long";
+    public const string DeletionAlreadyRequested = Prefix + ".deletion.already-requested";
+    public const string DeletionNotRequested = Prefix + ".deletion.not-requested";
+    public const string DeletionAlreadyDecided = Prefix + ".deletion.already-decided";
+    public const string DeletionDecisionNeedsReason = Prefix + ".deletion.decision-needs-reason";
+    public const string DeletionNotDue = Prefix + ".deletion.not-due";
+    public const string OnlyOwnerRequestsDeletion = Prefix + ".deletion.only-owner";
+    public const string OwnershipOfferToSelf = Prefix + ".ownership.offer-to-self";
+    public const string OwnershipOfferAlreadyOpen = Prefix + ".ownership.already-open";
+    public const string OwnershipOfferAlreadyAnswered = Prefix + ".ownership.already-answered";
+    public const string OwnershipOfferExpired = Prefix + ".ownership.expired";
+    public const string OwnershipNeedsHelper = Prefix + ".ownership.needs-helper";
+    public const string OnlyOwnerOffersOwnership = Prefix + ".ownership.only-owner";
+    public const string OwnershipOfferNotYours = Prefix + ".ownership.not-yours";
+    public const string OwnershipOfferStale = Prefix + ".ownership.stale";
+    public const string NotTheOwner = Prefix + ".owner.not-the-owner";
     public const string CannotManageRoles = Prefix + ".role.cannot-manage";
     public const string TargetNotAMember = Prefix + ".role.target-not-a-member";
     public const string UnknownRole = Prefix + ".role.unknown";
