@@ -46,7 +46,8 @@ public sealed class AnalyticsMetricTests
         foreach (var key in AnalyticsMetricCatalog.CreatorHeadline
             .Concat(AnalyticsMetricCatalog.ContentItem)
             .Concat(AnalyticsMetricCatalog.CreatorSeries)
-            .Concat(AnalyticsMetricCatalog.SellerHeadline))
+            .Concat(AnalyticsMetricCatalog.SellerHeadline)
+            .Concat(AnalyticsMetricCatalog.LandlordHeadline))
         {
             AnalyticsMetricCatalog.Find(key).Should().NotBeNull("{0} is served", key);
         }

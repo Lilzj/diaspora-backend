@@ -119,6 +119,33 @@ public sealed class AnalyticsEndpointContributor : IEndpointContributor
             .RequireAuthorization(AnalyticsPolicies.ContentRead)
             .WithName("GetSellerAnalyticsDataset");
 
+        // FRONTEND-PHASE15-GAP-013. Housing listing rollups summed to the landlord — the member, not
+        // their landlord profile — as a dataset. `/me` and never `/{id}`, for the seller route's
+        // reason, and `ContentRead` for the same one: a landlord's homes are content the caller owns.
+        group.MapGet("/landlords/me", async (
+                string? period,
+                string? from,
+                string? to,
+                string? timezone,
+                bool? includeSeries,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            PlatformResults.Ok(
+                context,
+                await sender.Send(
+                    new GetLandlordAnalyticsDatasetQuery
+                    {
+                        Period = period,
+                        From = from,
+                        To = to,
+                        Timezone = timezone,
+                        IncludeSeries = includeSeries ?? false
+                    },
+                    cancellationToken)))
+            .RequireAuthorization(AnalyticsPolicies.ContentRead)
+            .WithName("GetLandlordAnalyticsDataset");
+
         group.MapGet("/creators/me/summary", async (
                 string? period,
                 string? from,

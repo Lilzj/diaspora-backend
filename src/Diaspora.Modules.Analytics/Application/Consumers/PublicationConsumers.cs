@@ -205,10 +205,11 @@ public sealed class OrganizationPublishedAnalyticsConsumer
 /// <summary>
 /// Records a marketplace listing's publication.
 /// <para>
-/// <b><c>SellerId</c> is a seller identifier and this module needs a member.</b> On this platform
-/// B10's seller identifier <em>is</em> the owning member's user identifier — the module's own
-/// contract carries no separate one — so it is used directly and the report records the assumption.
-/// If B10 ever separates the two, this consumer is where the join goes.
+/// <b><c>SellerId</c> is a seller profile and this module needs a member.</b> B10 keeps a seller
+/// profile per member with its own identifier, and the contract carries both: <c>SellerId</c>, the
+/// profile, and <c>SellerUserId</c>, the member. This summary used to say the two were the same
+/// identifier; they never were, and every seller dashboard stayed empty until 13 Sep 2026 because
+/// rows were keyed by the profile. The owner is <c>SellerUserId</c>, and only that.
 /// </para>
 /// </summary>
 public sealed class ListingPublishedAnalyticsConsumer

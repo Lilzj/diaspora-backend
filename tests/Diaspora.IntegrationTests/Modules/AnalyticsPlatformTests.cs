@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Diaspora.Contracts.Community.V1.Events;
+using Diaspora.Contracts.Housing.V1.Events;
 using Diaspora.Domain.Abstractions;
 using Diaspora.IntegrationTests.Common;
 using Diaspora.Modules.Analytics.Application.Projection;
@@ -836,6 +837,82 @@ public sealed class AnalyticsPlatformTests : IdentityTestBase
     }
 
     // ════════════════════════════════════════════════════════════════════════════════════════
+    // FRONTEND-PHASE15-GAP-013 — a landlord's own dataset
+    // ════════════════════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// <b>A landlord's views and viewings reach their own dataset, under the member and never the
+    /// landlord profile.</b> Housing names the profile on every event; the home's publication also
+    /// carries the member, and a viewing — which names only the profile — must be attributed through
+    /// that publication. The seller dashboard read nothing for every seller until 13 Sep 2026
+    /// because rows were keyed by the profile, and no fixture had two different identifiers to
+    /// notice with. This one does.
+    /// </summary>
+    [Fact]
+    public async Task A_landlords_views_and_viewings_reach_their_dataset_under_the_member_not_the_profile()
+    {
+        var landlord = await NewMemberAsync();
+
+        var landlordProfileId = Guid.NewGuid();
+        var homeId = Guid.NewGuid();
+
+        landlordProfileId.Should().NotBe(landlord.UserId, "the whole point of the test");
+
+        await PublishHomeAsync(homeId, landlordProfileId, landlord.UserId);
+        await Factory.DrainOutboxAsync();
+
+        var seeker = await NewMemberAsync();
+        (await PostViewAsync(homeId, DateTimeOffset.UtcNow, "housing")).Accepted.Should().Be(1);
+
+        await PublishViewingAsync(homeId, landlordProfileId, seeker.UserId);
+        await Factory.DrainOutboxAsync();
+
+        await ProjectAsync();
+
+        Api.Authenticate(landlord.Token);
+
+        var dataset = await ReadDataAsync<DatasetDto>(
+            await HttpClient.GetAsync($"{Analytics}/landlords/me?period=30d&includeSeries=true"));
+
+        MetricValue(dataset, "content.views").Should().Be(1, "one member opened the home");
+        MetricValue(dataset, "conversion.count").Should().Be(
+            1, "one viewing was booked, and it names only the landlord profile");
+        MetricValue(dataset, "conversion.rate").Should().Be(100, "one viewing for one view");
+        MetricValue(dataset, "content.published").Should().Be(1);
+
+        dataset.Metrics.Should().NotContain(metric => metric.Key == "revenue.gross");
+
+        var board = dataset.Leaderboards.Should().ContainSingle(entry => entry.Key == "landlord-listings").Subject;
+        board.Rows.Should().ContainSingle().Which.Entity.EntityId.Should().Be(homeId.ToString());
+        board.Rows[0].Entity.Title.Should().Be("Two-bed flat near the station");
+
+        // The same viewing on the member's overview. The dataset above counts a home's row, whose
+        // owner comes from the home's publication — so a viewing attributed to the profile would
+        // still reach it. The overview keys by each event's own owner, and is where a viewing sent
+        // with the profile id would go missing.
+        var overview = await ReadDataAsync<CreatorSummaryDto>(
+            await HttpClient.GetAsync($"{Analytics}/creators/me/summary?period=30d"));
+
+        Metric(overview, "conversion").Value.Should().Be(
+            1, "the viewing belongs to the member, not to their landlord profile");
+
+        // The other sides. The same member's seller dashboard does not count a home…
+        var asSeller = await ReadDataAsync<DatasetDto>(
+            await HttpClient.GetAsync($"{Analytics}/sellers/me?period=30d"));
+
+        MetricValue(asSeller, "content.views").Should().Be(0, "a home is not a marketplace listing");
+
+        // …and nobody else's landlord dashboard carries any of it, including the seeker's.
+        Api.Authenticate(seeker.Token);
+
+        var stranger = await ReadDataAsync<DatasetDto>(
+            await HttpClient.GetAsync($"{Analytics}/landlords/me?period=30d"));
+
+        MetricValue(stranger, "content.views").Should().Be(0);
+        MetricValue(stranger, "conversion.count").Should().Be(0);
+    }
+
+    // ════════════════════════════════════════════════════════════════════════════════════════
     // Content performance and paging
     // ════════════════════════════════════════════════════════════════════════════════════════
 
@@ -1309,21 +1386,94 @@ public sealed class AnalyticsPlatformTests : IdentityTestBase
 
     private async Task<string> AuthenticateAsync() => (await NewMemberAsync()).Token;
 
-    private static object ViewPayload(Guid contentId, DateTimeOffset occurredAt) => new
+    private static object ViewPayload(Guid contentId, DateTimeOffset occurredAt, string contentType = "guide") => new
     {
         @event = "content.viewed",
         occurredAt,
-        properties = new { contentId = contentId.ToString(), contentType = "guide" }
+        properties = new { contentId = contentId.ToString(), contentType }
     };
 
-    private async Task<TelemetryResultDto> PostViewAsync(Guid contentId, DateTimeOffset occurredAt)
+    private async Task<TelemetryResultDto> PostViewAsync(
+        Guid contentId, DateTimeOffset occurredAt, string contentType = "guide")
     {
         var response = await HttpClient.PostAsJsonAsync(
             $"{Telemetry}/events",
-            new { events = new[] { ViewPayload(contentId, occurredAt) } },
+            new { events = new[] { ViewPayload(contentId, occurredAt, contentType) } },
             JsonOptions);
 
         return await ReadDataAsync<TelemetryResultDto>(response);
+    }
+
+    /// <summary>
+    /// A home going on the market, published as B11's own contract.
+    /// <para>
+    /// <paramref name="landlordProfileId"/> and <paramref name="landlordUserId"/> are different
+    /// identifiers on purpose, because they are in Housing: every fixture that used one Guid for both
+    /// passed while every owner dashboard stayed empty.
+    /// </para>
+    /// </summary>
+    private async Task PublishHomeAsync(Guid homeId, Guid landlordProfileId, Guid landlordUserId)
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        var publisher = scope.ServiceProvider.GetRequiredService<IIntegrationEventPublisher>();
+        var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+
+        await publisher.PublishAsync(new HousingPublishedIntegrationEvent
+        {
+            ListingId = homeId,
+            LandlordId = landlordProfileId,
+            LandlordUserId = landlordUserId,
+            LandlordName = "Harbour Lettings",
+            LandlordKind = "Individual",
+            IsLandlordVerified = true,
+            Title = "Two-bed flat near the station",
+            Slug = $"two-bed-flat-{homeId:N}",
+            AccommodationTypeKey = "apartment",
+            IsRentDisclosed = false,
+            Bedrooms = 2,
+            Bathrooms = 1,
+            FurnishedStatus = "Furnished",
+            TotalUnits = 1,
+            AcceptsShortStay = false,
+            AcceptsLongStay = true,
+            IsStudentFriendly = false,
+            IsFamilyFriendly = true,
+            IsSharedAccommodation = false,
+            CountryCode = "GB",
+            IsFirstPublication = true,
+            PublishedAt = DateTimeOffset.UtcNow
+        });
+
+        await unitOfWork.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// A viewing booked on a home, published as B11's own contract — which names the landlord
+    /// <em>profile</em> and no member at all.
+    /// </summary>
+    private async Task PublishViewingAsync(Guid homeId, Guid landlordProfileId, Guid seekerUserId)
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        var publisher = scope.ServiceProvider.GetRequiredService<IIntegrationEventPublisher>();
+        var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+
+        var now = DateTimeOffset.UtcNow;
+
+        await publisher.PublishAsync(new ViewingScheduledIntegrationEvent
+        {
+            ViewingId = Guid.NewGuid(),
+            ListingId = homeId,
+            LandlordId = landlordProfileId,
+            SeekerUserId = seekerUserId,
+            ScheduledFor = now.AddDays(3),
+            DurationMinutes = 30,
+            IsVirtual = false,
+            ScheduledAt = now
+        });
+
+        await unitOfWork.SaveChangesAsync();
     }
 
     /// <summary>

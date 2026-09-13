@@ -92,7 +92,7 @@ public static class AnalyticsMetricCatalog
     /// than as a cliff in a chart, and so a report can state which definition it ran under.
     /// </para>
     /// </summary>
-    public const string Version = "1.1.0";
+    public const string Version = "1.2.0";
 
     // ── Keys, as the Phase 7 client spells them ─────────────────────────────────────────────
 
@@ -321,9 +321,9 @@ public static class AnalyticsMetricCatalog
             "conversion.rate",
             "Conversion",
             "Actions taken divided by views, as a percentage — for a marketplace listing, purchases "
-                + "per view. Computed on the server from the same two counts shown beside it, so the "
-                + "rate and its parts cannot disagree. A listing nobody has viewed has no rate rather "
-                + "than a rate of zero.",
+                + "per view; for a housing listing, viewings booked per view. Computed on the server "
+                + "from the same two counts shown beside it, so the rate and its parts cannot "
+                + "disagree. A listing nobody has viewed has no rate rather than a rate of zero.",
             "actions taken ÷ views × 100",
             AnalyticsMetricFormat.Percentage,
             HigherIsBetter: true,
@@ -403,6 +403,30 @@ public static class AnalyticsMetricCatalog
         ConversionRate,
         ContentPublished,
         Revenue
+    ];
+
+    /// <summary>
+    /// The headline set a landlord's overview shows, in order.
+    /// <para>
+    /// <b>Only what a housing listing actually records.</b> A home's views arrive from the listing
+    /// screen, its viewings from <c>ViewingScheduled</c>, its publication from
+    /// <c>HousingPublished</c> — and nothing else writes to housing content. Saves, shares and
+    /// comments are left out for the seller set's reason: measured metrics that nothing records for a
+    /// home would put a confident zero on every landlord's dashboard.
+    /// </para>
+    /// <para>
+    /// <b>No revenue tile, unlike the seller's.</b> Housing takes no payment through Diaspora — a
+    /// reservation holds a unit and records no amount — so there is no wallet to point a landlord at,
+    /// and "revenue is not measured here" would suggest there was revenue here to measure.
+    /// </para>
+    /// </summary>
+    public static IReadOnlyList<string> LandlordHeadline =>
+    [
+        ContentViews,
+        UniqueViewers,
+        Conversion,
+        ConversionRate,
+        ContentPublished
     ];
 
     /// <summary>Which metrics carry a sparkline on the creator overview.</summary>

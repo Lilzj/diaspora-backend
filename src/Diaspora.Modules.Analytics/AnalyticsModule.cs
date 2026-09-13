@@ -99,6 +99,9 @@ public sealed class AnalyticsModule : IPlatformModule
         services.AddScoped<AnalyticsReadService>();
         services.AddScoped<AnalyticsDatasetBuilder>();
 
+        // The seller and landlord dashboards — one question asked of two content types, answered once.
+        services.AddScoped<AnalyticsOwnerDatasetComposer>();
+
         // Registered explicitly rather than scanned: it is a collaborator of three workers and of the
         // backfill, not a seam anything plugs into.
         services.AddScoped<AnalyticsProjectionService>();
