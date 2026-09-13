@@ -1,6 +1,7 @@
 using Diaspora.Contracts.Events;
 using Diaspora.Contracts.Guides.V1.Events;
 using Diaspora.Modules.Guides.Application.Services;
+using Diaspora.Modules.Guides.Domain.Enums;
 using Diaspora.Modules.Guides.Domain.Events;
 using Diaspora.Modules.Guides.Domain.Guides;
 using Diaspora.Modules.Guides.Domain.Identifiers;
@@ -404,6 +405,51 @@ public sealed class GuideIntegrationEventRelay
                 TotalViews = totalViews,
                 MilestoneAt = milestoneAt,
                 AuthorUserId = await AuthorOfAsync(GuideId.From(guideId), cancellationToken)
+            },
+            cancellationToken);
+
+    /// <summary>
+    /// A reader shared a guide.
+    /// <para>
+    /// Published from the share handler rather than from a domain event, as the milestone is:
+    /// shares are counters on the aggregate and counters raise none. The caller already holds the
+    /// guide, so the author is passed rather than read back.
+    /// </para>
+    /// </summary>
+    public Task PublishSharedAsync(
+        Guid guideId,
+        Guid authorUserId,
+        Guid? sharedBy,
+        DateTimeOffset sharedAt,
+        CancellationToken cancellationToken = default) =>
+        PublishSafelyAsync(
+            new GuideSharedIntegrationEvent
+            {
+                GuideId = guideId,
+                AuthorUserId = authorUserId,
+                SharedBy = sharedBy,
+                SharedAt = sharedAt
+            },
+            cancellationToken);
+
+    /// <summary>A reader's helpfulness vote, cast or changed. See <see cref="PublishSharedAsync"/>.</summary>
+    public Task PublishVoteCastAsync(
+        Guid guideId,
+        Guid authorUserId,
+        Guid voterUserId,
+        GuideVoteKind kind,
+        GuideVoteKind? previousKind,
+        DateTimeOffset castAt,
+        CancellationToken cancellationToken = default) =>
+        PublishSafelyAsync(
+            new GuideVoteCastIntegrationEvent
+            {
+                GuideId = guideId,
+                AuthorUserId = authorUserId,
+                VoterUserId = voterUserId,
+                Kind = GuideWireNames.ToWire(kind),
+                PreviousKind = previousKind is { } previous ? GuideWireNames.ToWire(previous) : null,
+                CastAt = castAt
             },
             cancellationToken);
 

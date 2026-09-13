@@ -1,5 +1,6 @@
 using Diaspora.Application.Abstractions;
 using Diaspora.Domain.Abstractions;
+using Diaspora.Modules.Guides.Application.EventHandlers;
 using Diaspora.Modules.Guides.Application.Services;
 using Diaspora.Modules.Guides.Contracts.V1.Responses;
 using Diaspora.Modules.Guides.Domain.Analytics;
@@ -38,6 +39,7 @@ public sealed class CastGuideVoteCommandHandler
     private readonly GuideAuthorizationService _authorization;
     private readonly IGuidGenerator _guids;
     private readonly IClock _clock;
+    private readonly GuideIntegrationEventRelay _relay;
 
     public CastGuideVoteCommandHandler(
         IGuideRepository guides,
@@ -46,7 +48,8 @@ public sealed class CastGuideVoteCommandHandler
         IUnitOfWork unitOfWork,
         GuideAuthorizationService authorization,
         IGuidGenerator guids,
-        IClock clock)
+        IClock clock,
+        GuideIntegrationEventRelay relay)
     {
         _guides = guides;
         _votes = votes;
@@ -55,6 +58,7 @@ public sealed class CastGuideVoteCommandHandler
         _authorization = authorization;
         _guids = guids;
         _clock = clock;
+        _relay = relay;
     }
 
     public async Task<Result<GuideEngagementResponse>> Handle(
@@ -109,6 +113,8 @@ public sealed class CastGuideVoteCommandHandler
             await _votes.AddAsync(vote.Value, cancellationToken);
 
             Apply(guide, analytics, previous: null, kind);
+
+            await PublishAsync(guide, caller.Value, kind, previous: null, cancellationToken);
         }
         else
         {
@@ -121,6 +127,8 @@ public sealed class CastGuideVoteCommandHandler
             }
 
             Apply(guide, analytics, previous, kind);
+
+            await PublishAsync(guide, caller.Value, kind, previous, cancellationToken);
         }
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -136,6 +144,30 @@ public sealed class CastGuideVoteCommandHandler
             CommentCount = guide.Engagement.CommentCount
         });
     }
+
+    /// <summary>
+    /// Tells the platform's analytics, which counts helpful votes from events.
+    /// <para>
+    /// Until 13 Sep 2026 a vote only moved the guide's own counters, and a creator's "Helpful votes"
+    /// read zero however many readers marked their guides helpful. Reached only after the aggregate
+    /// accepted the vote — a repeat or a self-vote returns before here — and enqueued before the
+    /// save, so the counters and the announcement commit together.
+    /// </para>
+    /// </summary>
+    private Task PublishAsync(
+        Guide guide,
+        Diaspora.SharedKernel.Identity.UserId voter,
+        GuideVoteKind kind,
+        GuideVoteKind? previous,
+        CancellationToken cancellationToken) =>
+        _relay.PublishVoteCastAsync(
+            guide.Id.Value,
+            guide.AuthorId.Value,
+            voter.Value,
+            kind,
+            previous,
+            _clock.UtcNow,
+            cancellationToken);
 
     /// <summary>
     /// Turns "was X, is now Y" into the two deltas the rollups take. A change retracts the old

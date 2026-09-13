@@ -1040,6 +1040,69 @@ public sealed class AnalyticsPlatformTests : IdentityTestBase
     }
 
     // ════════════════════════════════════════════════════════════════════════════════════════
+    // A guide's own save, share and vote buttons
+    // ════════════════════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// <b>The three buttons on a guide's screen reach its author's figures.</b> Until 13 Sep 2026
+    /// a guide share and a guide vote only moved B8's own counters, so a creator's "Shares" and
+    /// "Helpful votes" read zero however their guides were received. Driven through the routes the
+    /// app calls — <c>PUT /guides/{id}/bookmark</c>, <c>POST /guides/{id}/share</c>,
+    /// <c>POST /guides/{id}/vote</c> — rather than by publishing contracts, because the defect was
+    /// that those routes published nothing.
+    /// </summary>
+    [Fact]
+    public async Task A_guides_save_share_and_helpful_vote_from_its_own_screen_reach_its_author()
+    {
+        var author = await NewMemberAsync();
+        var guideId = await PublishGuideAsync("Registering with a GP");
+        await Factory.DrainOutboxAsync();
+
+        // One reader opens it, saves it, shares it and marks it helpful.
+        await NewMemberAsync();
+        await PostViewAsync(guideId, DateTimeOffset.UtcNow);
+
+        (await HttpClient.PutAsync($"{GuidesRoot}/{guideId}/bookmark", content: null))
+            .IsSuccessStatusCode.Should().BeTrue("the save button's route");
+        (await HttpClient.PostAsync($"{GuidesRoot}/{guideId}/share", content: null))
+            .IsSuccessStatusCode.Should().BeTrue("the share button's route");
+        (await HttpClient.PostAsJsonAsync($"{GuidesRoot}/{guideId}/vote", new { kind = "Helpful" }, JsonOptions))
+            .IsSuccessStatusCode.Should().BeTrue("the helpful button's route");
+
+        // The same vote again is refused by the guide, and must not count twice.
+        await HttpClient.PostAsJsonAsync($"{GuidesRoot}/{guideId}/vote", new { kind = "Helpful" }, JsonOptions);
+
+        // A second reader says it did not help: an engagement, and not a helpful vote.
+        await NewMemberAsync();
+        (await HttpClient.PostAsJsonAsync($"{GuidesRoot}/{guideId}/vote", new { kind = "NotHelpful" }, JsonOptions))
+            .IsSuccessStatusCode.Should().BeTrue();
+
+        await Factory.DrainOutboxAsync();
+        await ProjectAsync();
+
+        Api.Authenticate(author.Token);
+
+        var summary = await ReadDataAsync<CreatorSummaryDto>(
+            await HttpClient.GetAsync($"{Analytics}/creators/me/summary?period=30d"));
+
+        Metric(summary, "saves").Value.Should().Be(1, "saves already reached analytics through Community");
+        Metric(summary, "shares").Value.Should().Be(1, "the share button's share");
+        Metric(summary, "helpful_votes").Value.Should().Be(1, "one helpful vote; the repeat was refused");
+
+        // 1 save + 1 share + 2 votes as reactions, over 1 view.
+        Metric(summary, "engagement_rate").Value.Should().Be(400);
+
+        var page = await ReadDataAsync<ContentPageDto>(
+            await HttpClient.GetAsync($"{Analytics}/creators/me/content?period=30d"));
+
+        var row = page.Items.Single(item => item.ContentId == guideId.ToString());
+
+        row.Metrics.Single(metric => metric.Key == "saves").Value.Should().Be(1);
+        row.Metrics.Single(metric => metric.Key == "shares").Value.Should().Be(1);
+        row.Metrics.Single(metric => metric.Key == "helpful_votes").Value.Should().Be(1);
+    }
+
+    // ════════════════════════════════════════════════════════════════════════════════════════
     // Content performance and paging
     // ════════════════════════════════════════════════════════════════════════════════════════
 

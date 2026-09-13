@@ -120,13 +120,21 @@ public sealed class EventContractEnrichmentTests
     /// Neither is an enrichment, so neither belongs in <see cref="Enrichments"/>: nothing was added
     /// to an existing contract, and no consumer has ever seen these contracts without them.
     /// </para>
+    /// <para>
+    /// <b>The two guide contracts of 13 Sep 2026 are the same case.</b> A guide share and a guide
+    /// vote had never crossed the module boundary; both contracts were written with
+    /// <c>AuthorUserId</c> on their first line, so analytics can attribute the act to the guide's
+    /// author. Nullable, as every guide contract's author is.
+    /// </para>
     /// </summary>
     private static readonly (Type Contract, string Property)[] BornWithTheContract =
     [
         (typeof(EventUpdatedIntegrationEvent), "ChangedByUserId"),
         (typeof(EventUpdatedIntegrationEvent), "OrganizerUserId"),
         (typeof(EventOccurrenceRescheduledIntegrationEvent), "ChangedByUserId"),
-        (typeof(EventOccurrenceRescheduledIntegrationEvent), "OrganizerUserId")
+        (typeof(EventOccurrenceRescheduledIntegrationEvent), "OrganizerUserId"),
+        (typeof(GuideSharedIntegrationEvent), "AuthorUserId"),
+        (typeof(GuideVoteCastIntegrationEvent), "AuthorUserId")
     ];
 
     /// <summary>
