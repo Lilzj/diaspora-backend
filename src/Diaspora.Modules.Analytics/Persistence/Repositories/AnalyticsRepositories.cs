@@ -268,6 +268,24 @@ public sealed class AnalyticsEventRepository : IAnalyticsEventRepository
             .Distinct()
             .LongCountAsync(cancellationToken);
 
+    public async Task<long> CountDistinctViewersForOwnerContentTypeAsync(
+        Guid ownerUserId,
+        AnalyticsContentType contentType,
+        DateTimeOffset from,
+        DateTimeOffset to,
+        CancellationToken cancellationToken = default) =>
+        await Events
+            .AsNoTracking()
+            .Where(row => row.OwnerUserId == ownerUserId
+                && row.ContentType == contentType
+                && row.OccurredAt >= from
+                && row.OccurredAt < to
+                && row.ActorKey != null
+                && row.EventType == AnalyticsEventTypes.ContentViewed)
+            .Select(row => row.ActorKey)
+            .Distinct()
+            .LongCountAsync(cancellationToken);
+
     public async Task<long> CountDistinctViewersForContentAsync(
         AnalyticsContentType contentType,
         Guid contentId,

@@ -151,6 +151,22 @@ public interface IAnalyticsEventRepository
         DateTimeOffset to,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Distinct actors over a window for one owner's content of one type.
+    /// <para>
+    /// <b>The owner count narrowed, and the narrowing is not optional for a seller.</b> The owner
+    /// count covers everything an owner published, so a seller who also writes guides would have
+    /// every guide reader counted as somebody who looked at their listings — a larger number, under
+    /// a name that says it is the smaller one, and wrong in the flattering direction.
+    /// </para>
+    /// </summary>
+    Task<long> CountDistinctViewersForOwnerContentTypeAsync(
+        Guid ownerUserId,
+        AnalyticsContentType contentType,
+        DateTimeOffset from,
+        DateTimeOffset to,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Distinct actors over a window for one piece of content.</summary>
     Task<long> CountDistinctViewersForContentAsync(
         AnalyticsContentType contentType,

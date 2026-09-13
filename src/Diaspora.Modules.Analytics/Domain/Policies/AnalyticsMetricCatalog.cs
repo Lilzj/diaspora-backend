@@ -92,7 +92,7 @@ public static class AnalyticsMetricCatalog
     /// than as a cliff in a chart, and so a report can state which definition it ran under.
     /// </para>
     /// </summary>
-    public const string Version = "1.0.0";
+    public const string Version = "1.1.0";
 
     // ── Keys, as the Phase 7 client spells them ─────────────────────────────────────────────
 
@@ -110,6 +110,7 @@ public static class AnalyticsMetricCatalog
     public const string Conversion = "conversion";
     public const string ContentPublished = "content_published";
     public const string Revenue = "revenue";
+    public const string ConversionRate = "conversion_rate";
 
     private const string OwnerAnalytics = "B19 Analytics";
 
@@ -313,7 +314,23 @@ public static class AnalyticsMetricCatalog
             AnalyticsPrivacyClass.Financial,
             Trust: null,
             "B15 Financial",
-            AnalyticsMetricAvailability.NotMeasured)
+            AnalyticsMetricAvailability.NotMeasured),
+
+        new(
+            ConversionRate,
+            "conversion.rate",
+            "Conversion",
+            "Actions taken divided by views, as a percentage — for a marketplace listing, purchases "
+                + "per view. Computed on the server from the same two counts shown beside it, so the "
+                + "rate and its parts cannot disagree. A listing nobody has viewed has no rate rather "
+                + "than a rate of zero.",
+            "actions taken ÷ views × 100",
+            AnalyticsMetricFormat.Percentage,
+            HigherIsBetter: true,
+            AnalyticsPrivacyClass.Owner,
+            AnalyticsTrustClass.Server,
+            OwnerAnalytics,
+            AnalyticsMetricAvailability.Available)
     ];
 
     /// <summary>Every definition, in the order the tiles are laid out.</summary>
@@ -359,6 +376,33 @@ public static class AnalyticsMetricCatalog
         Shares,
         Conversion,
         EngagementRate
+    ];
+
+    /// <summary>
+    /// The headline set a seller's overview shows, in order.
+    /// <para>
+    /// <b>Only what a marketplace listing actually records.</b> A listing's views arrive from the
+    /// listing screen, its sales from <c>ListingSold</c>, its publication from
+    /// <c>ListingPublished</c> — and nothing else writes to marketplace content. Saves, shares and
+    /// comments are measured metrics that nothing records for a listing, so serving them here would
+    /// put a confident zero on every seller's dashboard: absent, but indistinguishable from none.
+    /// They are left out rather than served empty.
+    /// </para>
+    /// <para>
+    /// <b>Revenue is in the set, and served as not measured.</b> A seller told "revenue is not
+    /// measured here" knows to open their wallet; a seller whose dashboard simply has no revenue
+    /// tile does not. The wallet is where money is, and the financial platform is its only
+    /// authority.
+    /// </para>
+    /// </summary>
+    public static IReadOnlyList<string> SellerHeadline =>
+    [
+        ContentViews,
+        UniqueViewers,
+        Conversion,
+        ConversionRate,
+        ContentPublished,
+        Revenue
     ];
 
     /// <summary>Which metrics carry a sparkline on the creator overview.</summary>

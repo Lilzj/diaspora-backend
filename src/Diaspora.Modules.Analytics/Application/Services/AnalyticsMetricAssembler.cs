@@ -122,6 +122,23 @@ public static class AnalyticsMetricAssembler
             : Math.Round(counts.Engagements / (double)counts.Views * 100d, 2, MidpointRounding.AwayFromZero);
     }
 
+    /// <summary>
+    /// Actions taken per view, as a percentage, or null when nothing was viewed.
+    /// <para>
+    /// The same zero-denominator rule as <see cref="EngagementRate"/>: a listing nobody opened has
+    /// no conversion rate, and reporting 0% would tell a seller their listing fails to sell when it
+    /// has simply not been seen.
+    /// </para>
+    /// </summary>
+    public static double? ConversionRate(AnalyticsCounts counts)
+    {
+        ArgumentNullException.ThrowIfNull(counts);
+
+        return counts.Views <= 0
+            ? null
+            : Math.Round(counts.Conversions / (double)counts.Views * 100d, 2, MidpointRounding.AwayFromZero);
+    }
+
     /// <summary>The value a metric key takes from a window's totals.</summary>
     public static double ValueOf(string key, AnalyticsWindowTotals totals)
     {
@@ -141,6 +158,7 @@ public static class AnalyticsMetricAssembler
                 totals.Counts.FollowsGained - totals.Counts.FollowsLost,
             AnalyticsMetricCatalog.ProfileViews => totals.ProfileViews,
             AnalyticsMetricCatalog.EngagementRate => EngagementRate(totals.Counts) ?? 0,
+            AnalyticsMetricCatalog.ConversionRate => ConversionRate(totals.Counts) ?? 0,
             _ => 0
         };
     }
@@ -165,8 +183,14 @@ public static class AnalyticsMetricAssembler
 
         foreach (var key in keys)
         {
-            var measured = key != AnalyticsMetricCatalog.EngagementRate
-                || EngagementRate(current.Counts) is not null;
+            // A rate with no denominator is not measured — the `?? 0` in `ValueOf` only gives the
+            // unavailable metric something to carry, and this flag is what stops it being shown.
+            var measured = key switch
+            {
+                AnalyticsMetricCatalog.EngagementRate => EngagementRate(current.Counts) is not null,
+                AnalyticsMetricCatalog.ConversionRate => ConversionRate(current.Counts) is not null,
+                _ => true
+            };
 
             metrics.Add(Build(
                 key,

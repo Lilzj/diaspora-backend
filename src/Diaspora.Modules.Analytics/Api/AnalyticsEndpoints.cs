@@ -91,6 +91,34 @@ public sealed class AnalyticsEndpointContributor : IEndpointContributor
             .RequireAuthorization(AnalyticsPolicies.CreatorRead)
             .WithName("GetCreatorAnalyticsDataset");
 
+        // FRONTEND-PHASE15-GAP-011. Listing rollups summed to the seller, as a dataset. `/me` and
+        // never `/{id}`, for the creator route's reason: a route that cannot name another seller
+        // cannot leak one. `ContentRead` rather than a new permission, because a seller's listings
+        // are content the caller owns and that is exactly what the existing permission grants.
+        group.MapGet("/sellers/me", async (
+                string? period,
+                string? from,
+                string? to,
+                string? timezone,
+                bool? includeSeries,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            PlatformResults.Ok(
+                context,
+                await sender.Send(
+                    new GetSellerAnalyticsDatasetQuery
+                    {
+                        Period = period,
+                        From = from,
+                        To = to,
+                        Timezone = timezone,
+                        IncludeSeries = includeSeries ?? false
+                    },
+                    cancellationToken)))
+            .RequireAuthorization(AnalyticsPolicies.ContentRead)
+            .WithName("GetSellerAnalyticsDataset");
+
         group.MapGet("/creators/me/summary", async (
                 string? period,
                 string? from,

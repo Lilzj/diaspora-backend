@@ -50,6 +50,54 @@ public sealed class AnalyticsReadService
         return new AnalyticsWindowTotals(counts, uniqueViewers, profileViews, rows.Count > 0);
     }
 
+    /// <summary>
+    /// One owner's totals for a window, for one type of content only.
+    /// <para>
+    /// <b>Summed from the per-item rows, not read from the owner rollup.</b> The owner rollup has
+    /// already added every type together and cannot be taken apart again; the per-item rows carry
+    /// their type, so narrowing them and summing is the only way to a seller's figure that does not
+    /// include their guides. Profile views are zero here on purpose: a profile is not a listing.
+    /// </para>
+    /// </summary>
+    public async Task<AnalyticsWindowTotals> ReadOwnerContentTypeAsync(
+        Guid ownerUserId,
+        AnalyticsContentType contentType,
+        AnalyticsPeriod period,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(period);
+
+        var rows = await ReadOwnerContentTypeDailyAsync(ownerUserId, contentType, period, cancellationToken)
+            .ConfigureAwait(false);
+
+        var counts = rows.Aggregate(AnalyticsCounts.Zero, (total, row) => total.Add(row.Counts));
+
+        var uniqueViewers = await _events
+            .CountDistinctViewersForOwnerContentTypeAsync(
+                ownerUserId, contentType, period.Start, period.End, cancellationToken)
+            .ConfigureAwait(false);
+
+        return new AnalyticsWindowTotals(counts, uniqueViewers, 0, rows.Count > 0);
+    }
+
+    /// <summary>One owner's per-item rows for one type of content in a window.</summary>
+    public async Task<IReadOnlyList<ContentDailyRollup>> ReadOwnerContentTypeDailyAsync(
+        Guid ownerUserId,
+        AnalyticsContentType contentType,
+        AnalyticsPeriod period,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(period);
+
+        // Narrowed in memory: one owner's rows over one period is small, and adding a type
+        // parameter to the rollup query would be a second index for a filter this cheap.
+        var rows = await _rollups
+            .ListContentForOwnerAsync(ownerUserId, period.FromDate, period.ToDate, cancellationToken)
+            .ConfigureAwait(false);
+
+        return rows.Where(row => row.ContentType == contentType).ToList();
+    }
+
     /// <summary>One item's totals for a window.</summary>
     public async Task<AnalyticsWindowTotals> ReadContentAsync(
         AnalyticsContentType contentType,
