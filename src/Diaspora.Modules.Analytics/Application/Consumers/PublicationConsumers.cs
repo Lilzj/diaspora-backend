@@ -229,10 +229,15 @@ public sealed class ListingPublishedAnalyticsConsumer
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
 
+        // The owner is the member, not their seller profile. `SellerId` is the Marketplace module's
+        // own identifier and names no user; writing it into a column read as a user id is what left
+        // every seller dashboard permanently empty — their rows keyed by an id no query would ever
+        // ask for. `Guid.Empty` where the event has no user is the recorder's "unknown", which it
+        // will not write over a known owner. Never `?? SellerId`: that is the defect again.
         await _dimensions.ObserveAsync(
             AnalyticsContentType.Marketplace,
             integrationEvent.ListingId,
-            integrationEvent.SellerId,
+            integrationEvent.SellerUserId ?? Guid.Empty,
             integrationEvent.Title,
             "Available",
             integrationEvent.CategoryKey,
@@ -252,10 +257,10 @@ public sealed class ListingPublishedAnalyticsConsumer
                 Version: 1,
                 SourceModule: "Marketplace",
                 integrationEvent.PublishedAt,
-                ActorUserId: integrationEvent.SellerId,
+                ActorUserId: integrationEvent.SellerUserId,
                 ContentType: AnalyticsContentType.Marketplace,
                 ContentId: integrationEvent.ListingId,
-                OwnerUserId: integrationEvent.SellerId,
+                OwnerUserId: integrationEvent.SellerUserId,
                 CountryCode: integrationEvent.CountryCode,
                 Qualifier: integrationEvent.CategoryKey,
                 SourceEventId: integrationEvent.EventId),
@@ -282,10 +287,15 @@ public sealed class HousingPublishedAnalyticsConsumer
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
 
+        // The owner is the member, not their landlord profile. `LandlordId` is the Housing module's
+        // own identifier and names no user; writing it into a column read as a user id is what left
+        // every landlord dashboard permanently empty — their rows keyed by an id no query would ever
+        // ask for. `Guid.Empty` where the event has no user is the recorder's "unknown", which it
+        // will not write over a known owner. Never `?? LandlordId`: that is the defect again.
         await _dimensions.ObserveAsync(
             AnalyticsContentType.Housing,
             integrationEvent.ListingId,
-            integrationEvent.LandlordId,
+            integrationEvent.LandlordUserId ?? Guid.Empty,
             integrationEvent.Title,
             "Available",
             integrationEvent.AccommodationTypeKey,
@@ -305,10 +315,10 @@ public sealed class HousingPublishedAnalyticsConsumer
                 Version: 1,
                 SourceModule: "Housing",
                 integrationEvent.PublishedAt,
-                ActorUserId: integrationEvent.LandlordId,
+                ActorUserId: integrationEvent.LandlordUserId,
                 ContentType: AnalyticsContentType.Housing,
                 ContentId: integrationEvent.ListingId,
-                OwnerUserId: integrationEvent.LandlordId,
+                OwnerUserId: integrationEvent.LandlordUserId,
                 CountryCode: integrationEvent.CountryCode,
                 Qualifier: integrationEvent.AccommodationTypeKey,
                 SourceEventId: integrationEvent.EventId),
@@ -335,10 +345,15 @@ public sealed class JobPublishedAnalyticsConsumer
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
 
+        // The owner is the member, not their employer profile. `EmployerId` is the Jobs module's
+        // own identifier and names no user; writing it into a column read as a user id is what left
+        // every employer dashboard permanently empty — their rows keyed by an id no query would ever
+        // ask for. `Guid.Empty` where the event has no user is the recorder's "unknown", which it
+        // will not write over a known owner. Never `?? EmployerId`: that is the defect again.
         await _dimensions.ObserveAsync(
             AnalyticsContentType.Job,
             integrationEvent.JobId,
-            integrationEvent.EmployerId,
+            integrationEvent.EmployerUserId ?? Guid.Empty,
             integrationEvent.Title,
             "Open",
             integrationEvent.CategoryKey,
@@ -358,10 +373,10 @@ public sealed class JobPublishedAnalyticsConsumer
                 Version: 1,
                 SourceModule: "Jobs",
                 integrationEvent.PublishedAt,
-                ActorUserId: integrationEvent.EmployerId,
+                ActorUserId: integrationEvent.EmployerUserId,
                 ContentType: AnalyticsContentType.Job,
                 ContentId: integrationEvent.JobId,
-                OwnerUserId: integrationEvent.EmployerId,
+                OwnerUserId: integrationEvent.EmployerUserId,
                 CountryCode: integrationEvent.CountryCode,
                 Qualifier: integrationEvent.CategoryKey,
                 SourceEventId: integrationEvent.EventId),

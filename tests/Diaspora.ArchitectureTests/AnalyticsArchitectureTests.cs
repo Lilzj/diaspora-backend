@@ -7,6 +7,8 @@ using Diaspora.Modules.Analytics.Domain.Events;
 using Diaspora.Modules.Analytics.Domain.Policies;
 using Diaspora.Modules.Analytics.Domain.Rollups;
 using FluentAssertions;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Xunit;
 
 namespace Diaspora.ArchitectureTests;
@@ -269,5 +271,88 @@ public sealed class AnalyticsArchitectureTests
             definition.Formula.Should().NotBeNullOrWhiteSpace(
                 "{0} is a rate, and §16 forbids an unexplained percentage", definition.Key);
         }
+    }
+
+    /// <summary>
+    /// <b>An owner is a member, never the profile a module keeps for them.</b> 13 Sep 2026.
+    /// <para>
+    /// Six consumers wrote <c>SellerId</c>, <c>LandlordId</c> and <c>EmployerId</c> — each module's
+    /// own profile identifier, naming no user — into <c>OwnerUserId</c> and <c>ActorUserId</c>, and
+    /// into the owner a listing's dimension is recorded against. Every marketplace, housing and jobs
+    /// row in production was keyed by an id no owner query ever asks for, so a seller's dashboard
+    /// could only ever be empty. Nothing failed: 5,411 client tests and 4,997 backend tests passed,
+    /// because every fixture used one Guid for both the seller and the member. It was found by
+    /// joining the rollup to the users table on the device's data and getting no names back.
+    /// </para>
+    /// <para>
+    /// One consumer had half-fixed it — <c>EmployerUserId ?? EmployerId</c> — which put the right id
+    /// first and the wrong one behind it. That fallback is rejected here too.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Analytics_consumers_never_record_a_profile_id_as_an_owner()
+    {
+        // The profile identifiers this rule was written against. Each has a *UserId sibling on
+        // its event, or none at all — in which case the fact must send no owner and let ingestion
+        // ask the dimension.
+        var profileIds = new[] { "SellerId", "LandlordId", "EmployerId" };
+
+        bool NamesAProfile(ExpressionSyntax expression)
+        {
+            var text = new string(expression.ToString().Where(ch => !char.IsWhiteSpace(ch)).ToArray());
+
+            return profileIds.Any(id =>
+                text.EndsWith("." + id, StringComparison.Ordinal)
+                || text.Contains("." + id + "??", StringComparison.Ordinal)
+                || text.Contains("??integrationEvent." + id, StringComparison.Ordinal));
+        }
+
+        var offenders = new List<string>();
+
+        foreach (var file in SourceTree.ProductionFiles
+            .Where(file => file.Path.Contains("Diaspora.Modules.Analytics/Application/Consumers", StringComparison.Ordinal)))
+        {
+            // `new AnalyticsFact(..., OwnerUserId: x, ActorUserId: y)`
+            foreach (var creation in file.Root.DescendantNodes().OfType<BaseObjectCreationExpressionSyntax>())
+            {
+                var typeName = creation is ObjectCreationExpressionSyntax named ? named.Type.ToString() : string.Empty;
+
+                if (!typeName.EndsWith("AnalyticsFact", StringComparison.Ordinal) || creation.ArgumentList is null)
+                {
+                    continue;
+                }
+
+                foreach (var argument in creation.ArgumentList.Arguments)
+                {
+                    var name = argument.NameColon?.Name.Identifier.Text;
+
+                    if (name is "OwnerUserId" or "ActorUserId" && NamesAProfile(argument.Expression))
+                    {
+                        offenders.Add($"{file.Locate(argument)} — {name}: {argument.Expression}");
+                    }
+                }
+            }
+
+            // `_dimensions.ObserveAsync(type, contentId, owner, ...)` — the owner is the third argument.
+            foreach (var invocation in file.Root.DescendantNodes().OfType<InvocationExpressionSyntax>())
+            {
+                if (invocation.Expression is not MemberAccessExpressionSyntax { Name.Identifier.Text: "ObserveAsync" }
+                    || invocation.ArgumentList.Arguments.Count < 3)
+                {
+                    continue;
+                }
+
+                var owner = invocation.ArgumentList.Arguments[2];
+
+                if (NamesAProfile(owner.Expression))
+                {
+                    offenders.Add($"{file.Locate(owner)} — ObserveAsync owner: {owner.Expression}");
+                }
+            }
+        }
+
+        offenders.Should().BeEmpty(
+            "an owner column holds a member's user id; a profile id there keys the row to an id no "
+            + "owner query asks for:" + Environment.NewLine + string.Join(Environment.NewLine, offenders));
     }
 }

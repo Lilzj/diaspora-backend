@@ -293,7 +293,12 @@ public sealed class ApplicationSubmittedAnalyticsConsumer
                 ActorUserId: integrationEvent.ApplicantUserId,
                 ContentType: AnalyticsContentType.Job,
                 ContentId: integrationEvent.JobId,
-                OwnerUserId: integrationEvent.EmployerUserId ?? integrationEvent.EmployerId,
+                // `EmployerUserId`, and no fallback. `?? EmployerId` was this defect fixed halfway:
+                // it put the right id first and the wrong one behind it, so every application
+                // whose event lacked a user id was attributed to the employer profile — and the
+                // publication consumer beside it never had the first half at all. Null asks the
+                // job's dimension instead.
+                OwnerUserId: integrationEvent.EmployerUserId,
                 CountryCode: integrationEvent.CountryCode,
                 Qualifier: "application",
                 SourceEventId: integrationEvent.EventId),
@@ -332,7 +337,12 @@ public sealed class ListingSoldAnalyticsConsumer
                 ActorUserId: integrationEvent.BuyerUserId,
                 ContentType: AnalyticsContentType.Marketplace,
                 ContentId: integrationEvent.ListingId,
-                OwnerUserId: integrationEvent.SellerId,
+                // No owner here, deliberately. `ListingSold` carries `SellerId`, the
+                // Marketplace module's profile id, and no user id — and `ResolveOwnerAsync`
+                // trusts a producer's owner outright, so sending the profile id attributed
+                // every sale to an id no seller query asks for. Left null, ingestion asks
+                // the listing's dimension, which its publication recorded against the member.
+                OwnerUserId: null,
                 CountryCode: integrationEvent.CountryCode,
                 Qualifier: "sale",
                 Weight: Math.Max(1, integrationEvent.Quantity),
@@ -364,7 +374,12 @@ public sealed class ViewingScheduledAnalyticsConsumer
                 ActorUserId: integrationEvent.SeekerUserId,
                 ContentType: AnalyticsContentType.Housing,
                 ContentId: integrationEvent.ListingId,
-                OwnerUserId: integrationEvent.LandlordId,
+                // No owner here, deliberately. `ViewingScheduled` carries `LandlordId`, the
+                // Housing module's profile id, and no user id — and `ResolveOwnerAsync`
+                // trusts a producer's owner outright, so sending the profile id attributed
+                // every viewing to an id no landlord query asks for. Left null, ingestion asks
+                // the listing's dimension, which its publication recorded against the member.
+                OwnerUserId: null,
                 Qualifier: "viewing",
                 SourceEventId: integrationEvent.EventId),
             cancellationToken).ConfigureAwait(false);
