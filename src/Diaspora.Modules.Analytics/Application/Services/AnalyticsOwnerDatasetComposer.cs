@@ -24,8 +24,8 @@ namespace Diaspora.Modules.Analytics.Application.Services;
 /// <param name="FallbackTitle">An item's title when its publication was never recorded.</param>
 /// <param name="BoardSecondary">
 /// The catalogue key counted beside views on each board row: <see cref="AnalyticsMetricCatalog.Conversion"/>
-/// where the content asks for an action, <see cref="AnalyticsMetricCatalog.Saves"/> where it asks for
-/// none. Always one of the dashboard's own tiles.
+/// where the content asks for an action, <see cref="AnalyticsMetricCatalog.Enquiries"/> where the
+/// one thing anybody does is get in touch. Always one of the dashboard's own tiles.
 /// </param>
 public sealed record AnalyticsOwnerDatasetProfile(
     AnalyticsContentType ContentType,
@@ -64,12 +64,12 @@ public sealed record AnalyticsOwnerDatasetProfile(
         "Job");
 
     /// <summary>
-    /// A service provider: their provider profiles, and the members who saved them.
+    /// A service provider: their provider profiles, and the people who got in touch through them.
     /// <para>
-    /// <b>Saves beside views, not actions taken.</b> Nothing a provider is asked for — a call, a
-    /// message, a visit — is counted by analytics, so a board with the other dashboards' second column
-    /// would read "Actions taken 0" on every row. A save is the one thing a member does to a provider
-    /// that reaches it.
+    /// <b>Enquiries beside views, not actions taken.</b> A provider sells nothing through their
+    /// profile, so a board with the other dashboards' second column would read "Actions taken 0" on
+    /// every row. Somebody writing to them is what a provider's profile is for. The board carried
+    /// saves for the few hours before enquiries were counted.
     /// </para>
     /// </summary>
     public static AnalyticsOwnerDatasetProfile Provider { get; } = new(
@@ -79,7 +79,7 @@ public sealed record AnalyticsOwnerDatasetProfile(
         "provider-profiles",
         "Top profiles",
         "Provider profile",
-        BoardSecondary: AnalyticsMetricCatalog.Saves);
+        BoardSecondary: AnalyticsMetricCatalog.Enquiries);
 
     /// <summary>What this dashboard calls an action taken, beside each item on its board.</summary>
     public string ConversionLabel =>
@@ -103,7 +103,7 @@ public sealed record AnalyticsOwnerDatasetProfile(
         return BoardSecondary switch
         {
             AnalyticsMetricCatalog.Conversion => counts.Conversions,
-            AnalyticsMetricCatalog.Saves => counts.Saves,
+            AnalyticsMetricCatalog.Enquiries => counts.Enquiries,
             _ => throw new InvalidOperationException(
                 $"An owner board cannot rank by '{BoardSecondary}'.")
         };
@@ -224,9 +224,9 @@ public sealed class AnalyticsOwnerDatasetComposer
     /// The owner's best-performing items for the period.
     /// <para>
     /// <b>Ranked by the server, echoed by the client</b>, with actions taken beside views so an item
-    /// that is seen a great deal and never acted on is visible as exactly that — or saves, on a
+    /// that is seen a great deal and never acted on is visible as exactly that — or enquiries, on a
     /// dashboard whose content asks for no action. The rows name items, never the people who bought,
-    /// booked, applied or saved.
+    /// booked, applied or wrote.
     /// </para>
     /// </summary>
     private async Task<IReadOnlyList<AnalyticsLeaderboardResponse>> BuildTopItemsAsync(

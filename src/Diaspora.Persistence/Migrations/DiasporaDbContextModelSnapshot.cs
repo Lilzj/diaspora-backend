@@ -17691,6 +17691,10 @@ namespace Diaspora.Persistence.Migrations
                                 .HasColumnType("bigint")
                                 .HasColumnName("conversions");
 
+                            b1.Property<long>("Enquiries")
+                                .HasColumnType("bigint")
+                                .HasColumnName("enquiries");
+
                             b1.Property<long>("FollowsGained")
                                 .HasColumnType("bigint")
                                 .HasColumnName("follows_gained");
@@ -17749,6 +17753,10 @@ namespace Diaspora.Persistence.Migrations
                             b1.Property<long>("Conversions")
                                 .HasColumnType("bigint")
                                 .HasColumnName("conversions");
+
+                            b1.Property<long>("Enquiries")
+                                .HasColumnType("bigint")
+                                .HasColumnName("enquiries");
 
                             b1.Property<long>("FollowsGained")
                                 .HasColumnType("bigint")

@@ -123,7 +123,7 @@ public sealed class AnalyticsLimitationsTests
             new DateTimeOffset(2026, 9, 13, 9, 0, 0, TimeSpan.Zero),
             366).Period!;
 
-        var counts = new AnalyticsCounts(views, 0, 0, 0, 0, 0, conversions, 0, 0, 0);
+        var counts = new AnalyticsCounts(views, 0, 0, 0, 0, 0, conversions, 0, 0, 0, 0);
         var totals = new AnalyticsWindowTotals(counts, views > 0 ? 1 : 0, 0, HasData: true, HasHistory: true);
 
         var metrics = AnalyticsMetricAssembler.BuildSet(keys, totals, totals);

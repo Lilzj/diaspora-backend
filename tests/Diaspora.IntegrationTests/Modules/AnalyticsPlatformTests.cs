@@ -5,6 +5,7 @@ using System.Text.Json;
 using Diaspora.Contracts.Community.V1.Events;
 using Diaspora.Contracts.Housing.V1.Events;
 using Diaspora.Contracts.Jobs.V1.Events;
+using Diaspora.Contracts.Marketplace.V1.Events;
 using Diaspora.Domain.Abstractions;
 using Diaspora.IntegrationTests.Common;
 using Diaspora.Modules.Analytics.Application.Projection;
@@ -908,7 +909,8 @@ public sealed class AnalyticsPlatformTests : IdentityTestBase
 
         // Only what a home records: its views and its viewings. No saves, votes, comments, shares or
         // engagement rate, which nothing records for a home.
-        homePage.Metrics.Select(metric => metric.Key).Should().Equal("content.views", "conversion.count");
+        homePage.Metrics.Select(metric => metric.Key).Should().Equal(
+            "content.views", "conversion.count", "content.enquiries");
 
         var homeRows = await ReadDataAsync<ContentPageDto>(
             await HttpClient.GetAsync($"{Analytics}/creators/me/content?period=30d"));
@@ -916,7 +918,7 @@ public sealed class AnalyticsPlatformTests : IdentityTestBase
         var homeRow = homeRows.Items.Single(item => item.ContentId == homeId.ToString());
 
         homeRow.Metrics.Single(metric => metric.Key == "conversion").Label.Should().Be("Viewings");
-        homeRow.Metrics.Select(metric => metric.Key).Should().Equal("content_views", "conversion");
+        homeRow.Metrics.Select(metric => metric.Key).Should().Equal("content_views", "conversion", "enquiries");
 
         // The "Homes" and "Listings" chips send the client's own words, and each filters to its kind.
         var homesOnly = await ReadDataAsync<ContentPageDto>(
@@ -1084,15 +1086,15 @@ public sealed class AnalyticsPlatformTests : IdentityTestBase
         MetricValue(dataset, "content.published").Should().Be(1);
 
         dataset.Metrics.Select(metric => metric.Key).Should().Equal(
-            "content.views", "content.uniqueViewers", "content.saves", "content.published");
+            "content.views", "content.uniqueViewers", "content.enquiries", "content.saves", "content.published");
 
         var board = dataset.Leaderboards.Should().ContainSingle(entry => entry.Key == "provider-profiles").Subject;
         var row = board.Rows.Should().ContainSingle().Subject;
 
         row.Entity.EntityId.Should().Be(provider.ProviderId.ToString());
         row.Entity.Title.Should().Be(provider.Name);
-        row.SecondaryLabel.Should().Be("Saves");
-        row.SecondaryValue.Should().Be(1);
+        row.SecondaryLabel.Should().Be("Enquiries");
+        row.SecondaryValue.Should().Be(0, "nobody wrote to this provider");
 
         // The dashboard is asked for with the member's own id; one profile's page with the provider's.
         (await ReadAccessAsync("provider", provider.Owner.UserId)).CanView.Should().BeTrue(
@@ -1103,7 +1105,8 @@ public sealed class AnalyticsPlatformTests : IdentityTestBase
         var profilePage = await ReadDataAsync<DatasetDto>(
             await HttpClient.GetAsync($"{Analytics}/content/provider/{provider.ProviderId}?period=30d"));
 
-        profilePage.Metrics.Select(metric => metric.Key).Should().Equal("content.views", "content.saves");
+        profilePage.Metrics.Select(metric => metric.Key).Should().Equal(
+            "content.views", "content.enquiries", "content.saves");
         MetricValue(profilePage, "content.saves").Should().Be(1);
 
         var profileRows = await ReadDataAsync<ContentPageDto>(
@@ -1112,7 +1115,7 @@ public sealed class AnalyticsPlatformTests : IdentityTestBase
         var profileRow = profileRows.Items.Should().ContainSingle().Subject;
 
         profileRow.ContentId.Should().Be(provider.ProviderId.ToString());
-        profileRow.Metrics.Select(metric => metric.Key).Should().Equal("content_views", "saves");
+        profileRow.Metrics.Select(metric => metric.Key).Should().Equal("content_views", "enquiries", "saves");
 
         // The other sides: a provider profile is not a job, and the customer can see none of it.
         var asEmployer = await ReadDataAsync<DatasetDto>(
@@ -1132,6 +1135,113 @@ public sealed class AnalyticsPlatformTests : IdentityTestBase
 
         MetricValue(stranger, "content.views").Should().Be(0);
         MetricValue(stranger, "content.saves").Should().Be(0);
+    }
+
+    // ════════════════════════════════════════════════════════════════════════════════════════
+    // Enquiries — the first message in a conversation about a listing, a home or a provider
+    // ════════════════════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// <b>An enquiry counts once, when somebody first writes to the owner.</b> Driven through the
+    /// conversation routes the app calls. Tapping "Message" opens a conversation before anything is
+    /// typed, and two of the first three enquiry conversations in production were never written in;
+    /// the seller, landlord and provider dashboards count the first message, and nothing else a
+    /// conversation does.
+    /// </summary>
+    [Fact]
+    public async Task An_enquiry_counts_once_when_somebody_first_writes_about_a_listing_a_home_or_a_provider()
+    {
+        // Each item published under a profile id that is not its owner's member id, as in production.
+        var seller = await NewMemberAsync();
+        var listingId = Guid.NewGuid();
+        await PublishListingAsync(listingId, sellerProfileId: Guid.NewGuid(), seller.UserId);
+
+        var landlord = await NewMemberAsync();
+        var homeId = Guid.NewGuid();
+        await PublishHomeAsync(homeId, landlordProfileId: Guid.NewGuid(), landlord.UserId);
+
+        var provider = await PublishProviderAsync();
+        await Factory.DrainOutboxAsync();
+
+        // A buyer writes about the listing twice. The second message is not a second enquiry, and
+        // opening the same conversation again reuses it.
+        var buyer = await NewMemberAsync();
+        var aboutListing = await OpenEnquiryAsync(seller.UserId, "MarketplaceListing", listingId, "Toyota Corolla 2018");
+        await WriteAsync(aboutListing, "Is it still available?");
+        await WriteAsync(aboutListing, "And does it have a service history?");
+
+        (await OpenEnquiryAsync(seller.UserId, "MarketplaceListing", listingId, "Toyota Corolla 2018"))
+            .Should().Be(aboutListing, "the app's second tap on Message finds the same conversation");
+
+        // Somebody opens a chat about the listing and never writes in it.
+        await NewMemberAsync();
+        await OpenEnquiryAsync(seller.UserId, "MarketplaceListing", listingId, "Toyota Corolla 2018");
+
+        // The seller answers the buyer.
+        Api.Authenticate(seller.Token);
+        await WriteAsync(aboutListing, "Yes to both.");
+
+        // A seeker writes about the home; a customer writes to the provider as the conversation opens.
+        await NewMemberAsync();
+        await WriteAsync(
+            await OpenEnquiryAsync(landlord.UserId, "HousingListing", homeId, "Two-bed flat near the station"),
+            "Could I view it on Saturday?");
+
+        var customer = await NewMemberAsync();
+        await OpenEnquiryAsync(
+            provider.Owner.UserId, "ProviderInquiry", provider.ProviderId, provider.Name, "Do you fix boilers?");
+
+        // The seller writes first, about their own listing, to somebody who never asked.
+        Api.Authenticate(seller.Token);
+        await WriteAsync(
+            await OpenEnquiryAsync(customer.UserId, "MarketplaceListing", listingId, "Toyota Corolla 2018"),
+            "Still looking for a car?");
+
+        await Factory.DrainOutboxAsync();
+        await ProjectAsync();
+
+        var selling = await ReadDataAsync<DatasetDto>(
+            await HttpClient.GetAsync($"{Analytics}/sellers/me?period=30d"));
+
+        MetricValue(selling, "content.enquiries").Should().Be(
+            1,
+            "one buyer wrote — a second message, an empty chat, the seller's reply and the seller's own "
+                + "first message are not enquiries");
+        selling.Metrics.Single(metric => metric.Key == "content.enquiries").Label.Should().Be("Enquiries");
+        MetricValue(selling, "conversion.count").Should().Be(0, "an enquiry is not a sale");
+
+        var listingRow = (await ReadDataAsync<ContentPageDto>(
+                await HttpClient.GetAsync($"{Analytics}/creators/me/content?period=30d&contentType=Marketplace")))
+            .Items.Single(item => item.ContentId == listingId.ToString());
+
+        listingRow.Metrics.Single(metric => metric.Key == "enquiries").Value.Should().Be(1);
+
+        Api.Authenticate(landlord.Token);
+
+        var letting = await ReadDataAsync<DatasetDto>(
+            await HttpClient.GetAsync($"{Analytics}/landlords/me?period=30d"));
+
+        MetricValue(letting, "content.enquiries").Should().Be(1, "one seeker wrote about the home");
+        MetricValue(letting, "conversion.count").Should().Be(0, "an enquiry is not a viewing");
+
+        Api.Authenticate(provider.Owner.Token);
+
+        var business = await ReadDataAsync<DatasetDto>(
+            await HttpClient.GetAsync($"{Analytics}/providers/me?period=30d"));
+
+        MetricValue(business, "content.enquiries").Should().Be(
+            1, "a message sent as the conversation opened is its first message");
+
+        var profileRow = business.Leaderboards.Single(entry => entry.Key == "provider-profiles").Rows.Single();
+        profileRow.SecondaryLabel.Should().Be("Enquiries");
+        profileRow.SecondaryValue.Should().Be(1);
+
+        // The people who wrote have enquiries of their own to see: none.
+        Api.Authenticate(buyer.Token);
+
+        MetricValue(
+            await ReadDataAsync<DatasetDto>(await HttpClient.GetAsync($"{Analytics}/sellers/me?period=30d")),
+            "content.enquiries").Should().Be(0);
     }
 
     // ════════════════════════════════════════════════════════════════════════════════════════
@@ -2052,6 +2162,75 @@ public sealed class AnalyticsPlatformTests : IdentityTestBase
         return new PublishedProvider(created.ProviderId, name, owner);
     }
 
+    /// <summary>
+    /// A marketplace listing going live, published as B10's own contract, with a seller profile id
+    /// that differs from the member's user id — as it does in Marketplace.
+    /// </summary>
+    private async Task PublishListingAsync(Guid listingId, Guid sellerProfileId, Guid sellerUserId)
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        var publisher = scope.ServiceProvider.GetRequiredService<IIntegrationEventPublisher>();
+        var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+
+        await publisher.PublishAsync(new ListingPublishedIntegrationEvent
+        {
+            ListingId = listingId,
+            SellerId = sellerProfileId,
+            SellerUserId = sellerUserId,
+            SellerName = "Kwame Mensah",
+            SellerType = "Individual",
+            IsSellerVerified = true,
+            Title = "Toyota Corolla 2018",
+            Slug = $"toyota-corolla-{listingId:N}",
+            CategoryKey = "vehicles",
+            Tags = [],
+            ListingType = "Sale",
+            Condition = "Used",
+            IsPriceDisclosed = false,
+            IsNegotiable = true,
+            Quantity = 1,
+            CountryCode = "GB",
+            OffersPickup = true,
+            OffersDelivery = false,
+            OffersShipping = false,
+            IsFirstPublication = true,
+            PublishedAt = DateTimeOffset.UtcNow
+        });
+
+        await unitOfWork.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Opens a conversation about an item as the app's "Message" button does, optionally with the
+    /// first message in the same request, and returns its id.
+    /// </summary>
+    private async Task<Guid> OpenEnquiryAsync(
+        Guid recipientId, string contextType, Guid entityId, string title, string? initialMessage = null)
+    {
+        var response = await HttpClient.PostAsJsonAsync(
+            "/api/v1/conversations",
+            new
+            {
+                recipientId,
+                context = new { type = contextType, entityId = entityId.ToString(), entityTitle = title },
+                initialMessage
+            },
+            JsonOptions);
+
+        return (await ReadDataAsync<ConversationIdDto>(response)).ConversationId;
+    }
+
+    private async Task WriteAsync(Guid conversationId, string text)
+    {
+        var response = await HttpClient.PostAsJsonAsync(
+            $"/api/v1/conversations/{conversationId}/messages",
+            new { text, localId = Guid.NewGuid().ToString("N") },
+            JsonOptions);
+
+        response.IsSuccessStatusCode.Should().BeTrue(await response.Content.ReadAsStringAsync());
+    }
+
     private async Task<AccessDto> ReadAccessAsync(string subjectType, Guid subjectId) =>
         await ReadDataAsync<AccessDto>(
             await HttpClient.GetAsync($"{Analytics}/access?subjectType={subjectType}&subjectId={subjectId}"));
@@ -2215,6 +2394,8 @@ public sealed class AnalyticsPlatformTests : IdentityTestBase
         int Position, EntityRefDto Entity, double Value, double? SecondaryValue, string? SecondaryLabel);
 
     private sealed record ProviderIdDto(Guid ProviderId);
+
+    private sealed record ConversationIdDto(Guid ConversationId);
 
     private sealed record PublishedProvider(Guid ProviderId, string Name, Member Owner);
 

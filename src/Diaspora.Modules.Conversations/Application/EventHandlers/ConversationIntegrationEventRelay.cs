@@ -1,5 +1,6 @@
 using Diaspora.Contracts.Conversations.V1.Events;
 using Diaspora.Contracts.Events;
+using Diaspora.Modules.Conversations.Domain.Conversations;
 using Diaspora.Modules.Conversations.Domain.Events;
 using Diaspora.Platform.Messaging;
 using Microsoft.Extensions.Logging;
@@ -50,6 +51,39 @@ public sealed class ConversationIntegrationEventRelay
                     [.. domainEvent.ParticipantUserIds.Select(userId => userId.Value)],
                 Status = domainEvent.Status.ToString(),
                 CreatedAt = domainEvent.CreatedAt
+            },
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Announces a conversation's first message, and nothing for any later one.
+    /// <para>
+    /// Unconditional where the notifier is not: mute, block and the push switch decide who is
+    /// interrupted, not whether an enquiry happened.
+    /// </para>
+    /// </summary>
+    public Task PublishFirstMessageAsync(
+        MessageSentDomainEvent domainEvent,
+        Conversation conversation,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(domainEvent);
+        ArgumentNullException.ThrowIfNull(conversation);
+
+        if (!domainEvent.OpensConversation)
+        {
+            return Task.CompletedTask;
+        }
+
+        return PublishSafelyAsync(
+            new ConversationFirstMessageSentIntegrationEvent
+            {
+                ConversationId = domainEvent.ConversationId.Value,
+                MessageId = domainEvent.MessageId.Value,
+                SenderUserId = domainEvent.SenderId.Value,
+                ContextType = conversation.Context.Type.Key,
+                EntityId = conversation.Context.EntityId,
+                SentAt = domainEvent.SentAt
             },
             cancellationToken);
     }

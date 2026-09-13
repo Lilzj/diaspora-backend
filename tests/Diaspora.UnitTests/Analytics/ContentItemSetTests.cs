@@ -21,10 +21,20 @@ public sealed class ContentItemSetTests
     [Theory]
     [InlineData(AnalyticsContentType.Marketplace)]
     [InlineData(AnalyticsContentType.Housing)]
+    public void Listings_and_homes_show_their_views_their_one_action_and_their_enquiries(AnalyticsContentType type)
+    {
+        // Both screens open a conversation with the owner, and the first message in one is an enquiry.
+        AnalyticsMetricCatalog.ContentItemFor(type).Should().Equal(
+            AnalyticsMetricCatalog.ContentViews, AnalyticsMetricCatalog.Conversion, AnalyticsMetricCatalog.Enquiries);
+    }
+
+    [Theory]
     [InlineData(AnalyticsContentType.Job)]
     [InlineData(AnalyticsContentType.Event)]
-    public void Listings_homes_jobs_and_events_show_their_views_and_their_one_action(AnalyticsContentType type)
+    public void Jobs_and_events_show_their_views_and_their_one_action(AnalyticsContentType type)
     {
+        // A job's conversations are an employer and a candidate, not enquiries; nothing counts an
+        // event's.
         AnalyticsMetricCatalog.ContentItemFor(type).Should().Equal(
             AnalyticsMetricCatalog.ContentViews, AnalyticsMetricCatalog.Conversion);
     }
@@ -45,12 +55,12 @@ public sealed class ContentItemSetTests
     }
 
     [Fact]
-    public void A_provider_shows_its_views_and_its_saves()
+    public void A_provider_shows_its_views_its_enquiries_and_its_saves()
     {
-        // A provider's save button goes through Community, which publishes the save. Until the
-        // provider dashboard, the row showed views alone and hid every one of them.
+        // A provider's save button goes through Community, which publishes the save, and its message
+        // button opens a conversation. Until the provider dashboard, the row showed views alone.
         AnalyticsMetricCatalog.ContentItemFor(AnalyticsContentType.Provider).Should().Equal(
-            AnalyticsMetricCatalog.ContentViews, AnalyticsMetricCatalog.Saves);
+            AnalyticsMetricCatalog.ContentViews, AnalyticsMetricCatalog.Enquiries, AnalyticsMetricCatalog.Saves);
     }
 
     [Fact]

@@ -168,7 +168,8 @@ public sealed class AnalyticsEventRepository : IAnalyticsEventRepository
                 group.Sum(row => row.EventType == AnalyticsEventTypes.ContentPublished ? 1L : 0L),
                 group.Sum(row => row.EventType == AnalyticsEventTypes.AudienceFollowed ? 1L : 0L),
                 group.Sum(row => row.EventType == AnalyticsEventTypes.AudienceUnfollowed ? 1L : 0L),
-                group.Sum(row => row.EventType == AnalyticsEventTypes.ProfileViewed ? 1L : 0L)))
+                group.Sum(row => row.EventType == AnalyticsEventTypes.ProfileViewed ? 1L : 0L),
+                group.Sum(row => row.EventType == AnalyticsEventTypes.ContentEnquired ? 1L : 0L)))
             .FirstOrDefaultAsync(cancellationToken);
 
         return aggregate ?? AnalyticsCellCounts.Empty;

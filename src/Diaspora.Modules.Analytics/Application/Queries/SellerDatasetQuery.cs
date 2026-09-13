@@ -25,16 +25,18 @@ namespace Diaspora.Modules.Analytics.Application.Queries;
 /// belong on the administration website, which will call a route of its own.
 /// </para>
 /// <para>
-/// <b>What it will not say.</b> Impressions are not recorded for a listing, and enquiries are not
-/// counted: a buyer's message starts a conversation, which Conversations publishes as
-/// <c>ConversationCreated</c> and this module does not consume. Neither is in the set. Revenue is in
-/// the set and served as not measured — the wallet is where a
-/// seller's money is, and the financial platform is the only authority on it. Nothing here names a
-/// buyer: a buyer is a person, and a sales count is analytics where a buyer list is not.
+/// <b>Enquiries are in the set</b>, counted when a buyer first writes in a conversation about a
+/// listing; opening one and writing nothing is not an enquiry.
 /// </para>
 /// <para>
-/// Composed by <see cref="AnalyticsOwnerDatasetComposer"/>, which the landlord and employer datasets
-/// share: they are one question asked of three content types.
+/// <b>What it will not say.</b> Impressions are not recorded for a listing, and offers are not
+/// counted. Revenue is in the set and served as not measured — the wallet is where a seller's money
+/// is, and the financial platform is the only authority on it. Nothing here names a buyer: a buyer is
+/// a person, and a sales or enquiry count is analytics where a buyer list is not.
+/// </para>
+/// <para>
+/// Composed by <see cref="AnalyticsOwnerDatasetComposer"/>, which the landlord, employer and provider
+/// datasets share: they are one question asked of four content types.
 /// </para>
 /// </summary>
 [Authorize(Permission = AnalyticsPermissions.ContentReadOwn)]

@@ -63,17 +63,20 @@ public sealed class MessageSentEventHandler : DomainEventHandler<MessageSentDoma
 {
     private readonly ConversationBroadcaster _broadcaster;
     private readonly ConversationNotifier _notifier;
+    private readonly ConversationIntegrationEventRelay _relay;
     private readonly IConversationRepository _conversations;
     private readonly IConversationMessageRepository _messages;
 
     public MessageSentEventHandler(
         ConversationBroadcaster broadcaster,
         ConversationNotifier notifier,
+        ConversationIntegrationEventRelay relay,
         IConversationRepository conversations,
         IConversationMessageRepository messages)
     {
         _broadcaster = broadcaster;
         _notifier = notifier;
+        _relay = relay;
         _conversations = conversations;
         _messages = messages;
     }
@@ -98,6 +101,10 @@ public sealed class MessageSentEventHandler : DomainEventHandler<MessageSentDoma
         {
             return;
         }
+
+        // Before the notifier, and independent of it: whether anybody is told about this message
+        // has no bearing on whether it was the first one written here.
+        await _relay.PublishFirstMessageAsync(domainEvent, conversation, cancellationToken);
 
         // The notifier applies mute and block and publishes an integration event naming only the
         // people who should hear about it. It does not create notifications — see DSP2003.

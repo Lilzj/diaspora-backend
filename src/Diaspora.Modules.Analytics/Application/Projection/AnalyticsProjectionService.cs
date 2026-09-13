@@ -301,5 +301,6 @@ public sealed class AnalyticsProjectionService
             counts.Conversions,
             counts.Published,
             counts.FollowsGained,
-            counts.FollowsLost);
+            counts.FollowsLost,
+            counts.Enquiries);
 }

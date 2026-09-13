@@ -88,6 +88,17 @@ public static class AnalyticsEventTypes
     /// </summary>
     public const string ContentConverted = "content.converted";
 
+    /// <summary>
+    /// Somebody wrote to the owner of a listing, a home or a service provider for the first time.
+    /// <para>
+    /// <b>Not a conversion.</b> A sale, a viewing and an application are each the one action the
+    /// content asks for; an enquiry comes before any of them, and folding it into conversions would
+    /// make "Sales" count questions. One fact per conversation, recorded when its first message is
+    /// written — a chat opened and left empty is not an enquiry, and neither is a second message.
+    /// </para>
+    /// </summary>
+    public const string ContentEnquired = "content.enquired";
+
     /// <summary>Somebody started following a member, an organization or a provider.</summary>
     public const string AudienceFollowed = "audience.followed";
 

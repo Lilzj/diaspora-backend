@@ -25,7 +25,8 @@ public sealed record AnalyticsCounts(
     long Conversions,
     long Published,
     long FollowsGained,
-    long FollowsLost)
+    long FollowsLost,
+    long Enquiries)
 {
     /// <summary>
     /// A fresh set of zeroes.
@@ -37,7 +38,7 @@ public sealed record AnalyticsCounts(
     /// deliberate.
     /// </para>
     /// </summary>
-    public static AnalyticsCounts Zero => new(0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    public static AnalyticsCounts Zero => new(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
     /// <summary>
     /// Engagements: what the engagement rate's numerator counts.
@@ -47,7 +48,8 @@ public sealed record AnalyticsCounts(
     /// the failure §35 of the Phase 15 register exists to prevent. Views are not an engagement;
     /// they are the denominator. A conversion is not one either: an RSVP is an act on the event
     /// rather than a reaction to the post, and folding it in would let one popular event outrank a
-    /// creator's whole back catalogue.
+    /// creator's whole back catalogue. Nor is an enquiry, which is a conversation with the owner
+    /// rather than a response to what they published.
     /// </para>
     /// </summary>
     public long Engagements => Saves + Shares + Comments + Reactions;
@@ -66,7 +68,8 @@ public sealed record AnalyticsCounts(
             Conversions + other.Conversions,
             Published + other.Published,
             FollowsGained + other.FollowsGained,
-            FollowsLost + other.FollowsLost);
+            FollowsLost + other.FollowsLost,
+            Enquiries + other.Enquiries);
     }
 }
 

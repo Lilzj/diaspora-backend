@@ -381,14 +381,20 @@ public sealed class ConversationMessage
     }
 
     /// <summary>
-    /// Attaches the recipients to the sent event.
+    /// Attaches what only the conversation knows to the sent event: who receives the message, and
+    /// whether it is the first message anybody has written there.
     /// <para>
     /// Called by the conversation immediately after <see cref="Send"/>, because the message cannot
     /// see the participant list and the handler that pushes must not have to reload the conversation
     /// to find out who to push to.
     /// </para>
     /// </summary>
-    public void DeclareRecipients(IReadOnlyList<UserId> recipients)
+    /// <param name="recipients">Everybody in the conversation except the sender.</param>
+    /// <param name="opensConversation">
+    /// True when the conversation had no message before this one — an enquiry becoming a real one
+    /// rather than a chat somebody opened and left.
+    /// </param>
+    public void DeclareRecipients(IReadOnlyList<UserId> recipients, bool opensConversation)
     {
         ArgumentNullException.ThrowIfNull(recipients);
 
@@ -400,7 +406,7 @@ public sealed class ConversationMessage
         }
 
         RemoveDomainEvent(sent);
-        AddDomainEvent(sent with { RecipientUserIds = recipients });
+        AddDomainEvent(sent with { RecipientUserIds = recipients, OpensConversation = opensConversation });
     }
 
     private static string? Normalise(string? value)

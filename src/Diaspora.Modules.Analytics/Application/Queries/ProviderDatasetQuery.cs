@@ -16,8 +16,8 @@ namespace Diaspora.Modules.Analytics.Application.Queries;
 /// <para>
 /// <b>By the member.</b> Unlike a seller or an employer, a provider has no profile identifier standing
 /// in for its owner: <c>ProviderPublished</c> names the provider's earliest owner by user id, which is
-/// what the provider's content dimension records and what every view and save is attributed through.
-/// A provider with co-owners reports to the owner it had when it was first published.
+/// what the provider's content dimension records and what every view, enquiry and save is attributed
+/// through. A provider with co-owners reports to the owner it had when it was first published.
 /// </para>
 /// <para>
 /// <b><c>/me</c>, and no <c>/providers/{id}</c>.</b> The register asked for a route by provider id.
@@ -25,10 +25,14 @@ namespace Diaspora.Modules.Analytics.Application.Queries;
 /// served by the per-item route, which checks ownership of that provider.
 /// </para>
 /// <para>
-/// <b>What it will not say.</b> No enquiries, leads or funnel. Call and directions taps are recorded
-/// nowhere; a message starts a conversation that Conversations publishes as <c>ConversationCreated</c>
-/// with the <c>ProviderInquiry</c> context, which this module does not consume. Search appearances
-/// are stored but reach is not published. Nothing here names a member who viewed or saved a provider.
+/// <b>Enquiries, counted from the first message.</b> A member tapping "Message" opens a
+/// <c>ProviderInquiry</c> conversation; it becomes an enquiry when somebody writes in it.
+/// </para>
+/// <para>
+/// <b>What it will not say.</b> No leads — a lead needs a reply joined to the enquiry, which nothing
+/// defines — and no funnel. Call and directions taps are recorded nowhere. Search appearances are
+/// stored but reach is not published. Nothing here names a member who viewed, wrote to or saved a
+/// provider.
 /// </para>
 /// </summary>
 [Authorize(Permission = AnalyticsPermissions.ContentReadOwn)]

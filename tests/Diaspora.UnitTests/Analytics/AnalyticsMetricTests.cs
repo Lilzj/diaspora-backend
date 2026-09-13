@@ -145,9 +145,10 @@ public sealed class AnalyticsMetricTests
             Conversions: 50,
             Published: 7,
             FollowsGained: 9,
-            FollowsLost: 2);
+            FollowsLost: 2,
+            Enquiries: 6);
 
-        counts.Engagements.Should().Be(10, "4 + 3 + 2 + 1, and neither views nor conversions");
+        counts.Engagements.Should().Be(10, "4 + 3 + 2 + 1, and neither views, conversions nor enquiries");
     }
 
     /// <summary>
@@ -158,7 +159,7 @@ public sealed class AnalyticsMetricTests
     [Fact]
     public void The_engagement_rate_divides_engagements_by_views()
     {
-        var counts = new AnalyticsCounts(200, 10, 5, 4, 1, 0, 0, 0, 0, 0);
+        var counts = new AnalyticsCounts(200, 10, 5, 4, 1, 0, 0, 0, 0, 0, 0);
 
         AnalyticsMetricAssembler.EngagementRate(counts).Should().Be(10);
 
@@ -174,7 +175,7 @@ public sealed class AnalyticsMetricTests
     [Fact]
     public void The_engagement_rate_is_undefined_when_nothing_was_viewed()
     {
-        var counts = new AnalyticsCounts(0, 3, 0, 0, 0, 0, 0, 0, 0, 0);
+        var counts = new AnalyticsCounts(0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
         AnalyticsMetricAssembler.EngagementRate(counts).Should().BeNull();
 
@@ -194,7 +195,7 @@ public sealed class AnalyticsMetricTests
     public void Follower_growth_subtracts_the_people_who_left()
     {
         var totals = new AnalyticsWindowTotals(
-            new AnalyticsCounts(0, 0, 0, 0, 0, 0, 0, 0, FollowsGained: 3, FollowsLost: 8), 0, 0, true, true);
+            new AnalyticsCounts(0, 0, 0, 0, 0, 0, 0, 0, FollowsGained: 3, FollowsLost: 8, Enquiries: 0), 0, 0, true, true);
 
         AnalyticsMetricAssembler
             .ValueOf(AnalyticsMetricCatalog.FollowerGrowth, totals)

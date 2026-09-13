@@ -89,7 +89,7 @@ public sealed class AnalyticsModule : IPlatformModule
         // The keyed hash. Singleton because the key is configuration and hashing is stateless.
         services.AddSingleton<AnalyticsActorHasher>();
 
-        // The one door into the raw store — twelve consumers and one endpoint go through it, so the
+        // The one door into the raw store — every consumer and the one endpoint go through it, so the
         // deduplication rule and the trust classification are written once.
         services.AddScoped<AnalyticsIngestionService>();
         services.AddScoped<AnalyticsDimensionRecorder>();

@@ -103,7 +103,7 @@ public sealed class AnalyticsSchemaSeeder : BackgroundService, IReferenceDataSee
     /// <summary>
     /// The registry, version 1.
     /// <para>
-    /// <b>Three of the eleven accept a client submission and eight do not.</b> The eight are facts a
+    /// <b>Three of the twelve accept a client submission and nine do not.</b> The nine are facts a
     /// module already commits inside its own transaction and publishes; a client posting one of them
     /// would be incrementing a business metric, which §41 forbids outright. The three the client may
     /// send are the ones no server contract carries — somebody looked at something — and each is
@@ -196,6 +196,18 @@ public sealed class AnalyticsSchemaSeeder : BackgroundService, IReferenceDataSee
             RequiresContent: true,
             "Somebody took the action the content asked for: an RSVP, a job application, a purchase "
                 + "or a viewing.");
+
+        // Keyed by the conversation rather than by the contract's own event id, so a conversation is
+        // one enquiry however its first message reaches this module. The message itself never does.
+        yield return new SchemaSeed(
+            AnalyticsEventTypes.ContentEnquired,
+            1,
+            AnalyticsTrustClass.Server,
+            AllowsClientSubmission: false,
+            AnalyticsDedupStrategy.PerSourceEvent,
+            RequiresContent: true,
+            "Somebody other than the owner wrote the first message in a conversation about a listing, "
+                + "a home or a service provider. Once per conversation.");
 
         yield return new SchemaSeed(
             AnalyticsEventTypes.AudienceFollowed,

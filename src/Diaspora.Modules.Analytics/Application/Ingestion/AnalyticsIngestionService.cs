@@ -14,8 +14,8 @@ namespace Diaspora.Modules.Analytics.Application.Ingestion;
 /// <summary>
 /// The one door into the raw analytics store.
 /// <para>
-/// <b>Everything that ends up in the event table comes through here</b> — twelve integration event
-/// consumers and one telemetry endpoint — so the deduplication rule, the actor hashing, the owner
+/// <b>Everything that ends up in the event table comes through here</b> — every integration event
+/// consumer and the one telemetry endpoint — so the deduplication rule, the actor hashing, the owner
 /// attribution, the timestamp clamping, the trust classification and the counters are written once
 /// and cannot differ between paths. A second write path is how a platform ends up with rows that
 /// obey half the rules.
@@ -356,15 +356,19 @@ public sealed class AnalyticsIngestionService
     /// <summary>
     /// Whether the owner's own action on their own item is excluded.
     /// <para>
-    /// Views and profile views only. A creator who saves or shares their own guide has done
+    /// Views, profile views and enquiries. A creator who saves or shares their own guide has done
     /// something a reader can see, and hiding it would make the figure disagree with the item's own
-    /// counters; a creator who opens their own guide has not been read by anybody.
+    /// counters; a creator who opens their own guide has not been read by anybody. A seller who
+    /// writes first in a conversation about their own listing — to somebody who made an offer, say —
+    /// has not been enquired of, and the reply that follows is not an enquiry either, because it is
+    /// not the conversation's first message.
     /// </para>
     /// </summary>
     private static bool IsSelfExcluded(string eventType) =>
         eventType is Domain.Policies.AnalyticsEventTypes.ContentViewed
             or Domain.Policies.AnalyticsEventTypes.ProfileViewed
-            or Domain.Policies.AnalyticsEventTypes.ContentImpression;
+            or Domain.Policies.AnalyticsEventTypes.ContentImpression
+            or Domain.Policies.AnalyticsEventTypes.ContentEnquired;
 
     /// <summary>
     /// Brings a client's occurrence time inside the accepted window.

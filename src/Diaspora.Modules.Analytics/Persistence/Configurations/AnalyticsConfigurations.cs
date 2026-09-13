@@ -246,6 +246,7 @@ public sealed class ContentDailyRollupConfiguration : IEntityTypeConfiguration<C
             counts.Property(value => value.Published).HasColumnName("published");
             counts.Property(value => value.FollowsGained).HasColumnName("follows_gained");
             counts.Property(value => value.FollowsLost).HasColumnName("follows_lost");
+            counts.Property(value => value.Enquiries).HasColumnName("enquiries");
             counts.Ignore(value => value.Engagements);
         });
 
@@ -295,6 +296,7 @@ public sealed class OwnerDailyRollupConfiguration : IEntityTypeConfiguration<Own
             counts.Property(value => value.Published).HasColumnName("published");
             counts.Property(value => value.FollowsGained).HasColumnName("follows_gained");
             counts.Property(value => value.FollowsLost).HasColumnName("follows_lost");
+            counts.Property(value => value.Enquiries).HasColumnName("enquiries");
             counts.Ignore(value => value.Engagements);
         });
 

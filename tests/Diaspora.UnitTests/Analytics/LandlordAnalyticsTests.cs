@@ -252,7 +252,7 @@ public sealed class LandlordAnalyticsTests
             ContentDailyRollupId.New(), new DateOnly(2026, 9, 10), type, contentId, Member);
 
         row.Replace(
-            new AnalyticsCounts(views, 0, 0, 0, 0, 0, conversions, 0, 0, 0),
+            new AnalyticsCounts(views, 0, 0, 0, 0, 0, conversions, 0, 0, 0, 0),
             0,
             Member,
             "GB",

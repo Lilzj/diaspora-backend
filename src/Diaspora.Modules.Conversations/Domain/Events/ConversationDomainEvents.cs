@@ -60,6 +60,17 @@ public sealed record MessageSentDomainEvent : DomainEvent
     public UserId? ReplyToSenderId { get; init; }
 
     public bool HasAttachment { get; init; }
+
+    /// <summary>
+    /// Whether this is the first message anybody has written in the conversation.
+    /// <para>
+    /// Decided when the conversation records the message, from its own count, and carried here
+    /// rather than worked out afterwards: the handler runs after the commit, and a count reloaded
+    /// then may already include a second message sent a moment later. The conversation's revision
+    /// is a concurrency token, so two messages racing to be first cannot both commit as first.
+    /// </para>
+    /// </summary>
+    public bool OpensConversation { get; init; }
 }
 
 public sealed record MessageEditedDomainEvent : DomainEvent

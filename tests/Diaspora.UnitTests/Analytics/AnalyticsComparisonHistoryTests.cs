@@ -207,7 +207,7 @@ public sealed class AnalyticsComparisonHistoryTests
     // ── Helpers ─────────────────────────────────────────────────────────────
 
     private static AnalyticsWindowTotals Totals(long views, bool hasData, bool hasHistory) =>
-        new(new AnalyticsCounts(views, 0, 0, 0, 0, 0, 0, 0, 0, 0), views > 0 ? 1 : 0, 0, hasData, hasHistory);
+        new(new AnalyticsCounts(views, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), views > 0 ? 1 : 0, 0, hasData, hasHistory);
 
     private static AnalyticsReadService Reads(IAnalyticsRollupRepository rollups) =>
         new(rollups, Substitute.For<IAnalyticsEventRepository>());

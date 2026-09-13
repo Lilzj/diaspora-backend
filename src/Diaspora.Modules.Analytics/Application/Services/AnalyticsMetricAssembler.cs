@@ -177,6 +177,7 @@ public static class AnalyticsMetricAssembler
             AnalyticsMetricCatalog.Comments => totals.Counts.Comments,
             AnalyticsMetricCatalog.HelpfulVotes => totals.Counts.HelpfulVotes,
             AnalyticsMetricCatalog.Conversion => totals.Counts.Conversions,
+            AnalyticsMetricCatalog.Enquiries => totals.Counts.Enquiries,
             AnalyticsMetricCatalog.ContentPublished => totals.Counts.Published,
             AnalyticsMetricCatalog.FollowerGrowth =>
                 totals.Counts.FollowsGained - totals.Counts.FollowsLost,

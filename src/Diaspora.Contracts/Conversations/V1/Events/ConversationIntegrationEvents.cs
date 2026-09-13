@@ -75,6 +75,38 @@ public sealed record ConversationMessageSentIntegrationEvent : IntegrationEvent
     public required DateTimeOffset SentAt { get; init; }
 }
 
+/// <summary>
+/// Somebody wrote the first message in a conversation.
+/// <para>
+/// <b>A fact, where <see cref="ConversationMessageSentIntegrationEvent"/> is a notification.</b> That
+/// event names only the people who should be interrupted, and is not published at all when every
+/// recipient has muted the conversation or push is switched off — right for a phone, wrong for
+/// anything that counts. This one is published for every first message, whoever is listening.
+/// </para>
+/// <para>
+/// <b>Why the first message matters.</b> Tapping "Message" on a listing opens a conversation before
+/// anything is typed, and most such conversations stay empty. The first message is the moment an
+/// enquiry is real. Later messages in the same conversation are not announced here, so a consumer
+/// counting enquiries counts each conversation once.
+/// </para>
+/// </summary>
+public sealed record ConversationFirstMessageSentIntegrationEvent : IntegrationEvent
+{
+    public required Guid ConversationId { get; init; }
+
+    public required Guid MessageId { get; init; }
+
+    public required Guid SenderUserId { get; init; }
+
+    /// <summary>A catalogue key — <c>MarketplaceListing</c>, <c>HousingListing</c>, and so on.</summary>
+    public required string ContextType { get; init; }
+
+    /// <summary>Whatever the owning module calls its entity. Opaque here.</summary>
+    public required string EntityId { get; init; }
+
+    public required DateTimeOffset SentAt { get; init; }
+}
+
 /// <summary>A message was edited. Carries no text, for the reason at the top of this file.</summary>
 public sealed record ConversationMessageEditedIntegrationEvent : IntegrationEvent
 {

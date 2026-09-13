@@ -93,7 +93,7 @@ public sealed class AnalyticsConversionNamesTests
 
     private static IReadOnlyList<Diaspora.Modules.Analytics.Contracts.V1.Responses.CreatorMetricResponse> ContentItemSet()
     {
-        var counts = new AnalyticsCounts(20, 2, 1, 1, 0, 0, 3, 0, 0, 0);
+        var counts = new AnalyticsCounts(20, 2, 1, 1, 0, 0, 3, 0, 0, 0, 0);
         var totals = new AnalyticsWindowTotals(counts, 5, 0, HasData: true, HasHistory: true);
 
         return AnalyticsMetricAssembler.BuildSet(AnalyticsMetricCatalog.ContentItem, totals, totals);

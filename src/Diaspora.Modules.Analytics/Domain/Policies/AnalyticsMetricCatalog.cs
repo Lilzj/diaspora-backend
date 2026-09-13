@@ -92,7 +92,7 @@ public static class AnalyticsMetricCatalog
     /// than as a cliff in a chart, and so a report can state which definition it ran under.
     /// </para>
     /// </summary>
-    public const string Version = "1.3.0";
+    public const string Version = "1.4.0";
 
     // ── Keys, as the Phase 7 client spells them ─────────────────────────────────────────────
 
@@ -111,6 +111,7 @@ public static class AnalyticsMetricCatalog
     public const string ContentPublished = "content_published";
     public const string Revenue = "revenue";
     public const string ConversionRate = "conversion_rate";
+    public const string Enquiries = "enquiries";
 
     private const string OwnerAnalytics = "B19 Analytics";
 
@@ -272,6 +273,23 @@ public static class AnalyticsMetricCatalog
             "B9 Jobs, B10 Marketplace, B11 Housing and B12 Community Life",
             AnalyticsMetricAvailability.Available),
 
+        // Counted from the first message rather than from the conversation opening: tapping
+        // "Message" opens a conversation before anything is typed, and most of those stay empty.
+        new(
+            Enquiries,
+            "content.enquiries",
+            "Enquiries",
+            "Conversations about one of your listings, homes or provider profiles in which somebody "
+                + "wrote to you. Each counts once, when its first message is sent; a chat somebody "
+                + "opened and never wrote in does not count, and neither does one you started.",
+            Formula: null,
+            AnalyticsMetricFormat.Count,
+            HigherIsBetter: true,
+            AnalyticsPrivacyClass.Owner,
+            AnalyticsTrustClass.Server,
+            "B13.2 Conversations",
+            AnalyticsMetricAvailability.Available),
+
         new(
             ContentPublished,
             "content.published",
@@ -379,6 +397,7 @@ public static class AnalyticsMetricCatalog
         Comments,
         Shares,
         Conversion,
+        Enquiries,
         EngagementRate
     ];
 
@@ -403,16 +422,22 @@ public static class AnalyticsMetricCatalog
     /// the provider dashboard found its saves. <b>Organisations</b> record views; saving one writes to
     /// the Bookmarks module, as saving a job does.
     /// </para>
+    /// <para>
+    /// <b>Enquiries</b> on listings, homes and providers — the three kinds whose screens open a
+    /// conversation with the owner. A job's conversations are between an employer and a candidate
+    /// and are not counted; an event's organiser is written to about the event, and nothing counts
+    /// those yet.
+    /// </para>
     /// </summary>
     public static IReadOnlyList<string> ContentItemFor(AnalyticsContentType contentType) => contentType switch
     {
         AnalyticsContentType.Marketplace
-            or AnalyticsContentType.Housing
-            or AnalyticsContentType.Job
+            or AnalyticsContentType.Housing => [ContentViews, Conversion, Enquiries],
+        AnalyticsContentType.Job
             or AnalyticsContentType.Event => [ContentViews, Conversion],
         AnalyticsContentType.Guide
             or AnalyticsContentType.Post => [ContentViews, Saves, HelpfulVotes, Comments, Shares, EngagementRate],
-        AnalyticsContentType.Provider => [ContentViews, Saves],
+        AnalyticsContentType.Provider => [ContentViews, Enquiries, Saves],
         AnalyticsContentType.Organization => [ContentViews],
         _ => ContentItem
     };
@@ -421,11 +446,11 @@ public static class AnalyticsMetricCatalog
     /// The headline set a seller's overview shows, in order.
     /// <para>
     /// <b>Only what a marketplace listing actually records.</b> A listing's views arrive from the
-    /// listing screen, its sales from <c>ListingSold</c>, its publication from
-    /// <c>ListingPublished</c> — and nothing else writes to marketplace content. Saves, shares and
-    /// comments are measured metrics that nothing records for a listing, so serving them here would
-    /// put a confident zero on every seller's dashboard: absent, but indistinguishable from none.
-    /// They are left out rather than served empty.
+    /// listing screen, its sales from <c>ListingSold</c>, its enquiries from a conversation's first
+    /// message, its publication from <c>ListingPublished</c> — and nothing else writes to marketplace
+    /// content. Saves, shares and comments are measured metrics that nothing records for a listing, so
+    /// serving them here would put a confident zero on every seller's dashboard: absent, but
+    /// indistinguishable from none. They are left out rather than served empty.
     /// </para>
     /// <para>
     /// <b>Revenue is in the set, and served as not measured.</b> A seller told "revenue is not
@@ -440,6 +465,7 @@ public static class AnalyticsMetricCatalog
         UniqueViewers,
         Conversion,
         ConversionRate,
+        Enquiries,
         ContentPublished,
         Revenue
     ];
@@ -448,10 +474,10 @@ public static class AnalyticsMetricCatalog
     /// The headline set a landlord's overview shows, in order.
     /// <para>
     /// <b>Only what a housing listing actually records.</b> A home's views arrive from the listing
-    /// screen, its viewings from <c>ViewingScheduled</c>, its publication from
-    /// <c>HousingPublished</c> — and nothing else writes to housing content. Saves, shares and
-    /// comments are left out for the seller set's reason: measured metrics that nothing records for a
-    /// home would put a confident zero on every landlord's dashboard.
+    /// screen, its viewings from <c>ViewingScheduled</c>, its enquiries from a conversation's first
+    /// message, its publication from <c>HousingPublished</c> — and nothing else writes to housing
+    /// content. Saves, shares and comments are left out for the seller set's reason: measured metrics
+    /// that nothing records for a home would put a confident zero on every landlord's dashboard.
     /// </para>
     /// <para>
     /// <b>No revenue tile, unlike the seller's.</b> Housing takes no payment through Diaspora — a
@@ -465,6 +491,7 @@ public static class AnalyticsMetricCatalog
         UniqueViewers,
         Conversion,
         ConversionRate,
+        Enquiries,
         ContentPublished
     ];
 
@@ -497,23 +524,24 @@ public static class AnalyticsMetricCatalog
     /// The headline set a service provider's overview shows, in order.
     /// <para>
     /// <b>Only what a provider profile actually records.</b> Its views arrive from the provider screen,
-    /// its saves from the save button — which Providers delegates to Community, so they are published
-    /// like a guide's — and its publication from <c>ProviderPublished</c>.
+    /// its enquiries from the first message in a conversation opened there, its saves from the save
+    /// button — which Providers delegates to Community, so they are published like a guide's — and its
+    /// publication from <c>ProviderPublished</c>.
     /// </para>
     /// <para>
-    /// <b>No action, so no conversion and no rate.</b> A listing is bought and a job applied for; a
-    /// provider is phoned, messaged or visited. A call or a visit is recorded nowhere. A message starts
-    /// a conversation, which Conversations publishes and this module does not consume — what counts as
-    /// an enquiry is a definition not yet taken — so a conversion tile would be a confident zero on
-    /// every provider's dashboard. Search appearances are stored but not served — reach is not
-    /// published — and reviews stay on the provider's own screen, which already shows them. No revenue
-    /// tile: a provider takes no payment through their profile.
+    /// <b>Enquiries, and no conversion or rate.</b> A listing is bought and a job applied for; a
+    /// provider is phoned, messaged or visited. A message is the one of those anything records, and it
+    /// is an enquiry rather than the action a conversion counts — so there is no "Actions taken" tile
+    /// to read zero, and no rate built on one. Search appearances are stored but not served — reach
+    /// is not published — and reviews stay on the provider's own screen, which already shows them. No
+    /// revenue tile: a provider takes no payment through their profile.
     /// </para>
     /// </summary>
     public static IReadOnlyList<string> ProviderHeadline =>
     [
         ContentViews,
         UniqueViewers,
+        Enquiries,
         Saves,
         ContentPublished
     ];

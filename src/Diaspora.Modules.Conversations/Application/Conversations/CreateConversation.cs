@@ -263,7 +263,9 @@ public sealed class CreateConversationCommandHandler
 
                 if (recorded.IsSuccess)
                 {
-                    message.Value.DeclareRecipients(recorded.Value);
+                    // A conversation opened with something to say: this message is its first.
+                    message.Value.DeclareRecipients(
+                        recorded.Value, opensConversation: conversation.MessageCount == 1);
                     _messages.Add(message.Value);
                 }
             }

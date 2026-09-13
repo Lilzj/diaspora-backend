@@ -202,7 +202,7 @@ public sealed class SellerAnalyticsTests
     // ── Helpers ─────────────────────────────────────────────────────────────
 
     private static AnalyticsCounts Counts(long views, long conversions) =>
-        new(views, 0, 0, 0, 0, 0, conversions, 0, 0, 0);
+        new(views, 0, 0, 0, 0, 0, conversions, 0, 0, 0, 0);
 
     private static ContentDailyRollup Row(
         AnalyticsContentType type, Guid contentId, long views, long conversions)

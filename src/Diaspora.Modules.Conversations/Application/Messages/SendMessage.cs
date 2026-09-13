@@ -249,7 +249,8 @@ public sealed class SendMessageCommandHandler : ICommandHandler<SendMessageComma
             return Result.Failure<MessageResponse>(recorded.Error);
         }
 
-        message.DeclareRecipients(recorded.Value);
+        // The count now includes this message, so one means nobody had written here before.
+        message.DeclareRecipients(recorded.Value, opensConversation: conversation.MessageCount == 1);
 
         _messages.Add(message);
         _conversations.Update(conversation);

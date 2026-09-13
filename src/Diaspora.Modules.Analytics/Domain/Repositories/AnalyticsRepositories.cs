@@ -27,9 +27,10 @@ public sealed record AnalyticsCellCounts(
     long Published,
     long FollowsGained,
     long FollowsLost,
-    long ProfileViews)
+    long ProfileViews,
+    long Enquiries)
 {
-    public static AnalyticsCellCounts Empty { get; } = new(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    public static AnalyticsCellCounts Empty { get; } = new(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 }
 
 /// <summary>

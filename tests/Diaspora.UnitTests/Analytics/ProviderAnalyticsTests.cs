@@ -21,10 +21,9 @@ namespace Diaspora.UnitTests.Analytics;
 /// <para>
 /// <b>The other owner dashboards' traps, and one of its own.</b> The shared one: count a provider's
 /// listings, homes and jobs as provider profiles. The provider's own is the second column. Every other
-/// owner board puts actions taken beside views, and nothing a provider is asked for — a call, a
-/// message, a visit — is counted by analytics, so that column would read zero on every row of every
-/// provider's board. A save is what a member does to a provider that reaches analytics, and it is
-/// what the board counts.
+/// owner board puts actions taken beside views, and a provider sells nothing through their profile, so
+/// that column would read zero on every row of every provider's board. Somebody writing to a provider
+/// is what the profile is for, and it is what the board counts.
 /// </para>
 /// </summary>
 public sealed class ProviderAnalyticsTests
@@ -52,8 +51,9 @@ public sealed class ProviderAnalyticsTests
     [InlineData(AnalyticsMetricCatalog.Revenue)]
     public void A_provider_is_offered_no_action_no_rate_and_no_revenue(string key)
     {
-        // Analytics counts no contact, so an action count would be a permanent zero and its rate a
-        // permanent absence; a provider takes no payment through their profile.
+        // A message is an enquiry, not the action a conversion counts, so an action count would be a
+        // permanent zero and its rate a permanent absence; a provider takes no payment through their
+        // profile.
         AnalyticsMetricCatalog.ProviderHeadline.Should().NotContain(key);
     }
 
@@ -68,13 +68,14 @@ public sealed class ProviderAnalyticsTests
         AnalyticsMetricCatalog.ProviderHeadline.Should().NotContain(key);
     }
 
-    [Fact]
-    public void A_providers_saves_are_on_their_dashboard_and_on_each_profiles_row()
+    [Theory]
+    [InlineData(AnalyticsMetricCatalog.Enquiries)]
+    [InlineData(AnalyticsMetricCatalog.Saves)]
+    public void A_providers_enquiries_and_saves_are_on_their_dashboard_and_on_each_profiles_row(string key)
     {
-        // Saving a provider goes through Community, which publishes it.
-        AnalyticsMetricCatalog.ProviderHeadline.Should().Contain(AnalyticsMetricCatalog.Saves);
-        AnalyticsMetricCatalog.ContentItemFor(AnalyticsContentType.Provider)
-            .Should().Contain(AnalyticsMetricCatalog.Saves);
+        // Writing to a provider goes through Conversations and saving one through Community; both publish.
+        AnalyticsMetricCatalog.ProviderHeadline.Should().Contain(key);
+        AnalyticsMetricCatalog.ContentItemFor(AnalyticsContentType.Provider).Should().Contain(key);
     }
 
     [Fact]
@@ -90,9 +91,9 @@ public sealed class ProviderAnalyticsTests
     }
 
     [Fact]
-    public void Only_the_provider_board_counts_saves()
+    public void Only_the_provider_board_counts_enquiries()
     {
-        AnalyticsOwnerDatasetProfile.Provider.BoardSecondary.Should().Be(AnalyticsMetricCatalog.Saves);
+        AnalyticsOwnerDatasetProfile.Provider.BoardSecondary.Should().Be(AnalyticsMetricCatalog.Enquiries);
 
         foreach (var profile in Profiles().Where(entry => entry != AnalyticsOwnerDatasetProfile.Provider))
         {
@@ -106,11 +107,11 @@ public sealed class ProviderAnalyticsTests
     public async Task The_provider_dataset_is_the_callers_profiles_by_their_member_id()
     {
         var (rollups, events) = Reads(
-            Row(AnalyticsContentType.Provider, Profile, views: 70, saves: 6),
-            Row(AnalyticsContentType.Provider, SecondProfile, views: 10, saves: 1),
+            Row(AnalyticsContentType.Provider, Profile, views: 70, saves: 6, enquiries: 4),
+            Row(AnalyticsContentType.Provider, SecondProfile, views: 10, saves: 1, enquiries: 1),
             // The same member sells on the marketplace and hires. Neither is a provider profile.
-            Row(AnalyticsContentType.Marketplace, Listing, views: 5000, saves: 0, conversions: 40),
-            Row(AnalyticsContentType.Job, Job, views: 700, saves: 0, conversions: 12));
+            Row(AnalyticsContentType.Marketplace, Listing, views: 5000, conversions: 40, enquiries: 30),
+            Row(AnalyticsContentType.Job, Job, views: 700, conversions: 12));
 
         events.CountDistinctViewersForOwnerContentTypeAsync(
                 Member, AnalyticsContentType.Provider,
@@ -124,22 +125,23 @@ public sealed class ProviderAnalyticsTests
 
         Value(response, "content.views").Should().Be(80, "the listing's and the job's views are not a provider's");
         Value(response, "content.uniqueViewers").Should().Be(29);
+        Value(response, "content.enquiries").Should().Be(5, "the listing's enquiries are the seller's");
         Value(response, "content.saves").Should().Be(7);
 
         response.Metrics.Select(metric => metric.Key).Should().Equal(
-            "content.views", "content.uniqueViewers", "content.saves", "content.published");
+            "content.views", "content.uniqueViewers", "content.enquiries", "content.saves", "content.published");
 
         await rollups.Received().ListContentForOwnerAsync(
             Member, Arg.Any<DateOnly>(), Arg.Any<DateOnly>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task The_provider_board_ranks_profiles_with_saves_beside_views()
+    public async Task The_provider_board_ranks_profiles_with_enquiries_beside_views()
     {
         var (rollups, events) = Reads(
-            Row(AnalyticsContentType.Provider, Profile, views: 15, saves: 3, conversions: 9),
-            Row(AnalyticsContentType.Provider, SecondProfile, views: 60, saves: 2),
-            Row(AnalyticsContentType.Job, Job, views: 700, saves: 0, conversions: 12));
+            Row(AnalyticsContentType.Provider, Profile, views: 15, saves: 8, conversions: 9, enquiries: 3),
+            Row(AnalyticsContentType.Provider, SecondProfile, views: 60, saves: 5, enquiries: 2),
+            Row(AnalyticsContentType.Job, Job, views: 700, conversions: 12));
 
         var dimensions = Substitute.For<IAnalyticsContentDimensionRepository>();
         IReadOnlyList<AnalyticsContentDimension> titled =
@@ -166,18 +168,18 @@ public sealed class ProviderAnalyticsTests
         board.Rows[0].Entity.EntityType.Should().Be("provider");
         board.Rows[0].Entity.Route.Should().Be($"/provider/{SecondProfile}");
         board.Rows[0].SecondaryValue.Should().Be(2);
-        board.Rows[0].SecondaryLabel.Should().Be("Saves");
+        board.Rows[0].SecondaryLabel.Should().Be("Enquiries");
 
         board.Rows[1].Entity.Title.Should().Be("Provider profile", "a profile whose publication was never recorded");
-        board.Rows[1].SecondaryValue.Should().Be(3, "saves, never a conversion nothing a provider asks for records");
+        board.Rows[1].SecondaryValue.Should().Be(3, "enquiries — not saves, and not conversions a provider never records");
     }
 
     [Fact]
-    public async Task A_profile_saved_but_not_opened_in_the_period_is_still_on_the_board()
+    public async Task A_profile_written_to_but_not_opened_in_the_period_is_still_on_the_board()
     {
-        // A member can save a provider from a list without opening it that day. Dropping the row
-        // would hide the only thing that happened to that profile.
-        var (rollups, events) = Reads(Row(AnalyticsContentType.Provider, Profile, views: 0, saves: 2));
+        // A member can open a profile on the last day of one period and write on the first day of the
+        // next. Dropping the row would hide the only thing that happened to that profile.
+        var (rollups, events) = Reads(Row(AnalyticsContentType.Provider, Profile, views: 0, enquiries: 2));
 
         var response = await Compose(rollups, events);
 
@@ -189,7 +191,7 @@ public sealed class ProviderAnalyticsTests
     [Fact]
     public async Task The_provider_dataset_serves_and_withholds_no_revenue_and_no_action()
     {
-        var (rollups, events) = Reads(Row(AnalyticsContentType.Provider, Profile, views: 4, saves: 0));
+        var (rollups, events) = Reads(Row(AnalyticsContentType.Provider, Profile, views: 4));
 
         var response = await Compose(rollups, events);
 
@@ -201,11 +203,11 @@ public sealed class ProviderAnalyticsTests
     }
 
     [Fact]
-    public async Task The_employer_board_still_counts_applications_and_not_saves()
+    public async Task The_employer_board_still_counts_applications_and_not_enquiries()
     {
-        // The second column moved for providers only. A job saved nine times and applied for once is
-        // an employer's "Applications 1".
-        var (rollups, events) = Reads(Row(AnalyticsContentType.Job, Job, views: 20, saves: 9, conversions: 1));
+        // The second column moved for providers only. A job written about nine times and applied for
+        // once is an employer's "Applications 1".
+        var (rollups, events) = Reads(Row(AnalyticsContentType.Job, Job, views: 20, conversions: 1, enquiries: 9));
 
         var response = await Compose(rollups, events, profile: AnalyticsOwnerDatasetProfile.Employer);
 
@@ -225,13 +227,18 @@ public sealed class ProviderAnalyticsTests
     ];
 
     private static ContentDailyRollup Row(
-        AnalyticsContentType type, Guid contentId, long views, long saves, long conversions = 0)
+        AnalyticsContentType type,
+        Guid contentId,
+        long views,
+        long saves = 0,
+        long conversions = 0,
+        long enquiries = 0)
     {
         var row = ContentDailyRollup.Create(
             ContentDailyRollupId.New(), new DateOnly(2026, 9, 10), type, contentId, Member);
 
         row.Replace(
-            new AnalyticsCounts(views, saves, 0, 0, 0, 0, conversions, 0, 0, 0),
+            new AnalyticsCounts(views, saves, 0, 0, 0, 0, conversions, 0, 0, 0, enquiries),
             0,
             Member,
             "GB",
