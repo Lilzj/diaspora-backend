@@ -25,8 +25,10 @@ namespace Diaspora.Modules.Analytics.Application.Queries;
 /// website.
 /// </para>
 /// <para>
-/// <b>What it will not say.</b> Impressions, saves, enquiries and applications are not recorded for
-/// a home, so they are not in the set. There is no revenue tile: rent is not taken through Diaspora.
+/// <b>What it will not say.</b> Impressions and saves are not recorded for a home. Enquiries and
+/// applications are recorded — a message starts a conversation Conversations publishes, and Housing
+/// publishes an application's status changes — and this module counts neither. None is in the set.
+/// There is no revenue tile: rent is not taken through Diaspora.
 /// Nothing here describes a prospective tenant — not who booked a viewing, and not where they come
 /// from. §20 is explicit that housing is where a breakdown of enquirers by country or community
 /// would do the most harm, and this dataset has no dimension to break down by.

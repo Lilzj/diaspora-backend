@@ -25,8 +25,10 @@ namespace Diaspora.Modules.Analytics.Application.Queries;
 /// belong on the administration website, which will call a route of its own.
 /// </para>
 /// <para>
-/// <b>What it will not say.</b> Impressions and contacts are not recorded for a listing, so they
-/// are not in the set. Revenue is in the set and served as not measured — the wallet is where a
+/// <b>What it will not say.</b> Impressions are not recorded for a listing, and enquiries are not
+/// counted: a buyer's message starts a conversation, which Conversations publishes as
+/// <c>ConversationCreated</c> and this module does not consume. Neither is in the set. Revenue is in
+/// the set and served as not measured — the wallet is where a
 /// seller's money is, and the financial platform is the only authority on it. Nothing here names a
 /// buyer: a buyer is a person, and a sales count is analytics where a buyer list is not.
 /// </para>
