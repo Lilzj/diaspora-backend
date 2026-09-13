@@ -49,9 +49,17 @@ public sealed class GetAnalyticsAccessQueryHandler
     /// Content subjects are resolved by ownership of the row. These are resolved by identity:
     /// the subject id is the member's own user id, so "may I see this" and "is this me" are the
     /// same question. A platform reader may see any of them.
+    /// <para>
+    /// <b><c>provider</c> is both.</b> The provider dashboard is a role subject asked with the caller's
+    /// own id, and <c>provider</c> is also a content type, asked with one provider's id. The two
+    /// cannot be confused — an identity check passes only for the caller's own user id, which is no
+    /// provider's id — so a provider subject that is not the caller falls through to the ownership
+    /// check below, as it did before the dashboard existed. Until 13 Sep 2026 only that check ran, and
+    /// the dashboard would have been refused to every provider it was opened for.
+    /// </para>
     /// </remarks>
     private static readonly HashSet<string> RoleSubjects =
-        new(StringComparer.Ordinal) { "seller", "landlord", "employer" };
+        new(StringComparer.Ordinal) { "seller", "landlord", "employer", "provider" };
 
     private readonly AnalyticsQueryContext _context;
 

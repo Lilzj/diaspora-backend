@@ -398,7 +398,10 @@ public static class AnalyticsMetricCatalog
     /// Community module, and the app offers those on guides and community updates alone; saving a
     /// job or a home writes to the Bookmarks module, which publishes nothing. <b>Guides and updates</b>
     /// carry community engagement and ask for no action, and nothing can record a conversion for
-    /// them, so the conversion is left out. <b>Providers and organisations</b> record views.
+    /// them, so the conversion is left out. <b>Providers</b> record views and saves: a provider's save
+    /// button is delegated to Community, which publishes it — a provider's row read only views until
+    /// the provider dashboard found its saves. <b>Organisations</b> record views; saving one writes to
+    /// the Bookmarks module, as saving a job does.
     /// </para>
     /// </summary>
     public static IReadOnlyList<string> ContentItemFor(AnalyticsContentType contentType) => contentType switch
@@ -409,8 +412,8 @@ public static class AnalyticsMetricCatalog
             or AnalyticsContentType.Event => [ContentViews, Conversion],
         AnalyticsContentType.Guide
             or AnalyticsContentType.Post => [ContentViews, Saves, HelpfulVotes, Comments, Shares, EngagementRate],
-        AnalyticsContentType.Provider
-            or AnalyticsContentType.Organization => [ContentViews],
+        AnalyticsContentType.Provider => [ContentViews, Saves],
+        AnalyticsContentType.Organization => [ContentViews],
         _ => ContentItem
     };
 
@@ -487,6 +490,31 @@ public static class AnalyticsMetricCatalog
         UniqueViewers,
         Conversion,
         ConversionRate,
+        ContentPublished
+    ];
+
+    /// <summary>
+    /// The headline set a service provider's overview shows, in order.
+    /// <para>
+    /// <b>Only what a provider profile actually records.</b> Its views arrive from the provider screen,
+    /// its saves from the save button — which Providers delegates to Community, so they are published
+    /// like a guide's — and its publication from <c>ProviderPublished</c>.
+    /// </para>
+    /// <para>
+    /// <b>No action, so no conversion and no rate.</b> A listing is bought and a job applied for; a
+    /// provider is phoned, messaged or visited. A call or a visit is recorded nowhere. A message starts
+    /// a conversation, which Conversations publishes and this module does not consume — what counts as
+    /// an enquiry is a definition not yet taken — so a conversion tile would be a confident zero on
+    /// every provider's dashboard. Search appearances are stored but not served — reach is not
+    /// published — and reviews stay on the provider's own screen, which already shows them. No revenue
+    /// tile: a provider takes no payment through their profile.
+    /// </para>
+    /// </summary>
+    public static IReadOnlyList<string> ProviderHeadline =>
+    [
+        ContentViews,
+        UniqueViewers,
+        Saves,
         ContentPublished
     ];
 

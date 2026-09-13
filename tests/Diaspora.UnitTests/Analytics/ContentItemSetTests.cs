@@ -11,7 +11,8 @@ namespace Diaspora.UnitTests.Analytics;
 /// <b>Found on the device.</b> Aisha's content table read "Saves 0 · Helpful votes 0 · Comments 0 ·
 /// Shares 0 · Engagement 0.0%" on each of her listings and jobs. Nothing records any of those for a
 /// listing or a job: saves, reactions, comments and shares reach analytics only from the Community
-/// module, which the app offers on guides and community updates alone. Five permanent zeros per row,
+/// module, which the app offers on guides and community updates — and, for saves alone, on provider
+/// profiles. Five permanent zeros per row,
 /// indistinguishable from content nobody cares about. The owner dashboards had already left them out.
 /// </para>
 /// </summary>
@@ -43,12 +44,21 @@ public sealed class ContentItemSetTests
             AnalyticsMetricCatalog.EngagementRate);
     }
 
-    [Theory]
-    [InlineData(AnalyticsContentType.Provider)]
-    [InlineData(AnalyticsContentType.Organization)]
-    public void Providers_and_organisations_show_their_views(AnalyticsContentType type)
+    [Fact]
+    public void A_provider_shows_its_views_and_its_saves()
     {
-        AnalyticsMetricCatalog.ContentItemFor(type).Should().Equal(AnalyticsMetricCatalog.ContentViews);
+        // A provider's save button goes through Community, which publishes the save. Until the
+        // provider dashboard, the row showed views alone and hid every one of them.
+        AnalyticsMetricCatalog.ContentItemFor(AnalyticsContentType.Provider).Should().Equal(
+            AnalyticsMetricCatalog.ContentViews, AnalyticsMetricCatalog.Saves);
+    }
+
+    [Fact]
+    public void An_organisation_shows_its_views()
+    {
+        // Saving an organisation writes to the Bookmarks module, which publishes nothing.
+        AnalyticsMetricCatalog.ContentItemFor(AnalyticsContentType.Organization)
+            .Should().Equal(AnalyticsMetricCatalog.ContentViews);
     }
 
     [Theory]

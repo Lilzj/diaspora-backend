@@ -22,13 +22,19 @@ namespace Diaspora.Modules.Analytics.Application.Services;
 /// <param name="LeaderboardKey">The board's stable key.</param>
 /// <param name="LeaderboardLabel">The board's heading.</param>
 /// <param name="FallbackTitle">An item's title when its publication was never recorded.</param>
+/// <param name="BoardSecondary">
+/// The catalogue key counted beside views on each board row: <see cref="AnalyticsMetricCatalog.Conversion"/>
+/// where the content asks for an action, <see cref="AnalyticsMetricCatalog.Saves"/> where it asks for
+/// none. Always one of the dashboard's own tiles.
+/// </param>
 public sealed record AnalyticsOwnerDatasetProfile(
     AnalyticsContentType ContentType,
     IReadOnlyList<string> Headline,
     string SubjectType,
     string LeaderboardKey,
     string LeaderboardLabel,
-    string FallbackTitle)
+    string FallbackTitle,
+    string BoardSecondary = AnalyticsMetricCatalog.Conversion)
 {
     /// <summary>A marketplace seller: their listings, their sales.</summary>
     public static AnalyticsOwnerDatasetProfile Seller { get; } = new(
@@ -57,25 +63,66 @@ public sealed record AnalyticsOwnerDatasetProfile(
         "Top jobs",
         "Job");
 
+    /// <summary>
+    /// A service provider: their provider profiles, and the members who saved them.
+    /// <para>
+    /// <b>Saves beside views, not actions taken.</b> Nothing a provider is asked for — a call, a
+    /// message, a visit — is counted by analytics, so a board with the other dashboards' second column
+    /// would read "Actions taken 0" on every row. A save is the one thing a member does to a provider
+    /// that reaches it.
+    /// </para>
+    /// </summary>
+    public static AnalyticsOwnerDatasetProfile Provider { get; } = new(
+        AnalyticsContentType.Provider,
+        AnalyticsMetricCatalog.ProviderHeadline,
+        "provider",
+        "provider-profiles",
+        "Top profiles",
+        "Provider profile",
+        BoardSecondary: AnalyticsMetricCatalog.Saves);
+
     /// <summary>What this dashboard calls an action taken, beside each item on its board.</summary>
     public string ConversionLabel =>
         AnalyticsConversionNames.For(ContentType)?.Count
         ?? AnalyticsMetricCatalog.Find(AnalyticsMetricCatalog.Conversion)!.Label;
+
+    /// <summary>The heading of the count beside views on each board row.</summary>
+    public string BoardSecondaryLabel =>
+        BoardSecondary == AnalyticsMetricCatalog.Conversion
+            ? ConversionLabel
+            : AnalyticsMetricCatalog.Find(BoardSecondary)!.Label;
+
+    /// <summary>The count beside views on a board row, from one day's rollup.</summary>
+    /// <exception cref="InvalidOperationException">
+    /// The profile names a count no rollup carries — a programming error every profile's test catches.
+    /// </exception>
+    public long BoardSecondaryOf(AnalyticsCounts counts)
+    {
+        ArgumentNullException.ThrowIfNull(counts);
+
+        return BoardSecondary switch
+        {
+            AnalyticsMetricCatalog.Conversion => counts.Conversions,
+            AnalyticsMetricCatalog.Saves => counts.Saves,
+            _ => throw new InvalidOperationException(
+                $"An owner board cannot rank by '{BoardSecondary}'.")
+        };
+    }
 }
 
 /// <summary>
 /// The caller's own content of one type, summed into the shared Phase 15 dataset.
 /// <para>
-/// <b>One implementation for every owner dashboard.</b> A seller's listings, a landlord's homes and
-/// an employer's jobs are the same question asked of a different content type — per-item rollups
-/// summed to the member who owns them — and three copies of the answer would drift the first time
-/// one was fixed. A provider dashboard would be the same question again.
+/// <b>One implementation for every owner dashboard.</b> A seller's listings, a landlord's homes, an
+/// employer's jobs and a provider's profiles are the same question asked of a different content type
+/// — per-item rollups summed to the member who owns them — and four copies of the answer would drift
+/// the first time one was fixed.
 /// </para>
 /// <para>
 /// <b>The subject is always the caller.</b> The caller's <em>user</em> id is the only identity this
-/// reads by, never a seller, landlord or employer profile id: analytics keys every row to the member,
-/// and a dashboard asked by profile id would answer nothing for everybody. There is no parameter that
-/// names anyone, so there is no parameter to change.
+/// reads by, never a seller, landlord or employer profile id or a provider's id: analytics keys every
+/// row to the member, and a dashboard asked by any other id would answer nothing for everybody. There
+/// is no parameter that names anyone, so there is no parameter to change.
 /// </para>
 /// </summary>
 public sealed class AnalyticsOwnerDatasetComposer
@@ -177,8 +224,9 @@ public sealed class AnalyticsOwnerDatasetComposer
     /// The owner's best-performing items for the period.
     /// <para>
     /// <b>Ranked by the server, echoed by the client</b>, with actions taken beside views so an item
-    /// that is seen a great deal and never acted on is visible as exactly that. The rows name items,
-    /// never the people who bought, booked or applied.
+    /// that is seen a great deal and never acted on is visible as exactly that — or saves, on a
+    /// dashboard whose content asks for no action. The rows name items, never the people who bought,
+    /// booked, applied or saved.
     /// </para>
     /// </summary>
     private async Task<IReadOnlyList<AnalyticsLeaderboardResponse>> BuildTopItemsAsync(
@@ -197,11 +245,11 @@ public sealed class AnalyticsOwnerDatasetComposer
             {
                 ContentId = group.Key,
                 Views = group.Sum(row => row.Counts.Views),
-                Conversions = group.Sum(row => row.Counts.Conversions)
+                Secondary = group.Sum(row => profile.BoardSecondaryOf(row.Counts))
             })
-            .Where(entry => entry.Views > 0 || entry.Conversions > 0)
+            .Where(entry => entry.Views > 0 || entry.Secondary > 0)
             .OrderByDescending(entry => entry.Views)
-            .ThenByDescending(entry => entry.Conversions)
+            .ThenByDescending(entry => entry.Secondary)
             .ThenBy(entry => entry.ContentId)
             .Take(TopItemRows)
             .ToList();
@@ -237,9 +285,9 @@ public sealed class AnalyticsOwnerDatasetComposer
                     },
                     Value = entry.Views,
                     Format = "count",
-                    SecondaryValue = entry.Conversions,
+                    SecondaryValue = entry.Secondary,
                     SecondaryFormat = "count",
-                    SecondaryLabel = profile.ConversionLabel
+                    SecondaryLabel = profile.BoardSecondaryLabel
                 };
             })
             .ToList();

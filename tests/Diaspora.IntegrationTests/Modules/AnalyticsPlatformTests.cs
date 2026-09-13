@@ -1040,6 +1040,101 @@ public sealed class AnalyticsPlatformTests : IdentityTestBase
     }
 
     // ════════════════════════════════════════════════════════════════════════════════════════
+    // FRONTEND-PHASE15-GAP-010 — a service provider's own dashboard
+    // ════════════════════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// <b>A provider's views and saves reach their dashboard, and the dashboard lets them in.</b>
+    /// Driven through the routes the app calls: the provider is created and published through
+    /// Providers, opened through telemetry, and saved through <c>PUT /providers/{id}/bookmark</c>,
+    /// which Providers delegates to Community. The access contract used to resolve a
+    /// <c>provider</c> subject only as one provider profile, so the dashboard — asked with the
+    /// member's own id — would have been refused to every provider it was opened for.
+    /// </summary>
+    [Fact]
+    public async Task A_providers_views_and_saves_reach_their_dataset_and_the_dashboard_lets_them_in()
+    {
+        var provider = await PublishProviderAsync();
+        await Factory.DrainOutboxAsync();
+
+        provider.ProviderId.Should().NotBe(provider.Owner.UserId);
+
+        // The owner opening their own profile is not a view.
+        Api.Authenticate(provider.Owner.Token);
+        await PostViewAsync(provider.ProviderId, DateTimeOffset.UtcNow, "provider");
+
+        // One member opens it and saves it.
+        var customer = await NewMemberAsync();
+        (await PostViewAsync(provider.ProviderId, DateTimeOffset.UtcNow, "provider")).Accepted.Should().Be(1);
+
+        (await HttpClient.PutAsync($"/api/v1/providers/{provider.ProviderId}/bookmark", content: null))
+            .IsSuccessStatusCode.Should().BeTrue("the save button's route");
+
+        await Factory.DrainOutboxAsync();
+        await ProjectAsync();
+
+        Api.Authenticate(provider.Owner.Token);
+
+        var dataset = await ReadDataAsync<DatasetDto>(
+            await HttpClient.GetAsync($"{Analytics}/providers/me?period=30d&includeSeries=true"));
+
+        MetricValue(dataset, "content.views").Should().Be(1, "one member opened it, and the owner does not count");
+        MetricValue(dataset, "content.uniqueViewers").Should().Be(1);
+        MetricValue(dataset, "content.saves").Should().Be(1, "saved through Providers, published by Community");
+        MetricValue(dataset, "content.published").Should().Be(1);
+
+        dataset.Metrics.Select(metric => metric.Key).Should().Equal(
+            "content.views", "content.uniqueViewers", "content.saves", "content.published");
+
+        var board = dataset.Leaderboards.Should().ContainSingle(entry => entry.Key == "provider-profiles").Subject;
+        var row = board.Rows.Should().ContainSingle().Subject;
+
+        row.Entity.EntityId.Should().Be(provider.ProviderId.ToString());
+        row.Entity.Title.Should().Be(provider.Name);
+        row.SecondaryLabel.Should().Be("Saves");
+        row.SecondaryValue.Should().Be(1);
+
+        // The dashboard is asked for with the member's own id; one profile's page with the provider's.
+        (await ReadAccessAsync("provider", provider.Owner.UserId)).CanView.Should().BeTrue(
+            "the dashboard is the member's own");
+        (await ReadAccessAsync("provider", provider.ProviderId)).CanView.Should().BeTrue(
+            "the profile is theirs");
+
+        var profilePage = await ReadDataAsync<DatasetDto>(
+            await HttpClient.GetAsync($"{Analytics}/content/provider/{provider.ProviderId}?period=30d"));
+
+        profilePage.Metrics.Select(metric => metric.Key).Should().Equal("content.views", "content.saves");
+        MetricValue(profilePage, "content.saves").Should().Be(1);
+
+        var profileRows = await ReadDataAsync<ContentPageDto>(
+            await HttpClient.GetAsync($"{Analytics}/creators/me/content?period=30d&contentType=Provider"));
+
+        var profileRow = profileRows.Items.Should().ContainSingle().Subject;
+
+        profileRow.ContentId.Should().Be(provider.ProviderId.ToString());
+        profileRow.Metrics.Select(metric => metric.Key).Should().Equal("content_views", "saves");
+
+        // The other sides: a provider profile is not a job, and the customer can see none of it.
+        var asEmployer = await ReadDataAsync<DatasetDto>(
+            await HttpClient.GetAsync($"{Analytics}/employers/me?period=30d"));
+
+        MetricValue(asEmployer, "content.views").Should().Be(0, "a provider profile is not a job");
+
+        Api.Authenticate(customer.Token);
+
+        (await ReadAccessAsync("provider", provider.Owner.UserId)).CanView.Should().BeFalse(
+            "somebody else's dashboard");
+        (await ReadAccessAsync("provider", provider.ProviderId)).CanView.Should().BeFalse(
+            "somebody else's profile");
+
+        var stranger = await ReadDataAsync<DatasetDto>(
+            await HttpClient.GetAsync($"{Analytics}/providers/me?period=30d"));
+
+        MetricValue(stranger, "content.views").Should().Be(0);
+        MetricValue(stranger, "content.saves").Should().Be(0);
+    }
+
+    // ════════════════════════════════════════════════════════════════════════════════════════
     // A guide's own save, share and vote buttons
     // ════════════════════════════════════════════════════════════════════════════════════════
 
@@ -1926,6 +2021,41 @@ public sealed class AnalyticsPlatformTests : IdentityTestBase
     private static double MetricValue(DatasetDto dataset, string key) =>
         dataset.Metrics.SingleOrDefault(metric => metric.Key == key)?.Value.Value ?? 0;
 
+    /// <summary>
+    /// A service provider created and published through Providers' own routes, by a fresh member who
+    /// is left authenticated.
+    /// </summary>
+    private async Task<PublishedProvider> PublishProviderAsync()
+    {
+        var owner = await NewMemberAsync();
+        var name = $"Harbour Plumbing {Guid.NewGuid():N}";
+
+        var created = await ReadDataAsync<ProviderIdDto>(
+            await HttpClient.PostAsJsonAsync(
+                "/api/v1/providers",
+                new
+                {
+                    name,
+                    providerType = "Business",
+                    category = "food-restaurants",
+                    cityName = "London",
+                    countryCode = "GB",
+                    phone = "+447700900456"
+                },
+                JsonOptions));
+
+        var published = await HttpClient.PutAsJsonAsync(
+            $"/api/v1/providers/{created.ProviderId}/status", new { status = "Active" }, JsonOptions);
+
+        published.IsSuccessStatusCode.Should().BeTrue(await published.Content.ReadAsStringAsync());
+
+        return new PublishedProvider(created.ProviderId, name, owner);
+    }
+
+    private async Task<AccessDto> ReadAccessAsync(string subjectType, Guid subjectId) =>
+        await ReadDataAsync<AccessDto>(
+            await HttpClient.GetAsync($"{Analytics}/access?subjectType={subjectType}&subjectId={subjectId}"));
+
     private async Task<Guid> PublishGuideAsync(string title)
     {
         var draft = await ReadDataAsync<GuideDto>(
@@ -2081,7 +2211,12 @@ public sealed class AnalyticsPlatformTests : IdentityTestBase
 
     private sealed record EntityRefDto(string EntityType, string EntityId, string Title, string? Route);
 
-    private sealed record LeaderboardRowDto(int Position, EntityRefDto Entity, double Value);
+    private sealed record LeaderboardRowDto(
+        int Position, EntityRefDto Entity, double Value, double? SecondaryValue, string? SecondaryLabel);
+
+    private sealed record ProviderIdDto(Guid ProviderId);
+
+    private sealed record PublishedProvider(Guid ProviderId, string Name, Member Owner);
 
     private sealed record LeaderboardDto(
         string Key, string Label, string MetricKey, IReadOnlyList<LeaderboardRowDto> Rows);

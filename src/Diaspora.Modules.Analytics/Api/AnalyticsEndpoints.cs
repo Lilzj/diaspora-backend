@@ -173,6 +173,33 @@ public sealed class AnalyticsEndpointContributor : IEndpointContributor
             .RequireAuthorization(AnalyticsPolicies.ContentRead)
             .WithName("GetEmployerAnalyticsDataset");
 
+        // FRONTEND-PHASE15-GAP-010. Provider-profile rollups summed to the member who owns them, as
+        // a dataset. `/me` rather than the register's `/providers/{providerId}`, and `ContentRead`,
+        // for the other owner routes' reasons: a provider's profiles are content the caller owns.
+        group.MapGet("/providers/me", async (
+                string? period,
+                string? from,
+                string? to,
+                string? timezone,
+                bool? includeSeries,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            PlatformResults.Ok(
+                context,
+                await sender.Send(
+                    new GetProviderAnalyticsDatasetQuery
+                    {
+                        Period = period,
+                        From = from,
+                        To = to,
+                        Timezone = timezone,
+                        IncludeSeries = includeSeries ?? false
+                    },
+                    cancellationToken)))
+            .RequireAuthorization(AnalyticsPolicies.ContentRead)
+            .WithName("GetProviderAnalyticsDataset");
+
         group.MapGet("/creators/me/summary", async (
                 string? period,
                 string? from,
