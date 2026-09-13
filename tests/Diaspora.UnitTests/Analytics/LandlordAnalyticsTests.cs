@@ -198,7 +198,52 @@ public sealed class LandlordAnalyticsTests
         board.Rows.Should().ContainSingle().Which.SecondaryLabel.Should().Be("Sales");
     }
 
+    // ── What the dashboard calls them ───────────────────────────────────────
+
+    [Fact]
+    public async Task The_landlord_dashboard_calls_them_viewings()
+    {
+        // The catalogue's "Actions taken" serves every kind of content. Beside a landlord's homes
+        // the action has a name.
+        var (_, rollups, events) = Reads(Row(AnalyticsContentType.Housing, Home, views: 40, conversions: 2));
+
+        var response = await Compose(AnalyticsOwnerDatasetProfile.Landlord, rollups, events);
+
+        Label(response, "conversion.count").Should().Be("Viewings");
+        Label(response, "conversion.rate").Should().Be("Viewing rate");
+
+        // The same word on the tile and beside each home on the board.
+        response.Leaderboards.Single().Rows.Single().SecondaryLabel.Should().Be("Viewings");
+    }
+
+    [Fact]
+    public async Task A_withheld_viewing_rate_is_named_as_one()
+    {
+        var (_, rollups, events) = Reads(Row(AnalyticsContentType.Housing, Home, views: 0, conversions: 0));
+
+        var response = await Compose(AnalyticsOwnerDatasetProfile.Landlord, rollups, events);
+
+        response.Freshness.Limitations.Should().Contain(
+            "No figure yet for Viewing rate: nothing was viewed in this period, so there is nothing to work it out from.");
+        response.Freshness.Limitations.Should().NotContain(sentence => sentence.Contains("Conversion"));
+    }
+
+    [Fact]
+    public async Task The_seller_dashboard_calls_them_sales()
+    {
+        var (_, rollups, events) = Reads(Row(AnalyticsContentType.Marketplace, Listing, views: 50, conversions: 5));
+
+        var response = await Compose(AnalyticsOwnerDatasetProfile.Seller, rollups, events);
+
+        Label(response, "conversion.count").Should().Be("Sales");
+        Label(response, "conversion.rate").Should().Be("Conversion rate");
+        response.Leaderboards.Single().Rows.Single().SecondaryLabel.Should().Be("Sales");
+    }
+
     // ── Helpers ─────────────────────────────────────────────────────────────
+
+    private static string Label(AnalyticsDatasetResponse response, string catalogueKey) =>
+        response.Metrics.Single(metric => metric.Key == catalogueKey).Label;
 
     private static ContentDailyRollup Row(
         AnalyticsContentType type, Guid contentId, long views, long conversions)

@@ -881,6 +881,9 @@ public sealed class AnalyticsPlatformTests : IdentityTestBase
         MetricValue(dataset, "conversion.rate").Should().Be(100, "one viewing for one view");
         MetricValue(dataset, "content.published").Should().Be(1);
 
+        dataset.Metrics.Single(metric => metric.Key == "conversion.count").Label.Should().Be("Viewings");
+        dataset.Metrics.Single(metric => metric.Key == "conversion.rate").Label.Should().Be("Viewing rate");
+
         dataset.Metrics.Should().NotContain(metric => metric.Key == "revenue.gross");
 
         var board = dataset.Leaderboards.Should().ContainSingle(entry => entry.Key == "landlord-listings").Subject;
@@ -954,6 +957,9 @@ public sealed class AnalyticsPlatformTests : IdentityTestBase
             1, "one application, which named only the employer profile");
         MetricValue(dataset, "conversion.rate").Should().Be(100, "one application for one view");
         MetricValue(dataset, "content.published").Should().Be(1);
+
+        dataset.Metrics.Single(metric => metric.Key == "conversion.count").Label.Should().Be("Applications");
+        dataset.Metrics.Single(metric => metric.Key == "conversion.rate").Label.Should().Be("Application rate");
 
         dataset.Metrics.Should().NotContain(metric => metric.Key == "revenue.gross");
 

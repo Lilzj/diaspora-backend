@@ -201,7 +201,51 @@ public sealed class EmployerAnalyticsTests
         response.UnavailableMetrics.Should().NotContain("revenue.gross");
     }
 
+    // ── What the dashboard calls them ───────────────────────────────────────
+
+    [Fact]
+    public async Task The_employer_dashboard_calls_them_applications()
+    {
+        var (_, rollups, events) = Reads(Row(AnalyticsContentType.Job, Job, views: 80, conversions: 4));
+
+        var response = await Compose(AnalyticsOwnerDatasetProfile.Employer, rollups, events);
+
+        Label(response, "conversion.count").Should().Be("Applications");
+        Label(response, "conversion.rate").Should().Be("Application rate");
+        response.Leaderboards.Single().Rows.Single().SecondaryLabel.Should().Be("Applications");
+    }
+
+    [Fact]
+    public async Task A_withheld_application_rate_is_named_as_one()
+    {
+        var (_, rollups, events) = Reads(Row(AnalyticsContentType.Job, Job, views: 0, conversions: 0));
+
+        var response = await Compose(AnalyticsOwnerDatasetProfile.Employer, rollups, events);
+
+        response.Freshness.Limitations.Should().Contain(
+            "No figure yet for Application rate: nothing was viewed in this period, so there is nothing to work it out from.");
+    }
+
+    [Fact]
+    public async Task Only_the_label_changes()
+    {
+        // The key the client switches on, the served definition and every other tile's label stay
+        // the catalogue's. Renaming the key would drop the tile on a client that does not know it.
+        var (_, rollups, events) = Reads(Row(AnalyticsContentType.Job, Job, views: 80, conversions: 4));
+
+        var response = await Compose(AnalyticsOwnerDatasetProfile.Employer, rollups, events);
+
+        response.Metrics.Select(metric => metric.Key).Should().Equal(
+            "content.views", "content.uniqueViewers", "conversion.count", "conversion.rate", "content.published");
+
+        var published = response.Metrics.Single(metric => metric.Key == "content.published");
+        published.Label.Should().Be(AnalyticsMetricCatalog.Find(AnalyticsMetricCatalog.ContentPublished)!.Label);
+    }
+
     // ── Helpers ─────────────────────────────────────────────────────────────
+
+    private static string Label(AnalyticsDatasetResponse response, string catalogueKey) =>
+        response.Metrics.Single(metric => metric.Key == catalogueKey).Label;
 
     private static ContentDailyRollup Row(
         AnalyticsContentType type, Guid contentId, long views, long conversions)
