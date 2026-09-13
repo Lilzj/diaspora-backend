@@ -325,8 +325,11 @@ public sealed class GetContentAnalyticsQueryHandler
             .ReadContentDailyAsync(contentType, contentId, period, cancellationToken)
             .ConfigureAwait(false);
 
-        var metrics = AnalyticsMetricAssembler.BuildSet(
-            AnalyticsMetricCatalog.ContentItem, current, previous);
+        // One item is one kind of content, so its conversions have a name: a listing's sales, a home's
+        // viewings, a job's applications, an event's RSVPs. A guide's keep the general one.
+        var metrics = AnalyticsMetricAssembler.NameConversions(
+            AnalyticsMetricAssembler.BuildSet(AnalyticsMetricCatalog.ContentItem, current, previous),
+            contentType);
 
         var dataset = _builder.Build(
             new AnalyticsSubjectResponse

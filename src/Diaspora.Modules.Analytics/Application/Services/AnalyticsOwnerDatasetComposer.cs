@@ -9,18 +9,18 @@ namespace Diaspora.Modules.Analytics.Application.Services;
 
 /// <summary>
 /// What distinguishes one owner dashboard from another: which content it sums, which figures it
-/// shows, and what it calls things.
+/// shows, and what its board is called.
+/// <para>
+/// What its conversions are called — "Sales", "Viewings", "Applications" — is not here: it follows
+/// from the content type, through <see cref="AnalyticsConversionNames"/>, so an owner's dashboard,
+/// one item's page and one item's row cannot call the same action by different names.
+/// </para>
 /// </summary>
 /// <param name="ContentType">The one type of content the dashboard sums. Nothing else is counted.</param>
 /// <param name="Headline">The metric keys served, in tile order.</param>
 /// <param name="SubjectType">The dataset's subject type, as the client names it.</param>
 /// <param name="LeaderboardKey">The board's stable key.</param>
 /// <param name="LeaderboardLabel">The board's heading.</param>
-/// <param name="ConversionLabel">
-/// What an action taken is called on this dashboard — "Sales", "Viewings", "Applications" — on its
-/// tile and beside each item on the board.
-/// </param>
-/// <param name="ConversionRateLabel">What actions taken per view are called on this dashboard.</param>
 /// <param name="FallbackTitle">An item's title when its publication was never recorded.</param>
 public sealed record AnalyticsOwnerDatasetProfile(
     AnalyticsContentType ContentType,
@@ -28,8 +28,6 @@ public sealed record AnalyticsOwnerDatasetProfile(
     string SubjectType,
     string LeaderboardKey,
     string LeaderboardLabel,
-    string ConversionLabel,
-    string ConversionRateLabel,
     string FallbackTitle)
 {
     /// <summary>A marketplace seller: their listings, their sales.</summary>
@@ -39,8 +37,6 @@ public sealed record AnalyticsOwnerDatasetProfile(
         "seller",
         "seller-listings",
         "Top listings",
-        "Sales",
-        "Conversion rate",
         "Listing");
 
     /// <summary>A landlord: their homes, the viewings booked on them.</summary>
@@ -50,8 +46,6 @@ public sealed record AnalyticsOwnerDatasetProfile(
         "landlord",
         "landlord-listings",
         "Top listings",
-        "Viewings",
-        "Viewing rate",
         "Home");
 
     /// <summary>An employer: their jobs, the applications made to them.</summary>
@@ -61,9 +55,12 @@ public sealed record AnalyticsOwnerDatasetProfile(
         "employer",
         "employer-jobs",
         "Top jobs",
-        "Applications",
-        "Application rate",
         "Job");
+
+    /// <summary>What this dashboard calls an action taken, beside each item on its board.</summary>
+    public string ConversionLabel =>
+        AnalyticsConversionNames.For(ContentType)?.Count
+        ?? AnalyticsMetricCatalog.Find(AnalyticsMetricCatalog.Conversion)!.Label;
 }
 
 /// <summary>
@@ -143,19 +140,11 @@ public sealed class AnalyticsOwnerDatasetComposer
             .ReadOwnerContentTypeAsync(caller.Value, profile.ContentType, baseline, cancellationToken)
             .ConfigureAwait(false);
 
-        // The catalogue calls a conversion "Actions taken", because one catalogue serves every kind
-        // of content. On a dashboard about one kind, the action has a name — a sale, a viewing, an
-        // application — and a member reading "Conversions" beside their homes has to be told which.
-        // Only the label changes: the key, the definition and the arithmetic stay the catalogue's,
-        // and the sentence naming a withheld rate reads the label, so it says "Viewing rate" too.
-        var metrics = AnalyticsMetricAssembler.BuildSet(profile.Headline, current, previous)
-            .Select(metric => metric.Key switch
-            {
-                AnalyticsMetricCatalog.Conversion => metric with { Label = profile.ConversionLabel },
-                AnalyticsMetricCatalog.ConversionRate => metric with { Label = profile.ConversionRateLabel },
-                _ => metric
-            })
-            .ToList();
+        // A dashboard about one kind of content names its conversions — "Viewings" beside a
+        // landlord's homes, not the catalogue's general "Actions taken". The sentence naming a
+        // withheld rate reads the label, so it says "Viewing rate" too.
+        var metrics = AnalyticsMetricAssembler.NameConversions(
+            AnalyticsMetricAssembler.BuildSet(profile.Headline, current, previous), profile.ContentType);
 
         var rows = await _reads
             .ReadOwnerContentTypeDailyAsync(caller.Value, profile.ContentType, window, cancellationToken)

@@ -900,6 +900,18 @@ public sealed class AnalyticsPlatformTests : IdentityTestBase
         Metric(overview, "conversion").Value.Should().Be(
             1, "the viewing belongs to the member, not to their landlord profile");
 
+        // The same action by the same name on the home's own page and on its row in the content table.
+        var homePage = await ReadDataAsync<DatasetDto>(
+            await HttpClient.GetAsync($"{Analytics}/content/housing/{homeId}?period=30d"));
+
+        homePage.Metrics.Single(metric => metric.Key == "conversion.count").Label.Should().Be("Viewings");
+
+        var homeRows = await ReadDataAsync<ContentPageDto>(
+            await HttpClient.GetAsync($"{Analytics}/creators/me/content?period=30d"));
+
+        homeRows.Items.Single(item => item.ContentId == homeId.ToString())
+            .Metrics.Single(metric => metric.Key == "conversion").Label.Should().Be("Viewings");
+
         // The other sides. The same member's seller dashboard does not count a home…
         var asSeller = await ReadDataAsync<DatasetDto>(
             await HttpClient.GetAsync($"{Analytics}/sellers/me?period=30d"));
@@ -975,6 +987,17 @@ public sealed class AnalyticsPlatformTests : IdentityTestBase
         Metric(overview, "conversion").Value.Should().Be(
             1, "the application belongs to the member, not to their employer profile");
 
+        var jobPage = await ReadDataAsync<DatasetDto>(
+            await HttpClient.GetAsync($"{Analytics}/content/job/{jobId}?period=30d"));
+
+        jobPage.Metrics.Single(metric => metric.Key == "conversion.count").Label.Should().Be("Applications");
+
+        var jobRows = await ReadDataAsync<ContentPageDto>(
+            await HttpClient.GetAsync($"{Analytics}/creators/me/content?period=30d"));
+
+        jobRows.Items.Single(item => item.ContentId == jobId.ToString())
+            .Metrics.Single(metric => metric.Key == "conversion").Label.Should().Be("Applications");
+
         // The other sides: a job is not a home, and the applicant's own dashboard carries none of it.
         var asLandlord = await ReadDataAsync<DatasetDto>(
             await HttpClient.GetAsync($"{Analytics}/landlords/me?period=30d"));
@@ -1028,6 +1051,9 @@ public sealed class AnalyticsPlatformTests : IdentityTestBase
 
         readRow.ContentType.Should().Be("Guide", "the client's own vocabulary");
         readRow.Title.Should().Be("Read guide");
+
+        // A guide asks for nothing, so its row keeps the catalogue's general name for the action.
+        readRow.Metrics.Single(metric => metric.Key == "conversion").Label.Should().Be("Actions taken");
         readRow.Status.Should().NotBeNullOrWhiteSpace();
 
         page.Items[0].ContentId.Should().Be(

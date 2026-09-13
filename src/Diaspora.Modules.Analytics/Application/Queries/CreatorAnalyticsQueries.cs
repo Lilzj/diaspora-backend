@@ -335,16 +335,20 @@ public sealed class GetCreatorContentPerformanceQueryHandler
                 Title = entry.Dimension.Title ?? FallbackTitle(entry.Dimension.ContentType),
                 PublishedAt = entry.Dimension.PublishedAt,
                 Status = entry.Dimension.Status ?? "Published",
-                Metrics = AnalyticsMetricAssembler.BuildSet(
-                    AnalyticsMetricCatalog.ContentItem,
-                    new AnalyticsWindowTotals(entry.Current, 0, 0, HasData: true, HasHistory: true),
-                    new AnalyticsWindowTotals(
-                        entry.Baseline ?? AnalyticsCounts.Zero,
-                        0,
-                        0,
-                        HasData: entry.Baseline is not null,
-                        HasHistory: recordedBeforeBaseline.Contains(
-                            (entry.Dimension.ContentType, entry.Dimension.ContentId)))),
+                // Each row is one item, so its conversions carry the item's own name — "Sales" on a
+                // listing's row, "Applications" on a job's — in a list that mixes both.
+                Metrics = AnalyticsMetricAssembler.NameConversions(
+                    AnalyticsMetricAssembler.BuildSet(
+                        AnalyticsMetricCatalog.ContentItem,
+                        new AnalyticsWindowTotals(entry.Current, 0, 0, HasData: true, HasHistory: true),
+                        new AnalyticsWindowTotals(
+                            entry.Baseline ?? AnalyticsCounts.Zero,
+                            0,
+                            0,
+                            HasData: entry.Baseline is not null,
+                            HasHistory: recordedBeforeBaseline.Contains(
+                                (entry.Dimension.ContentType, entry.Dimension.ContentId)))),
+                    entry.Dimension.ContentType),
 
                 // Always false, and stated on the contract rather than guessed. Whether a placement
                 // is active is B15's and is not carried on anything this module consumes.

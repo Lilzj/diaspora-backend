@@ -227,6 +227,35 @@ public static class AnalyticsMetricAssembler
         return metrics;
     }
 
+    /// <summary>
+    /// Names a set's conversions for one kind of content: "Sales" on a listing, "Viewings" on a home.
+    /// <para>
+    /// Applied wherever a set describes one kind of content, and nowhere else — see
+    /// <see cref="AnalyticsConversionNames"/>. Only the label changes; the key a client switches on,
+    /// the served definition and the arithmetic stay the catalogue's. A kind whose action has no
+    /// name returns the set unchanged.
+    /// </para>
+    /// </summary>
+    public static IReadOnlyList<CreatorMetricResponse> NameConversions(
+        IReadOnlyList<CreatorMetricResponse> metrics, AnalyticsContentType contentType)
+    {
+        ArgumentNullException.ThrowIfNull(metrics);
+
+        if (AnalyticsConversionNames.For(contentType) is not { } names)
+        {
+            return metrics;
+        }
+
+        return metrics
+            .Select(metric => metric.Key switch
+            {
+                AnalyticsMetricCatalog.Conversion => metric with { Label = names.Count },
+                AnalyticsMetricCatalog.ConversionRate => metric with { Label = names.Rate },
+                _ => metric
+            })
+            .ToList();
+    }
+
     /// <summary>Which of a served set this deployment cannot answer, for <c>unavailableMetrics</c>.</summary>
     public static IReadOnlyList<string> UnavailableIn(IReadOnlyList<CreatorMetricResponse> metrics)
     {
