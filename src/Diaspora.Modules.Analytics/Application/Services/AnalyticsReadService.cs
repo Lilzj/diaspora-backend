@@ -47,7 +47,13 @@ public sealed class AnalyticsReadService
             .CountDistinctViewersForOwnerAsync(ownerUserId, period.Start, period.End, cancellationToken)
             .ConfigureAwait(false);
 
-        return new AnalyticsWindowTotals(counts, uniqueViewers, profileViews, rows.Count > 0);
+        // Asked only of an empty window: a window with rows has history by definition.
+        var hasHistory = rows.Count > 0
+            || await _rollups
+                .AnyOwnerBeforeAsync(ownerUserId, period.FromDate, cancellationToken)
+                .ConfigureAwait(false);
+
+        return new AnalyticsWindowTotals(counts, uniqueViewers, profileViews, rows.Count > 0, hasHistory);
     }
 
     /// <summary>
@@ -77,7 +83,14 @@ public sealed class AnalyticsReadService
                 ownerUserId, contentType, period.Start, period.End, cancellationToken)
             .ConfigureAwait(false);
 
-        return new AnalyticsWindowTotals(counts, uniqueViewers, 0, rows.Count > 0);
+        // Narrowed like the counts. The owner-wide check would count a member's guides as history
+        // for listings they published this morning.
+        var hasHistory = rows.Count > 0
+            || await _rollups
+                .AnyOwnerContentTypeBeforeAsync(ownerUserId, contentType, period.FromDate, cancellationToken)
+                .ConfigureAwait(false);
+
+        return new AnalyticsWindowTotals(counts, uniqueViewers, 0, rows.Count > 0, hasHistory);
     }
 
     /// <summary>One owner's per-item rows for one type of content in a window.</summary>
@@ -118,7 +131,29 @@ public sealed class AnalyticsReadService
                 contentType, contentId, period.Start, period.End, cancellationToken)
             .ConfigureAwait(false);
 
-        return new AnalyticsWindowTotals(counts, uniqueViewers, 0, rows.Count > 0);
+        var hasHistory = rows.Count > 0
+            || await _rollups
+                .AnyContentBeforeAsync(contentType, contentId, period.FromDate, cancellationToken)
+                .ConfigureAwait(false);
+
+        return new AnalyticsWindowTotals(counts, uniqueViewers, 0, rows.Count > 0, hasHistory);
+    }
+
+    /// <summary>
+    /// Which of one owner's items analytics had recorded anything for before a day.
+    /// <para>
+    /// The per-item rows' history, in one read for the whole page. A set, because the only question
+    /// a row asks of it is whether its own item is in it.
+    /// </para>
+    /// </summary>
+    public async Task<IReadOnlySet<(AnalyticsContentType ContentType, Guid ContentId)>> ReadOwnerContentRecordedBeforeAsync(
+        Guid ownerUserId, DateOnly day, CancellationToken cancellationToken)
+    {
+        var keys = await _rollups
+            .ListContentRecordedBeforeAsync(ownerUserId, day, cancellationToken)
+            .ConfigureAwait(false);
+
+        return keys.ToHashSet();
     }
 
     /// <summary>

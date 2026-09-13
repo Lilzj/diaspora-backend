@@ -317,6 +317,16 @@ public sealed class GetCreatorContentPerformanceQueryHandler
         var page = ordered.Skip(start).Take(take).ToList();
         var hasMore = start + page.Count < ordered.Count;
 
+        // An item with no rows in the comparison period may have had a quiet one rather than no
+        // history — the tiles' rule, applied per row, so a figure does not mean one thing on the
+        // overview and another on its own row. Read once, and only when a row needs it.
+        IReadOnlySet<(AnalyticsContentType ContentType, Guid ContentId)> recordedBeforeBaseline =
+            page.Exists(entry => entry.Baseline is null)
+                ? await _reads
+                    .ReadOwnerContentRecordedBeforeAsync(caller.Value, baseline.FromDate, cancellationToken)
+                    .ConfigureAwait(false)
+                : new HashSet<(AnalyticsContentType ContentType, Guid ContentId)>();
+
         var items = page
             .Select(entry => new CreatorContentPerformanceResponse
             {
@@ -327,9 +337,14 @@ public sealed class GetCreatorContentPerformanceQueryHandler
                 Status = entry.Dimension.Status ?? "Published",
                 Metrics = AnalyticsMetricAssembler.BuildSet(
                     AnalyticsMetricCatalog.ContentItem,
-                    new AnalyticsWindowTotals(entry.Current, 0, 0, true),
+                    new AnalyticsWindowTotals(entry.Current, 0, 0, HasData: true, HasHistory: true),
                     new AnalyticsWindowTotals(
-                        entry.Baseline ?? AnalyticsCounts.Zero, 0, 0, entry.Baseline is not null)),
+                        entry.Baseline ?? AnalyticsCounts.Zero,
+                        0,
+                        0,
+                        HasData: entry.Baseline is not null,
+                        HasHistory: recordedBeforeBaseline.Contains(
+                            (entry.Dimension.ContentType, entry.Dimension.ContentId)))),
 
                 // Always false, and stated on the contract rather than guessed. Whether a placement
                 // is active is B15's and is not carried on anything this module consumes.

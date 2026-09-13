@@ -70,7 +70,7 @@ public sealed class AnalyticsMetricTests
         definition.Definition.Should().ContainEquivalentOf(
             "not measured", "the definition must say the figure is absent rather than zero");
 
-        var metric = AnalyticsMetricAssembler.Build(key, 0, 0, baselineHasData: true);
+        var metric = AnalyticsMetricAssembler.Build(key, 0, 0, baselineHasHistory: true);
 
         metric.IsAvailable.Should().BeFalse();
         metric.ComparisonUnavailableReason.Should().Be("unsupported");
@@ -85,7 +85,7 @@ public sealed class AnalyticsMetricTests
     public void A_real_baseline_produces_a_percentage()
     {
         var metric = AnalyticsMetricAssembler.Build(
-            AnalyticsMetricCatalog.Saves, value: 12, baseline: 10, baselineHasData: true);
+            AnalyticsMetricCatalog.Saves, value: 12, baseline: 10, baselineHasHistory: true);
 
         metric.ChangePercentage.Should().Be(20);
         metric.PreviousValue.Should().Be(10);
@@ -96,7 +96,7 @@ public sealed class AnalyticsMetricTests
     public void A_zero_baseline_produces_a_reason_rather_than_infinity()
     {
         var metric = AnalyticsMetricAssembler.Build(
-            AnalyticsMetricCatalog.Saves, value: 12, baseline: 0, baselineHasData: true);
+            AnalyticsMetricCatalog.Saves, value: 12, baseline: 0, baselineHasHistory: true);
 
         metric.ChangePercentage.Should().BeNull();
         metric.ComparisonUnavailableReason.Should().Be("zeroBaseline");
@@ -107,7 +107,7 @@ public sealed class AnalyticsMetricTests
     public void A_subject_with_no_history_says_so_rather_than_reporting_growth()
     {
         var metric = AnalyticsMetricAssembler.Build(
-            AnalyticsMetricCatalog.Saves, value: 12, baseline: 0, baselineHasData: false);
+            AnalyticsMetricCatalog.Saves, value: 12, baseline: 0, baselineHasHistory: false);
 
         metric.ChangePercentage.Should().BeNull();
         metric.PreviousValue.Should().BeNull();
@@ -118,7 +118,7 @@ public sealed class AnalyticsMetricTests
     public void A_fall_is_reported_as_a_negative_percentage()
     {
         var metric = AnalyticsMetricAssembler.Build(
-            AnalyticsMetricCatalog.ContentViews, value: 80, baseline: 100, baselineHasData: true);
+            AnalyticsMetricCatalog.ContentViews, value: 80, baseline: 100, baselineHasHistory: true);
 
         metric.ChangePercentage.Should().Be(-20);
     }
@@ -177,7 +177,7 @@ public sealed class AnalyticsMetricTests
 
         var set = AnalyticsMetricAssembler.BuildSet(
             [AnalyticsMetricCatalog.EngagementRate],
-            new AnalyticsWindowTotals(counts, 0, 0, true),
+            new AnalyticsWindowTotals(counts, 0, 0, HasData: true, HasHistory: true),
             AnalyticsWindowTotals.Empty);
 
         set.Single().IsAvailable.Should().BeFalse();
@@ -191,7 +191,7 @@ public sealed class AnalyticsMetricTests
     public void Follower_growth_subtracts_the_people_who_left()
     {
         var totals = new AnalyticsWindowTotals(
-            new AnalyticsCounts(0, 0, 0, 0, 0, 0, 0, 0, FollowsGained: 3, FollowsLost: 8), 0, 0, true);
+            new AnalyticsCounts(0, 0, 0, 0, 0, 0, 0, 0, FollowsGained: 3, FollowsLost: 8), 0, 0, true, true);
 
         AnalyticsMetricAssembler
             .ValueOf(AnalyticsMetricCatalog.FollowerGrowth, totals)

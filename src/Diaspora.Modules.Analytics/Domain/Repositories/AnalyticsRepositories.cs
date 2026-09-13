@@ -254,6 +254,48 @@ public interface IAnalyticsRollupRepository
         DateOnly toDay,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Whether analytics recorded anything for one owner on a day before <paramref name="day"/>.
+    /// <para>
+    /// <b>What tells a quiet window from an unrecorded one.</b> A row exists only for a day on which
+    /// something happened, so a window with no rows cannot say by itself whether its subject had a
+    /// quiet spell or had never been recorded. An earlier row can — and one existence check on the
+    /// owner-and-day index is all it costs.
+    /// </para>
+    /// </summary>
+    Task<bool> AnyOwnerBeforeAsync(
+        Guid ownerUserId, DateOnly day, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Whether analytics recorded anything for one owner's content of one type before a day.
+    /// <para>
+    /// Narrowed for the reason the seller's totals are: a member's guides are not their listings, and
+    /// a guide read last month is no history for a listing published today.
+    /// </para>
+    /// </summary>
+    Task<bool> AnyOwnerContentTypeBeforeAsync(
+        Guid ownerUserId,
+        AnalyticsContentType contentType,
+        DateOnly day,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Whether analytics recorded anything for one item before a day.</summary>
+    Task<bool> AnyContentBeforeAsync(
+        AnalyticsContentType contentType,
+        Guid contentId,
+        DateOnly day,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Which of one owner's items analytics recorded anything for before a day.
+    /// <para>
+    /// One query for a page of per-item rows rather than one existence check per row — the N+1 §25
+    /// forbids, which is the default shape of a list that asks a question about each item.
+    /// </para>
+    /// </summary>
+    Task<IReadOnlyList<(AnalyticsContentType ContentType, Guid ContentId)>> ListContentRecordedBeforeAsync(
+        Guid ownerUserId, DateOnly day, CancellationToken cancellationToken = default);
+
     /// <summary>Retention. Rollups outlive raw events by design — see the retention policy.</summary>
     Task<int> DeleteExpiredAsync(
         DateOnly olderThan, int batchSize, CancellationToken cancellationToken = default);

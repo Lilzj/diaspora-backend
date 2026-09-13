@@ -124,7 +124,7 @@ public sealed class AnalyticsLimitationsTests
             366).Period!;
 
         var counts = new AnalyticsCounts(views, 0, 0, 0, 0, 0, conversions, 0, 0, 0);
-        var totals = new AnalyticsWindowTotals(counts, views > 0 ? 1 : 0, 0, HasData: true);
+        var totals = new AnalyticsWindowTotals(counts, views > 0 ? 1 : 0, 0, HasData: true, HasHistory: true);
 
         var metrics = AnalyticsMetricAssembler.BuildSet(keys, totals, totals);
 

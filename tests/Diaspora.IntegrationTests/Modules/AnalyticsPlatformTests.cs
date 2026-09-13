@@ -775,6 +775,67 @@ public sealed class AnalyticsPlatformTests : IdentityTestBase
     }
 
     // ════════════════════════════════════════════════════════════════════════════════════════
+    // Comparison history — "Not enough history yet", and when it is true
+    // ════════════════════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// <b>A quiet day after earlier activity is compared with zero, not called new.</b> Found on a
+    /// seller dashboard on 13 Sep 2026: every tile for "Today" read "Not enough history yet" for a
+    /// member with a fortnight of history, because the day before had been quiet and a quiet day has
+    /// no rows. Asserted on all four routes that share the rule, so a figure cannot mean one thing on
+    /// the overview and another on its own row.
+    /// </summary>
+    [Fact]
+    public async Task A_quiet_day_after_earlier_activity_is_compared_with_zero_rather_than_called_new()
+    {
+        var author = await NewMemberAsync();
+        var guideId = await PublishGuideAsync("Ten days of history");
+        await Factory.DrainOutboxAsync();
+
+        // A save ten days ago, published as B6's own contract carrying the time it happened. A server
+        // event is not held to the client's 48-hour window, which is what lets the suite put history
+        // before yesterday without writing an analytics row by hand.
+        await PublishBookmarkAsync(guideId, author.UserId, DateTimeOffset.UtcNow.AddDays(-10));
+        await Factory.DrainOutboxAsync();
+
+        await AuthenticateAsync();
+        await PostViewAsync(guideId, DateTimeOffset.UtcNow);
+
+        await ProjectAsync();
+
+        var reasons = await ReadTodayReasonsAsync(author.Token, guideId);
+
+        // Summary, creator dataset, content page row, item dataset — in that order, so a failure
+        // names the route.
+        reasons.Should().Equal(
+            ["zeroBaseline", "zeroBaseline", "zeroBaseline", "zeroBaseline"],
+            "the author was recorded ten days ago and nothing happened yesterday — a real zero");
+    }
+
+    /// <summary>
+    /// <b>The other side: a member whose first activity is today has no history to compare.</b>
+    /// Without it, the test above could pass by never saying "insufficient history" at all.
+    /// </summary>
+    [Fact]
+    public async Task A_member_first_recorded_today_has_no_history_to_compare()
+    {
+        var author = await NewMemberAsync();
+        var guideId = await PublishGuideAsync("First day");
+        await Factory.DrainOutboxAsync();
+
+        await AuthenticateAsync();
+        await PostViewAsync(guideId, DateTimeOffset.UtcNow);
+
+        await ProjectAsync();
+
+        var reasons = await ReadTodayReasonsAsync(author.Token, guideId);
+
+        reasons.Should().Equal(
+            ["insufficientHistory", "insufficientHistory", "insufficientHistory", "insufficientHistory"],
+            "nothing was recorded for this author, or this guide, before today");
+    }
+
+    // ════════════════════════════════════════════════════════════════════════════════════════
     // Content performance and paging
     // ════════════════════════════════════════════════════════════════════════════════════════
 
@@ -1322,6 +1383,58 @@ public sealed class AnalyticsPlatformTests : IdentityTestBase
         await unitOfWork.SaveChangesAsync();
     }
 
+    /// <summary>One save of one item, published as B6's contract with the time it happened.</summary>
+    private async Task PublishBookmarkAsync(Guid contentId, Guid authorId, DateTimeOffset occurredAt)
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        var publisher = scope.ServiceProvider.GetRequiredService<IIntegrationEventPublisher>();
+        var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+
+        await publisher.PublishAsync(new CommunityBookmarkAddedIntegrationEvent
+        {
+            ContentType = CommunityWireNames.ToWire(CommunityContentType.Guide),
+            ContentId = contentId,
+            UserId = Guid.NewGuid(),
+            ContentAuthorId = authorId,
+            OccurredAt = occurredAt
+        });
+
+        await unitOfWork.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// The views comparison reason for "Today", from every route that serves one: the creator
+    /// summary, the creator dataset, the item's dataset and the item's row on the content page.
+    /// </summary>
+    private async Task<IReadOnlyList<string?>> ReadTodayReasonsAsync(string authorToken, Guid guideId)
+    {
+        Api.Authenticate(authorToken);
+
+        var summary = await ReadDataAsync<CreatorSummaryDto>(
+            await HttpClient.GetAsync($"{Analytics}/creators/me/summary?period=today"));
+
+        var dataset = await ReadDataAsync<DatasetDto>(
+            await HttpClient.GetAsync($"{Analytics}/creators/me?period=today"));
+
+        var page = await ReadDataAsync<ContentPageDto>(
+            await HttpClient.GetAsync($"{Analytics}/creators/me/content?period=today"));
+
+        var item = await ReadContentAsync(guideId, authorToken, "today");
+
+        return
+        [
+            Metric(summary, "content_views").ComparisonUnavailableReason,
+            ComparisonReason(dataset, "content.views"),
+            page.Items.Single(row => row.ContentId == guideId.ToString())
+                .Metrics.Single(metric => metric.Key == "content_views").ComparisonUnavailableReason,
+            ComparisonReason(item, "content.views")
+        ];
+    }
+
+    private static string? ComparisonReason(DatasetDto dataset, string key) =>
+        dataset.Metrics.Single(metric => metric.Key == key).Comparison?.UnavailableReason;
+
     /// <summary>One projection pass, reporting how many raw rows it folded in.</summary>
     private async Task<int> ProjectOnceAsync()
     {
@@ -1542,7 +1655,11 @@ public sealed class AnalyticsPlatformTests : IdentityTestBase
 
     private sealed record SourcedDto(double Value, string Source);
 
-    private sealed record DatasetMetricDto(string Key, string Label, SourcedDto Value, string Format);
+    private sealed record DatasetMetricDto(
+        string Key, string Label, SourcedDto Value, string Format, DatasetComparisonDto? Comparison);
+
+    private sealed record DatasetComparisonDto(
+        string Basis, double? BaselineValue, double? ChangePercent, string? UnavailableReason);
 
     private sealed record DatasetRangeDto(
         string Preset, string From, string To, string Timezone, bool IsDeviceTimezone);

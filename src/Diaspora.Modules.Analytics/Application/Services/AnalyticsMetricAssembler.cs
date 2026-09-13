@@ -10,22 +10,40 @@ namespace Diaspora.Modules.Analytics.Application.Services;
 /// <summary>
 /// A window's figures, ready to be turned into metrics.
 /// <para>
-/// <c>HasData</c> is not "every count is zero" — it is whether the projection ever wrote a row for
-/// this subject in this window. The distinction is what separates "nothing happened" from "we were
-/// not watching yet", and §7 requires both to be representable.
+/// <b>Two flags, because one could not tell a quiet window from an unrecorded one.</b> The
+/// projection writes a row only for a day on which something happened, so "no row in this window"
+/// is true of a subject analytics had never recorded and equally of one that had a quiet spell.
+/// Until 13 Sep 2026 <c>HasData</c> alone decided the comparison, and a seller with a fortnight of
+/// history was told "Not enough history yet" on every tile of a day that followed a quiet one.
+/// </para>
+/// <para>
+/// <c>HasData</c> is whether this window has rows. <c>HasHistory</c> is whether analytics had
+/// recorded anything for the subject by this window's last day — in it or before it. The second is
+/// what separates "nothing happened" from "we were not recording yet", which §7 requires to be
+/// representable.
 /// </para>
 /// </summary>
 /// <param name="Counts">The additive counts, summed across the window's days.</param>
 /// <param name="UniqueViewers">Distinct viewers across the whole window, from the raw store.</param>
 /// <param name="ProfileViews">Profile opens across the window.</param>
 /// <param name="HasData">Whether any rollup row exists for this subject in this window.</param>
+/// <param name="HasHistory">
+/// Whether any rollup row exists for this subject on or before this window's last day.
+/// </param>
 public sealed record AnalyticsWindowTotals(
     AnalyticsCounts Counts,
     long UniqueViewers,
     long ProfileViews,
-    bool HasData)
+    bool HasData,
+    bool HasHistory)
 {
-    public static AnalyticsWindowTotals Empty => new(AnalyticsCounts.Zero, 0, 0, false);
+    /// <summary>
+    /// Always true where <see cref="HasData"/> is: a window with rows has history by definition, so
+    /// a caller that passes only "recorded before the window" still gets the whole answer.
+    /// </summary>
+    public bool HasHistory { get; init; } = HasData || HasHistory;
+
+    public static AnalyticsWindowTotals Empty => new(AnalyticsCounts.Zero, 0, 0, false, false);
 }
 
 /// <summary>
@@ -45,16 +63,22 @@ public static class AnalyticsMetricAssembler
     /// <b>Three cases the comparison must keep apart, and a percentage can only express one of
     /// them.</b> A baseline of five and a current of six is <c>+20%</c>. A baseline of zero with
     /// activity now is not "infinite growth" — it is a ratio with no denominator, and every
-    /// arithmetic answer to it (0, ∞, NaN, 100%) is a lie of a different shape. And a subject the
-    /// platform was not yet watching during the baseline has no baseline at all, which is a
-    /// different statement again. The first is a number; the other two are reasons.
+    /// arithmetic answer to it (0, ∞, NaN, 100%) is a lie of a different shape. And a subject
+    /// analytics had recorded nothing for by the end of the baseline has no baseline at all, which
+    /// is a different statement again. The first is a number; the other two are reasons.
+    /// </para>
+    /// <para>
+    /// <b>A quiet baseline is the second case, not the third.</b> A subject with earlier activity
+    /// whose comparison period happened to be empty has a baseline, and it is zero.
+    /// <paramref name="baselineHasHistory"/> is therefore asked about everything up to the baseline's
+    /// last day, never about the baseline window alone — see <see cref="AnalyticsWindowTotals"/>.
     /// </para>
     /// </summary>
     public static CreatorMetricResponse Build(
         string key,
         double value,
         double baseline,
-        bool baselineHasData,
+        bool baselineHasHistory,
         bool isMeasured = true)
     {
         var definition = AnalyticsMetricCatalog.Find(key)
@@ -74,7 +98,7 @@ public static class AnalyticsMetricAssembler
             // the reason null is what stops a client rendering an empty comparison chip.
             reason = "unsupported";
         }
-        else if (!baselineHasData)
+        else if (!baselineHasHistory)
         {
             reason = "insufficientHistory";
         }
@@ -196,7 +220,7 @@ public static class AnalyticsMetricAssembler
                 key,
                 ValueOf(key, current),
                 ValueOf(key, baseline),
-                baseline.HasData,
+                baseline.HasHistory,
                 measured));
         }
 

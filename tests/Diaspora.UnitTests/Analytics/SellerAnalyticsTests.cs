@@ -58,8 +58,8 @@ public sealed class SellerAnalyticsTests
         // and it is the half that matters.
         var metrics = AnalyticsMetricAssembler.BuildSet(
             [AnalyticsMetricCatalog.ConversionRate],
-            new AnalyticsWindowTotals(Counts(views: 0, conversions: 0), 0, 0, HasData: true),
-            new AnalyticsWindowTotals(Counts(views: 10, conversions: 1), 0, 0, HasData: true));
+            new AnalyticsWindowTotals(Counts(views: 0, conversions: 0), 0, 0, HasData: true, HasHistory: true),
+            new AnalyticsWindowTotals(Counts(views: 10, conversions: 1), 0, 0, HasData: true, HasHistory: true));
 
         metrics.Single().IsAvailable.Should().BeFalse();
     }
@@ -69,8 +69,8 @@ public sealed class SellerAnalyticsTests
     {
         var metrics = AnalyticsMetricAssembler.BuildSet(
             [AnalyticsMetricCatalog.ConversionRate],
-            new AnalyticsWindowTotals(Counts(views: 40, conversions: 2), 0, 0, HasData: true),
-            new AnalyticsWindowTotals(Counts(views: 20, conversions: 1), 0, 0, HasData: true));
+            new AnalyticsWindowTotals(Counts(views: 40, conversions: 2), 0, 0, HasData: true, HasHistory: true),
+            new AnalyticsWindowTotals(Counts(views: 20, conversions: 1), 0, 0, HasData: true, HasHistory: true));
 
         var metric = metrics.Single();
         metric.IsAvailable.Should().BeTrue();
@@ -96,7 +96,7 @@ public sealed class SellerAnalyticsTests
         AnalyticsMetricCatalog.SellerHeadline.Should().Contain(AnalyticsMetricCatalog.Revenue);
 
         var metric = AnalyticsMetricAssembler.Build(
-            AnalyticsMetricCatalog.Revenue, 0, 0, baselineHasData: true);
+            AnalyticsMetricCatalog.Revenue, 0, 0, baselineHasHistory: true);
 
         metric.IsAvailable.Should().BeFalse();
     }
@@ -192,9 +192,10 @@ public sealed class SellerAnalyticsTests
         var totals = await reads.ReadOwnerContentTypeAsync(
             Seller, AnalyticsContentType.Marketplace, Period(), CancellationToken.None);
 
-        // `HasData` drives "insufficient history" on the comparison. A member who owns a guide and
+        // `HasHistory` drives "insufficient history" on the comparison. A member who owns a guide and
         // no listings must not be compared as if their listings had a baseline of zero.
         totals.HasData.Should().BeFalse();
+        totals.HasHistory.Should().BeFalse();
         totals.Counts.Views.Should().Be(0);
     }
 

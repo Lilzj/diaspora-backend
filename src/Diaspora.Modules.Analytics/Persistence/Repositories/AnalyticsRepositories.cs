@@ -534,6 +534,47 @@ public sealed class AnalyticsRollupRepository : IAnalyticsRollupRepository
             .OrderBy(row => row.Day)
             .ToListAsync(cancellationToken);
 
+    public async Task<bool> AnyOwnerBeforeAsync(
+        Guid ownerUserId, DateOnly day, CancellationToken cancellationToken = default) =>
+        await OwnerRollups
+            .AsNoTracking()
+            .AnyAsync(row => row.OwnerUserId == ownerUserId && row.Day < day, cancellationToken);
+
+    public async Task<bool> AnyOwnerContentTypeBeforeAsync(
+        Guid ownerUserId,
+        AnalyticsContentType contentType,
+        DateOnly day,
+        CancellationToken cancellationToken = default) =>
+        await ContentRollups
+            .AsNoTracking()
+            .AnyAsync(
+                row => row.OwnerUserId == ownerUserId && row.ContentType == contentType && row.Day < day,
+                cancellationToken);
+
+    public async Task<bool> AnyContentBeforeAsync(
+        AnalyticsContentType contentType,
+        Guid contentId,
+        DateOnly day,
+        CancellationToken cancellationToken = default) =>
+        await ContentRollups
+            .AsNoTracking()
+            .AnyAsync(
+                row => row.ContentType == contentType && row.ContentId == contentId && row.Day < day,
+                cancellationToken);
+
+    public async Task<IReadOnlyList<(AnalyticsContentType ContentType, Guid ContentId)>> ListContentRecordedBeforeAsync(
+        Guid ownerUserId, DateOnly day, CancellationToken cancellationToken = default)
+    {
+        var keys = await ContentRollups
+            .AsNoTracking()
+            .Where(row => row.OwnerUserId == ownerUserId && row.Day < day)
+            .Select(row => new { row.ContentType, row.ContentId })
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        return keys.Select(key => (key.ContentType, key.ContentId)).ToList();
+    }
+
     public async Task<int> DeleteExpiredAsync(
         DateOnly olderThan, int batchSize, CancellationToken cancellationToken = default)
     {
