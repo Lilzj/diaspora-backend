@@ -147,16 +147,62 @@ public sealed class AnalyticsDatasetBuilder
     /// said nothing about what it could not would leave a creator to assume the silence meant zero.
     /// </para>
     /// </summary>
-    private static IReadOnlyList<string>? Limitations(IReadOnlyList<CreatorMetricResponse> metrics)
+    /// <summary>
+    /// What the dataset could not answer, in sentences a member can take at their word.
+    /// <para>
+    /// <b>Two different reasons, and until 13 Sep 2026 they shared one sentence.</b> A metric can be
+    /// withheld because this deployment does not measure it at all — revenue, reach — or because it
+    /// is a rate and there was nothing in the period to calculate it from. Every withheld metric was
+    /// reported as "Not measured on this deployment", so a seller with no views this week read that
+    /// Diaspora does not measure their conversion rate. It does; it had nothing to divide by.
+    /// </para>
+    /// <para>
+    /// The catalogue already knows which is which, so this asks it rather than adding a reason to the
+    /// wire. A definition marked <see cref="AnalyticsMetricAvailability.NotMeasured"/> is the first
+    /// kind. Anything else withheld is the second: the only way a measured metric is withheld is a
+    /// rate whose denominator was zero — see <c>AnalyticsMetricAssembler.BuildSet</c>.
+    /// </para>
+    /// <para>
+    /// Neither sentence ever offers a zero in place of the figure. A 0% conversion rate for a listing
+    /// nobody opened would tell a seller it does not sell, when it has not been seen.
+    /// </para>
+    /// </summary>
+    private static List<string>? Limitations(IReadOnlyList<CreatorMetricResponse> metrics)
     {
-        var missing = metrics
-            .Where(metric => !metric.IsAvailable)
+        var withheld = metrics.Where(metric => !metric.IsAvailable).ToList();
+
+        if (withheld.Count == 0)
+        {
+            return null;
+        }
+
+        var notMeasured = withheld
+            .Where(metric => AnalyticsMetricCatalog.Find(metric.Key)?.Availability
+                is AnalyticsMetricAvailability.NotMeasured or null)
             .Select(metric => metric.Label)
             .ToList();
 
-        return missing.Count == 0
-            ? null
-            : [$"Not measured on this deployment: {string.Join(", ", missing)}."];
+        var nothingToCalculate = withheld
+            .Where(metric => AnalyticsMetricCatalog.Find(metric.Key)?.Availability
+                is not (AnalyticsMetricAvailability.NotMeasured or null))
+            .Select(metric => metric.Label)
+            .ToList();
+
+        var sentences = new List<string>(2);
+
+        if (notMeasured.Count > 0)
+        {
+            sentences.Add($"Not measured on this deployment: {string.Join(", ", notMeasured)}.");
+        }
+
+        if (nothingToCalculate.Count > 0)
+        {
+            sentences.Add(
+                $"No figure yet for {string.Join(", ", nothingToCalculate)}: "
+                + "nothing was viewed in this period, so there is nothing to work it out from.");
+        }
+
+        return sentences;
     }
 
     /// <summary>One series in the Phase 15 shape, from a daily map.</summary>
