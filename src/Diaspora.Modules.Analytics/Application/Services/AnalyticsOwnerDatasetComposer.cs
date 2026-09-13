@@ -46,15 +46,25 @@ public sealed record AnalyticsOwnerDatasetProfile(
         "Top listings",
         "Viewings",
         "Home");
+
+    /// <summary>An employer: their jobs, the applications made to them.</summary>
+    public static AnalyticsOwnerDatasetProfile Employer { get; } = new(
+        AnalyticsContentType.Job,
+        AnalyticsMetricCatalog.EmployerHeadline,
+        "employer",
+        "employer-jobs",
+        "Top jobs",
+        "Applications",
+        "Job");
 }
 
 /// <summary>
 /// The caller's own content of one type, summed into the shared Phase 15 dataset.
 /// <para>
-/// <b>One implementation for every owner dashboard.</b> A seller's listings and a landlord's homes
-/// are the same question asked of a different content type — per-item rollups summed to the member
-/// who owns them — and two copies of the answer would drift the first time one was fixed. The
-/// employer and provider dashboards are the same question again.
+/// <b>One implementation for every owner dashboard.</b> A seller's listings, a landlord's homes and
+/// an employer's jobs are the same question asked of a different content type — per-item rollups
+/// summed to the member who owns them — and three copies of the answer would drift the first time
+/// one was fixed. A provider dashboard would be the same question again.
 /// </para>
 /// <para>
 /// <b>The subject is always the caller.</b> The caller's <em>user</em> id is the only identity this

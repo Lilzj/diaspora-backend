@@ -146,6 +146,33 @@ public sealed class AnalyticsEndpointContributor : IEndpointContributor
             .RequireAuthorization(AnalyticsPolicies.ContentRead)
             .WithName("GetLandlordAnalyticsDataset");
 
+        // FRONTEND-PHASE15-GAP-012. Job rollups summed to the employer — the member, not their
+        // employer profile — as a dataset. `/me` and never `/{id}`, and `ContentRead`, for the
+        // seller and landlord routes' reasons: an employer's jobs are content the caller owns.
+        group.MapGet("/employers/me", async (
+                string? period,
+                string? from,
+                string? to,
+                string? timezone,
+                bool? includeSeries,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            PlatformResults.Ok(
+                context,
+                await sender.Send(
+                    new GetEmployerAnalyticsDatasetQuery
+                    {
+                        Period = period,
+                        From = from,
+                        To = to,
+                        Timezone = timezone,
+                        IncludeSeries = includeSeries ?? false
+                    },
+                    cancellationToken)))
+            .RequireAuthorization(AnalyticsPolicies.ContentRead)
+            .WithName("GetEmployerAnalyticsDataset");
+
         group.MapGet("/creators/me/summary", async (
                 string? period,
                 string? from,

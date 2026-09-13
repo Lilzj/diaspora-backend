@@ -99,7 +99,8 @@ public sealed class AnalyticsModule : IPlatformModule
         services.AddScoped<AnalyticsReadService>();
         services.AddScoped<AnalyticsDatasetBuilder>();
 
-        // The seller and landlord dashboards — one question asked of two content types, answered once.
+        // The seller, landlord and employer dashboards — one question asked of three content types,
+        // answered once.
         services.AddScoped<AnalyticsOwnerDatasetComposer>();
 
         // Registered explicitly rather than scanned: it is a collaborator of three workers and of the

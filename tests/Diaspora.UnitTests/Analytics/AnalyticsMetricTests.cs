@@ -47,7 +47,8 @@ public sealed class AnalyticsMetricTests
             .Concat(AnalyticsMetricCatalog.ContentItem)
             .Concat(AnalyticsMetricCatalog.CreatorSeries)
             .Concat(AnalyticsMetricCatalog.SellerHeadline)
-            .Concat(AnalyticsMetricCatalog.LandlordHeadline))
+            .Concat(AnalyticsMetricCatalog.LandlordHeadline)
+            .Concat(AnalyticsMetricCatalog.EmployerHeadline))
         {
             AnalyticsMetricCatalog.Find(key).Should().NotBeNull("{0} is served", key);
         }

@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Diaspora.Contracts.Community.V1.Events;
 using Diaspora.Contracts.Housing.V1.Events;
+using Diaspora.Contracts.Jobs.V1.Events;
 using Diaspora.Domain.Abstractions;
 using Diaspora.IntegrationTests.Common;
 using Diaspora.Modules.Analytics.Application.Projection;
@@ -913,6 +914,77 @@ public sealed class AnalyticsPlatformTests : IdentityTestBase
     }
 
     // ════════════════════════════════════════════════════════════════════════════════════════
+    // FRONTEND-PHASE15-GAP-012 — an employer's own dataset
+    // ════════════════════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// <b>An employer's views and applications reach their own dataset, under the member and never
+    /// the employer profile.</b> The application is published with no <c>EmployerUserId</c> at all —
+    /// the shape the historical half-fix <c>EmployerUserId ?? EmployerId</c> got wrong — so it must
+    /// be attributed through the job's publication, on the dataset and on the member's overview.
+    /// </summary>
+    [Fact]
+    public async Task An_employers_views_and_applications_reach_their_dataset_under_the_member_not_the_profile()
+    {
+        var employer = await NewMemberAsync();
+
+        var employerProfileId = Guid.NewGuid();
+        var jobId = Guid.NewGuid();
+
+        employerProfileId.Should().NotBe(employer.UserId, "the whole point of the test");
+
+        await PublishJobAsync(jobId, employerProfileId, employer.UserId);
+        await Factory.DrainOutboxAsync();
+
+        var applicant = await NewMemberAsync();
+        (await PostViewAsync(jobId, DateTimeOffset.UtcNow, "job")).Accepted.Should().Be(1);
+
+        await PublishApplicationAsync(jobId, employerProfileId, applicant.UserId);
+        await Factory.DrainOutboxAsync();
+
+        await ProjectAsync();
+
+        Api.Authenticate(employer.Token);
+
+        var dataset = await ReadDataAsync<DatasetDto>(
+            await HttpClient.GetAsync($"{Analytics}/employers/me?period=30d&includeSeries=true"));
+
+        MetricValue(dataset, "content.views").Should().Be(1, "one member opened the job");
+        MetricValue(dataset, "conversion.count").Should().Be(
+            1, "one application, which named only the employer profile");
+        MetricValue(dataset, "conversion.rate").Should().Be(100, "one application for one view");
+        MetricValue(dataset, "content.published").Should().Be(1);
+
+        dataset.Metrics.Should().NotContain(metric => metric.Key == "revenue.gross");
+
+        var board = dataset.Leaderboards.Should().ContainSingle(entry => entry.Key == "employer-jobs").Subject;
+        board.Rows.Should().ContainSingle().Which.Entity.EntityId.Should().Be(jobId.ToString());
+        board.Rows[0].Entity.Title.Should().Be("Community nurse, night shifts");
+
+        // The overview keys by each event's own owner: where an application attributed to the
+        // profile would go missing while the dataset above still counted it.
+        var overview = await ReadDataAsync<CreatorSummaryDto>(
+            await HttpClient.GetAsync($"{Analytics}/creators/me/summary?period=30d"));
+
+        Metric(overview, "conversion").Value.Should().Be(
+            1, "the application belongs to the member, not to their employer profile");
+
+        // The other sides: a job is not a home, and the applicant's own dashboard carries none of it.
+        var asLandlord = await ReadDataAsync<DatasetDto>(
+            await HttpClient.GetAsync($"{Analytics}/landlords/me?period=30d"));
+
+        MetricValue(asLandlord, "content.views").Should().Be(0, "a job is not a housing listing");
+
+        Api.Authenticate(applicant.Token);
+
+        var stranger = await ReadDataAsync<DatasetDto>(
+            await HttpClient.GetAsync($"{Analytics}/employers/me?period=30d"));
+
+        MetricValue(stranger, "content.views").Should().Be(0);
+        MetricValue(stranger, "conversion.count").Should().Be(0);
+    }
+
+    // ════════════════════════════════════════════════════════════════════════════════════════
     // Content performance and paging
     // ════════════════════════════════════════════════════════════════════════════════════════
 
@@ -1443,6 +1515,70 @@ public sealed class AnalyticsPlatformTests : IdentityTestBase
             CountryCode = "GB",
             IsFirstPublication = true,
             PublishedAt = DateTimeOffset.UtcNow
+        });
+
+        await unitOfWork.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// A job going live, published as B9's own contract, with an employer profile id that differs
+    /// from the member's user id — as it does in Jobs.
+    /// </summary>
+    private async Task PublishJobAsync(Guid jobId, Guid employerProfileId, Guid employerUserId)
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        var publisher = scope.ServiceProvider.GetRequiredService<IIntegrationEventPublisher>();
+        var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+
+        await publisher.PublishAsync(new JobPublishedIntegrationEvent
+        {
+            JobId = jobId,
+            EmployerId = employerProfileId,
+            EmployerUserId = employerUserId,
+            EmployerName = "Harbour Care",
+            IsEmployerVerified = true,
+            Title = "Community nurse, night shifts",
+            Slug = $"community-nurse-{jobId:N}",
+            CategoryKey = "healthcare",
+            Tags = [],
+            SkillKeys = [],
+            CountryCode = "GB",
+            WorkplaceType = "OnSite",
+            JobType = "FullTime",
+            ExperienceLevel = "Mid",
+            OffersVisaSponsorship = true,
+            OffersRelocationAssistance = false,
+            IsSalaryDisclosed = false,
+            VacancyCount = 1,
+            IsFirstPublication = true,
+            PublishedAt = DateTimeOffset.UtcNow
+        });
+
+        await unitOfWork.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// An application to a job, published as B9's own contract with <b>no</b> employer user id — so
+    /// ingestion has only the job's publication to attribute it by.
+    /// </summary>
+    private async Task PublishApplicationAsync(Guid jobId, Guid employerProfileId, Guid applicantUserId)
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        var publisher = scope.ServiceProvider.GetRequiredService<IIntegrationEventPublisher>();
+        var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+
+        await publisher.PublishAsync(new ApplicationSubmittedIntegrationEvent
+        {
+            ApplicationId = Guid.NewGuid(),
+            JobId = jobId,
+            EmployerId = employerProfileId,
+            CandidateId = Guid.NewGuid(),
+            ApplicantUserId = applicantUserId,
+            EmployerUserId = null,
+            CountryCode = "GB",
+            SubmittedAt = DateTimeOffset.UtcNow
         });
 
         await unitOfWork.SaveChangesAsync();

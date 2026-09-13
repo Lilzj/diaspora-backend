@@ -92,7 +92,7 @@ public static class AnalyticsMetricCatalog
     /// than as a cliff in a chart, and so a report can state which definition it ran under.
     /// </para>
     /// </summary>
-    public const string Version = "1.2.0";
+    public const string Version = "1.3.0";
 
     // ── Keys, as the Phase 7 client spells them ─────────────────────────────────────────────
 
@@ -321,9 +321,10 @@ public static class AnalyticsMetricCatalog
             "conversion.rate",
             "Conversion",
             "Actions taken divided by views, as a percentage — for a marketplace listing, purchases "
-                + "per view; for a housing listing, viewings booked per view. Computed on the server "
-                + "from the same two counts shown beside it, so the rate and its parts cannot "
-                + "disagree. A listing nobody has viewed has no rate rather than a rate of zero.",
+                + "per view; for a housing listing, viewings booked per view; for a job, applications "
+                + "per view. Computed on the server from the same two counts shown beside it, so the "
+                + "rate and its parts cannot disagree. A listing nobody has viewed has no rate rather "
+                + "than a rate of zero.",
             "actions taken ÷ views × 100",
             AnalyticsMetricFormat.Percentage,
             HigherIsBetter: true,
@@ -421,6 +422,31 @@ public static class AnalyticsMetricCatalog
     /// </para>
     /// </summary>
     public static IReadOnlyList<string> LandlordHeadline =>
+    [
+        ContentViews,
+        UniqueViewers,
+        Conversion,
+        ConversionRate,
+        ContentPublished
+    ];
+
+    /// <summary>
+    /// The headline set an employer's overview shows, in order.
+    /// <para>
+    /// <b>Only what a job actually records.</b> A job's views arrive from the job screen, its
+    /// applications from <c>ApplicationSubmitted</c>, its publication from <c>JobPublished</c>. A
+    /// member saving a job writes to the Bookmarks module, which publishes nothing, so saves are left
+    /// out for the seller set's reason: a confident zero on every employer's dashboard.
+    /// </para>
+    /// <para>
+    /// <b>Applications, and no later stage.</b> Shortlists, interviews and offers are published by
+    /// Jobs and deliberately not counted here: at those stages the numbers are small enough to name
+    /// people — an employer with two applicants reading "1 shortlisted" knows who — and §19 asks for
+    /// counts that cannot. An application count tells an employer nothing their own applicant list
+    /// does not. No revenue tile either: what an employer pays Diaspora is spend, not revenue.
+    /// </para>
+    /// </summary>
+    public static IReadOnlyList<string> EmployerHeadline =>
     [
         ContentViews,
         UniqueViewers,

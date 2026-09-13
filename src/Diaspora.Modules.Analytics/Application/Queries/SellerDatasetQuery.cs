@@ -31,8 +31,8 @@ namespace Diaspora.Modules.Analytics.Application.Queries;
 /// buyer: a buyer is a person, and a sales count is analytics where a buyer list is not.
 /// </para>
 /// <para>
-/// Composed by <see cref="AnalyticsOwnerDatasetComposer"/>, which the landlord dataset shares: the
-/// two are one question asked of two content types.
+/// Composed by <see cref="AnalyticsOwnerDatasetComposer"/>, which the landlord and employer datasets
+/// share: they are one question asked of three content types.
 /// </para>
 /// </summary>
 [Authorize(Permission = AnalyticsPermissions.ContentReadOwn)]
