@@ -335,11 +335,12 @@ public sealed class GetCreatorContentPerformanceQueryHandler
                 Title = entry.Dimension.Title ?? FallbackTitle(entry.Dimension.ContentType),
                 PublishedAt = entry.Dimension.PublishedAt,
                 Status = entry.Dimension.Status ?? "Published",
-                // Each row is one item, so its conversions carry the item's own name — "Sales" on a
-                // listing's row, "Applications" on a job's — in a list that mixes both.
+                // Each row is one item: only the columns its kind records, and its conversions carry
+                // the item's own name — "Sales" on a listing's row, "Applications" on a job's — in a
+                // list that mixes both.
                 Metrics = AnalyticsMetricAssembler.NameConversions(
                     AnalyticsMetricAssembler.BuildSet(
-                        AnalyticsMetricCatalog.ContentItem,
+                        AnalyticsMetricCatalog.ContentItemFor(entry.Dimension.ContentType),
                         new AnalyticsWindowTotals(entry.Current, 0, 0, HasData: true, HasHistory: true),
                         new AnalyticsWindowTotals(
                             entry.Baseline ?? AnalyticsCounts.Zero,

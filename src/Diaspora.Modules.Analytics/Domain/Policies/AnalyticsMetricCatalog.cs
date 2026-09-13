@@ -367,7 +367,10 @@ public static class AnalyticsMetricCatalog
         Revenue
     ];
 
-    /// <summary>The per-item set a content-performance row shows, in order.</summary>
+    /// <summary>
+    /// Every metric a per-item row or page can show, in order. The superset
+    /// <see cref="ContentItemFor"/> cuts down to what one kind of content records.
+    /// </summary>
     public static IReadOnlyList<string> ContentItem =>
     [
         ContentViews,
@@ -378,6 +381,38 @@ public static class AnalyticsMetricCatalog
         Conversion,
         EngagementRate
     ];
+
+    /// <summary>
+    /// The per-item set for one kind of content: what an item's own page and its row in the content
+    /// table show, in order.
+    /// <para>
+    /// <b>Only what that kind of content can record.</b> Until 13 Sep 2026 every row carried the whole
+    /// <see cref="ContentItem"/> set, so a listing's row read "Saves 0 · Helpful votes 0 · Comments 0 ·
+    /// Shares 0 · Engagement 0.0%" — columns nothing records for a listing, which a seller cannot tell
+    /// from a listing nobody cares about. The owner dashboards had already left them out; the rows
+    /// now agree.
+    /// </para>
+    /// <para>
+    /// <b>Listings, homes, jobs and events</b> record a view and one action — a sale, a viewing, an
+    /// application, an RSVP. Saves, reactions, comments and shares reach analytics only from the
+    /// Community module, and the app offers those on guides and community updates alone; saving a
+    /// job or a home writes to the Bookmarks module, which publishes nothing. <b>Guides and updates</b>
+    /// carry community engagement and ask for no action, and nothing can record a conversion for
+    /// them, so the conversion is left out. <b>Providers and organisations</b> record views.
+    /// </para>
+    /// </summary>
+    public static IReadOnlyList<string> ContentItemFor(AnalyticsContentType contentType) => contentType switch
+    {
+        AnalyticsContentType.Marketplace
+            or AnalyticsContentType.Housing
+            or AnalyticsContentType.Job
+            or AnalyticsContentType.Event => [ContentViews, Conversion],
+        AnalyticsContentType.Guide
+            or AnalyticsContentType.Post => [ContentViews, Saves, HelpfulVotes, Comments, Shares, EngagementRate],
+        AnalyticsContentType.Provider
+            or AnalyticsContentType.Organization => [ContentViews],
+        _ => ContentItem
+    };
 
     /// <summary>
     /// The headline set a seller's overview shows, in order.

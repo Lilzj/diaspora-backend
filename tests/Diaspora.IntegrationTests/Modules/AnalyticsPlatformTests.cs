@@ -906,11 +906,28 @@ public sealed class AnalyticsPlatformTests : IdentityTestBase
 
         homePage.Metrics.Single(metric => metric.Key == "conversion.count").Label.Should().Be("Viewings");
 
+        // Only what a home records: its views and its viewings. No saves, votes, comments, shares or
+        // engagement rate, which nothing records for a home.
+        homePage.Metrics.Select(metric => metric.Key).Should().Equal("content.views", "conversion.count");
+
         var homeRows = await ReadDataAsync<ContentPageDto>(
             await HttpClient.GetAsync($"{Analytics}/creators/me/content?period=30d"));
 
-        homeRows.Items.Single(item => item.ContentId == homeId.ToString())
-            .Metrics.Single(metric => metric.Key == "conversion").Label.Should().Be("Viewings");
+        var homeRow = homeRows.Items.Single(item => item.ContentId == homeId.ToString());
+
+        homeRow.Metrics.Single(metric => metric.Key == "conversion").Label.Should().Be("Viewings");
+        homeRow.Metrics.Select(metric => metric.Key).Should().Equal("content_views", "conversion");
+
+        // The "Homes" and "Listings" chips send the client's own words, and each filters to its kind.
+        var homesOnly = await ReadDataAsync<ContentPageDto>(
+            await HttpClient.GetAsync($"{Analytics}/creators/me/content?period=30d&contentType=Housing"));
+
+        homesOnly.Items.Should().ContainSingle().Which.ContentId.Should().Be(homeId.ToString());
+
+        var listingsOnly = await ReadDataAsync<ContentPageDto>(
+            await HttpClient.GetAsync($"{Analytics}/creators/me/content?period=30d&contentType=Marketplace"));
+
+        listingsOnly.Items.Should().BeEmpty("the landlord has no marketplace listings");
 
         // The other sides. The same member's seller dashboard does not count a home…
         var asSeller = await ReadDataAsync<DatasetDto>(
@@ -991,12 +1008,21 @@ public sealed class AnalyticsPlatformTests : IdentityTestBase
             await HttpClient.GetAsync($"{Analytics}/content/job/{jobId}?period=30d"));
 
         jobPage.Metrics.Single(metric => metric.Key == "conversion.count").Label.Should().Be("Applications");
+        jobPage.Metrics.Select(metric => metric.Key).Should().Equal("content.views", "conversion.count");
 
         var jobRows = await ReadDataAsync<ContentPageDto>(
             await HttpClient.GetAsync($"{Analytics}/creators/me/content?period=30d"));
 
-        jobRows.Items.Single(item => item.ContentId == jobId.ToString())
-            .Metrics.Single(metric => metric.Key == "conversion").Label.Should().Be("Applications");
+        var jobRow = jobRows.Items.Single(item => item.ContentId == jobId.ToString());
+
+        jobRow.Metrics.Single(metric => metric.Key == "conversion").Label.Should().Be("Applications");
+        jobRow.Metrics.Select(metric => metric.Key).Should().Equal("content_views", "conversion");
+
+        // The "Jobs" chip sends the client's own word for the type, and it filters.
+        var jobsOnly = await ReadDataAsync<ContentPageDto>(
+            await HttpClient.GetAsync($"{Analytics}/creators/me/content?period=30d&contentType=Job"));
+
+        jobsOnly.Items.Should().ContainSingle().Which.ContentId.Should().Be(jobId.ToString());
 
         // The other sides: a job is not a home, and the applicant's own dashboard carries none of it.
         var asLandlord = await ReadDataAsync<DatasetDto>(
@@ -1052,8 +1078,10 @@ public sealed class AnalyticsPlatformTests : IdentityTestBase
         readRow.ContentType.Should().Be("Guide", "the client's own vocabulary");
         readRow.Title.Should().Be("Read guide");
 
-        // A guide asks for nothing, so its row keeps the catalogue's general name for the action.
-        readRow.Metrics.Single(metric => metric.Key == "conversion").Label.Should().Be("Actions taken");
+        // A guide carries community engagement and asks for no action, so its row has no conversion
+        // column — a permanent zero — and keeps the engagement columns.
+        readRow.Metrics.Select(metric => metric.Key).Should().Equal(
+            "content_views", "saves", "helpful_votes", "comments", "shares", "engagement_rate");
         readRow.Status.Should().NotBeNullOrWhiteSpace();
 
         page.Items[0].ContentId.Should().Be(
