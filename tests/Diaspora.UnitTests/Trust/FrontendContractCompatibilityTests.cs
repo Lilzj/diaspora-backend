@@ -509,7 +509,9 @@ public sealed class FrontendContractCompatibilityTests
     /// </summary>
     [Theory]
     [InlineData(TrustCapabilities.PublishGuide, 150, 2, true, true, true)]
-    [InlineData(TrustCapabilities.PostJob, 300, 1, true, true, true)]
+    // 14 Sep 2026: a verified account is enough, and the Jobs service checks that. Changed on
+    // both sides in the same change, which is what this theory exists to hold.
+    [InlineData(TrustCapabilities.PostJob, 0, 0, false, false, false)]
     [InlineData(TrustCapabilities.ListHousing, 100, 1, true, false, true)]
     [InlineData(TrustCapabilities.SellItem, 20, 0, true, false, false)]
     [InlineData(TrustCapabilities.Comment, 10, 0, true, false, false)]

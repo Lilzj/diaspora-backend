@@ -194,7 +194,15 @@ public sealed class TrustModuleTests : IdentityTestBase
         requirements.Select(item => item.FeatureId)
             .Should().Contain(["guides", "jobs", "housing", "marketplace"]);
 
-        requirements.Should().OnlyContain(item => item.Requirements.Count > 0);
+        // Every capability with Trust thresholds serves its checklist. Job posting has none since
+        // 14 Sep 2026 — a verified account is enough, and the Jobs service checks that — so it is
+        // served empty and unlocked rather than as a checklist nobody could complete.
+        requirements.Where(item => item.FeatureId != "jobs")
+            .Should().OnlyContain(item => item.Requirements.Count > 0);
+
+        var jobs = requirements.Single(item => item.FeatureId == "jobs");
+        jobs.Requirements.Should().BeEmpty();
+        jobs.IsUnlocked.Should().BeTrue();
     }
 
     // ── Verification ─────────────────────────────────────────────────────

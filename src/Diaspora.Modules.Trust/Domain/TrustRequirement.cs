@@ -93,14 +93,26 @@ public static class DefaultTrustRequirements
         },
         new()
         {
+            // ── A verified account is enough to post a job — decided 14 Sep 2026 ──
+            //
+            // This asked for a verified phone, government ID, verified residency, 300 points in
+            // the country and a year's residence. Nothing on a new platform can have the last
+            // two, no member held a Trust profile at all, and the Jobs service never consulted
+            // any of it: `jobs:post:create` and the `jobs.post` feature require the Verified
+            // access tier and nothing else. So the only thing these thresholds did was lock the
+            // app's Post a job screen for every member while the API accepted the same post.
+            //
+            // The product owner chose to match what the Jobs service enforces. Trust adds no
+            // threshold of its own here; the Verified tier is checked by Jobs, where the write
+            // happens. Stronger anti-fraud checks for postings are a later, deliberate change.
             CapabilityKey = TrustCapabilities.PostJob,
             Name = "Job Posting",
-            MinimumCountryReputation = 300,
-            MinimumResidenceYears = 1,
-            RequiresPhone = true,
-            RequiresIdentity = true,
-            RequiresCountryVerification = true,
-            MinimumTier = TrustTier.Verified,
+            MinimumCountryReputation = 0,
+            MinimumResidenceYears = 0,
+            RequiresPhone = false,
+            RequiresIdentity = false,
+            RequiresCountryVerification = false,
+            MinimumTier = TrustTier.Untrusted,
             RateLimitPerDay = 5,
             CooldownSeconds = 10
         },
