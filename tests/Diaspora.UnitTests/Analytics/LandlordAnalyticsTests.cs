@@ -124,7 +124,7 @@ public sealed class LandlordAnalyticsTests
         Value(response, "content.views").Should().Be(40, "the marketplace listing's views are not a home's");
         Value(response, "content.uniqueViewers").Should().Be(9);
         Value(response, "conversion.count").Should().Be(2);
-        Value(response, "conversion.rate").Should().Be(5, "2 viewings ÷ 40 views × 100");
+        Value(response, "conversion.rate").Should().Be(0.05, "2 viewings ÷ 40 views, as a ratio");
 
         // Read by the caller's user id — the only identity the composer has. Never a profile id.
         await rollups.Received().ListContentForOwnerAsync(
@@ -190,7 +190,7 @@ public sealed class LandlordAnalyticsTests
 
         response.Subject.Type.Should().Be("seller");
         Value(response, "content.views").Should().Be(50, "a seller's homes are not their listings");
-        Value(response, "conversion.rate").Should().Be(10);
+        Value(response, "conversion.rate").Should().Be(0.1, "5 sales ÷ 50 views, as a ratio");
         response.UnavailableMetrics.Should().Contain("revenue.gross", "a seller is told revenue is in the wallet");
 
         var board = response.Leaderboards.Should().ContainSingle().Subject;

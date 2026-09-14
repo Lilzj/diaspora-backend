@@ -146,7 +146,7 @@ public sealed class EmployerAnalyticsTests
         Value(response, "content.views").Should().Be(80, "the home's views are not a job's");
         Value(response, "content.uniqueViewers").Should().Be(31);
         Value(response, "conversion.count").Should().Be(4);
-        Value(response, "conversion.rate").Should().Be(5, "4 applications ÷ 80 views × 100");
+        Value(response, "conversion.rate").Should().Be(0.05, "4 applications ÷ 80 views, as a ratio");
 
         await rollups.Received().ListContentForOwnerAsync(
             Member, Arg.Any<DateOnly>(), Arg.Any<DateOnly>(), Arg.Any<CancellationToken>());

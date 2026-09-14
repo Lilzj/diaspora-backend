@@ -879,7 +879,7 @@ public sealed class AnalyticsPlatformTests : IdentityTestBase
         MetricValue(dataset, "content.views").Should().Be(1, "one member opened the home");
         MetricValue(dataset, "conversion.count").Should().Be(
             1, "one viewing was booked, and it names only the landlord profile");
-        MetricValue(dataset, "conversion.rate").Should().Be(100, "one viewing for one view");
+        MetricValue(dataset, "conversion.rate").Should().Be(1, "one viewing for one view is 100%, sent as a ratio");
         MetricValue(dataset, "content.published").Should().Be(1);
 
         dataset.Metrics.Single(metric => metric.Key == "conversion.count").Label.Should().Be("Viewings");
@@ -986,7 +986,7 @@ public sealed class AnalyticsPlatformTests : IdentityTestBase
         MetricValue(dataset, "content.views").Should().Be(1, "one member opened the job");
         MetricValue(dataset, "conversion.count").Should().Be(
             1, "one application, which named only the employer profile");
-        MetricValue(dataset, "conversion.rate").Should().Be(100, "one application for one view");
+        MetricValue(dataset, "conversion.rate").Should().Be(1, "one application for one view is 100%, sent as a ratio");
         MetricValue(dataset, "content.published").Should().Be(1);
 
         dataset.Metrics.Single(metric => metric.Key == "conversion.count").Label.Should().Be("Applications");

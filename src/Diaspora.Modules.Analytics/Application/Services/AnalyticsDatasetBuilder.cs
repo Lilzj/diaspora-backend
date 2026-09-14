@@ -21,6 +21,13 @@ namespace Diaspora.Modules.Analytics.Application.Services;
 /// a <em>ratio</em>, 0.18. A hundredfold error that looks plausible in both directions, so it is
 /// done once, in one method, with the reason written beside it.
 /// </para>
+/// <para>
+/// <b>The same holds for a percentage figure itself, and until 14 Sep 2026 only the change was
+/// converted.</b> A conversion rate of one application per view is 100 in the Phase 7 shape and 1 in
+/// this one. The builder passed the 100 through, the app formats every percentage as a ratio, and a
+/// member's Hiring dashboard read "Application rate 10,000%". Nothing caught it because every rate a
+/// test or a walkthrough had rendered was zero or withheld.
+/// </para>
 /// </summary>
 public sealed class AnalyticsDatasetBuilder
 {
@@ -104,11 +111,21 @@ public sealed class AnalyticsDatasetBuilder
     {
         var definition = AnalyticsMetricCatalog.Find(metric.Key);
 
+        // Percent to ratio for the figure, its baseline and the difference between them — the three
+        // numbers a client draws in the metric's own format. The relative change below is unitless and
+        // is converted on its own line. Keyed on the format the response declares, so a value and the
+        // format it is read in cannot disagree.
+        var scale = metric.Format == AnalyticsMetricAssembler.FormatName(Domain.Enums.AnalyticsMetricFormat.Percentage)
+            ? 100d
+            : 1d;
+        var value = metric.Value / scale;
+        var previous = metric.PreviousValue / scale;
+
         return new AnalyticsMetricResponse
         {
             Key = definition?.CatalogueKey ?? metric.Key,
             Label = metric.Label,
-            Value = new SourcedValueResponse { Value = metric.Value, Source = "backend" },
+            Value = new SourcedValueResponse { Value = value, Source = "backend" },
             Format = metric.Format,
 
             // Never `estimated`: every figure this deployment serves is a count of stored facts.
@@ -120,13 +137,13 @@ public sealed class AnalyticsDatasetBuilder
                 Basis = "previousPeriod",
                 BaselineFrom = baseline.FromDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
                 BaselineTo = baseline.ToDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                BaselineValue = metric.PreviousValue,
+                BaselineValue = previous,
 
                 // Percent to ratio. See the class summary for why this happens exactly once.
                 ChangePercent = metric.ChangePercentage / 100d,
-                ChangeAbsolute = metric.PreviousValue is null
+                ChangeAbsolute = previous is null
                     ? null
-                    : metric.Value - metric.PreviousValue,
+                    : value - previous,
                 UnavailableReason = metric.ComparisonUnavailableReason
             },
             Freshness = freshness,

@@ -98,6 +98,15 @@ public sealed record AnalyticsMetricResponse
 
     public required string Label { get; init; }
 
+    /// <summary>
+    /// The figure, read in <see cref="Format"/>.
+    /// <para>
+    /// <b>A <c>percentage</c> is a ratio: 1 means one hundred percent.</b> The same convention as
+    /// <see cref="AnalyticsComparisonResponse.ChangePercent"/>, and it applies to the comparison's
+    /// <c>BaselineValue</c> and <c>ChangeAbsolute</c> too. The Phase 7 creator summary sends whole
+    /// percentages; this shape never does.
+    /// </para>
+    /// </summary>
     public required SourcedValueResponse Value { get; init; }
 
     public required string Format { get; init; }
