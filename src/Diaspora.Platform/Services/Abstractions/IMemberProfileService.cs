@@ -54,10 +54,10 @@ public interface IMemberProfileService
 /// What the kernel is willing to say about a member to a module that did not create them.
 /// <para>
 /// Deliberately thin: a name to address them by, which is what a list of threads or a page of
-/// comments needs. No avatar, because identity stores one as a storage key rather than a B5 media
-/// identifier and a field nothing can fill is worse than a field that is not there. Anything more
-/// belongs to the module that owns the question — standing to <see cref="ITrustService"/>,
-/// reputation to Trust's own contracts.
+/// comments needs, and whether their account is verified. No avatar, because identity stores one
+/// as a storage key rather than a B5 media identifier and a field nothing can fill is worse than a
+/// field that is not there. Anything more belongs to the module that owns the question — standing
+/// to <see cref="ITrustService"/>, reputation to Trust's own contracts.
 /// </para>
 /// </summary>
 public sealed record MemberProfile
@@ -66,4 +66,15 @@ public sealed record MemberProfile
 
     /// <summary>What to call them. Never empty for a member that exists.</summary>
     public required string DisplayName { get; init; }
+
+    /// <summary>
+    /// Whether their account is verified right now — the access tier the platform gates verified
+    /// actions on, granted only by the Trust Engine.
+    /// <para>
+    /// Added 14 Sep 2026 so an employer can see who applied as the platform knows them. It is the
+    /// account's present state, not a record of the moment they acted: a suspension or a withdrawn
+    /// verification turns it false.
+    /// </para>
+    /// </summary>
+    public bool IsVerified { get; init; }
 }

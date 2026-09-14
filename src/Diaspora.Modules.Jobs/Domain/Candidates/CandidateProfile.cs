@@ -167,7 +167,9 @@ public sealed class CandidateProfile
     {
         get
         {
-            var score = 20; // A headline exists by construction.
+            // Not by construction any more: a profile made when its owner first applied starts
+            // with no headline at all.
+            var score = Headline.IsStated ? 20 : 0;
 
             score += _skills.Count > 0 ? 25 : 0;
             score += _experience.Count > 0 ? 25 : 0;
@@ -205,16 +207,18 @@ public sealed class CandidateProfile
     // ════════════════════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Creates a profile with the minimum that makes it useful: a headline. Everything else
-    /// arrives through later edits, because a profile wizard that demands a full work history
-    /// before it saves anything is a profile wizard nobody finishes.
+    /// Creates a profile. Nothing on it is required: a member's first application creates one with
+    /// <see cref="CandidateHeadline.None"/>, because the employer already sees them by their
+    /// account and a member should not have to write about themselves before they can apply.
+    /// Everything else arrives through later edits.
     /// </summary>
     public static Result<CandidateProfile> Create(
         CandidateProfileId id,
         UserId userId,
         CandidateHeadline headline,
         string? countryCode,
-        DateTimeOffset now)
+        DateTimeOffset now,
+        string? cityName = null)
     {
         ArgumentNullException.ThrowIfNull(id);
         ArgumentNullException.ThrowIfNull(userId);
@@ -231,13 +235,25 @@ public sealed class CandidateProfile
             return Result.Failure<CandidateProfile>(JobErrors.CountryInvalid);
         }
 
-        var profile = new CandidateProfile(id, userId, headline, country, now);
+        // Taken here as well as on an edit. The create request always carried a city and nothing
+        // kept it, so a member who filled it in found it blank the next time they looked.
+        var city = string.IsNullOrWhiteSpace(cityName) ? null : cityName.Trim();
+
+        if (city is { Length: > JobLimits.MaxLocationName })
+        {
+            return Result.Failure<CandidateProfile>(JobErrors.PreferredLocationInvalid);
+        }
+
+        var profile = new CandidateProfile(id, userId, headline, country, now)
+        {
+            CityName = city
+        };
 
         profile.RaiseDomainEvent(new CandidateProfileCreatedDomainEvent
         {
             CandidateId = id,
             UserId = userId,
-            Headline = headline.Headline
+            Headline = headline.IsStated ? headline.Headline : null
         });
 
         return Result.Success(profile);

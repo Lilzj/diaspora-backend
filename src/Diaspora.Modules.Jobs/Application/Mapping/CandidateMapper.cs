@@ -26,7 +26,7 @@ public static class CandidateMapper
         {
             CandidateId = profile.Id.Value,
             UserId = profile.UserId.Value,
-            Headline = profile.Headline.Headline,
+            Headline = profile.Headline.IsStated ? profile.Headline.Headline : null,
             Summary = profile.Headline.Summary,
             CountryCode = profile.CountryCode,
             CityName = profile.CityName,

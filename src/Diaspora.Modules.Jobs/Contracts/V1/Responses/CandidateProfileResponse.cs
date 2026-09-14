@@ -14,7 +14,8 @@ public sealed record CandidateProfileResponse
 
     public required Guid UserId { get; init; }
 
-    public required string Headline { get; init; }
+    /// <summary>Null until the candidate writes one. A first application creates a profile without it.</summary>
+    public string? Headline { get; init; }
 
     public string? Summary { get; init; }
 

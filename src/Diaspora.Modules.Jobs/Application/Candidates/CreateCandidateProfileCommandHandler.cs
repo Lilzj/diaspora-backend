@@ -76,7 +76,8 @@ public sealed class CreateCandidateProfileCommandHandler
             caller.Value,
             headline.Value,
             command.Request.CountryCode,
-            now);
+            now,
+            command.Request.CityName);
 
         if (profile.IsFailure)
         {

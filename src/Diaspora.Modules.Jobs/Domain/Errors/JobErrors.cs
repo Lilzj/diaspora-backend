@@ -364,7 +364,7 @@ public static class JobErrors
 
     public static readonly Error HeadlineInvalid = Error.Validation(
         JobErrorCodes.HeadlineInvalid,
-        "The headline is missing or too long.");
+        "The headline or summary is too long.");
 
     public static readonly Error ExperienceInvalid = Error.Validation(
         JobErrorCodes.ExperienceInvalid,

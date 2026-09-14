@@ -3,8 +3,9 @@ namespace Diaspora.Modules.Jobs.Contracts.V1.Requests;
 /// <summary>
 /// Creates a candidate profile.
 /// <para>
-/// Only a headline is required. A profile wizard that demanded a full work history before it
-/// saved anything is one nobody finishes, and an abandoned profile helps no one.
+/// Nothing is required. Applying for a job creates an empty profile on its own, so this route is
+/// for a member who wants to fill one in before they apply — and a form that demanded a headline
+/// before it saved anything would put back the step that change removed.
 /// </para>
 /// <para>
 /// <b>The profile is created private.</b> Visibility is deliberately not on this request:
@@ -15,8 +16,8 @@ namespace Diaspora.Modules.Jobs.Contracts.V1.Requests;
 /// </summary>
 public sealed record CreateCandidateProfileRequest
 {
-    /// <summary>The one line beside a name. "Registered nurse, 8 years, ICU."</summary>
-    public required string Headline { get; init; }
+    /// <summary>The one line beside a name. "Registered nurse, 8 years, ICU." Optional.</summary>
+    public string? Headline { get; init; }
 
     public string? Summary { get; init; }
 

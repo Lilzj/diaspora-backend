@@ -10,7 +10,8 @@ namespace Diaspora.Modules.Jobs.Contracts.V1.Requests;
 /// </summary>
 public sealed record UpdateCandidateProfileRequest
 {
-    public required string Headline { get; init; }
+    /// <summary>Optional. Blank or absent clears it — this is a whole-document save.</summary>
+    public string? Headline { get; init; }
 
     public string? Summary { get; init; }
 

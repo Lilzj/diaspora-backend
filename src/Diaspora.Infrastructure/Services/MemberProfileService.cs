@@ -1,3 +1,5 @@
+using Diaspora.Application.Identity.Authorization;
+using Diaspora.Contracts.Authorization;
 using Diaspora.Domain.Identity.Repositories;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Identity;
@@ -46,7 +48,11 @@ public sealed class MemberProfileService : IMemberProfileService
             user => new MemberProfile
             {
                 UserId = user.Id.Value,
-                DisplayName = user.FullName.Value
+                DisplayName = user.FullName.Value,
+
+                // Through the one function that projects Identity's states onto tiers, so a
+                // suspended or locked member — Limited there — is never reported verified.
+                IsVerified = AccessTierMap.ToTier(user.AccessState) == AccessTier.Verified
             });
     }
 }

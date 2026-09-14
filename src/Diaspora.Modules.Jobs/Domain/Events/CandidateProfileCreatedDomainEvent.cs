@@ -11,5 +11,6 @@ public sealed record CandidateProfileCreatedDomainEvent : DomainEvent
 
     public required UserId UserId { get; init; }
 
-    public required string Headline { get; init; }
+    /// <summary>Null when the profile was made by a first application and has no headline yet.</summary>
+    public string? Headline { get; init; }
 }

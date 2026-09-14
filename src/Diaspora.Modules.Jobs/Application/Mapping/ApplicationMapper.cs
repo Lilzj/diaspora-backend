@@ -1,6 +1,7 @@
 using Diaspora.Modules.Jobs.Application.Services;
 using Diaspora.Modules.Jobs.Contracts.V1.Responses;
 using Diaspora.Modules.Jobs.Domain.Applications;
+using Diaspora.Platform.Services.Abstractions;
 
 namespace Diaspora.Modules.Jobs.Application.Mapping;
 
@@ -86,8 +87,9 @@ public static class ApplicationMapper
     /// <summary>
     /// The list row.
     /// <para>
-    /// <paramref name="candidateHeadline"/> is supplied on the employer's applicant list and left
-    /// null on the candidate's own tracker — where it would be telling them their own headline.
+    /// <paramref name="candidateHeadline"/> and <paramref name="applicant"/> are supplied on the
+    /// employer's applicant list and left null on the candidate's own tracker — where they would be
+    /// telling the candidate their own name and headline.
     /// </para>
     /// </summary>
     public static ApplicationCardResponse ToCard(
@@ -97,7 +99,8 @@ public static class ApplicationMapper
         string employerName,
         DateTimeOffset now,
         Guid? employerLogoMediaId = null,
-        string? candidateHeadline = null)
+        string? candidateHeadline = null,
+        MemberProfile? applicant = null)
     {
         ArgumentNullException.ThrowIfNull(application);
 
@@ -111,7 +114,9 @@ public static class ApplicationMapper
             EmployerName = employerName,
             EmployerLogoMediaId = employerLogoMediaId,
             CandidateId = application.CandidateId.Value,
-            CandidateHeadline = candidateHeadline,
+            CandidateHeadline = string.IsNullOrWhiteSpace(candidateHeadline) ? null : candidateHeadline,
+            ApplicantName = applicant?.DisplayName,
+            ApplicantIsVerified = applicant?.IsVerified,
 
             Status = JobWireNames.ToWire(application.Status),
             StageKey = application.StageKey,

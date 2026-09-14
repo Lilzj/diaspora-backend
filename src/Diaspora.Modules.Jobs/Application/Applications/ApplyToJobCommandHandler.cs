@@ -5,12 +5,14 @@ using Diaspora.Modules.Jobs.Application.Services;
 using Diaspora.Modules.Jobs.Contracts.V1.Requests;
 using Diaspora.Modules.Jobs.Contracts.V1.Responses;
 using Diaspora.Modules.Jobs.Domain.Applications;
+using Diaspora.Modules.Jobs.Domain.Candidates;
 using Diaspora.Modules.Jobs.Domain.Enums;
 using Diaspora.Modules.Jobs.Domain.Errors;
 using Diaspora.Modules.Jobs.Domain.Identifiers;
 using Diaspora.Modules.Jobs.Domain.Pipelines;
 using Diaspora.Modules.Jobs.Domain.Postings;
 using Diaspora.Modules.Jobs.Domain.Resumes;
+using Diaspora.Modules.Jobs.Domain.ValueObjects;
 using Diaspora.Modules.Jobs.Options;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Results;
@@ -31,12 +33,21 @@ namespace Diaspora.Modules.Jobs.Application.Applications;
 /// hypothetical: an agency recruiter browsing their own board and tapping apply would create an
 /// application they can then decide on, which makes the whole audit trail meaningless.
 /// </para>
+/// <para>
+/// <b>Applying needs an account, not a profile — 14 Sep 2026.</b> This refused anyone without a
+/// candidate profile, and the app turned the refusal into "Create your profile first": a
+/// signed-in member had to write a headline about themselves before an employer would receive
+/// anything, although the employer sees them by their account either way. A member's first
+/// application now creates their candidate profile, private and empty, and saves it in the same
+/// commit as the application — so a refusal further down leaves nothing behind.
+/// </para>
 /// </summary>
 public sealed class ApplyToJobCommandHandler
     : ICommandHandler<ApplyToJobCommand, JobApplicationResponse>
 {
     private readonly IJobApplicationRepository _applications;
     private readonly IJobPostingRepository _postings;
+    private readonly ICandidateProfileRepository _candidates;
     private readonly IResumeRepository _resumes;
     private readonly IHiringPipelineRepository _pipelines;
     private readonly IUnitOfWork _unitOfWork;
@@ -49,6 +60,7 @@ public sealed class ApplyToJobCommandHandler
     public ApplyToJobCommandHandler(
         IJobApplicationRepository applications,
         IJobPostingRepository postings,
+        ICandidateProfileRepository candidates,
         IResumeRepository resumes,
         IHiringPipelineRepository pipelines,
         IUnitOfWork unitOfWork,
@@ -60,6 +72,7 @@ public sealed class ApplyToJobCommandHandler
     {
         _applications = applications;
         _postings = postings;
+        _candidates = candidates;
         _resumes = resumes;
         _pipelines = pipelines;
         _unitOfWork = unitOfWork;
@@ -75,12 +88,16 @@ public sealed class ApplyToJobCommandHandler
     {
         ArgumentNullException.ThrowIfNull(command);
 
-        var candidate = await _authorization.RequireCandidateAsync(cancellationToken);
+        var caller = _authorization.RequireCaller();
 
-        if (candidate.IsFailure)
+        if (caller.IsFailure)
         {
-            return Result.Failure<JobApplicationResponse>(candidate.Error);
+            return Result.Failure<JobApplicationResponse>(caller.Error);
         }
+
+        // Null for a member applying for the first time. Their profile is made below, once every
+        // check that could refuse the application has passed.
+        var existingCandidate = await _candidates.GetByUserAsync(caller.Value, cancellationToken);
 
         var posting = await _postings.GetAsync(
             JobPostingId.From(command.JobId), cancellationToken);
@@ -114,23 +131,24 @@ public sealed class ApplyToJobCommandHandler
             return Result.Failure<JobApplicationResponse>(JobErrors.SelfApplication);
         }
 
-        var existing = await _applications.GetByCandidateAndPostingAsync(
-            candidate.Value.Id, posting.Id, cancellationToken);
-
-        if (existing is not null)
+        // Somebody with no candidate profile has never applied for anything, so there is nothing
+        // to find.
+        if (existingCandidate is not null
+            && await _applications.GetByCandidateAndPostingAsync(
+                existingCandidate.Id, posting.Id, cancellationToken) is not null)
         {
             return Result.Failure<JobApplicationResponse>(JobErrors.AlreadyApplied);
         }
 
         var sentToday = await _applications.CountByApplicantSinceAsync(
-            candidate.Value.UserId, now.AddDays(-1), cancellationToken);
+            caller.Value, now.AddDays(-1), cancellationToken);
 
         if (sentToday >= _options.Value.MaxApplicationsPerCandidatePerDay)
         {
             return Result.Failure<JobApplicationResponse>(JobErrors.TooManyApplications);
         }
 
-        var resume = await ResolveResumeAsync(command.Request, candidate.Value.Id, cancellationToken);
+        var resume = await ResolveResumeAsync(command.Request, existingCandidate?.Id, cancellationToken);
 
         if (resume.IsFailure)
         {
@@ -156,12 +174,19 @@ public sealed class ApplyToJobCommandHandler
             return Result.Failure<JobApplicationResponse>(attachments.Error);
         }
 
+        var candidate = existingCandidate ?? await ProvisionCandidateAsync(caller.Value, now, cancellationToken);
+
+        if (candidate is null)
+        {
+            return Result.Failure<JobApplicationResponse>(JobErrors.NotCandidate);
+        }
+
         var application = JobApplication.Submit(
             JobApplicationId.From(_guids.NewSequentialGuid()),
             posting.Id,
             posting.EmployerId,
-            candidate.Value.Id,
-            candidate.Value.UserId,
+            candidate.Id,
+            candidate.UserId,
             resume.Value?.Id,
             command.Request.CoverLetter,
             answers.Value,
@@ -210,17 +235,19 @@ public sealed class ApplyToJobCommandHandler
 
     /// <summary>
     /// The chosen résumé, or the candidate's default. Null is a valid answer — only a posting
-    /// that requires one refuses it.
+    /// that requires one refuses it. A member with no candidate profile has no résumés, so any
+    /// named one is somebody else's.
     /// </summary>
     private async Task<Result<Resume?>> ResolveResumeAsync(
         ApplyToJobRequest request,
-        CandidateProfileId candidateId,
+        CandidateProfileId? candidateId,
         CancellationToken cancellationToken)
     {
         if (request.ResumeId is not { } requested)
         {
-            return Result.Success(
-                await _resumes.GetDefaultAsync(candidateId, cancellationToken));
+            return candidateId is null
+                ? Result.Success<Resume?>(null)
+                : Result.Success(await _resumes.GetDefaultAsync(candidateId, cancellationToken));
         }
 
         var resume = await _resumes.GetAsync(ResumeId.From(requested), cancellationToken);
@@ -232,9 +259,38 @@ public sealed class ApplyToJobCommandHandler
 
         // Ownership, because a résumé identifier is guessable and an application carrying
         // somebody else's document would be a data leak with a plausible-looking cause.
-        return resume.CandidateId == candidateId
+        return candidateId is not null && resume.CandidateId == candidateId
             ? Result.Success<Resume?>(resume)
             : Result.Failure<Resume?>(JobErrors.ResumeNotOwned);
+    }
+
+    /// <summary>
+    /// A first-time applicant's candidate profile: private, with nothing written on it.
+    /// <para>
+    /// Added to the unit of work and not saved here. It commits with the application or not at
+    /// all, so an application refused after this point cannot leave an empty profile behind.
+    /// Null only if the aggregate refuses to create one, which with no country to validate it
+    /// has no reason to do.
+    /// </para>
+    /// </summary>
+    private async Task<CandidateProfile?> ProvisionCandidateAsync(
+        SharedKernel.Identity.UserId userId, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var created = CandidateProfile.Create(
+            CandidateProfileId.From(_guids.NewSequentialGuid()),
+            userId,
+            CandidateHeadline.None,
+            countryCode: null,
+            now);
+
+        if (created.IsFailure)
+        {
+            return null;
+        }
+
+        await _candidates.AddAsync(created.Value, cancellationToken);
+
+        return created.Value;
     }
 
     /// <summary>

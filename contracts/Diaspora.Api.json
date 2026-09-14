@@ -37167,13 +37167,13 @@
         }
       },
       "CreateCandidateProfileRequest": {
-        "required": [
-          "headline"
-        ],
         "type": "object",
         "properties": {
           "headline": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "summary": {
             "type": [
@@ -48505,13 +48505,15 @@
       },
       "UpdateCandidateProfileRequest": {
         "required": [
-          "headline",
           "experienceLevel"
         ],
         "type": "object",
         "properties": {
           "headline": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "summary": {
             "type": [

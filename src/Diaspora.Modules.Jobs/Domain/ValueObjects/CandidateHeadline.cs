@@ -8,9 +8,17 @@ namespace Diaspora.Modules.Jobs.Domain.ValueObjects;
 /// <summary>
 /// How a candidate presents themselves: a one-line headline and an optional longer summary.
 /// <para>
-/// The headline is the only piece of a candidate's own words an employer sees before deciding
-/// whether to open the application, which is why it is a required field on the profile and a
-/// validated value object rather than a nullable string.
+/// <b>Both are optional since 14 Sep 2026.</b> The headline used to be the one required field, and
+/// that made applying a two-step errand: a signed-in member tapped Apply, was told to "create your
+/// profile first", and had to invent a line about themselves before any employer would receive
+/// anything. The member already has an account the employer sees them by, so a candidate profile
+/// now starts empty when they first apply and the headline is something they may add to stand out.
+/// </para>
+/// <para>
+/// <b>No headline is an empty string, never null.</b> The column has always been required, and
+/// making it nullable would be a schema change on a table that loses nothing by keeping it. Read
+/// <see cref="IsStated"/> rather than comparing against the empty string, and turn an unstated
+/// headline back into a null at the wire, where a client should not have to know the convention.
 /// </para>
 /// </summary>
 public sealed class CandidateHeadline : ValueObject
@@ -23,23 +31,33 @@ public sealed class CandidateHeadline : ValueObject
 
     private CandidateHeadline() { }
 
-    /// <summary>The single line beside a candidate's name. "Registered nurse, 8 years, ICU."</summary>
+    /// <summary>A candidate who has said nothing about themselves yet.</summary>
+    public static CandidateHeadline None => new(string.Empty, null);
+
+    /// <summary>
+    /// The single line beside a candidate's name. "Registered nurse, 8 years, ICU." Empty when the
+    /// candidate has not written one — see <see cref="IsStated"/>.
+    /// </summary>
     public string Headline { get; private set; } = string.Empty;
 
     /// <summary>The longer self-description. Optional.</summary>
     public string? Summary { get; private set; }
 
+    /// <summary>Whether the candidate has written a headline.</summary>
+    public bool IsStated => Headline.Length > 0;
+
+    /// <summary>
+    /// A headline and summary as a candidate typed them. A blank headline is a valid answer and
+    /// means none; only one that is too long is refused.
+    /// </summary>
     public static Result<CandidateHeadline> Create(string? headline, string? summary = null)
     {
-        if (string.IsNullOrWhiteSpace(headline))
-        {
-            return Result.Failure<CandidateHeadline>(JobErrors.HeadlineInvalid);
-        }
+        var line = string.IsNullOrWhiteSpace(headline)
+            ? string.Empty
+            : string.Join(' ', headline.Split(
+                (char[]?)null, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
 
-        var line = string.Join(' ', headline.Split(
-            (char[]?)null, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
-
-        if (line.Length == 0 || line.Length > JobLimits.MaxHeadline)
+        if (line.Length > JobLimits.MaxHeadline)
         {
             return Result.Failure<CandidateHeadline>(JobErrors.HeadlineInvalid);
         }

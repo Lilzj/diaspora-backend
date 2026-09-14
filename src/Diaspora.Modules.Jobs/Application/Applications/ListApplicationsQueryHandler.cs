@@ -17,9 +17,17 @@ namespace Diaspora.Modules.Jobs.Application.Applications;
 /// <summary>
 /// Lists applications from either end.
 /// <para>
-/// The posting titles, employer names and candidate headlines are each resolved once for the
-/// whole page. A twenty-row applicant list that looked each up per row would be sixty round
-/// trips to render one screen.
+/// The posting titles, employer names, candidate headlines and applicants' names are each resolved
+/// once for the whole page. A twenty-row applicant list that looked each up per row would be
+/// eighty round trips to render one screen.
+/// </para>
+/// <para>
+/// <b>An employer sees who applied — 14 Sep 2026.</b> The list used to carry the candidate's
+/// headline and nothing else about them, so the hiring screen named every applicant "Applicant"
+/// unless they had written one. The name and verified status now come from the member's account
+/// through <see cref="IMemberProfileService"/>, read at the moment the list is asked for: Jobs keeps
+/// no copy of either, so a renamed member is shown by their new name and an erased one is not
+/// shown by any.
 /// </para>
 /// </summary>
 public sealed class ListApplicationsQueryHandler
@@ -29,6 +37,7 @@ public sealed class ListApplicationsQueryHandler
     private readonly IJobPostingRepository _postings;
     private readonly IEmployerProfileRepository _employers;
     private readonly ICandidateProfileRepository _candidates;
+    private readonly IMemberProfileService _members;
     private readonly JobAuthorizationService _authorization;
     private readonly IClock _clock;
 
@@ -37,6 +46,7 @@ public sealed class ListApplicationsQueryHandler
         IJobPostingRepository postings,
         IEmployerProfileRepository employers,
         ICandidateProfileRepository candidates,
+        IMemberProfileService members,
         JobAuthorizationService authorization,
         IClock clock)
     {
@@ -44,6 +54,7 @@ public sealed class ListApplicationsQueryHandler
         _postings = postings;
         _employers = employers;
         _candidates = candidates;
+        _members = members;
         _authorization = authorization;
         _clock = clock;
     }
@@ -137,6 +148,14 @@ public sealed class ListApplicationsQueryHandler
                 .ToDictionary(candidate => candidate.Id.Value)
             : [];
 
+        // The same rule for names. A service that cannot answer leaves every applicant unnamed and
+        // unmarked rather than reporting them all unverified — an unanswered question is not a no.
+        var applicants = isEmployerView && _members.IsAvailable
+            ? await _members.ResolveAsync(
+                [.. applications.Select(application => application.ApplicantUserId).Distinct()],
+                cancellationToken)
+            : new Dictionary<Guid, MemberProfile>();
+
         return [.. applications.Select(application =>
         {
             var posting = postings.GetValueOrDefault(application.PostingId.Value);
@@ -149,7 +168,8 @@ public sealed class ListApplicationsQueryHandler
                 employer?.Identity.DisplayName ?? string.Empty,
                 now,
                 employer?.Branding.LogoMediaId,
-                candidates.GetValueOrDefault(application.CandidateId.Value)?.Headline.Headline);
+                candidates.GetValueOrDefault(application.CandidateId.Value)?.Headline.Headline,
+                applicants.GetValueOrDefault(application.ApplicantUserId.Value));
         })];
     }
 }
