@@ -24,6 +24,19 @@ public sealed record HousingViewingResponse
 
     public required Guid SeekerUserId { get; init; }
 
+    /// <summary>
+    /// The member who asked, as their account names them.
+    /// <para>
+    /// Added 15 Sep 2026 for the landlord's viewing requests screen: a landlord agreeing a time
+    /// needs to know who is coming, and the identifier told them nothing. Null when the member
+    /// service cannot answer, which is not the same as nobody.
+    /// </para>
+    /// </summary>
+    public string? SeekerName { get; init; }
+
+    /// <summary>Whether the member's account is verified right now. Null when unknown.</summary>
+    public bool? SeekerIsVerified { get; init; }
+
     /// <summary>Requested, Scheduled, Completed, Cancelled, NoShow or Expired.</summary>
     public required string Status { get; init; }
 

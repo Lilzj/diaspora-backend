@@ -6,6 +6,7 @@ using Diaspora.Modules.Housing.Domain.Policies;
 using Diaspora.Modules.Housing.Domain.Reservations;
 using Diaspora.Modules.Housing.Domain.ValueObjects;
 using Diaspora.Modules.Housing.Domain.Viewings;
+using Diaspora.Platform.Services.Abstractions;
 
 namespace Diaspora.Modules.Housing.Application.Mapping;
 
@@ -25,7 +26,10 @@ namespace Diaspora.Modules.Housing.Application.Mapping;
 public static class HousingRelocationMapper
 {
     public static HousingViewingResponse ToResponse(
-        HousingViewing viewing, HousingListing? listing, LandlordProfile? landlord)
+        HousingViewing viewing,
+        HousingListing? listing,
+        LandlordProfile? landlord,
+        MemberProfile? seeker = null)
     {
         ArgumentNullException.ThrowIfNull(viewing);
 
@@ -38,6 +42,8 @@ public static class HousingRelocationMapper
             LandlordId = viewing.LandlordId.Value,
             LandlordName = landlord?.Identity.DisplayName ?? string.Empty,
             SeekerUserId = viewing.SeekerUserId.Value,
+            SeekerName = seeker?.DisplayName,
+            SeekerIsVerified = seeker?.IsVerified,
             Status = viewing.Status.ToString(),
             PreferredAt = viewing.Window.PreferredAt,
             ConfirmedAt = viewing.Window.ConfirmedAt,

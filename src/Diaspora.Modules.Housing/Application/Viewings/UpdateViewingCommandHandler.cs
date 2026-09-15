@@ -41,6 +41,7 @@ public sealed class UpdateViewingCommandHandler
     private readonly HousingAuthorizationService _authorization;
     private readonly IGuidGenerator _guids;
     private readonly IClock _clock;
+    private readonly IMemberProfileService _members;
 
     public UpdateViewingCommandHandler(
         IHousingViewingRepository viewings,
@@ -50,8 +51,10 @@ public sealed class UpdateViewingCommandHandler
         IUnitOfWork unitOfWork,
         HousingAuthorizationService authorization,
         IGuidGenerator guids,
-        IClock clock)
+        IClock clock,
+        IMemberProfileService members)
     {
+        _members = members;
         _viewings = viewings;
         _listings = listings;
         _landlords = landlords;
@@ -110,9 +113,10 @@ public sealed class UpdateViewingCommandHandler
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var listing = await _listings.GetForReadAsync(viewing.ListingId, cancellationToken);
+        var seeker = await ViewingSeekers.ResolveAsync(_members, viewing, cancellationToken);
 
         return Result.Success(
-            HousingRelocationMapper.ToResponse(viewing, listing, landlord));
+            HousingRelocationMapper.ToResponse(viewing, listing, landlord, seeker));
     }
 
     /// <summary>

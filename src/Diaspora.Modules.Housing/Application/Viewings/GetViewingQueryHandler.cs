@@ -7,6 +7,7 @@ using Diaspora.Modules.Housing.Domain.Identifiers;
 using Diaspora.Modules.Housing.Domain.Landlords;
 using Diaspora.Modules.Housing.Domain.Listings;
 using Diaspora.Modules.Housing.Domain.Viewings;
+using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Results;
 
 namespace Diaspora.Modules.Housing.Application.Viewings;
@@ -26,17 +27,20 @@ public sealed class GetViewingQueryHandler
     private readonly IHousingListingRepository _listings;
     private readonly ILandlordProfileRepository _landlords;
     private readonly HousingAuthorizationService _authorization;
+    private readonly IMemberProfileService _members;
 
     public GetViewingQueryHandler(
         IHousingViewingRepository viewings,
         IHousingListingRepository listings,
         ILandlordProfileRepository landlords,
-        HousingAuthorizationService authorization)
+        HousingAuthorizationService authorization,
+        IMemberProfileService members)
     {
         _viewings = viewings;
         _listings = listings;
         _landlords = landlords;
         _authorization = authorization;
+        _members = members;
     }
 
     public async Task<Result<HousingViewingResponse>> Handle(
@@ -65,8 +69,9 @@ public sealed class GetViewingQueryHandler
 
         var listing = await _listings.GetForReadAsync(viewing.ListingId, cancellationToken);
         var landlord = await _landlords.GetForReadAsync(viewing.LandlordId, cancellationToken);
+        var seeker = await ViewingSeekers.ResolveAsync(_members, viewing, cancellationToken);
 
         return Result.Success(
-            HousingRelocationMapper.ToResponse(viewing, listing, landlord));
+            HousingRelocationMapper.ToResponse(viewing, listing, landlord, seeker));
     }
 }

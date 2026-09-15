@@ -6,6 +6,7 @@ using Diaspora.Modules.Housing.Domain.Identifiers;
 using Diaspora.Modules.Housing.Domain.Landlords;
 using Diaspora.Modules.Housing.Domain.Listings;
 using Diaspora.Modules.Housing.Domain.Viewings;
+using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Results;
 
 namespace Diaspora.Modules.Housing.Application.Viewings;
@@ -25,17 +26,20 @@ public sealed class ListViewingsQueryHandler
     private readonly IHousingListingRepository _listings;
     private readonly ILandlordProfileRepository _landlords;
     private readonly HousingAuthorizationService _authorization;
+    private readonly IMemberProfileService _members;
 
     public ListViewingsQueryHandler(
         IHousingViewingRepository viewings,
         IHousingListingRepository listings,
         ILandlordProfileRepository landlords,
-        HousingAuthorizationService authorization)
+        HousingAuthorizationService authorization,
+        IMemberProfileService members)
     {
         _viewings = viewings;
         _listings = listings;
         _landlords = landlords;
         _authorization = authorization;
+        _members = members;
     }
 
     public async Task<Result<IReadOnlyList<HousingViewingResponse>>> Handle(
@@ -104,12 +108,20 @@ public sealed class ListViewingsQueryHandler
         var landlords = await _landlords.GetManyAsync(
             [.. viewings.Select(viewing => viewing.LandlordId).Distinct()], cancellationToken);
 
+        // Who is coming, by the name their account carries. A landlord's diary of identifiers
+        // was a diary nobody could act on.
+        var seekers = _members.IsAvailable
+            ? await _members.ResolveAsync(
+                [.. viewings.Select(viewing => viewing.SeekerUserId).Distinct()], cancellationToken)
+            : new Dictionary<Guid, MemberProfile>();
+
         return
         [
             .. viewings.Select(viewing => HousingRelocationMapper.ToResponse(
                 viewing,
                 listings.GetValueOrDefault(viewing.ListingId),
-                landlords.GetValueOrDefault(viewing.LandlordId)))
+                landlords.GetValueOrDefault(viewing.LandlordId),
+                seekers.GetValueOrDefault(viewing.SeekerUserId.Value)))
         ];
     }
 }
