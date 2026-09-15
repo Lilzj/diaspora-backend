@@ -505,8 +505,16 @@ public sealed class HousingListingRepository : IHousingListingRepository
         if (filter.MinimumFurnishedStatus is { } furnished)
         {
             // Ordered least to most, so "at least part-furnished" is a range rather than a set
-            // membership test over a hand-maintained list.
-            query = query.Where(listing => listing.FurnishedStatus >= furnished);
+            // membership test over a hand-maintained list — but the range is taken here, over the
+            // enum, and sent as the names it admits. The column stores the name, so `>=` in SQL
+            // compared words: "Unfurnished" sorts after "Furnished" and passed a furnished-only
+            // search, and "at least part-furnished" shut out every furnished home. Found on the
+            // live platform, 15 Sep 2026.
+            var admitted = Enum.GetValues<FurnishedStatus>()
+                .Where(status => status >= furnished)
+                .ToList();
+
+            query = query.Where(listing => admitted.Contains(listing.FurnishedStatus));
         }
 
         if (filter.AmenityKeys is { Count: > 0 })
