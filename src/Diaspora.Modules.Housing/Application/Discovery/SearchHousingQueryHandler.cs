@@ -165,6 +165,7 @@ public sealed class SearchHousingQueryHandler
         LeaseTypes = ParseMany<LeaseType>(request.LeaseTypes),
         AmenityKeys = request.Amenities,
         MinimumFurnishedStatus = Parse<FurnishedStatus>(request.MinFurnishedStatus),
+        FurnishedStatuses = ParseMany<FurnishedStatus>(request.FurnishedStatuses),
 
         MinimumBedrooms = request.MinBedrooms,
         MaximumBedrooms = request.MaxBedrooms,

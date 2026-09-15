@@ -80,6 +80,14 @@ public sealed record SearchHousingRequest
     /// <summary>At least this furnished. A range, because the values are ordered.</summary>
     public string? MinFurnishedStatus { get; init; }
 
+    /// <summary>
+    /// Exactly these. What somebody choosing "Unfurnished" means — they have their own furniture —
+    /// and a floor cannot say it. Before this the app filtered one page of results on the phone, so
+    /// a later page's unfurnished homes never appeared at all.
+    /// </summary>
+    [FromQuery]
+    public string[]? FurnishedStatuses { get; init; }
+
     // ── Money ───────────────────────────────────────────────────────────────────────────────
 
     public decimal? MinRent { get; init; }
@@ -137,8 +145,8 @@ public sealed record SearchHousingRequest
     // ── Presentation ────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Newest, PriceLowToHigh, PriceHighToLow, MostViewed, AvailableSoonest, Relevance, Nearest or
-    /// Verified.
+    /// Newest, PriceLowToHigh, PriceHighToLow, MostViewed, AvailableSoonest, Relevance, Nearest,
+    /// Verified or HighestRated.
     /// </summary>
     public string? Sort { get; init; }
 

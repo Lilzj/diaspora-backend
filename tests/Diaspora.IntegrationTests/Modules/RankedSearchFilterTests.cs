@@ -67,6 +67,28 @@ public sealed class RankedSearchFilterTests : IdentityTestBase
     }
 
     [Fact]
+    public async Task Exact_furnishing_returns_only_the_homes_furnished_that_way()
+    {
+        var run = await SeedHomesAsync(
+            ("unfurnished", FurnishedStatus.Unfurnished, 15_000m, RentPeriod.PerMonth),
+            ("part-furnished", FurnishedStatus.PartlyFurnished, 15_000m, RentPeriod.PerMonth),
+            ("furnished", FurnishedStatus.Furnished, 15_000m, RentPeriod.PerMonth),
+            ("fully-equipped", FurnishedStatus.FullyEquipped, 15_000m, RentPeriod.PerMonth));
+
+        // A floor cannot say "unfurnished". The app filtered one page for it on the phone, so a later
+        // page's unfurnished homes never appeared.
+        (await SearchHomesAsync($"query={run}&countryCode=MU&furnishedStatuses=Unfurnished"))
+            .Should().BeEquivalentTo([$"unfurnished {run}"]);
+
+        (await SearchHomesAsync($"query={run}&countryCode=MU&furnishedStatuses=PartlyFurnished"))
+            .Should().BeEquivalentTo([$"part-furnished {run}"]);
+
+        (await SearchHomesAsync(
+                $"query={run}&countryCode=MU&furnishedStatuses=Furnished&furnishedStatuses=FullyEquipped"))
+            .Should().BeEquivalentTo([$"furnished {run}", $"fully-equipped {run}"]);
+    }
+
+    [Fact]
     public async Task A_rent_range_that_names_its_currency_and_period_keeps_only_the_rents_inside_it()
     {
         var run = await SeedHomesAsync(
@@ -112,7 +134,72 @@ public sealed class RankedSearchFilterTests : IdentityTestBase
         titles.Should().BeEquivalentTo([$"Good {run}", $"New {run}"]);
     }
 
+    [Fact]
+    public async Task Pickup_only_returns_the_items_offered_neither_delivered_nor_shipped()
+    {
+        var run = await SeedFulfilmentAsync(
+            ("collect", FulfillmentOptions.Create(offersPickup: true, offersDelivery: false, offersShipping: false).Value),
+            ("delivered", FulfillmentOptions.Create(offersPickup: true, offersDelivery: true, offersShipping: false).Value),
+            ("posted", FulfillmentOptions.Create(offersPickup: false, offersDelivery: false, offersShipping: true).Value));
+
+        var titles = await SearchItemsAsync(new { text = run, pickupOnly = true, limit = 50 });
+
+        titles.Should().BeEquivalentTo([$"collect {run}"]);
+    }
+
     // ── Seeding ─────────────────────────────────────────────────────────────────────────────
+
+    private async Task<string> SeedFulfilmentAsync(params (string Label, FulfillmentOptions Fulfillment)[] items)
+    {
+        Factory.EnsureDatabaseCreated();
+
+        var run = Guid.NewGuid().ToString("N")[..8];
+        var sellerId = SellerProfileId.New();
+        var ownerId = UserId.New();
+        var now = DateTimeOffset.UtcNow;
+
+        using var scope = Factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<DiasporaDbContext>();
+
+        foreach (var (label, fulfillment) in items)
+        {
+            var listing = MarketplaceListing.Create(
+                MarketplaceListingId.New(),
+                sellerId,
+                ownerId,
+                ListingTitle.Create($"{label} {run}").Value,
+                ListingSlug.Create($"fulfilment-{run}-{label}").Value,
+                ListingDescription.Create("An item seeded for the pickup filter test.").Value,
+                "electronics",
+                ListingType.FixedPrice,
+                ProductCondition.Good,
+                ListingPrice.Create(1_000m, "MUR", isNegotiable: false, minimumOffer: null).Value,
+                ListingLocationContext.Create("MU", null, "Rose Hill", null, null, null).Value,
+                now).Value;
+
+            listing.UpdateDetails(
+                    listing.Title,
+                    listing.Description,
+                    listing.Condition,
+                    listing.Price,
+                    listing.Location,
+                    fulfillment,
+                    listing.Product,
+                    listing.ContactPreference,
+                    listing.Visibility,
+                    baseRevision: null)
+                .IsSuccess.Should().BeTrue();
+
+            listing.AttachMedia(Guid.NewGuid(), ListingMediaRole.Cover);
+            listing.Publish(now).IsSuccess.Should().BeTrue();
+
+            dbContext.Set<MarketplaceListing>().Add(listing);
+        }
+
+        await dbContext.SaveChangesAsync();
+
+        return run;
+    }
 
     private async Task<string> SeedHomesAsync(
         params (string Label, FurnishedStatus Furnished, decimal Rent, RentPeriod Period)[] homes)

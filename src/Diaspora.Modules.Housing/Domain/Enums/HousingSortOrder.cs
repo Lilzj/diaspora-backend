@@ -22,5 +22,11 @@ public enum HousingSortOrder
     Nearest = 6,
 
     /// <summary>Verified landlords first, then newest.</summary>
-    Verified = 7
+    Verified = 7,
+
+    /// <summary>
+    /// The landlord's average rating, highest first, then the number of reviews, then newest.
+    /// Unrated landlords come last rather than as nought stars: no reviews is not a bad review.
+    /// </summary>
+    HighestRated = 8
 }

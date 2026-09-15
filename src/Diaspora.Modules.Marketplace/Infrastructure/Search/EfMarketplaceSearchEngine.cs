@@ -142,6 +142,7 @@ public sealed class EfMarketplaceSearchEngine : IMarketplaceSearchEngine
             NegotiableOnly = request.NegotiableOnly,
             OffersDeliveryOnly = request.OffersDeliveryOnly,
             OffersShippingOnly = request.OffersShippingOnly,
+            PickupOnly = request.PickupOnly,
             VerifiedSellersOnly = request.VerifiedSellersOnly,
             FeaturedOnly = request.FeaturedOnly,
             AvailableOnly = request.AvailableOnly,

@@ -70,6 +70,9 @@ public sealed record MarketplaceSearchRequest
 
     public bool OffersShippingOnly { get; init; }
 
+    /// <summary>Neither delivery nor shipping offered: the buyer collects.</summary>
+    public bool PickupOnly { get; init; }
+
     public bool VerifiedSellersOnly { get; init; }
 
     public bool FeaturedOnly { get; init; }

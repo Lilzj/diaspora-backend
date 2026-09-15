@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using Diaspora.Modules.Housing.Domain.Catalog;
 using Diaspora.Modules.Housing.Domain.Enums;
 using Diaspora.Modules.Housing.Domain.Identifiers;
@@ -7,6 +8,7 @@ using Diaspora.Modules.Housing.Domain.Listings;
 using Diaspora.Modules.Housing.Domain.Policies;
 using Diaspora.Modules.Housing.Domain.ValueObjects;
 using Diaspora.Persistence;
+using Diaspora.Persistence.Querying;
 using Diaspora.SharedKernel.Pagination;
 using Microsoft.EntityFrameworkCore;
 
@@ -103,7 +105,9 @@ public sealed class HousingListingRepository : IHousingListingRepository
 
         var query = CardGraph(Apply(Listings.AsNoTracking(), filter));
 
-        query = ApplyOrderAndCursor(query, filter, HousingCursor.Parse(cursor));
+        var landlords = _dbContext.Set<LandlordProfile>().AsNoTracking();
+
+        query = ApplyOrderAndCursor(query, filter, HousingCursor.Parse(cursor), landlords);
 
         var effectiveLimit = Math.Clamp(limit, 1, HousingLimits.MaxPageSize);
 
@@ -118,7 +122,24 @@ public sealed class HousingListingRepository : IHousingListingRepository
             rows.RemoveAt(rows.Count - 1);
         }
 
-        var next = hasMore && rows.Count > 0 ? EncodeCursor(rows[^1], filter.Sort) : null;
+        string? next = null;
+
+        if (hasMore && rows.Count > 0)
+        {
+            var last = rows[^1];
+            var lastLandlordId = last.LandlordId;
+
+            // The rating lives on the landlord, not the row, so the last row's key is read back
+            // with the same expression the ordering used rather than recomputed in C#.
+            next = filter.Sort == HousingSortOrder.HighestRated
+                ? EncodeRatingCursor(
+                    last,
+                    await landlords
+                        .Where(landlord => landlord.Id == lastLandlordId)
+                        .Select(RatingKey)
+                        .FirstOrDefaultAsync(cancellationToken))
+                : EncodeCursor(last, filter.Sort);
+        }
 
         return CursorPagedResult<HousingListing>.Create(rows, next, hasMore);
     }
@@ -505,16 +526,18 @@ public sealed class HousingListingRepository : IHousingListingRepository
         if (filter.MinimumFurnishedStatus is { } furnished)
         {
             // Ordered least to most, so "at least part-furnished" is a range rather than a set
-            // membership test over a hand-maintained list — but the range is taken here, over the
-            // enum, and sent as the names it admits. The column stores the name, so `>=` in SQL
-            // compared words: "Unfurnished" sorts after "Furnished" and passed a furnished-only
-            // search, and "at least part-furnished" shut out every furnished home. Found on the
-            // live platform, 15 Sep 2026.
-            var admitted = Enum.GetValues<FurnishedStatus>()
-                .Where(status => status >= furnished)
-                .ToList();
-
+            // membership test over a hand-maintained list — but the range is taken over the enum and
+            // sent as the names it admits. The column stores the name, so `>=` in SQL compared
+            // words: "Unfurnished" sorts after "Furnished" and passed a furnished-only search, and
+            // "at least part-furnished" shut out every furnished home. See StoredEnum.
+            var admitted = StoredEnum.AtLeast(furnished);
             query = query.Where(listing => admitted.Contains(listing.FurnishedStatus));
+        }
+
+        if (filter.FurnishedStatuses is { Count: > 0 })
+        {
+            var statuses = filter.FurnishedStatuses.ToList();
+            query = query.Where(listing => statuses.Contains(listing.FurnishedStatus));
         }
 
         if (filter.AmenityKeys is { Count: > 0 })
@@ -866,10 +889,40 @@ public sealed class HousingListingRepository : IHousingListingRepository
     private static IQueryable<HousingListing> ApplyOrderAndCursor(
         IQueryable<HousingListing> query,
         HousingListingQueryFilter filter,
-        HousingCursor? cursor)
+        HousingCursor? cursor,
+        IQueryable<LandlordProfile> landlords)
     {
         switch (filter.Sort)
         {
+            case HousingSortOrder.HighestRated:
+            {
+                if (cursor is not null && ParseRatingCursor(cursor.SortKey) is { } after)
+                {
+                    var key = after.Key;
+                    var published = after.Published;
+                    var lastSlug = cursor.LastKey;
+
+                    query = query.Where(listing =>
+                        landlords.Where(landlord => landlord.Id == listing.LandlordId)
+                            .Select(RatingKey).FirstOrDefault() < key
+                        || (landlords.Where(landlord => landlord.Id == listing.LandlordId)
+                                .Select(RatingKey).FirstOrDefault() == key
+                            && (listing.PublishedAt < published
+                                || (listing.PublishedAt == published
+                                    && string.Compare(listing.Slug.Value, lastSlug) > 0))));
+                }
+
+                // Worked out in the database from the landlord's star buckets, so page two
+                // continues exactly where page one stopped. Sorting a page on the phone reordered
+                // twenty homes and said nothing about the rest.
+                return query
+                    .OrderByDescending(listing =>
+                        landlords.Where(landlord => landlord.Id == listing.LandlordId)
+                            .Select(RatingKey).FirstOrDefault())
+                    .ThenByDescending(listing => listing.PublishedAt)
+                    .ThenBy(listing => listing.Slug.Value);
+            }
+
             case HousingSortOrder.PriceLowToHigh:
             {
                 if (cursor?.AsNumber() is { } value)
@@ -973,6 +1026,56 @@ public sealed class HousingListingRepository : IHousingListingRepository
         }
     }
 #pragma warning restore CA1309
+
+    /// <summary>
+    /// A landlord's place in the "highest rated" order, as one integer the database can compare.
+    /// <para>
+    /// The exact average in thousandths, times a million, plus the number of reviews (capped), so
+    /// 4.8 from forty reviews ranks above 4.8 from one. Zero with no reviews, which sorts every
+    /// unrated landlord after every rated one. Integer arithmetic throughout: the average is never
+    /// a float in SQL, so Postgres and SQLite cannot round it differently.
+    /// </para>
+    /// </summary>
+    private static readonly System.Linq.Expressions.Expression<Func<LandlordProfile, long>> RatingKey =
+        landlord =>
+            landlord.ReviewSummary.OneStar + landlord.ReviewSummary.TwoStar
+                + landlord.ReviewSummary.ThreeStar + landlord.ReviewSummary.FourStar
+                + landlord.ReviewSummary.FiveStar == 0
+                ? 0L
+                : ((long)landlord.ReviewSummary.OneStar
+                        + (2L * landlord.ReviewSummary.TwoStar)
+                        + (3L * landlord.ReviewSummary.ThreeStar)
+                        + (4L * landlord.ReviewSummary.FourStar)
+                        + (5L * landlord.ReviewSummary.FiveStar))
+                    * 1_000L
+                    / (landlord.ReviewSummary.OneStar + landlord.ReviewSummary.TwoStar
+                        + landlord.ReviewSummary.ThreeStar + landlord.ReviewSummary.FourStar
+                        + landlord.ReviewSummary.FiveStar)
+                    * 1_000_000L
+                    + Math.Min(
+                        landlord.ReviewSummary.OneStar + landlord.ReviewSummary.TwoStar
+                            + landlord.ReviewSummary.ThreeStar + landlord.ReviewSummary.FourStar
+                            + landlord.ReviewSummary.FiveStar,
+                        999_999);
+
+    private static string EncodeRatingCursor(HousingListing last, long key) =>
+        HousingCursor.Create(
+            string.Create(
+                CultureInfo.InvariantCulture,
+                $"{key}:{(last.PublishedAt ?? last.CreatedAt).UtcTicks}"),
+            last.Slug.Value).Encode();
+
+    private static (long Key, DateTimeOffset Published)? ParseRatingCursor(string sortKey)
+    {
+        var parts = sortKey.Split(':');
+
+        return parts.Length == 2
+            && long.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var key)
+            && long.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var ticks)
+            && ticks is >= 0 and <= 3_155_378_975_999_999_999L
+                ? (key, new DateTimeOffset(ticks, TimeSpan.Zero))
+                : null;
+    }
 
     private static string EncodeCursor(HousingListing last, HousingSortOrder sort) => sort switch
     {

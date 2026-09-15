@@ -69,6 +69,9 @@ public sealed record HousingListingQueryFilter
     /// <summary>At least this furnished. A range, because the enum is ordered.</summary>
     public FurnishedStatus? MinimumFurnishedStatus { get; init; }
 
+    /// <summary>Exactly one of these. Applied together with the floor when both are given.</summary>
+    public IReadOnlyCollection<FurnishedStatus>? FurnishedStatuses { get; init; }
+
     /// <summary>Every one of these must be present, unlike a tag search where any match qualifies.</summary>
     public IReadOnlyCollection<string>? AmenityKeys { get; init; }
 

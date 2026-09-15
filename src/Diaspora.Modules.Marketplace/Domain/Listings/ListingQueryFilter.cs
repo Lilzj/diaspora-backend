@@ -121,6 +121,9 @@ public sealed record ListingQueryFilter
 
     public bool OffersShippingOnly { get; init; }
 
+    /// <summary>Neither delivery nor shipping offered: the buyer collects.</summary>
+    public bool PickupOnly { get; init; }
+
     // ── Trust & placement ───────────────────────────────────────────────────────────────────
 
     /// <summary>Only listings whose seller carries a live Trust verification.</summary>

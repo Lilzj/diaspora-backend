@@ -152,6 +152,7 @@ public sealed class SearchListingsQueryHandler
             NegotiableOnly = request.NegotiableOnly,
             OffersDeliveryOnly = request.DeliveryOnly,
             OffersShippingOnly = request.ShippingOnly,
+            PickupOnly = request.PickupOnly,
             SellerId = request.SellerId is { } sellerId
                 ? SellerProfileId.From(sellerId)
                 : null,

@@ -87,6 +87,12 @@ public sealed record SearchListingsRequest
 
     public bool ShippingOnly { get; init; }
 
+    /// <summary>
+    /// Collected in person: the seller offers neither delivery nor shipping. The app used to filter
+    /// one page of results for this on the phone, which hid every later page's matches.
+    /// </summary>
+    public bool PickupOnly { get; init; }
+
     // ── Who is selling ──────────────────────────────────────────────────────────────────────
 
     public Guid? SellerId { get; init; }

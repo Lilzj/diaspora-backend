@@ -5,6 +5,7 @@ using Diaspora.Modules.Marketplace.Domain.Policies;
 using Diaspora.Modules.Marketplace.Domain.Sellers;
 using Diaspora.Modules.Marketplace.Domain.ValueObjects;
 using Diaspora.Persistence;
+using Diaspora.Persistence.Querying;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Pagination;
 using Microsoft.EntityFrameworkCore;
@@ -484,15 +485,11 @@ public sealed class MarketplaceListingRepository : IMarketplaceListingRepository
         if (filter.MinimumCondition is { } condition)
         {
             // Conditions are ordered worst-to-best, so "at least Good" is a range rather than a
-            // set membership test over a hand-maintained list — but the range is taken here, over
-            // the enum, and sent as the names it admits. The column stores the name, so `>=` in
-            // SQL compared words: "at least Excellent" returned a phone in Good condition, because
-            // G follows E, and "at least Good" admitted NotApplicable. Found on the live platform,
-            // 15 Sep 2026.
-            var admitted = Enum.GetValues<ProductCondition>()
-                .Where(value => value >= condition)
-                .ToList();
-
+            // set membership test over a hand-maintained list — but the range is taken over the enum
+            // and sent as the names it admits. The column stores the name, so `>=` in SQL compared
+            // words: "at least Excellent" returned a phone in Good condition, because G follows E,
+            // and "at least Good" admitted NotApplicable. See StoredEnum.
+            var admitted = StoredEnum.AtLeast(condition);
             query = query.Where(listing => admitted.Contains(listing.Condition));
         }
 
@@ -595,6 +592,12 @@ public sealed class MarketplaceListingRepository : IMarketplaceListingRepository
         if (filter.OffersShippingOnly)
         {
             query = query.Where(listing => listing.Fulfillment.OffersShipping);
+        }
+
+        if (filter.PickupOnly)
+        {
+            query = query.Where(listing =>
+                !listing.Fulfillment.OffersDelivery && !listing.Fulfillment.OffersShipping);
         }
 
         // Applied only to listings quoting the same currency, and that is deliberate. Nothing in
