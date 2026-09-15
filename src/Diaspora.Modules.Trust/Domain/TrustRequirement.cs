@@ -80,14 +80,26 @@ public static class DefaultTrustRequirements
     [
         new()
         {
+            // ── Guides, homes and items: a verified account is enough — decided 15 Sep 2026 ──
+            //
+            // The same decision as job posting the day before, for the same reason. These asked
+            // for reputation points, years of residence, a verified phone and — for guides and
+            // homes — verified residency. The Guides, Housing and Marketplace services never
+            // consulted any of it: `guides.publish`, `housing.listings.create` and
+            // `marketplace.listings.create` require the Verified access tier and nothing else. No
+            // member on a platform this new can hold the points or the years, so the thresholds'
+            // only effect was to lock the app's create screens while the API accepted the post.
+            //
+            // The product owner chose to match what those services enforce. Trust adds no
+            // threshold of its own for the three; rate limits and cooldowns are unchanged.
             CapabilityKey = TrustCapabilities.PublishGuide,
             Name = "Guide Publishing",
-            MinimumCountryReputation = 150,
-            MinimumResidenceYears = 2,
-            RequiresPhone = true,
-            RequiresIdentity = true,
-            RequiresCountryVerification = true,
-            MinimumTier = TrustTier.Verified,
+            MinimumCountryReputation = 0,
+            MinimumResidenceYears = 0,
+            RequiresPhone = false,
+            RequiresIdentity = false,
+            RequiresCountryVerification = false,
+            MinimumTier = TrustTier.Untrusted,
             RateLimitPerDay = 3,
             CooldownSeconds = 60
         },
@@ -118,27 +130,29 @@ public static class DefaultTrustRequirements
         },
         new()
         {
+            // 15 Sep 2026: a verified account is enough. See guide publishing above.
             CapabilityKey = TrustCapabilities.ListHousing,
             Name = "Housing Listing",
-            MinimumCountryReputation = 100,
-            MinimumResidenceYears = 1,
-            RequiresPhone = true,
+            MinimumCountryReputation = 0,
+            MinimumResidenceYears = 0,
+            RequiresPhone = false,
             RequiresIdentity = false,
-            RequiresCountryVerification = true,
-            MinimumTier = TrustTier.Verified,
+            RequiresCountryVerification = false,
+            MinimumTier = TrustTier.Untrusted,
             RateLimitPerDay = 5,
             CooldownSeconds = 10
         },
         new()
         {
+            // 15 Sep 2026: a verified account is enough. See guide publishing above.
             CapabilityKey = TrustCapabilities.SellItem,
             Name = "Marketplace Directory Selling",
-            MinimumCountryReputation = 20,
+            MinimumCountryReputation = 0,
             MinimumResidenceYears = 0,
-            RequiresPhone = true,
+            RequiresPhone = false,
             RequiresIdentity = false,
             RequiresCountryVerification = false,
-            MinimumTier = TrustTier.Verified,
+            MinimumTier = TrustTier.Untrusted,
             RateLimitPerDay = 5,
             CooldownSeconds = 10
         },

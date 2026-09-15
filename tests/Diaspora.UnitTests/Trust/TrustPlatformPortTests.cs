@@ -144,11 +144,13 @@ public sealed class TrustPlatformPortTests
     [Fact]
     public async Task An_unmet_threshold_comes_back_as_a_checklist()
     {
-        // An untrusted profile with no grants meets none of guide publishing's thresholds.
+        // An untrusted profile with no grants meets none of the guide programme's thresholds.
+        // (Guide publishing carried thresholds until 15 Sep 2026; it now asks only for a verified
+        // account, which the Guides service checks.)
         var service = new TrustEligibilityService(
             Evaluator(TrustProfile.Open(Member, Now)), CurrentUser(Member));
 
-        var result = await service.CheckEligibilityAsync(TrustCapabilities.PublishGuide);
+        var result = await service.CheckEligibilityAsync(TrustCapabilities.BecomeGuide);
 
         result.Status.Should().Be(EligibilityStatus.NotEligible);
         result.ReasonCodes.Should().ContainSingle().Which.Should().Be("DENIED");
@@ -160,9 +162,9 @@ public sealed class TrustPlatformPortTests
     /// act or merely rendering a button. Spending a member's daily budget on a screen refresh is
     /// the worse of the two errors.
     /// <para>
-    /// The capability is contributed rather than borrowed from Trust's own five: every one of those
-    /// carries a threshold a fresh profile fails, so the evaluator would refuse before it ever
-    /// reached the rate limiter and the assertion would hold for the wrong reason.
+    /// The capability is contributed rather than borrowed from Trust's own: several of those carry
+    /// a threshold a fresh profile fails, so the evaluator would refuse before it ever reached the
+    /// rate limiter and the assertion would hold for the wrong reason.
     /// </para>
     /// </summary>
     [Fact]

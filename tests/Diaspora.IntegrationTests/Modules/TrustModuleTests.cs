@@ -194,15 +194,21 @@ public sealed class TrustModuleTests : IdentityTestBase
         requirements.Select(item => item.FeatureId)
             .Should().Contain(["guides", "jobs", "housing", "marketplace"]);
 
-        // Every capability with Trust thresholds serves its checklist. Job posting has none since
-        // 14 Sep 2026 — a verified account is enough, and the Jobs service checks that — so it is
-        // served empty and unlocked rather than as a checklist nobody could complete.
-        requirements.Where(item => item.FeatureId != "jobs")
+        // Every capability with Trust thresholds serves its checklist. Posting has none — a
+        // verified account is enough, and the service that takes the post checks that: jobs since
+        // 14 Sep 2026, guides, homes and items since 15 Sep. So they are served empty and unlocked
+        // rather than as checklists nobody could complete.
+        string[] posting = ["jobs", "guides", "housing", "marketplace"];
+
+        requirements.Where(item => !posting.Contains(item.FeatureId))
             .Should().OnlyContain(item => item.Requirements.Count > 0);
 
-        var jobs = requirements.Single(item => item.FeatureId == "jobs");
-        jobs.Requirements.Should().BeEmpty();
-        jobs.IsUnlocked.Should().BeTrue();
+        foreach (var featureId in posting)
+        {
+            var feature = requirements.Single(item => item.FeatureId == featureId);
+            feature.Requirements.Should().BeEmpty(featureId);
+            feature.IsUnlocked.Should().BeTrue(featureId);
+        }
     }
 
     // ── Verification ─────────────────────────────────────────────────────
@@ -522,11 +528,15 @@ public sealed class TrustModuleTests : IdentityTestBase
     }
 
     /// <summary>
-    /// A member with no verification cannot publish guides, and is told which requirements
-    /// they have not met rather than simply refused.
+    /// A member with no verification cannot join the guide programme, and is told which
+    /// requirements they have not met rather than simply refused.
+    /// <para>
+    /// This used guide publishing until 15 Sep 2026, when publishing a guide stopped carrying Trust
+    /// thresholds. The guide programme is the capability that still asks for them.
+    /// </para>
     /// </summary>
     [Fact]
-    public async Task An_unverified_member_is_refused_guide_publishing_with_named_requirements()
+    public async Task An_unverified_member_is_refused_the_guide_programme_with_named_requirements()
     {
         var (_, auth) = await RegisterAndVerifyAsync();
         Api.Authenticate(auth.Tokens.AccessToken);
@@ -534,7 +544,7 @@ public sealed class TrustModuleTests : IdentityTestBase
         var decision = await ReadDataAsync<EligibilityDto>(
             await HttpClient.PostAsJsonAsync(
                 "/api/v1/trust/eligibility",
-                new { capability = "guides", targetCountry = "GB", dryRun = true },
+                new { capability = "guide-programme", targetCountry = "GB", dryRun = true },
                 JsonOptions));
 
         decision.Allowed.Should().BeFalse();

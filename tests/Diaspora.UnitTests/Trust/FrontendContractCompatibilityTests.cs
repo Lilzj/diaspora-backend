@@ -508,12 +508,14 @@ public sealed class FrontendContractCompatibilityTests
     /// </para>
     /// </summary>
     [Theory]
-    [InlineData(TrustCapabilities.PublishGuide, 150, 2, true, true, true)]
+    // 15 Sep 2026: a verified account is enough to publish a guide, list a home or sell an item,
+    // and the Guides, Housing and Marketplace services check that. Changed on both sides at once.
+    [InlineData(TrustCapabilities.PublishGuide, 0, 0, false, false, false)]
     // 14 Sep 2026: a verified account is enough, and the Jobs service checks that. Changed on
     // both sides in the same change, which is what this theory exists to hold.
     [InlineData(TrustCapabilities.PostJob, 0, 0, false, false, false)]
-    [InlineData(TrustCapabilities.ListHousing, 100, 1, true, false, true)]
-    [InlineData(TrustCapabilities.SellItem, 20, 0, true, false, false)]
+    [InlineData(TrustCapabilities.ListHousing, 0, 0, false, false, false)]
+    [InlineData(TrustCapabilities.SellItem, 0, 0, false, false, false)]
     [InlineData(TrustCapabilities.Comment, 10, 0, true, false, false)]
     public void Capability_thresholds_match_the_client_governance_config(
         string capability,
