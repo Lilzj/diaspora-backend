@@ -1,3 +1,4 @@
+using Diaspora.Modules.Housing.Domain.Enums;
 using Diaspora.Modules.Housing.Domain.Listings;
 using Diaspora.Modules.Housing.Domain.ValueObjects;
 using Diaspora.Modules.Location.Domain.Enums;
@@ -267,6 +268,42 @@ public sealed class HousingGeographicScopeAdapter
         }
 
         return distances;
+    }
+
+    /// <summary>
+    /// Kilometres from a search's point to where a signed-out stranger is shown a home, unrounded,
+    /// or null when either end is not a position.
+    /// <para>
+    /// The measurement "nearest first" orders by across every page, and the same one
+    /// <see cref="MeasureDistances"/> puts on each card before rounding it. Here rather than in the
+    /// search engine because this class is where Housing reaches Location's earth model, and a
+    /// second place measuring would be a second place that could measure from the exact position.
+    /// </para>
+    /// </summary>
+    public double? KilometresToPublishedPosition(
+        double originLatitude,
+        double originLongitude,
+        double? latitude,
+        double? longitude,
+        AddressVisibility visibility)
+    {
+        var (publishedLatitude, publishedLongitude) =
+            PropertyAddress.PublicCoordinates(latitude, longitude, visibility);
+
+        if (publishedLatitude is not { } lat || publishedLongitude is not { } lng)
+        {
+            return null;
+        }
+
+        var origin = GeoCoordinate.TryCreate(originLatitude, originLongitude);
+        var destination = GeoCoordinate.TryCreate(lat, lng);
+
+        if (origin.IsFailure || destination.IsFailure)
+        {
+            return null;
+        }
+
+        return _directory.DistanceBetween(origin.Value, destination.Value).Kilometers;
     }
 
     /// <summary>

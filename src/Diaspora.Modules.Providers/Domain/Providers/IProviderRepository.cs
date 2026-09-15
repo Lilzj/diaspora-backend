@@ -46,6 +46,13 @@ public interface IProviderRepository
     Task<int> CountAsync(ProviderQueryFilter filter, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Every match as identifiers and positions only, up to <paramref name="limit"/>. For a
+    /// "nearest first" search, which orders by a distance only Location may measure.
+    /// </summary>
+    Task<IReadOnlyList<ProviderNearestCandidate>> QueryNearestCandidatesAsync(
+        ProviderQueryFilter filter, int limit, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Whether a slug is free.
     /// <para>
     /// Advisory, not authoritative: the unique index is what actually guarantees it. This exists

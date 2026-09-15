@@ -96,15 +96,23 @@ public sealed class SearchHousingQueryHandler
         filter = await _authorization.ApplyAudienceAsync(
             filter, includeOwn: false, cancellationToken);
 
+        // The circle as Location resolved it — its centre and its radius — so "nearest first" is
+        // measured from the same point, and cut at the same edge, as the distances on the cards.
+        var circle = aroundPoint
+            && scope.Value is { Center: { } centre, IsViewport: false } resolved
+            && resolved.Radius.Scope == Location.Domain.Enums.RadiusScope.Radius
+                ? (Latitude: centre.Latitude, Longitude: centre.Longitude, Kilometres: resolved.Radius.Distance.Kilometers)
+                : ((double Latitude, double Longitude, double Kilometres)?)null;
+
         var outcome = await _engine.SearchAsync(
             new HousingSearchRequest
             {
                 Filter = filter,
                 Cursor = request.Cursor,
                 IncludeFacets = request.IncludeFacets ?? false,
-                Latitude = request.Latitude,
-                Longitude = request.Longitude,
-                RadiusKm = request.RadiusKm
+                Latitude = circle?.Latitude,
+                Longitude = circle?.Longitude,
+                RadiusKm = circle?.Kilometres
             },
             cancellationToken);
 
@@ -113,18 +121,25 @@ public sealed class SearchHousingQueryHandler
         var inside = HousingGeographicScopeAdapter.WithinRadius(
             scope.Value, outcome.Items, distances, aroundPoint);
 
-        var ranked = _ranking.Rank(
-            request.Ranking,
-            inside,
-            new HousingRankingContext
-            {
-                ViewerId = _authorization.CallerId,
-                Now = _clock.UtcNow,
-                Latitude = request.Latitude,
-                Longitude = request.Longitude,
-                NeighborhoodAreaId = filter.NeighborhoodAreaId,
-                AvailableOnly = filter.AvailableOnly
-            });
+        var appliedSort = outcome.AppliedSort ?? filter.Sort;
+
+        // A ranking strategy reorders the page, which is only right when nobody asked for an order:
+        // re-ranking a nearest-first, highest-rated or price page would put page two's order in
+        // conflict with page one's.
+        var ranked = appliedSort is HousingSortOrder.Newest or HousingSortOrder.Relevance
+            ? _ranking.Rank(
+                request.Ranking,
+                inside,
+                new HousingRankingContext
+                {
+                    ViewerId = _authorization.CallerId,
+                    Now = _clock.UtcNow,
+                    Latitude = request.Latitude,
+                    Longitude = request.Longitude,
+                    NeighborhoodAreaId = filter.NeighborhoodAreaId,
+                    AvailableOnly = filter.AvailableOnly
+                })
+            : inside;
 
         HousingTelemetry.SearchesRun.Add(
             1,
@@ -142,7 +157,8 @@ public sealed class SearchHousingQueryHandler
                 ? null
                 : await _facets.ToResponseAsync(outcome.Facets, cancellationToken),
             ResolvedLocation = HousingGeographicScopeAdapter.Describe(scope.Value),
-            Engine = outcome.EngineName ?? _engine.Name
+            Engine = outcome.EngineName ?? _engine.Name,
+            AppliedSort = appliedSort.ToString()
         });
     }
 

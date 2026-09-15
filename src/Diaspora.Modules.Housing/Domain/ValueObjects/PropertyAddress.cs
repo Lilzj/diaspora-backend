@@ -197,6 +197,25 @@ public sealed class PropertyAddress : ValueObject
     }
 
     /// <summary>
+    /// The coordinate a stranger sees for a stored position — exact only for a public address,
+    /// fuzzed to <see cref="FuzzedPrecision"/> otherwise.
+    /// <para>
+    /// For a caller holding the columns rather than the value object: "nearest first" sorts
+    /// candidates it reads as bare coordinates. It runs <see cref="Disclose"/> itself, so there is
+    /// one rule for what a distance may be measured from, and a sort cannot learn more than a
+    /// search result is shown.
+    /// </para>
+    /// </summary>
+    public static (double? Latitude, double? Longitude) PublicCoordinates(
+        double? latitude, double? longitude, AddressVisibility visibility)
+    {
+        var published = new PropertyAddress(null, null, null, latitude, longitude, visibility)
+            .Disclose(isOwner: false, isStaff: false, isAuthenticated: false, hasConfirmedViewing: false);
+
+        return (published.Latitude, published.Longitude);
+    }
+
+    /// <summary>
     /// Drops a leading building number or flat identifier from a street line.
     /// <para>
     /// Deliberately conservative: it removes a leading run of digits and separators and nothing

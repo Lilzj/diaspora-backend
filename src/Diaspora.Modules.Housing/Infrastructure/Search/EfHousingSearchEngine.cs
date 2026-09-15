@@ -1,7 +1,9 @@
+using Diaspora.Modules.Housing.Application.Services;
 using Diaspora.Modules.Housing.Domain.Catalog;
 using Diaspora.Modules.Housing.Domain.Enums;
 using Diaspora.Modules.Housing.Domain.Listings;
 using Diaspora.Modules.Housing.Extensibility.Search;
+using Diaspora.Modules.Housing.Persistence;
 
 namespace Diaspora.Modules.Housing.Infrastructure.Search;
 
@@ -9,10 +11,11 @@ namespace Diaspora.Modules.Housing.Infrastructure.Search;
 /// The shipped search engine, answering from the write model.
 /// <para>
 /// <b>Honest and adequate, and deliberately not clever.</b> It has no relevance score and no
-/// geometry: a text search is a <c>LIKE</c> over titles, summaries and place names, and a
-/// proximity sort degrades to newest. That is what a relational database can do well, and
-/// pretending otherwise would mean building a poor search engine inside a module that has no
-/// business containing one.
+/// geometry: a text search is a <c>LIKE</c> over titles, summaries and place names, and "nearest
+/// first" measures the homes inside a radius search's circle in memory, through Location, and
+/// degrades to newest — saying so — when there is no circle or too much in it. That is what a
+/// relational database can do well, and pretending otherwise would mean building a poor search
+/// engine inside a module that has no business containing one.
 /// </para>
 /// <para>
 /// <b>What it does do properly is everything structured.</b> Bedrooms, rent bands, amenities,
@@ -36,14 +39,25 @@ public sealed class EfHousingSearchEngine : IHousingSearchEngine
     /// </summary>
     private const int FacetSampleSize = 500;
 
+    /// <summary>
+    /// How many homes a "nearest first" search will measure. Every one inside the circle is
+    /// measured and sorted before a page is cut, which is what lets page two continue page one;
+    /// past this many the search says so and answers newest first rather than sorting a sample.
+    /// </summary>
+    internal const int NearestCandidateLimit = 1_000;
+
     private readonly IHousingListingRepository _listings;
     private readonly IHousingAmenityRepository _amenities;
+    private readonly HousingGeographicScopeAdapter _geography;
 
     public EfHousingSearchEngine(
-        IHousingListingRepository listings, IHousingAmenityRepository amenities)
+        IHousingListingRepository listings,
+        IHousingAmenityRepository amenities,
+        HousingGeographicScopeAdapter geography)
     {
         _listings = listings;
         _amenities = amenities;
+        _geography = geography;
     }
 
     public string Name => "ef";
@@ -52,6 +66,20 @@ public sealed class EfHousingSearchEngine : IHousingSearchEngine
         HousingSearchRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
+
+        HousingSortOrder? appliedSort = null;
+
+        if (request.Filter.Sort == HousingSortOrder.Nearest)
+        {
+            if (await NearestAsync(request, cancellationToken) is { } nearest)
+            {
+                return nearest;
+            }
+
+            // No point to measure from, or too many homes to measure: newest first, and said so.
+            appliedSort = HousingSortOrder.Newest;
+            request = request with { Filter = request.Filter with { Sort = HousingSortOrder.Newest } };
+        }
 
         var page = await _listings.QueryAsync(
             request.Filter,
@@ -65,6 +93,93 @@ public sealed class EfHousingSearchEngine : IHousingSearchEngine
             NextCursor = page.NextCursor,
             HasMore = page.HasMore,
             TotalCount = await _listings.CountAsync(request.Filter, cancellationToken),
+            Facets = request.IncludeFacets
+                ? await ComputeFacetsAsync(request.Filter, cancellationToken)
+                : null,
+            EngineName = Name,
+            AppliedSort = appliedSort
+        };
+    }
+
+    /// <summary>
+    /// "Nearest first", across every page.
+    /// <para>
+    /// <b>Measured in memory, never in SQL.</b> A distance is Location's to compute — the rule every
+    /// module keeps, and a haversine in a query would be a second, subtly different one — and it
+    /// is measured from the coordinate a stranger is shown
+    /// (<see cref="HousingGeographicScopeAdapter.KilometresToPublishedPosition"/>), so the order
+    /// reveals nothing the distance on each card does not already. Before this the page was sorted on the phone, twenty homes at
+    /// a time, and a closer home on page two stayed below page one.
+    /// </para>
+    /// <para>
+    /// Every candidate inside the circle is read (identifiers and coordinates only), measured and
+    /// ordered by distance then slug, and the page is cut from that order after the cursor. Null
+    /// when there is no point or radius, or when the circle holds more than
+    /// <see cref="NearestCandidateLimit"/>.
+    /// </para>
+    /// </summary>
+    private async Task<HousingSearchOutcome?> NearestAsync(
+        HousingSearchRequest request, CancellationToken cancellationToken)
+    {
+        if (request is not { Latitude: { } latitude, Longitude: { } longitude, RadiusKm: { } radiusKm })
+        {
+            return null;
+        }
+
+        var candidates = await _listings.QueryNearestCandidatesAsync(
+            request.Filter, NearestCandidateLimit + 1, cancellationToken);
+
+        if (candidates.Count > NearestCandidateLimit)
+        {
+            return null;
+        }
+
+        // The same edge the handler's radius check applies: distances are shown to a tenth, so the
+        // boundary is given the same tenth back.
+        var edge = radiusKm + 0.05d;
+
+        var ordered = candidates
+            .Select(candidate => (
+                Candidate: candidate,
+                Kilometres: _geography.KilometresToPublishedPosition(
+                    latitude, longitude, candidate.Latitude, candidate.Longitude, candidate.Visibility)))
+            .Where(measured => measured.Kilometres is { } km && Math.Round(km, 1) <= edge)
+            .OrderBy(measured => measured.Kilometres)
+            .ThenBy(measured => measured.Candidate.Slug, StringComparer.Ordinal)
+            .ToList();
+
+        var after = HousingCursor.Parse(request.Cursor);
+
+        var remaining = after is { } cursor && cursor.AsNumber() is { } afterKm
+            ? ordered.SkipWhile(measured =>
+                measured.Kilometres < afterKm
+                || (measured.Kilometres == afterKm
+                    && string.CompareOrdinal(measured.Candidate.Slug, cursor.LastKey) <= 0))
+            : ordered;
+
+        var limit = request.Filter.EffectiveLimit;
+        var window = remaining.Take(limit + 1).ToList();
+        var hasMore = window.Count > limit;
+        var pageRows = window.Take(limit).ToList();
+
+        var cards = await _listings.GetManyAsync(
+            [.. pageRows.Select(measured => measured.Candidate.Id)], cancellationToken);
+
+        var byId = cards.ToDictionary(listing => listing.Id);
+
+        var items = pageRows
+            .Select(measured => byId.GetValueOrDefault(measured.Candidate.Id))
+            .OfType<HousingListing>()
+            .ToList();
+
+        return new HousingSearchOutcome
+        {
+            Items = items,
+            NextCursor = hasMore && pageRows.Count > 0
+                ? HousingCursor.FromNumber(pageRows[^1].Kilometres!.Value, pageRows[^1].Candidate.Slug).Encode()
+                : null,
+            HasMore = hasMore,
+            TotalCount = ordered.Count,
             Facets = request.IncludeFacets
                 ? await ComputeFacetsAsync(request.Filter, cancellationToken)
                 : null,

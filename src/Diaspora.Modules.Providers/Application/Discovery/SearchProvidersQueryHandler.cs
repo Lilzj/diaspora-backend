@@ -1,5 +1,8 @@
 using System.Diagnostics;
+using System.Globalization;
+using System.Text;
 using Diaspora.Application.Abstractions;
+using Diaspora.Modules.Location.Integration;
 using Diaspora.Modules.Providers.Application.Mapping;
 using Diaspora.Modules.Providers.Application.Services;
 using Diaspora.Modules.Providers.Contracts.V1.Requests;
@@ -10,6 +13,7 @@ using Diaspora.Modules.Providers.Domain.Providers;
 using Diaspora.Modules.Providers.Extensibility.Ranking;
 using Diaspora.Modules.Providers.Observability;
 using Diaspora.Platform.Services.Abstractions;
+using Diaspora.SharedKernel.Pagination;
 using Diaspora.SharedKernel.Results;
 
 namespace Diaspora.Modules.Providers.Application.Discovery;
@@ -104,14 +108,30 @@ public sealed class SearchProvidersQueryHandler
         var scoped = await _geography.ApplyAsync(
             filter.Value, scope.Value, aroundPoint, cancellationToken);
 
-        var page = await _providers.QueryAsync(scoped, cancellationToken);
+        var nearest = sort.Value == ProviderSortOrder.Distance && aroundPoint
+            ? await NearestPageAsync(scoped, scope.Value, cancellationToken)
+            : null;
+
+        // "Distance" that cannot be honoured across pages — no circle, or too much in it — answers
+        // in the recommended order, and says so. Ranking each page by proximity instead is the
+        // order that left nearer providers on page two, and it would not be the order reported.
+        if (sort.Value == ProviderSortOrder.Distance && nearest is null)
+        {
+            scoped = scoped with { Sort = ProviderSortOrder.Recommended };
+        }
+
+        var page = nearest ?? await _providers.QueryAsync(scoped, cancellationToken);
 
         var distances = _geography.MeasureDistances(scope.Value, page.Items);
 
         var inside = GeographicScopeAdapter.WithinRadius(
             scope.Value, page.Items, distances, aroundPoint);
 
-        var ranked = Rank(inside, scoped, distances, request);
+        // Already in distance order across every page; a page-level proximity ranking on top would
+        // be the old behaviour, where page two could hold providers nearer than page one.
+        var ranked = nearest is not null ? inside : Rank(inside, scoped, distances, request);
+
+        var appliedSort = nearest is not null ? ProviderSortOrder.Distance : scoped.Sort;
 
         var context = await _contexts.BuildAsync(
             ranked,
@@ -128,8 +148,125 @@ public sealed class SearchProvidersQueryHandler
             Items = ranked.Select(provider => ProviderMapper.ToSummary(provider, context)).ToList(),
             NextCursor = page.NextCursor,
             HasMore = page.HasMore,
-            TotalCount = page.TotalCount
+            TotalCount = page.TotalCount,
+            AppliedSort = appliedSort.ToString()
         });
+    }
+
+    /// <summary>
+    /// How many providers a nearest-first search measures. Past this, the search answers in the
+    /// recommended order and the response says so.
+    /// </summary>
+    private const int NearestCandidateLimit = 1_000;
+
+    /// <summary>
+    /// "Nearest first", across every page.
+    /// <para>
+    /// <b>Measured here, never in SQL</b> — every distance is Location's, which is the rule this
+    /// module's architecture tests hold it to. Before this, a distance search ordered one page by
+    /// proximity, so a nearer provider on page two stayed below page one. Every candidate inside
+    /// the circle is read (identifiers and positions only), measured, ordered by distance then
+    /// slug — providers with no position last, since they matched through a service area — and
+    /// the page is cut after the cursor. Null when the scope is not a radius or holds more than
+    /// <see cref="NearestCandidateLimit"/>.
+    /// </para>
+    /// </summary>
+    private async Task<CursorPagedResult<Provider>?> NearestPageAsync(
+        ProviderQueryFilter filter, GeographicScope scope, CancellationToken cancellationToken)
+    {
+        if (scope is not { Center: not null, IsViewport: false }
+            || scope.Radius.Scope != Location.Domain.Enums.RadiusScope.Radius)
+        {
+            return null;
+        }
+
+        var candidates = await _providers.QueryNearestCandidatesAsync(
+            filter, NearestCandidateLimit + 1, cancellationToken);
+
+        if (candidates.Count > NearestCandidateLimit)
+        {
+            return null;
+        }
+
+        var edge = scope.Radius.Distance.Kilometers;
+
+        // An unmeasurable provider sorts after every measured one, under the largest key a cursor
+        // can carry, so it pages like any other row.
+        var ordered = candidates
+            .Select(candidate => (
+                Candidate: candidate,
+                Kilometres: _geography.KilometresFromCentre(scope, candidate.Latitude, candidate.Longitude)))
+            .Where(measured => measured.Kilometres is not { } km || km <= edge)
+            .Select(measured => (measured.Candidate, Key: measured.Kilometres ?? double.MaxValue))
+            .OrderBy(measured => measured.Key)
+            .ThenBy(measured => measured.Candidate.Slug, StringComparer.Ordinal)
+            .ToList();
+
+        var remaining = NearestCursor.TryParse(filter.Cursor) is { } after
+            ? ordered.SkipWhile(measured =>
+                measured.Key < after.Key
+                || (measured.Key == after.Key
+                    && string.CompareOrdinal(measured.Candidate.Slug, after.Slug) <= 0))
+            : ordered;
+
+        var limit = filter.EffectiveLimit;
+        var window = remaining.Take(limit + 1).ToList();
+        var hasMore = window.Count > limit;
+        var pageRows = window.Take(limit).ToList();
+
+        var providers = await _providers.GetManyAsync(
+            [.. pageRows.Select(measured => measured.Candidate.Id)], cancellationToken);
+
+        var byId = providers.ToDictionary(provider => provider.Id);
+
+        var items = pageRows
+            .Select(measured => byId.GetValueOrDefault(measured.Candidate.Id))
+            .OfType<Provider>()
+            .ToList();
+
+        var nextCursor = hasMore && pageRows.Count > 0
+            ? NearestCursor.Encode(pageRows[^1].Key, pageRows[^1].Candidate.Slug)
+            : null;
+
+        return CursorPagedResult<Provider>.Create(items, nextCursor, hasMore, ordered.Count);
+    }
+
+    /// <summary>
+    /// The nearest-first continuation token: the last row's distance and slug.
+    /// <para>
+    /// Written in the repository cursor's own shape — base64 of <c>key|slug|0</c> — rather than by
+    /// reaching into Persistence from here, so a token that outlives a fallback to the ordinary
+    /// query still decodes there as a number and a slug instead of failing.
+    /// </para>
+    /// </summary>
+    private static class NearestCursor
+    {
+        public static string Encode(double key, string slug) =>
+            Convert.ToBase64String(Encoding.UTF8.GetBytes(
+                string.Create(CultureInfo.InvariantCulture, $"{key:R}|{slug}|0")));
+
+        public static (double Key, string Slug)? TryParse(string? token)
+        {
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                return null;
+            }
+
+            try
+            {
+                var parts = Encoding.UTF8.GetString(Convert.FromBase64String(token)).Split('|');
+
+                return parts.Length >= 2
+                    && parts[1].Length > 0
+                    && double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var key)
+                        ? (key, parts[1])
+                        : null;
+            }
+            catch (FormatException)
+            {
+                return null;
+            }
+        }
     }
 
     private async Task<Result<ProviderQueryFilter>> BuildFilterAsync(

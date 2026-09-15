@@ -70,7 +70,8 @@ public sealed class ListMyHousingListingsQueryHandler
             Items = cards,
             NextCursor = page.NextCursor,
             HasMore = page.HasMore,
-            TotalCount = await _listings.CountAsync(filter, cancellationToken)
+            TotalCount = await _listings.CountAsync(filter, cancellationToken),
+            AppliedSort = filter.Sort.ToString()
         });
     }
 }

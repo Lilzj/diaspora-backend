@@ -37,4 +37,11 @@ public sealed record HousingSearchOutcome
     /// engine or the EF fallback served a request without reading a log.
     /// </summary>
     public string? EngineName { get; init; }
+
+    /// <summary>
+    /// The order the items are actually in, when that is not the one asked for — "nearest first"
+    /// with no point to measure from, or over more candidates than the engine will measure. Null
+    /// when the requested order was honoured.
+    /// </summary>
+    public Domain.Enums.HousingSortOrder? AppliedSort { get; init; }
 }

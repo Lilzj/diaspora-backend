@@ -32,5 +32,11 @@ public enum ListingSortOrder
     Nearest = 6,
 
     /// <summary>Expiring soonest. Listings that never expire sort last.</summary>
-    EndingSoon = 7
+    EndingSoon = 7,
+
+    /// <summary>
+    /// The seller's average rating, highest first, then the number of reviews, then newest.
+    /// Unrated sellers come last rather than as nought stars: no reviews is not a bad review.
+    /// </summary>
+    HighestRated = 8
 }

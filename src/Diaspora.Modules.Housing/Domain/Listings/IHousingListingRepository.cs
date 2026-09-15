@@ -59,6 +59,14 @@ public interface IHousingListingRepository
         HousingListingQueryFilter filter, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Every match with a position, as identifiers and coordinates only, up to
+    /// <paramref name="limit"/>. For a "nearest first" search, which orders by a distance only
+    /// Location may measure and so cannot ask the database to sort.
+    /// </summary>
+    Task<IReadOnlyList<HousingNearestCandidate>> QueryNearestCandidatesAsync(
+        HousingListingQueryFilter filter, int limit, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Whether a slug is taken, ignoring the soft-delete filter.
     /// <para>
     /// Deleted listings keep their slugs: handing one to a new property would break every link ever

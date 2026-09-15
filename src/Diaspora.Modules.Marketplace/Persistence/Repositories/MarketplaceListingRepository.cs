@@ -105,7 +105,9 @@ public sealed class MarketplaceListingRepository : IMarketplaceListingRepository
 
         var query = CardGraph(Apply(Listings.AsNoTracking(), filter));
 
-        query = ApplyOrderAndCursor(query, filter, MarketplaceCursor.Parse(cursor));
+        var sellers = _dbContext.Set<SellerProfile>().AsNoTracking();
+
+        query = ApplyOrderAndCursor(query, filter, MarketplaceCursor.Parse(cursor), sellers);
 
         var effectiveLimit = Math.Clamp(limit, 1, MarketplaceLimits.MaxPageSize);
 
@@ -120,7 +122,24 @@ public sealed class MarketplaceListingRepository : IMarketplaceListingRepository
             rows.RemoveAt(rows.Count - 1);
         }
 
-        var next = hasMore && rows.Count > 0 ? EncodeCursor(rows[^1], filter.Sort) : null;
+        string? next = null;
+
+        if (hasMore && rows.Count > 0)
+        {
+            var last = rows[^1];
+            var lastSellerId = last.SellerId;
+
+            // The rating lives on the seller, so the last row's key is read back with the same
+            // expression the ordering used rather than recomputed in C#.
+            next = filter.Sort == ListingSortOrder.HighestRated
+                ? EncodeRatingCursor(
+                    last,
+                    await sellers
+                        .Where(seller => seller.Id == lastSellerId)
+                        .Select(SellerRatingKey)
+                        .FirstOrDefaultAsync(cancellationToken))
+                : EncodeCursor(last, filter.Sort);
+        }
 
         return CursorPagedResult<MarketplaceListing>.Create(rows, next, hasMore);
     }
@@ -707,10 +726,39 @@ public sealed class MarketplaceListingRepository : IMarketplaceListingRepository
     private static IQueryable<MarketplaceListing> ApplyOrderAndCursor(
         IQueryable<MarketplaceListing> query,
         ListingQueryFilter filter,
-        MarketplaceCursor? cursor)
+        MarketplaceCursor? cursor,
+        IQueryable<SellerProfile> sellers)
     {
         switch (filter.Sort)
         {
+            case ListingSortOrder.HighestRated:
+            {
+                if (cursor is not null && ParseRatingCursor(cursor.SortKey) is { } after)
+                {
+                    var key = after.Key;
+                    var published = after.Published;
+                    var lastSlug = cursor.LastKey;
+
+                    query = query.Where(listing =>
+                        sellers.Where(seller => seller.Id == listing.SellerId)
+                            .Select(SellerRatingKey).FirstOrDefault() < key
+                        || (sellers.Where(seller => seller.Id == listing.SellerId)
+                                .Select(SellerRatingKey).FirstOrDefault() == key
+                            && (listing.PublishedAt < published
+                                || (listing.PublishedAt == published
+                                    && string.Compare(listing.Slug.Value, lastSlug) > 0))));
+                }
+
+                // In the database, from the seller's star buckets, so page two continues page one.
+                // Sorted on the phone it reordered twenty items and said nothing about the rest.
+                return query
+                    .OrderByDescending(listing =>
+                        sellers.Where(seller => seller.Id == listing.SellerId)
+                            .Select(SellerRatingKey).FirstOrDefault())
+                    .ThenByDescending(listing => listing.PublishedAt)
+                    .ThenBy(listing => listing.Slug.Value);
+            }
+
             case ListingSortOrder.PriceLowToHigh:
             {
                 if (cursor?.AsNumber() is { } value)
@@ -812,6 +860,55 @@ public sealed class MarketplaceListingRepository : IMarketplaceListingRepository
         }
     }
 #pragma warning restore CA1309
+
+    /// <summary>
+    /// A seller's place in the "highest rated" order, as one integer the database can compare: the
+    /// exact average in thousandths, times a million, plus the review count (capped), so 4.8 from
+    /// forty reviews ranks above 4.8 from one; zero with no reviews. Integer arithmetic only, the
+    /// same as housing's landlord key, so Postgres and SQLite cannot round it differently.
+    /// </summary>
+    private static readonly System.Linq.Expressions.Expression<Func<SellerProfile, long>> SellerRatingKey =
+        seller =>
+            seller.ReviewSummary.OneStar + seller.ReviewSummary.TwoStar
+                + seller.ReviewSummary.ThreeStar + seller.ReviewSummary.FourStar
+                + seller.ReviewSummary.FiveStar == 0
+                ? 0L
+                : ((long)seller.ReviewSummary.OneStar
+                        + (2L * seller.ReviewSummary.TwoStar)
+                        + (3L * seller.ReviewSummary.ThreeStar)
+                        + (4L * seller.ReviewSummary.FourStar)
+                        + (5L * seller.ReviewSummary.FiveStar))
+                    * 1_000L
+                    / (seller.ReviewSummary.OneStar + seller.ReviewSummary.TwoStar
+                        + seller.ReviewSummary.ThreeStar + seller.ReviewSummary.FourStar
+                        + seller.ReviewSummary.FiveStar)
+                    * 1_000_000L
+                    + Math.Min(
+                        seller.ReviewSummary.OneStar + seller.ReviewSummary.TwoStar
+                            + seller.ReviewSummary.ThreeStar + seller.ReviewSummary.FourStar
+                            + seller.ReviewSummary.FiveStar,
+                        999_999);
+
+    private static string EncodeRatingCursor(MarketplaceListing last, long key) =>
+        MarketplaceCursor.Create(
+            string.Create(
+                System.Globalization.CultureInfo.InvariantCulture,
+                $"{key}:{(last.PublishedAt ?? last.CreatedAt).UtcTicks}"),
+            last.Slug.Value).Encode();
+
+    private static (long Key, DateTimeOffset Published)? ParseRatingCursor(string sortKey)
+    {
+        var parts = sortKey.Split(':');
+
+        return parts.Length == 2
+            && long.TryParse(parts[0], System.Globalization.NumberStyles.Integer,
+                System.Globalization.CultureInfo.InvariantCulture, out var key)
+            && long.TryParse(parts[1], System.Globalization.NumberStyles.Integer,
+                System.Globalization.CultureInfo.InvariantCulture, out var ticks)
+            && ticks is >= 0 and <= 3_155_378_975_999_999_999L
+                ? (key, new DateTimeOffset(ticks, TimeSpan.Zero))
+                : null;
+    }
 
     private static string EncodeCursor(MarketplaceListing last, ListingSortOrder sort) => sort switch
     {

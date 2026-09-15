@@ -187,6 +187,25 @@ public sealed class GeographicScopeAdapter
     /// a distance sort.
     /// </para>
     /// </summary>
+    /// <summary>
+    /// Kilometres from the scope's centre to a position, measured by Location, or null when either
+    /// is missing. For a nearest-first search, which holds positions rather than providers.
+    /// </summary>
+    public double? KilometresFromCentre(GeographicScope scope, double? latitude, double? longitude)
+    {
+        ArgumentNullException.ThrowIfNull(scope);
+
+        if (scope.Center is not { } origin
+            || latitude is not { } lat
+            || longitude is not { } lng
+            || Location.Domain.ValueObjects.GeoCoordinate.TryCreate(lat, lng) is not { IsSuccess: true } destination)
+        {
+            return null;
+        }
+
+        return _directory.DistanceBetween(origin, destination.Value).Kilometers;
+    }
+
     public IReadOnlyDictionary<Guid, double> MeasureDistances(
         GeographicScope scope, IReadOnlyList<Provider> providers)
     {

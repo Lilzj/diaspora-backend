@@ -26,4 +26,11 @@ public sealed record HousingSearchResultResponse
     /// EF fallback served a request without reading a log.
     /// </summary>
     public string? Engine { get; init; }
+
+    /// <summary>
+    /// The order the page is actually in: the one asked for, or the one used instead. A client that
+    /// asked for <c>Nearest</c> and reads <c>Newest</c> here can say why the list is not by distance
+    /// rather than implying that it is.
+    /// </summary>
+    public required string AppliedSort { get; init; }
 }

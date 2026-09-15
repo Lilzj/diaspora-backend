@@ -109,6 +109,24 @@ public sealed class ProviderRepository : IProviderRepository
         return CursorPagedResult<Provider>.Create(items, nextCursor, hasMore, total);
     }
 
+    public async Task<IReadOnlyList<ProviderNearestCandidate>> QueryNearestCandidatesAsync(
+        ProviderQueryFilter filter, int limit, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(filter);
+
+        // The same predicate as a page, so a nearest-first search only reorders what an ordinary
+        // search returns. Four columns and no graph; the handler reads cards for one page after.
+        return await Apply(Providers.AsNoTracking(), filter)
+            .OrderBy(provider => provider.Slug.Value)
+            .Take(Math.Max(1, limit))
+            .Select(provider => new ProviderNearestCandidate(
+                provider.Id,
+                provider.Slug.Value,
+                provider.Location.Latitude,
+                provider.Location.Longitude))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<int> CountAsync(
         ProviderQueryFilter filter, CancellationToken cancellationToken = default)
     {

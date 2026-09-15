@@ -25,4 +25,11 @@ public sealed record ProviderPageResponse
 
     /// <summary>Null unless the caller asked for it.</summary>
     public int? TotalCount { get; init; }
+
+    /// <summary>
+    /// The order the page is actually in. <c>Distance</c> means nearest first across every page;
+    /// a distance search that could not be ordered that way — no radius, or too many providers to
+    /// measure — reads <c>Recommended</c>, so a client can say so rather than imply it.
+    /// </summary>
+    public string? AppliedSort { get; init; }
 }

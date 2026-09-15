@@ -152,6 +152,27 @@ public sealed class HousingListingRepository : IHousingListingRepository
         return await Apply(Listings.AsNoTracking(), filter).CountAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<HousingNearestCandidate>> QueryNearestCandidatesAsync(
+        HousingListingQueryFilter filter, int limit, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(filter);
+
+        // The same predicate as a page — audience, bounds and every filter — so a "nearest first"
+        // search can only ever reorder what an ordinary search would have returned. Five columns,
+        // no graph: the engine measures these and reads the cards for one page afterwards.
+        return await Apply(Listings.AsNoTracking(), filter)
+            .Where(listing => listing.Address.Latitude != null && listing.Address.Longitude != null)
+            .OrderBy(listing => listing.Slug.Value)
+            .Take(Math.Max(1, limit))
+            .Select(listing => new HousingNearestCandidate(
+                listing.Id,
+                listing.Slug.Value,
+                listing.Address.Latitude,
+                listing.Address.Longitude,
+                listing.Address.Visibility))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<bool> SlugExistsAsync(
         HousingSlug slug, CancellationToken cancellationToken = default)
     {
