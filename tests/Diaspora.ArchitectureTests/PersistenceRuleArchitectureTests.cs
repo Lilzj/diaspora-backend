@@ -158,6 +158,262 @@ public sealed class PersistenceRuleArchitectureTests
             .Select(argument => argument.Expression)
             .Where(expression => expression is LambdaExpressionSyntax);
 
+    // ── Rule 4: an enum stored by name is never ranged or ordered in SQL ──
+
+    /// <summary>
+    /// The operators whose lambdas become SQL, async forms included. <see cref="QueryOperators"/>
+    /// predates the async repositories and misses <c>CountAsync</c> — which is exactly where the
+    /// organisation owner count compared roles as text.
+    /// </summary>
+    private static readonly HashSet<string> StoredEnumQueryOperators = new(StringComparer.Ordinal)
+    {
+        "Where", "OrderBy", "OrderByDescending", "ThenBy", "ThenByDescending",
+        "First", "FirstOrDefault", "Single", "SingleOrDefault", "Last", "LastOrDefault",
+        "Any", "All", "Count", "LongCount", "Min", "Max",
+        "FirstAsync", "FirstOrDefaultAsync", "SingleAsync", "SingleOrDefaultAsync",
+        "LastAsync", "LastOrDefaultAsync", "AnyAsync", "AllAsync", "CountAsync",
+        "LongCountAsync", "MinAsync", "MaxAsync"
+    };
+
+    private static readonly HashSet<string> OrderingOperators = new(StringComparer.Ordinal)
+    {
+        "OrderBy", "OrderByDescending", "ThenBy", "ThenByDescending", "Min", "Max", "MinAsync", "MaxAsync"
+    };
+
+    /// <summary>
+    /// Same-named properties that are not the name-stored enum, where the syntax cannot tell them
+    /// apart. Keyed by file and property, each with the reason it is safe.
+    /// </summary>
+    private static readonly (string PathSuffix, string Property, string Reason)[] StoredEnumExemptions =
+    [
+        ("Diaspora.Modules.Analytics/Persistence/Repositories/AnalyticsRepositories.cs", "Day",
+            "a calendar date (DateOnly), which sorts chronologically; the name-stored Day is a weekday in opening hours"),
+        ("Diaspora.Modules.Financial/Persistence/Repositories/AdPerformanceRepository.cs", "Day",
+            "a calendar date (DateOnly)"),
+        ("Diaspora.Modules.Housing/Persistence/Repositories/HousingAnalyticsRepository.cs", "Day",
+            "a calendar date (DateOnly)"),
+        ("Diaspora.Modules.Marketplace/Persistence/Repositories/ListingAnalyticsRepository.cs", "Day",
+            "a calendar date (DateOnly)"),
+        ("Diaspora.Modules.Notifications/Persistence/Repositories/NotificationAnalyticsRepository.cs", "Day",
+            "a calendar date (DateOnly)"),
+        ("Diaspora.Modules.Recommendations/Persistence/Repositories/RecommendationAnalyticsRepository.cs", "Day",
+            "a calendar date (DateOnly)"),
+
+        // Same name, different type: not an enum at all.
+        ("Diaspora.Modules.Guides/Persistence/Repositories/OfficialNoticeRepository.cs", "Priority",
+            "a notice's integer pin; severity already sorts by its stored rank column"),
+        ("Diaspora.Modules.Location/Persistence/Repositories/AdministrativeAreaRepository.cs", "Prominence",
+            "an integer score"),
+        ("Diaspora.Modules.Location/Persistence/Spatial/CatalogGeocodingProvider.cs", "Prominence",
+            "an integer score"),
+        ("Diaspora.Modules.Media/Persistence/Repositories/MediaAssetRepository.cs", "Role",
+            "a free-text role string"),
+        ("Diaspora.Modules.Notifications/Persistence/Repositories/NotificationRuleRepository.cs", "Audience",
+            "a string"),
+
+        // A real name-stored enum used only to make an order stable, where any fixed order will do.
+        ("Diaspora.Modules.Providers/Persistence/Repositories/ProviderRecommendationRepository.cs", "Kind",
+            "a tie-break after featured and date; paging excludes seen ids rather than trusting this order"),
+        ("Diaspora.Modules.Recommendations/Persistence/Repositories/RankingStrategyRepository.cs", "Surface",
+            "groups an administrator's list of strategies; alphabetical by surface reads fine"),
+        ("Diaspora.Modules.Recommendations/Persistence/Repositories/RecommendationAnalyticsRepository.cs", "Surface",
+            "a tie-break between rows for the same day"),
+    ];
+
+    /// <summary>
+    /// <b>Found on the live platform, 15 Sep 2026, then in six more modules the same afternoon.</b>
+    /// Nearly every enum here is mapped with <c>HasConversion&lt;string&gt;()</c>, and EF translates
+    /// an ordering operator on one into a comparison of the stored words — on Postgres and on the
+    /// SQLite test host alike, so no test saw it. "At least part-furnished" returned no furnished
+    /// home; "Senior or above" matched Senior alone; the moderation queue sorted High after Low; an
+    /// Emergency post never matched "Urgent or above"; every Volunteer counted as an organisation
+    /// Owner; Urgent donation causes listed last.
+    /// <para>
+    /// The fix is <see cref="Persistence.Querying.StoredEnum"/>: a range becomes the set of values
+    /// it admits, an ordering becomes a rank. The property names come from the model, so an enum
+    /// mapped by name next month is covered without anybody remembering this rule.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void No_query_ranges_or_orders_an_enum_stored_by_name()
+    {
+        var names = NameStoredEnumProperties();
+        var offenders = new List<string>();
+
+        foreach (var file in SourceTree.ProductionFiles.Where(IsQueryCode))
+        {
+            offenders.AddRange(StoredEnumOffences(file, names)
+                .Where(offence => !StoredEnumExemptions.Any(exemption =>
+                    file.Path.EndsWith(exemption.PathSuffix, StringComparison.Ordinal)
+                    && offence.Property == exemption.Property))
+                .Select(offence => $"{offence.Location} — {offence.Description}"));
+        }
+
+        offenders.Should().BeEmpty(
+            "an enum stored by name compares and sorts as text in SQL. Use StoredEnum.AtLeast / " +
+            "AtMost with Contains for a range, and StoredEnum.Rank for an ordering:\n" +
+            string.Join("\n", offenders));
+    }
+
+    /// <summary>The rule cannot pass by reading an empty model or by recognising nothing.</summary>
+    [Fact]
+    public void The_stored_enum_rule_sees_the_model_and_recognises_the_defect()
+    {
+        NameStoredEnumProperties().Should().Contain(
+            ["FurnishedStatus", "Condition", "ExperienceLevel", "Role", "Priority", "Urgency"]);
+
+        var sample = new SourceFile(
+            "Sample.cs",
+            CSharpSyntaxTree.ParseText(
+                """
+                class Sample
+                {
+                    void Run(System.Linq.IQueryable<Item> items, Level floor, DbContext context)
+                    {
+                        items.Where(item => item.Priority >= floor);
+                        items.CountAsync(item => floor <= item.Owner.Role && item.Id != null);
+                        items.OrderByDescending(item => item.Priority).ThenBy(item => item.Name);
+                        items.Where(item => admitted.Contains(item.Priority));
+                        var outside = floor >= Level.High;
+                    }
+                }
+                """).GetRoot());
+
+        StoredEnumOffences(sample, new HashSet<string>(StringComparer.Ordinal) { "Priority", "Role" })
+            .Select(offence => offence.Location)
+            .Should().Equal("Sample.cs:5", "Sample.cs:6", "Sample.cs:7");
+    }
+
+    /// <summary>
+    /// Every enum property the model stores as text. <c>HasConversion&lt;string&gt;()</c> records a
+    /// provider type rather than a converter instance, so all three places EF can hold the answer
+    /// are asked — reading the converter alone found none, and the rule passed on an empty set.
+    /// </summary>
+    private static HashSet<string> NameStoredEnumProperties() =>
+        PlatformModel.Value.GetEntityTypes()
+            .SelectMany(entityType => entityType.GetProperties())
+            .Where(property =>
+                (Nullable.GetUnderlyingType(property.ClrType) ?? property.ClrType).IsEnum
+                && (property.GetValueConverter()?.ProviderClrType
+                    ?? property.GetProviderClrType()
+                    ?? property.FindTypeMapping()?.Converter?.ProviderClrType) == typeof(string))
+            .Select(property => property.Name)
+            .ToHashSet(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Files that build queries. In-memory sorting of a loaded collection — a domain object
+    /// ordering its own opening hours — is ordinary code and compares ranks correctly.
+    /// </summary>
+    private static bool IsQueryCode(SourceFile file) =>
+        !file.Path.Contains("/Configurations/", StringComparison.Ordinal)
+        && (file.Path.Contains("/Persistence/", StringComparison.Ordinal)
+            || file.Root.DescendantTokens().Any(token =>
+                token.IsKind(SyntaxKind.IdentifierToken)
+                && token.ValueText is "DbContext" or "DiasporaDbContext" or "DbSet" or "IQueryable"));
+
+    private static IEnumerable<(string Location, string Property, string Description)> StoredEnumOffences(
+        SourceFile file, HashSet<string> names)
+    {
+        foreach (var invocation in file.Root.DescendantNodes().OfType<InvocationExpressionSyntax>())
+        {
+            if (invocation.Expression is not MemberAccessExpressionSyntax member
+                || !StoredEnumQueryOperators.Contains(member.Name.Identifier.ValueText))
+            {
+                continue;
+            }
+
+            var ordering = OrderingOperators.Contains(member.Name.Identifier.ValueText);
+
+            foreach (var lambda in invocation.ArgumentList.Arguments
+                .Select(argument => argument.Expression)
+                .OfType<LambdaExpressionSyntax>())
+            {
+                var parameters = LambdaParameters(lambda);
+
+                if (ordering
+                    && lambda.ExpressionBody is { } body
+                    && StoredEnumMember(body, parameters, names) is { } sorted)
+                {
+                    yield return (file.Locate(invocation), sorted,
+                        $"{member.Name.Identifier.ValueText} over '{sorted}': {Unwrap(body)}");
+                }
+
+                foreach (var comparison in lambda.DescendantNodesAndSelf().OfType<BinaryExpressionSyntax>()
+                    .Where(binary => binary.Kind() is SyntaxKind.LessThanExpression
+                        or SyntaxKind.LessThanOrEqualExpression
+                        or SyntaxKind.GreaterThanExpression
+                        or SyntaxKind.GreaterThanOrEqualExpression))
+                {
+                    var compared = StoredEnumMember(comparison.Left, parameters, names)
+                        ?? StoredEnumMember(comparison.Right, parameters, names);
+
+                    if (compared is not null)
+                    {
+                        yield return (file.Locate(comparison), compared,
+                            $"'{comparison.OperatorToken.ValueText}' on '{compared}': {comparison}");
+                    }
+                }
+            }
+        }
+    }
+
+    private static HashSet<string> LambdaParameters(LambdaExpressionSyntax lambda)
+    {
+        var parameters = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var nested in lambda.DescendantNodesAndSelf().OfType<LambdaExpressionSyntax>())
+        {
+            switch (nested)
+            {
+                case SimpleLambdaExpressionSyntax simple:
+                    parameters.Add(simple.Parameter.Identifier.ValueText);
+                    break;
+
+                case ParenthesizedLambdaExpressionSyntax parenthesized:
+                    parameters.UnionWith(parenthesized.ParameterList.Parameters
+                        .Select(parameter => parameter.Identifier.ValueText));
+                    break;
+            }
+        }
+
+        return parameters;
+    }
+
+    /// <summary>
+    /// The property name when <paramref name="expression"/> reads a name-stored enum off a row —
+    /// <c>row.Priority</c> or <c>row.Owned.Priority</c>, rooted at a lambda parameter, so a
+    /// captured <c>filter.MinimumPriority</c> is not mistaken for a column.
+    /// </summary>
+    private static string? StoredEnumMember(
+        ExpressionSyntax expression, HashSet<string> parameters, HashSet<string> names)
+    {
+        if (Unwrap(expression) is not MemberAccessExpressionSyntax access
+            || !names.Contains(access.Name.Identifier.ValueText))
+        {
+            return null;
+        }
+
+        ExpressionSyntax root = access;
+
+        while (root is MemberAccessExpressionSyntax inner)
+        {
+            root = Unwrap(inner.Expression);
+        }
+
+        return root is IdentifierNameSyntax identifier && parameters.Contains(identifier.Identifier.ValueText)
+            ? access.Name.Identifier.ValueText
+            : null;
+    }
+
+    private static ExpressionSyntax Unwrap(ExpressionSyntax expression) => expression switch
+    {
+        ParenthesizedExpressionSyntax parenthesized => Unwrap(parenthesized.Expression),
+        CastExpressionSyntax cast => Unwrap(cast.Expression),
+        PostfixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.SuppressNullableWarningExpression } bang =>
+            Unwrap(bang.Operand),
+        _ => expression
+    };
+
     // ── Rule 3: every OwnsMany declares a key ────────────────────────────
 
     /// <summary>

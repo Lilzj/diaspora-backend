@@ -5,6 +5,7 @@ using Diaspora.Modules.Community.Domain.Posts;
 using Diaspora.Modules.Community.Domain.ValueObjects;
 using Diaspora.Persistence;
 using Diaspora.Persistence.Paging;
+using Diaspora.Persistence.Querying;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Pagination;
 using Microsoft.EntityFrameworkCore;
@@ -253,7 +254,10 @@ public sealed class CommunityPostRepository : ICommunityPostRepository
 
         if (filter.MinimumUrgency is { } urgency)
         {
-            query = query.Where(post => post.Urgency >= urgency);
+            // Urgency is stored by name. As a text comparison "Urgent or above" matched Urgent
+            // alone — Emergency sorts before it — so the most urgent posts were the ones left out.
+            var admitted = StoredEnum.AtLeast(urgency);
+            query = query.Where(post => admitted.Contains(post.Urgency));
         }
 
         if (!string.IsNullOrWhiteSpace(filter.CountryCode))

@@ -4,6 +4,7 @@ using Diaspora.Modules.CommunityLife.Domain.Memberships;
 using Diaspora.Modules.CommunityLife.Domain.Policies;
 using Diaspora.Persistence;
 using Diaspora.Persistence.Paging;
+using Diaspora.Persistence.Querying;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Pagination;
 using Microsoft.EntityFrameworkCore;
@@ -90,7 +91,8 @@ public sealed class OrganizationMembershipRepository : IOrganizationMembershipRe
             .AsNoTracking()
             .Where(membership => membership.MemberUserId == memberUserId
                 && membership.Status == MembershipStatus.Active)
-            .OrderByDescending(membership => membership.Role)
+            // By rank, not by name: alphabetically Volunteer came first and Administrator last.
+            .OrderByDescending(StoredEnum.Rank((OrganizationMembership membership) => membership.Role))
             .ThenByDescending(membership => membership.JoinedAt)
             .Take(Math.Clamp(limit, 1, CommunityLifeLimits.MaxPageSize))
             .ToListAsync(cancellationToken);
@@ -121,7 +123,10 @@ public sealed class OrganizationMembershipRepository : IOrganizationMembershipRe
 
         if (filter.MinimumRole is { } role)
         {
-            query = query.Where(membership => membership.Role >= role);
+            // Roles are stored by name; `>=` compared words, so "Moderator or above" admitted
+            // Volunteers and shut out Administrators. See StoredEnum.
+            var admitted = StoredEnum.AtLeast(role);
+            query = query.Where(membership => admitted.Contains(membership.Role));
         }
 
         var parsed = CommunityLifeCursor.Parse(filter.Cursor);
@@ -243,12 +248,17 @@ public sealed class OrganizationMembershipRepository : IOrganizationMembershipRe
     {
         ArgumentNullException.ThrowIfNull(organizationId);
 
+        // At this role or above, by rank. As a text comparison "Owner or above" counted every
+        // Volunteer too (V follows O) and "Administrator or above" counted every member (A sorts
+        // first) — the owner count the last-owner guard reads and the counts the sweep repairs.
+        var admitted = StoredEnum.AtLeast(role);
+
         return await Memberships
             .AsNoTracking()
             .CountAsync(
                 membership => membership.OrganizationId == organizationId
                     && membership.Status == MembershipStatus.Active
-                    && membership.Role >= role,
+                    && admitted.Contains(membership.Role),
                 cancellationToken);
     }
 

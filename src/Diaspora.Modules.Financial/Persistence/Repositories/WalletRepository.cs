@@ -2,6 +2,7 @@ using Diaspora.Modules.Financial.Domain.Enums;
 using Diaspora.Modules.Financial.Domain.Identifiers;
 using Diaspora.Modules.Financial.Domain.Wallets;
 using Diaspora.Persistence;
+using Diaspora.Persistence.Querying;
 using Microsoft.EntityFrameworkCore;
 
 namespace Diaspora.Modules.Financial.Persistence.Repositories;
@@ -9,6 +10,13 @@ namespace Diaspora.Modules.Financial.Persistence.Repositories;
 /// <summary>EF Core repository for wallets.</summary>
 public sealed class WalletRepository : IWalletRepository
 {
+    /// <summary>
+    /// The declared order — Primary first. The type is stored by name, and sorted as text Escrow
+    /// came before Primary, so a caller falling back to the first wallet got the wrong one.
+    /// </summary>
+    private static readonly System.Linq.Expressions.Expression<Func<Wallet, int>> WalletTypeRank =
+        StoredEnum.Rank((Wallet wallet) => wallet.WalletType);
+
     private readonly DiasporaDbContext _dbContext;
 
     public WalletRepository(DiasporaDbContext dbContext) => _dbContext = dbContext;
@@ -82,7 +90,7 @@ public sealed class WalletRepository : IWalletRepository
 
         return await Wallets
             .Where(wallet => wallet.AccountId == accountId)
-            .OrderBy(wallet => wallet.WalletType)
+            .OrderBy(WalletTypeRank)
             .ThenBy(wallet => wallet.Currency)
             .ToListAsync(cancellationToken);
     }
@@ -91,7 +99,7 @@ public sealed class WalletRepository : IWalletRepository
         Guid ownerId, CancellationToken cancellationToken = default) =>
         await Wallets
             .Where(wallet => wallet.OwnerId == ownerId)
-            .OrderBy(wallet => wallet.WalletType)
+            .OrderBy(WalletTypeRank)
             .ThenBy(wallet => wallet.Currency)
             .ToListAsync(cancellationToken);
 

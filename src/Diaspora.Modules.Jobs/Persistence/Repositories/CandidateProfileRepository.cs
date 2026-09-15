@@ -5,6 +5,7 @@ using Diaspora.Modules.Jobs.Domain.Identifiers;
 using Diaspora.Modules.Jobs.Domain.Policies;
 using Diaspora.Persistence;
 using Diaspora.Persistence.Paging;
+using Diaspora.Persistence.Querying;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Pagination;
 using Microsoft.EntityFrameworkCore;
@@ -259,14 +260,17 @@ public sealed class CandidateProfileRepository : ICandidateProfileRepository
                 profile.Languages.Any(language => languages.Contains(language.Code)));
         }
 
+        // Stored by name: the ranges are taken over the enums, not compared as text. See StoredEnum.
         if (filter.MinimumExperience is { } minimumExperience)
         {
-            query = query.Where(profile => profile.ExperienceLevel >= minimumExperience);
+            var admitted = StoredEnum.AtLeast(minimumExperience);
+            query = query.Where(profile => admitted.Contains(profile.ExperienceLevel));
         }
 
         if (filter.MinimumEducation is { } minimumEducation)
         {
-            query = query.Where(profile => profile.HighestEducation >= minimumEducation);
+            var admitted = StoredEnum.AtLeast(minimumEducation);
+            query = query.Where(profile => admitted.Contains(profile.HighestEducation));
         }
 
         if (filter.RemotePreference is { } remotePreference)

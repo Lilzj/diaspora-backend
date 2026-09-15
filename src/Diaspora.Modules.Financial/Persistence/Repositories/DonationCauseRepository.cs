@@ -1,6 +1,7 @@
 using Diaspora.Modules.Financial.Domain.Giving;
 using Diaspora.Modules.Financial.Domain.Identifiers;
 using Diaspora.Persistence;
+using Diaspora.Persistence.Querying;
 using Microsoft.EntityFrameworkCore;
 
 namespace Diaspora.Modules.Financial.Persistence.Repositories;
@@ -61,8 +62,10 @@ public sealed class DonationCauseRepository : IDonationCauseRepository
             causes = causes.Where(cause => cause.CountryCode == null || cause.CountryCode == country);
         }
 
+        // Most urgent first, by rank. Sorted by its stored name, Urgent came after High, Moderate
+        // and Ongoing — the causes that most needed giving were listed last.
         return await causes
-            .OrderBy(cause => cause.Urgency)
+            .OrderBy(StoredEnum.Rank((DonationCause cause) => cause.Urgency))
             .ThenByDescending(cause => cause.CreatedAt)
             .ToListAsync(cancellationToken);
     }

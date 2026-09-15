@@ -1,5 +1,6 @@
 ﻿using Diaspora.Modules.Trust.Domain;
 using Diaspora.Persistence;
+using Diaspora.Persistence.Querying;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Pagination;
 using Microsoft.EntityFrameworkCore;
@@ -568,7 +569,10 @@ public sealed class ModerationItemRepository : IModerationItemRepository
 
         if (minimumPriority is { } priority)
         {
-            query = query.Where(item => item.Priority >= priority);
+            // Stored by name: as text, "Normal or above" left out High, and "High or above" let
+            // Low and Normal in. See StoredEnum.
+            var admitted = StoredEnum.AtLeast(priority);
+            query = query.Where(item => admitted.Contains(item.Priority));
         }
 
         if (assignedTo is not null)
@@ -584,9 +588,10 @@ public sealed class ModerationItemRepository : IModerationItemRepository
         var total = await query.CountAsync(cancellationToken);
 
         // Priority first, then age. An urgent item from a minute ago outranks a low-priority
-        // one from yesterday — otherwise the priority column is decoration.
+        // one from yesterday — otherwise the priority column is decoration. By rank: sorted by its
+        // stored name the queue read Urgent, Normal, Low, High, with High-priority work last.
         var items = await query
-            .OrderByDescending(item => item.Priority)
+            .OrderByDescending(StoredEnum.Rank((ModerationItem item) => item.Priority))
             .ThenBy(item => item.CreatedAt)
             .Skip(pagination.Skip)
             .Take(pagination.PageSize)

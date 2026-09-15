@@ -5,6 +5,7 @@ using Diaspora.Modules.Jobs.Domain.Policies;
 using Diaspora.Modules.Jobs.Domain.Postings;
 using Diaspora.Modules.Jobs.Domain.ValueObjects;
 using Diaspora.Persistence;
+using Diaspora.Persistence.Querying;
 using Diaspora.SharedKernel.Pagination;
 using Microsoft.EntityFrameworkCore;
 
@@ -336,19 +337,26 @@ public sealed class JobPostingRepository : IJobPostingRepository
                 workplaces.Contains(posting.WorkArrangement.WorkplaceType));
         }
 
+        // Levels are stored by name, so each range is taken over the enum and sent as the levels it
+        // admits. `>=` in SQL compared words: "Senior or above" matched Senior alone, because Lead,
+        // Principal, Director and Executive all sort before S. See StoredEnum.
         if (filter.MinimumExperience is { } minimumExperience)
         {
-            query = query.Where(posting => posting.ExperienceLevel >= minimumExperience);
+            var admitted = StoredEnum.AtLeast(minimumExperience);
+            query = query.Where(posting => admitted.Contains(posting.ExperienceLevel));
         }
 
         if (filter.MaximumExperience is { } maximumExperience)
         {
-            query = query.Where(posting => posting.ExperienceLevel <= maximumExperience);
+            var admitted = StoredEnum.AtMost(maximumExperience);
+            query = query.Where(posting => admitted.Contains(posting.ExperienceLevel));
         }
 
+        // The education the searcher holds: postings asking for that much or less.
         if (filter.MinimumEducation is { } minimumEducation)
         {
-            query = query.Where(posting => posting.EducationLevel <= minimumEducation);
+            var admitted = StoredEnum.AtMost(minimumEducation);
+            query = query.Where(posting => admitted.Contains(posting.EducationLevel));
         }
 
         if (filter.VisaSponsorshipOnly)
