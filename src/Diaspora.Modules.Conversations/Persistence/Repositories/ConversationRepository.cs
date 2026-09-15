@@ -379,6 +379,18 @@ public sealed class ConversationRepository : IConversationRepository
             : query.Where(conversation => conversation.Participants.Any(participant =>
                 participant.UserId == userId && !participant.IsArchived));
 
+        // ── A conversation nobody has written in is the opener's alone ──────────────────────
+        //
+        // The client opens a conversation the moment a member taps "Message" on a listing, before
+        // they type anything. One who then leaves without sending left a thread in the *other*
+        // person's inbox reading "Start a conversation" — a seller on 15 Sep 2026 had two of
+        // them from the same buyer about the same basket, and no way to tell what they were. It
+        // reaches the recipient with its first message, which is when there is something to read.
+        query = query.Where(conversation =>
+            conversation.MessageCount > 0
+            || conversation.Participants.Any(participant =>
+                participant.UserId == userId && participant.Role == ParticipantRole.Initiator));
+
         if (filter.UnreadOnly)
         {
             query = query.Where(conversation => conversation.Participants.Any(participant =>

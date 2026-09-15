@@ -90,6 +90,55 @@ public sealed class ConversationsModuleTests : IdentityTestBase
         second.ConversationId.Should().Be(first.ConversationId);
     }
 
+    /// <summary>
+    /// A thread nobody has written in is the opener's alone.
+    /// <para>
+    /// The client opens a conversation when a member taps "Message", before they type. A buyer who
+    /// left without sending used to leave "Start a conversation" in the seller's inbox — on
+    /// 15 Sep 2026 a seller had two of them from one buyer about one basket.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task A_conversation_reaches_the_recipients_inbox_with_its_first_message()
+    {
+        var (buyer, seller) = await TwoMembersAsync();
+
+        Api.Authenticate(buyer.Token);
+
+        var conversation = await ReadDataAsync<ConversationShape>(
+            await OpenConversationAsync(seller.UserId, "listing-unwritten", "A basket set"));
+
+        var openersInbox = await ReadDataAsync<ConversationPageShape>(
+            await HttpClient.GetAsync("/api/v1/conversations"));
+
+        openersInbox.Items.Should().ContainSingle(item => item.ConversationId == conversation.ConversationId,
+            "the member who opened it can come back to it");
+
+        Api.Authenticate(seller.Token);
+
+        var before = await ReadDataAsync<ConversationPageShape>(
+            await HttpClient.GetAsync("/api/v1/conversations"));
+
+        before.Items.Should().BeEmpty("nothing has been said to the seller yet");
+
+        Api.Authenticate(buyer.Token);
+
+        var sent = await HttpClient.PostAsJsonAsync(
+            $"/api/v1/conversations/{conversation.ConversationId}/messages",
+            new { text = "Is the basket set still available?", localId = "local-unwritten" },
+            JsonOptions);
+
+        sent.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        Api.Authenticate(seller.Token);
+
+        var after = await ReadDataAsync<ConversationPageShape>(
+            await HttpClient.GetAsync("/api/v1/conversations"));
+
+        after.Items.Should().ContainSingle(item => item.ConversationId == conversation.ConversationId);
+        after.Items[0].LastMessage!.Text.Should().Be("Is the basket set still available?");
+    }
+
     [Fact]
     public async Task Reading_clears_the_unread_count_for_the_reader_only()
     {
@@ -208,6 +257,14 @@ public sealed class ConversationsModuleTests : IdentityTestBase
             await OpenConversationAsync(seller.UserId, "listing-flags", "A chair"));
 
         var id = conversation.ConversationId;
+
+        // Written in, so it reaches the seller: a thread nobody has written in stays with the
+        // member who opened it (see A_conversation_reaches_the_recipients_inbox_with_its_first_message).
+        (await HttpClient.PostAsJsonAsync(
+                $"/api/v1/conversations/{id}/messages",
+                new { text = "Is the chair still for sale?", localId = "local-flags" },
+                JsonOptions))
+            .StatusCode.Should().Be(HttpStatusCode.Created);
 
         (await HttpClient.PutAsync($"/api/v1/conversations/{id}/archive", null))
             .StatusCode.Should().Be(HttpStatusCode.OK);
