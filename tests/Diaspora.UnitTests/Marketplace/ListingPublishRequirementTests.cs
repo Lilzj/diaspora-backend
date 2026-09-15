@@ -93,6 +93,7 @@ public sealed class ListingPublishRequirementTests
     [InlineData(ListingPublishRequirement.Price)]
     [InlineData(ListingPublishRequirement.Fulfillment)]
     [InlineData(ListingPublishRequirement.Photograph)]
+    [InlineData(ListingPublishRequirement.SwapWants)]
     public void Every_requirement_has_seller_facing_wording_and_a_token(
         ListingPublishRequirement requirement)
     {

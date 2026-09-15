@@ -34,8 +34,19 @@ public sealed record ListingResponse
     /// <summary>The category's materialised path, so a client can render the breadcrumb.</summary>
     public string? CategoryPath { get; init; }
 
-    /// <summary><c>FixedPrice</c>, <c>Negotiable</c>, <c>Wanted</c>, <c>Giveaway</c>, …</summary>
+    /// <summary>
+    /// <c>FixedPrice</c>, <c>Negotiable</c>, <c>Wanted</c>, <c>Giveaway</c>, <c>Swap</c>, …
+    /// </summary>
     public required string ListingType { get; init; }
+
+    /// <summary>For a swap, what the seller would take in exchange. Null for every other type.</summary>
+    public string? SwapWants { get; init; }
+
+    /// <summary>
+    /// For a swap, <c>None</c>, <c>SellerAdds</c> or <c>BuyerAdds</c>; the amount is the price.
+    /// Null for every other listing type.
+    /// </summary>
+    public string? SwapTopUp { get; init; }
 
     /// <summary><c>New</c>, <c>LikeNew</c>, <c>Good</c>, …</summary>
     public required string Condition { get; init; }

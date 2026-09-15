@@ -23,6 +23,18 @@ public sealed record ListingCardResponse
 
     public required string ListingType { get; init; }
 
+    /// <summary>
+    /// For a swap, what the seller would take in exchange — the line the card shows instead of a
+    /// price. Null for every other listing type.
+    /// </summary>
+    public string? SwapWants { get; init; }
+
+    /// <summary>
+    /// For a swap, <c>None</c>, <c>SellerAdds</c> or <c>BuyerAdds</c>; the amount is the price.
+    /// Null for every other listing type.
+    /// </summary>
+    public string? SwapTopUp { get; init; }
+
     public required string Condition { get; init; }
 
     public required string Status { get; init; }

@@ -274,7 +274,7 @@ public sealed class MarketplaceListing
     {
         get
         {
-            var unmet = new List<ListingPublishRequirement>(capacity: 7);
+            var unmet = new List<ListingPublishRequirement>(capacity: 8);
 
             if (Title.Value.Length == 0) unmet.Add(ListingPublishRequirement.Title);
             if (Description.Body.Length == 0) unmet.Add(ListingPublishRequirement.Description);
@@ -286,6 +286,11 @@ public sealed class MarketplaceListing
                     reference.Role is ListingMediaRole.Cover or ListingMediaRole.Gallery))
             {
                 unmet.Add(ListingPublishRequirement.Photograph);
+            }
+
+            if (ListingType == ListingType.Swap && SwapTerms.WantsOf(_attributes) is null)
+            {
+                unmet.Add(ListingPublishRequirement.SwapWants);
             }
 
             return unmet;
@@ -310,15 +315,30 @@ public sealed class MarketplaceListing
         && Inventory.HasStock
         && (ExpiresAt is not { } expiry || expiry > now);
 
-    /// <summary>Whether the seller invited offers and the listing is in a state to take one.</summary>
+    /// <summary>
+    /// Whether the seller invited offers and the listing is in a state to take one. A swap is
+    /// answered with a conversation about what is offered back, not with a sum of money.
+    /// </summary>
     public bool AcceptsOffers(DateTimeOffset now) =>
         AcceptsCommitments(now)
-        && ListingType is not (ListingType.Giveaway or ListingType.Wanted)
+        && ListingType is not (ListingType.Giveaway or ListingType.Wanted or ListingType.Swap)
         && (Price.IsNegotiable || ListingType == ListingType.Negotiable);
 
-    /// <summary>Whether a buyer may reserve. A wanted advert has nothing to hold.</summary>
+    /// <summary>
+    /// Whether a buyer may reserve. A wanted advert has nothing to hold, and a swap is agreed
+    /// between the two members before anything is held — a reservation would snapshot the top-up
+    /// as though it were the price of the item.
+    /// </summary>
     public bool AcceptsReservations(DateTimeOffset now) =>
-        AcceptsCommitments(now) && ListingType != ListingType.Wanted;
+        AcceptsCommitments(now) && ListingType is not (ListingType.Wanted or ListingType.Swap);
+
+    /// <summary>For a swap, what the seller would take in exchange. Null for every other type.</summary>
+    public string? SwapWants =>
+        ListingType == ListingType.Swap ? SwapTerms.WantsOf(_attributes) : null;
+
+    /// <summary>For a swap, who adds money, if anybody. Null for every other type.</summary>
+    public SwapTopUpDirection? SwapTopUp =>
+        ListingType == ListingType.Swap ? SwapTerms.TopUpOf(_attributes) : null;
 
     /// <summary>Whether the expiry has passed. Drives the expiry sweep.</summary>
     public bool HasExpired(DateTimeOffset now) =>
@@ -334,6 +354,11 @@ public sealed class MarketplaceListing
         // A giveaway must say zero rather than say nothing, so the card can read "Free" and a
         // price filter can find it.
         ListingType.Giveaway => Price.IsDisclosed && Price.Amount == 0m,
+
+        // An even swap has no price at all. A swap where somebody adds money has to say how much,
+        // and that figure is what the price carries.
+        ListingType.Swap => SwapTerms.TopUpOf(_attributes) == SwapTopUpDirection.None
+            || (Price.IsDisclosed && Price.Amount is > 0m),
 
         _ => Price.IsDisclosed && Price.Amount is > 0m
     };

@@ -35,5 +35,16 @@ public enum ListingType
     Giveaway = 4,
 
     /// <summary>Stock from a business or provider storefront, usually with a quantity.</summary>
-    BusinessInventory = 5
+    BusinessInventory = 5,
+
+    /// <summary>
+    /// An item offered in exchange for another rather than for money.
+    /// <para>
+    /// Added 15 Sep 2026. The app had a swap screen for months that sent a body the server could
+    /// not bind and then told the member their swap was listed. What the seller wants back and any
+    /// cash top-up are carried as two well-known attributes — see <c>SwapTerms</c> — so the type
+    /// needed no new columns, and the stored value is the enum's name, so it needed no migration.
+    /// </para>
+    /// </summary>
+    Swap = 6
 }

@@ -28,8 +28,10 @@ public sealed record CreateListingRequest
     public required string CountryCode { get; init; }
 
     /// <summary>
-    /// <c>FixedPrice</c>, <c>Negotiable</c>, <c>Wanted</c>, <c>Giveaway</c> or
-    /// <c>BusinessInventory</c>. <c>Auction</c> is a recognised name and is refused.
+    /// <c>FixedPrice</c>, <c>Negotiable</c>, <c>Wanted</c>, <c>Giveaway</c>,
+    /// <c>BusinessInventory</c> or <c>Swap</c>. <c>Auction</c> is a recognised name and is refused.
+    /// A swap states what it wants back as the <c>swap-wants</c> attribute, and any cash top-up as
+    /// <c>swap-top-up</c> with the amount as the price.
     /// </summary>
     public string? ListingType { get; init; }
 

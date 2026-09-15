@@ -28,6 +28,12 @@ public enum ListingPublishRequirement
     /// makes it the cheapest fraud control the module has.
     /// </summary>
     Photograph,
+
+    /// <summary>
+    /// For a swap, what the seller would take in exchange. A swap that does not say is an advert
+    /// nobody can answer, so it cannot go live without it.
+    /// </summary>
+    SwapWants,
 }
 
 /// <summary>
@@ -45,6 +51,7 @@ public static class ListingPublishRequirementText
         ListingPublishRequirement.Price => "a price",
         ListingPublishRequirement.Fulfillment => "a delivery option — pickup, delivery, shipping or digital",
         ListingPublishRequirement.Photograph => "at least one photograph",
+        ListingPublishRequirement.SwapWants => "what you would take in exchange",
         _ => requirement.ToString(),
     };
 
@@ -58,6 +65,7 @@ public static class ListingPublishRequirementText
         ListingPublishRequirement.Price => "price",
         ListingPublishRequirement.Fulfillment => "fulfillment",
         ListingPublishRequirement.Photograph => "photograph",
+        ListingPublishRequirement.SwapWants => "wants",
         _ => requirement.ToString().ToLowerInvariant(),
     };
 }

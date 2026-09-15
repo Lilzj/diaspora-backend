@@ -50,7 +50,7 @@ public sealed record ListingPublishedIntegrationEvent : IntegrationEvent
     public required IReadOnlyList<string> Tags { get; init; }
 
     /// <summary><c>FixedPrice</c>, <c>Negotiable</c>, <c>Wanted</c>, <c>Giveaway</c>,
-    /// <c>BusinessInventory</c>.</summary>
+    /// <c>BusinessInventory</c>, <c>Swap</c>.</summary>
     public required string ListingType { get; init; }
 
     /// <summary><c>New</c>, <c>LikeNew</c>, <c>Excellent</c>, <c>Good</c>, <c>Fair</c>,

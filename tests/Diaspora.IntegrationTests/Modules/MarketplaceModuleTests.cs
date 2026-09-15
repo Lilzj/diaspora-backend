@@ -248,6 +248,93 @@ public sealed class MarketplaceModuleTests : IdentityTestBase
         results.Items.Should().NotBeNull();
     }
 
+    // ── Swaps — 15 Sep 2026 ─────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// A swap is a listing type of its own: it cannot go live until it says what the seller would
+    /// take back, it takes no offers or reservations, and search finds it as a swap with its terms
+    /// on the card. The app's swap screen used to post a body nothing could bind and then tell the
+    /// member their swap was listed.
+    /// </summary>
+    [Fact]
+    public async Task A_swap_goes_live_once_it_says_what_it_wants_and_search_finds_it_as_a_swap()
+    {
+        var (_, auth) = await RegisterVerifiedMemberAsync();
+        Api.Authenticate(auth.Tokens.AccessToken);
+
+        var seller = await HttpClient.PostAsJsonAsync(
+            $"{Root}/sellers",
+            new { displayName = "Swap Tester", countryCode = "MU", kind = "Individual" },
+            JsonOptions);
+
+        seller.StatusCode.Should().Be(HttpStatusCode.Created, await seller.Content.ReadAsStringAsync());
+
+        var created = await HttpClient.PostAsJsonAsync(
+            $"{Root}/listings",
+            new
+            {
+                title = $"Child's bicycle {Guid.NewGuid():N}",
+                description = "Outgrown, rides well. Looking for something bigger.",
+                categoryKey = "bicycles",
+                countryCode = "MU",
+                listingType = "Swap",
+                condition = "Good",
+                offersPickup = true,
+                mediaIds = new[] { Guid.NewGuid() }
+            },
+            JsonOptions);
+
+        created.StatusCode.Should().Be(HttpStatusCode.Created, await created.Content.ReadAsStringAsync());
+
+        var draft = await IdentityApiClient.ReadDataAsync<SwapListingShape>(created);
+
+        draft.ListingType.Should().Be("Swap");
+        draft.SwapWants.Should().BeNull();
+
+        var refused = await HttpClient.PostAsJsonAsync(
+            $"{Root}/listings/{draft.ListingId}/publish", new { activateImmediately = true }, JsonOptions);
+
+        refused.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await refused.Content.ReadAsStringAsync()).Should().Contain(
+            "[missing: wants]", "the refusal names what the swap still needs");
+
+        var terms = await HttpClient.PutAsJsonAsync(
+            $"{Root}/listings/{draft.ListingId}/attributes",
+            new
+            {
+                attributes = new[]
+                {
+                    new { key = "swap-wants", value = "A bigger bicycle", displayName = "Wants in exchange" }
+                }
+            },
+            JsonOptions);
+
+        terms.StatusCode.Should().Be(HttpStatusCode.OK, await terms.Content.ReadAsStringAsync());
+
+        var published = await IdentityApiClient.ReadDataAsync<SwapListingShape>(
+            await HttpClient.PostAsJsonAsync(
+                $"{Root}/listings/{draft.ListingId}/publish", new { activateImmediately = true }, JsonOptions));
+
+        published.SwapWants.Should().Be("A bigger bicycle");
+        published.SwapTopUp.Should().Be("None");
+        published.AcceptsOffers.Should().BeFalse("a swap is answered with what is offered back");
+        published.AcceptsReservations.Should().BeFalse();
+
+        Api.ClearAuthentication();
+
+        var results = await IdentityApiClient.ReadDataAsync<SwapSearchShape>(
+            await HttpClient.PostAsJsonAsync(
+                $"{Root}/search",
+                new { listingTypes = new[] { "Swap" }, countryCode = "MU" },
+                JsonOptions));
+
+        var card = results.Items.Should().ContainSingle(item => item.ListingId == draft.ListingId).Subject;
+
+        card.ListingType.Should().Be("Swap");
+        card.SwapWants.Should().Be("A bigger bicycle", "the card shows what the seller wants instead of a price");
+        results.Items.Should().OnlyContain(item => item.ListingType == "Swap");
+    }
+
     // ── Wire shapes, re-declared by hand ────────────────────────────────────────────────────
 
     private sealed record CategoryShape
@@ -292,6 +379,26 @@ public sealed class MarketplaceModuleTests : IdentityTestBase
         public int SavedListings { get; init; }
 
         public List<CategoryShape> TopCategories { get; init; } = [];
+    }
+
+    private sealed record SwapListingShape
+    {
+        public Guid ListingId { get; init; }
+
+        public string ListingType { get; init; } = string.Empty;
+
+        public string? SwapWants { get; init; }
+
+        public string? SwapTopUp { get; init; }
+
+        public bool AcceptsOffers { get; init; }
+
+        public bool AcceptsReservations { get; init; }
+    }
+
+    private sealed record SwapSearchShape
+    {
+        public List<SwapListingShape> Items { get; init; } = [];
     }
 
     private sealed record SearchShape
