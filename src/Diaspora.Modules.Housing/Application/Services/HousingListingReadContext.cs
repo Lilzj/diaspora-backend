@@ -95,8 +95,15 @@ public sealed class HousingListingReadContext
     /// twenty names.
     /// </para>
     /// </summary>
+    public Task<IReadOnlyList<HousingListingCardResponse>> ToCardsAsync(
+        IReadOnlyList<HousingListing> listings, CancellationToken cancellationToken = default) =>
+        ToCardsAsync(listings, distances: null, cancellationToken);
+
+    /// <summary>The same cards, each with its distance from the point a search was made around.</summary>
     public async Task<IReadOnlyList<HousingListingCardResponse>> ToCardsAsync(
-        IReadOnlyList<HousingListing> listings, CancellationToken cancellationToken = default)
+        IReadOnlyList<HousingListing> listings,
+        IReadOnlyDictionary<Guid, double>? distances,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(listings);
 
@@ -117,7 +124,13 @@ public sealed class HousingListingReadContext
                 listing,
                 landlords.GetValueOrDefault(listing.LandlordId),
                 amenities,
-                types))
+                types) with
+            {
+                DistanceKm = distances is not null
+                    && distances.TryGetValue(listing.Id.Value, out var kilometres)
+                        ? kilometres
+                        : null
+            })
         ];
     }
 

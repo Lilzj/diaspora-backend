@@ -84,7 +84,13 @@ public sealed class SearchHousingQueryHandler
             return Result.Failure<HousingSearchResultResponse>(scope.Error);
         }
 
-        var filter = HousingGeographicScopeAdapter.Apply(BuildFilter(request), scope.Value);
+        // A point the member sent, as opposed to the centre the resolver gives a town search.
+        var aroundPoint = request.Latitude is not null
+            && request.Longitude is not null
+            && string.IsNullOrWhiteSpace(request.Bounds);
+
+        var filter = HousingGeographicScopeAdapter.Apply(
+            BuildFilter(request), scope.Value, aroundPoint);
 
         // The audience half, from who is asking. Before the engine sees anything.
         filter = await _authorization.ApplyAudienceAsync(
@@ -102,9 +108,14 @@ public sealed class SearchHousingQueryHandler
             },
             cancellationToken);
 
+        var distances = _geography.MeasureDistances(scope.Value, outcome.Items, aroundPoint);
+
+        var inside = HousingGeographicScopeAdapter.WithinRadius(
+            scope.Value, outcome.Items, distances, aroundPoint);
+
         var ranked = _ranking.Rank(
             request.Ranking,
-            outcome.Items,
+            inside,
             new HousingRankingContext
             {
                 ViewerId = _authorization.CallerId,
@@ -123,7 +134,7 @@ public sealed class SearchHousingQueryHandler
 
         return Result.Success(new HousingSearchResultResponse
         {
-            Items = await _read.ToCardsAsync(ranked, cancellationToken),
+            Items = await _read.ToCardsAsync(ranked, distances, cancellationToken),
             NextCursor = outcome.NextCursor,
             HasMore = outcome.HasMore,
             TotalCount = outcome.TotalCount,

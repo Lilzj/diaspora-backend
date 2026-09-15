@@ -96,13 +96,22 @@ public sealed class SearchProvidersQueryHandler
             return Result.Failure<ProviderPageResponse>(scope.Error);
         }
 
-        var scoped = await _geography.ApplyAsync(filter.Value, scope.Value, cancellationToken);
+        // A point the member sent, as opposed to the centre the resolver gives a town search.
+        var aroundPoint = request.Latitude is not null
+            && request.Longitude is not null
+            && string.IsNullOrWhiteSpace(request.Bounds);
+
+        var scoped = await _geography.ApplyAsync(
+            filter.Value, scope.Value, aroundPoint, cancellationToken);
 
         var page = await _providers.QueryAsync(scoped, cancellationToken);
 
         var distances = _geography.MeasureDistances(scope.Value, page.Items);
 
-        var ranked = Rank(page.Items, scoped, distances, request);
+        var inside = GeographicScopeAdapter.WithinRadius(
+            scope.Value, page.Items, distances, aroundPoint);
+
+        var ranked = Rank(inside, scoped, distances, request);
 
         var context = await _contexts.BuildAsync(
             ranked,

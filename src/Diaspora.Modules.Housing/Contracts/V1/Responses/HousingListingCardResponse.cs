@@ -49,4 +49,11 @@ public sealed record HousingListingCardResponse
     public required bool IsFeatured { get; init; }
 
     public DateTimeOffset? PublishedAt { get; init; }
+
+    /// <summary>
+    /// How far the home is from the point the search was made around, in kilometres to one
+    /// decimal place, measured from the position a stranger may see. Null when the search had no
+    /// point, or the home has no position.
+    /// </summary>
+    public double? DistanceKm { get; init; }
 }

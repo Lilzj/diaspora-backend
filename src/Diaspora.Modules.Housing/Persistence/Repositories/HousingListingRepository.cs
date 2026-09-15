@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Diaspora.Modules.Housing.Domain.Catalog;
 using Diaspora.Modules.Housing.Domain.Enums;
 using Diaspora.Modules.Housing.Domain.Identifiers;
@@ -339,6 +340,21 @@ public sealed class HousingListingRepository : IHousingListingRepository
     // Filtering
     // ════════════════════════════════════════════════════════════════════════════════════════
 
+    [SuppressMessage(
+        "Globalization", "CA1304:Specify CultureInfo",
+        Justification =
+            "The ToLower calls are inside an expression tree. They are never executed in .NET: EF "
+            + "translates them to SQL lower(), which runs under the database collation. There is no "
+            + "CultureInfo to specify, and passing one would fail to translate.")]
+    [SuppressMessage(
+        "Globalization", "CA1311:Specify a culture or use an invariant version",
+        Justification = "See CA1304. ToLowerInvariant translates identically; neither is executed.")]
+    [SuppressMessage(
+        "Globalization", "CA1862:Use the StringComparison method overloads",
+        Justification =
+            "The StringComparison overloads have no translation on either provider, so they would "
+            + "move the search into memory. Lowering both sides is what makes the match "
+            + "case-insensitive on Postgres, where LIKE and = are not.")]
     private IQueryable<HousingListing> Apply(
         IQueryable<HousingListing> query, HousingListingQueryFilter filter)
     {
@@ -381,17 +397,21 @@ public sealed class HousingListingRepository : IHousingListingRepository
 
         if (!string.IsNullOrWhiteSpace(filter.Text))
         {
-            // A LIKE-style match over the write model. Honest and adequate until a real engine
+            // A contains-match over the write model. Honest and adequate until a real engine
             // arrives; IHousingSearchEngine is the seam that replaces it without a domain change.
-            var term = filter.Text.Trim();
+            //
+            // Lowered on both sides since 15 Sep 2026. LIKE is case-sensitive on Postgres, so a
+            // member typing "rose hill" did not find the flat in "Rose Hill". The same lesson the
+            // community directory learned; ILike would not translate on the SQLite test host.
+            var term = filter.Text.Trim().ToLowerInvariant();
 
             query = query.Where(listing =>
-                EF.Functions.Like(listing.Title.Value, $"%{term}%")
-                || EF.Functions.Like(listing.Description.Summary, $"%{term}%")
+                listing.Title.Value.ToLower().Contains(term)
+                || listing.Description.Summary.ToLower().Contains(term)
                 || (listing.Location.NeighborhoodName != null
-                    && EF.Functions.Like(listing.Location.NeighborhoodName, $"%{term}%"))
+                    && listing.Location.NeighborhoodName.ToLower().Contains(term))
                 || (listing.Location.CityName != null
-                    && EF.Functions.Like(listing.Location.CityName, $"%{term}%")));
+                    && listing.Location.CityName.ToLower().Contains(term)));
         }
 
         return query;
@@ -674,6 +694,21 @@ public sealed class HousingListingRepository : IHousingListingRepository
         return query;
     }
 
+    [SuppressMessage(
+        "Globalization", "CA1304:Specify CultureInfo",
+        Justification =
+            "The ToLower calls are inside an expression tree. They are never executed in .NET: EF "
+            + "translates them to SQL lower(), which runs under the database collation. There is no "
+            + "CultureInfo to specify, and passing one would fail to translate.")]
+    [SuppressMessage(
+        "Globalization", "CA1311:Specify a culture or use an invariant version",
+        Justification = "See CA1304. ToLowerInvariant translates identically; neither is executed.")]
+    [SuppressMessage(
+        "Globalization", "CA1862:Use the StringComparison method overloads",
+        Justification =
+            "The StringComparison overloads have no translation on either provider, so they would "
+            + "move the search into memory. Lowering both sides is what makes the match "
+            + "case-insensitive on Postgres, where LIKE and = are not.")]
     private static IQueryable<HousingListing> ApplyGeography(
         IQueryable<HousingListing> query, HousingListingQueryFilter filter)
     {
@@ -695,9 +730,25 @@ public sealed class HousingListingRepository : IHousingListingRepository
             // recursive descent through the hierarchy.
             var prefix = filter.AreaPathPrefix;
 
-            query = query.Where(listing =>
-                listing.Location.AreaPath != null
-                && listing.Location.AreaPath.StartsWith(prefix));
+            if (filter.AreaPathCityFallback is { Length: > 0 } fallback)
+            {
+                // A listing with no area is still in its town. Lowered on both sides rather than
+                // ILike, which is Npgsql-only and does not translate on the SQLite test host.
+                var town = fallback.Trim().ToLowerInvariant();
+
+                query = query.Where(listing =>
+                    (listing.Location.AreaPath != null
+                        && listing.Location.AreaPath.StartsWith(prefix))
+                    || (listing.Location.AreaPath == null
+                        && listing.Location.CityName != null
+                        && listing.Location.CityName.ToLower() == town));
+            }
+            else
+            {
+                query = query.Where(listing =>
+                    listing.Location.AreaPath != null
+                    && listing.Location.AreaPath.StartsWith(prefix));
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(filter.CityName))

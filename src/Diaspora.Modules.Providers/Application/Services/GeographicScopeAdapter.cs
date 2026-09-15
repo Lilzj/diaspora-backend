@@ -1,3 +1,4 @@
+using Diaspora.Modules.Location.Domain.Enums;
 using Diaspora.Modules.Location.Integration;
 using Diaspora.Modules.Providers.Contracts.V1.Requests;
 using Diaspora.Modules.Providers.Domain.Providers;
@@ -99,8 +100,22 @@ public sealed class GeographicScopeAdapter
     /// latitude-convergence case, and B4 has both and a test suite for them.
     /// </para>
     /// </summary>
+    public Task<ProviderQueryFilter> ApplyAsync(
+        ProviderQueryFilter filter, GeographicScope scope, CancellationToken cancellationToken = default) =>
+        ApplyAsync(filter, scope, aroundPoint: false, cancellationToken);
+
+    /// <param name="filter">The filter so far.</param>
+    /// <param name="scope">What the resolver made of the request's geography.</param>
+    /// <param name="aroundPoint">
+    /// Whether the request itself carried coordinates. The resolver gives a town search a centre
+    /// and a default radius of its own, and a town search must stay a town search.
+    /// </param>
+    /// <param name="cancellationToken">Cancels the area lookup.</param>
     public async Task<ProviderQueryFilter> ApplyAsync(
-        ProviderQueryFilter filter, GeographicScope scope, CancellationToken cancellationToken = default)
+        ProviderQueryFilter filter,
+        GeographicScope scope,
+        bool aroundPoint,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(filter);
         ArgumentNullException.ThrowIfNull(scope);
@@ -108,6 +123,25 @@ public sealed class GeographicScopeAdapter
         if (scope.IsUnbounded)
         {
             return filter;
+        }
+
+        // ── A radius around the member — 15 Sep 2026 ─────────────────────────────────────────
+        //
+        // The resolver snaps a point to the nearest catalogued town and hands back that town's
+        // path, and the path used to be applied on top of the circle's rectangle — so "within
+        // 25 km" meant "inside the nearest town, and within 25 km". A radius is answered by the
+        // rectangle alone here, and the corners are trimmed by WithinRadius with Location's own
+        // distance.
+        if (aroundPoint && scope is { IsViewport: false, Center: not null, Radius.Scope: RadiusScope.Radius, Bounds: { } circle })
+        {
+            return filter with
+            {
+                CountryCode = scope.CountryCode?.Value,
+                MinLatitude = circle.South,
+                MaxLatitude = circle.North,
+                MinLongitude = circle.West,
+                MaxLongitude = circle.East
+            };
         }
 
         // B4 supplies the path whenever the scope resolved through the catalogue, but a scope
@@ -191,6 +225,36 @@ public sealed class GeographicScopeAdapter
     /// them would be four round trips to recover information already in hand.
     /// </para>
     /// </summary>
+    /// <summary>
+    /// The providers inside a radius search's circle: the repository answered the rectangle around
+    /// it, and this drops the corners. A provider with no position passed the rectangle only
+    /// because it serves remotely, and is kept.
+    /// </summary>
+    public static IReadOnlyList<Provider> WithinRadius(
+        GeographicScope scope,
+        IReadOnlyList<Provider> providers,
+        IReadOnlyDictionary<Guid, double> distances,
+        bool aroundPoint)
+    {
+        ArgumentNullException.ThrowIfNull(scope);
+        ArgumentNullException.ThrowIfNull(providers);
+        ArgumentNullException.ThrowIfNull(distances);
+
+        if (!aroundPoint
+            || scope is not { Center: not null, IsViewport: false, Radius.Scope: RadiusScope.Radius })
+        {
+            return providers;
+        }
+
+        var limit = scope.Radius.Distance.Kilometers;
+
+        return
+        [
+            .. providers.Where(provider =>
+                !distances.TryGetValue(provider.Id.Value, out var kilometres) || kilometres <= limit)
+        ];
+    }
+
     private static List<string> AncestorPaths(string path)
     {
         var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);

@@ -139,8 +139,21 @@ public sealed record HousingListingQueryFilter
     public string? AreaPathPrefix { get; init; }
 
     /// <summary>
-    /// A map viewport, as four edges. Set only from a viewport the client actually asked for —
-    /// never derived from a radius, which the engine does not filter by.
+    /// Alongside <see cref="AreaPathPrefix"/>: a listing filed with <em>no</em> area still matches
+    /// when its city carries this name, compared case-insensitively.
+    /// <para>
+    /// Added 15 Sep 2026. No create screen files a listing under an area, so every listing on the
+    /// platform has a null path, and a town search matched as a prefix alone answered nothing at
+    /// all. Set only when the path is the town itself — a neighbourhood search must not widen to
+    /// every unfiled listing in the town around it.
+    /// </para>
+    /// </summary>
+    public string? AreaPathCityFallback { get; init; }
+
+    /// <summary>
+    /// A rectangle, as four edges: a map viewport the client asked for, or — since 15 Sep 2026 —
+    /// the rectangle around a radius search's circle, whose corners the search handler trims with
+    /// Location's own distance.
     /// <para>
     /// <b>Snapped to <c>PropertyAddress.FuzzedPrecision</c> by the caller.</b> A property is
     /// somebody's home and its coordinate is published rounded; a rectangle that could be
