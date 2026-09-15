@@ -52,9 +52,11 @@ public sealed partial class CommunitySlug : ValueObject
     /// </summary>
     private static readonly HashSet<string> Reserved = new(StringComparer.Ordinal)
     {
-        // Route segments live under /api/v1/communities today.
-        "announcements", "campaigns", "impact", "memberships", "organizations", "polls", "search",
-        "volunteer",
+        // Route segments live under /api/v1/communities today. "deletion-requests" and
+        // "ownership-offers" arrived with closing and handing over a community on 12 Sep 2026 and
+        // were left off until the guardrail's next run.
+        "announcements", "campaigns", "deletion-requests", "impact", "memberships", "organizations",
+        "ownership-offers", "polls", "search", "volunteer",
 
         // Declared by the register, not yet mapped. See the summary.
         "compare", "suggestions", "directory", "primary",
