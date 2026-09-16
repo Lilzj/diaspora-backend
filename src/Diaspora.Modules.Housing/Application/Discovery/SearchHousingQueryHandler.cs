@@ -3,6 +3,7 @@ using Diaspora.Modules.Housing.Application.Services;
 using Diaspora.Modules.Housing.Contracts.V1.Requests;
 using Diaspora.Modules.Housing.Contracts.V1.Responses;
 using Diaspora.Modules.Housing.Domain.Enums;
+using Diaspora.Modules.Housing.Domain.Identifiers;
 using Diaspora.Modules.Housing.Domain.Listings;
 using Diaspora.Modules.Housing.Domain.Policies;
 using Diaspora.Modules.Housing.Extensibility.Ranking;
@@ -214,6 +215,12 @@ public sealed class SearchHousingQueryHandler
 
         VerifiedLandlordsOnly = request.VerifiedOnly ?? false,
         LandlordKinds = ParseMany<LandlordKind>(request.LandlordKinds),
+
+        // An empty guid is the client sending "no landlord" the long way round, and it must not
+        // become a filter that matches nothing.
+        LandlordId = request.LandlordId is { } landlord && landlord != Guid.Empty
+            ? LandlordProfileId.From(landlord)
+            : null,
 
         Sort = Parse<HousingSortOrder>(request.Sort) ?? HousingSortOrder.Newest,
         Limit = request.Limit ?? HousingLimits.DefaultPageSize

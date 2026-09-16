@@ -142,6 +142,16 @@ public sealed record SearchHousingRequest
     [FromQuery]
     public string[]? LandlordKinds { get; init; }
 
+    /// <summary>
+    /// One landlord's homes, by their profile identifier — what a landlord's profile page lists.
+    /// <para>
+    /// Narrowing only: the same visibility rules as any other search apply on top, so this shows
+    /// the published homes anybody could already reach, gathered under the landlord who let them.
+    /// Until 16 Sep 2026 there was no way to ask the question, and the profile page listed nothing.
+    /// </para>
+    /// </summary>
+    public Guid? LandlordId { get; init; }
+
     // ── Presentation ────────────────────────────────────────────────────────────────────────
 
     /// <summary>
