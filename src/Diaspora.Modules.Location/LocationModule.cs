@@ -75,6 +75,13 @@ public sealed class LocationModule : IPlatformModule
         services.AddScoped<ICountryRepository, CountryRepository>();
         services.AddScoped<IAdministrativeAreaRepository, AdministrativeAreaRepository>();
         services.AddScoped<ILocationProfileRepository, LocationProfileRepository>();
+
+        // Privacy. The module that owns a table is the only one that can erase it, and a saved
+        // place is a home address — so this is registered beside the repository that writes one.
+        services.AddScoped<Platform.Operations.Privacy.IDataErasureProvider,
+            Infrastructure.Privacy.LocationDataErasureProvider>();
+        services.AddScoped<Platform.Operations.Privacy.IDataExportProvider,
+            Infrastructure.Privacy.LocationDataExportProvider>();
         services.AddScoped<ICountryExperienceRepository, CountryExperienceRepository>();
         services.AddScoped<IVerifiedResidencyRepository, VerifiedResidencyRepository>();
     }
