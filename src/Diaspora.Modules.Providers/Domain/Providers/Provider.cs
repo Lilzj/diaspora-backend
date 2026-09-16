@@ -462,6 +462,39 @@ public sealed class Provider
         return Result.Success();
     }
 
+    /// <summary>
+    /// Files an unfiled provider under the area its own geography lands in, without editing it.
+    /// <para>
+    /// <b>A correction, not an edit — so no event and no touch.</b> Before 16 Sep 2026 nothing on the
+    /// platform was filed under an area, so the map's cluster counts and every neighbourhood count
+    /// read zero. Putting a provider where it already was is not news to anybody, and must not move it
+    /// up a "recently updated" list.
+    /// </para>
+    /// <para>
+    /// Only the filing may change. A context that disagrees about the country, region or town the
+    /// provider named is refused, so this can never become a back door for moving a provider.
+    /// </para>
+    /// </summary>
+    /// <returns>Whether the provider was filed by this call.</returns>
+    public bool FileUnderArea(ProviderLocationContext filed)
+    {
+        ArgumentNullException.ThrowIfNull(filed);
+
+        if (!string.IsNullOrWhiteSpace(Location.HierarchyPath)
+            || string.IsNullOrWhiteSpace(filed.HierarchyPath)
+            || filed.CountryCode != Location.CountryCode
+            || filed.CityName != Location.CityName
+            || filed.Latitude != Location.Latitude
+            || filed.Longitude != Location.Longitude)
+        {
+            return false;
+        }
+
+        Location = filed;
+
+        return true;
+    }
+
     /// <summary>Sets the principal address from a scope Location resolved.</summary>
     public Result SetLocation(ProviderLocationContext location, UserId? changedBy = null)
     {

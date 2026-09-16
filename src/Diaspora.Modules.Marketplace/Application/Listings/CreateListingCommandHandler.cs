@@ -42,6 +42,7 @@ public sealed class CreateListingCommandHandler
     private readonly ListingAttributeValidator _attributes;
     private readonly ListingSlugAllocator _slugs;
     private readonly MarketplaceGeographicScopeAdapter _geography;
+    private readonly ListingAreaFiling _filing;
     private readonly IOptions<MarketplaceOptions> _options;
     private readonly IGuidGenerator _guids;
     private readonly IClock _clock;
@@ -55,6 +56,7 @@ public sealed class CreateListingCommandHandler
         ListingAttributeValidator attributes,
         ListingSlugAllocator slugs,
         MarketplaceGeographicScopeAdapter geography,
+        ListingAreaFiling filing,
         IOptions<MarketplaceOptions> options,
         IGuidGenerator guids,
         IClock clock)
@@ -67,6 +69,7 @@ public sealed class CreateListingCommandHandler
         _attributes = attributes;
         _slugs = slugs;
         _geography = geography;
+        _filing = filing;
         _options = options;
         _guids = guids;
         _clock = clock;
@@ -156,6 +159,11 @@ public sealed class CreateListingCommandHandler
         // Location said rather than what the client claimed, which is what makes the prefix filter
         // trustworthy.
         var resolved = await ResolveAreaAsync(location.Value, request.AreaId, cancellationToken);
+
+        // And where that found no path — a town the search resolver could not match, or a listing
+        // naming only its neighbourhood — the catalogue is asked directly. Until 16 Sep 2026 such a
+        // listing was filed nowhere, and the map's cluster counts could not see it.
+        resolved = await _filing.FileAsync(resolved, cancellationToken);
 
         var slug = await _slugs.AllocateListingSlugAsync(
             request.Slug, title.Value.Value, resolved.CityName, cancellationToken);

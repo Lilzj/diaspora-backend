@@ -16,17 +16,20 @@ namespace Diaspora.Modules.Jobs.Application.Postings;
 /// <summary>Updates a posting.</summary>
 public sealed class UpdateJobCommandHandler : ICommandHandler<UpdateJobCommand, JobResponse>
 {
+    private readonly JobAreaFiling _filing;
     private readonly IJobPostingRepository _postings;
     private readonly IUnitOfWork _unitOfWork;
     private readonly JobAuthorizationService _authorization;
     private readonly IClock _clock;
 
     public UpdateJobCommandHandler(
+        JobAreaFiling filing,
         IJobPostingRepository postings,
         IUnitOfWork unitOfWork,
         JobAuthorizationService authorization,
         IClock clock)
     {
+        _filing = filing;
         _postings = postings;
         _unitOfWork = unitOfWork;
         _authorization = authorization;
@@ -78,13 +81,20 @@ public sealed class UpdateJobCommandHandler : ICommandHandler<UpdateJobCommand, 
             return Result.Failure<JobResponse>(JobErrors.CategoryKeyInvalid);
         }
 
-        var location = JobLocationContext.Create(
+        var created = JobLocationContext.Create(
             request.CountryCode, request.RegionName, request.CityName, request.AreaId);
 
-        if (location.IsFailure)
+        if (created.IsFailure)
         {
-            return Result.Failure<JobResponse>(location.Error);
+            return Result.Failure<JobResponse>(created.Error);
         }
+
+        // Filed under the catalogue node the posting names — 16 Sep 2026. A posting carries no
+        // coordinates and, until now, no path either: every job on the platform was invisible to
+        // the map's cluster counts and to every town's job count. An edit rebuilds the place from
+        // the request, so it is filed afresh each time rather than keeping a path for a town the
+        // employer may just have changed.
+        var location = Result.Success(await _filing.FileAsync(created.Value, cancellationToken));
 
         var arrangement = WorkArrangement.Create(
             JobWireNames.ParseWorkplaceType(request.WorkplaceType) ?? WorkplaceType.OnSite,

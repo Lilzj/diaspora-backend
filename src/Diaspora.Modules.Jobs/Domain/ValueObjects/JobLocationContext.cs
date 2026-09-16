@@ -87,6 +87,22 @@ public sealed class JobLocationContext : ValueObject
             country, region, city, areaId == Guid.Empty ? null : areaId, path));
     }
 
+    /// <summary>
+    /// The same place filed under a catalogue node. Called with what Location's area locator
+    /// answered, so the posting stores the catalogue's path rather than anything the client sent.
+    /// </summary>
+    public JobLocationContext WithArea(Guid? areaId, string? areaPath)
+    {
+        var path = Clean(areaPath);
+
+        return new JobLocationContext(
+            CountryCode,
+            RegionName,
+            CityName,
+            areaId is { } id && id != Guid.Empty ? id : null,
+            path is { Length: <= JobLimits.MaxAreaPath } ? path : null);
+    }
+
     /// <summary>The label a card shows: the most specific place the posting named.</summary>
     public string DisplayName =>
         CityName ?? RegionName ?? CountryCode;

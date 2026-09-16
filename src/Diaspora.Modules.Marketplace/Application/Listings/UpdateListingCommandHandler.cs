@@ -29,6 +29,7 @@ public sealed class UpdateListingCommandHandler
     private readonly IUnitOfWork _unitOfWork;
     private readonly MarketplaceAuthorizationService _authorization;
     private readonly ListingCategoryResolver _categories;
+    private readonly ListingAreaFiling _filing;
     private readonly IClock _clock;
 
     public UpdateListingCommandHandler(
@@ -36,12 +37,14 @@ public sealed class UpdateListingCommandHandler
         IUnitOfWork unitOfWork,
         MarketplaceAuthorizationService authorization,
         ListingCategoryResolver categories,
+        ListingAreaFiling filing,
         IClock clock)
     {
         _listings = listings;
         _unitOfWork = unitOfWork;
         _authorization = authorization;
         _categories = categories;
+        _filing = filing;
         _clock = clock;
     }
 
@@ -96,14 +99,32 @@ public sealed class UpdateListingCommandHandler
             request.Neighbourhood,
             request.AreaId,
 
-            // The resolved path is kept from what Location already told the listing. Re-resolving
-            // on every edit would make a text change wait on a geography call.
+            // The resolved path is kept from what Location already told the listing, while the
+            // listing is still where it was. Re-resolving on every edit would make a text change
+            // wait on a geography call.
             listing.Location.AreaPath);
 
         if (location.IsFailure)
         {
             return Result.Failure<ListingResponse>(location.Error);
         }
+
+        // A listing that moved town is no longer where its path says, and one written before
+        // 16 Sep 2026 was never filed at all. Either is filed afresh here.
+        var placed = location.Value;
+
+        if (MovedFrom(listing.Location, placed))
+        {
+            placed = placed.WithArea(request.AreaId, areaPath: null);
+        }
+        else if (placed.AreaId is null && listing.Location.AreaId is not null)
+        {
+            // An edit form that does not send the area back has not moved the listing. Dropping the
+            // id here, as this handler used to, left a row with a path and no area to explain it.
+            placed = placed.WithArea(listing.Location.AreaId, placed.AreaPath);
+        }
+
+        placed = await _filing.FileAsync(placed, cancellationToken);
 
         var fulfillment = FulfillmentOptions.Create(
             request.OffersPickup,
@@ -131,7 +152,7 @@ public sealed class UpdateListingCommandHandler
             description.Value,
             MarketplaceWireNames.ParseCondition(request.Condition) ?? listing.Condition,
             price.Value,
-            location.Value,
+            placed,
             fulfillment.Value,
             product.Value,
             MarketplaceWireNames.ParseContactPreference(request.ContactPreference)
@@ -157,4 +178,17 @@ public sealed class UpdateListingCommandHandler
             _authorization.IsStaff,
             category: category));
     }
+
+    /// <summary>Whether an edit names a different place from the one the listing is filed in.</summary>
+    private static bool MovedFrom(ListingLocationContext current, ListingLocationContext edited) =>
+        edited.CountryCode != current.CountryCode
+        || !SamePlace(edited.RegionName, current.RegionName)
+        || !SamePlace(edited.CityName, current.CityName)
+        || !SamePlace(edited.Neighbourhood, current.Neighbourhood)
+
+        // Only a different area is a move. An absent one is a form that did not echo it back.
+        || (edited.AreaId is not null && edited.AreaId != current.AreaId);
+
+    private static bool SamePlace(string? left, string? right) =>
+        string.Equals(left?.Trim(), right?.Trim(), StringComparison.OrdinalIgnoreCase);
 }

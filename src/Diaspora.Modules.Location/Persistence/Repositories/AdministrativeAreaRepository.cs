@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Diaspora.Modules.Location.Domain.Areas;
 using Diaspora.Modules.Location.Domain.Enums;
 using Diaspora.Modules.Location.Domain.Search;
@@ -210,6 +211,64 @@ public sealed class AdministrativeAreaRepository : IAdministrativeAreaRepository
         return await candidates
             .OrderByDescending(area => area.Prominence)
             .Take(query.Limit * 4)
+            .ToListAsync(cancellationToken);
+    }
+
+    [SuppressMessage(
+        "Globalization", "CA1304:Specify CultureInfo",
+        Justification =
+            "The ToLower calls are inside an expression tree. They are never executed in .NET: EF "
+            + "translates them to SQL lower(), which runs under the database collation. There is no "
+            + "CultureInfo to specify, and passing one would fail to translate.")]
+    [SuppressMessage(
+        "Globalization", "CA1311:Specify a culture or use an invariant version",
+        Justification = "See CA1304. ToLowerInvariant translates identically; neither is executed.")]
+    [SuppressMessage(
+        "Globalization", "CA1862:Use the StringComparison method overloads",
+        Justification =
+            "The StringComparison overloads have no translation on either provider, so they would "
+            + "move the match into memory over the whole catalogue. Lowering both sides is what makes "
+            + "it case-insensitive in SQL on Postgres and on the SQLite test host alike.")]
+    public async Task<IReadOnlyList<AdministrativeArea>> FindByNameAsync(
+        string name,
+        IReadOnlyCollection<AdministrativeLevel> levels,
+        CountryCode? countryCode,
+        int limit,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(levels);
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return [];
+        }
+
+        var term = name.Trim().ToLowerInvariant();
+        var candidates = Areas.AsNoTracking().AsQueryable();
+
+        if (countryCode is not null)
+        {
+            var code = countryCode;
+            candidates = candidates.Where(area => area.CountryCode == code);
+        }
+
+        if (levels.Count > 0)
+        {
+            var wanted = levels.ToList();
+            candidates = candidates.Where(area => wanted.Contains(area.Level));
+        }
+
+        // Equality, not Contains. See the contract: this places a row, and a substring match
+        // would file every listing in London under Londonderry the moment one is seeded.
+        candidates = candidates.Where(area =>
+            area.Name.Value.ToLower() == term
+            || (area.Name.LocalName != null && area.Name.LocalName.ToLower() == term));
+
+        // Prominence breaks the tie between two real places of the same name. The member who
+        // typed "Springfield" meant the one other people mean.
+        return await candidates
+            .OrderByDescending(area => area.Prominence)
+            .Take(Math.Clamp(limit, 1, 50))
             .ToListAsync(cancellationToken);
     }
 

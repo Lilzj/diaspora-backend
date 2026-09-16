@@ -104,6 +104,22 @@ public sealed class ProviderLocationContext : ValueObject
             Normalize(addressLine),
             Normalize(postalCode)?.ToUpperInvariant());
 
+    /// <summary>
+    /// The same place filed under a catalogue node. Called with what Location's area locator
+    /// answered; an area the provider already named is kept rather than replaced.
+    /// </summary>
+    public ProviderLocationContext WithArea(Guid? areaId, string? hierarchyPath) =>
+        new(
+            CountryCode,
+            AreaId ?? (areaId is { } id && id != Guid.Empty ? id : null),
+            AreaName,
+            CityName,
+            Latitude,
+            Longitude,
+            Normalize(hierarchyPath),
+            AddressLine,
+            PostalCode);
+
     /// <summary>The card subtitle the client builds by hand today: "Peckham, London".</summary>
     public string? Describe() => (AreaName, CityName) switch
     {

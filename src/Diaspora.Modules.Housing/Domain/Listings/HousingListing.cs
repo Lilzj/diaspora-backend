@@ -472,6 +472,39 @@ public sealed class HousingListing
     }
 
     /// <summary>
+    /// Files an unfiled property under the area its own geography lands in, without editing it.
+    /// <para>
+    /// <b>A correction, not an edit — so no event, no revision and no touch.</b> Every listing
+    /// written before 16 Sep 2026 was filed nowhere, which made it invisible to the map's cluster
+    /// counts and to every neighbourhood count. Putting it where it already was is not news to a
+    /// follower and must not move it up a "recently updated" list. Nor does it care whether the
+    /// listing is editable: an archived property still belongs somewhere.
+    /// </para>
+    /// <para>
+    /// Only the filing may change. A context that disagrees about the country, region or town the
+    /// landlord named is refused, so this can never become a back door for moving a property.
+    /// </para>
+    /// </summary>
+    /// <returns>Whether the property was filed by this call.</returns>
+    public bool FileUnderArea(HousingLocationContext filed)
+    {
+        ArgumentNullException.ThrowIfNull(filed);
+
+        if (!string.IsNullOrWhiteSpace(Location.AreaPath)
+            || string.IsNullOrWhiteSpace(filed.AreaPath)
+            || filed.CountryCode != Location.CountryCode
+            || filed.RegionName != Location.RegionName
+            || filed.CityName != Location.CityName)
+        {
+            return false;
+        }
+
+        Location = filed;
+
+        return true;
+    }
+
+    /// <summary>
     /// Restates who the property is for.
     /// <para>
     /// <b>Roommate preferences are cleared when the property stops being shared</b>, rather than

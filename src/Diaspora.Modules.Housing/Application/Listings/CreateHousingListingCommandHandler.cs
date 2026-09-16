@@ -318,14 +318,14 @@ public sealed class CreateHousingListingCommandHandler
             return Result.Failure<ListingPlace>(resolved.Error);
         }
 
-        // ── And where the client named none, the address decides — 16 Sep 2026 ───────────────
+        // ── And where the client named none, the property's own geography decides — 16 Sep 2026 ──
         //
         // No create screen sends `neighborhoodAreaId`, so until now every listing on the platform
         // was filed under no area at all: a town search by path matched nothing, every
         // neighbourhood's resource count read zero, and the map's cluster endpoint aggregated a
-        // catalogue of noughts. The property's own coordinates are the authority, and the resolver
-        // leaves it unfiled rather than guessing when nothing is near.
-        var placed = await _neighborhoods.ResolveFromPointAsync(
+        // catalogue of noughts. Coordinates decide when the property has them, the town the
+        // landlord typed when it does not, and nothing is guessed when neither places it.
+        var placed = await _neighborhoods.FileUnderAreaAsync(
             resolved.Value, request.Latitude, request.Longitude, cancellationToken);
 
         // Where no neighbourhood was named, the country still has to be one B4 knows about.

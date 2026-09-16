@@ -35,6 +35,7 @@ namespace Diaspora.Modules.Providers.Application.Registration;
 public sealed class RegisterProviderCommandHandler
     : ICommandHandler<RegisterProviderCommand, ProviderResponse>
 {
+    private readonly ProviderAreaFiling _filing;
     private readonly IProviderRepository _providers;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ServiceCategoryResolver _categories;
@@ -48,6 +49,7 @@ public sealed class RegisterProviderCommandHandler
     private readonly IClock _clock;
 
     public RegisterProviderCommandHandler(
+        ProviderAreaFiling filing,
         IProviderRepository providers,
         IUnitOfWork unitOfWork,
         ServiceCategoryResolver categories,
@@ -60,6 +62,7 @@ public sealed class RegisterProviderCommandHandler
         IGuidGenerator guids,
         IClock clock)
     {
+        _filing = filing;
         _providers = providers;
         _unitOfWork = unitOfWork;
         _categories = categories;
@@ -277,7 +280,7 @@ public sealed class RegisterProviderCommandHandler
             return Result.Failure<ProviderLocationContext>(scope.Error);
         }
 
-        return Result.Success(ProviderLocationContext.Create(
+        var resolved = ProviderLocationContext.Create(
             scope.Value.CountryCode?.Value,
             scope.Value.AreaId?.Value,
             areaName: null,
@@ -286,7 +289,13 @@ public sealed class RegisterProviderCommandHandler
             scope.Value.Center?.Longitude ?? request.Longitude,
             scope.Value.Path?.Value,
             request.AddressLine,
-            request.PostalCode));
+            request.PostalCode);
+
+        // A scope that resolved no path — a town the search resolver could not match — used to
+        // leave the provider filed nowhere, and uncounted on the map. The catalogue is asked
+        // directly, from the provider's own coordinates and then the town it named.
+        return Result.Success(await _filing.FileAsync(
+            resolved, request.CityName, cancellationToken));
     }
 
     private static ServiceDeliveryMode? ParseDeliveryMode(string? value)

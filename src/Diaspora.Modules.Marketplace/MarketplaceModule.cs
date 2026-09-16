@@ -135,6 +135,7 @@ public sealed class MarketplaceModule : IPlatformModule
         // a reference to any of them.
         services.AddScoped<MarketplaceMediaClaimer>();
         services.AddScoped<MarketplaceGeographicScopeAdapter>();
+        services.AddScoped<ListingAreaFiling>();
         services.AddScoped<MarketplaceProviderResolver>();
         services.AddScoped<MarketplaceGuideResolver>();
         services.AddScoped<MarketplaceTrustVerificationProvider>();

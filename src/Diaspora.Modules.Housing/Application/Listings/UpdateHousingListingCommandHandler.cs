@@ -274,13 +274,21 @@ public sealed class UpdateHousingListingCommandHandler
             return Result.Success();
         }
 
+        // A property whose town changed is no longer where it was filed. Its old neighbourhood and
+        // path are dropped so it is filed afresh below; one whose town did not change keeps them,
+        // because the landlord may have picked that neighbourhood by hand.
+        var renamedPlace = Changed(request.CityName, listing.Location.CityName)
+            || Changed(request.RegionName, listing.Location.RegionName);
+
+        var keepFiling = request.NeighborhoodAreaId is null && !renamedPlace;
+
         var context = HousingLocationContext.Create(
             listing.Location.CountryCode,
             request.RegionName ?? listing.Location.RegionName,
             request.CityName ?? listing.Location.CityName,
-            listing.Location.NeighborhoodName,
-            listing.Location.NeighborhoodAreaId,
-            listing.Location.AreaPath);
+            keepFiling ? listing.Location.NeighborhoodName : null,
+            keepFiling ? listing.Location.NeighborhoodAreaId : null,
+            keepFiling ? listing.Location.AreaPath : null);
 
         if (context.IsFailure)
         {
@@ -296,10 +304,10 @@ public sealed class UpdateHousingListingCommandHandler
             return Result.Failure(resolved.Error);
         }
 
-        // A listing that predates area filing, or one whose address moved, is placed from its
-        // coordinates on the next edit — and one already filed is left where it is, because an
-        // owner who chose a neighbourhood outranks the nearest centre.
-        var placed = await _neighborhoods.ResolveFromPointAsync(
+        // A listing that predates area filing, or one whose town changed, is filed on this edit —
+        // and one already filed is left where it is, because an owner who chose a neighbourhood
+        // outranks the nearest centre.
+        var placed = await _neighborhoods.FileUnderAreaAsync(
             resolved.Value,
             request.Latitude ?? listing.Address.Latitude,
             request.Longitude ?? listing.Address.Longitude,
@@ -330,6 +338,11 @@ public sealed class UpdateHousingListingCommandHandler
 
         return listing.ChangeLocation(placed, address, baseRevision: null);
     }
+
+    /// <summary>Whether an edit names a different place, ignoring case and stray spaces.</summary>
+    private static bool Changed(string? requested, string? current) =>
+        requested is not null
+        && !string.Equals(requested.Trim(), current?.Trim(), StringComparison.OrdinalIgnoreCase);
 
     private static TEnum? Parse<TEnum>(string? value) where TEnum : struct, Enum =>
         Enum.TryParse<TEnum>(value, ignoreCase: true, out var parsed) ? parsed : null;

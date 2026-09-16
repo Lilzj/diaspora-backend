@@ -50,7 +50,7 @@ public sealed class HousingAreaFilingTests : IdentityTestBase
 
         unfiled.HasNeighborhood.Should().BeFalse("this is every listing the platform holds today");
 
-        var filed = await resolver.ResolveFromPointAsync(
+        var filed = await resolver.FileUnderAreaAsync(
             unfiled, PeckhamLatitude, PeckhamLongitude);
 
         filed.HasNeighborhood.Should().BeTrue();
@@ -62,10 +62,72 @@ public sealed class HousingAreaFilingTests : IdentityTestBase
     /// <summary>
     /// Nearest, not nearest-at-any-distance. A property in the sea is in no neighbourhood, and
     /// filing it under whichever node happened to be closest would put it on a map in a place
-    /// nobody listed it in.
+    /// nobody listed it in. With no town named either, there is nothing honest to file it under.
     /// </summary>
     [Fact]
-    public async Task A_property_far_from_every_known_neighbourhood_stays_unfiled()
+    public async Task A_property_far_from_everything_and_naming_no_town_stays_unfiled()
+    {
+        Factory.EnsureDatabaseCreated();
+
+        using var scope = Factory.Services.CreateScope();
+        var resolver = scope.ServiceProvider.GetRequiredService<HousingNeighborhoodResolver>();
+
+        var unfiled = HousingLocationContext.Create("GB").Value;
+
+        // The middle of the North Sea.
+        var filed = await resolver.FileUnderAreaAsync(unfiled, 56.0d, 3.0d);
+
+        filed.HasNeighborhood.Should().BeFalse();
+        filed.AreaPath.Should().BeNull();
+    }
+
+    /// <summary>A property with no coordinates and no town cannot be placed, and is not guessed at.</summary>
+    [Fact]
+    public async Task A_property_with_no_coordinates_and_no_town_stays_unfiled()
+    {
+        Factory.EnsureDatabaseCreated();
+
+        using var scope = Factory.Services.CreateScope();
+        var resolver = scope.ServiceProvider.GetRequiredService<HousingNeighborhoodResolver>();
+
+        var unfiled = HousingLocationContext.Create("GB").Value;
+
+        var filed = await resolver.FileUnderAreaAsync(unfiled, null, null);
+
+        filed.HasNeighborhood.Should().BeFalse();
+        filed.AreaPath.Should().BeNull();
+    }
+
+    /// <summary>
+    /// The case production actually holds. Both homes on the platform on 16 Sep 2026 carried a
+    /// country, a district and a town, and no coordinates at all: "Rose Hill, Plaines Wilhems, MU".
+    /// The town is filed; the neighbourhood is not claimed, because nobody named one.
+    /// </summary>
+    [Fact]
+    public async Task A_property_that_only_names_its_town_is_filed_under_the_town_and_claims_no_neighbourhood()
+    {
+        Factory.EnsureDatabaseCreated();
+
+        using var scope = Factory.Services.CreateScope();
+        var resolver = scope.ServiceProvider.GetRequiredService<HousingNeighborhoodResolver>();
+
+        var unfiled = HousingLocationContext.Create("MU", "Plaines Wilhems", "Rose Hill").Value;
+
+        var filed = await resolver.FileUnderAreaAsync(unfiled, null, null);
+
+        filed.AreaPath.Should().NotBeNullOrWhiteSpace("the counters aggregate by it");
+        filed.HasNeighborhood.Should().BeFalse(
+            "a town is not a neighbourhood, and the neighbourhood id is the join to a profile");
+        filed.NeighborhoodName.Should().BeNull();
+        filed.CityName.Should().Be("Rose Hill", "filing never rewrites what the landlord typed");
+    }
+
+    /// <summary>
+    /// A point that places nothing does not silence the town the landlord named. The two are
+    /// independent evidence, and the name is the weaker one only when the point says otherwise.
+    /// </summary>
+    [Fact]
+    public async Task Coordinates_that_place_nothing_fall_back_to_the_named_town()
     {
         Factory.EnsureDatabaseCreated();
 
@@ -74,25 +136,27 @@ public sealed class HousingAreaFilingTests : IdentityTestBase
 
         var unfiled = HousingLocationContext.Create("GB", "Greater London", "London").Value;
 
-        // The middle of the North Sea.
-        var filed = await resolver.ResolveFromPointAsync(unfiled, 56.0d, 3.0d);
+        var filed = await resolver.FileUnderAreaAsync(unfiled, 56.0d, 3.0d);
 
+        filed.AreaPath.Should().NotBeNullOrWhiteSpace();
         filed.HasNeighborhood.Should().BeFalse();
     }
 
-    /// <summary>A property with no coordinates at all cannot be placed, and is not guessed at.</summary>
+    /// <summary>A neighbourhood the landlord chose is never replaced by a nearer centre.</summary>
     [Fact]
-    public async Task A_property_with_no_coordinates_stays_unfiled()
+    public async Task A_property_already_filed_is_left_where_it_is()
     {
         Factory.EnsureDatabaseCreated();
 
         using var scope = Factory.Services.CreateScope();
         var resolver = scope.ServiceProvider.GetRequiredService<HousingNeighborhoodResolver>();
 
-        var unfiled = HousingLocationContext.Create("GB", "Greater London", "London").Value;
+        var chosen = HousingLocationContext.Create(
+            "GB", "Greater London", "London", "Brixton", Guid.NewGuid(), "/gb/greater-london/london/brixton/").Value;
 
-        (await resolver.ResolveFromPointAsync(unfiled, null, null))
-            .HasNeighborhood.Should().BeFalse();
+        var filed = await resolver.FileUnderAreaAsync(chosen, PeckhamLatitude, PeckhamLongitude);
+
+        filed.Should().BeSameAs(chosen);
     }
 
     /// <summary>
@@ -132,7 +196,7 @@ public sealed class HousingAreaFilingTests : IdentityTestBase
         var dbContext = scope.ServiceProvider.GetRequiredService<DiasporaDbContext>();
         var resolver = scope.ServiceProvider.GetRequiredService<HousingNeighborhoodResolver>();
 
-        var place = await resolver.ResolveFromPointAsync(
+        var place = await resolver.FileUnderAreaAsync(
             HousingLocationContext.Create("GB", "Greater London", "London").Value,
             PeckhamLatitude,
             PeckhamLongitude);

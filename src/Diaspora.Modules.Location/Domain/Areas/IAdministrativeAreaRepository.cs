@@ -62,6 +62,23 @@ public interface IAdministrativeAreaRepository
         LocationTextQuery query, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Nodes whose name is exactly this, ignoring case, at any of these levels.
+    /// <para>
+    /// Not a substring search: this backs filing a row under the place a member named, where
+    /// "London" must find London and must not find "New London" or "Londonderry". Matching is
+    /// lowered on both sides rather than done with ILike, which is Npgsql-only and does not
+    /// translate on the SQLite test host — the lesson the housing and community repositories
+    /// both record.
+    /// </para>
+    /// </summary>
+    Task<IReadOnlyList<AdministrativeArea>> FindByNameAsync(
+        string name,
+        IReadOnlyCollection<AdministrativeLevel> levels,
+        CountryCode? countryCode,
+        int limit,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Candidates for a spatial query: everything with a coordinate inside the box, after the
     /// level, country and path filters. The set an in-process provider refines by exact
     /// distance.

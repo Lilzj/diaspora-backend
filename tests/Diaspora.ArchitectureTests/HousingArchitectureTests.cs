@@ -206,6 +206,7 @@ public class HousingArchitectureTests
                 nameof(HousingNeighborhoodResolver),
                 nameof(HousingNearbyResourceProvider),
                 nameof(HousingResourceCounter),
+                nameof(HousingAreaFilingSource),
                 nameof(NeighborhoodStatisticsService),
                 "SearchHousingQueryHandler",
                 "SearchNeighborhoodsQueryHandler"

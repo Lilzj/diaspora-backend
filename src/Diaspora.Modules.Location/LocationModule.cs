@@ -129,6 +129,7 @@ public sealed class LocationModule : IPlatformModule
         RegisterImplementations<INearbyResourceProvider>(services, assemblies, ServiceLifetime.Scoped);
         RegisterImplementations<ILocationResourceCounter>(services, assemblies, ServiceLifetime.Scoped);
         RegisterImplementations<ILocationCatalogSeeder>(services, assemblies, ServiceLifetime.Scoped);
+        RegisterImplementations<IAreaFilingSource>(services, assemblies, ServiceLifetime.Scoped);
 
         // Metadata contributors are the one seam whose contract forbids I/O — they answer from
         // a table in memory — so they and the catalogue composing them are singletons. The
@@ -160,6 +161,11 @@ public sealed class LocationModule : IPlatformModule
         services.AddScoped<ILocationDirectory, LocationDirectory>();
         services.AddScoped<IResidencyDirectory, ResidencyDirectory>();
         services.AddScoped<IGeographicScopeResolver, GeographicScopeResolver>();
+
+        // Filing a row under the area it is in. The seam four verticals call on create and update,
+        // and the sweep that files what was written before they did.
+        services.AddScoped<IAreaLocator, AreaLocator>();
+        services.AddHostedService<Infrastructure.Hosting.AreaFilingSweep>();
     }
 
     private static void RegisterSeeding(IServiceCollection services)

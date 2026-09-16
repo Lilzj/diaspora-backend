@@ -48,6 +48,7 @@ public sealed class DuplicateListingCommandHandler
     private readonly MarketplaceAuthorizationService _authorization;
     private readonly ListingCategoryResolver _categories;
     private readonly ListingSlugAllocator _slugs;
+    private readonly ListingAreaFiling _filing;
     private readonly IOptions<MarketplaceOptions> _options;
     private readonly IGuidGenerator _guids;
     private readonly IClock _clock;
@@ -59,6 +60,7 @@ public sealed class DuplicateListingCommandHandler
         MarketplaceAuthorizationService authorization,
         ListingCategoryResolver categories,
         ListingSlugAllocator slugs,
+        ListingAreaFiling filing,
         IOptions<MarketplaceOptions> options,
         IGuidGenerator guids,
         IClock clock)
@@ -69,6 +71,7 @@ public sealed class DuplicateListingCommandHandler
         _authorization = authorization;
         _categories = categories;
         _slugs = slugs;
+        _filing = filing;
         _options = options;
         _guids = guids;
         _clock = clock;
@@ -188,6 +191,10 @@ public sealed class DuplicateListingCommandHandler
             return Result.Failure<ListingResponse>(location.Error);
         }
 
+        // A copy of a listing written before 16 Sep 2026 is filed now, rather than inheriting
+        // "nowhere" from its original.
+        var placed = await _filing.FileAsync(location.Value, cancellationToken);
+
         var fulfillment = FulfillmentOptions.Create(
             source.Fulfillment.OffersPickup, source.Fulfillment.OffersDelivery,
             source.Fulfillment.OffersShipping, source.Fulfillment.IsDigital,
@@ -219,7 +226,7 @@ public sealed class DuplicateListingCommandHandler
             source.ListingType,
             source.Condition,
             price.Value,
-            location.Value,
+            placed,
             now);
 
         if (copy.IsFailure)
@@ -235,7 +242,7 @@ public sealed class DuplicateListingCommandHandler
             description.Value,
             source.Condition,
             price.Value,
-            location.Value,
+            placed,
             fulfillment.Value,
             product.Value,
             source.ContactPreference,

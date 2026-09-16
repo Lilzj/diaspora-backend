@@ -151,6 +151,8 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Api.Program>
                 // identically to all six from the day each shipped. PSR-1 Final Certification added
                 // the switches; this is what they were for.
                 ["Media:Upload:EnableSweeper"] = "false",
+                // Tests file rows by running AreaFilingSweep.RunOnceAsync directly.
+                ["Location:Spatial:EnableAreaFilingSweep"] = "false",
                 ["Media:Processing:EnableWorker"] = "false",
                 ["Community:EnableExpirySweep"] = "false",
                 ["CommunityLife:EnableLifecycleSweep"] = "false",

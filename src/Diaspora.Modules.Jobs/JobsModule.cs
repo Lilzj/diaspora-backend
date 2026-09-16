@@ -118,6 +118,7 @@ public sealed class JobsModule : IPlatformModule
         // holds a reference to any of them.
         services.AddScoped<JobMediaClaimer>();
         services.AddScoped<JobGeographicScopeAdapter>();
+        services.AddScoped<JobAreaFiling>();
         services.AddScoped<JobProviderResolver>();
         services.AddScoped<JobGuideResolver>();
         services.AddScoped<JobTrustVerificationProvider>();

@@ -95,6 +95,7 @@ public sealed class ProvidersModule : IPlatformModule
         services.AddScoped<ServiceCategoryResolver>();
         services.AddScoped<ProviderSlugAllocator>();
         services.AddScoped<GeographicScopeAdapter>();
+        services.AddScoped<ProviderAreaFiling>();
         services.AddScoped<AvailabilityCalculator>();
         services.AddScoped<ReviewSummaryService>();
         services.AddScoped<ProviderMediaClaimer>();

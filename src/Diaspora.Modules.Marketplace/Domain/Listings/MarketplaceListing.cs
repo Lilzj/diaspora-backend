@@ -474,6 +474,39 @@ public sealed class MarketplaceListing
     // ════════════════════════════════════════════════════════════════════════════════════════
 
     /// <summary>
+    /// Files an unfiled listing under the area its own geography lands in, without editing it.
+    /// <para>
+    /// <b>A correction, not an edit — so no event and no touch.</b> Before 16 Sep 2026 nothing on the
+    /// platform was filed under an area, so the map's cluster counts and every neighbourhood count
+    /// read zero. Putting a listing where it already was is not news to anybody, and must not move it
+    /// up a "recently updated" list.
+    /// </para>
+    /// <para>
+    /// Only the filing may change. A context that disagrees about the country, region or town the
+    /// seller named is refused, so this can never become a back door for moving a listing.
+    /// </para>
+    /// </summary>
+    /// <returns>Whether the listing was filed by this call.</returns>
+    public bool FileUnderArea(ListingLocationContext filed)
+    {
+        ArgumentNullException.ThrowIfNull(filed);
+
+        if (!string.IsNullOrWhiteSpace(Location.AreaPath)
+            || string.IsNullOrWhiteSpace(filed.AreaPath)
+            || filed.CountryCode != Location.CountryCode
+            || filed.RegionName != Location.RegionName
+            || filed.CityName != Location.CityName
+            || filed.Neighbourhood != Location.Neighbourhood)
+        {
+            return false;
+        }
+
+        Location = filed;
+
+        return true;
+    }
+
+    /// <summary>
     /// Updates everything a buyer reads that is not a list.
     /// <para>
     /// Reports which fields actually moved, so a consumer can ignore a change it does not care

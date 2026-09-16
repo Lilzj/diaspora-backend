@@ -112,9 +112,17 @@ public class JobsArchitectureTests
     /// jobs source at all — and because an unreachable counter and an unregistered one are the same
     /// absent key, nothing said so.
     /// </para>
+    /// <para>
+    /// <b>Filing added two more on 16 Sep 2026, and the rule they keep is the same one.</b> The
+    /// counter aggregates by area path and no posting had ever been given one, so every town's jobs
+    /// figure — and the map's cluster count — read zero. <c>JobAreaFiling</c> hands the country,
+    /// region, city and area id a posting already holds to Location's <c>IAreaLocator</c> and stores
+    /// the path it answers; <c>JobAreaFilingSource</c> is the contribution Location's sweep calls to
+    /// file postings written before that. Neither resolves a city name: both ask B4 to.
+    /// </para>
     /// </summary>
     [Fact]
-    public void Only_the_two_location_seams_talk_to_location()
+    public void Only_the_location_seams_talk_to_location()
     {
         var talkers = Types.InAssembly(Module)
             .That().HaveDependencyOn("Diaspora.Modules.Location")
@@ -123,9 +131,15 @@ public class JobsArchitectureTests
             .ToList();
 
         talkers.Should().BeEquivalentTo(
-            [nameof(JobGeographicScopeAdapter), nameof(JobResourceCounter)],
+            [
+                nameof(JobGeographicScopeAdapter),
+                nameof(JobResourceCounter),
+                nameof(JobAreaFiling),
+                nameof(JobAreaFilingSource)
+            ],
             "B9 parses no radius, resolves no city name and computes no distance; it narrows a "
-            + "filter through B4's resolver and reports its own count through B4's counter seam");
+            + "filter through B4's resolver, files a posting through B4's locator and reports its "
+            + "own count through B4's counter seam");
     }
 
     /// <summary>

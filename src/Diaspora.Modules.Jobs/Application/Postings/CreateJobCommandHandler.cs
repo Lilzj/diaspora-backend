@@ -31,6 +31,7 @@ namespace Diaspora.Modules.Jobs.Application.Postings;
 /// </summary>
 public sealed class CreateJobCommandHandler : ICommandHandler<CreateJobCommand, JobResponse>
 {
+    private readonly JobAreaFiling _filing;
     private readonly IJobPostingRepository _postings;
     private readonly IHiringPipelineRepository _pipelines;
     private readonly IJobAnalyticsRepository _analytics;
@@ -43,6 +44,7 @@ public sealed class CreateJobCommandHandler : ICommandHandler<CreateJobCommand, 
     private readonly IClock _clock;
 
     public CreateJobCommandHandler(
+        JobAreaFiling filing,
         IJobPostingRepository postings,
         IHiringPipelineRepository pipelines,
         IJobAnalyticsRepository analytics,
@@ -54,6 +56,7 @@ public sealed class CreateJobCommandHandler : ICommandHandler<CreateJobCommand, 
         IGuidGenerator guids,
         IClock clock)
     {
+        _filing = filing;
         _postings = postings;
         _pipelines = pipelines;
         _analytics = analytics;
@@ -126,13 +129,20 @@ public sealed class CreateJobCommandHandler : ICommandHandler<CreateJobCommand, 
             return Result.Failure<JobResponse>(JobErrors.CategoryKeyInvalid);
         }
 
-        var location = JobLocationContext.Create(
+        var created = JobLocationContext.Create(
             request.CountryCode, request.RegionName, request.CityName, request.AreaId);
 
-        if (location.IsFailure)
+        if (created.IsFailure)
         {
-            return Result.Failure<JobResponse>(location.Error);
+            return Result.Failure<JobResponse>(created.Error);
         }
+
+        // Filed under the catalogue node the posting names — 16 Sep 2026. A posting carries no
+        // coordinates and, until now, no path either: every job on the platform was invisible to
+        // the map's cluster counts and to every town's job count. An edit rebuilds the place from
+        // the request, so it is filed afresh each time rather than keeping a path for a town the
+        // employer may just have changed.
+        var location = Result.Success(await _filing.FileAsync(created.Value, cancellationToken));
 
         var arrangement = WorkArrangement.Create(
             JobWireNames.ParseWorkplaceType(request.WorkplaceType) ?? WorkplaceType.OnSite,

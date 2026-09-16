@@ -5,7 +5,6 @@ using Diaspora.Modules.Housing.Domain.ValueObjects;
 using Diaspora.Modules.Location.Domain.Areas;
 using Diaspora.Modules.Location.Domain.Countries;
 using Diaspora.Modules.Location.Domain.Enums;
-using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Modules.Location.Integration;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Identity;
@@ -36,22 +35,8 @@ namespace Diaspora.Modules.Housing.Application.Services;
 /// </summary>
 public sealed class HousingNeighborhoodResolver
 {
-    /// <summary>
-    /// How far a property may be from a neighbourhood's centre and still be filed in it.
-    /// <para>
-    /// A catalogue centre is a point standing for an area with no boundary stored (nothing writes
-    /// one), so this is the honest substitute for "inside it". Five kilometres files a flat in Rose
-    /// Hill under Rose Hill and leaves a house in the cane fields unfiled, which is the right answer
-    /// for both.
-    /// </para>
-    /// </summary>
-    private const double NearestNeighborhoodKilometres = 5d;
-
-    /// <summary>How wide a box to ask the catalogue for. Roughly ten kilometres of latitude.</summary>
-    private const double CandidateBoxDegrees = 0.09d;
-
     private readonly IAdministrativeAreaRepository _areas;
-    private readonly ILocationDirectory _directory;
+    private readonly IAreaLocator _locator;
     private readonly ICountryRepository _countries;
     private readonly INeighborhoodProfileRepository _profiles;
     private readonly IGuidGenerator _guids;
@@ -59,14 +44,14 @@ public sealed class HousingNeighborhoodResolver
 
     public HousingNeighborhoodResolver(
         IAdministrativeAreaRepository areas,
-        ILocationDirectory directory,
+        IAreaLocator locator,
         ICountryRepository countries,
         INeighborhoodProfileRepository profiles,
         IGuidGenerator guids,
         IClock clock)
     {
         _areas = areas;
-        _directory = directory;
+        _locator = locator;
         _countries = countries;
         _profiles = profiles;
         _guids = guids;
@@ -209,31 +194,25 @@ public sealed class HousingNeighborhoodResolver
     }
 
     /// <summary>
-    /// Whether a country code names a country B4 knows about.
+    /// Files a property under the catalogue node its own geography lands in, when the landlord
+    /// named no neighbourhood.
     /// <para>
-    /// Checked on landlord registration and on any listing that names no neighbourhood, so a
-    /// property is never filed under a country that does not exist.
+    /// <b>No listing on this platform had ever been filed under an area.</b> A neighbourhood was
+    /// only resolved from a <c>neighborhoodAreaId</c> the client sent, and no create screen sends
+    /// one — so every listing carried a country, a city name and nothing the catalogue knows. A town
+    /// search by path matched nothing, every neighbourhood's resource count read zero, and the
+    /// map's cluster endpoint aggregated a catalogue of noughts.
+    /// </para>
+    /// <para>
+    /// Location's <see cref="IAreaLocator"/> decides where that is, from the coordinates when the
+    /// property has them and from the names the landlord typed when it does not; the same seam files
+    /// marketplace listings, jobs and providers. A neighbourhood-level answer fills the
+    /// neighbourhood; a city- or district-level answer sets only the path, because
+    /// <see cref="HousingLocationContext.NeighborhoodAreaId"/> is the join key to a neighbourhood
+    /// profile and a city is not one. A property the catalogue cannot place stays unfiled.
     /// </para>
     /// </summary>
-    /// <summary>
-    /// The neighbourhood a property's own coordinates fall in, when the client named none.
-    /// <para>
-    /// <b>No listing on this platform has ever been filed under an area.</b> A neighbourhood was
-    /// only ever resolved from a <c>neighborhoodAreaId</c> the client sent, and no create screen
-    /// sends one — so every listing carried a country, a city name and nothing the catalogue knows.
-    /// The consequences were not cosmetic: a town search by path matched nothing (DEFECT-010's
-    /// other half), every neighbourhood's resource count read zero, and the map's cluster endpoint
-    /// aggregated a catalogue of noughts.
-    /// </para>
-    /// <para>
-    /// The address is the authority. Candidates come from the catalogue box around the point,
-    /// narrowed to neighbourhood level in the same country, and the nearest centre within
-    /// <see cref="NearestNeighborhoodKilometres"/> wins — measured by Location, because every
-    /// distance on this platform is. A property with no coordinates, or none near a known
-    /// neighbourhood, stays unfiled rather than being pushed into the closest thing on the list.
-    /// </para>
-    /// </summary>
-    public async Task<HousingLocationContext> ResolveFromPointAsync(
+    public async Task<HousingLocationContext> FileUnderAreaAsync(
         HousingLocationContext context,
         double? latitude,
         double? longitude,
@@ -241,53 +220,51 @@ public sealed class HousingNeighborhoodResolver
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        if (context.HasNeighborhood
-            || latitude is not { } lat
-            || longitude is not { } lng
-            || GeoCoordinate.TryCreate(lat, lng) is not { IsSuccess: true } point)
+        if (!string.IsNullOrWhiteSpace(context.AreaPath))
         {
+            // Already filed — by the landlord's own choice of neighbourhood, or by an earlier pass.
+            // An owner who picked a neighbourhood outranks the nearest centre.
             return context;
         }
 
-        var box = BoundingBox.TryCreate(
-            north: lat + CandidateBoxDegrees,
-            south: lat - CandidateBoxDegrees,
-            east: lng + CandidateBoxDegrees,
-            west: lng - CandidateBoxDegrees);
-
-        if (box.IsFailure)
-        {
-            return context;
-        }
-
-        var country = CountryCode.TryCreate(context.CountryCode);
-
-        var candidates = await _areas.GetWithinBoundsAsync(
-            box.Value,
-            [AdministrativeLevel.Neighborhood],
-            country.IsSuccess ? country.Value : null,
-            withinPath: null,
-            limit: CandidateLimit,
+        var placement = await _locator.LocateAsync(
+            new AreaFilingRequest
+            {
+                CountryCode = context.CountryCode,
+                Latitude = latitude,
+                Longitude = longitude,
+                NeighbourhoodName = context.NeighborhoodName,
+                CityName = context.CityName,
+                RegionName = context.RegionName
+            },
             cancellationToken);
 
-        var nearest = candidates
-            .Where(area => area.Center is not null)
-            .Select(area => (Area: area,
-                Kilometres: _directory.DistanceBetween(point.Value, area.Center!).Kilometers))
-            .Where(measured => measured.Kilometres <= NearestNeighborhoodKilometres)
-            .OrderBy(measured => measured.Kilometres)
-            .ThenBy(measured => measured.Area.Slug.Value, StringComparer.Ordinal)
-            .Select(measured => measured.Area)
-            .FirstOrDefault();
-
-        return nearest is null
-            ? context
-            : context.WithNeighborhood(nearest.Id.Value, nearest.Path.Value, nearest.Name.Value);
+        return Filed(context, placement);
     }
 
-    /// <summary>How many catalogue nodes a point's box may return before the nearest is chosen.</summary>
-    private const int CandidateLimit = 50;
+    /// <summary>The context with a placement applied, by the rule in <see cref="FileUnderAreaAsync"/>.</summary>
+    private static HousingLocationContext Filed(
+        HousingLocationContext context, AreaPlacement? placement)
+    {
+        ArgumentNullException.ThrowIfNull(context);
 
+        if (placement is null)
+        {
+            return context;
+        }
+
+        return placement.Level == AdministrativeLevel.Neighborhood
+            ? context.WithNeighborhood(placement.AreaId, placement.Path, placement.Name)
+            : context.WithNeighborhood(areaId: null, placement.Path);
+    }
+
+    /// <summary>
+    /// Whether a country code names a country B4 knows about.
+    /// <para>
+    /// Checked on landlord registration and on any listing that names no neighbourhood, so a
+    /// property is never filed under a country that does not exist.
+    /// </para>
+    /// </summary>
     public async Task<bool> CountryExistsAsync(
         string? countryCode, CancellationToken cancellationToken = default)
     {

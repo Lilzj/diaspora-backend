@@ -64,4 +64,23 @@ public sealed class LocationSpatialOptions
     /// </para>
     /// </summary>
     public int MinimumClusterCellCount { get; set; } = 1;
+
+    /// <summary>
+    /// Whether to file already-written rows under the areas they belong to.
+    /// <para>
+    /// On by default because without it the map's cluster counts, every neighbourhood's resource
+    /// counts and every town search by path read zero for anything written before 16 Sep 2026 —
+    /// which on the day it shipped was everything. Tests turn it off and run a pass directly.
+    /// </para>
+    /// </summary>
+    public bool EnableAreaFilingSweep { get; set; } = true;
+
+    /// <summary>
+    /// Minutes between filing passes after the first, which runs at startup. An hour is plenty:
+    /// every current client files on create, so the sweep is catching stragglers.
+    /// </summary>
+    public int AreaFilingSweepMinutes { get; set; } = 60;
+
+    /// <summary>Rows one vertical files per page of a pass.</summary>
+    public int AreaFilingBatchSize { get; set; } = 100;
 }
