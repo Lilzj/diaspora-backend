@@ -296,6 +296,15 @@ public sealed class UpdateHousingListingCommandHandler
             return Result.Failure(resolved.Error);
         }
 
+        // A listing that predates area filing, or one whose address moved, is placed from its
+        // coordinates on the next edit — and one already filed is left where it is, because an
+        // owner who chose a neighbourhood outranks the nearest centre.
+        var placed = await _neighborhoods.ResolveFromPointAsync(
+            resolved.Value,
+            request.Latitude ?? listing.Address.Latitude,
+            request.Longitude ?? listing.Address.Longitude,
+            cancellationToken);
+
         PropertyAddress? address = null;
 
         if (touchedAddress)
@@ -319,7 +328,7 @@ public sealed class UpdateHousingListingCommandHandler
             address = built.Value;
         }
 
-        return listing.ChangeLocation(resolved.Value, address, baseRevision: null);
+        return listing.ChangeLocation(placed, address, baseRevision: null);
     }
 
     private static TEnum? Parse<TEnum>(string? value) where TEnum : struct, Enum =>
