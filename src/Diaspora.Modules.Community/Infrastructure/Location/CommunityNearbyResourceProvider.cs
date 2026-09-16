@@ -76,17 +76,53 @@ public sealed class CommunityNearbyResourceProvider : INearbyResourceProvider
                 Longitude = post.Location.Longitude,
                 CityName = post.Location.CityName,
                 AreaName = post.Location.AreaName,
-                Payload = new Dictionary<string, string>(StringComparer.Ordinal)
-                {
-                    ["urgency"] = CommunityWireNames.ToWire(post.Urgency),
-                    ["verificationStatus"] = CommunityWireNames.ToWire(post.VerificationStatus),
-                    ["confirmationCount"] = post.ConfirmationCount.ToString(
-                        CultureInfo.InvariantCulture)
-                }
+                // What a map alert renders beyond a pin: its own words, when it was
+                // reported, and when it stops being true. The sweep moves a post to
+                // Expired and this provider asks for Published only, so the expiry is
+                // for the minutes between — a client must be able to drop an alert
+                // whose time has passed rather than draw it until the sweep runs.
+                Payload = Payload(post)
             })
             .OrderBy(item => item.DistanceKm)
             .ToList();
 
         return new NearbyResourceGroup { ResourceType = ResourceType, Items = items };
+    }
+
+    /// <summary>
+    /// The fields a community update's own client needs, which Location is opaque to.
+    /// <para>
+    /// Only what a surface renders: the body under the headline, the "reported 20 minutes ago"
+    /// line, the expiry a map applies, and the country a share link states. Absent values are
+    /// left out rather than written as empty strings, so a client can tell "not said" from "".
+    /// </para>
+    /// </summary>
+    private static Dictionary<string, string> Payload(Domain.Posts.CommunityPost post)
+    {
+        var payload = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["urgency"] = CommunityWireNames.ToWire(post.Urgency),
+            ["verificationStatus"] = CommunityWireNames.ToWire(post.VerificationStatus),
+            ["confirmationCount"] = post.ConfirmationCount.ToString(CultureInfo.InvariantCulture),
+            ["status"] = CommunityWireNames.ToWire(post.Status),
+            ["body"] = post.Body.Value
+        };
+
+        if (post.PublishedAt is { } publishedAt)
+        {
+            payload["publishedAt"] = publishedAt.ToString("O", CultureInfo.InvariantCulture);
+        }
+
+        if (post.ExpiresAt is { } expiresAt)
+        {
+            payload["expiresAt"] = expiresAt.ToString("O", CultureInfo.InvariantCulture);
+        }
+
+        if (post.Location.CountryCode is { Length: > 0 } countryCode)
+        {
+            payload["countryCode"] = countryCode;
+        }
+
+        return payload;
     }
 }
