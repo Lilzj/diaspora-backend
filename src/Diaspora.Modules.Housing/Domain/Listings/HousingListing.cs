@@ -481,8 +481,9 @@ public sealed class HousingListing
     /// listing is editable: an archived property still belongs somewhere.
     /// </para>
     /// <para>
-    /// Only the filing may change. A context that disagrees about the country, region or town the
-    /// landlord named is refused, so this can never become a back door for moving a property.
+    /// Only the filing may change. A context that disagrees about the country, region, town or
+    /// neighbourhood the landlord gave is refused, so this can never become a back door for moving a
+    /// property or relabelling it.
     /// </para>
     /// </summary>
     /// <returns>Whether the property was filed by this call.</returns>
@@ -494,7 +495,11 @@ public sealed class HousingListing
             || string.IsNullOrWhiteSpace(filed.AreaPath)
             || filed.CountryCode != Location.CountryCode
             || filed.RegionName != Location.RegionName
-            || filed.CityName != Location.CityName)
+            || filed.CityName != Location.CityName
+
+            // Nor the neighbourhood a member reads on the card. Only a landlord picks one.
+            || filed.NeighborhoodAreaId != Location.NeighborhoodAreaId
+            || filed.NeighborhoodName != Location.NeighborhoodName)
         {
             return false;
         }

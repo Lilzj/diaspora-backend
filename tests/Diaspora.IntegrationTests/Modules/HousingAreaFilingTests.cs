@@ -53,10 +53,31 @@ public sealed class HousingAreaFilingTests : IdentityTestBase
         var filed = await resolver.FileUnderAreaAsync(
             unfiled, PeckhamLatitude, PeckhamLongitude);
 
-        filed.HasNeighborhood.Should().BeTrue();
-        filed.NeighborhoodName.Should().Be("Peckham");
-        filed.AreaPath.Should().NotBeNullOrWhiteSpace(
-            "the path is what the counters aggregate by");
+        filed.AreaPath.Should().EndWith("/peckham", "the path is what the counters aggregate by");
+    }
+
+    /// <summary>
+    /// Filed, not labelled. The first version of this filled the neighbourhood too, and both homes
+    /// on production started reading "Rose Hill Central" — a neighbourhood no landlord picked, and
+    /// in a country with one catalogued neighbourhood per town, "Central" for every home in it.
+    /// </summary>
+    [Fact]
+    public async Task Filing_never_puts_a_neighbourhood_on_the_card_the_landlord_did_not_pick()
+    {
+        Factory.EnsureDatabaseCreated();
+
+        using var scope = Factory.Services.CreateScope();
+        var resolver = scope.ServiceProvider.GetRequiredService<HousingNeighborhoodResolver>();
+
+        var unfiled = HousingLocationContext.Create("GB", "Greater London", "London").Value;
+
+        var filed = await resolver.FileUnderAreaAsync(unfiled, PeckhamLatitude, PeckhamLongitude);
+
+        filed.AreaPath.Should().EndWith("/peckham");
+        filed.HasNeighborhood.Should().BeFalse();
+        filed.NeighborhoodAreaId.Should().BeNull();
+        filed.NeighborhoodName.Should().BeNull();
+        filed.DisplayName.Should().Be(unfiled.DisplayName, "the card reads what the landlord gave");
     }
 
     /// <summary>
@@ -201,7 +222,7 @@ public sealed class HousingAreaFilingTests : IdentityTestBase
             PeckhamLatitude,
             PeckhamLongitude);
 
-        place.HasNeighborhood.Should().BeTrue("otherwise this test would prove nothing");
+        place.AreaPath.Should().NotBeNullOrWhiteSpace("otherwise this test would prove nothing");
 
         var listing = HousingListing.Draft(
             HousingListingId.New(),

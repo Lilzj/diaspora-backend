@@ -204,12 +204,18 @@ public sealed class HousingNeighborhoodResolver
     /// map's cluster endpoint aggregated a catalogue of noughts.
     /// </para>
     /// <para>
-    /// Location's <see cref="IAreaLocator"/> decides where that is, from the coordinates when the
-    /// property has them and from the names the landlord typed when it does not; the same seam files
-    /// marketplace listings, jobs and providers. A neighbourhood-level answer fills the
-    /// neighbourhood; a city- or district-level answer sets only the path, because
-    /// <see cref="HousingLocationContext.NeighborhoodAreaId"/> is the join key to a neighbourhood
-    /// profile and a city is not one. A property the catalogue cannot place stays unfiled.
+    /// Location's <see cref="IAreaLocator"/> decides where that is, from the town the landlord named
+    /// and the coordinates within it; the same seam files marketplace listings, jobs and providers.
+    /// A property the catalogue cannot place stays unfiled.
+    /// </para>
+    /// <para>
+    /// <b>Filing sets the path and nothing a member reads.</b> The first version also filled the
+    /// neighbourhood, and on 16 Sep 2026 both homes on production started reading "Rose Hill
+    /// Central, Rose Hill" — a neighbourhood no landlord picked. Mauritius has one catalogued
+    /// neighbourhood per town, at its centre, so every home in Rose Hill would have been labelled
+    /// "Central" wherever it stood. The path is what the counters, the map's clusters and scoped
+    /// searches read, so filing it is enough; <see cref="HousingLocationContext.NeighborhoodAreaId"/>
+    /// and the name on the card stay what the landlord chose, which is nothing unless they picked one.
     /// </para>
     /// </summary>
     public async Task<HousingLocationContext> FileUnderAreaAsync(
@@ -242,19 +248,17 @@ public sealed class HousingNeighborhoodResolver
         return Filed(context, placement);
     }
 
-    /// <summary>The context with a placement applied, by the rule in <see cref="FileUnderAreaAsync"/>.</summary>
+    /// <summary>
+    /// The context with a placement applied, by the rule in <see cref="FileUnderAreaAsync"/>: the
+    /// path, and never a neighbourhood the landlord did not pick.
+    /// </summary>
     private static HousingLocationContext Filed(
         HousingLocationContext context, AreaPlacement? placement)
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        if (placement is null)
-        {
-            return context;
-        }
-
-        return placement.Level == AdministrativeLevel.Neighborhood
-            ? context.WithNeighborhood(placement.AreaId, placement.Path, placement.Name)
+        return placement is null
+            ? context
             : context.WithNeighborhood(areaId: null, placement.Path);
     }
 
