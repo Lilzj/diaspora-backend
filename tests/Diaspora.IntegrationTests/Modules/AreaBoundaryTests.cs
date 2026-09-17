@@ -167,6 +167,44 @@ public sealed class AreaBoundaryTests : IdentityTestBase
         page.IsComplete.Should().BeTrue();
     }
 
+    /// <summary>
+    /// <b>A neighbourhood hub draws the town's line, under the town's name</b> — 17 Sep 2026.
+    /// <para>
+    /// No open dataset draws our neighbourhoods. London's are electoral wards, Manchester's are a ward
+    /// and a district, and Mauritius's are a station and localities; the import takes exact matches
+    /// only, so a neighbourhood has no outline and keeps its approximate circle. The user decided the
+    /// hub should show the containing town's real outline beside it instead, named as the town's — so
+    /// this is a separate field, never a substitute for the neighbourhood's own.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task A_neighbourhood_with_no_outline_carries_its_towns_under_the_towns_name()
+    {
+        var quatreBornes = await AreaAsync("Quatre Bornes", AdministrativeLevel.City);
+
+        await SignInAsync();
+
+        var hub = await IdentityApiClient.ReadDataAsync<HubShape>(
+            await HttpClient.GetAsync("/api/v1/location/neighborhoods/quatre-bornes-center"));
+
+        hub.Boundary.Should().BeNull("nothing publishes an outline of this neighbourhood");
+
+        hub.ContainingOutline!.AreaId.Should().Be(quatreBornes.Id.Value);
+        hub.ContainingOutline.Name.Should().Be("Quatre Bornes");
+        hub.ContainingOutline.Level.Should().Be("City");
+        hub.ContainingOutline.Boundary.Attribution.Should().Be(OsmCredit);
+        hub.ContainingOutline.Boundary.Vertices.Should()
+            .HaveCount(quatreBornes.Boundary!.Vertices.Count);
+
+        // Rose Hill has no outline either, so the nearest one above it is the district's — the
+        // nearest ancestor that has one, not the first or the broadest.
+        var roseHill = await IdentityApiClient.ReadDataAsync<HubShape>(
+            await HttpClient.GetAsync("/api/v1/location/neighborhoods/rose-hill-central"));
+
+        roseHill.ContainingOutline!.Name.Should().Be("Plaines Wilhems");
+        roseHill.ContainingOutline.Level.Should().Be("District");
+    }
+
     [Fact]
     public async Task A_viewport_too_wide_for_outlines_is_answered_empty_and_marked_incomplete()
     {
@@ -315,6 +353,24 @@ public sealed class AreaBoundaryTests : IdentityTestBase
             GeoCoordinate.Create(centre.Latitude - 0.01d, centre.Longitude + 0.01d),
             GeoCoordinate.Create(centre.Latitude - 0.01d, centre.Longitude - 0.01d)
         ]).Value;
+
+    private sealed record HubShape
+    {
+        public BoundaryShape? Boundary { get; init; }
+
+        public ContainingOutlineShape? ContainingOutline { get; init; }
+    }
+
+    private sealed record ContainingOutlineShape
+    {
+        public Guid AreaId { get; init; }
+
+        public string Name { get; init; } = "";
+
+        public string Level { get; init; } = "";
+
+        public BoundaryShape Boundary { get; init; } = new();
+    }
 
     private sealed record AreaDetailShape
     {

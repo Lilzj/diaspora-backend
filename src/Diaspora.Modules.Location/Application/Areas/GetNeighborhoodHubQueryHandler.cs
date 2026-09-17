@@ -63,6 +63,13 @@ public sealed class GetNeighborhoodHubQueryHandler
 
         var counts = await _counts.CountInAreaAsync(area.Id, area.Path, cancellationToken);
 
+        // The nearest ancestor that has an outline, by depth rather than by position in the
+        // breadcrumb: a neighbourhood has no outline of its own in any open dataset, and the town
+        // it sits in is the closest real line there is to draw.
+        var containing = ancestors
+            .Where(node => node.Boundary is not null)
+            .MaxBy(node => node.Path.Depth);
+
         var view = new Neighborhood(area);
 
         return Result.Success(new NeighborhoodHubResponse
@@ -88,6 +95,16 @@ public sealed class GetNeighborhoodHubQueryHandler
                 IsAvailable = view.HasQualityIndexes
             },
             ResourceCounts = counts,
+            ContainingOutline = containing is null
+                ? null
+                : new ContainingOutlineResponse
+                {
+                    AreaId = containing.Id.Value,
+                    Name = containing.Name.Value,
+                    Level = containing.Level.ToString(),
+                    Boundary = LocationMapper.ToBoundary(
+                        containing.Boundary, containing.BoundaryProvenance)!
+                },
             Ancestors = ancestors
                 .Select(ancestor => LocationMapper.ToSummary(
                     ancestor,
