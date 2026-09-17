@@ -276,6 +276,39 @@ public sealed class HousingListingRepository : IHousingListingRepository
             .CountAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<HousingRentPrice>> GetRentPricesAsync(
+        string countryCode, int limit, CancellationToken cancellationToken = default)
+    {
+        var country = HousingLocationContext.NormalizeCountry(countryCode);
+
+        if (country is null)
+        {
+            return [];
+        }
+
+        // A rent that can be expressed per month. A nightly or per-stay price is a holiday let,
+        // and "None" is a price nobody stated a period for; neither is a monthly rent.
+        RentPeriod[] monthly = [RentPeriod.PerWeek, RentPeriod.PerMonth, RentPeriod.PerQuarter, RentPeriod.PerYear];
+
+        return await PubliclyVisible(Listings.AsNoTracking())
+            .Where(listing =>
+                listing.Location.CountryCode == country
+                && listing.Price.IsDisclosed
+                && listing.Price.Amount != null
+                && listing.Price.Amount > 0m
+                && listing.Price.CurrencyCode != null
+                && monthly.Contains(listing.Price.Period))
+            .OrderByDescending(listing => listing.PublishedAt)
+            .Take(Math.Clamp(limit, 1, 50_000))
+            .Select(listing => new HousingRentPrice(
+                listing.Location.AreaPath,
+                listing.Price.Amount!.Value,
+                listing.Price.CurrencyCode!,
+                listing.Price.Period,
+                listing.PublishedAt))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<int> CountInCountryAsync(
         string countryCode, CancellationToken cancellationToken = default)
     {

@@ -26,6 +26,14 @@ public sealed record CostOfLivingCategoryResponse
 /// <summary>
 /// What it costs to live somewhere.
 /// <para>
+/// <b>Since 17 Sep 2026: rent from Diaspora's own listings, where there are enough.</b> The
+/// <c>housing</c> category is the median monthly asking rent of the homes listed in the
+/// neighbourhood as an index against the country's median, in the country's most-listed currency,
+/// with the sample size in <see cref="Freshness"/>. The other five categories and
+/// <see cref="OverallIndex"/> stay empty, because nothing measures them. What follows is the
+/// reasoning that still holds for them.
+/// </para>
+/// <para>
 /// <b>One real band, five categories nobody has a source for, and a response that says which is
 /// which.</b> B11 records cost of living as one moderated ordinal band per neighbourhood. The
 /// client's surface asks for six category indices against a national baseline in a stated
@@ -51,7 +59,8 @@ public sealed record CostOfLivingResponse
     public required string Name { get; init; }
 
     /// <summary>
-    /// False whenever no index has been sourced — which is every deployment today.
+    /// True when at least one category index is published — the rent index, where the
+    /// neighbourhood and its country have enough homes listed.
     /// <para>
     /// Explicit rather than inferable from nulls, matching the flag B4 already ships on its
     /// neighbourhood stats, so a client renders "not yet available" rather than a zero index.
@@ -68,7 +77,10 @@ public sealed record CostOfLivingResponse
     /// <summary>0–100 encoding of <see cref="Band"/>. Null when unassessed. Carries no more precision than the band.</summary>
     public int? BandScore { get; init; }
 
-    /// <summary>Null until a cost-of-living source is contracted. Never derived from the band.</summary>
+    /// <summary>
+    /// Null until every category has a source. Never derived from the band, and never the rent
+    /// index under a broader name.
+    /// </summary>
     public int? OverallIndex { get; init; }
 
     /// <summary>What 100 would mean. Null while <see cref="OverallIndex"/> is.</summary>
@@ -77,7 +89,10 @@ public sealed record CostOfLivingResponse
     /// <summary>The currency figures would be quoted in. Null while there are none.</summary>
     public string? Currency { get; init; }
 
-    /// <summary>Empty until a category-level source exists. Never partially populated.</summary>
+    /// <summary>
+    /// The categories that are measured, and only those: <c>housing</c> where the samples allow,
+    /// nothing else today. An absent category is not measured, not zero.
+    /// </summary>
     public IReadOnlyList<CostOfLivingCategoryResponse> Categories { get; init; } = [];
 
     public required DataFreshnessResponse Freshness { get; init; }

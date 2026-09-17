@@ -87,4 +87,23 @@ public sealed class GeographicIntelligenceOptions
     /// </summary>
     [Range(1, 8760)]
     public int FreshnessWindowHours { get; set; } = 24;
+
+    /// <summary>
+    /// The fewest homes to rent a neighbourhood needs before its rent index is published.
+    /// <para>
+    /// A median of two listings is two listings. Below this the response says how many there are
+    /// and publishes no index, which is what a place with a handful of homes on the platform should
+    /// read as.
+    /// </para>
+    /// </summary>
+    [Range(3, 1000)]
+    public int MinimumRentListingsInArea { get; set; } = 5;
+
+    /// <summary>
+    /// The fewest homes to rent a country needs before any of its neighbourhoods is indexed
+    /// against it. The baseline is a median too, and a baseline of a few homes makes every index
+    /// against it noise.
+    /// </summary>
+    [Range(3, 100000)]
+    public int MinimumRentListingsInCountry { get; set; } = 20;
 }

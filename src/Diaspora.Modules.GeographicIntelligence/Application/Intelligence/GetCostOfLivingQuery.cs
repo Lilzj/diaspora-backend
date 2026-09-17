@@ -1,3 +1,4 @@
+using System.Globalization;
 using Diaspora.Application.Abstractions;
 using Diaspora.Modules.GeographicIntelligence.Application.Services;
 using Diaspora.Modules.GeographicIntelligence.Contracts.V1.Responses;
@@ -6,6 +7,7 @@ using Diaspora.Modules.GeographicIntelligence.Domain.Scores;
 using Diaspora.Modules.GeographicIntelligence.Observability;
 using Diaspora.Modules.GeographicIntelligence.Options;
 using Diaspora.Modules.Housing.Integration;
+using Diaspora.Modules.Location.Domain.Countries;
 using Diaspora.SharedKernel.Results;
 using Microsoft.Extensions.Options;
 
@@ -20,38 +22,51 @@ public sealed record GetCostOfLivingQuery : IQuery<CostOfLivingResponse>
 }
 
 /// <summary>
-/// Serves the one real cost figure this platform holds, and refuses to manufacture the other five.
+/// Serves the cost figures this platform can stand behind, and refuses to manufacture the rest.
 /// <para>
-/// <b>The gap the frontend registered is real and only a fifth of it is closable.</b> B11 records
-/// cost of living as one moderated ordinal band per neighbourhood — that is real, dated, attributed
-/// data and it is served here with its provenance. The client's surface wants six category indices
-/// against a national baseline in a stated currency, and five of those have no source anywhere.
+/// <b>Housing, from Diaspora's own listings (17 Sep 2026).</b> The user decided cost of living is
+/// computed from what members list rather than bought in: the median monthly asking rent of the
+/// homes filed in the neighbourhood, as an index against the median of the country's, in the
+/// country's most-listed currency. It is published only when both samples reach the configured
+/// minimums, and it says how many homes are behind it.
 /// </para>
 /// <para>
-/// So the response carries the band and leaves <c>overallIndex</c>, <c>baselineName</c>,
-/// <c>currency</c> and <c>categories</c> empty with <c>isAvailable: false</c>. Publishing an index
-/// derived from the band would be the fabrication §31 and §54 both name: "118" is a claim about how
-/// much more expensive somewhere is, to the percent, against a baseline nobody measured.
+/// <b>The other five categories stay empty, and so does <c>overallIndex</c>.</b> Food, transport,
+/// utilities, healthcare and leisure have no source. An overall figure computed from housing alone
+/// would be a housing index under a broader name, so none is published; a client shows the housing
+/// row and says the rest is not measured.
+/// </para>
+/// <para>
+/// The moderated band (B11) is still served beside it, with its own provenance. It is a different
+/// claim — a contributor's assessment — and the two are never blended.
 /// </para>
 /// </summary>
 public sealed class GetCostOfLivingQueryHandler
     : IQueryHandler<GetCostOfLivingQuery, CostOfLivingResponse>
 {
+    public const string ListingsSource = "Diaspora listings";
+
     private const string ProfileSource = "Diaspora neighbourhood profiles";
 
     private readonly NeighborhoodResolver _resolver;
     private readonly INeighborhoodDirectory _profiles;
+    private readonly IRentStatistics _rents;
+    private readonly ICountryRepository _countries;
     private readonly IOptions<GeographicIntelligenceOptions> _options;
     private readonly TimeProvider _clock;
 
     public GetCostOfLivingQueryHandler(
         NeighborhoodResolver resolver,
         INeighborhoodDirectory profiles,
+        IRentStatistics rents,
+        ICountryRepository countries,
         IOptions<GeographicIntelligenceOptions> options,
         TimeProvider clock)
     {
         _resolver = resolver;
         _profiles = profiles;
+        _rents = rents;
+        _countries = countries;
         _options = options;
         _clock = clock;
     }
@@ -74,54 +89,148 @@ public sealed class GetCostOfLivingQueryHandler
         }
 
         var now = _clock.GetUtcNow();
-        var window = _options.Value.FreshnessWindowHours;
+        var options = _options.Value;
 
         var profile = await _profiles.GetAsync(area.Id.Value, cancellationToken);
         var bandName = profile?.CostOfLivingBand;
         var band = BandScale.ParseBand(bandName);
 
-        var computedAt = profile?.LastReviewedAt ?? now;
+        var rents = await _rents.CompareMonthlyRentAsync(
+            area.CountryCode.Value, area.Path.Value, cancellationToken);
 
-        var assessedBy = profile?.IsApproved == true
-            ? "a Diaspora moderator"
-            : "a Diaspora contributor, pending moderator approval";
+        var country = await _countries.GetByCodeAsync(area.CountryCode, cancellationToken);
+        var countryName = country?.Name.Value ?? area.CountryCode.Value;
 
-        return Result.Success(new CostOfLivingResponse
+        var indexed = rents.Currency is not null
+            && rents.AreaMedianMonthlyRent is > 0m
+            && rents.CountryMedianMonthlyRent is > 0m
+            && rents.AreaSampleSize >= options.MinimumRentListingsInArea
+            && rents.CountrySampleSize >= options.MinimumRentListingsInCountry;
+
+        var response = new CostOfLivingResponse
         {
             NeighborhoodId = area.Slug.Value,
             AreaId = area.Id.Value,
             Name = area.Name.Value,
 
-            // False on every deployment. `isAvailable` describes the *index*, which is what the
-            // surface is for; the band beside it is real whether or not the index ever arrives.
-            IsAvailable = false,
+            // True when at least one category is published — housing, today, where the samples
+            // allow. The band beside it is real either way.
+            IsAvailable = indexed,
 
             Band = band is null ? null : bandName,
             BandScore = band is null ? null : BandScale.ToScore(band.Value),
 
+            // Never housing under a broader name. See the class notes.
             OverallIndex = null,
-            BaselineName = null,
-            Currency = null,
-            Categories = [],
-
-            Freshness = new DataFreshnessResponse
-            {
-                ComputedAt = computedAt,
-                SourceName = ProfileSource,
-                Methodology = band is null
-                    ? "Diaspora holds no cost-of-living data for this neighbourhood."
-                    : BandScale.Methodology(bandName!, assessedBy),
-                Limitations =
+            BaselineName = indexed
+                ? $"the median asking rent of homes listed on Diaspora in {countryName}"
+                : null,
+            Currency = indexed ? rents.Currency : null,
+            Categories = indexed
+                ?
                 [
-                    "Diaspora publishes a single relative band per neighbourhood and no index.",
-                    "There is no category breakdown, no currency and no national baseline, because "
-                    + "no cost-of-living data source is contracted.",
-                    "The band compares neighbourhoods within Diaspora's own coverage, not against "
-                    + "any external measure."
-                ],
-                ValidUntil = computedAt.AddHours(window),
-                SampleSize = band is null ? null : 1
-            }
-        });
+                    new CostOfLivingCategoryResponse
+                    {
+                        Id = "housing",
+                        Label = "Rent",
+                        Index = (int)Math.Round(
+                            100m * rents.AreaMedianMonthlyRent!.Value / rents.CountryMedianMonthlyRent!.Value,
+                            MidpointRounding.AwayFromZero),
+                        TypicalMonthlyAmount = Math.Round(
+                            rents.AreaMedianMonthlyRent.Value, 0, MidpointRounding.AwayFromZero),
+                        TypicalMonthlyCurrency = rents.Currency
+                    }
+                ]
+                : [],
+
+            Freshness = indexed
+                ? RentFreshness(rents, area.Name.Value, countryName, now, options)
+                : Unindexed(rents, band is not null, bandName, profile, area.Name.Value, now, options)
+        };
+
+        return Result.Success(response);
+    }
+
+    private static DataFreshnessResponse RentFreshness(
+        RentComparison rents,
+        string areaName,
+        string countryName,
+        DateTimeOffset now,
+        GeographicIntelligenceOptions options) =>
+        new()
+        {
+            ComputedAt = now,
+            SourceName = ListingsSource,
+            Methodology = string.Format(
+                CultureInfo.InvariantCulture,
+                "The median monthly asking rent of the {0} homes to rent listed on Diaspora in {1}, as "
+                + "an index against the median of the {2} listed across {3} (100 = the same). Weekly, "
+                + "quarterly and yearly rents are converted to monthly.",
+                rents.AreaSampleSize,
+                areaName,
+                rents.CountrySampleSize,
+                countryName),
+            Limitations = RentLimitations(rents),
+            ValidUntil = now.AddHours(options.FreshnessWindowHours),
+            SampleSize = rents.AreaSampleSize
+        };
+
+    private static DataFreshnessResponse Unindexed(
+        RentComparison rents,
+        bool hasBand,
+        string? bandName,
+        NeighborhoodSummary? profile,
+        string areaName,
+        DateTimeOffset now,
+        GeographicIntelligenceOptions options)
+    {
+        var assessedBy = profile?.IsApproved == true
+            ? "a Diaspora moderator"
+            : "a Diaspora contributor, pending moderator approval";
+
+        var why = string.Format(
+            CultureInfo.InvariantCulture,
+            "No rent index is published for {0}: it has {1} {2} to rent listed on Diaspora and its "
+            + "country has {3}; an index needs at least {4} here and {5} in the country.",
+            areaName,
+            rents.AreaSampleSize,
+            rents.AreaSampleSize == 1 ? "home" : "homes",
+            rents.CountrySampleSize,
+            options.MinimumRentListingsInArea,
+            options.MinimumRentListingsInCountry);
+
+        return new DataFreshnessResponse
+        {
+            ComputedAt = hasBand ? profile?.LastReviewedAt ?? now : now,
+            SourceName = hasBand ? ProfileSource : ListingsSource,
+            Methodology = hasBand ? $"{BandScale.Methodology(bandName!, assessedBy)} {why}" : why,
+            Limitations = RentLimitations(rents),
+            ValidUntil = now.AddHours(options.FreshnessWindowHours),
+            SampleSize = rents.AreaSampleSize
+        };
+    }
+
+    private static List<string> RentLimitations(RentComparison rents)
+    {
+        var limitations = new List<string>
+        {
+            "Asking rents of homes listed on Diaspora, not agreed rents and not a survey of the "
+            + "neighbourhood.",
+            "Housing only. Food, transport, utilities, healthcare and leisure are not measured, "
+            + "so there is no overall cost-of-living figure.",
+            "A median of few listings moves a lot when one home is added or let."
+        };
+
+        if (rents.OtherCurrencyListings > 0)
+        {
+            limitations.Add(string.Format(
+                CultureInfo.InvariantCulture,
+                "{0} {1} priced in a currency other than {2} and left out rather than converted.",
+                rents.OtherCurrencyListings,
+                rents.OtherCurrencyListings == 1 ? "listing is" : "listings are",
+                rents.Currency));
+        }
+
+        return limitations;
     }
 }

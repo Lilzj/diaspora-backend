@@ -19,6 +19,7 @@ using Diaspora.Modules.Housing.Extensibility.Views;
 using Diaspora.Modules.Housing.Infrastructure.Hosting;
 using Diaspora.Modules.Housing.Infrastructure.Neighborhoods;
 using Diaspora.Modules.Housing.Infrastructure.Search;
+using Diaspora.Modules.Housing.Infrastructure.Statistics;
 using Diaspora.Modules.Housing.Infrastructure.Trust;
 using Diaspora.Modules.Housing.Infrastructure.Views;
 using Diaspora.Modules.Housing.Integration;
@@ -224,8 +225,13 @@ public sealed class HousingModule : IPlatformModule
     /// exactly one implementation and it is this module's own.
     /// </para>
     /// </summary>
-    private static void RegisterIntegration(IServiceCollection services) =>
+    private static void RegisterIntegration(IServiceCollection services)
+    {
         services.AddScoped<INeighborhoodDirectory, NeighborhoodDirectory>();
+
+        // What homes are advertised for, for Geographic Intelligence's cost of living.
+        services.AddScoped<IRentStatistics, HousingRentStatistics>();
+    }
 
     /// <summary>
     /// Hosted services the module registers itself, because it cannot edit <c>Program.cs</c>.

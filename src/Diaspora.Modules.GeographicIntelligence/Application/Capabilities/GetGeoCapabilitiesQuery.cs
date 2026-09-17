@@ -3,9 +3,11 @@ using Diaspora.Modules.GeographicIntelligence.Contracts.V1.Responses;
 using Diaspora.Modules.GeographicIntelligence.Domain.Heat;
 using Diaspora.Modules.GeographicIntelligence.Domain.Routing;
 using Diaspora.Modules.GeographicIntelligence.Domain.Scores;
+using Diaspora.Modules.GeographicIntelligence.Options;
 using Diaspora.Modules.Location.Domain.Spatial;
 using Diaspora.Modules.Location.Extensibility;
 using Diaspora.SharedKernel.Results;
+using Microsoft.Extensions.Options;
 
 namespace Diaspora.Modules.GeographicIntelligence.Application.Capabilities;
 
@@ -32,12 +34,16 @@ public sealed class GetGeoCapabilitiesQueryHandler
 {
     private readonly IRoutingProvider _routing;
     private readonly GeospatialProviderRegistry _spatial;
+    private readonly IOptions<GeographicIntelligenceOptions> _options;
 
     public GetGeoCapabilitiesQueryHandler(
-        IRoutingProvider routing, GeospatialProviderRegistry spatial)
+        IRoutingProvider routing,
+        GeospatialProviderRegistry spatial,
+        IOptions<GeographicIntelligenceOptions> options)
     {
         _routing = routing;
         _spatial = spatial;
+        _options = options;
     }
 
     public Task<Result<GeoCapabilitiesResponse>> Handle(
@@ -61,11 +67,15 @@ public sealed class GetGeoCapabilitiesQueryHandler
             new()
             {
                 Capability = "cost-of-living",
-                Available = false,
-                Provider = "none",
+                Available = true,
+                Provider = "platform",
                 Detail =
-                    "Diaspora publishes one moderated relative band per neighbourhood. No index, "
-                    + "currency, baseline or category breakdown exists, and no source is contracted."
+                    "Rent only: the median monthly asking rent of homes listed on Diaspora in a "
+                    + "neighbourhood, as an index against its country's, where at least "
+                    + $"{_options.Value.MinimumRentListingsInArea} homes are listed there and "
+                    + $"{_options.Value.MinimumRentListingsInCountry} in the country. Food, transport, "
+                    + "utilities, healthcare and leisure have no source, and no overall figure is "
+                    + "published."
             },
             new()
             {

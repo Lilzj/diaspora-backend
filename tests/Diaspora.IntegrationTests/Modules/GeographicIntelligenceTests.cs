@@ -497,11 +497,12 @@ public sealed class GeographicIntelligenceTests : IdentityTestBase
     // ════════════════════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// <b>The real band is served and the index is refused.</b> B11 holds one moderated ordinal
-    /// band; the client's surface wants six category indices against a national baseline in a
-    /// stated currency. Five of those have no source, and publishing an index derived from a band
-    /// would be a claim about how much more expensive somewhere is, to the percent, against a
-    /// baseline nobody measured.
+    /// <b>The real band is served and no index is derived from it.</b> B11 holds one moderated
+    /// ordinal band; the client's surface wants category indices against a national baseline in a
+    /// stated currency, and publishing an index derived from a band would be a claim about how much
+    /// more expensive somewhere is, to the percent, against a baseline nobody measured. Since 17 Sep
+    /// 2026 a rent index is published from listings where there are enough of them
+    /// (<c>CostOfLivingRentIndexTests</c>); this suite seeds none, so there is none here.
     /// </summary>
     [Fact]
     public async Task The_cost_band_is_real_and_the_index_is_explicitly_absent()
@@ -864,11 +865,16 @@ public sealed class GeographicIntelligenceTests : IdentityTestBase
         Available(capabilities, "routing").Should().BeFalse();
         Available(capabilities, "transit-routing").Should().BeFalse();
         Available(capabilities, "safety-scores").Should().BeFalse();
-        Available(capabilities, "cost-of-living").Should().BeFalse();
         Available(capabilities, "street-level-geocoding").Should().BeFalse();
 
         Available(capabilities, "neighborhood-scores").Should().BeTrue();
         Available(capabilities, "heat-layers").Should().BeTrue();
+
+        // Since 17 Sep 2026: rent from Diaspora's own listings, and nothing else — the detail says
+        // so, because "available" alone would read as the whole cost of living.
+        Available(capabilities, "cost-of-living").Should().BeTrue();
+        capabilities.Capabilities.Single(entry => entry.Capability == "cost-of-living").Detail
+            .Should().StartWith("Rent only");
 
         capabilities.SupportedTravelModes.Should().BeEmpty(
             "a provider that answers no mode must not list four");

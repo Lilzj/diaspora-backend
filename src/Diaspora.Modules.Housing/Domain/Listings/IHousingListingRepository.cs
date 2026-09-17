@@ -112,6 +112,18 @@ public interface IHousingListingRepository
     /// <summary>Live listings in an area subtree. The resource counter's query.</summary>
     Task<int> CountInAreaAsync(string areaPath, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// The disclosed asking rents of the live listings in a country: amount, currency, period and
+    /// where each home is filed. The rent statistics' query.
+    /// <para>
+    /// Rows only, no arithmetic. Periods are converted and medians taken in process, because a
+    /// median does not translate to SQL on both providers and the rows are a few decimals each.
+    /// Capped at <paramref name="limit"/>, newest first.
+    /// </para>
+    /// </summary>
+    Task<IReadOnlyList<HousingRentPrice>> GetRentPricesAsync(
+        string countryCode, int limit, CancellationToken cancellationToken = default);
+
     Task<int> CountInCountryAsync(
         string countryCode, CancellationToken cancellationToken = default);
 
