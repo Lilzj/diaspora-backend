@@ -26822,6 +26822,37 @@
         }
       }
     },
+    "/api/v1/location/map/boundaries": {
+      "get": {
+        "tags": [
+          "Location"
+        ],
+        "summary": "The place outlines a viewport overlaps, with their source, licence and credit.",
+        "operationId": "GetMapBoundaries",
+        "parameters": [
+          {
+            "name": "bounds",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "countryCode",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/location/within-polygon": {
       "post": {
         "tags": [

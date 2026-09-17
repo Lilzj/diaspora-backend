@@ -33,6 +33,16 @@ namespace Diaspora.Modules.Location.Application.Services;
 /// town, sixty for a district. A point in the North Sea matches nothing at any rung, and that is the
 /// answer, not a failure.
 /// </para>
+/// <para>
+/// <b>An outline is better evidence than any centre, where one is stored.</b> Since 17 Sep 2026 the
+/// catalogue holds OpenStreetMap outlines for some towns, districts and regions. A point inside one
+/// is in that place, so the deepest outline holding the point bounds the search as a typed name
+/// would; and an outline that leaves the point out rules its node out, however near its centre. A
+/// flat on the Quatre Bornes side of the Rose Hill line is filed in Quatre Bornes although Rose
+/// Hill's centre is nearer. A place the row <em>named</em> still wins, as above — but when its own
+/// outline leaves the point out, the point cannot refine it, because nothing inside the place is
+/// where the point is.
+/// </para>
 /// </summary>
 public sealed class AreaLocator : IAreaLocator
 {
@@ -116,11 +126,21 @@ public sealed class AreaLocator : IAreaLocator
         AdministrativeArea? within,
         CancellationToken cancellationToken)
     {
+        // The named place's own outline leaves the point out: no node inside the place is where the
+        // point is. The name still files the row; the caller holds it.
+        if (within?.Boundary is not null && !within.Boundary.Contains(point))
+        {
+            return null;
+        }
+
+        var outlined = await DeepestOutlineHoldingAsync(point, country, within, cancellationToken);
+        var anchor = outlined ?? within;
+
         foreach (var (level, kilometres) in PointLadder)
         {
-            // Inside a named town only a rung below the town can refine it. The town itself is the
-            // fallback the caller already holds.
-            if (within is not null && level <= within.Level)
+            // Inside a named or outlined place only a rung below it can refine it. The place itself
+            // is the fallback.
+            if (anchor is not null && level <= anchor.Level)
             {
                 continue;
             }
@@ -136,12 +156,15 @@ public sealed class AreaLocator : IAreaLocator
                 box,
                 [level],
                 country,
-                withinPath: within?.Path,
+                withinPath: anchor?.Path,
                 limit: CandidateLimit,
                 cancellationToken);
 
             var nearest = candidates
                 .Where(area => area.Center is not null)
+
+                // An outline that leaves the point out rules its node out, however near its centre.
+                .Where(area => area.Boundary is null || area.Boundary.Contains(point))
                 .Select(area => (
                     Area: area,
                     Kilometres: _distances.Between(point, area.Center!).Kilometers))
@@ -160,7 +183,36 @@ public sealed class AreaLocator : IAreaLocator
             }
         }
 
-        return null;
+        return outlined;
+    }
+
+    /// <summary>
+    /// The most specific node whose stored outline holds the point — strictly inside
+    /// <paramref name="within"/> when the row named a place. Null where no outline does, which is
+    /// most of the world: the catalogue imports only outlines that match its places exactly.
+    /// </summary>
+    private async Task<AdministrativeArea?> DeepestOutlineHoldingAsync(
+        GeoCoordinate point,
+        CountryCode? country,
+        AdministrativeArea? within,
+        CancellationToken cancellationToken)
+    {
+        var here = BoundingBox.TryCreate(point.Latitude, point.Latitude, point.Longitude, point.Longitude);
+
+        if (here.IsFailure)
+        {
+            return null;
+        }
+
+        var outlined = await _areas.GetOutlinedOverlappingAsync(
+            here.Value, [], country, CandidateLimit, cancellationToken);
+
+        return outlined
+            .Where(area => within is null || (area.Level > within.Level && within.Path.Contains(area.Path)))
+            .Where(area => area.Boundary!.Contains(point))
+            .OrderByDescending(area => area.Level)
+            .ThenBy(area => area.Slug.Value, StringComparer.Ordinal)
+            .FirstOrDefault();
     }
 
     /// <summary>The most specific place the row names that the catalogue holds, or null.</summary>

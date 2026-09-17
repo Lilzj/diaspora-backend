@@ -1,4 +1,5 @@
 using Diaspora.Modules.Location.Domain.Areas;
+using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Persistence;
 using Diaspora.SharedKernel.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -137,6 +138,30 @@ public sealed class AdministrativeAreaConfiguration : IEntityTypeConfiguration<A
             .HasConversion(LocationValueConverters.Boundary)
             .HasColumnName("boundary")
             .HasMaxLength(LocationPersistenceConstants.BoundaryLength);
+
+        // Beside the ring it describes. Every column is nullable because most nodes have no
+        // outline; the aggregate sets these exactly when it sets the ring.
+        builder.OwnsOne(area => area.BoundaryProvenance, provenance =>
+        {
+            provenance.Property(value => value.Source)
+                .HasColumnName("boundary_source")
+                .HasMaxLength(BoundaryProvenance.SourceMaxLength);
+
+            provenance.Property(value => value.Licence)
+                .HasColumnName("boundary_licence")
+                .HasMaxLength(BoundaryProvenance.LicenceMaxLength);
+
+            provenance.Property(value => value.Attribution)
+                .HasColumnName("boundary_attribution")
+                .HasMaxLength(BoundaryProvenance.AttributionMaxLength);
+
+            provenance.Property(value => value.SourceReference)
+                .HasColumnName("boundary_source_reference")
+                .HasMaxLength(BoundaryProvenance.SourceReferenceMaxLength);
+
+            provenance.Property(value => value.RetrievedOn)
+                .HasColumnName("boundary_retrieved_on");
+        });
     }
 
     private static void ConfigureIndexes(EntityTypeBuilder<AdministrativeArea> builder)

@@ -320,6 +320,49 @@ public sealed class AdministrativeAreaRepository : IAdministrativeAreaRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<AdministrativeArea>> GetOutlinedOverlappingAsync(
+        BoundingBox bounds,
+        IReadOnlyCollection<AdministrativeLevel> levels,
+        CountryCode? countryCode,
+        int limit,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(bounds);
+        ArgumentNullException.ThrowIfNull(levels);
+
+        var query = Areas.AsNoTracking().Where(area => area.Boundary != null && area.Extent != null);
+
+        if (countryCode is not null)
+        {
+            query = query.Where(area => area.CountryCode == countryCode);
+        }
+
+        if (levels.Count > 0)
+        {
+            var levelList = levels.ToList();
+            query = query.Where(area => levelList.Contains(area.Level));
+        }
+
+        // Two boxes overlap when neither lies wholly to one side of the other. The antimeridian is
+        // an OR of two ranges, as it is for centres.
+        query = query.Where(area =>
+            area.Extent!.South <= bounds.North && area.Extent.North >= bounds.South);
+
+        query = bounds.CrossesAntimeridian
+            ? query.Where(area =>
+                area.Extent!.East >= bounds.West || area.Extent.West <= bounds.East)
+            : query.Where(area =>
+                area.Extent!.West <= bounds.East && area.Extent.East >= bounds.West);
+
+        // Not ordered by level in SQL: the level is stored as its name, and ordering names puts
+        // "City" before "Region". Callers that care about depth sort the few rows this returns.
+        return await query
+            .OrderByDescending(area => area.Prominence)
+            .ThenBy(area => area.PathValue)
+            .Take(Math.Clamp(limit, 1, 200))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<AdministrativeArea>> GetDescendantsAsync(
         HierarchyPath path,
         IReadOnlyCollection<AdministrativeLevel> levels,

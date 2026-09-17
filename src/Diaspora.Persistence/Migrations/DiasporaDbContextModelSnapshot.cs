@@ -27321,6 +27321,48 @@ namespace Diaspora.Persistence.Migrations
                                 .HasForeignKey("AdministrativeAreaId");
                         });
 
+                    b.OwnsOne("Diaspora.Modules.Location.Domain.ValueObjects.BoundaryProvenance", "BoundaryProvenance", b1 =>
+                        {
+                            b1.Property<Guid>("AdministrativeAreaId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<string>("Attribution")
+                                .IsRequired()
+                                .HasMaxLength(200)
+                                .HasColumnType("character varying(200)")
+                                .HasColumnName("boundary_attribution");
+
+                            b1.Property<string>("Licence")
+                                .IsRequired()
+                                .HasMaxLength(64)
+                                .HasColumnType("character varying(64)")
+                                .HasColumnName("boundary_licence");
+
+                            b1.Property<DateOnly>("RetrievedOn")
+                                .HasColumnType("date")
+                                .HasColumnName("boundary_retrieved_on");
+
+                            b1.Property<string>("Source")
+                                .IsRequired()
+                                .HasMaxLength(64)
+                                .HasColumnType("character varying(64)")
+                                .HasColumnName("boundary_source");
+
+                            b1.Property<string>("SourceReference")
+                                .HasMaxLength(128)
+                                .HasColumnType("character varying(128)")
+                                .HasColumnName("boundary_source_reference");
+
+                            b1.HasKey("AdministrativeAreaId");
+
+                            b1.ToTable("administrative_areas", "location");
+
+                            b1.WithOwner()
+                                .HasForeignKey("AdministrativeAreaId");
+                        });
+
+                    b.Navigation("BoundaryProvenance");
+
                     b.Navigation("Center");
 
                     b.Navigation("Extent");

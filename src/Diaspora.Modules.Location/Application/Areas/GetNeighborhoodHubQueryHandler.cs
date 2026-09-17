@@ -79,7 +79,7 @@ public sealed class GetNeighborhoodHubQueryHandler
             Latitude = area.Center?.Latitude,
             Longitude = area.Center?.Longitude,
             Overview = area.Overview,
-            Boundary = LocationMapper.ToBoundary(area.Boundary),
+            Boundary = LocationMapper.ToBoundary(area.Boundary, area.BoundaryProvenance),
             Stats = new NeighborhoodStatsResponse
             {
                 SafetyScore = view.SafetyScore,

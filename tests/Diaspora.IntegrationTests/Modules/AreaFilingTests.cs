@@ -176,20 +176,36 @@ public sealed class AreaFilingTests : IdentityTestBase
     }
 
     /// <summary>
-    /// And the same pin with no town named goes to the nearest centre, because then there is
-    /// nothing better to go on.
+    /// With no town named, a pin goes to the nearest centre — unless a stored outline says which
+    /// town it is in.
+    /// <para>
+    /// Until 17 Sep 2026 this asserted that the pin above, named nothing, went to Rose Hill: there
+    /// was nothing better to go on. There is now. The Quatre Bornes outline imported from
+    /// OpenStreetMap runs 55 metres north of that pin, so the pin is in Quatre Bornes, whichever
+    /// centre is nearer; a pin a few metres the other side of the line still goes to Rose Hill.
+    /// <c>AreaBoundaryTests</c> holds the outline rules themselves.
+    /// </para>
     /// </summary>
     [Fact]
-    public async Task The_same_pin_naming_no_town_is_filed_at_the_nearest_centre()
+    public async Task A_pin_naming_no_town_is_filed_at_the_nearest_centre_unless_an_outline_places_it()
     {
-        var placement = await LocateAsync(new AreaFilingRequest
+        var northOfTheLine = await LocateAsync(new AreaFilingRequest
+        {
+            CountryCode = "MU",
+            Latitude = -20.2430d,
+            Longitude = 57.4800d
+        });
+
+        northOfTheLine!.Name.Should().Be("Rose Hill Central");
+
+        var southOfTheLine = await LocateAsync(new AreaFilingRequest
         {
             CountryCode = "MU",
             Latitude = -20.2450d,
             Longitude = 57.4800d
         });
 
-        placement!.Name.Should().Be("Rose Hill Central");
+        southOfTheLine!.Name.Should().Be("Quatre Bornes Center");
     }
 
     /// <summary>

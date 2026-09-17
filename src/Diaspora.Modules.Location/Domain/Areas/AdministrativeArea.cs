@@ -102,6 +102,13 @@ public sealed class AdministrativeArea : AggregateRoot<AreaId>, IAuditableEntity
     /// <summary>The node's outline, when one has been imported. See known gap #2.</summary>
     public GeographicBoundary? Boundary { get; private set; }
 
+    /// <summary>
+    /// Where <see cref="Boundary"/> came from and how it must be credited. Set exactly when a
+    /// boundary is: <see cref="SetBoundary"/> takes both, so an outline cannot be stored without
+    /// the licence it arrived under.
+    /// </summary>
+    public BoundaryProvenance? BoundaryProvenance { get; private set; }
+
     public PostalCode? PostalCode { get; private set; }
 
     /// <summary>
@@ -282,14 +289,32 @@ public sealed class AdministrativeArea : AggregateRoot<AreaId>, IAuditableEntity
         }
     }
 
-    public void SetBoundary(GeographicBoundary? boundary)
+    /// <summary>
+    /// Records the node's outline and where it came from.
+    /// <para>
+    /// The two arrive together or not at all. An outline is a claim about where a place ends that
+    /// members rent and report on; one with no recorded source can be neither credited, as its
+    /// licence usually requires, nor traced when somebody disputes the line.
+    /// </para>
+    /// </summary>
+    public void SetBoundary(GeographicBoundary boundary, BoundaryProvenance provenance)
     {
-        Boundary = boundary;
+        ArgumentNullException.ThrowIfNull(boundary);
+        ArgumentNullException.ThrowIfNull(provenance);
 
-        if (boundary is not null)
-        {
-            Extent = boundary.Extent;
-        }
+        Boundary = boundary;
+        BoundaryProvenance = provenance;
+        Extent = boundary.Extent;
+    }
+
+    /// <summary>
+    /// Removes the outline and its provenance. The extent is left as it was: it is still the best
+    /// statement of the node's size the catalogue holds, and a later centre update may replace it.
+    /// </summary>
+    public void ClearBoundary()
+    {
+        Boundary = null;
+        BoundaryProvenance = null;
     }
 
     public void SetPostalCode(PostalCode? postalCode) => PostalCode = postalCode;

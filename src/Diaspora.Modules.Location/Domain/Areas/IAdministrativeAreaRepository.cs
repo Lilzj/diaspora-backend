@@ -91,6 +91,24 @@ public interface IAdministrativeAreaRepository
         int limit,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Nodes with a stored outline whose extent overlaps the box, after the level and country
+    /// filters. The extent is the only test here: whether a point is inside the ring is the
+    /// caller's to decide, in process, against the ring itself.
+    /// <para>
+    /// Separate from <see cref="GetWithinBoundsAsync"/> because that one asks where a node's
+    /// <em>centre</em> is. A town's outline reaches well past a box drawn around the town's centre,
+    /// and a map showing the edge of Quatre Bornes needs the Quatre Bornes line although the town's
+    /// centre is off screen.
+    /// </para>
+    /// </summary>
+    Task<IReadOnlyList<AdministrativeArea>> GetOutlinedOverlappingAsync(
+        BoundingBox bounds,
+        IReadOnlyCollection<AdministrativeLevel> levels,
+        CountryCode? countryCode,
+        int limit,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Everything beneath a path. Backs city-wide and country-wide scopes.</summary>
     Task<IReadOnlyList<AdministrativeArea>> GetDescendantsAsync(
         HierarchyPath path,

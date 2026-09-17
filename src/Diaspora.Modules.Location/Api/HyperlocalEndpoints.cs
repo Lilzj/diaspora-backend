@@ -114,6 +114,27 @@ internal static class HyperlocalEndpoints
             .WithName("GetMapClusters")
             .WithSummary("Aggregated markers for a viewport, by catalogue node.");
 
+        group.MapGet("/map/boundaries", async (
+                string bounds,
+                string? countryCode,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await sender.Send(
+                    new GetMapBoundariesQuery
+                    {
+                        Bounds = bounds,
+                        CountryCode = countryCode
+                    },
+                    cancellationToken);
+
+                return PlatformResults.Ok(context, result);
+            })
+            .RequireAuthorization(LocationPolicies.Hyperlocal)
+            .WithName("GetMapBoundaries")
+            .WithSummary("The place outlines a viewport overlaps, with their source, licence and credit.");
+
         // POST rather than GET: a simplified city outline is several hundred coordinate pairs,
         // well past what proxies and browsers accept in a URL.
         group.MapPost("/within-polygon", async (

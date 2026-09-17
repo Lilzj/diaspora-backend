@@ -51,6 +51,16 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
   </ItemGroup>
 
+  <!--
+    OpenStreetMap administrative outlines, matched to catalogue areas by exact name and level.
+    The file is derived from OSM data and stays under the Open Database License (ODbL-1.0); the
+    credit it names is stored with every outline and served wherever one is drawn.
+  -->
+  <ItemGroup>
+    <EmbeddedResource Include="Persistence\Seeding\Data\osm-boundaries.json"
+                      LogicalName="Diaspora.Modules.Location.Seeding.osm-boundaries.json" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Diaspora.SharedKernel\Diaspora.SharedKernel.csproj" />
     <ProjectReference Include="..\Diaspora.Contracts\Diaspora.Contracts.csproj" />

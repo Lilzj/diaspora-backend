@@ -134,14 +134,17 @@ public static class LocationMapper
             Country = ToSummary(country),
             Extent = ToBounds(area.Extent),
             HasBoundary = area.Boundary is not null,
-            Boundary = ToBoundary(area.Boundary),
+            Boundary = ToBoundary(area.Boundary, area.BoundaryProvenance),
             PostalCode = area.PostalCode?.Value,
             Overview = area.Overview
         };
     }
 
-    /// <summary>An outline as a drawable ring. Null when the catalogue holds none.</summary>
-    public static GeographicBoundaryResponse? ToBoundary(GeographicBoundary? boundary) =>
+    /// <summary>
+    /// An outline as a drawable ring, with whose it is. Null when the catalogue holds none.
+    /// </summary>
+    public static GeographicBoundaryResponse? ToBoundary(
+        GeographicBoundary? boundary, BoundaryProvenance? provenance) =>
         boundary is null
             ? null
             : new GeographicBoundaryResponse
@@ -154,7 +157,12 @@ public static class LocationMapper
                     })
                     .ToList(),
                 Extent = ToBounds(boundary.Extent)!,
-                SimplifiedTo = boundary.Vertices.Count
+                SimplifiedTo = boundary.Vertices.Count,
+                Source = provenance?.Source,
+                Licence = provenance?.Licence,
+                Attribution = provenance?.Attribution,
+                SourceReference = provenance?.SourceReference,
+                RetrievedOn = provenance?.RetrievedOn
             };
 
     /// <summary>

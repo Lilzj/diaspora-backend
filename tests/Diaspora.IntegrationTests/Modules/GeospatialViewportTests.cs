@@ -640,7 +640,9 @@ public sealed class GeospatialViewportTests : IdentityTestBase
             GeoCoordinate.Create(51.48d, -0.06d),
             GeoCoordinate.Create(51.46d, -0.06d),
             GeoCoordinate.Create(51.46d, -0.08d)
-        ]).Value);
+        ]).Value,
+        BoundaryProvenance.TryCreate(
+            "Test fixture", "CC0-1.0", "Test fixture", null, new DateOnly(2026, 9, 17)).Value);
 
         await dbContext.SaveChangesAsync();
 

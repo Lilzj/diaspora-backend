@@ -127,6 +127,82 @@ public sealed class LocationCatalogWriter : ILocationCatalogWriter
     public Task<bool> HasAreasAsync(CancellationToken cancellationToken = default) =>
         _areas.AnyAsync(cancellationToken);
 
+    public async Task<BoundaryImportOutcome> EnsureBoundaryAsync(
+        CountryCode countryCode,
+        AdministrativeLevel level,
+        PlaceName name,
+        GeographicBoundary boundary,
+        BoundaryProvenance provenance,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(countryCode);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(boundary);
+        ArgumentNullException.ThrowIfNull(provenance);
+
+        // A seeder earlier in the same run may have just added the node this outline belongs to,
+        // and nothing is saved until the run ends — so the nodes created this run are asked too.
+        var pending = _pendingAreas.Values
+            .Where(area => area.CountryCode == countryCode
+                && area.Level == level
+                && Names(area, name))
+            .ToList();
+
+        // Two is enough to know a name is not unique.
+        var stored = await _areas.FindByNameAsync(name.Value, [level], countryCode, 2, cancellationToken);
+
+        var candidates = pending.Select(area => area.Id)
+            .Concat(stored.Select(area => area.Id))
+            .Distinct()
+            .ToList();
+
+        if (candidates.Count == 0)
+        {
+            return BoundaryImportOutcome.NoSuchArea;
+        }
+
+        if (candidates.Count > 1)
+        {
+            return BoundaryImportOutcome.Ambiguous;
+        }
+
+        // The tracked row when there is one: a pending entry can be a read the repository did not
+        // track, and an outline set on that would be silently dropped at commit. A node created
+        // this run is not in the database yet, and its pending entry is the tracked instance.
+        var area = await _areas.GetByIdAsync(candidates[0], cancellationToken)
+            ?? pending.FirstOrDefault(node => node.Id == candidates[0]);
+
+        if (area is null)
+        {
+            return BoundaryImportOutcome.NoSuchArea;
+        }
+
+        if (area.Center is not null && !boundary.Contains(area.Center))
+        {
+            return BoundaryImportOutcome.CentreOutside;
+        }
+
+        if (area.Boundary is not null)
+        {
+            if (area.BoundaryProvenance is null || !area.BoundaryProvenance.IsSupersededBy(provenance))
+            {
+                return BoundaryImportOutcome.AlreadyOutlined;
+            }
+
+            area.SetBoundary(boundary, provenance);
+            return BoundaryImportOutcome.Refreshed;
+        }
+
+        area.SetBoundary(boundary, provenance);
+        return BoundaryImportOutcome.Recorded;
+    }
+
+    /// <summary>The repository's rule for a name match, applied to nodes not yet saved.</summary>
+    private static bool Names(AdministrativeArea area, PlaceName name) =>
+        string.Equals(area.Name.Value, name.Value, StringComparison.OrdinalIgnoreCase)
+        || (area.Name.LocalName is not null
+            && string.Equals(area.Name.LocalName, name.Value, StringComparison.OrdinalIgnoreCase));
+
     /// <summary>
     /// Commits everything accumulated this run.
     /// <para>

@@ -14,12 +14,16 @@ namespace Diaspora.Modules.Location.Contracts.V1.Responses;
 /// and would put a decision the domain has already made into every consumer.
 /// </para>
 /// <para>
-/// <b>A boundary is a claim about where a neighbourhood ends, and members rent on that line.</b>
+/// <b>A boundary is a claim about where a place ends, and members rent on that line.</b>
 /// <see cref="SimplifiedTo"/> exists so a client can say it is drawing a simplification rather
-/// than presenting an imported ring as surveyed truth. There is deliberately no <c>source</c>
-/// field: the catalogue records no provenance for an outline today, and a field that is always
-/// null is a worse answer than an absent one — it reads as "unknown source" when the truth is
-/// "nobody has been asked to record one".
+/// than presenting an imported ring as surveyed truth, and the provenance fields say whose claim
+/// it is. Until 17 Sep 2026 there was no <c>source</c> here, because the catalogue recorded none;
+/// it now stores one with every outline and will not store an outline without it.
+/// </para>
+/// <para>
+/// <b>A client that draws the ring shows <see cref="Attribution"/> with it.</b> The outlines the
+/// catalogue imports are OpenStreetMap data under the Open Database License, whose terms require
+/// that credit wherever the data is displayed.
 /// </para>
 /// </summary>
 public sealed record GeographicBoundaryResponse
@@ -35,6 +39,24 @@ public sealed record GeographicBoundaryResponse
     /// pin needs to know it is looking at a simplification, and the count is the plainest signal.
     /// </summary>
     public required int SimplifiedTo { get; init; }
+
+    /// <summary>
+    /// Who published the outline: "OpenStreetMap". Null only for an outline stored before sources
+    /// were recorded, which no deployment holds.
+    /// </summary>
+    public string? Source { get; init; }
+
+    /// <summary>The licence the outline is under, as an SPDX identifier: "ODbL-1.0".</summary>
+    public string? Licence { get; init; }
+
+    /// <summary>The credit the licence requires, verbatim, to show beside the drawn outline.</summary>
+    public string? Attribution { get; init; }
+
+    /// <summary>The source's own identifier for the shape, e.g. "relation/175342".</summary>
+    public string? SourceReference { get; init; }
+
+    /// <summary>The day the shape was taken from the source.</summary>
+    public DateOnly? RetrievedOn { get; init; }
 }
 
 /// <summary>One point on an outline.</summary>

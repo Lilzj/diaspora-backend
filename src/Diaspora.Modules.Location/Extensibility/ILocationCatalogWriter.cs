@@ -39,4 +39,47 @@ public interface ILocationCatalogWriter
 
     /// <summary>Whether the catalogue already has any geography below country level.</summary>
     Task<bool> HasAreasAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gives an existing node its outline, when exactly one node matches and it has none.
+    /// <para>
+    /// Matched on country, level and exact name, never on anything looser: an outline filed
+    /// against the wrong "Port Louis" would redraw a district as a city. A node that already has
+    /// an outline keeps it, unless the stored one is the same shape from the same source taken
+    /// earlier — so a refreshed extract can replace itself, and nothing can replace an outline
+    /// somebody else supplied.
+    /// </para>
+    /// </summary>
+    Task<BoundaryImportOutcome> EnsureBoundaryAsync(
+        CountryCode countryCode,
+        AdministrativeLevel level,
+        PlaceName name,
+        GeographicBoundary boundary,
+        BoundaryProvenance provenance,
+        CancellationToken cancellationToken = default);
+}
+
+/// <summary>What <see cref="ILocationCatalogWriter.EnsureBoundaryAsync"/> did, for the seeder's log.</summary>
+public enum BoundaryImportOutcome
+{
+    /// <summary>The node had no outline and now has this one.</summary>
+    Recorded,
+
+    /// <summary>The node held an earlier extract of the same shape, now replaced.</summary>
+    Refreshed,
+
+    /// <summary>The node already had this outline, or one from elsewhere that is not ours to replace.</summary>
+    AlreadyOutlined,
+
+    /// <summary>No node has that country, level and name.</summary>
+    NoSuchArea,
+
+    /// <summary>More than one node does, and guessing between them is how a line lands on the wrong town.</summary>
+    Ambiguous,
+
+    /// <summary>
+    /// The node's own centre is outside the outline — the match is on a name, and this is the check
+    /// that the name meant the same place.
+    /// </summary>
+    CentreOutside
 }
