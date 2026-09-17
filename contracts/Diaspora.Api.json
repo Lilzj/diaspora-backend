@@ -4312,6 +4312,70 @@
         }
       }
     },
+    "/api/v1/community/posts/{postId}/withdraw": {
+      "post": {
+        "tags": [
+          "Community"
+        ],
+        "summary": "Withdraw your own alert because the report was wrong. It stays readable, marked withdrawn.",
+        "operationId": "WithdrawCommunityPost",
+        "parameters": [
+          {
+            "name": "postId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/community/posts/{postId}/cancel": {
+      "post": {
+        "tags": [
+          "Community"
+        ],
+        "summary": "Cancel your own alert because what it reported is over. It stays readable, marked cancelled.",
+        "operationId": "CancelCommunityPost",
+        "parameters": [
+          {
+            "name": "postId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/community/alerts/capabilities": {
+      "get": {
+        "tags": [
+          "Community"
+        ],
+        "summary": "What the caller may publish on the alert map: urgencies, and the affected-area limits.",
+        "operationId": "GetCommunityAlertCapabilities",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/community/posts/{postId}/revisions": {
       "get": {
         "tags": [
@@ -22399,6 +22463,16 @@
             }
           },
           {
+            "name": "FurnishedStatuses",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
             "name": "MinRent",
             "in": "query",
             "schema": {
@@ -22550,6 +22624,14 @@
               "items": {
                 "type": "string"
               }
+            }
+          },
+          {
+            "name": "LandlordId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
@@ -39386,6 +39468,15 @@
             ],
             "format": "double"
           },
+          "affectedRadiusMetres": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
           "expiresInHours": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
@@ -46097,6 +46188,9 @@
           "shippingOnly": {
             "type": "boolean"
           },
+          "pickupOnly": {
+            "type": "boolean"
+          },
           "sellerId": {
             "type": [
               "null",
@@ -50866,6 +50960,21 @@
               "null",
               "string"
             ]
+          },
+          "urgency": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "affectedRadiusMetres": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           },
           "attachments": {
             "type": [
