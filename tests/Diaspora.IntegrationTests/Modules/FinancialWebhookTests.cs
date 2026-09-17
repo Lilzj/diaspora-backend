@@ -199,11 +199,11 @@ public sealed class FinancialWebhookTests : IdentityTestBase
 
         var intentId = await CreatePaymentIntentAsync(amount: 12.50m);
 
-        // Authorised by callback first. A provider that drives the whole lifecycle from its own side
-        // — a bank transfer, a mobile-money push — is exactly the case this route exists for, and a
-        // capture on an intent no gateway has ever seen is one the state machine is right to refuse.
-        var authorized = Body("authorized", intentId.ToString(), "evt-capture-0");
-        await PostAsync(authorized, SimulatedPaymentWebhookProcessor.Sign(authorized));
+        // Authorised first: a capture on an intent no gateway has ever seen is one the state machine
+        // is right to refuse. Through the member's route rather than by callback, because an
+        // authorised callback takes the payment itself (the next test), and this one is about a
+        // provider that took the money on its own side and says so.
+        await AuthorizeThroughTheMemberRouteAsync(intentId);
 
         var body = Body("captured", intentId.ToString(), "evt-capture-1", amountMinorUnits: 1250);
         var response = await PostAsync(body, SimulatedPaymentWebhookProcessor.Sign(body));
@@ -225,6 +225,48 @@ public sealed class FinancialWebhookTests : IdentityTestBase
     }
 
     /// <summary>
+    /// <b>An authorised callback takes the payment, and the provider's later word on it moves nothing
+    /// twice.</b>
+    /// <para>
+    /// Hosted pages authorise and hold, and nothing else on the platform would ever capture what they
+    /// hold: on 6 Sep 2026 a member's £50 sat authorised with no ledger entry. The handler has taken
+    /// the payment on an authorised callback since then, and no test said so. The capture test above
+    /// staged its authorisation with a callback, met a payment that was already captured, and failed
+    /// from that day until 17 Sep 2026.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task A_verified_authorisation_callback_takes_the_payment_once()
+    {
+        await AuthenticateAsync();
+
+        var intentId = await CreatePaymentIntentAsync(amount: 12.50m);
+
+        var authorized = Body("authorized", intentId.ToString(), "evt-take-1", amountMinorUnits: 1250);
+        var taken = await ReadDataAsync<AcknowledgementShape>(
+            await PostAsync(authorized, SimulatedPaymentWebhookProcessor.Sign(authorized)));
+
+        taken.Outcome.Should().Be(nameof(WebhookOutcome.Applied));
+
+        // The provider then reports the capture the platform asked it for. The payment is already
+        // captured, so the state machine refuses the report and the money is not counted again.
+        var captured = Body("captured", intentId.ToString(), "evt-take-2", amountMinorUnits: 1250);
+        var reported = await ReadDataAsync<AcknowledgementShape>(
+            await PostAsync(captured, SimulatedPaymentWebhookProcessor.Sign(captured)));
+
+        reported.Outcome.Should().Be(nameof(WebhookOutcome.Refused));
+
+        using var scope = Factory.Services.CreateScope();
+        var intents = scope.ServiceProvider.GetRequiredService<IPaymentIntentRepository>();
+
+        var intent = await intents.FindAsync(
+            PaymentIntentId.From(intentId));
+
+        intent!.Status.Should().Be(PaymentIntentStatus.Captured);
+        intent.CapturedMinorUnits.Should().Be(1250, "money moves once per payment");
+    }
+
+    /// <summary>
     /// <b>A second capture callback for one intent is refused by the state machine, not applied.</b>
     /// Two independent barriers stand behind this — the aggregate's transition guard and the ledger's
     /// reference idempotency — because this is the path where a duplicate costs real money.
@@ -236,11 +278,15 @@ public sealed class FinancialWebhookTests : IdentityTestBase
 
         var intentId = await CreatePaymentIntentAsync(amount: 7m);
 
-        var authorized = Body("authorized", intentId.ToString(), "evt-double-0");
-        await PostAsync(authorized, SimulatedPaymentWebhookProcessor.Sign(authorized));
+        await AuthorizeThroughTheMemberRouteAsync(intentId);
 
         var first = Body("captured", intentId.ToString(), "evt-double-1", amountMinorUnits: 700);
-        await PostAsync(first, SimulatedPaymentWebhookProcessor.Sign(first));
+        var applied = await ReadDataAsync<AcknowledgementShape>(
+            await PostAsync(first, SimulatedPaymentWebhookProcessor.Sign(first)));
+
+        // Without this the test passes for the wrong reason, as it did while an authorised
+        // callback staged the payment: nothing was captured by the "first" capture at all.
+        applied.Outcome.Should().Be(nameof(WebhookOutcome.Applied));
 
         // A different event id, so the replay barrier does not catch it. Only the state machine can.
         var second = Body("captured", intentId.ToString(), "evt-double-2", amountMinorUnits: 700);
@@ -272,8 +318,7 @@ public sealed class FinancialWebhookTests : IdentityTestBase
 
         var intentId = await CreatePaymentIntentAsync(amount: 5m);
 
-        var authorized = Body("authorized", intentId.ToString(), "evt-over-0");
-        await PostAsync(authorized, SimulatedPaymentWebhookProcessor.Sign(authorized));
+        await AuthorizeThroughTheMemberRouteAsync(intentId);
 
         var body = Body("captured", intentId.ToString(), "evt-over-1", amountMinorUnits: 500_000);
         var response = await PostAsync(body, SimulatedPaymentWebhookProcessor.Sign(body));
@@ -429,6 +474,26 @@ public sealed class FinancialWebhookTests : IdentityTestBase
         var intent = await ReadDataAsync<PaymentShape>(response);
 
         return intent.PaymentIntentId;
+    }
+
+    /// <summary>
+    /// Authorises a payment the way a member's card does: through the gateway, which holds the money
+    /// and leaves the payment <c>Authorized</c> until something takes it.
+    /// <para>
+    /// Not by callback. An authorised callback takes the payment as well, so a test that needs an
+    /// authorised payment to act on cannot stage it that way.
+    /// </para>
+    /// </summary>
+    private async Task AuthorizeThroughTheMemberRouteAsync(Guid intentId)
+    {
+        var response = await HttpClient.PostAsync(
+            new Uri($"/api/v1/financial/payment-intents/{intentId}/authorize", UriKind.Relative),
+            content: null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        (await ReadDataAsync<PaymentShape>(response)).Status
+            .Should().Be(nameof(PaymentIntentStatus.Authorized));
     }
 
     /// <summary>

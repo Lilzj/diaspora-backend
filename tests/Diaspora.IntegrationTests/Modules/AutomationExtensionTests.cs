@@ -9,6 +9,7 @@ using Diaspora.Contracts.Marketplace.V1.Events;
 using Diaspora.IntegrationTests.Common;
 using Diaspora.Modules.Automation.Domain.Catalog;
 using Diaspora.Modules.Automation.Domain.Repositories;
+using Diaspora.Modules.CommunityProgramme.Extensibility.Automation;
 using Diaspora.Platform.Messaging;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
@@ -574,11 +575,18 @@ public sealed class AutomationExtensionTests : IdentityTestBase
     }
 
     /// <summary>
-    /// The organization and creator scopes are answered by their owning modules.
+    /// The organization, creator and community scopes are answered by their owning modules.
     /// <para>
     /// Wave 11 shipped both broadcasts working and granted to nobody, because the seam lived in an
     /// assembly no owning module could reference. This is the assertion that the move made it
     /// reachable — and it names the owner kinds, so a module answering for everything cannot pass.
+    /// </para>
+    /// <para>
+    /// <b>It used to assert that nothing answered for a community</b>, because the Community Directory
+    /// had no backend and an authority for it would have been a module claiming a scope it did not
+    /// own. Communities have had owners and administrators since 11 Sep 2026, and the module that
+    /// records them answers for the scope; the assertion failed from that day until 17 Sep 2026.
+    /// It now pins the owner instead.
     /// </para>
     /// </summary>
     [Fact]
@@ -600,10 +608,15 @@ public sealed class AutomationExtensionTests : IdentityTestBase
         specific.Should().Contain(AutomationOwnerKind.Organization);
         specific.Should().Contain(AutomationOwnerKind.Creator);
 
-        specific.Should().NotContain(
-            AutomationOwnerKind.Community,
-            "the Community Directory has no backend, and an authority that answered for it would be "
-            + "a module claiming a scope it does not own");
+        authorities
+            .Where(authority => authority.Handles.Count < everyKind
+                && authority.Handles.Contains(AutomationOwnerKind.Community))
+            .Should().ContainSingle()
+            .Which.Should().BeOfType<CommunityAutomationAuthority>(
+                "the module that records who runs a community is the one that answers for it");
+
+        specific.Should().OnlyHaveUniqueItems(
+            "two authorities for one owner kind would be two opinions about who may act there");
 
         authorities.Should().Contain(
             authority => authority.Handles.Count == everyKind,
