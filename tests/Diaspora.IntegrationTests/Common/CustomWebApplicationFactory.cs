@@ -154,6 +154,18 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Api.Program>
                 // Tests file rows by running AreaFilingSweep.RunOnceAsync directly.
                 ["Location:Spatial:EnableAreaFilingSweep"] = "false",
 
+                // **A timeout meant for a member's screen is not a timing assertion.**
+                // The nearby fan-out gives each vertical 2.5 seconds and a counter 1.5 so one bad
+                // provider cannot hold a browse screen. Under the full suite — hundreds of classes
+                // sharing one machine and one SQLite connection — providers overrun that and the
+                // group comes back empty, which read as "the alerts layer is broken" in four tests
+                // that pass alone (CommunityAlertLifecycleTests, NearbyUpdatePayloadTests,
+                // LocationModuleTests). The budgets are raised here so a slow machine cannot fake a
+                // missing feature; that the budget is enforced at all is
+                // LocationAggregatorConcurrencyTests' business, with budgets of its own.
+                ["Location:Spatial:NearbyProviderTimeoutMilliseconds"] = "30000",
+                ["Location:Spatial:ResourceCounterTimeoutMilliseconds"] = "30000",
+
                 // The suite never calls a third party. The safety counts' police source answers
                 // "Disabled" here; its parsing is tested against a fake transport.
                 ["GeographicIntelligence:PoliceUk:Enabled"] = "false",
