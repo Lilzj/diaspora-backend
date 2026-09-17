@@ -44,10 +44,25 @@ RUN for project in *.csproj; do \
 RUN dotnet restore src/Diaspora.Api/Diaspora.Api.csproj
 
 COPY src/ src/
+
+# `-maxcpucount:2`, because the builder runs out of memory before it runs out of cores.
+#
+# The first attempt at v108 (17 Sep 2026) died with `csc exited with code 137` — the Linux
+# out-of-memory kill — compiling Diaspora.Persistence. A plain retry succeeded, which is what
+# a memory ceiling looks like: MSBuild defaults to one node per core, Fly's remote builder has
+# far more cores than it has gigabytes per core, and thirty-three projects compiling at once
+# each hold a Roslyn compilation in memory. Two nodes still overlap the long projects with the
+# short ones and keep the peak inside the machine.
+#
+# `UseSharedCompilation=false` for the same reason: the compiler server survives between
+# projects holding what it has already loaded, which is a saving in time and a cost in memory
+# on a build that runs once per deploy.
 RUN dotnet publish src/Diaspora.Api/Diaspora.Api.csproj \
     -c Release \
     -o /app/publish \
-    --no-restore
+    --no-restore \
+    -maxcpucount:2 \
+    -p:UseSharedCompilation=false
 
 # ─── Runtime ──────────────────────────────────────────────────────────
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
