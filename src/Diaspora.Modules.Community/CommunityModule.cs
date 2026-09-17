@@ -128,6 +128,7 @@ public sealed class CommunityModule : IPlatformModule
         services.AddScoped<FeedComposer>();
         services.AddScoped<MediaAttachmentClaimer>();
         services.AddScoped<CommunityIntegrationEventRelay>();
+        services.AddScoped<AlertMapAnnouncer>();
 
         // Scoped rather than singleton: the catalogue is a per-request cache over a table, and a
         // singleton would go stale the moment a deployment retuned a reaction.

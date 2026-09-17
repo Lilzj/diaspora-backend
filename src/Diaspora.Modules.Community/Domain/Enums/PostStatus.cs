@@ -37,5 +37,22 @@ public enum PostStatus
     Removed = 5,
 
     /// <summary>Deleted by the author. Soft-deleted; the row survives for moderation history.</summary>
-    Deleted = 6
+    Deleted = 6,
+
+    /// <summary>
+    /// Retracted by its author because the report was wrong. Stays readable by permalink and says
+    /// so, and leaves every feed and the live map.
+    /// <para>
+    /// Distinct from <see cref="Removed"/>, which is a moderator's decision, and from
+    /// <see cref="Archived"/>, which leaves quietly. A member who acted on an alert needs to be told
+    /// it was withdrawn, not find that it has vanished — added 16 Sep 2026 for exactly that.
+    /// </para>
+    /// </summary>
+    Withdrawn = 7,
+
+    /// <summary>
+    /// Called off by its author because what was reported is over or will not happen: the road has
+    /// reopened, the meeting will not go ahead. Readable, marked, and out of feeds and the live map.
+    /// </summary>
+    Cancelled = 8
 }

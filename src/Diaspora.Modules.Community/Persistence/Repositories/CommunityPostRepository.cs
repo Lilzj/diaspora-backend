@@ -298,6 +298,11 @@ public sealed class CommunityPostRepository : ICommunityPostRepository
             query = query.Where(post => post.PublishedAt <= before);
         }
 
+        if (filter.HasAffectedArea == true)
+        {
+            query = query.Where(post => post.AffectedRadiusMetres != null);
+        }
+
         if (filter.BoundingBox is { } box)
         {
             query = query.Where(post =>

@@ -23,6 +23,9 @@ public static class CommunityPermissions
     /// <summary>Edit or delete the caller's own post.</summary>
     public const string ManagePost = "community:post:manage";
 
+    /// <summary>Publish, or raise a post to, Emergency urgency. See the contributor for the rule.</summary>
+    public const string PublishEmergency = "community:alerts:emergency";
+
     /// <summary>Comment on content, and reply to a comment.</summary>
     public const string Comment = "community:comment";
 

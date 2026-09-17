@@ -98,8 +98,26 @@ public sealed record CommunityPostResponse
 
     public DateTimeOffset? EditedAt { get; init; }
 
+    /// <summary>
+    /// How far around its pin the alert applies, in metres. Null is an alert at a point — the map
+    /// draws a circle only when this is set.
+    /// </summary>
+    public int? AffectedRadiusMetres { get; init; }
+
+    /// <summary>When its author withdrew or cancelled it. Null while it is in effect.</summary>
+    public DateTimeOffset? ClosedAt { get; init; }
+
     public required DateTimeOffset CreatedAt { get; init; }
 
-    /// <summary>True when the caller may edit or delete this post.</summary>
+    /// <summary>
+    /// True when the caller may edit or delete this post. For a published alert this also means
+    /// amending its urgency and affected area.
+    /// </summary>
     public required bool CanEdit { get; init; }
+
+    /// <summary>True when the caller may withdraw this post because the report was wrong.</summary>
+    public required bool CanWithdraw { get; init; }
+
+    /// <summary>True when the caller may cancel this post because what it reported is over.</summary>
+    public required bool CanCancel { get; init; }
 }

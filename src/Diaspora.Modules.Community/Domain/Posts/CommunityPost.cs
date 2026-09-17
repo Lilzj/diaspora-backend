@@ -127,6 +127,20 @@ public sealed class CommunityPost
 
     public DateTimeOffset? EditedAt { get; private set; }
 
+    /// <summary>
+    /// How far around its point the post applies, in metres, when its author said. Null is a point,
+    /// which is every post written before 16 Sep 2026.
+    /// <para>
+    /// A road closure reported at one junction covers the road only when its author gives it a
+    /// radius. The map draws exactly this circle, and nothing the client invents: drawing 500 m around
+    /// a report nobody sized would be the platform deciding the scope of somebody's emergency.
+    /// </para>
+    /// </summary>
+    public int? AffectedRadiusMetres { get; private set; }
+
+    /// <summary>When its author withdrew or cancelled it. Null while it is open.</summary>
+    public DateTimeOffset? ClosedAt { get; private set; }
+
     /// <summary>True once an edit happened outside the silent window. The client renders this.</summary>
     public bool IsEdited { get; private set; }
 
@@ -159,7 +173,14 @@ public sealed class CommunityPost
     public bool IsPublished => Status is PostStatus.Published;
 
     public bool IsVisibleToOthers =>
-        Status is PostStatus.Published or PostStatus.Expired && !IsDeleted;
+        Status is PostStatus.Published
+            or PostStatus.Expired
+            or PostStatus.Withdrawn
+            or PostStatus.Cancelled
+        && !IsDeleted;
+
+    /// <summary>Whether its author has withdrawn or cancelled it.</summary>
+    public bool IsClosed => Status is PostStatus.Withdrawn or PostStatus.Cancelled;
 
     public static Result<CommunityPost> Draft(
         UserId authorId,
@@ -171,7 +192,8 @@ public sealed class CommunityPost
         ContentAudience audience,
         PostLocationContext location,
         DateTimeOffset now,
-        int? lifetimeHours = null)
+        int? lifetimeHours = null,
+        int? affectedRadiusMetres = null)
     {
         ArgumentNullException.ThrowIfNull(authorId);
         ArgumentNullException.ThrowIfNull(publisher);
@@ -179,7 +201,7 @@ public sealed class CommunityPost
         ArgumentNullException.ThrowIfNull(audience);
         ArgumentNullException.ThrowIfNull(location);
 
-        return Result.Success(new CommunityPost(
+        var post = new CommunityPost(
             CommunityPostId.New(),
             authorId,
             publisher,
@@ -190,7 +212,11 @@ public sealed class CommunityPost
             audience,
             location,
             now,
-            PostExpiryPolicy.Resolve(category, lifetimeHours)));
+            PostExpiryPolicy.Resolve(category, lifetimeHours));
+
+        var area = post.ApplyAffectedRadius(affectedRadiusMetres);
+
+        return area.IsFailure ? Result.Failure<CommunityPost>(area.Error) : Result.Success(post);
     }
 
     /// <summary>
@@ -258,7 +284,9 @@ public sealed class CommunityPost
             return Result.Failure(CommunityErrors.PostRemoved);
         }
 
-        if (Status is PostStatus.Archived)
+        // A withdrawn or cancelled alert is a record of what was said and then taken back.
+        // Rewriting it afterwards would change what members acted on.
+        if (Status is PostStatus.Archived || IsClosed)
         {
             return Result.Failure(CommunityErrors.PostNotEditable);
         }
@@ -431,6 +459,149 @@ public sealed class CommunityPost
         Status = PostStatus.Expired;
 
         RaiseDomainEvent(new PostExpiredDomainEvent { PostId = Id, ExpiredAt = now });
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Retracts the post because the report was wrong. Its author only, and only while it is in
+    /// effect; see <see cref="PostStatus.Withdrawn"/>.
+    /// </summary>
+    public Result Withdraw(UserId by, DateTimeOffset now) => Close(PostStatus.Withdrawn, by, now);
+
+    /// <summary>
+    /// Calls the post off because what it reported is over or will not happen. Its author only, and
+    /// only while it is in effect; see <see cref="PostStatus.Cancelled"/>.
+    /// </summary>
+    public Result Cancel(UserId by, DateTimeOffset now) => Close(PostStatus.Cancelled, by, now);
+
+    /// <summary>
+    /// Changes how urgent a published post is, how far it reaches, or both.
+    /// <para>
+    /// <paramref name="affectedRadiusMetres"/> follows the wire: null leaves the area as it is, zero
+    /// removes it, and anything else replaces it. Who may raise a post to Emergency is decided by the
+    /// handler, which holds the caller's permissions; the aggregate holds only what an amendment is.
+    /// </para>
+    /// <para>
+    /// Marked edited on the same rule as <see cref="Edit"/>: silently inside the first five minutes,
+    /// publicly after. A member who planned around "Urgent, 2 km" and now reads "Emergency, 10 km"
+    /// deserves to see that it changed.
+    /// </para>
+    /// </summary>
+    public Result AmendAlert(
+        UrgencyLevel? urgency, int? affectedRadiusMetres, UserId by, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(by);
+
+        if (by != AuthorId)
+        {
+            return Result.Failure(CommunityErrors.PostNotOwned);
+        }
+
+        if (Status is PostStatus.Removed or PostStatus.Deleted)
+        {
+            return Result.Failure(CommunityErrors.PostRemoved);
+        }
+
+        if (Status is not PostStatus.Published)
+        {
+            return Result.Failure(CommunityErrors.PostNotOpen);
+        }
+
+        var nextUrgency = urgency ?? Urgency;
+        var nextRadius = affectedRadiusMetres switch
+        {
+            null => AffectedRadiusMetres,
+            0 => null,
+            var radius => radius
+        };
+
+        if (nextUrgency == Urgency && nextRadius == AffectedRadiusMetres)
+        {
+            return Result.Success();
+        }
+
+        var area = ApplyAffectedRadius(nextRadius);
+
+        if (area.IsFailure)
+        {
+            return area;
+        }
+
+        Urgency = nextUrgency;
+        EditedAt = now;
+
+        if (PublishedAt is { } published && now - published > CommunityLimits.SilentEditWindow)
+        {
+            IsEdited = true;
+        }
+
+        RaiseDomainEvent(new PostAlertAmendedDomainEvent
+        {
+            PostId = Id,
+            Urgency = Urgency,
+            AffectedRadiusMetres = AffectedRadiusMetres,
+            AmendedAt = now
+        });
+
+        return Result.Success();
+    }
+
+    private Result Close(PostStatus closing, UserId by, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(by);
+
+        if (by != AuthorId)
+        {
+            return Result.Failure(CommunityErrors.PostNotOwned);
+        }
+
+        if (Status is PostStatus.Removed or PostStatus.Deleted)
+        {
+            return Result.Failure(CommunityErrors.PostRemoved);
+        }
+
+        if (Status is not PostStatus.Published)
+        {
+            return Result.Failure(CommunityErrors.PostNotOpen);
+        }
+
+        Status = closing;
+        ClosedAt = now;
+
+        RaiseDomainEvent(closing == PostStatus.Withdrawn
+            ? new PostWithdrawnDomainEvent { PostId = Id, AuthorId = AuthorId, ClosedAt = now }
+            : new PostCancelledDomainEvent { PostId = Id, AuthorId = AuthorId, ClosedAt = now });
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// A radius needs a point its author chose to be around, and a size a phone can draw. A centroid
+    /// does not count: see <see cref="PostLocationContext.PointIsExact"/>.
+    /// </summary>
+    private Result ApplyAffectedRadius(int? radiusMetres)
+    {
+        if (radiusMetres is null)
+        {
+            AffectedRadiusMetres = null;
+
+            return Result.Success();
+        }
+
+        if (!Location.HasCoordinates || !Location.PointIsExact)
+        {
+            return Result.Failure(CommunityErrors.AffectedAreaNeedsPoint);
+        }
+
+        if (radiusMetres < CommunityLimits.MinAffectedRadiusMetres
+            || radiusMetres > CommunityLimits.MaxAffectedRadiusMetres)
+        {
+            return Result.Failure(CommunityErrors.AffectedRadiusOutOfRange(
+                CommunityLimits.MinAffectedRadiusMetres, CommunityLimits.MaxAffectedRadiusMetres));
+        }
+
+        AffectedRadiusMetres = radiusMetres;
 
         return Result.Success();
     }

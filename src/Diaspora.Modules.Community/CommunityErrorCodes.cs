@@ -34,6 +34,10 @@ public static class CommunityErrorCodes
     public const string PostMentionLimit = "community.post.mention-limit";
     public const string PostNotOwned = "community.post.not-owned";
     public const string PostRemoved = "community.post.removed";
+    public const string PostNotOpen = "community.post.not-open";
+    public const string AffectedAreaNeedsPoint = "community.post.affected-area.needs-point";
+    public const string AffectedRadiusOutOfRange = "community.post.affected-area.out-of-range";
+    public const string EmergencyNotPermitted = "community.post.emergency.not-permitted";
 
     public const string CommentNotFound = "community.comment.not-found";
     public const string CommentBodyEmpty = "community.comment.body-empty";

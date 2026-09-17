@@ -93,6 +93,14 @@ public sealed class CreatePostCommandHandler
         var category = CommunityWireNames.ParseOr(payload.Category, PostCategory.Other);
         var urgency = CommunityWireNames.ParseOr(payload.Urgency, UrgencyLevel.Normal);
 
+        // Emergency is its own permission (16 Sep 2026). The route's policy admits anybody who may
+        // post at all; the rule is about urgency, so it is checked where urgency is known.
+        if (urgency == UrgencyLevel.Emergency
+            && !_currentUser.Permissions.Contains(CommunityPermissions.PublishEmergency, StringComparer.Ordinal))
+        {
+            return Result.Failure<CommunityPostResponse>(CommunityErrors.EmergencyNotPermitted);
+        }
+
         var audience = BuildAudience(payload);
         var location = await ResolveLocationAsync(payload, cancellationToken);
 
@@ -111,7 +119,8 @@ public sealed class CreatePostCommandHandler
             audience,
             location,
             _clock.UtcNow,
-            payload.ExpiresInHours);
+            payload.ExpiresInHours,
+            payload.AffectedRadiusMetres);
 
         if (draft.IsFailure)
         {
@@ -213,6 +222,8 @@ public sealed class CreatePostCommandHandler
             },
             cancellationToken);
 
+        var pinned = payload.Latitude is not null && payload.Longitude is not null;
+
         if (scope.IsFailure)
         {
             return PostLocationContext.Create(
@@ -221,7 +232,8 @@ public sealed class CreatePostCommandHandler
                 payload.AreaName,
                 payload.CityName,
                 payload.Latitude,
-                payload.Longitude);
+                payload.Longitude,
+                pointIsExact: pinned);
         }
 
         var resolved = scope.Value;
@@ -240,8 +252,12 @@ public sealed class CreatePostCommandHandler
             resolved.AreaId?.Value ?? payload.AreaId,
             areaName,
             resolved.CityName ?? payload.CityName,
-            resolved.Center?.Latitude ?? payload.Latitude,
-            resolved.Center?.Longitude ?? payload.Longitude,
-            path);
+
+            // The author's own pin wins over the centre of whatever it resolved to. Only a post with
+            // no pin is placed at a centre, and it is recorded as placed there.
+            pinned ? payload.Latitude : resolved.Center?.Latitude,
+            pinned ? payload.Longitude : resolved.Center?.Longitude,
+            path,
+            pointIsExact: pinned);
     }
 }

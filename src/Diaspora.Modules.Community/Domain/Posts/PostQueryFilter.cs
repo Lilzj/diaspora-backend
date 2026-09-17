@@ -66,6 +66,9 @@ public sealed record PostQueryFilter
     public (double MinLatitude, double MinLongitude, double MaxLatitude, double MaxLongitude)?
         BoundingBox { get; init; }
 
+    /// <summary>True narrows to posts that declared an affected area. The nearby query's second look.</summary>
+    public bool? HasAffectedArea { get; init; }
+
     public FeedCursor? Cursor { get; init; }
 
     public int Limit { get; init; } = CommunityLimits.DefaultFeedPageSize;

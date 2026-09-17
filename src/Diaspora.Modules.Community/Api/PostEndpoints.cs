@@ -1,3 +1,4 @@
+using Diaspora.Modules.Community.Application.Capabilities;
 using Diaspora.Modules.Community.Application.Polls;
 using Diaspora.Modules.Community.Application.Posts;
 using Diaspora.Modules.Community.Contracts.V1.Requests;
@@ -66,6 +67,45 @@ internal static class PostEndpoints
             .RequireAuthorization(CommunityPolicies.ManagePost)
             .WithName("DeleteCommunityPost")
             .WithSummary("Delete your own post.");
+
+        group.MapPost("/posts/{postId:guid}/withdraw", async (
+                Guid postId,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new ClosePostCommand { PostId = postId, Closure = PostClosure.Withdraw },
+                        cancellationToken)))
+            .RequireAuthorization(CommunityPolicies.ManagePost)
+            .WithName("WithdrawCommunityPost")
+            .WithSummary("Withdraw your own alert because the report was wrong. It stays readable, marked withdrawn.");
+
+        group.MapPost("/posts/{postId:guid}/cancel", async (
+                Guid postId,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new ClosePostCommand { PostId = postId, Closure = PostClosure.Cancel },
+                        cancellationToken)))
+            .RequireAuthorization(CommunityPolicies.ManagePost)
+            .WithName("CancelCommunityPost")
+            .WithSummary("Cancel your own alert because what it reported is over. It stays readable, marked cancelled.");
+
+        group.MapGet("/alerts/capabilities", async (
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(new GetAlertCapabilitiesQuery(), cancellationToken)))
+            .RequireAuthorization(CommunityPolicies.Read)
+            .WithName("GetCommunityAlertCapabilities")
+            .WithSummary("What the caller may publish on the alert map: urgencies, and the affected-area limits.");
 
         group.MapGet("/posts/{postId:guid}/revisions", async (
                 Guid postId,

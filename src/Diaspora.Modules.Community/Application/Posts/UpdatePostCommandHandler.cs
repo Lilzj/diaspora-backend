@@ -3,6 +3,7 @@ using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Community.Application.Mapping;
 using Diaspora.Modules.Community.Application.Services;
 using Diaspora.Modules.Community.Contracts.V1.Responses;
+using Diaspora.Modules.Community.Domain.Enums;
 using Diaspora.Modules.Community.Domain.Errors;
 using Diaspora.Modules.Community.Domain.Identifiers;
 using Diaspora.Modules.Community.Domain.Posts;
@@ -97,6 +98,33 @@ public sealed class UpdatePostCommandHandler
             if (applied.IsFailure)
             {
                 return Result.Failure<CommunityPostResponse>(applied.Error);
+            }
+        }
+
+        var payload = request.Request;
+
+        if (payload.Urgency is not null || payload.AffectedRadiusMetres is not null)
+        {
+            UrgencyLevel? urgency = payload.Urgency is null
+                ? null
+                : CommunityWireNames.ParseOr(payload.Urgency, post.Urgency);
+
+            // Raising an alert to Emergency is publishing one, and needs the same permission.
+            // Keeping an alert that is already Emergency at Emergency does not.
+            if (urgency == UrgencyLevel.Emergency
+                && post.Urgency != UrgencyLevel.Emergency
+                && !_currentUser.Permissions.Contains(
+                    CommunityPermissions.PublishEmergency, StringComparer.Ordinal))
+            {
+                return Result.Failure<CommunityPostResponse>(CommunityErrors.EmergencyNotPermitted);
+            }
+
+            var amended = post.AmendAlert(
+                urgency, payload.AffectedRadiusMetres, userId, _clock.UtcNow);
+
+            if (amended.IsFailure)
+            {
+                return Result.Failure<CommunityPostResponse>(amended.Error);
             }
         }
 

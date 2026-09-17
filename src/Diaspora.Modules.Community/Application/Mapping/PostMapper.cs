@@ -79,8 +79,15 @@ public static class PostMapper
             ExpiresAt = post.ExpiresAt,
             IsExpired = post.Status == PostStatus.Expired,
             EditedAt = post.EditedAt,
+            AffectedRadiusMetres = post.AffectedRadiusMetres,
+            ClosedAt = post.ClosedAt,
             CreatedAt = post.CreatedAt,
-            CanEdit = isOwner
+            CanEdit = isOwner,
+
+            // Only while the alert is in effect: an expired alert has already stopped being true,
+            // and withdrawing it afterwards would tell members something that is no longer news.
+            CanWithdraw = isOwner && post.Status == PostStatus.Published,
+            CanCancel = isOwner && post.Status == PostStatus.Published
         };
     }
 
@@ -120,7 +127,9 @@ public static class PostMapper
             HasPoll = post.Poll is not null,
             PublishedAt = post.PublishedAt,
             ExpiresAt = post.ExpiresAt,
-            IsExpired = post.Status == PostStatus.Expired
+            IsExpired = post.Status == PostStatus.Expired,
+            AffectedRadiusMetres = post.AffectedRadiusMetres,
+            ClosedAt = post.ClosedAt
         };
     }
 
@@ -176,6 +185,7 @@ public static class PostMapper
             CityName = post.Location.CityName,
             Latitude = post.Location.Latitude,
             Longitude = post.Location.Longitude,
-            DistanceKm = distanceKm
+            DistanceKm = distanceKm,
+            PointIsExact = post.Location.PointIsExact
         };
 }

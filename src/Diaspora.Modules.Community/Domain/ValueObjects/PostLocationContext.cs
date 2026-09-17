@@ -33,7 +33,8 @@ public sealed class PostLocationContext : ValueObject
         string? cityName,
         double? latitude,
         double? longitude,
-        string? hierarchyPath)
+        string? hierarchyPath,
+        bool pointIsExact)
     {
         CountryCode = countryCode;
         AreaId = areaId;
@@ -42,6 +43,7 @@ public sealed class PostLocationContext : ValueObject
         Latitude = latitude;
         Longitude = longitude;
         HierarchyPath = hierarchyPath;
+        PointIsExact = pointIsExact && latitude is not null && longitude is not null;
     }
 
     private PostLocationContext() { }
@@ -69,13 +71,27 @@ public sealed class PostLocationContext : ValueObject
     /// </summary>
     public string? HierarchyPath { get; private set; }
 
+    /// <summary>
+    /// Whether the coordinates are where the author put them, rather than the centre of the place
+    /// they named.
+    /// <para>
+    /// <b>Most posts' coordinates are a centroid.</b> The app's alert composer sends a place name and
+    /// no pin, and the post is placed at the centre of the town Location resolves — which keeps it on
+    /// the map, and puts every London alert on the same spot. Found on 16 Sep 2026, when an affected
+    /// area around "London" was accepted: a radius drawn around a centroid is a precise-looking claim
+    /// about somewhere nobody chose. A map uses this to mark an alert as approximate, and an affected
+    /// area needs it to be true.
+    /// </para>
+    /// </summary>
+    public bool PointIsExact { get; private set; }
+
     public bool HasCoordinates => Latitude is not null && Longitude is not null;
 
     public bool IsEmpty =>
         CountryCode is null && AreaId is null && CityName is null && !HasCoordinates;
 
     public static PostLocationContext None =>
-        new(null, null, null, null, null, null, null);
+        new(null, null, null, null, null, null, null, pointIsExact: false);
 
     public static PostLocationContext Create(
         string? countryCode = null,
@@ -84,7 +100,8 @@ public sealed class PostLocationContext : ValueObject
         string? cityName = null,
         double? latitude = null,
         double? longitude = null,
-        string? hierarchyPath = null) =>
+        string? hierarchyPath = null,
+        bool pointIsExact = false) =>
         new(
             string.IsNullOrWhiteSpace(countryCode) ? null : countryCode.Trim().ToUpperInvariant(),
             areaId,
@@ -92,7 +109,8 @@ public sealed class PostLocationContext : ValueObject
             string.IsNullOrWhiteSpace(cityName) ? null : cityName.Trim(),
             latitude,
             longitude,
-            string.IsNullOrWhiteSpace(hierarchyPath) ? null : hierarchyPath.Trim());
+            string.IsNullOrWhiteSpace(hierarchyPath) ? null : hierarchyPath.Trim(),
+            pointIsExact);
 
     protected override IEnumerable<object?> GetEqualityComponents()
     {
@@ -103,5 +121,6 @@ public sealed class PostLocationContext : ValueObject
         yield return Latitude;
         yield return Longitude;
         yield return HierarchyPath;
+        yield return PointIsExact;
     }
 }

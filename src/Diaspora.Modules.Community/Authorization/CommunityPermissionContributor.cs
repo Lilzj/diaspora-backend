@@ -45,6 +45,16 @@ public sealed class CommunityPermissionContributor : IPermissionContributor
             MinimumTier = AccessTier.Verified
         };
 
+        // Emergency is its own permission, decided 16 Sep 2026: only verified members may publish
+        // one. Posting at any urgency already needs a verified account, so today this changes
+        // nothing a member can do — it makes the rule a named thing a client can be told about,
+        // and one that can tighten on its own without touching everyday posting.
+        yield return new PermissionDefinition(
+            CommunityPermissions.PublishEmergency, Module, "Publish an Emergency alert.")
+        {
+            MinimumTier = AccessTier.Verified
+        };
+
         yield return new PermissionDefinition(
             CommunityPermissions.ManagePost, Module, "Edit or delete your own post.")
         {

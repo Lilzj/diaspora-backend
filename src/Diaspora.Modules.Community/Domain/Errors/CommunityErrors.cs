@@ -83,6 +83,30 @@ public static class CommunityErrors
     public static readonly Error PostRemoved = Error.Conflict(
         CommunityErrorCodes.PostRemoved, "That post has been removed.");
 
+    public static readonly Error PostNotOpen = Error.Conflict(
+        CommunityErrorCodes.PostNotOpen,
+        "Only a published post that is still in effect can be withdrawn, cancelled or amended.");
+
+    public static readonly Error AffectedAreaNeedsPoint = Error.Validation(
+        CommunityErrorCodes.AffectedAreaNeedsPoint,
+        "An affected area is a distance around a point. Pin the alert on the map first.");
+
+    public static Error AffectedRadiusOutOfRange(int minimum, int maximum) => Error.Validation(
+        CommunityErrorCodes.AffectedRadiusOutOfRange,
+        string.Format(
+            CultureInfo.InvariantCulture,
+            "An affected area must be between {0} and {1} metres across its radius.",
+            minimum,
+            maximum));
+
+    /// <summary>
+    /// Refused because the caller is signed in but may not publish at this urgency. A 403, not a
+    /// 401: the client offers verification, not sign-in.
+    /// </summary>
+    public static readonly Error EmergencyNotPermitted = Error.Forbidden(
+        CommunityErrorCodes.EmergencyNotPermitted,
+        "Only verified members can publish an Emergency alert. Post it as Urgent, or verify your account.");
+
     // ── Comments ─────────────────────────────────────────────────────────────────────────
 
     public static readonly Error CommentNotFound = Error.NotFound(

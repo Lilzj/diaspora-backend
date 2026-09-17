@@ -2305,6 +2305,9 @@ namespace Diaspora.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<int?>("AffectedRadiusMetres")
+                        .HasColumnType("integer");
+
                     b.Property<Guid>("AuthorId")
                         .HasColumnType("uuid");
 
@@ -2312,6 +2315,9 @@ namespace Diaspora.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
+
+                    b.Property<DateTimeOffset?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("CommentsClosed")
                         .HasColumnType("boolean");
@@ -18250,6 +18256,10 @@ namespace Diaspora.Persistence.Migrations
                             b1.Property<double?>("Longitude")
                                 .HasColumnType("double precision")
                                 .HasColumnName("longitude");
+
+                            b1.Property<bool>("PointIsExact")
+                                .HasColumnType("boolean")
+                                .HasColumnName("point_is_exact");
 
                             b1.HasKey("CommunityPostId");
 

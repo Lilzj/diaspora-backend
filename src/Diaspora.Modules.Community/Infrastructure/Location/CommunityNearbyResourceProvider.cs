@@ -1,6 +1,7 @@
 using System.Globalization;
 using Diaspora.Modules.Community.Application.Services;
 using Diaspora.Modules.Community.Domain.Enums;
+using Diaspora.Modules.Community.Domain.Policies;
 using Diaspora.Modules.Community.Domain.Posts;
 using Diaspora.Modules.Location.Extensibility;
 using Diaspora.Modules.Location.Domain.Enums;
@@ -78,35 +79,61 @@ public sealed class CommunityNearbyResourceProvider : INearbyResourceProvider
 
         var page = await _posts.QueryAsync(filter, cancellationToken);
 
-        var origin = request.Search.Center;
+        IEnumerable<Domain.Posts.CommunityPost> candidates = page.Items;
 
-        var items = page.Items
-            .Select(post => new NearbyResourceItem
-            {
-                Id = post.Id.Value.ToString(),
-                Title = post.Title ?? post.Body.Value,
-                Category = CommunityWireNames.ToWire(post.Category),
-                DistanceKm = post.Location.HasCoordinates
+        // ── An alert reaches as far as its author said — 16 Sep 2026 ──────────────────────────
+        //
+        // A post that declared an affected area is near anybody inside that area, even when its pin
+        // is outside the circle they searched: a flood reported 8 km away with a 10 km radius covers
+        // the member searching 5 km around their home. Asked as a second query, over the rectangle
+        // grown by the largest radius a post may declare, for posts that declared one — so the common
+        // query stays exactly as narrow as it was, and the wide one only ever finds circles.
+        if (circle)
+        {
+            var grown = GrowBy(request.Search.Bounds, CommunityLimits.MaxAffectedRadiusMetres / 1000d);
+
+            var reaching = await _posts.QueryAsync(
+                filter with { BoundingBox = grown, HasAffectedArea = true }, cancellationToken);
+
+            candidates = candidates.Concat(reaching.Items).DistinctBy(post => post.Id);
+        }
+
+        var origin = request.Search.Center;
+        var searchedKm = request.Search.Radius.Distance.Kilometers;
+
+        var items = candidates
+            .Select(post => (
+                Post: post,
+                DistanceKm: post.Location.HasCoordinates
                     ? _location.DistanceBetween(
                         origin,
                         Modules.Location.Domain.ValueObjects.GeoCoordinate.Create(
                             post.Location.Latitude!.Value, post.Location.Longitude!.Value)).Kilometers
-                    : 0d,
-                Latitude = post.Location.Latitude,
-                Longitude = post.Location.Longitude,
-                CityName = post.Location.CityName,
-                AreaName = post.Location.AreaName,
+                    : 0d))
+            // The corners of the rectangle are not within the circle. Trimmed against the radius the
+            // member asked for, widened by however far the post itself reaches: two circles overlap
+            // when their centres are closer than their radii added together.
+            .Where(measured => !circle
+                || measured.DistanceKm <= searchedKm + (measured.Post.AffectedRadiusMetres ?? 0) / 1000d)
+            .Select(measured => new NearbyResourceItem
+            {
+                Id = measured.Post.Id.Value.ToString(),
+                Title = measured.Post.Title ?? measured.Post.Body.Value,
+                Category = CommunityWireNames.ToWire(measured.Post.Category),
+                DistanceKm = measured.DistanceKm,
+                Latitude = measured.Post.Location.Latitude,
+                Longitude = measured.Post.Location.Longitude,
+                CityName = measured.Post.Location.CityName,
+                AreaName = measured.Post.Location.AreaName,
                 // What a map alert renders beyond a pin: its own words, when it was
                 // reported, and when it stops being true. The sweep moves a post to
                 // Expired and this provider asks for Published only, so the expiry is
                 // for the minutes between — a client must be able to drop an alert
                 // whose time has passed rather than draw it until the sweep runs.
-                Payload = Payload(post)
+                Payload = Payload(measured.Post)
             })
-            // The corners of the rectangle are not within the circle. Measured once, above, and
-            // trimmed here against the radius the member asked for.
-            .Where(item => !circle || item.DistanceKm <= request.Search.Radius.Distance.Kilometers)
             .OrderBy(item => item.DistanceKm)
+            .Take(filter.Limit)
             .ToList();
 
         return new NearbyResourceGroup { ResourceType = ResourceType, Items = items };
@@ -146,6 +173,51 @@ public sealed class CommunityNearbyResourceProvider : INearbyResourceProvider
             payload["countryCode"] = countryCode;
         }
 
+        // "exact" when its author pinned it, "area" when it sits at the centre of the place they
+        // named — which a map should draw as approximate, not as a precise spot.
+        if (post.Location.HasCoordinates)
+        {
+            payload["locationPrecision"] = post.Location.PointIsExact ? "exact" : "area";
+        }
+
+        // The circle the map draws, and nothing wider: absent means the alert is at its pin.
+        if (post.AffectedRadiusMetres is { } radius)
+        {
+            payload["affectedRadiusMetres"] = radius.ToString(CultureInfo.InvariantCulture);
+        }
+
+        // An amended alert says so. Inside the silent window an edit is not marked, and the
+        // payload follows the same rule as the post itself.
+        if (post.IsEdited && post.EditedAt is { } editedAt)
+        {
+            payload["editedAt"] = editedAt.ToString("O", CultureInfo.InvariantCulture);
+        }
+
         return payload;
+    }
+
+    /// <summary>
+    /// The rectangle grown outward by <paramref name="kilometres"/> on every side.
+    /// <para>
+    /// Longitude degrees shrink toward the poles, so the east-west growth is divided by the cosine
+    /// of the latitude nearest a pole, with a floor so it cannot run away there. Over-reaching is
+    /// harmless: the exact circle test follows.
+    /// </para>
+    /// </summary>
+    private static (double MinLatitude, double MinLongitude, double MaxLatitude, double MaxLongitude)
+        GrowBy(Modules.Location.Domain.ValueObjects.BoundingBox bounds, double kilometres)
+    {
+        const double kilometresPerDegree = 111d;
+
+        var latitudeGrowth = kilometres / kilometresPerDegree;
+        var widest = Math.Max(Math.Abs(bounds.North), Math.Abs(bounds.South));
+        var shrink = Math.Max(Math.Cos(widest * Math.PI / 180d), 0.2d);
+        var longitudeGrowth = latitudeGrowth / shrink;
+
+        return (
+            Math.Max(bounds.South - latitudeGrowth, -90d),
+            Math.Max(bounds.West - longitudeGrowth, -180d),
+            Math.Min(bounds.North + latitudeGrowth, 90d),
+            Math.Min(bounds.East + longitudeGrowth, 180d));
     }
 }

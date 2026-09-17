@@ -74,6 +74,19 @@ public static class CommunityLimits
     /// <summary>How long an author may edit a post before edits are marked publicly.</summary>
     public static readonly TimeSpan SilentEditWindow = TimeSpan.FromMinutes(5);
 
+    /// <summary>
+    /// The smallest affected area an alert may declare, in metres of radius. Below this a circle is
+    /// indistinguishable from the pin on any map a phone draws.
+    /// </summary>
+    public const int MinAffectedRadiusMetres = 25;
+
+    /// <summary>
+    /// The largest, in metres of radius. Fifty kilometres covers a flood or a regional outage; past
+    /// that an alert is about a country, and the country's own channels are the right place for it.
+    /// It also bounds how far the nearby query has to look for a circle that reaches the member.
+    /// </summary>
+    public const int MaxAffectedRadiusMetres = 50_000;
+
     /// <summary>Feed page size ceiling. Matches the SharedKernel cursor pagination maximum.</summary>
     public const int MaxFeedPageSize = 50;
 

@@ -47,6 +47,12 @@ public static class RealtimeChannels
     /// </summary>
     public const string CommunityEventPrefix = "event:";
 
+    /// <summary>
+    /// The live map's alert channels, one per <see cref="GeoCells"/> cell: <c>geo:alerts:gcpv</c>.
+    /// A frame on one means "an alert in this cell changed; refetch what you are showing".
+    /// </summary>
+    public const string AlertCellPrefix = "geo:alerts:";
+
     /// <summary>The member's own channel. Every one of their sockets is in it.</summary>
     public static string ForUser(UserId userId)
     {
@@ -68,6 +74,24 @@ public static class RealtimeChannels
         Compose(CommunityEventPrefix, communityEventId);
 
     /// <summary>Whether a name sits beneath a prefix.</summary>
+    /// <summary>The alert channel for one map cell.</summary>
+    /// <exception cref="ArgumentException">The cell is not a <see cref="GeoCells"/> cell.</exception>
+    public static string ForAlertCell(string cell)
+    {
+        if (!GeoCells.IsCell(cell))
+        {
+            throw new ArgumentException($"'{cell}' is not a map cell.", nameof(cell));
+        }
+
+        return AlertCellPrefix + cell;
+    }
+
+    /// <summary>The cell an alert channel names, or null when it names none.</summary>
+    public static string? AlertCellOf(string? channel) =>
+        HasPrefix(channel, AlertCellPrefix) && GeoCells.IsCell(channel![AlertCellPrefix.Length..])
+            ? channel[AlertCellPrefix.Length..]
+            : null;
+
     public static bool HasPrefix(string? channel, string prefix)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(prefix);

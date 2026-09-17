@@ -44,6 +44,12 @@ public sealed record CreatePostRequest
 
     public double? Longitude { get; init; }
 
+    /// <summary>
+    /// How far around the pin the alert applies, in metres, from 25 to 50,000. Needs a latitude and
+    /// a longitude. Leave it out for an alert at a point.
+    /// </summary>
+    public int? AffectedRadiusMetres { get; init; }
+
     /// <summary>Hours until expiry. Clamped; defaults to the category lifetime.</summary>
     public int? ExpiresInHours { get; init; }
 

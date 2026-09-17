@@ -136,6 +136,7 @@ public sealed class CommunityPostConfiguration : IEntityTypeConfiguration<Commun
 
             location.Property(value => value.Latitude).HasColumnName("latitude");
             location.Property(value => value.Longitude).HasColumnName("longitude");
+            location.Property(value => value.PointIsExact).HasColumnName("point_is_exact");
 
             location.Property(value => value.HierarchyPath)
                 .HasColumnName("hierarchy_path")

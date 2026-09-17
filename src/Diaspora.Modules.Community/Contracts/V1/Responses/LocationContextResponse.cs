@@ -18,4 +18,10 @@ public sealed record LocationContextResponse
 
     /// <summary>Present only on a proximity feed. Always a distance Location computed.</summary>
     public double? DistanceKm { get; init; }
+
+    /// <summary>
+    /// True when the coordinates are where the author pinned it; false when the post sits at the
+    /// centre of the place it names and a map should draw it as approximate.
+    /// </summary>
+    public bool PointIsExact { get; init; }
 }

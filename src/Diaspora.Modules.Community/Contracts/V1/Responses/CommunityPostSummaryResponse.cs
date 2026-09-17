@@ -52,4 +52,10 @@ public sealed record CommunityPostSummaryResponse
     public DateTimeOffset? ExpiresAt { get; init; }
 
     public required bool IsExpired { get; init; }
+
+    /// <summary>How far around its pin the alert applies, in metres. Null for a point.</summary>
+    public int? AffectedRadiusMetres { get; init; }
+
+    /// <summary>When its author withdrew or cancelled it. Null while it is in effect.</summary>
+    public DateTimeOffset? ClosedAt { get; init; }
 }

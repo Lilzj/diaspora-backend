@@ -298,9 +298,10 @@ public sealed class CommunicationRuntimeTests : IdentityTestBase<RealtimeWebAppl
         var registry = scope.ServiceProvider.GetRequiredService<RealtimeChannelRegistry>();
 
         registry.OwnedPrefixes.Should().BeEquivalentTo(
-            ["user:", "conversation:", "organization:", "event:"],
+            ["user:", "conversation:", "organization:", "event:", "geo:alerts:"],
             "the Communication Platform owns the member's own channel, the Conversations Platform "
-            + "owns conversations, and Community Life owns organizations and events — all at once, "
+            + "owns conversations, Community owns the live map's alert cells (16 Sep 2026), "
+            + "and Community Life owns organizations and events — all at once, "
             + "which is the whole point of the prefix registry");
     }
 
