@@ -83,8 +83,19 @@ public sealed class GetGeoCapabilitiesQueryHandler
                 Available = false,
                 Provider = "none",
                 Detail =
-                    "Diaspora holds no safety data and no source is contracted for any country it "
-                    + "operates in."
+                    "Diaspora does not publish a safety score, by decision. It publishes sourced counts "
+                    + "instead: see safety-counts."
+            },
+            new()
+            {
+                Capability = "safety-counts",
+                Available = true,
+                Provider = "platform",
+                Detail =
+                    "Corroborated community Police and Emergency reports for every country, and "
+                    + "police-recorded street crime from data.police.uk (Open Government Licence) for "
+                    + "England, Wales and Northern Ireland. Published separately, each with its source, "
+                    + "period, area and method, and never combined into a score."
             },
             new()
             {

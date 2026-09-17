@@ -153,6 +153,10 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Api.Program>
                 ["Media:Upload:EnableSweeper"] = "false",
                 // Tests file rows by running AreaFilingSweep.RunOnceAsync directly.
                 ["Location:Spatial:EnableAreaFilingSweep"] = "false",
+
+                // The suite never calls a third party. The safety counts' police source answers
+                // "Disabled" here; its parsing is tested against a fake transport.
+                ["GeographicIntelligence:PoliceUk:Enabled"] = "false",
                 ["Media:Processing:EnableWorker"] = "false",
                 ["Community:EnableExpirySweep"] = "false",
                 ["CommunityLife:EnableLifecycleSweep"] = "false",

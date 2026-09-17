@@ -106,4 +106,11 @@ public sealed class GeographicIntelligenceOptions
     /// </summary>
     [Range(3, 100000)]
     public int MinimumRentListingsInCountry { get; set; } = 20;
+
+    /// <summary>
+    /// How many days back the community safety count looks. Long enough to hold more than a handful
+    /// of reports in an active place, short enough that the count describes the place now.
+    /// </summary>
+    [Range(7, 730)]
+    public int SafetyReportWindowDays { get; set; } = 90;
 }

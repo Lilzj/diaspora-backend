@@ -50,6 +50,21 @@ public interface ICommunityPostRepository
     Task<int> CountInAreaAsync(
         string hierarchyPathPrefix, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Public posts in <paramref name="categories"/> that the community has corroborated, published
+    /// since <paramref name="since"/> and filed at <paramref name="hierarchyPath"/> or beneath it,
+    /// counted per category.
+    /// <para>
+    /// Withdrawn posts are not counted — their author said the report was wrong — and neither is
+    /// anything moderated away. Expired and cancelled posts are: the thing they reported happened.
+    /// </para>
+    /// </summary>
+    Task<IReadOnlyDictionary<PostCategory, int>> CountCorroboratedAsync(
+        string hierarchyPath,
+        IReadOnlyCollection<PostCategory> categories,
+        DateTimeOffset since,
+        CancellationToken cancellationToken = default);
+
     Task<int> CountInCountryAsync(
         string countryCode, CancellationToken cancellationToken = default);
 

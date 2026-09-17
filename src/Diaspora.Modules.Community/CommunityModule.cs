@@ -198,6 +198,9 @@ public sealed class CommunityModule : IPlatformModule
         services.AddScoped<ICommunityVisibilityService>(
             provider => provider.GetRequiredService<VisibilityService>());
         services.AddScoped<ICommunitySearchProjectionSource, SearchProjectionService>();
+
+        // Corroborated safety reports per place, for Geographic Intelligence's safety counts.
+        services.AddScoped<ICommunitySafetyReports, CommunitySafetyReports>();
     }
 
     /// <summary>

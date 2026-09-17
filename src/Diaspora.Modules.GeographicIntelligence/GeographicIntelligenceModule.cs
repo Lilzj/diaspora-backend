@@ -1,6 +1,8 @@
 using Diaspora.Modules.GeographicIntelligence.Application.Services;
 using Diaspora.Modules.GeographicIntelligence.Domain.Routing;
+using Diaspora.Modules.GeographicIntelligence.Domain.Safety;
 using Diaspora.Modules.GeographicIntelligence.Infrastructure.Routing;
+using Diaspora.Modules.GeographicIntelligence.Infrastructure.Safety;
 using Diaspora.Modules.GeographicIntelligence.Options;
 using Diaspora.Platform.Modules;
 using FluentValidation;
@@ -55,6 +57,11 @@ public sealed class GeographicIntelligenceModule : IPlatformModule
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
+        services.AddOptions<PoliceUkOptions>()
+            .Bind(configuration.GetSection(PoliceUkOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
         RegisterComposition(services);
         RegisterProviders(services);
     }
@@ -85,6 +92,14 @@ public sealed class GeographicIntelligenceModule : IPlatformModule
     /// value a client can read instead of a shape it has to infer from a 404.
     /// </para>
     /// </summary>
-    private static void RegisterProviders(IServiceCollection services) =>
+    private static void RegisterProviders(IServiceCollection services)
+    {
         services.TryAddScoped<IRoutingProvider, NotConfiguredRoutingProvider>();
+
+        // Police-recorded crime for the safety counts. A singleton because it holds the per-point
+        // month cache; the named client comes from the factory on every request.
+        services.AddHttpClient(PoliceUkCrimeData.HttpClientName, client =>
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Diaspora/1.0 (+https://diaspora-api.fly.dev)"));
+        services.TryAddSingleton<IPoliceCrimeData, PoliceUkCrimeData>();
+    }
 }

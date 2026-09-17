@@ -158,6 +158,42 @@ public sealed class CommunityPostRepository : ICommunityPostRepository
                 post.Location.HierarchyPath.StartsWith(hierarchyPathPrefix),
             cancellationToken);
 
+    public async Task<IReadOnlyDictionary<PostCategory, int>> CountCorroboratedAsync(
+        string hierarchyPath,
+        IReadOnlyCollection<PostCategory> categories,
+        DateTimeOffset since,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(categories);
+
+        if (string.IsNullOrWhiteSpace(hierarchyPath) || categories.Count == 0)
+        {
+            return new Dictionary<PostCategory, int>();
+        }
+
+        var path = hierarchyPath.TrimEnd('/');
+        var beneath = path + "/";
+        var wanted = categories.ToList();
+        PostStatus[] happened = [PostStatus.Published, PostStatus.Expired, PostStatus.Cancelled];
+
+        var rows = await Posts
+            .AsNoTracking()
+            .Where(post =>
+                happened.Contains(post.Status)
+                && post.VerificationStatus == PostVerificationStatus.CommunityVerified
+                && post.Audience.Level == VisibilityLevel.Public
+                && wanted.Contains(post.Category)
+                && post.PublishedAt != null
+                && post.PublishedAt >= since
+                && post.Location.HierarchyPath != null
+                && (post.Location.HierarchyPath == path || post.Location.HierarchyPath.StartsWith(beneath)))
+            .GroupBy(post => post.Category)
+            .Select(group => new { Category = group.Key, Count = group.Count() })
+            .ToListAsync(cancellationToken);
+
+        return rows.ToDictionary(row => row.Category, row => row.Count);
+    }
+
     public async Task<int> CountInCountryAsync(
         string countryCode, CancellationToken cancellationToken = default) =>
         await Posts.CountAsync(

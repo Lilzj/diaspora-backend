@@ -65,6 +65,8 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Options" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <!-- data.police.uk, for the safety counts. A named client, as Trust's decision publisher. -->
+    <PackageReference Include="Microsoft.Extensions.Http" />
   </ItemGroup>
 
   <ItemGroup>
@@ -74,6 +76,8 @@
     <ProjectReference Include="..\Diaspora.Application\Diaspora.Application.csproj" />
     <ProjectReference Include="..\Diaspora.Modules.Location\Diaspora.Modules.Location.csproj" />
     <ProjectReference Include="..\Diaspora.Modules.Housing\Diaspora.Modules.Housing.csproj" />
+    <!-- Corroborated community safety reports. Community is composed at 500, this module at 1900. -->
+    <ProjectReference Include="..\Diaspora.Modules.Community\Diaspora.Modules.Community.csproj" />
   </ItemGroup>
 
 </Project>

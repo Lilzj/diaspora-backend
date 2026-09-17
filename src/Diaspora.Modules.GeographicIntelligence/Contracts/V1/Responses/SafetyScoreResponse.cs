@@ -60,4 +60,65 @@ public sealed record SafetyScoreResponse
     /// </para>
     /// </summary>
     public required IReadOnlyList<string> Limitations { get; init; }
+
+    /// <summary>
+    /// Sourced incident counts, one entry per source, never blended (17 Sep 2026).
+    /// <para>
+    /// The user decided the platform publishes counts from named sources instead of a score:
+    /// corroborated community safety reports everywhere, and police-recorded street crime where an
+    /// official open source covers the country. Each entry states its source, licence, period, area
+    /// and method, and an entry whose source could not be read says so rather than reading zero.
+    /// </para>
+    /// </summary>
+    public IReadOnlyList<SafetyCountResponse> Counts { get; init; } = [];
+}
+
+/// <summary>One source's count of incidents near a place, with everything needed to read it.</summary>
+public sealed record SafetyCountResponse
+{
+    /// <summary><c>community-reports</c> or <c>police-recorded-crime</c>.</summary>
+    public required string Kind { get; init; }
+
+    /// <summary>Who counted: "Diaspora community reports", "data.police.uk".</summary>
+    public required string Source { get; init; }
+
+    /// <summary>False when the source could not be read, or holds nothing for this place.</summary>
+    public required bool IsAvailable { get; init; }
+
+    /// <summary>Why not: <c>SourceUnavailable</c>, <c>NoCoverage</c>, <c>Disabled</c>, <c>NoCentre</c>.</summary>
+    public string? UnavailableReason { get; init; }
+
+    /// <summary>The start of the period counted.</summary>
+    public DateTimeOffset? From { get; init; }
+
+    /// <summary>The end of the period counted.</summary>
+    public DateTimeOffset? To { get; init; }
+
+    /// <summary>The ground covered, in words: "Within one mile of Peckham's centre".</summary>
+    public required string Area { get; init; }
+
+    /// <summary>How the figure was produced, in one or two sentences.</summary>
+    public required string Method { get; init; }
+
+    /// <summary>The licence the counts are published under, where the source has one: <c>OGL-UK-3.0</c>.</summary>
+    public string? Licence { get; init; }
+
+    /// <summary>The credit the licence requires, verbatim, to show with the figure.</summary>
+    public string? Attribution { get; init; }
+
+    public int? Total { get; init; }
+
+    /// <summary>Counts per category, largest first.</summary>
+    public IReadOnlyList<SafetyCountCategoryResponse> Categories { get; init; } = [];
+}
+
+/// <summary>One category of a sourced safety count.</summary>
+public sealed record SafetyCountCategoryResponse
+{
+    /// <summary>The source's own identifier: <c>anti-social-behaviour</c>, <c>Police</c>.</summary>
+    public required string Id { get; init; }
+
+    public required string Label { get; init; }
+
+    public required int Count { get; init; }
 }
