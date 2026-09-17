@@ -128,28 +128,72 @@ public sealed class OtpChallengeService : IOtpChallengeService
         string code,
         CancellationToken cancellationToken = default)
     {
+        var redemption = await RedeemAsync(user, purpose, code, cancellationToken);
+
+        return redemption.Verification.IsFailure
+            ? Result.Failure<OtpChallenge>(redemption.Verification.Error)
+            : Result.Success(redemption.Challenge!);
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Found on 17 Sep 2026. The sign-in route passed a challenge's state to whoever asked, so a
+    /// registered number with no sign-in code outstanding answered 404 "No verification code is
+    /// outstanding", while an unregistered number answered 400 "incorrect". A member who had once
+    /// signed in with a code answered 409 "already used" to any code at all. Nobody had to request a
+    /// code, or send the member a text, to learn the number had an account.
+    /// </remarks>
+    public async Task<Result<OtpChallenge>> VerifyForAnonymousCallerAsync(
+        User user,
+        OtpPurpose purpose,
+        string code,
+        CancellationToken cancellationToken = default)
+    {
+        var redemption = await RedeemAsync(user, purpose, code, cancellationToken);
+
+        if (redemption.Verification.IsSuccess)
+        {
+            return Result.Success(redemption.Challenge!);
+        }
+
+        // Only the holder of the code learns why it did not work. That includes the attempt that
+        // locks the challenge: a wrong guess that uses up the budget is still just a wrong guess to
+        // the caller who made it, and the holder hears "too many attempts" when they type the code.
+        return Result.Failure<OtpChallenge>(
+            redemption.CallerHoldsTheCode ? redemption.Verification.Error : OtpErrors.IncorrectCode);
+    }
+
+    private async Task<Redemption> RedeemAsync(
+        User user,
+        OtpPurpose purpose,
+        string code,
+        CancellationToken cancellationToken)
+    {
         ArgumentNullException.ThrowIfNull(user);
 
         if (string.IsNullOrWhiteSpace(code))
         {
-            return Result.Failure<OtpChallenge>(OtpErrors.IncorrectCode);
+            return new Redemption(null, Result.Failure(OtpErrors.IncorrectCode), CallerHoldsTheCode: false);
         }
 
         var challenge = await _challenges.GetLatestAsync(user.Id, purpose, cancellationToken);
         if (challenge is null)
         {
-            return Result.Failure<OtpChallenge>(OtpErrors.NotFound);
+            return new Redemption(null, Result.Failure(OtpErrors.NotFound), CallerHoldsTheCode: false);
         }
 
-        var verification = challenge.Verify(_codeGenerator.ComputeHash(code.Trim()), _clock.UtcNow);
+        var candidate = _codeGenerator.ComputeHash(code.Trim());
+
+        // Compared before the challenge is redeemed, although redeeming never changes the hash:
+        // the answer depends on the code the caller typed, not on the state the attempt left behind.
+        var holdsTheCode = challenge.CodeHash.Matches(candidate);
+        var verification = challenge.Verify(candidate, _clock.UtcNow);
 
         // Persisted either way: a failed attempt must cost the attacker one of their
         // attempts, so the counter increment has to survive the failed request.
         _challenges.Update(challenge);
 
-        return verification.IsFailure
-            ? Result.Failure<OtpChallenge>(verification.Error)
-            : Result.Success(challenge);
+        return new Redemption(challenge, verification, holdsTheCode);
     }
 
     /// <summary>
@@ -226,4 +270,10 @@ public sealed class OtpChallengeService : IOtpChallengeService
             return false;
         }
     }
+
+    /// <summary>What one attempt at a code did, and whether the code typed was the one sent.</summary>
+    private readonly record struct Redemption(
+        OtpChallenge? Challenge,
+        Result Verification,
+        bool CallerHoldsTheCode);
 }

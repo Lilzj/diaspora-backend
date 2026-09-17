@@ -27,9 +27,13 @@ namespace Diaspora.Application.Identity.Authentication.Providers;
 /// wording is right for the flow **and** the two cases still read identically.
 /// </para>
 /// <para>
-/// Past that point the challenge itself is the caller's own — they asked for it — so the
-/// service's specific failure is returned unchanged: incorrect, expired, or attempts
-/// exhausted are things the person holding the code needs to be able to tell apart.
+/// <b>Past that point the challenge is not necessarily the caller's own.</b> The route is
+/// anonymous, so anyone can post a code against a registered number without having asked for
+/// one. Expired, already used and attempts exhausted are things the person holding the code
+/// needs to tell apart, so the service tells them, and only them: a challenge's state is
+/// disclosed only to a caller whose code matches it. This provider used to pass that state to
+/// whoever asked, and a registered number with no code outstanding answered 404 where an
+/// unregistered one answered 400 (found 17 Sep 2026).
 /// </para>
 /// </summary>
 public sealed class PhoneOtpAuthenticationProvider : IAuthenticationProvider
@@ -65,16 +69,15 @@ public sealed class PhoneOtpAuthenticationProvider : IAuthenticationProvider
             return Result.Failure<AuthenticatedMember>(OtpErrors.IncorrectCode);
         }
 
-        var verification = await _otpChallenges.VerifyAsync(
+        // Reaching here says only that the number is registered, which the caller must not learn.
+        // Nobody had to request a code first, so the service is asked for the answer that tells a
+        // challenge's state ("expired", "already used", "too many attempts") only to the caller
+        // who typed the code it sent, and "incorrect" to everyone else.
+        //
+        // `OtpErrors` already words all of them. Nothing is re-written here.
+        var verification = await _otpChallenges.VerifyForAnonymousCallerAsync(
             user, OtpPurpose.SignIn, credentials.Code ?? string.Empty, cancellationToken);
 
-        // The service's own error is returned rather than flattened. Reaching here means the
-        // number resolved to a member and a challenge existed, both of which the caller
-        // established themselves by requesting the code — so "incorrect", "expired" and
-        // "too many attempts" reveal nothing they did not already know, and are the three
-        // things somebody staring at a six-digit field actually needs to tell apart.
-        //
-        // `OtpErrors` already words all three. Nothing is re-written here.
         return verification.IsFailure
             ? Result.Failure<AuthenticatedMember>(verification.Error)
             : Result.Success(new AuthenticatedMember(user, Method));

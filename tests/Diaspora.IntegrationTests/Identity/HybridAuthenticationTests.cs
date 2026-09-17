@@ -75,21 +75,27 @@ public sealed class HybridAuthenticationTests : IdentityTestBase
         Factory.OtpCodes.HasCodeFor(unknown, OtpPurpose.SignIn).Should().BeFalse();
     }
 
+    /// <summary>
+    /// <b>These tests used to expect 401 for every refusal</b>, and had failed since the provider moved
+    /// from "the phone number or password is incorrect" to an OTP-shaped 400. The status was never the
+    /// property that matters. What matters is that a refused code for a registered number reads exactly
+    /// like one for a number nobody registered, so they now compare the two.
+    /// </summary>
     [Fact]
     public async Task A_wrong_code_is_refused_indistinguishably()
     {
         var (phone, _) = await RegisterAndVerifyAsync();
         Api.ClearAuthentication();
 
-        await HttpClient.PostAsJsonAsync(
-            "/api/v1/auth/otp/start", new RequestSignInOtpRequest { PhoneNumber = phone }, JsonOptions);
+        await StartAsync(phone);
+        var sent = Factory.OtpCodes.LatestFor(phone, OtpPurpose.SignIn);
 
-        var response = await HttpClient.PostAsJsonAsync(
-            "/api/v1/auth/otp/sign-in",
-            new OtpSignInRequest { PhoneNumber = phone, Code = "000000" },
-            JsonOptions);
+        var wrongCode = await SignInAsync(phone, WrongCodeFor(sent));
+        var unknownNumber = await SignInAsync(NextPhoneNumber(), WrongCodeFor(sent));
 
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        wrongCode.IsSuccessStatusCode.Should().BeFalse();
+        await ShouldReadAlikeAsync(wrongCode, unknownNumber);
+        (await ProblemAsync(wrongCode)).Code.Should().Be("Identity.Otp.IncorrectCode");
     }
 
     [Fact]
@@ -97,15 +103,108 @@ public sealed class HybridAuthenticationTests : IdentityTestBase
     {
         // Purposes are isolated: the code from the registration flow is minted for
         // PhoneVerification and must not authorise a sign-in.
+        //
+        // No sign-in code was ever requested for this number either. That case answered 404
+        // "No verification code is outstanding" until 17 Sep 2026, where an unregistered number
+        // answered 400, so anyone could ask whether a number had an account without texting it.
         var phone = await RegisterAsync();
         var registrationCode = Factory.OtpCodes.LatestFor(phone, OtpPurpose.PhoneVerification);
         Api.ClearAuthentication();
 
-        var response = await HttpClient.PostAsJsonAsync(
+        var replayed = await SignInAsync(phone, registrationCode);
+        var unknownNumber = await SignInAsync(NextPhoneNumber(), registrationCode);
+
+        replayed.IsSuccessStatusCode.Should().BeFalse();
+        await ShouldReadAlikeAsync(replayed, unknownNumber);
+    }
+
+    [Fact]
+    public async Task A_member_who_signed_in_with_a_code_is_not_given_away_by_it_afterwards()
+    {
+        // Their newest sign-in challenge is spent, and it answered 409 "already used" to any code
+        // anybody posted against the number.
+        var (phone, _) = await RegisterAndVerifyAsync();
+        Api.ClearAuthentication();
+
+        await StartAsync(phone);
+        var sent = Factory.OtpCodes.LatestFor(phone, OtpPurpose.SignIn);
+        (await SignInAsync(phone, sent)).StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var stranger = await SignInAsync(phone, WrongCodeFor(sent));
+        var unknownNumber = await SignInAsync(NextPhoneNumber(), WrongCodeFor(sent));
+
+        await ShouldReadAlikeAsync(stranger, unknownNumber);
+    }
+
+    [Fact]
+    public async Task Only_the_holder_of_a_locked_code_is_told_to_request_a_new_one()
+    {
+        var (phone, _) = await RegisterAndVerifyAsync();
+        Api.ClearAuthentication();
+
+        await StartAsync(phone);
+        var sent = Factory.OtpCodes.LatestFor(phone, OtpPurpose.SignIn);
+
+        // The test host allows three attempts (Identity:Otp:MaxVerificationAttempts). The guess
+        // that uses up the budget reads like every other wrong guess, or it would tell a stranger
+        // that a code was outstanding.
+        for (var attempt = 0; attempt < 3; attempt++)
+        {
+            var guess = await SignInAsync(phone, WrongCodeFor(sent));
+            var unknownNumber = await SignInAsync(NextPhoneNumber(), WrongCodeFor(sent));
+
+            await ShouldReadAlikeAsync(guess, unknownNumber);
+        }
+
+        var holder = await SignInAsync(phone, sent);
+
+        holder.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+        (await ProblemAsync(holder)).Code.Should().Be("Identity.Otp.AttemptLimitReached");
+    }
+
+    // -- Helpers ---------------------------------------------------------------
+
+    private async Task StartAsync(string phone)
+    {
+        var start = await HttpClient.PostAsJsonAsync(
+            "/api/v1/auth/otp/start", new RequestSignInOtpRequest { PhoneNumber = phone }, JsonOptions);
+
+        start.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    private Task<HttpResponseMessage> SignInAsync(string phone, string code) =>
+        HttpClient.PostAsJsonAsync(
             "/api/v1/auth/otp/sign-in",
-            new OtpSignInRequest { PhoneNumber = phone, Code = registrationCode },
+            new OtpSignInRequest { PhoneNumber = phone, Code = code },
             JsonOptions);
 
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    /// <summary>A code that is certainly not the one sent, whatever the generator drew.</summary>
+    private static string WrongCodeFor(string sent) => sent == "000000" ? "111111" : "000000";
+
+    /// <summary>
+    /// Status, error code, title and wording must all match. Any one of them differing turns the
+    /// route into an answer to "is this number registered?".
+    /// </summary>
+    private static async Task ShouldReadAlikeAsync(HttpResponseMessage registered, HttpResponseMessage unknown)
+    {
+        registered.StatusCode.Should().Be(unknown.StatusCode);
+
+        var registeredProblem = await ProblemAsync(registered);
+        var unknownProblem = await ProblemAsync(unknown);
+
+        registeredProblem.Should().Be(unknownProblem);
     }
+
+    private static async Task<ProblemShape> ProblemAsync(HttpResponseMessage response)
+    {
+        using var document = JsonDocument.Parse(await IdentityApiClient.ReadProblemDetailAsync(response));
+        var root = document.RootElement;
+
+        string Read(string name) =>
+            root.TryGetProperty(name, out var value) ? value.GetString() ?? string.Empty : string.Empty;
+
+        return new ProblemShape(Read("code"), Read("title"), Read("detail"));
+    }
+
+    private sealed record ProblemShape(string Code, string Title, string Detail);
 }

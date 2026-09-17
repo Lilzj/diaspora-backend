@@ -77,10 +77,10 @@ public sealed class PhoneOtpAuthenticationProviderTests
     [Fact]
     public async Task An_expired_code_says_so()
     {
-        // Past the unknown-number check the challenge is the caller's own — they
-        // asked for it — so saying it expired reveals nothing they did not already
-        // know. It is also the one thing that makes the resend button make sense
-        // rather than look like a second guess at the same wrong code.
+        // The service says "expired" only to the caller who typed the code it sent (see
+        // OtpChallengeServiceDisclosureTests), and this provider passes that on. It is the
+        // one thing that makes the resend button make sense rather than look like a second
+        // guess at the same wrong code.
         var result = await Build(Member(), Result.Failure<OtpChallenge>(OtpErrors.Expired))
             .AuthenticateAsync(Credentials(KnownNumber, "123456"));
 
@@ -115,6 +115,31 @@ public sealed class PhoneOtpAuthenticationProviderTests
         failures.Should().OnlyContain(error => !error.Description.Contains("password"));
     }
 
+    [Fact]
+    public async Task The_route_asks_for_the_answer_that_hides_a_challenge_from_strangers()
+    {
+        // The anonymous route never uses the verification that tells anyone who asks whether a
+        // code is outstanding, used or expired. That verification is for flows whose caller is
+        // already known to be the member.
+        var users = Substitute.For<IUserRepository>();
+        users
+            .GetByPhoneNumberAsync(Arg.Any<PhoneNumber>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<User?>(Member()));
+
+        var challenges = Substitute.For<IOtpChallengeService>();
+        challenges
+            .VerifyForAnonymousCallerAsync(
+                Arg.Any<User>(), Arg.Any<OtpPurpose>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(Result.Failure<OtpChallenge>(OtpErrors.IncorrectCode)));
+
+        await new PhoneOtpAuthenticationProvider(users, challenges)
+            .AuthenticateAsync(Credentials(KnownNumber, "000000"));
+
+        await challenges.Received(1).VerifyForAnonymousCallerAsync(
+            Arg.Any<User>(), OtpPurpose.SignIn, "000000", Arg.Any<CancellationToken>());
+        await challenges.DidNotReceiveWithAnyArgs().VerifyAsync(default!, default, default!, default);
+    }
+
     // ── Fixtures ────────────────────────────────────────────────────────────
 
     private static AuthenticationCredentials Credentials(string phone, string code) =>
@@ -142,7 +167,7 @@ public sealed class PhoneOtpAuthenticationProviderTests
 
         var challenges = Substitute.For<IOtpChallengeService>();
         challenges
-            .VerifyAsync(
+            .VerifyForAnonymousCallerAsync(
                 Arg.Any<User>(),
                 Arg.Any<OtpPurpose>(),
                 Arg.Any<string>(),

@@ -41,4 +41,19 @@ public interface IOtpChallengeService
         OtpPurpose purpose,
         string code,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Redeems a code for a caller nobody has identified yet, such as the anonymous sign-in route.
+    /// <para>
+    /// Attempts are counted exactly as in <see cref="VerifyAsync"/>. The difference is what the answer
+    /// says. Anyone can post any code against any registered number, so a challenge's state (none
+    /// outstanding, already used, expired, locked) is disclosed only to a caller whose code matches
+    /// it. Everyone else is told the code is incorrect, which is what an unregistered number is told.
+    /// </para>
+    /// </summary>
+    Task<Result<OtpChallenge>> VerifyForAnonymousCallerAsync(
+        User user,
+        OtpPurpose purpose,
+        string code,
+        CancellationToken cancellationToken = default);
 }
