@@ -82,16 +82,33 @@ public sealed class SafetyCountsTests : IdentityTestBase
         safety.Limitations.Should().Contain(line => line.StartsWith("Diaspora does not publish a safety score"));
     }
 
+    /// <summary>
+    /// <b>A place no source covers says so</b> — decided 17 Sep 2026, after the section was simply
+    /// left out. "Nothing here" read as "Diaspora did not look", "the police recorded nothing" and
+    /// "this place is safe" all at once, and the member had no way to tell which.
+    /// </summary>
     [Fact]
-    public async Task A_place_no_police_source_covers_gets_no_police_entry_at_all()
+    public async Task A_place_no_police_source_covers_is_told_nobody_publishes_the_figure()
     {
         await SignInAsync();
 
         var safety = await IdentityApiClient.ReadDataAsync<SafetyShape>(
             await HttpClient.GetAsync($"{Root}/neighborhoods/rose-hill-central/safety"));
 
-        safety.Counts.Select(count => count.Kind).Should().Equal("community-reports");
+        safety.Counts.Select(count => count.Kind)
+            .Should().Equal("community-reports", "police-recorded-crime");
+
         safety.Counts[0].Total.Should().Be(0);
+
+        var police = safety.Counts[1];
+        police.IsAvailable.Should().BeFalse();
+        police.UnavailableReason.Should().Be("NotPublished");
+        police.Total.Should().BeNull("no source is not a count of zero");
+        police.Area.Should().Be("Places in Mauritius");
+        police.Method.Should().Contain("Mauritius");
+
+        // data.police.uk's licence belongs to data.police.uk, and there is no data here to credit.
+        police.Attribution.Should().BeNull();
     }
 
     // ── Plumbing ─────────────────────────────────────────────────────────────────────────────────
@@ -182,6 +199,8 @@ public sealed class SafetyCountsTests : IdentityTestBase
         public string? UnavailableReason { get; init; }
 
         public DateTimeOffset? From { get; init; }
+
+        public string Area { get; init; } = "";
 
         public string Method { get; init; } = "";
 

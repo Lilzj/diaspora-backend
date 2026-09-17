@@ -82,10 +82,15 @@ public sealed record SafetyCountResponse
     /// <summary>Who counted: "Diaspora community reports", "data.police.uk".</summary>
     public required string Source { get; init; }
 
-    /// <summary>False when the source could not be read, or holds nothing for this place.</summary>
+    /// <summary>
+    /// False when the source could not be read, holds nothing for this place, or does not exist.
+    /// </summary>
     public required bool IsAvailable { get; init; }
 
-    /// <summary>Why not: <c>SourceUnavailable</c>, <c>NoCoverage</c>, <c>Disabled</c>, <c>NoCentre</c>.</summary>
+    /// <summary>
+    /// Why not: <c>SourceUnavailable</c>, <c>NoCoverage</c>, <c>Disabled</c>, <c>NoCentre</c>, or
+    /// <c>NotPublished</c> — nobody publishes this figure for the country at all.
+    /// </summary>
     public string? UnavailableReason { get; init; }
 
     /// <summary>The start of the period counted.</summary>

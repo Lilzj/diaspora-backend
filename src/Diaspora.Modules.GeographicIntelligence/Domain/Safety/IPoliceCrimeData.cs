@@ -56,6 +56,13 @@ public static class PoliceCrimeUnavailable
     /// populated place, means it does not cover the point (Scotland, for one), not that nothing happened.
     /// </summary>
     public const string NoCoverage = "NoCoverage";
+
+    /// <summary>
+    /// No source exists to read. Nobody publishes police-recorded crime for this country openly and
+    /// under terms that permit reuse, so there is no figure to show — which is worth saying, because
+    /// a section left out reads as "Diaspora did not look".
+    /// </summary>
+    public const string NotPublished = "NotPublished";
 }
 
 /// <summary>Crimes the police recorded near a point, per category, over whole months.</summary>

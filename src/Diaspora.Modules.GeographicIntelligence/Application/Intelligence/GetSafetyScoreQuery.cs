@@ -8,6 +8,7 @@ using Diaspora.Modules.GeographicIntelligence.Domain.Safety;
 using Diaspora.Modules.GeographicIntelligence.Domain.Scores;
 using Diaspora.Modules.GeographicIntelligence.Observability;
 using Diaspora.Modules.GeographicIntelligence.Options;
+using Diaspora.Modules.Location.Domain.Countries;
 using Diaspora.SharedKernel.Results;
 using Microsoft.Extensions.Options;
 
@@ -54,9 +55,13 @@ public sealed class GetSafetyScoreQueryHandler
     public const string PoliceAttribution =
         "Contains public sector information licensed under the Open Government Licence v3.0.";
 
+    /// <summary>Stands where a source's name would go when there is no source to name.</summary>
+    public const string NoPoliceSource = "No published source";
+
     private readonly NeighborhoodResolver _resolver;
     private readonly ICommunitySafetyReports _reports;
     private readonly IPoliceCrimeData _police;
+    private readonly ICountryRepository _countries;
     private readonly IOptions<GeographicIntelligenceOptions> _options;
     private readonly TimeProvider _clock;
 
@@ -64,12 +69,14 @@ public sealed class GetSafetyScoreQueryHandler
         NeighborhoodResolver resolver,
         ICommunitySafetyReports reports,
         IPoliceCrimeData police,
+        ICountryRepository countries,
         IOptions<GeographicIntelligenceOptions> options,
         TimeProvider clock)
     {
         _resolver = resolver;
         _reports = reports;
         _police = police;
+        _countries = countries;
         _options = options;
         _clock = clock;
     }
@@ -109,6 +116,12 @@ public sealed class GetSafetyScoreQueryHandler
         {
             counts.Add(await PoliceCountAsync(area.Center, name, cancellationToken));
         }
+        else
+        {
+            var country = await _countries.GetByCodeAsync(area.CountryCode, cancellationToken);
+
+            counts.Add(PoliceNotPublished(country?.Name.Value ?? area.CountryCode.Value));
+        }
 
         return Result.Success(new SafetyScoreResponse
         {
@@ -131,7 +144,8 @@ public sealed class GetSafetyScoreQueryHandler
                 + "have few members.",
                 "Police-recorded crime covers England, Wales and Northern Ireland only, counts what was "
                 + "reported to and recorded by the police, and places each crime at an approximate, "
-                + "anonymised point.",
+                + "anonymised point. Everywhere else, including Scotland, has no official source "
+                + "Diaspora may republish, and says so rather than showing nothing.",
                 "Neither says anything about a particular street, a time of day, or what it is like to "
                 + "live there, and neither should be the only basis for a decision about where to live."
             ]
@@ -223,6 +237,36 @@ public sealed class GetSafetyScoreQueryHandler
             ]
         };
     }
+
+    /// <summary>
+    /// What a country no source covers is told: that nobody publishes the figure.
+    /// <para>
+    /// <b>Decided on 17 Sep 2026.</b> Leaving the section out entirely left a member to guess between
+    /// "Diaspora did not look", "the police recorded nothing" and "this place is safe". Saying so
+    /// costs one line and closes all three readings.
+    /// </para>
+    /// <para>
+    /// What was looked for, on 17 Sep 2026: Statistics Mauritius publishes national totals only, under
+    /// "all rights reserved" with no reuse licence. Police Scotland publishes multi-member-ward
+    /// management information as spreadsheets and states no licence, and data.police.uk holds no
+    /// Scottish street data. Neither can be republished here, so neither is.
+    /// </para>
+    /// </summary>
+    private static SafetyCountResponse PoliceNotPublished(string country) =>
+        new()
+        {
+            Kind = "police-recorded-crime",
+            Source = NoPoliceSource,
+            IsAvailable = false,
+            UnavailableReason = PoliceCrimeUnavailable.NotPublished,
+            Area = string.Format(CultureInfo.InvariantCulture, "Places in {0}", country),
+            Method = string.Format(
+                CultureInfo.InvariantCulture,
+                "Diaspora publishes police-recorded crime where an official source publishes it openly "
+                + "and allows it to be republished. No such source covers {0}, so there is no figure "
+                + "here — which is not a low one.",
+                country)
+        };
 
     private static SafetyCountResponse PoliceUnavailable(string area, string method, string reason) =>
         new()
