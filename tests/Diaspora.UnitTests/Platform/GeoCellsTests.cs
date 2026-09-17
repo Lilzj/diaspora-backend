@@ -59,6 +59,14 @@ public class GeoCellsTests
             "a real alert must never be cut short by a guard meant for a bug");
     }
 
+    [Fact]
+    public void Coordinates_that_are_not_numbers_cover_nothing_rather_than_looping_for_ever()
+    {
+        GeoCells.Cover(double.NaN, -0.0691d, 1_000).Should().BeEmpty();
+        GeoCells.Cover(51.4742d, double.PositiveInfinity, 1_000).Should().BeEmpty();
+        GeoCells.Cover(51.4742d, -0.0691d, double.NaN).Should().ContainSingle();
+    }
+
     [Theory]
     [InlineData("gcpv", true)]
     [InlineData("gcp", false)]

@@ -123,9 +123,17 @@ public static class GeoCells
     /// </summary>
     public static IReadOnlyList<string> Cover(double latitude, double longitude, double radiusMetres)
     {
+        // The sampling loop below ends when a comparison with the edge comes true, and no
+        // comparison with NaN ever does. The app's copy of this loop froze a phone on exactly
+        // that on 17 Sep 2026; this side gets the same guard rather than trusting its callers.
+        if (!double.IsFinite(latitude) || !double.IsFinite(longitude))
+        {
+            return [];
+        }
+
         var cells = new List<string> { Encode(latitude, longitude) };
 
-        if (radiusMetres <= 0d)
+        if (!double.IsFinite(radiusMetres) || radiusMetres <= 0d)
         {
             return cells;
         }
