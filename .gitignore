@@ -105,3 +105,6 @@ docs/
 # and has not been given one here.
 !src/Diaspora.Analyzers/AnalyzerReleases.Shipped.md
 !src/Diaspora.Analyzers/AnalyzerReleases.Unshipped.md
+.neon
+.env.local
+node_modules/
