@@ -25638,6 +25638,161 @@
         }
       }
     },
+    "/api/v1/jobs/postings/{postingId}/reports": {
+      "post": {
+        "tags": [
+          "Jobs"
+        ],
+        "summary": "Report a job advert. A scam or a demand for money flags it on the first report.",
+        "operationId": "ReportJobPosting",
+        "parameters": [
+          {
+            "name": "postingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportJobPostingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/moderation/reports": {
+      "get": {
+        "tags": [
+          "Jobs"
+        ],
+        "summary": "The jobs moderation queue. The reports about money come first.",
+        "operationId": "ListJobReports",
+        "parameters": [
+          {
+            "name": "openOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "fraudFirst",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "postingId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/moderation/reports/{reportId}/resolve": {
+      "post": {
+        "tags": [
+          "Jobs"
+        ],
+        "summary": "Close a report, and every other open report about the same advert with it.",
+        "operationId": "ResolveJobReport",
+        "parameters": [
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveJobReportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/moderation/postings/{postingId}": {
+      "post": {
+        "tags": [
+          "Jobs"
+        ],
+        "summary": "Hide, unhide, flag or annotate an advert, without closing a report.",
+        "operationId": "ModerateJobPosting",
+        "parameters": [
+          {
+            "name": "postingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModerateJobPostingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/jobs/employers": {
       "post": {
         "tags": [
@@ -30027,6 +30182,34 @@
         }
       }
     },
+    "/api/v1/media/quarantine": {
+      "get": {
+        "tags": [
+          "Media"
+        ],
+        "summary": "Every file a scanner refused. The queue the release route needs.",
+        "operationId": "ListQuarantinedMedia",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/media/{mediaId}/processing": {
       "get": {
         "tags": [
@@ -31733,6 +31916,41 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ProviderStatusRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/providers/{providerId}/featured": {
+      "put": {
+        "tags": [
+          "Providers"
+        ],
+        "summary": "Put a provider into the featured carousel, or take it out. Editorial, and the only thing that fills GET /providers/featured.",
+        "operationId": "SetProviderFeatured",
+        "parameters": [
+          {
+            "name": "providerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetProviderFeaturedRequest"
               }
             }
           },
@@ -42523,6 +42741,23 @@
           }
         }
       },
+      "ModerateJobPostingRequest": {
+        "required": [
+          "action"
+        ],
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "ModerateListingRequest": {
         "required": [
           "action"
@@ -45368,6 +45603,23 @@
           }
         }
       },
+      "ReportJobPostingRequest": {
+        "required": [
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "ReportListingRequest": {
         "required": [
           "reason"
@@ -45590,6 +45842,26 @@
             ]
           },
           "hideListing": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ResolveJobReportRequest": {
+        "required": [
+          "upheld"
+        ],
+        "type": "object",
+        "properties": {
+          "upheld": {
+            "type": "boolean"
+          },
+          "resolution": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hidePosting": {
             "type": "boolean"
           }
         }
@@ -47497,6 +47769,23 @@
               "string"
             ],
             "format": "uuid"
+          }
+        }
+      },
+      "SetProviderFeaturedRequest": {
+        "required": [
+          "isFeatured"
+        ],
+        "type": "object",
+        "properties": {
+          "isFeatured": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

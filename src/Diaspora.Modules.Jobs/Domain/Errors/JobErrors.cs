@@ -1,4 +1,4 @@
-using Diaspora.SharedKernel.Results;
+﻿using Diaspora.SharedKernel.Results;
 
 namespace Diaspora.Modules.Jobs.Domain.Errors;
 
@@ -293,6 +293,34 @@ public static class JobErrors
     public static readonly Error ModerationNoteInvalid = Error.Validation(
         JobErrorCodes.ModerationNoteInvalid,
         "A moderation note is required and must not be too long.");
+
+    public static readonly Error ReportNotFound = Error.NotFound(
+        JobErrorCodes.ReportNotFound,
+        "That report does not exist.");
+
+    public static readonly Error ReportAlreadyResolved = Error.Conflict(
+        JobErrorCodes.ReportAlreadyResolved,
+        "That report has already been decided.");
+
+    public static readonly Error ReportReasonInvalid = Error.Validation(
+        JobErrorCodes.ReportReasonInvalid,
+        "That is not a reason this platform recognises.");
+
+    /// <summary>
+    /// An employer cannot report their own advert. Not a courtesy: the report count is what
+    /// flags a posting, and a seat that can inflate its own would be a way to bury a rival.
+    /// </summary>
+    public static readonly Error CannotReportOwnPosting = Error.Forbidden(
+        JobErrorCodes.CannotReportOwnPosting,
+        "You cannot report your own posting.");
+
+    /// <summary>
+    /// One member, one report per posting. The threshold counts people who think something is
+    /// wrong, and a member who could report five times would decide that on their own.
+    /// </summary>
+    public static readonly Error AlreadyReported = Error.Conflict(
+        JobErrorCodes.AlreadyReported,
+        "You have already reported this posting.");
 
     public static readonly Error ProviderReferenceInvalid = Error.Validation(
         JobErrorCodes.ProviderReferenceInvalid,

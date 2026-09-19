@@ -11,6 +11,7 @@ using Diaspora.Modules.Jobs.Domain.Offers;
 using Diaspora.Modules.Jobs.Domain.Pipelines;
 using Diaspora.Modules.Jobs.Domain.Postings;
 using Diaspora.Modules.Jobs.Domain.Resumes;
+using Diaspora.Modules.Jobs.Domain.Reports;
 using Diaspora.Modules.Jobs.Domain.Saved;
 using Diaspora.Modules.Jobs.Extensibility.Categories;
 using Diaspora.Modules.Jobs.Extensibility.Ranking;
@@ -144,6 +145,7 @@ public sealed class JobsModule : IPlatformModule
         services.AddScoped<IHiringPipelineRepository, HiringPipelineRepository>();
         services.AddScoped<IResumeRepository, ResumeRepository>();
         services.AddScoped<ISavedJobRepository, SavedJobRepository>();
+        services.AddScoped<IJobReportRepository, JobReportRepository>();
         services.AddScoped<IJobAlertRepository, JobAlertRepository>();
         services.AddScoped<IJobCategoryRepository, JobCategoryRepository>();
         services.AddScoped<IJobSkillRepository, JobSkillRepository>();

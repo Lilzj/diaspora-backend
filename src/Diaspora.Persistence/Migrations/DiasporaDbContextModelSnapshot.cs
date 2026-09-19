@@ -13097,6 +13097,71 @@ namespace Diaspora.Persistence.Migrations
                     b.ToTable("job_postings", "jobs");
                 });
 
+            modelBuilder.Entity("Diaspora.Modules.Jobs.Domain.Reports.JobReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Detail")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid>("EmployerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("PostingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<Guid>("ReportedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Resolution")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTimeOffset?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ResolvedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployerId", "Status")
+                        .HasDatabaseName("ix_job_reports_employer_status");
+
+                    b.HasIndex("PostingId", "ReportedBy")
+                        .IsUnique()
+                        .HasDatabaseName("ux_job_reports_posting_reporter");
+
+                    b.HasIndex("Status", "CreatedAt")
+                        .HasDatabaseName("ix_job_reports_status_created");
+
+                    b.ToTable("job_reports", "jobs");
+                });
+
             modelBuilder.Entity("Diaspora.Modules.Jobs.Domain.Resumes.Resume", b =>
                 {
                     b.Property<Guid>("Id")

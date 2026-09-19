@@ -1,4 +1,4 @@
-using Diaspora.Modules.Jobs.Persistence.Configurations;
+﻿using Diaspora.Modules.Jobs.Persistence.Configurations;
 using Diaspora.Persistence.Modules;
 using Microsoft.EntityFrameworkCore;
 
@@ -56,6 +56,7 @@ public sealed class JobsDatabaseContributor : IDatabaseContributor
 
         // The candidate's own tools.
         modelBuilder.ApplyConfiguration(new SavedJobConfiguration());
+        modelBuilder.ApplyConfiguration(new JobReportConfiguration());
         modelBuilder.ApplyConfiguration(new JobAlertConfiguration());
 
         // The extensible catalogues, seeded by contributors at startup.

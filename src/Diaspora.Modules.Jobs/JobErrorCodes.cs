@@ -1,4 +1,4 @@
-namespace Diaspora.Modules.Jobs;
+﻿namespace Diaspora.Modules.Jobs;
 
 /// <summary>
 /// The stable wire-level error codes the Jobs module emits.
@@ -88,6 +88,12 @@ public static class JobErrorCodes
     public const string WorkplaceInvalid = "jobs.workplace.invalid";
     public const string CategoryKeyInvalid = "jobs.category.key-invalid";
     public const string ModerationNoteInvalid = "jobs.moderation-note.invalid";
+
+    public const string ReportNotFound = "jobs.report.not-found";
+    public const string ReportAlreadyResolved = "jobs.report.already-resolved";
+    public const string ReportReasonInvalid = "jobs.report.reason-invalid";
+    public const string CannotReportOwnPosting = "jobs.report.own-posting";
+    public const string AlreadyReported = "jobs.report.duplicate";
     public const string ProviderReferenceInvalid = "jobs.provider-reference.invalid";
     public const string ProviderReferenceLimit = "jobs.provider-references.limit";
     public const string GuideReferenceInvalid = "jobs.guide-reference.invalid";

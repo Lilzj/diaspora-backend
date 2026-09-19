@@ -1406,6 +1406,18 @@ public sealed class JobPosting
             ? SetModeration(JobModerationState.Flagged, flaggedBy, reason, now)
             : Result.Success();
 
+    /// <summary>
+    /// Returns the posting to a clear standing, from a flag or a hide alike.
+    /// <para>
+    /// <see cref="Unhide"/> lifts a hide and leaves a flag where it is, which is right when a
+    /// moderator is undoing their own takedown. This is the other case: reports were dismissed,
+    /// the advert was looked at and found to be nothing, and leaving it flagged would quietly
+    /// penalise an employer who did nothing wrong. Idempotent.
+    /// </para>
+    /// </summary>
+    public Result Clear(UserId? moderatorId, DateTimeOffset now) =>
+        SetModeration(JobModerationState.Clear, moderatorId, reason: null, now);
+
     /// <summary>Appends to the editorial audit trail. The trail is never edited or pruned.</summary>
     public Result AddModerationNote(
         Guid noteId, UserId authorId, string? note, DateTimeOffset now)

@@ -1,4 +1,4 @@
-namespace Diaspora.Modules.Jobs.Persistence.Configurations;
+﻿namespace Diaspora.Modules.Jobs.Persistence.Configurations;
 
 /// <summary>
 /// Table names and column widths every Jobs configuration shares.
@@ -25,6 +25,7 @@ internal static class JobPersistenceConstants
     public const string JobGuideReferencesTable = "job_guide_references";
     public const string JobScreeningQuestionsTable = "job_screening_questions";
     public const string JobModerationNotesTable = "job_moderation_notes";
+    public const string JobReportsTable = "job_reports";
 
     // ── Employer aggregate ──────────────────────────────────────────────────────────────────
 

@@ -1,4 +1,4 @@
-namespace Diaspora.Modules.Jobs.Domain.Policies;
+﻿namespace Diaspora.Modules.Jobs.Domain.Policies;
 
 /// <summary>
 /// The ceilings the aggregates enforce.
@@ -97,6 +97,18 @@ public static class JobLimits
 
     /// <summary>Characters in a moderation note.</summary>
     public const int MaxModerationNote = 2_000;
+
+    /// <summary>Characters a reporter may write about what is wrong with an advert.</summary>
+    public const int MaxReportDetail = 2_000;
+
+    /// <summary>
+    /// Reports that flag a posting for a moderator's attention.
+    /// <para>
+    /// Two, because one disgruntled applicant is not evidence and three is a day's delay. A scam
+    /// or a demand for money does not wait for this at all — see <c>JobReport.FlagsImmediately</c>.
+    /// </para>
+    /// </summary>
+    public const int ReportsBeforeFlag = 2;
 
     // ── Employer ────────────────────────────────────────────────────────────────────────────
 
