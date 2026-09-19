@@ -1,4 +1,6 @@
 ﻿using Diaspora.Contracts.Identity.V1.Requests;
+using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 using Diaspora.Contracts.Identity.V1.Responses;
 using Diaspora.Domain.Identity.Verification;
 using Xunit;
@@ -148,6 +150,63 @@ public abstract class IdentityTestBase<TFactory> : IClassFixture<TFactory>, IDis
 
         var refreshed = await IdentityApiClient.ReadDataAsync<AuthenticationResponse>(loginResponse);
         return (phone, refreshed);
+    }
+
+    /// <summary>
+    /// A real member, given a platform role through the platform's own route, signed in again.
+    /// <para>
+    /// <b>The way to test a staff path over HTTP.</b> A token assembled in the test process carries
+    /// a session identifier that belongs to no session, and every authenticated request is checked
+    /// against live session state — so it is refused at the door, before any gate it was minted to
+    /// exercise. This produces a caller the platform recognises: a real account, a real session, and
+    /// the <c>rol</c> and <c>perm</c> claims its role actually earns.
+    /// </para>
+    /// <para>
+    /// The elevation goes through <c>AssignRoleCommand</c> inside a scope rather than over HTTP,
+    /// because assigning a role needs a staff caller and that is the thing being created. A second
+    /// account does the assigning: the platform refuses anybody changing their own role, which is
+    /// the point of that guard and not an obstacle to route around.
+    /// </para>
+    /// </summary>
+    protected async Task<(Guid UserId, AuthenticationResponse Auth)> SignInAsRoleAsync(string role)
+    {
+        var (phone, member) = await RegisterVerifiedMemberAsync();
+        var (_, appointer) = await RegisterVerifiedMemberAsync();
+
+        using (var scope = Factory.Services.CreateScope())
+        {
+            ScopedCurrentUser.Apply(
+                scope.ServiceProvider,
+                appointer.Tokens.AccessToken,
+                Diaspora.Application.Identity.Authorization.IdentityPermissions.AssignRoles);
+
+            var assigned = await scope.ServiceProvider.GetRequiredService<MediatR.ISender>().Send(
+                new Diaspora.Application.Identity.Commands.Administration.AssignRole.AssignRoleCommand
+                {
+                    UserId = member.User.Id,
+                    Role = role,
+                    Reason = $"Integration suite: a {role} to act as."
+                });
+
+            assigned.IsSuccess.Should().BeTrue($"the suite cannot test a {role} path without one");
+        }
+
+        // Assigning a role revokes every session the member had, so the token above is already
+        // dead and a fresh sign-in is the only way to hold the new claims.
+        var signedIn = await Api.LoginAsync(new LoginRequest
+        {
+            Email = EmailFor(phone),
+            Password = ValidPassword
+        });
+
+        var refreshed = await IdentityApiClient.ReadDataAsync<AuthenticationResponse>(signedIn);
+
+        Api.Authenticate(refreshed.Tokens.AccessToken);
+        HttpClient.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue(
+                "Bearer", refreshed.Tokens.AccessToken);
+
+        return (member.User.Id, refreshed);
     }
 
     /// <summary>

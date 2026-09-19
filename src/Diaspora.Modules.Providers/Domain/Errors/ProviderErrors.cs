@@ -1,4 +1,4 @@
-using Diaspora.SharedKernel.Results;
+﻿using Diaspora.SharedKernel.Results;
 
 namespace Diaspora.Modules.Providers.Domain.Errors;
 
@@ -93,6 +93,10 @@ public static class ProviderErrors
     public static readonly Error Removed = Error.NotFound(
         ProviderErrorCodes.ProviderRemoved,
         "This provider has been removed.");
+
+    public static readonly Error NotFeaturable = Error.Conflict(
+        ProviderErrorCodes.ProviderNotFeaturable,
+        "Only a provider members can actually open may be featured.");
 
     // ── Profile & organization ──────────────────────────────────────────────────────────────
 

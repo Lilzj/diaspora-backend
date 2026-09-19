@@ -1,4 +1,4 @@
-namespace Diaspora.Modules.Providers;
+﻿namespace Diaspora.Modules.Providers;
 
 /// <summary>
 /// The stable, machine-readable error codes the module emits.
@@ -36,6 +36,8 @@ public static class ProviderErrorCodes
     public const string ProviderLimitReached = "providers.provider.limit-reached";
     public const string ProviderTypeUnsupported = "providers.provider.type-unsupported";
     public const string ProviderRemoved = "providers.provider.removed";
+
+    public const string ProviderNotFeaturable = "providers.provider.not-featurable";
 
     public const string ProfileTaglineTooLong = "providers.profile.tagline-too-long";
     public const string ProfileMissionTooLong = "providers.profile.mission-too-long";

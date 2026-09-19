@@ -113,6 +113,13 @@ public sealed class ResolveReportCommandHandler
     /// means. Where an action is named it is applied to the subject the report was about, loaded
     /// past the delete filter so a subject already taken down can still be acted on.
     /// </para>
+    /// <para>
+    /// <b>Asking for nothing and asking for something unrecognised are different requests, and
+    /// answering both with success is how a moderator comes to believe they hid a page they did
+    /// not.</b> Omitting the action, or naming it <c>None</c>, means the decision stands on its own.
+    /// Anything else must be a state this module can reach, or the whole command is refused — the
+    /// same words, refused the same way, as the moderation route next door.
+    /// </para>
     /// </summary>
     private async Task<Result> ApplyActionAsync(
         CommunityLifeReport report,
@@ -120,11 +127,21 @@ public sealed class ResolveReportCommandHandler
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
-        if (CommunityLifeSharedMapper.ParseEnum<CommunityLifeModerationState>(
-                command.Request.Action) is not { } action
-            || action == CommunityLifeModerationState.Flagged)
+        var requested = command.Request.Action?.Trim();
+
+        if (string.IsNullOrEmpty(requested)
+            || string.Equals(requested, "None", StringComparison.OrdinalIgnoreCase))
         {
             return Result.Success();
+        }
+
+        // Flagged is where a reported subject already sits, so asking for it as the outcome of a
+        // decision is not an action — it is a word that would quietly do nothing.
+        if (CommunityLifeSharedMapper.ParseEnum<CommunityLifeModerationState>(requested)
+                is not { } action
+            || action == CommunityLifeModerationState.Flagged)
+        {
+            return Result.Failure(CommunityLifeErrors.ModerationActionInvalid);
         }
 
         var moderator = _authorization.CallerId;

@@ -70,6 +70,16 @@ public interface IMediaAssetRepository
     Task<IReadOnlyList<MediaAsset>> FindDeletedAsync(
         DateTimeOffset deletedBefore, int limit, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Assets a scanner refused, oldest first.
+    /// <para>
+    /// The queue behind the release route. Oldest first because a quarantined file is a member's
+    /// upload that silently did not appear, and the longest wait is the one nobody has looked at.
+    /// </para>
+    /// </summary>
+    Task<IReadOnlyList<MediaAsset>> FindQuarantinedAsync(
+        int limit, CancellationToken cancellationToken = default);
+
     Task AddAsync(MediaAsset asset, CancellationToken cancellationToken = default);
 
     void Remove(MediaAsset asset);

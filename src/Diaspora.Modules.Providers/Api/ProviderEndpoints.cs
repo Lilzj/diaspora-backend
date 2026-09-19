@@ -192,6 +192,27 @@ internal static class ProviderEndpoints
             .WithName("ChangeProviderStatus")
             .WithSummary("Publish, pause, close, suspend, reinstate or archive.");
 
+        group.MapPut("/{providerId:guid}/featured", async (
+                Guid providerId,
+                SetProviderFeaturedRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new SetProviderFeaturedCommand
+                        {
+                            ProviderId = providerId,
+                            Request = request
+                        },
+                        cancellationToken)))
+            .RequireAuthorization(ProviderPolicies.Administer)
+            .WithName("SetProviderFeatured")
+            .WithSummary(
+                "Put a provider into the featured carousel, or take it out. Editorial, and the " +
+                "only thing that fills GET /providers/featured.");
+
         MapServices(group);
         MapAvailability(group);
     }

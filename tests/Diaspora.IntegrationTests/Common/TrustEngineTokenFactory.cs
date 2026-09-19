@@ -53,6 +53,12 @@ public static class TrustEngineTokenFactory
     /// identifier against the applicant's.
     /// </para>
     /// </summary>
+    /// <para>
+    /// <b>For in-process dispatch, not for HTTP.</b> The session identifier on it belongs to no
+    /// session, and every authenticated request is checked against live session state — so
+    /// presenting this at the API produces a 401 at the door, before any gate it was minted to
+    /// exercise. Over HTTP, sign a real member in and change what they hold.
+    /// </para>
     public static string CreateWithPermissions(Guid userId, params string[] permissions)
     {
         ArgumentNullException.ThrowIfNull(permissions);

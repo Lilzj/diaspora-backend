@@ -152,6 +152,22 @@ public sealed class MediaAssetRepository : IMediaAssetRepository
             .Take(limit)
             .ToListAsync(cancellationToken);
 
+    /// <summary>
+    /// The quarantine, as a staff queue reads it.
+    /// <para>
+    /// Filtered on the status rather than on the scan verdict, because the status is what actually
+    /// stops the file being served — a scan that came back infected and a status that never moved
+    /// would be a bug, and a queue keyed on the verdict would hide it behind rows that look worked.
+    /// </para>
+    /// </summary>
+    public async Task<IReadOnlyList<MediaAsset>> FindQuarantinedAsync(
+        int limit, CancellationToken cancellationToken = default) =>
+        await Assets
+            .Where(asset => asset.Status == MediaAssetStatus.Quarantined)
+            .OrderBy(asset => asset.CreatedAt)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+
     public async Task AddAsync(MediaAsset asset, CancellationToken cancellationToken = default) =>
         await Assets.AddAsync(asset, cancellationToken);
 

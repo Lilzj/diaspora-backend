@@ -138,10 +138,19 @@ public sealed record CreateRefundRequestRequest
     public required string Note { get; init; }
 }
 
-/// <summary>Answer a member's refund request. Staff.</summary>
+/// <summary>
+/// Answer a member's refund request. Staff.
+/// <para>
+/// <b>An approval issues the refund in the same change.</b> The handler calls the payment
+/// processor and attaches the resulting refund to the request before it returns, so there is no
+/// second step and no window in which an approved request is waiting on one. This doc said the
+/// opposite until 19 September 2026 — on the record a client reads, about a button that moves
+/// money — which is the sort of mistake that gets a queue worked twice.
+/// </para>
+/// </summary>
 public sealed record DecideRefundRequestRequest
 {
-    /// <summary>True to approve. An approval does not itself move money.</summary>
+    /// <summary>True to approve, which refunds the payer.</summary>
     public required bool Approve { get; init; }
 
     /// <summary>A member-safe explanation. It is shown to them.</summary>
