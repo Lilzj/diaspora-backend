@@ -118,6 +118,14 @@ public sealed class IdentityPermissionContributor : IPermissionContributor
             Roles = AdminAndAbove
         };
 
+        yield return new PermissionDefinition(
+            IdentityPermissions.RepublishMemberFacts,
+            Module,
+            "Re-announce a member's verified phone, for a stale downstream mirror.")
+        {
+            Roles = AdminAndAbove
+        };
+
         // ─── Machine-to-machine ─────────────────────────────────────────
         yield return new PermissionDefinition(
             IdentityPermissions.ApplyTrustDecision,

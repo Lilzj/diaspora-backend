@@ -90,6 +90,7 @@ public sealed class ReviewVerificationCommandHandler
     private readonly VerificationTypeHandlerRegistry _handlers;
     private readonly ReputationService _reputation;
     private readonly BadgeEvaluator _badges;
+    private readonly VerificationGrantApplier _grants;
     private readonly ICurrentUser _currentUser;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
@@ -101,6 +102,7 @@ public sealed class ReviewVerificationCommandHandler
         VerificationTypeHandlerRegistry handlers,
         ReputationService reputation,
         BadgeEvaluator badges,
+        VerificationGrantApplier grants,
         ICurrentUser currentUser,
         IUnitOfWork unitOfWork,
         IClock clock)
@@ -111,6 +113,7 @@ public sealed class ReviewVerificationCommandHandler
         _handlers = handlers;
         _reputation = reputation;
         _badges = badges;
+        _grants = grants;
         _currentUser = currentUser;
         _unitOfWork = unitOfWork;
         _clock = clock;
@@ -224,28 +227,12 @@ public sealed class ReviewVerificationCommandHandler
             case ReviewDecision.Approve:
             case ReviewDecision.PartiallyApprove:
             {
-                profile.RecordGrant(verification.Type, country, now, verification.ArrivalDate);
-
-                if (_handlers.For(verification.Type)?.ApprovalAward is { } award)
-                {
-                    await _reputation.ApplyAwardAsync(
-                        verification.UserId,
-                        award,
-                        "verification",
-                        verification.Id.Value.ToString(),
-                        country,
-                        cancellationToken);
-                }
-
-                await _timeline.AddAsync(
-                    TrustEvent.Record(
-                        verification.UserId,
-                        TrustEventTypes.VerificationApproved,
-                        $"{Humanize(verification.Type)} verified",
-                        now,
-                        "Your verification was approved by the compliance team.",
-                        TrustEventTypes.IconFor(TrustEventTypes.VerificationApproved),
-                        country),
+                // Shared with the automatic path, which used to do none of this. See
+                // VerificationGrantApplier.
+                await _grants.ApplyApprovalAsync(
+                    verification,
+                    "Your verification was approved by the compliance team.",
+                    now,
                     cancellationToken);
 
                 break;

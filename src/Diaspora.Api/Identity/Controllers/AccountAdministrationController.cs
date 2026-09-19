@@ -3,6 +3,7 @@ using Diaspora.Api.Common;
 using Diaspora.Platform.Http;
 using Diaspora.Application.Identity.Authorization;
 using Diaspora.Application.Identity.Commands.Administration.AssignRole;
+using Diaspora.Application.Identity.Commands.Administration.RepublishPhoneVerification;
 using Diaspora.Application.Identity.Commands.Administration.RevokeMemberSessions;
 using Diaspora.Application.Identity.Commands.Lifecycle.DisableAccount;
 using Diaspora.Application.Identity.Commands.Lifecycle.ReinstateAccount;
@@ -203,6 +204,31 @@ public sealed class AccountAdministrationController : ApiController
                 Reason = request.Reason
             },
             cancellationToken);
+
+        return HandleResult(result);
+    }
+
+    /// <summary>Re-announces a member's verified phone to the rest of the platform.</summary>
+    /// <remarks>
+    /// For accounts verified before anything published the fact. Trust keeps its own record of
+    /// a member's verifications and was never told about a phone, so its checklist showed
+    /// "Phone Linked — Verify" to every member. New verifications announce themselves now;
+    /// older ones cannot, because confirming an already-verified phone is a no-op.
+    /// <para>
+    /// Changes nothing here: no state moves and nothing is re-verified. A member whose phone is
+    /// not verified is refused rather than announced.
+    /// </para>
+    /// </remarks>
+    [HttpPost("{userId:guid}/republish-phone-verification")]
+    [Authorize(Policy = DiasporaPolicies.RepublishMemberFacts)]
+    [ProducesResponseType<ApiResponse<OperationAcknowledgedResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RepublishPhoneVerificationAsync(
+        Guid userId, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(
+            new RepublishPhoneVerificationCommand { UserId = userId }, cancellationToken);
 
         return HandleResult(result);
     }

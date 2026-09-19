@@ -33,6 +33,8 @@ public sealed class VerificationSubmissionCoordinator
     private readonly TrustProfileProvisioner _provisioner;
     private readonly ITrustEventRepository _timeline;
     private readonly VerificationTypeHandlerRegistry _handlers;
+    private readonly VerificationGrantApplier _grants;
+    private readonly BadgeEvaluator _badges;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
 
@@ -41,6 +43,8 @@ public sealed class VerificationSubmissionCoordinator
         TrustProfileProvisioner provisioner,
         ITrustEventRepository timeline,
         VerificationTypeHandlerRegistry handlers,
+        VerificationGrantApplier grants,
+        BadgeEvaluator badges,
         IUnitOfWork unitOfWork,
         IClock clock)
     {
@@ -48,6 +52,8 @@ public sealed class VerificationSubmissionCoordinator
         _provisioner = provisioner;
         _timeline = timeline;
         _handlers = handlers;
+        _grants = grants;
+        _badges = badges;
         _unitOfWork = unitOfWork;
         _clock = clock;
     }
@@ -176,6 +182,27 @@ public sealed class VerificationSubmissionCoordinator
                 verification.Queue(now, handler.ReviewSla);
 
                 ApplyAutomaticDecision(handler, verification, now);
+
+                // An automatic approval is still an approval. Until B3.0.6 this marked the
+                // request Approved and stopped: no grant, no award, nothing on the member's
+                // journey. It never showed because nothing submitted a type that auto-approves.
+                if (verification.Status == VerificationStatus.Approved)
+                {
+                    var granted = await _grants.ApplyApprovalAsync(
+                        verification,
+                        "Confirmed automatically. This type needs no documents and no reviewer.",
+                        now,
+                        token);
+
+                    // Badges follow standing here exactly as they do after a reviewer's
+                    // decision. The reputation profile is the one the provisioner created at
+                    // the top of this method.
+                    var (_, reputation) = await _provisioner.GetOrCreateBothAsync(
+                        input.UserId, token);
+
+                    _badges.Reconcile(
+                        granted, reputation, granted.HasBadge(BadgeType.Moderator), now);
+                }
 
                 await _timeline.AddAsync(
                     TrustEvent.Record(

@@ -39,6 +39,15 @@ public static class IdentityPermissions
     public const string RevokeAnySession = "identity:sessions:revoke-any";
     public const string AssignRoles = "identity:roles:assign";
 
+    /// <summary>
+    /// Re-announce a fact Identity already holds, for a member whose downstream mirror is stale.
+    /// <para>
+    /// It changes nothing here. Identity stays the owner of the fact; this only says it again,
+    /// for accounts whose phone was verified before anything published the event.
+    /// </para>
+    /// </summary>
+    public const string RepublishMemberFacts = "identity:users:republish-facts";
+
     // ─── Machine-to-machine ─────────────────────────────────────────────
 
     /// <summary>

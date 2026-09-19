@@ -59,6 +59,9 @@ public static class DiasporaPolicies
 
     public const string AssignRoles = "identity.roles.assign";
 
+    /// <summary>Re-announce a member fact whose downstream mirror is stale.</summary>
+    public const string RepublishMemberFacts = "identity.users.republish-facts";
+
     // ─── Tier-backed ────────────────────────────────────────────────────
 
     /// <summary>Requires phone verification — the floor for anything beyond onboarding.</summary>
@@ -89,7 +92,8 @@ public static class DiasporaPolicies
             [ReadAnyUser] = IdentityPermissions.ReadAnyUser,
             [ReadAnySecurityEvents] = IdentityPermissions.ReadAnySecurityEvents,
             [RevokeAnySession] = IdentityPermissions.RevokeAnySession,
-            [AssignRoles] = IdentityPermissions.AssignRoles
+            [AssignRoles] = IdentityPermissions.AssignRoles,
+            [RepublishMemberFacts] = IdentityPermissions.RepublishMemberFacts
         };
 
     public static readonly IReadOnlyDictionary<string, AccessTier> TierPolicies =

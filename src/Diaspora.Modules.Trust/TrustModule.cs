@@ -128,6 +128,7 @@ public sealed class TrustModule : IPlatformModule
 
         // B3.0.2. The workflow, and the two entry points that share it — the member's own
         // route through MediatR, and the published in-process contract below.
+        services.AddScoped<VerificationGrantApplier>();
         services.AddScoped<VerificationSubmissionCoordinator>();
         services.AddScoped<BadgeEvaluator>();
         services.AddScoped<EligibilityEvaluator>();
