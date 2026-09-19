@@ -100,6 +100,15 @@ public sealed class CountryExperience : AggregateRoot<CountryExperienceId>, IAud
             DepartedOn = period.DepartedOn
         });
 
+        // A residence declared with an end date is a residence the member has already left,
+        // and saying so for the first time is as much a departure as closing an open one. The
+        // member whose timeline is empty — the common case, because nothing makes anyone fill
+        // it in — would otherwise have no way to tell us they moved at all.
+        if (period.DepartedOn is { } departedOn)
+        {
+            experience.RaiseDeparture(departedOn);
+        }
+
         return Result.Success(experience);
     }
 
@@ -121,22 +130,29 @@ public sealed class CountryExperience : AggregateRoot<CountryExperienceId>, IAud
     {
         ArgumentNullException.ThrowIfNull(period);
 
-        var wasOpen = Period.IsOpen;
+        var previousDeparture = Period.DepartedOn;
         Period = period;
 
-        if (wasOpen && !period.IsOpen)
+        // The trigger is the date, not the transition. Closing an open residence and correcting
+        // a departure already recorded are both facts Trust needs; re-saving the same residence
+        // to change a role or add expertise is not, and raising on that would have every edit
+        // announce a move that did not happen.
+        if (period.DepartedOn is { } departedOn && departedOn != previousDeparture)
         {
-            RaiseDomainEvent(new CountryExperienceEndedDomainEvent
-            {
-                ExperienceId = Id,
-                UserId = UserId,
-                CountryCode = CountryCode.Value,
-                DepartedOn = period.DepartedOn!.Value
-            });
+            RaiseDeparture(departedOn);
         }
 
         return Result.Success();
     }
+
+    private void RaiseDeparture(DateOnly departedOn) =>
+        RaiseDomainEvent(new CountryExperienceEndedDomainEvent
+        {
+            ExperienceId = Id,
+            UserId = UserId,
+            CountryCode = CountryCode.Value,
+            DepartedOn = departedOn
+        });
 
     public void SetRole(string? role) => Role = Normalize(role);
 

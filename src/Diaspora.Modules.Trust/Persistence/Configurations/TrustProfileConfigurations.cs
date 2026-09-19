@@ -197,6 +197,7 @@ public sealed class CountryStandingConfiguration : IEntityTypeConfiguration<Coun
         builder.Property(standing => standing.UpdatedAt).IsRequired();
 
         builder.Ignore(standing => standing.Stars);
+        builder.Ignore(standing => standing.HasDeparted);
 
         builder.HasIndex(standing => new { standing.ProfileId, standing.CountryCode })
             .IsUnique()

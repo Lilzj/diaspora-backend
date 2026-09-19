@@ -244,6 +244,30 @@ public sealed class TrustProfile : AggregateRoot<TrustProfileId>, IAuditableEnti
         return created;
     }
 
+    /// <summary>
+    /// Records that the member has left a country, if they have a standing there to close.
+    /// <para>
+    /// Unlike <see cref="StandingIn"/> this does not create one. A departure from a country the
+    /// member never had standing in is not news, and materialising an empty standing to record
+    /// it would put a country on their trust centre that they only ever left.
+    /// </para>
+    /// </summary>
+    /// <returns>Whether a standing was closed.</returns>
+    public bool RecordDeparture(string countryCode, DateOnly departedOn, DateTimeOffset at)
+    {
+        var standing = _countries.FirstOrDefault(
+            country => string.Equals(
+                country.CountryCode, countryCode, StringComparison.OrdinalIgnoreCase));
+
+        if (standing is null || standing.DepartedOn == departedOn)
+        {
+            return false;
+        }
+
+        standing.RecordDeparture(departedOn, at);
+        return true;
+    }
+
     /// <summary>Adds points to one country's standing.</summary>
     public void AddCountryPoints(string countryCode, int delta, DateTimeOffset at)
     {

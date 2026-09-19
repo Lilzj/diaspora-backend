@@ -1,4 +1,5 @@
-﻿using Diaspora.Modules.Location.Application.Services;
+﻿using Diaspora.Modules.Location.Application.EventHandlers;
+using Diaspora.Modules.Location.Application.Services;
 using Diaspora.Modules.Location.Domain.Areas;
 using Diaspora.Modules.Location.Domain.Countries;
 using Diaspora.Modules.Location.Domain.Experience;
@@ -145,6 +146,7 @@ public sealed class LocationModule : IPlatformModule
 
     private static void RegisterServices(IServiceCollection services)
     {
+        services.AddScoped<LocationIntegrationEventRelay>();
         services.AddScoped<CountryNameResolver>();
         services.AddScoped<LocationProfileProvisioner>();
         services.AddScoped<LocationSnapshotFactory>();

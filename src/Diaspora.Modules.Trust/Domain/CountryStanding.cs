@@ -74,6 +74,13 @@ public sealed class CountryStanding : Entity<CountryStandingId>
     {
         IsVerified = true;
         ArrivedOn = arrivedOn ?? ArrivedOn;
+
+        // Coming back reopens the standing. Without this a member who left Mauritius in 2024,
+        // returned in 2026 and verified again would keep the old departure date, and
+        // YearsOfResidence would go on counting to it — freezing their residence at the length
+        // of a tenancy that has since resumed.
+        DepartedOn = null;
+
         Role = "Verified Resident";
         UpdatedAt = at;
 
@@ -93,11 +100,31 @@ public sealed class CountryStanding : Entity<CountryStandingId>
         UpdatedAt = at;
     }
 
+    /// <summary>
+    /// Closes this standing: the member has left.
+    /// <para>
+    /// <b>It takes nothing away, and that is the point.</b> <see cref="IsVerified"/> stays true
+    /// and <see cref="Points"/> keeps every point earned, because both record things that
+    /// happened and leaving does not un-happen them. Two years of reputation built in Mauritius
+    /// is still two years of reputation built in Mauritius after the member moves to the UK.
+    /// Removing a residency is <see cref="RevokeResidency"/>, a moderator's decision that the
+    /// claim was never true — a different fact with a different cause.
+    /// </para>
+    /// <para>
+    /// What it does change is the clock: <see cref="YearsOfResidence"/> counts to
+    /// <see cref="DepartedOn"/> instead of today, so the residence-duration gate on the guide
+    /// programme stops accruing for a country the member no longer lives in.
+    /// </para>
+    /// </summary>
     internal void RecordDeparture(DateOnly departedOn, DateTimeOffset at)
     {
         DepartedOn = departedOn;
+        Role = RoleFor(Level, IsVerified, hasDeparted: true);
         UpdatedAt = at;
     }
+
+    /// <summary>Whether the member has left this country.</summary>
+    public bool HasDeparted => DepartedOn is not null;
 
     /// <summary>
     /// Adds points and re-derives the level. Points floor at zero — a member can lose
@@ -108,7 +135,7 @@ public sealed class CountryStanding : Entity<CountryStandingId>
     {
         Points = Math.Max(0, Points + delta);
         Level = ReputationThresholds.LevelFor(Points);
-        Role = RoleFor(Level, IsVerified);
+        Role = RoleFor(Level, IsVerified, HasDeparted);
         UpdatedAt = at;
     }
 
@@ -151,14 +178,25 @@ public sealed class CountryStanding : Entity<CountryStandingId>
         _ => IsVerified ? 2 : 1
     };
 
-    private static string RoleFor(ReputationLevel level, bool isVerified) => level switch
-    {
-        ReputationLevel.CommunityAmbassador => "Community Ambassador",
-        ReputationLevel.CommunityExpert => "Community Expert",
-        ReputationLevel.TrustedContributor => "Trusted Contributor",
-        ReputationLevel.VerifiedResident => "Verified Resident",
-        _ => isVerified ? "Verified Resident" : "Diaspora Member"
-    };
+    /// <summary>
+    /// The displayed role.
+    /// <para>
+    /// Departure replaces the residency titles and leaves the earned ones alone. Calling
+    /// somebody a Verified Resident of a country they moved away from is false, but the three
+    /// levels above it were earned by contributing and stay true afterwards — a Community
+    /// Expert on Mauritius does not stop knowing Mauritius by leaving it.
+    /// </para>
+    /// </summary>
+    private static string RoleFor(ReputationLevel level, bool isVerified, bool hasDeparted) =>
+        level switch
+        {
+            ReputationLevel.CommunityAmbassador => "Community Ambassador",
+            ReputationLevel.CommunityExpert => "Community Expert",
+            ReputationLevel.TrustedContributor => "Trusted Contributor",
+            _ when hasDeparted => "Former Resident",
+            ReputationLevel.VerifiedResident => "Verified Resident",
+            _ => isVerified ? "Verified Resident" : "Diaspora Member"
+        };
 
     private static string Normalize(string value)
     {
