@@ -1,4 +1,6 @@
 using Asp.Versioning;
+using Diaspora.Modules.Trust.Application.Services;
+using Diaspora.Api.Identity.Trust;
 using Diaspora.Api.Health;
 using Diaspora.Api.Hosting;
 using Diaspora.Api.Identity.Authentication;
@@ -124,6 +126,23 @@ builder.Services.AddStripePayments(builder.Configuration);
 // own credentials are configured, and registering one enables no corridor by itself.
 builder.Services.AddPayPalPayments(builder.Configuration);
 builder.Services.AddFlutterwavePayments(builder.Configuration);
+
+// How a verification decision reaches a member's access state.
+//
+// Trust publishes every decision through ITrustDecisionPublisher and knows nothing else about
+// Identity — ADR-002's seam, kept so extracting B3 stays a configuration change. What the ADR did
+// not say was what an unconfigured deployment should do, and the answer was "nothing": the section
+// was absent everywhere, publishing was skipped with a warning, and no member could leave
+// LimitedAccess by any route the product offered.
+//
+// Loopback is now the default and the bridge lives here, in the one place entitled to know both
+// modules. Set Trust:Decisions:Mode to "Http" and this registration stands down.
+if (builder.Configuration
+        .GetSection(TrustDecisionOptions.SectionName)
+        .Get<TrustDecisionOptions>() is not { Mode: TrustDecisionDelivery.Http })
+{
+    builder.Services.AddScoped<ITrustDecisionPublisher, LoopbackTrustDecisionPublisher>();
+}
 
 // The Production Platform (B17): caching, resilience, rate limiting, feature management, runtime
 // configuration, scheduling, health aggregation, dashboards, security and privacy tooling.

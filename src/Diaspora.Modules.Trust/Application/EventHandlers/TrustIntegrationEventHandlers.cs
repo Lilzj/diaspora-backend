@@ -78,9 +78,12 @@ public sealed class VerificationSubmittedEventHandler
         if (domainEvent.Type is VerificationType.Diaspora or VerificationType.Identity
             or VerificationType.Country)
         {
+            // Submitted, not UnderReview: nobody has picked it up yet, the request row says
+            // Pending, and VerificationUnderReview is not reachable from LimitedAccess anyway.
+            // Publishing the wrong rung is how this moved nobody for as long as it existed.
             await _decisions.PublishAsync(
                 domainEvent.UserId,
-                TrustDecisionOutcome.UnderReview,
+                TrustDecisionOutcome.Submitted,
                 $"{domainEvent.Type} verification submitted.",
                 "trust-engine",
                 cancellationToken);
@@ -544,6 +547,58 @@ public sealed class ModerationDecisionRecordedEventHandler
                 Action = domainEvent.Action.ToString(),
                 DecidedAt = domainEvent.At
             },
+            cancellationToken);
+    }
+}
+
+/// <summary>
+/// Moves a member onto the reviewer's rung when their request is picked up.
+/// <para>
+/// <b>The middle of three links, and the one nothing was publishing.</b> Identity's ladder is
+/// <c>LimitedAccess -> VerificationPending -> VerificationUnderReview -> Verified</c> and every
+/// rung is guarded: <c>Granted</c> targets <c>Verified</c>, which is reachable only from
+/// <c>VerificationUnderReview</c>. Submission now puts the member on the first rung and approval
+/// takes them off the third, but nothing put them on the second — so an approval would have been
+/// refused by the transition table even once everything else worked.
+/// </para>
+/// <para>
+/// Assignment raises no event of its own; it moves the request from <c>Pending</c> to
+/// <c>UnderReview</c> through the ordinary status transition, which is what this reads. Any other
+/// status move is somebody else's business and is ignored.
+/// </para>
+/// </summary>
+public sealed class VerificationStatusChangedEventHandler
+    : DomainEventHandler<VerificationStatusChangedDomainEvent>
+{
+    private readonly ITrustDecisionPublisher _decisions;
+
+    public VerificationStatusChangedEventHandler(ITrustDecisionPublisher decisions) =>
+        _decisions = decisions;
+
+    protected override async Task HandleAsync(
+        VerificationStatusChangedDomainEvent domainEvent, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(domainEvent);
+
+        if (domainEvent.From != VerificationStatus.Pending
+            || domainEvent.To != VerificationStatus.UnderReview)
+        {
+            return;
+        }
+
+        // The same three types that gate community access on the way in. A professional
+        // credential reaching a reviewer's desk should not move somebody's whole account.
+        if (domainEvent.Type is not (VerificationType.Diaspora or VerificationType.Identity
+            or VerificationType.Country))
+        {
+            return;
+        }
+
+        await _decisions.PublishAsync(
+            domainEvent.UserId,
+            TrustDecisionOutcome.UnderReview,
+            $"{domainEvent.Type} verification picked up for review.",
+            "trust-engine",
             cancellationToken);
     }
 }

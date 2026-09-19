@@ -279,14 +279,22 @@ public sealed class FrontendContractCompatibilityTests
     }
 
     /// <summary>
-    /// Fixed by Identity's published <c>ApplyTrustDecisionRequest</c>: "One of UnderReview,
-    /// Granted, Rejected, Revoked". A fifth value here would be refused at runtime.
+    /// Fixed by Identity's published <c>ApplyTrustDecisionRequest</c>. A value here that Identity
+    /// cannot parse is refused at runtime, which is what this guards.
+    /// <para>
+    /// <c>Submitted</c> joined both ends together. The access ladder is
+    /// <c>LimitedAccess -> VerificationPending -> VerificationUnderReview -> Verified</c>, and
+    /// submission used to publish <c>UnderReview</c> — the third rung, unreachable from the
+    /// first — so no submission ever moved anybody. This enum is internal to the Trust-to-Identity
+    /// hop; no client parses it, which is why a fifth value is safe to add and a sixth would need
+    /// the same check.
+    /// </para>
     /// </summary>
     [Fact]
     public void TrustDecisionOutcome_matches_the_identity_contract_exactly()
     {
         NamesOf<TrustDecisionOutcome>().Should().BeEquivalentTo(
-            "UnderReview", "Granted", "Rejected", "Revoked");
+            "Submitted", "UnderReview", "Granted", "Rejected", "Revoked");
     }
 
     // ── Response DTOs ────────────────────────────────────────────────────

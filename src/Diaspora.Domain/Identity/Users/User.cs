@@ -449,6 +449,8 @@ public sealed class User : AggregateRoot<UserId>, IAuditableEntity, ISoftDeletab
 
         var (target, reason) = decision.Outcome switch
         {
+            TrustDecisionOutcome.Submitted =>
+                (AccessState.VerificationPending, AccessStateChangeReason.VerificationRequested),
             TrustDecisionOutcome.UnderReview =>
                 (AccessState.VerificationUnderReview, AccessStateChangeReason.VerificationReviewStarted),
             TrustDecisionOutcome.Granted =>

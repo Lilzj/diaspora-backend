@@ -37,10 +37,41 @@ public interface ITrustDecisionPublisher
         CancellationToken cancellationToken = default);
 }
 
+/// <summary>How a decision reaches Identity.</summary>
+public enum TrustDecisionDelivery
+{
+    /// <summary>
+    /// Applied in this process, by the host that already contains both modules.
+    /// <para>
+    /// For a deployment where verification is decided by people on this platform rather than by
+    /// an external engine — which is every deployment today. Trust still knows nothing about
+    /// Identity: the bridge lives in the composition root, which is the one place entitled to
+    /// know both. ADR-002's seam is intact and swapping back to <see cref="Http"/> is a
+    /// configuration change.
+    /// </para>
+    /// </summary>
+    Loopback = 0,
+
+    /// <summary>Posted to Identity over HTTP, for when B3 is extracted into its own service.</summary>
+    Http = 1
+}
+
 /// <summary>Where Identity's trust-decision endpoint lives, and what token opens it.</summary>
 public sealed class TrustDecisionOptions
 {
     public const string SectionName = "Trust:Decisions";
+
+    /// <summary>
+    /// How decisions are delivered. <c>Loopback</c> by default.
+    /// <para>
+    /// The default is deliberate and is not merely a convenience. Before it existed this
+    /// section was simply absent in every deployment, <see cref="IsConfigured"/> was false, and
+    /// every decision was logged as undeliverable and dropped — so no member could move from
+    /// <c>LimitedAccess</c> by any route the product offered. A default that works is the
+    /// difference between an unconfigured deployment being manual and being broken.
+    /// </para>
+    /// </summary>
+    public TrustDecisionDelivery Mode { get; set; } = TrustDecisionDelivery.Loopback;
 
     /// <summary>
     /// Identity's base address. In the modular monolith this is the app's own address; when
@@ -56,7 +87,10 @@ public sealed class TrustDecisionOptions
 
     public int TimeoutSeconds { get; set; } = 10;
 
-    /// <summary>Whether publishing is configured at all.</summary>
+    /// <summary>
+    /// Whether HTTP publishing is configured. Meaningless in <see cref="TrustDecisionDelivery.Loopback"/>,
+    /// which needs neither an address nor a token.
+    /// </summary>
     public bool IsConfigured =>
         !string.IsNullOrWhiteSpace(IdentityBaseAddress) && !string.IsNullOrWhiteSpace(ServiceToken);
 }

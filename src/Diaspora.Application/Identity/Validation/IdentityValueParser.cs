@@ -75,6 +75,9 @@ public static class IdentityValueParser
     {
         switch (value?.Trim().ToLowerInvariant())
         {
+            case "submitted":
+                outcome = TrustDecisionOutcome.Submitted;
+                return true;
             case "underreview":
             case "under_review":
                 outcome = TrustDecisionOutcome.UnderReview;

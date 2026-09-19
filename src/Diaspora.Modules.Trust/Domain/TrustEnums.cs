@@ -422,7 +422,10 @@ public enum TrustDecisionOutcome
     UnderReview = 0,
     Granted = 1,
     Rejected = 2,
-    Revoked = 3
+    Revoked = 3,
+
+    /// <summary>Submitted and waiting for a reviewer. See Identity's copy for why it exists.</summary>
+    Submitted = 4
 }
 
 /// <summary>

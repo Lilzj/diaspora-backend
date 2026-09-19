@@ -13,6 +13,18 @@ public enum TrustDecisionOutcome
     /// <summary>Review has begun; no verdict yet.</summary>
     UnderReview = 0,
 
+    /// <summary>
+    /// Submitted and waiting for a reviewer to pick it up.
+    /// <para>
+    /// <b>The rung that was missing.</b> The access ladder is
+    /// <c>LimitedAccess -> VerificationPending -> VerificationUnderReview -> Verified</c>, and
+    /// <see cref="UnderReview"/> targets the third rung. Publishing it on submission asked a
+    /// member at <c>LimitedAccess</c> to skip one, which the transition table refuses — so a
+    /// submission could never move anybody, whatever the transport did.
+    /// </para>
+    /// </summary>
+    Submitted = 4,
+
     /// <summary>Verification granted.</summary>
     Granted = 1,
 
