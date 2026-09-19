@@ -41,6 +41,24 @@ public static class DiasporaPolicies
     public const string DisableUsers = "identity.users.disable";
     public const string ApplyTrustDecision = "identity.trust.apply-decision";
 
+    /// <summary>
+    /// The four staff policies added on 19 Sep 2026.
+    /// <para>
+    /// Their permissions were declared from the beginning and no policy ever carried them,
+    /// so no route could require them and nothing could call them. Reading a member,
+    /// reading their history, signing them out and giving them a role were all things the
+    /// platform said staff could do and gave them no way to do — which is why every staff
+    /// account so far was made with a database write.
+    /// </para>
+    /// </summary>
+    public const string ReadAnyUser = "identity.users.read-any";
+
+    public const string ReadAnySecurityEvents = "identity.security-events.read-any";
+
+    public const string RevokeAnySession = "identity.sessions.revoke-any";
+
+    public const string AssignRoles = "identity.roles.assign";
+
     // ─── Tier-backed ────────────────────────────────────────────────────
 
     /// <summary>Requires phone verification — the floor for anything beyond onboarding.</summary>
@@ -67,7 +85,11 @@ public static class DiasporaPolicies
             [SuspendUsers] = IdentityPermissions.SuspendUser,
             [ReinstateUsers] = IdentityPermissions.ReinstateUser,
             [DisableUsers] = IdentityPermissions.DisableUser,
-            [ApplyTrustDecision] = IdentityPermissions.ApplyTrustDecision
+            [ApplyTrustDecision] = IdentityPermissions.ApplyTrustDecision,
+            [ReadAnyUser] = IdentityPermissions.ReadAnyUser,
+            [ReadAnySecurityEvents] = IdentityPermissions.ReadAnySecurityEvents,
+            [RevokeAnySession] = IdentityPermissions.RevokeAnySession,
+            [AssignRoles] = IdentityPermissions.AssignRoles
         };
 
     public static readonly IReadOnlyDictionary<string, AccessTier> TierPolicies =

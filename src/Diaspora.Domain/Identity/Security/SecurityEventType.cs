@@ -32,5 +32,16 @@ public enum SecurityEventType
     ProfileUpdated = 22,
     DeviceRegistered = 23,
     VerificationRequested = 24,
-    TrustDecisionApplied = 25
+    TrustDecisionApplied = 25,
+
+    /// <summary>
+    /// A member was given a platform role, or had one taken away.
+    /// <para>
+    /// Its own type rather than <see cref="AccessStateChanged"/>: what somebody may do as
+    /// staff and what state their own account is in are different facts, and the day
+    /// somebody asks who made whom a moderator, the answer should not require reading
+    /// descriptions.
+    /// </para>
+    /// </summary>
+    RoleAssigned = 26
 }
