@@ -28,10 +28,18 @@ namespace Diaspora.Modules.Analytics.Extensibility.Automation;
 /// selector, so a window that varied with anything would make the same rule mean different things on
 /// different days. Thirty days is the client's own default period.</para>
 ///
-/// <para><b>An owner with no rollup rows is unanswered, not zero.</b> A creator the platform has not
-/// yet computed a rollup for has no figure; answering zero would make "below 100" fire for everybody
-/// the projection has not reached, which is the failure mode a threshold condition can least
-/// afford.</para>
+/// <para><b>A creator the platform has never recorded is unanswered; a quiet month is a zero.</b>
+/// Answering zero to the first would make "below 100" fire for everybody the projection has not
+/// reached, which is the failure mode a threshold condition can least afford. But answering nothing
+/// to the second is the mirror of it, and it is the one this source shipped with: the projection
+/// writes a row only for a day on which something happened, so a creator whose views fall away has
+/// no rows — and <c>metricBelow</c>, which exists to notice a figure falling, went silent at the
+/// exact moment it had something to say.</para>
+///
+/// <para><c>HasHistory</c> is what separates the two, and this module drew that distinction on
+/// 13 Sep 2026 after Aisha's dashboard read "Not enough history yet" on every tile of a quiet day.
+/// The same conflation, in a source written afterwards, reached for the same wrong flag. See
+/// <c>AnalyticsWindowTotals</c>.</para>
 /// </summary>
 public sealed class AnalyticsAutomationConditionSource : IAutomationConditionSource
 {
@@ -95,10 +103,10 @@ public sealed class AnalyticsAutomationConditionSource : IAutomationConditionSou
             .ReadOwnerAsync(request.Member.Value, period, cancellationToken)
             .ConfigureAwait(false);
 
-        if (!totals.HasData)
+        if (totals is { HasData: false, HasHistory: false })
         {
-            // Nothing computed for this member in the window. Unanswered rather than zero — see the
-            // type summary.
+            // Never recorded, so there is no figure to give. A quiet window — no rows here, rows
+            // before it — falls through and answers the zero it actually is. See the type summary.
             return answers;
         }
 
