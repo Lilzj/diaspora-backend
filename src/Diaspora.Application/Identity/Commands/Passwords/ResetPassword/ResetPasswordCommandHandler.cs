@@ -70,18 +70,31 @@ public sealed class ResetPasswordCommandHandler : ICommandHandler<ResetPasswordC
         // Identified by the same address the recovery was requested with. The history
         // is loaded because the policy below refuses a password the member has used
         // before, and a history-less load would let that refusal silently never fire.
+        //
+        // **Every miss answers identically, and that is the point.** This route is
+        // anonymous, and it used to answer `NotFound` for an address with no account and
+        // the challenge's own state — "expired", "already used", "too many attempts" —
+        // for one that had. So anybody could ask it whether an email address was
+        // registered, without a code and without a message ever reaching the member. The
+        // same defect was found on the OTP sign-in route on 17 Sep 2026; this is the same
+        // treatment, and `PhoneOtpAuthenticationProvider` is the shape it copies.
         if (!EmailAddress.TryCreate(request.Email, out var email) || email is null)
         {
-            return Result.Failure<OperationAcknowledgedResponse>(OtpErrors.NotFound);
+            return Result.Failure<OperationAcknowledgedResponse>(OtpErrors.IncorrectCode);
         }
 
         var user = await _users.GetByEmailWithPasswordHistoryAsync(email, cancellationToken);
         if (user is null)
         {
-            return Result.Failure<OperationAcknowledgedResponse>(OtpErrors.NotFound);
+            // Deliberately the answer a wrong code produces. Anything more specific says
+            // "that address is not registered", which is the enumeration this must refuse.
+            return Result.Failure<OperationAcknowledgedResponse>(OtpErrors.IncorrectCode);
         }
 
-        var verification = await _otpChallenges.VerifyAsync(
+        // Reaching here says only that the address is registered, which the caller must not
+        // learn. The state of a challenge is told to whoever typed the code it sent, and
+        // "incorrect" to everybody else.
+        var verification = await _otpChallenges.VerifyForAnonymousCallerAsync(
             user, OtpPurpose.PasswordReset, request.Code, cancellationToken);
 
         if (verification.IsFailure)

@@ -54,18 +54,28 @@ public sealed class VerifyPhoneCommandHandler : ICommandHandler<VerifyPhoneComma
 
         if (!PhoneNumber.TryCreate(request.PhoneNumber, out var phoneNumber) || phoneNumber is null)
         {
-            return Result.Failure<AuthenticationResponse>(OtpErrors.NotFound);
+            return Result.Failure<AuthenticationResponse>(OtpErrors.IncorrectCode);
         }
 
         var user = await _users.GetByPhoneNumberAsync(phoneNumber, cancellationToken);
         if (user is null)
         {
-            // Same error an expired or absent challenge produces, so this endpoint cannot
-            // be used to discover which numbers are registered.
-            return Result.Failure<AuthenticationResponse>(OtpErrors.NotFound);
+            // Deliberately the answer a wrong code produces.
+            //
+            // This used to answer `NotFound`, under a comment saying that matched "an expired or
+            // absent challenge, so this endpoint cannot be used to discover which numbers are
+            // registered". It matched an *absent* one. A registered number with a live challenge
+            // answered `IncorrectCode` to the same guess — so a wrong code told a caller whether
+            // the number had a verification outstanding, which is to say whether it had just
+            // registered. The sibling defect on sign-in was closed on 17 Sep 2026 and on password
+            // reset on 20 Sep; this is the third of the same shape.
+            return Result.Failure<AuthenticationResponse>(OtpErrors.IncorrectCode);
         }
 
-        var verification = await _otpChallenges.VerifyAsync(
+        // The state of a challenge is told to whoever typed the code it sent, and "incorrect" to
+        // everybody else. A member whose code expired still hears that it expired, because they
+        // hold it.
+        var verification = await _otpChallenges.VerifyForAnonymousCallerAsync(
             user, OtpPurpose.PhoneVerification, request.Code, cancellationToken);
 
         if (verification.IsFailure)
