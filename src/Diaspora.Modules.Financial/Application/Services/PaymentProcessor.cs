@@ -5,8 +5,10 @@ using Diaspora.Modules.Financial.Domain.Payments;
 using Diaspora.Modules.Financial.Domain.ValueObjects;
 using Diaspora.Modules.Financial.Domain.Wallets;
 using Diaspora.Modules.Financial.Extensibility.Gateways;
+using Diaspora.Modules.Financial.Observability;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Results;
+using Microsoft.Extensions.Logging;
 
 namespace Diaspora.Modules.Financial.Application.Services;
 
@@ -38,6 +40,7 @@ public sealed class PaymentProcessor
     private readonly IPaymentIntentRepository _intents;
     private readonly IGuidGenerator _guids;
     private readonly IClock _clock;
+    private readonly ILogger<PaymentProcessor> _logger;
 
     public PaymentProcessor(
         IPaymentGatewayRegistry gateways,
@@ -45,7 +48,8 @@ public sealed class PaymentProcessor
         FinancialIdentityService identities,
         IPaymentIntentRepository intents,
         IGuidGenerator guids,
-        IClock clock)
+        IClock clock,
+        ILogger<PaymentProcessor> logger)
     {
         _gateways = gateways;
         _ledger = ledger;
@@ -53,6 +57,7 @@ public sealed class PaymentProcessor
         _intents = intents;
         _guids = guids;
         _clock = clock;
+        _logger = logger;
     }
 
     /// <summary>
@@ -202,6 +207,34 @@ public sealed class PaymentProcessor
 
             if (!result.Succeeded)
             {
+                // **Give the money back before saying the payment failed.**
+                //
+                // A separate-authorisation provider is holding the member's funds: that is what an
+                // authorisation is. Marking the intent `Failed` tells the member their payment did
+                // not go through, and it does not tell the provider anything — so without this the
+                // hold stayed until the provider's own authorisation lapsed, typically days later,
+                // with the member's balance short and this platform believing the matter closed.
+                //
+                // `CancelAsync` has been on the gateway contract since the module shipped and had
+                // no caller anywhere in it. Every adapter implements it.
+                var released = await ReleaseHoldAsync(gateway, intent, cancellationToken);
+
+                FinancialTelemetry.CapturesRefused.Add(
+                    1,
+                    new KeyValuePair<string, object?>("provider", gateway.Provider),
+                    new KeyValuePair<string, object?>("hold_released", released));
+
+                if (!released)
+                {
+                    // The capture failed and the hold is still there. This is the one that needs a
+                    // person: the member is short the money and nothing here will try again.
+                    _logger.LogError(
+                        "Capture refused for payment {PaymentIntentId} at {Provider} and the "
+                        + "authorisation could not be voided. The member's funds are still held.",
+                        intent.Id.Value,
+                        gateway.Provider);
+                }
+
                 intent.Fail(
                     _guids.NewSequentialGuid(),
                     result.FailureCode,
@@ -622,6 +655,36 @@ public sealed class PaymentProcessor
             ];
 
         return Result.Success(legs);
+    }
+
+    /// <summary>
+    /// Asks the provider to let the member's money go, and says whether it did.
+    /// <para>
+    /// Never throws. This runs on a path that is already failing, and a provider that cannot be
+    /// reached to void a hold must not also lose the record of the capture that was refused.
+    /// </para>
+    /// </summary>
+    private async Task<bool> ReleaseHoldAsync(
+        IPaymentGateway gateway, PaymentIntent intent, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var voided = await gateway.CancelAsync(Request(intent, null), cancellationToken);
+
+            return voided.Succeeded;
+        }
+#pragma warning disable CA1031 // The capture failure is the news; this is the attempt to soften it.
+        catch (Exception exception)
+        {
+            _logger.LogError(
+                exception,
+                "Voiding the authorisation for payment {PaymentIntentId} at {Provider} threw.",
+                intent.Id.Value,
+                gateway.Provider);
+
+            return false;
+        }
+#pragma warning restore CA1031
     }
 
     private static PaymentGatewayRequest Request(PaymentIntent intent, string? clientContext) =>

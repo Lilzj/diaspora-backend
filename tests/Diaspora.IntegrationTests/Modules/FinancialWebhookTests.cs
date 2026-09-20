@@ -225,6 +225,61 @@ public sealed class FinancialWebhookTests : IdentityTestBase
     }
 
     /// <summary>
+    /// <b>A capture the provider refuses gives the member their money back, and is recorded as
+    /// its own kind of thing.</b>
+    /// <para>
+    /// An authorisation callback authorises the intent and then asks the provider to take the
+    /// money. When that second call is refused the payment is marked <c>Failed</c> — which is
+    /// honest, it did fail — and the member is told so. What the provider was never told is to
+    /// stop holding their funds: <c>CancelAsync</c> has been on the gateway contract since the
+    /// module shipped and had no caller anywhere in it. The hold stayed until the provider's own
+    /// authorisation lapsed, days later, with the member short the money and this platform
+    /// believing the matter closed.
+    /// </para>
+    /// <para>
+    /// It was also filed as <c>Refused</c>, beside replays, wrong currencies and transitions the
+    /// aggregate does not allow — every one of which means nothing was owed and nothing was taken.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task A_refused_capture_fails_the_payment_and_is_recorded_as_its_own_thing()
+    {
+        await AuthenticateAsync();
+
+        // The simulator decides by the amount's minor units: a suffix of 01 is declined. Only the
+        // capture reaches it here, because the authorisation on this path is the aggregate's own.
+        var intentId = await CreatePaymentIntentAsync(amount: 12.01m);
+
+        var body = Body("authorized", intentId.ToString(), "evt-capture-refused-1", amountMinorUnits: 1201);
+        var response = await PostAsync(body, SimulatedPaymentWebhookProcessor.Sign(body));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK, "the callback itself was right");
+
+        var acknowledgement = await ReadDataAsync<AcknowledgementShape>(response);
+
+        acknowledgement.Outcome.Should().Be(
+            nameof(WebhookOutcome.CaptureFailed),
+            "a capture this platform could not complete is not a callback it refused");
+
+        using var scope = Factory.Services.CreateScope();
+        var intents = scope.ServiceProvider.GetRequiredService<IPaymentIntentRepository>();
+
+        var intent = await intents.FindAsync(PaymentIntentId.From(intentId));
+
+        intent!.Status.Should().Be(PaymentIntentStatus.Failed, "the payment did not go through");
+
+        // And nothing claims the money arrived. A capture recorded here would be a ledger
+        // asserting funds the provider never released, which is worse than not capturing at all.
+        intent.CapturedMinorUnits.Should().Be(0);
+
+        // The half the aggregate cannot show. `Failed` looks the same whether or not the provider
+        // was told to stop holding the member's money, and it was not told for the module's whole
+        // life — every adapter implemented `CancelAsync` and nothing called it.
+        SimulatedPaymentGateway.Voided.Should().Contain(
+            intentId, "a payment that did not go through must not leave the member's funds held");
+    }
+
+    /// <summary>
     /// <b>An authorised callback takes the payment, and the provider's later word on it moves nothing
     /// twice.</b>
     /// <para>

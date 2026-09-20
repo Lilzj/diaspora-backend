@@ -212,9 +212,19 @@ public sealed class ProcessPaymentWebhookCommandHandler
         {
             var changed = await TransitionAsync(provider, intent, result, cancellationToken);
 
-            return changed.IsSuccess
-                ? (Record(WebhookOutcome.Applied, intent.Id, result.EventKind), true)
-                : (Record(WebhookOutcome.Refused, intent.Id, changed.Error.Code), false);
+            if (changed.IsSuccess)
+            {
+                return (Record(WebhookOutcome.Applied, intent.Id, result.EventKind), true);
+            }
+
+            // A capture this platform could not complete is not a callback it refused. Recording
+            // both as `Refused` put a payment holding somebody's money in the same bucket as a
+            // replayed event, and nothing downstream could tell them apart.
+            var outcome = changed.Error.Code == FinancialErrorCodes.PaymentCaptureFailed
+                ? WebhookOutcome.CaptureFailed
+                : WebhookOutcome.Refused;
+
+            return (Record(outcome, intent.Id, changed.Error.Code), false);
         }
         catch (DomainException exception)
         {
@@ -305,7 +315,38 @@ public sealed class ProcessPaymentWebhookCommandHandler
                 var authorised = await AmountAsync(intent, result, cancellationToken);
                 var taken = await _payments.CaptureAsync(intent, authorised, cancellationToken);
 
-                return taken.IsSuccess ? Result.Success() : Result.Failure(taken.Error);
+                if (taken.IsSuccess)
+                {
+                    return Result.Success();
+                }
+
+                // **The authorisation stays.** It happened: the provider is holding the member's
+                // money whether or not this platform managed to take it, and `Fail` is terminal —
+                // telling a member their payment failed while their money is reserved is the one
+                // reading worse than saying nothing.
+                //
+                // What must not stay is the silence. This returned the capture's error like any
+                // other refusal, so it was filed as `Refused` beside replays and wrong currencies
+                // — outcomes where nothing was owed and nothing was taken. Here the payment stops
+                // at `Authorized` and nothing on this platform ever moves it again: expiry covers
+                // `Draft` and `Pending` only, reconciliation is deliberately passive, and no sweep
+                // retries a capture.
+                FinancialTelemetry.CapturesRefused.Add(
+                    1, new KeyValuePair<string, object?>("provider", provider));
+
+                _logger.LogError(
+                    "Capture refused for payment {PaymentIntentId} after a {Provider} authorisation: "
+                    + "{Code} {Description}. The authorisation stands and the money is held at the "
+                    + "provider; this platform has not taken it.",
+                    intent.Id.Value,
+                    provider,
+                    taken.Error.Code,
+                    taken.Error.Description);
+
+                // Re-coded rather than passed through, so the outcome below is decided by what
+                // happened and not by whichever code a particular adapter happened to return.
+                return Result.Failure(Error.Unexpected(
+                    FinancialErrorCodes.PaymentCaptureFailed, taken.Error.Description));
             }
 
             case "captured":

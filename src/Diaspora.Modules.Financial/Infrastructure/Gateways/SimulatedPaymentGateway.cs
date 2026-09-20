@@ -61,10 +61,26 @@ public sealed class SimulatedPaymentGateway : IPaymentGateway
         PaymentGatewayRequest request, CancellationToken cancellationToken = default) =>
         Task.FromResult(Simulate(request, "cap"));
 
+    /// <summary>
+    /// Every intent this simulator has been asked to void, newest first.
+    /// <para>
+    /// <b>Here so that releasing a hold can be proved rather than assumed.</b> Voiding an
+    /// authorisation leaves no trace on the intent — it is already <c>Failed</c> — so a test with
+    /// only the aggregate to look at passes whether or not the provider was ever told to let the
+    /// member's money go. That is exactly how <c>CancelAsync</c> came to have no caller anywhere
+    /// in the module while every adapter implemented it.
+    /// </para>
+    /// </summary>
+    public static IReadOnlyCollection<Guid> Voided => VoidedIntents;
+
+    private static readonly System.Collections.Concurrent.ConcurrentBag<Guid> VoidedIntents = [];
+
     public Task<PaymentGatewayResult> CancelAsync(
         PaymentGatewayRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
+
+        VoidedIntents.Add(request.PaymentIntentId);
 
         return Task.FromResult(PaymentGatewayResult.Success(
             Reference(request, "cxl"), "cancelled"));

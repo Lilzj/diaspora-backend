@@ -39,6 +39,18 @@ public static class FinancialTelemetry
     public static readonly Counter<long> UnbalancedPostings =
         Meter.CreateCounter<long>("diaspora.financial.unbalanced_postings");
 
+    /// <summary>
+    /// Authorisations whose capture the provider refused, tagged by provider.
+    /// <para>
+    /// <b>Every one of these is money held at a provider that this platform has not taken.</b> The
+    /// authorisation stands, the capture did not happen, and nothing moves the payment again:
+    /// expiry covers <c>Draft</c> and <c>Pending</c> only, and no sweep retries a capture. A
+    /// non-zero value is a payment somebody has to finish by hand.
+    /// </para>
+    /// </summary>
+    public static readonly Counter<long> CapturesRefused =
+        Meter.CreateCounter<long>("diaspora.financial.captures_refused");
+
     /// <summary>Placements activated and ended, tagged by kind.</summary>
     public static readonly Counter<long> PlacementsChanged =
         Meter.CreateCounter<long>("diaspora.financial.placements_changed");

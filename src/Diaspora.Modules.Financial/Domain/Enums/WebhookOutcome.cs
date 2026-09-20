@@ -30,5 +30,26 @@ public enum WebhookOutcome
     /// Verified and refused by the platform — a state transition the aggregate does not allow, an
     /// amount larger than the intent, or a currency that is not the intent's.
     /// </summary>
-    Refused = 6
+    Refused = 6,
+
+    /// <summary>
+    /// The callback was right and the platform's own capture was not.
+    /// <para>
+    /// <b>Money is held at the provider and this platform does not have it.</b> An authorisation
+    /// callback authorises the intent and then asks the provider to take the money; when that second
+    /// call is refused the authorisation is real, the capture never happened, and the payment stops
+    /// there — <c>Authorized</c> for ever. Nothing expires it: <c>ListExpiredAsync</c> covers
+    /// <c>Draft</c> and <c>Pending</c> only, so no sweep cancels it and no sweep retries it. The
+    /// member's money stays reserved until the provider's own authorisation lapses, and the platform
+    /// never learns that it did.
+    /// </para>
+    /// <para>
+    /// It was recorded as <see cref="Refused"/>, which reads as "the platform rejected this
+    /// callback" and files it beside replays, wrong currencies and transitions the aggregate does
+    /// not allow. Those are all cases where nothing was owed and nothing was taken. This one is the
+    /// opposite, and it is the only outcome here that means somebody's money is somewhere neither
+    /// they nor this platform can reach.
+    /// </para>
+    /// </summary>
+    CaptureFailed = 7
 }
