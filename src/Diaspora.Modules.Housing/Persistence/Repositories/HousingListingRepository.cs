@@ -187,7 +187,36 @@ public sealed class HousingListingRepository : IHousingListingRepository
             .AnyAsync(listing => listing.Slug.Value == value, cancellationToken);
     }
 
-    public async Task<int> CountActiveByLandlordAsync(
+    public async Task<int> CountOnMarketByLandlordAsync(
+        LandlordProfileId landlordId, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(landlordId);
+
+        // Published, Available, Reserved — the three states in which a member can find the property
+        // and act on it. Reserved is held for somebody but still visible, so it is still on the
+        // market in the sense a count of advertisements means.
+        var onMarket = new[]
+        {
+            HousingListingStatus.Published,
+            HousingListingStatus.Available,
+            HousingListingStatus.Reserved
+        };
+
+        return await Listings.CountAsync(
+            listing => listing.LandlordId == landlordId && onMarket.Contains(listing.Status),
+            cancellationToken);
+    }
+
+    public async Task<int> CountByLandlordAsync(
+        LandlordProfileId landlordId, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(landlordId);
+
+        return await Listings.CountAsync(
+            listing => listing.LandlordId == landlordId, cancellationToken);
+    }
+
+    public async Task<int> CountAgainstListingQuotaAsync(
         LandlordProfileId landlordId, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(landlordId);

@@ -98,7 +98,7 @@ public sealed class CreateHousingListingCommandHandler
         var request = command.Request;
         var now = _clock.UtcNow;
 
-        var held = await _listings.CountActiveByLandlordAsync(landlord.Value.Id, cancellationToken);
+        var held = await _listings.CountAgainstListingQuotaAsync(landlord.Value.Id, cancellationToken);
 
         if (held >= _options.Value.MaxActiveListingsPerLandlord)
         {

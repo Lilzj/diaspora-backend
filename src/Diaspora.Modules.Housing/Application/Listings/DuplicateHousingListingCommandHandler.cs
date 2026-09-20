@@ -102,7 +102,7 @@ public sealed class DuplicateHousingListingCommandHandler
             return Result.Failure<HousingListingResponse>(HousingErrors.NotListingOwner);
         }
 
-        var held = await _listings.CountActiveByLandlordAsync(landlord.Value.Id, cancellationToken);
+        var held = await _listings.CountAgainstListingQuotaAsync(landlord.Value.Id, cancellationToken);
 
         if (held >= _options.Value.MaxActiveListingsPerLandlord)
         {

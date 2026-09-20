@@ -66,7 +66,7 @@ public sealed class HousingFraudAssessor
             UpheldReportsAgainstLandlord =
                 await _reports.CountUpheldForLandlordAsync(landlord.Id, cancellationToken),
             LandlordActiveListings =
-                await _listings.CountActiveByLandlordAsync(landlord.Id, cancellationToken),
+                await _listings.CountAgainstListingQuotaAsync(landlord.Id, cancellationToken),
             Now = _clock.UtcNow
         };
 

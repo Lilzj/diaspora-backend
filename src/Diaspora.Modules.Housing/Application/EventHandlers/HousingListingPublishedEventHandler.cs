@@ -1,6 +1,6 @@
 using Diaspora.Application.Abstractions;
+using Diaspora.Modules.Housing.Application.Services;
 using Diaspora.Modules.Housing.Domain.Events;
-using Diaspora.Modules.Housing.Domain.Landlords;
 using Diaspora.Modules.Housing.Domain.Listings;
 using Diaspora.Modules.Housing.Domain.Neighborhoods;
 
@@ -9,6 +9,12 @@ namespace Diaspora.Modules.Housing.Application.EventHandlers;
 /// <summary>
 /// A property went on the market: publish the contract, refresh the landlord's counts, and refresh
 /// the neighbourhood's.
+/// <para>
+/// <b>The landlord's counts are no longer this handler's private business.</b> Publication was the
+/// only moment they were ever recomputed, so a landlord who archived, let or deleted a property
+/// kept the figure they had at their last publication until they published again — see
+/// <c>LandlordListingCountRefresher</c> and the handlers that now call it on the other moves.
+/// </para>
 /// <para>
 /// <b>The neighbourhood listing count is recomputed rather than incremented.</b> B1.1's rule for an
 /// at-least-once world taken as written: an increment applied twice on a redelivery drifts upward
@@ -27,18 +33,18 @@ public sealed class HousingListingPublishedEventHandler
 {
     private readonly HousingIntegrationEventRelay _relay;
     private readonly IHousingListingRepository _listings;
-    private readonly ILandlordProfileRepository _landlords;
+    private readonly LandlordListingCountRefresher _counts;
     private readonly INeighborhoodProfileRepository _profiles;
 
     public HousingListingPublishedEventHandler(
         HousingIntegrationEventRelay relay,
         IHousingListingRepository listings,
-        ILandlordProfileRepository landlords,
+        LandlordListingCountRefresher counts,
         INeighborhoodProfileRepository profiles)
     {
         _relay = relay;
         _listings = listings;
-        _landlords = landlords;
+        _counts = counts;
         _profiles = profiles;
     }
 
@@ -47,24 +53,8 @@ public sealed class HousingListingPublishedEventHandler
     {
         await _relay.PublishAsync(domainEvent, cancellationToken);
 
-        await RefreshLandlordAsync(domainEvent, cancellationToken);
+        await _counts.RefreshAsync(domainEvent.LandlordId, cancellationToken);
         await RefreshNeighborhoodAsync(domainEvent, cancellationToken);
-    }
-
-    private async Task RefreshLandlordAsync(
-        HousingListingPublishedDomainEvent domainEvent, CancellationToken cancellationToken)
-    {
-        var landlord = await _landlords.GetAsync(domainEvent.LandlordId, cancellationToken);
-
-        if (landlord is null)
-        {
-            return;
-        }
-
-        var active = await _listings.CountActiveByLandlordAsync(
-            domainEvent.LandlordId, cancellationToken);
-
-        landlord.RecordListingCounts(active, Math.Max(active, landlord.Statistics.TotalListings));
     }
 
     /// <summary>

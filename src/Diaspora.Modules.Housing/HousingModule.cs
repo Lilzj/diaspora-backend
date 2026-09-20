@@ -149,6 +149,7 @@ public sealed class HousingModule : IPlatformModule
         services.AddScoped<HousingCatalogResolver>();
         services.AddScoped<HousingSlugAllocator>();
         services.AddScoped<HousingFraudAssessor>();
+        services.AddScoped<LandlordListingCountRefresher>();
         services.AddScoped<HousingAddressDisclosureService>();
         services.AddScoped<HousingSearchFacetMapper>();
         services.AddScoped<NeighborhoodStatisticsService>();

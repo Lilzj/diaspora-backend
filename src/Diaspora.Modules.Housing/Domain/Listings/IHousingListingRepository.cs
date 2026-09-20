@@ -76,8 +76,31 @@ public interface IHousingListingRepository
     /// </summary>
     Task<bool> SlugExistsAsync(HousingSlug slug, CancellationToken cancellationToken = default);
 
-    /// <summary>Live listings a landlord holds. The abuse bound's input.</summary>
-    Task<int> CountActiveByLandlordAsync(
+    /// <summary>
+    /// What a landlord holds against the creation quota.
+    /// <para>
+    /// <b>Drafts count here, and that is the point.</b> The bound exists to stop a script creating
+    /// listings for free, and a script creates drafts. It makes this a poor answer to "how many
+    /// properties has this landlord on the market", which is what
+    /// <see cref="CountOnMarketByLandlordAsync"/> is for — the landlord's displayed figure was once
+    /// filled from this one, and counted their drafts and their let properties as advertisements.
+    /// </para>
+    /// </summary>
+    Task<int> CountAgainstListingQuotaAsync(
+        LandlordProfileId landlordId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Properties a member could find and enquire about: published, available or reserved.
+    /// <para>
+    /// Not drafts, which nobody but their landlord can see; not occupied or unavailable ones, which
+    /// are off the market by their own definition; not archived or deleted ones.
+    /// </para>
+    /// </summary>
+    Task<int> CountOnMarketByLandlordAsync(
+        LandlordProfileId landlordId, CancellationToken cancellationToken = default);
+
+    /// <summary>Every property the landlord has, whatever state it is in. Archived included.</summary>
+    Task<int> CountByLandlordAsync(
         LandlordProfileId landlordId, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<HousingListing>> GetByLandlordAsync(
