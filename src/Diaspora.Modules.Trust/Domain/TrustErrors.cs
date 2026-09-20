@@ -29,6 +29,14 @@ public static class TrustErrors
         TrustErrorCodes.VerificationNotPending,
         "That verification is not awaiting review.");
 
+    public static readonly Error VerificationNotApproved = Error.Conflict(
+        TrustErrorCodes.VerificationNotApproved,
+        "That verification was not approved, so there is no outcome to apply.");
+
+    public static readonly Error VerificationAlreadyApplied = Error.Conflict(
+        TrustErrorCodes.VerificationAlreadyApplied,
+        "That approval has already reached the member's standing.");
+
     public static readonly Error VerificationTypeUnsupported = Error.Validation(
         TrustErrorCodes.VerificationTypeUnsupported,
         "That verification type is not supported.");

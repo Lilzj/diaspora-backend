@@ -369,6 +369,25 @@ public sealed class TrustEndpointContributor : IEndpointContributor
             .RequireAuthorization(TrustPolicies.ReviewVerification)
             .WithName("ReviewVerification")
             .WithSummary("Record a decision on a verification.");
+
+        // The repair, not a second way to decide. See ReapplyVerificationOutcomeCommand: it
+        // refuses anything that is not already Approved, so the self-review rule guarding the
+        // decision is untouched.
+        group.MapPost("/verifications/{verificationId:guid}/reapply-outcome", async (
+                Guid verificationId,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await sender.Send(
+                    new ReapplyVerificationOutcomeCommand { VerificationId = verificationId },
+                    cancellationToken);
+
+                return PlatformResults.Ok(context, result);
+            })
+            .RequireAuthorization(TrustPolicies.ReviewVerification)
+            .WithName("ReapplyVerificationOutcome")
+            .WithSummary("Apply the standing effects of an approval that never granted anything.");
     }
 
     // ── Appeals ──────────────────────────────────────────────────────────

@@ -114,6 +114,8 @@ public static class TrustErrorCodes
     public const string VerificationNotFound = "trust.verification.not-found";
     public const string VerificationDuplicate = "trust.verification.duplicate";
     public const string VerificationNotPending = "trust.verification.not-pending";
+    public const string VerificationNotApproved = "trust.verification.not-approved";
+    public const string VerificationAlreadyApplied = "trust.verification.already-applied";
     public const string VerificationTypeUnsupported = "trust.verification.type-unsupported";
 
     /// <summary>B3.0.2. In-process submission only — unreachable from any HTTP route.</summary>

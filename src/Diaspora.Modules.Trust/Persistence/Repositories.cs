@@ -93,6 +93,21 @@ public interface ITrustProfileRepository
     Task AddAsync(TrustProfile profile, CancellationToken cancellationToken = default);
 }
 
+/// <summary>
+/// How often a scoring rule has already fired for one member.
+/// <para>
+/// <paramref name="InCountry"/> is zero when the caller asked about no country, so a rule that
+/// is not country-scoped reads <paramref name="Total"/> and never sees the difference.
+/// </para>
+/// </summary>
+/// <param name="Total">Every occurrence, whatever country it belonged to.</param>
+/// <param name="InCountry">Occurrences within the country asked about.</param>
+/// <param name="LastAt">When it last fired, for the cooldown.</param>
+public readonly record struct RuleUsage(int Total, int InCountry, DateTimeOffset? LastAt)
+{
+    public static RuleUsage None => new(0, 0, null);
+}
+
 /// <summary>Persistence contract for the <see cref="ReputationProfile"/> aggregate.</summary>
 public interface IReputationProfileRepository
 {
@@ -112,9 +127,18 @@ public interface IReputationProfileRepository
     /// How many times a rule has already fired for this member, and when it last did.
     /// Backs the <c>MaxOccurrences</c> and <c>CooldownHours</c> caps without loading the
     /// whole event history.
+    /// <para>
+    /// <paramref name="countryCode"/> is supplied for a country-scoped rule, and the result
+    /// then carries the count within that country as well as the total. A cap on a rule that
+    /// belongs to a country means once <em>per country</em>: the alternative counts a member's
+    /// Mauritius residency against their move to the UK, and pays them nothing for the second.
+    /// </para>
     /// </summary>
-    Task<(int Count, DateTimeOffset? LastAt)> GetRuleUsageAsync(
-        UserId userId, string actionType, CancellationToken cancellationToken = default);
+    Task<RuleUsage> GetRuleUsageAsync(
+        UserId userId,
+        string actionType,
+        string? countryCode = null,
+        CancellationToken cancellationToken = default);
 
     Task AddAsync(ReputationProfile profile, CancellationToken cancellationToken = default);
 }

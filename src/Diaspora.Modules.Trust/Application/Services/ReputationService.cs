@@ -64,17 +64,28 @@ public sealed class ReputationService
 
         var now = _clock.UtcNow;
 
-        var (usageCount, lastAt) = await _reputations.GetRuleUsageAsync(
-            userId, rule.ActionType, cancellationToken);
+        // A country-scoped rule asks about its own country, so its cap means once *per
+        // country*. Counting them together would charge a member's Mauritius residency against
+        // the UK they moved to, and pay them nothing for the second — which is an ordinary
+        // thing to do now that a move can be recorded.
+        var scope = rule.IsCountryScoped ? countryCode : null;
 
-        if (rule.MaxOccurrences is { } max && usageCount >= max)
+        var usage = await _reputations.GetRuleUsageAsync(
+            userId, rule.ActionType, scope, cancellationToken);
+
+        var counted = scope is null ? usage.Total : usage.InCountry;
+
+        if (rule.MaxOccurrences is { } max && counted >= max)
         {
             return ScoringOutcome.Skipped(
                 actionType, $"This action has already been scored its maximum {max} times.");
         }
 
+        // The cooldown stays global on purpose. A cap is about how much a thing is worth; a
+        // cooldown is about how fast it can be farmed, and per-country would let the same
+        // burst through once for every country on the platform.
         if (rule.CooldownHours is { } cooldown and > 0
-            && lastAt is { } last
+            && usage.LastAt is { } last
             && now - last < TimeSpan.FromHours(cooldown))
         {
             return ScoringOutcome.Skipped(

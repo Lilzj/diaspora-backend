@@ -206,6 +206,12 @@ public static class DefaultReputationRules
             Dimension = ReputationDimension.verification,
             Points = 30,
             IsCountryScoped = true,
+
+            // Once per country, which is what a cap on a country-scoped rule now means.
+            // Uncapped, this paid every time anything scored it: two producers for the same
+            // approval paid thirty points twice, and ApplyAwardAsync said in a comment that
+            // "verifying the same country twice should not pay twice" while nothing enforced it.
+            MaxOccurrences = 1,
             Description = "Verified residency in a country community."
         },
         new()

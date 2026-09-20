@@ -337,8 +337,11 @@ public sealed class ReputationProfileRepository : IReputationProfileRepository
             items, pagination.Page, pagination.PageSize, total);
     }
 
-    public async Task<(int Count, DateTimeOffset? LastAt)> GetRuleUsageAsync(
-        UserId userId, string actionType, CancellationToken cancellationToken = default)
+    public async Task<RuleUsage> GetRuleUsageAsync(
+        UserId userId,
+        string actionType,
+        string? countryCode = null,
+        CancellationToken cancellationToken = default)
     {
         var profileId = await Profiles
             .Where(profile => profile.UserId == userId)
@@ -347,11 +350,12 @@ public sealed class ReputationProfileRepository : IReputationProfileRepository
 
         if (profileId is null)
         {
-            return (0, null);
+            return RuleUsage.None;
         }
 
-        // One indexed aggregate query rather than loading rows. This runs on every scoring
-        // attempt, including every comment written on the platform.
+        // Still one indexed aggregate. The per-country arm is a conditional sum in the same
+        // pass rather than a second round trip: this runs on every scoring attempt, including
+        // every comment written on the platform.
         var usage = await Events
             .AsNoTracking()
             .Where(item => item.ProfileId == profileId && item.ActionType == actionType)
@@ -359,11 +363,16 @@ public sealed class ReputationProfileRepository : IReputationProfileRepository
             .Select(group => new
             {
                 Count = group.Count(),
+                InCountry = countryCode == null
+                    ? 0
+                    : group.Count(item => item.CountryCode == countryCode),
                 LastAt = (DateTimeOffset?)group.Max(item => item.CreatedAt)
             })
             .FirstOrDefaultAsync(cancellationToken);
 
-        return usage is null ? (0, null) : (usage.Count, usage.LastAt);
+        return usage is null
+            ? RuleUsage.None
+            : new RuleUsage(usage.Count, usage.InCountry, usage.LastAt);
     }
 
     public async Task AddAsync(
