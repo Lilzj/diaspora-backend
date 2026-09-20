@@ -37,8 +37,12 @@ internal static class RewardEndpoints
             .WithName("GetMyRewardBalance")
             .WithSummary("The caller's points. No currency on this response, ever.");
 
+        // `excludeIds`, like every other paged read in this module — including
+        // `/rewards/conversions` below. Without it the boundary instant was re-served whole on
+        // every page.
         group.MapGet("/rewards/me/history", async (
                 [FromQuery] DateTimeOffset? before,
+                [FromQuery] Guid[]? excludeIds,
                 [FromQuery] int? take,
                 ISender sender,
                 HttpContext context,
@@ -49,11 +53,12 @@ internal static class RewardEndpoints
                         new GetMyRewardHistoryQuery
                         {
                             Before = before,
+                            ExcludeIds = excludeIds ?? [],
                             Take = take ?? Domain.Policies.FinancialLimits.DefaultLedgerPageSize
                         },
                         cancellationToken)))
             .WithName("GetMyRewardHistory")
-            .WithSummary("How the caller earned and spent their points.");
+            .WithSummary("How the caller earned and spent their points. Cursor-paged.");
 
         group.MapGet("/rewards/conversion", async (
                 [FromQuery] string? currency,

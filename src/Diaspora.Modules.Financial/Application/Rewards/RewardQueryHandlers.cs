@@ -79,8 +79,21 @@ public sealed class RewardQueryHandlers
             return Result.Success<IReadOnlyList<RewardEntryResponse>>([]);
         }
 
+        // **The boundary is inclusive and what it already showed is excluded.** Comparing
+        // `OccurredAt <= before` on its own returned the previous page's last entry again at the
+        // head of every page, and returned an entire page again when all of its entries shared one
+        // instant — which is what a batch of awards written in one unit of work looks like. The
+        // client reads "a full page" as "there is more", so that case scrolled for ever.
+        //
+        // **No tie-break in the sort, deliberately.** Excluding by identity is what makes the
+        // order within one instant irrelevant: every entry sharing the boundary is either already
+        // shown and excluded, or not shown and still to come, whichever order the collection
+        // happens to load in. A second sort component here would be code no test can kill — the
+        // sibling conversions read orders on its timestamp alone for the same reason.
         var entries = account.Entries
-            .Where(entry => query.Before is not { } before || entry.OccurredAt <= before)
+            .Where(entry =>
+                (query.Before is not { } before || entry.OccurredAt <= before)
+                && !query.ExcludeIds.Contains(entry.EntryId))
             .OrderByDescending(entry => entry.OccurredAt)
             .Take(Math.Clamp(query.Take, 1, Domain.Policies.FinancialLimits.MaxLedgerPageSize));
 

@@ -11,7 +11,25 @@ public sealed record GetMyRewardBalanceQuery : IQuery<RewardBalanceResponse>;
 [Authorize(Permission = FinancialPermissions.WalletRead)]
 public sealed record GetMyRewardHistoryQuery : IQuery<IReadOnlyList<RewardEntryResponse>>
 {
+    /// <summary>The instant the previous page ended on. Inclusive — see <see cref="ExcludeIds"/>.</summary>
     public DateTimeOffset? Before { get; init; }
+
+    /// <summary>
+    /// The entries already shown at <see cref="Before"/>.
+    /// <para>
+    /// <b>Inclusive boundary, minus what was shown.</b> This read used to take the boundary alone
+    /// and compare it non-strictly, so every page began with the row the previous page ended on —
+    /// and a page whose entries all shared one instant returned itself for ever, which a client
+    /// paging on "a full page means there is more" scrolls without end. A strict comparison would
+    /// have traded that for the opposite defect: entries sharing the boundary instant, which a
+    /// batch of awards written in one unit of work produces routinely, would never be shown at all.
+    /// </para>
+    /// <para>
+    /// This is the shape every other paged read in this module uses, including
+    /// <c>/rewards/conversions</c> in the same file. This route was the one that never got it.
+    /// </para>
+    /// </summary>
+    public IReadOnlyList<Guid> ExcludeIds { get; init; } = [];
 
     public int Take { get; init; } = Domain.Policies.FinancialLimits.DefaultLedgerPageSize;
 }
