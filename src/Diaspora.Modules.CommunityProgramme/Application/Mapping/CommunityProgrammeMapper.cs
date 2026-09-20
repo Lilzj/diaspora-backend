@@ -1,3 +1,4 @@
+using Diaspora.Platform.Services.Abstractions;
 using Diaspora.Modules.CommunityLife.Integration;
 using Diaspora.Modules.CommunityProgramme.Contracts.V1.Responses;
 using Diaspora.Modules.CommunityProgramme.Domain.Announcements;
@@ -223,11 +224,13 @@ public static class CommunityProgrammeMapper
     public static OrganizationMemberResponse ToRollResponse(
         ProgrammeMembership membership,
         MembershipTier? tier,
-        OrganizationMembershipSummary? organizationMembership) =>
+        OrganizationMembershipSummary? organizationMembership,
+        IReadOnlyDictionary<Guid, MemberProfile> names) =>
         new()
         {
             MembershipId = membership.Id.Value,
             UserId = membership.MemberUserId.Value,
+            DisplayName = NameOf(names, membership.MemberUserId.Value),
             TierId = membership.TierId.Value,
             TierName = tier?.Name ?? "Membership",
             Status = membership.Status.ToString(),
@@ -237,6 +240,13 @@ public static class CommunityProgrammeMapper
             ExpiresAt = membership.ExpiresAt,
             AppliedAt = membership.CreatedAt
         };
+
+    /// <summary>
+    /// A resolved name, or null. Never the identifier: a caller that cannot be told who somebody
+    /// is has to say so, and the screen has a neutral label for exactly that.
+    /// </summary>
+    private static string? NameOf(IReadOnlyDictionary<Guid, MemberProfile> names, Guid userId) =>
+        names.TryGetValue(userId, out var profile) ? profile.DisplayName : null;
 
     // ── Volunteering ────────────────────────────────────────────────────────────────────────
 
@@ -334,7 +344,9 @@ public static class CommunityProgrammeMapper
     }
 
     public static VolunteerApplicantResponse ToApplicantResponse(
-        VolunteerApplication application, int? waitlistPosition)
+        VolunteerApplication application,
+        int? waitlistPosition,
+        IReadOnlyDictionary<Guid, MemberProfile> names)
     {
         ArgumentNullException.ThrowIfNull(application);
 
@@ -342,6 +354,7 @@ public static class CommunityProgrammeMapper
         {
             ApplicationId = application.Id.Value,
             UserId = application.VolunteerUserId.Value,
+            DisplayName = NameOf(names, application.VolunteerUserId.Value),
             Status = application.Status.ToString(),
             Answers = ToAnswers(application),
             ShiftId = application.ShiftId?.Value,

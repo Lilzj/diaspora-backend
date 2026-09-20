@@ -332,6 +332,17 @@ public sealed record OrganizationMemberResponse
 
     public required Guid UserId { get; init; }
 
+    /// <summary>
+    /// The member's name, or null when the platform cannot say.
+    /// <para>
+    /// Resolved once per page through <c>IMemberProfileService</c>, the sanctioned batch source,
+    /// and never invented. Null is a real answer and the client renders a neutral label for it —
+    /// the identifier is not a name, and showing one asks an administrator to decide about
+    /// "3f2a…" as though that were a person.
+    /// </para>
+    /// </summary>
+    public string? DisplayName { get; init; }
+
     public required Guid TierId { get; init; }
 
     public required string TierName { get; init; }
@@ -489,6 +500,17 @@ public sealed record VolunteerApplicantResponse
     public required Guid ApplicationId { get; init; }
 
     public required Guid UserId { get; init; }
+
+    /// <summary>
+    /// The member's name, or null when the platform cannot say.
+    /// <para>
+    /// Resolved once per page through <c>IMemberProfileService</c>, the sanctioned batch source,
+    /// and never invented. Null is a real answer and the client renders a neutral label for it —
+    /// the identifier is not a name, and showing one asks an administrator to decide about
+    /// "3f2a…" as though that were a person.
+    /// </para>
+    /// </summary>
+    public string? DisplayName { get; init; }
 
     public required string Status { get; init; }
 

@@ -52,15 +52,18 @@ public sealed class ListOrganizationMembersQueryHandler
     private readonly IProgrammeMembershipRepository _memberships;
     private readonly IMembershipProgrammeRepository _programmes;
     private readonly CommunityProgrammeAccessService _access;
+    private readonly IMemberProfileService _profiles;
 
     public ListOrganizationMembersQueryHandler(
         IProgrammeMembershipRepository memberships,
         IMembershipProgrammeRepository programmes,
-        CommunityProgrammeAccessService access)
+        CommunityProgrammeAccessService access,
+        IMemberProfileService profiles)
     {
         _memberships = memberships;
         _programmes = programmes;
         _access = access;
+        _profiles = profiles;
     }
 
     public async Task<Result<CommunityPageResponse<OrganizationMemberResponse>>> Handle(
@@ -92,6 +95,12 @@ public sealed class ListOrganizationMembersQueryHandler
         var programme = await _programmes.FindByOrganizationAsync(
             query.OrganizationId, cancellationToken);
 
+        // The whole page in one call. A name asked for per row is a name asked for fifty
+        // times, and IMemberProfileService is shaped for the page precisely so that nobody
+        // writes that loop.
+        var names = await _profiles.ResolveAsync(
+            [.. page.Items.Select(membership => membership.MemberUserId)], cancellationToken);
+
         var rows = new List<OrganizationMemberResponse>();
 
         foreach (var membership in page.Items)
@@ -105,7 +114,8 @@ public sealed class ListOrganizationMembersQueryHandler
             rows.Add(CommunityProgrammeMapper.ToRollResponse(
                 membership,
                 programme?.FindTier(membership.TierId),
-                organizationMembership));
+                organizationMembership,
+                names));
         }
 
         return Result.Success(new CommunityPageResponse<OrganizationMemberResponse>
@@ -180,6 +190,7 @@ public sealed class DecideMembershipCommandHandler
     private readonly IMembershipProgrammeRepository _programmes;
     private readonly CommunityProgrammeAccessService _access;
     private readonly ProgrammeIdempotency _commit;
+    private readonly IMemberProfileService _profiles;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IGuidGenerator _guids;
     private readonly IClock _clock;
@@ -189,6 +200,7 @@ public sealed class DecideMembershipCommandHandler
         IMembershipProgrammeRepository programmes,
         CommunityProgrammeAccessService access,
         ProgrammeIdempotency commit,
+        IMemberProfileService profiles,
         IUnitOfWork unitOfWork,
         IGuidGenerator guids,
         IClock clock)
@@ -197,6 +209,7 @@ public sealed class DecideMembershipCommandHandler
         _programmes = programmes;
         _access = access;
         _commit = commit;
+        _profiles = profiles;
         _unitOfWork = unitOfWork;
         _guids = guids;
         _clock = clock;
@@ -287,7 +300,9 @@ public sealed class DecideMembershipCommandHandler
         var organizationMembership = await _access.FindOrganizationMembershipAsync(
             membership.OrganizationId, membership.MemberUserId.Value, cancellationToken);
 
+        var names = await _profiles.ResolveAsync([membership.MemberUserId], cancellationToken);
+
         return Result.Success(CommunityProgrammeMapper.ToRollResponse(
-            membership, tier, organizationMembership));
+            membership, tier, organizationMembership, names));
     }
 }

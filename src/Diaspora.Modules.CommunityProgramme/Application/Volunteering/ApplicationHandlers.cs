@@ -397,14 +397,18 @@ public sealed class ListApplicantsQueryHandler
     private readonly IVolunteerOpportunityRepository _opportunities;
     private readonly CommunityProgrammeAccessService _access;
 
+    private readonly IMemberProfileService _profiles;
+
     public ListApplicantsQueryHandler(
         IVolunteerApplicationRepository applications,
         IVolunteerOpportunityRepository opportunities,
-        CommunityProgrammeAccessService access)
+        CommunityProgrammeAccessService access,
+        IMemberProfileService profiles)
     {
         _applications = applications;
         _opportunities = opportunities;
         _access = access;
+        _profiles = profiles;
     }
 
     public async Task<Result<CommunityPageResponse<VolunteerApplicantResponse>>> Handle(
@@ -442,13 +446,17 @@ public sealed class ListApplicantsQueryHandler
 
         var waitlist = await _applications.FindWaitlistOrderAsync(opportunityId, cancellationToken);
 
+        // One call for the page. See the roll listing.
+        var names = await _profiles.ResolveAsync(
+            [.. page.Items.Select(application => application.VolunteerUserId)], cancellationToken);
+
         return Result.Success(new CommunityPageResponse<VolunteerApplicantResponse>
         {
             Items =
             [
                 .. page.Items.Select(application =>
                     CommunityProgrammeMapper.ToApplicantResponse(
-                        application, PositionOf(waitlist, application)))
+                        application, PositionOf(waitlist, application), names))
             ],
             NextCursor = page.NextCursor,
             HasMore = page.HasMore
@@ -516,6 +524,7 @@ public sealed class DecideVolunteerApplicationCommandHandler
     private readonly IVolunteerAssignmentRepository _assignments;
     private readonly CommunityProgrammeAccessService _access;
     private readonly ProgrammeIdempotency _commit;
+    private readonly IMemberProfileService _profiles;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
 
@@ -525,6 +534,7 @@ public sealed class DecideVolunteerApplicationCommandHandler
         IVolunteerAssignmentRepository assignments,
         CommunityProgrammeAccessService access,
         ProgrammeIdempotency commit,
+        IMemberProfileService profiles,
         IUnitOfWork unitOfWork,
         IClock clock)
     {
@@ -533,6 +543,7 @@ public sealed class DecideVolunteerApplicationCommandHandler
         _assignments = assignments;
         _access = access;
         _commit = commit;
+        _profiles = profiles;
         _unitOfWork = unitOfWork;
         _clock = clock;
     }
@@ -590,8 +601,11 @@ public sealed class DecideVolunteerApplicationCommandHandler
         var waitlist = await _applications.FindWaitlistOrderAsync(
             application.OpportunityId, cancellationToken);
 
+        var names = await _profiles.ResolveAsync(
+            [application.VolunteerUserId], cancellationToken);
+
         return Result.Success(CommunityProgrammeMapper.ToApplicantResponse(
-            application, ListApplicantsQueryHandler.PositionOf(waitlist, application)));
+            application, ListApplicantsQueryHandler.PositionOf(waitlist, application), names));
     }
 }
 
