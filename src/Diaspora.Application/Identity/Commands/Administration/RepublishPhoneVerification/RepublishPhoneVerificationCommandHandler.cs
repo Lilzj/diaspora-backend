@@ -1,6 +1,7 @@
 using Diaspora.Application.Abstractions;
 using Diaspora.Contracts.Identity.V1.Events;
 using Diaspora.Contracts.Identity.V1.Responses;
+using Diaspora.Domain.Abstractions;
 using Diaspora.Domain.Identity.Errors;
 using Diaspora.Domain.Identity.Repositories;
 using Diaspora.Platform.Messaging;
@@ -19,15 +20,18 @@ public sealed class RepublishPhoneVerificationCommandHandler
 {
     private readonly IUserRepository _users;
     private readonly IIntegrationEventPublisher _integrationEvents;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<RepublishPhoneVerificationCommandHandler> _logger;
 
     public RepublishPhoneVerificationCommandHandler(
         IUserRepository users,
         IIntegrationEventPublisher integrationEvents,
+        IUnitOfWork unitOfWork,
         ILogger<RepublishPhoneVerificationCommandHandler> logger)
     {
         _users = users;
         _integrationEvents = integrationEvents;
+        _unitOfWork = unitOfWork;
         _logger = logger;
     }
 
@@ -60,6 +64,12 @@ public sealed class RepublishPhoneVerificationCommandHandler
                 VerifiedAt = user.Security.PhoneVerifiedAt!.Value
             },
             cancellationToken);
+
+        // Publishing enqueues into the outbox inside this handler's own transaction, so a
+        // handler that does not commit publishes nothing at all. This one did not, and said
+        // "Re-announced the verified phone" to the log on the way out — a 200, a log line and
+        // an empty outbox.
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation(
             "Re-announced the verified phone for {UserId} at an operator's request.", user.Id.Value);

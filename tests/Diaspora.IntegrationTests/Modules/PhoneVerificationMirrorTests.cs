@@ -1,10 +1,12 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Diaspora.Contracts.Identity.V1.Events;
 using Diaspora.IntegrationTests.Common;
 using Diaspora.Modules.Trust.Domain;
 using Diaspora.Domain.Identity.Repositories;
 using Diaspora.Modules.Trust.Persistence;
+using Diaspora.Platform.Messaging.Outbox.Abstractions;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Pagination;
 using Diaspora.SharedKernel.ValueObjects;
@@ -207,7 +209,56 @@ public sealed class PhoneVerificationMirrorTests : IdentityTestBase
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
+    /// <summary>
+    /// The repair must actually publish something.
+    /// <para>
+    /// <b>It did not, and it said it had.</b> Publishing enqueues into the outbox inside the
+    /// handler's own transaction, and the handler committed nothing — so the route answered 200,
+    /// logged "Re-announced the verified phone", and left the outbox empty. It was run against a
+    /// real account in production before anything noticed.
+    /// </para>
+    /// <para>
+    /// The two tests either side of this one both passed throughout, because both assert on a
+    /// member whose mirror is <em>already</em> correct: "nothing changed" is exactly what a
+    /// handler that does nothing produces. Only counting what was published catches it.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task Re_announcing_publishes_the_fact_rather_than_only_saying_so()
+    {
+        var (_, auth) = await RegisterAndVerifyAsync();
+
+        await SignInAsRoleAsync("Admin");
+
+        // Counted rather than drained to zero: signing in as staff registers two more members
+        // of its own, and each of those publishes the same event. The delta is the only number
+        // that belongs to this route.
+        var before = await PendingPhoneEventsAsync();
+
+        var repaired = await HttpClient.PostAsync(
+            $"/api/v1/admin/accounts/{auth.User.Id}/republish-phone-verification", content: null);
+
+        repaired.IsSuccessStatusCode.Should().BeTrue(
+            await repaired.Content.ReadAsStringAsync());
+
+        (await PendingPhoneEventsAsync()).Should().Be(
+            before + 1, "a 200 from this route has to mean a message was enqueued");
+    }
+
     // ── Helpers ─────────────────────────────────────────────────────────────────────────────
+
+    /// <summary>Undelivered phone-verified events, which is what "published" means here.</summary>
+    private async Task<int> PendingPhoneEventsAsync()
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        var pending = await scope.ServiceProvider
+            .GetRequiredService<IOutboxQueries>()
+            .ListPendingAsync(new OutboxQuery(
+                EventType: typeof(UserPhoneVerifiedIntegrationEvent).FullName, Limit: 50));
+
+        return pending.Count;
+    }
 
     private async Task<string?> PhoneStatusAsync()
     {
