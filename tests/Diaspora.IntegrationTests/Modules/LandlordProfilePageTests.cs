@@ -47,11 +47,18 @@ public sealed class LandlordProfilePageTests : IdentityTestBase
         profile.Trust.Should().NotBeNull();
         profile.IsOwner.Should().BeFalse("a stranger is reading it");
 
-        // `ActiveListings` is the abuse-bound counter, not a public figure: it counts what the
-        // landlord *holds* — the draft included — and it is only recomputed when a home is
-        // published, so it does not come down when one is archived. The profile page therefore
-        // counts the homes it actually lists rather than printing this.
-        profile.Statistics!.ActiveListings.Should().Be(3);
+        // **Two, not three: the draft is not one of their advertisements.** This assertion read
+        // three until 20 Sep 2026, and the comment that stood here was an accurate account of a
+        // defect: `ActiveListings` was filled from the creation quota's query, which counts drafts,
+        // occupied and unavailable homes on purpose — a quota exists to stop a script making
+        // drafts — and it was recomputed only when a home was published, so it never came down.
+        // The page worked around it by counting the homes it lists instead of printing this.
+        //
+        // Both halves are fixed, so the figure now means what its name says. Note what this read
+        // proves about the old one: the route is anonymous, so a stranger looking at a landlord's
+        // public profile was being told how many unpublished drafts that landlord was holding.
+        profile.Statistics!.ActiveListings.Should().Be(
+            2, "the draft is theirs but it is not on the market");
     }
 
     [Fact]
