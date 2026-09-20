@@ -153,14 +153,16 @@ internal static class CreatorMilestoneEndpoints
 
         // The read the workspace timeline was waiting for. `CreatorActivityEntry` has been written
         // on every recognised action since the module shipped and nothing served it back.
+        // `cursor` and `limit`, which is what the client has always sent. The route bound
+        // `before` and `take`, so neither arrived and every request was answered as page one.
         group.MapGet("/me/activity", async (
-                DateTimeOffset? before,
-                int? take,
+                string? cursor,
+                int? limit,
                 ISender sender, HttpContext context, CancellationToken cancellationToken) =>
                 PlatformResults.Ok(
                     context,
                     await sender.Send(
-                        new GetMyCreatorActivityQuery { Before = before, Take = take },
+                        new GetMyCreatorActivityQuery { Cursor = cursor, Limit = limit },
                         cancellationToken)))
             .WithName("GetMyCreatorActivity")
             .WithSummary("The caller's own recognised activity, newest first.");

@@ -144,10 +144,11 @@ internal static class Rules
         "'{0}' cannot be translated to SQL. Exclude identifiers by set membership — see CursorBoundary.",
         Persistence,
         DiagnosticSeverity.Warning,
-        "Identifiers here are value-converted records, and no provider translates ToString(), CompareTo() " +
-        "or string.Compare() on one. Each shape compiles, passes a suite that reads before it writes, and " +
-        "throws 'could not be translated' the first time a second page is asked for. B10 shipped it in " +
-        "five repositories at once.");
+        "Identifiers here are value-converted records, and no provider translates ToString(), CompareTo(), " +
+        "string.Compare() or an ordering comparison on EF.Property<Guid>() of one. Each shape compiles, " +
+        "passes a suite that reads before it writes, and fails the first time a second page is asked for. " +
+        "B10 shipped it in five repositories at once; the EF.Property shape shipped later, in the two the " +
+        "rule could not see, and answered 'Object must implement IConvertible'.");
 
     // ── CQRS ─────────────────────────────────────────────────────────────
 

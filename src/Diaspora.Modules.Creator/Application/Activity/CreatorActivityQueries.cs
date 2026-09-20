@@ -9,10 +9,18 @@ namespace Diaspora.Modules.Creator.Application.Activity;
 /// <summary>One page of the caller's own recognised activity, newest first.</summary>
 public sealed record GetMyCreatorActivityQuery : IQuery<CreatorActivityPageResponse>
 {
-    /// <summary>Cursor. Everything strictly older than this instant.</summary>
-    public DateTimeOffset? Before { get; init; }
+    /// <summary>
+    /// The opaque cursor from the previous page's <c>nextCursor</c>, or null for the first page.
+    /// </summary>
+    /// <remarks>
+    /// <b>Named for what the client sends.</b> The route bound <c>before</c> and <c>take</c>; the
+    /// client has always sent <c>cursor</c> and <c>limit</c>. Neither bound, so the cursor was
+    /// discarded on every request and the second page was the first one again — for as long as the
+    /// route has existed. Query binding has no opinion about a parameter nobody sends.
+    /// </remarks>
+    public string? Cursor { get; init; }
 
-    public int? Take { get; init; }
+    public int? Limit { get; init; }
 }
 
 /// <summary>One recognised action, as the workspace timeline renders it.</summary>
@@ -35,8 +43,16 @@ public sealed record CreatorActivityPageResponse
 {
     public required IReadOnlyList<CreatorActivityEntryResponse> Items { get; init; }
 
-    /// <summary>Pass back as <c>before</c>. Null when the page is the last one.</summary>
-    public DateTimeOffset? NextCursor { get; init; }
+    /// <summary>
+    /// Pass back as <c>cursor</c>. Null when the page is the last one.
+    /// <para>
+    /// Opaque, and a string because it names a row rather than a moment — see
+    /// <c>CreatorActivityCursor</c>. The client already treated it as one it handed back
+    /// untouched, which is what let the position gain its second component without the client
+    /// changing at all.
+    /// </para>
+    /// </summary>
+    public string? NextCursor { get; init; }
 
     public required bool HasMore { get; init; }
 
@@ -115,20 +131,19 @@ public sealed class GetMyCreatorActivityQueryHandler
             return Result.Success(CreatorActivityPageResponse.NotACreator());
         }
 
-        var take = Math.Clamp(query.Take ?? DefaultTake, 1, 100);
-
-        // One extra row, so `hasMore` is known without a second count query.
-        var rows = await _activity.ListForCreatorAsync(
-            creator.Id, query.Before, take + 1, cancellationToken);
-
-        var hasMore = rows.Count > take;
-        var page = hasMore ? rows.Take(take).ToList() : rows;
+        // The token is opaque to this handler: the repository issues it and reads it back,
+        // the same way every other paged read in this module does. A malformed one serves the
+        // first page rather than a 400 — ADR-017's trade, because a stale token is an ordinary
+        // event (an old app version, a shared link) and a browse screen answering 400 is worse
+        // than one answering rows already seen.
+        var page = await _activity.ListForCreatorAsync(
+            creator.Id, query.Cursor, query.Limit ?? DefaultTake, cancellationToken);
 
         return Result.Success(new CreatorActivityPageResponse
         {
-            Items = [.. page.Select(Describe)],
-            NextCursor = hasMore ? page[^1].OccurredAt : null,
-            HasMore = hasMore,
+            Items = [.. page.Entries.Select(Describe)],
+            NextCursor = page.NextCursor,
+            HasMore = page.HasMore,
             IsCreator = true
         });
     }

@@ -183,7 +183,7 @@ public sealed class PersistenceConventionAnalyzer : DiagnosticAnalyzer
     }
 
     /// <summary>
-    /// <b>DSP3003.</b> The three shapes that have actually shipped, inside a lambda that becomes SQL.
+    /// <b>DSP3003.</b> The four shapes that have actually shipped, inside a lambda that becomes SQL.
     /// </summary>
     private static void AnalyzeQuery(
         SyntaxNodeAnalysisContext context, InvocationExpressionSyntax invocation, PlatformSymbols symbols)
@@ -225,6 +225,21 @@ public sealed class PersistenceConventionAnalyzer : DiagnosticAnalyzer
             // string.Compare is not itself the defect — comparing a slug is the platform's
             // documented tie-break and translates everywhere. Comparing a stringified identifier
             // is, and the shape it arrives in is a ToString() on one of the operands.
+            // **The fourth shape, and the one this rule missed for a year.**
+            // `EF.Property<Guid>(x, nameof(T.Id)) < id` is what somebody reaches for once
+            // `x.Id.Value < id` stops compiling, and it looks like it solves the problem: the
+            // identifier never appears, so nothing here used to see it. It compiles, it passes
+            // every test that reads a first page, and it throws
+            // `InvalidCastException: Object must implement IConvertible` the first time a cursor
+            // is sent — EF gives the parameter the property's own type mapping and then hands the
+            // raw Guid to the identifier's value converter, which cannot take one.
+            //
+            // Ordering by the same expression is fine and is not reported: an ORDER BY is a
+            // column reference with no parameter to type. Only the comparison needs one.
+            case "Property" when IsEntityFrameworkHelper(member.Expression)
+                && IsOrderingOperand(invocation):
+                return invocation.ToString();
+
             case "Compare" when member.Expression.ToString() is "string" or "String" or "System.String":
                 return invocation.ArgumentList.Arguments.Any(argument =>
                     argument.Expression.DescendantNodesAndSelf()
@@ -241,6 +256,45 @@ public sealed class PersistenceConventionAnalyzer : DiagnosticAnalyzer
             default:
                 return null;
         }
+    }
+
+    private static bool IsEntityFrameworkHelper(ExpressionSyntax expression) =>
+        expression.ToString() is "EF" or "Microsoft.EntityFrameworkCore.EF";
+
+    /// <summary>
+    /// Whether this expression is ordered against something rather than tested for equality.
+    /// <para>
+    /// <c>==</c> and <c>!=</c> translate: equality on a value-converted column converts the
+    /// parameter through the same converter and lands on the same value. Only <c>&lt;</c>,
+    /// <c>&gt;</c>, <c>&lt;=</c> and <c>&gt;=</c> are the shape that fails, and a keyset predicate
+    /// needs both — so a rule that reported every <c>EF.Property</c> would also refuse the
+    /// equality half of the very predicate it is asking for.
+    /// </para>
+    /// <para>
+    /// The walk stops at the lambda: past it the expression is no longer inside the tree that
+    /// becomes SQL.
+    /// </para>
+    /// </summary>
+    private static bool IsOrderingOperand(ExpressionSyntax expression)
+    {
+        for (SyntaxNode? node = expression; node is not null; node = node.Parent)
+        {
+            if (node is LambdaExpressionSyntax)
+            {
+                return false;
+            }
+
+            if (node is BinaryExpressionSyntax binary
+                && binary.Kind() is SyntaxKind.LessThanExpression
+                    or SyntaxKind.GreaterThanExpression
+                    or SyntaxKind.LessThanOrEqualExpression
+                    or SyntaxKind.GreaterThanOrEqualExpression)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>

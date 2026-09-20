@@ -5,6 +5,7 @@ using Diaspora.Modules.Creator.Domain.Earnings;
 using Diaspora.Modules.Creator.Domain.Enums;
 using Diaspora.Modules.Creator.Domain.Repositories;
 using Diaspora.Modules.Creator.Options;
+using Diaspora.Modules.Creator.Persistence;
 using Diaspora.SharedKernel.Results;
 using Microsoft.Extensions.Options;
 
@@ -89,39 +90,26 @@ public sealed class GetMyEarningsQueryHandler
 
         // Refused, not ignored. Ignoring a bad cursor serves page one again, so a "load more"
         // button would reload the rows already on screen and look to a creator like a ledger that
-        // ends where it does not.
-        CreatorEarningCursor? after = null;
-
-        if (!string.IsNullOrWhiteSpace(query.Cursor))
+        // ends where it does not. The ledger keeps this refusal where the module's browse screens
+        // take ADR-017's other trade: a ledger read twice is a number counted twice.
+        if (!string.IsNullOrWhiteSpace(query.Cursor) && CreatorCursor.Parse(query.Cursor) is null)
         {
-            if (!CreatorEarningCursor.TryParse(query.Cursor, out var parsed))
-            {
-                return Result.Failure<CreatorEarningPageResponse>(
-                    CreatorEarningQueryErrors.CursorInvalid);
-            }
-
-            after = parsed;
+            return Result.Failure<CreatorEarningPageResponse>(
+                CreatorEarningQueryErrors.CursorInvalid);
         }
 
-        var take = Math.Clamp(query.Take ?? DefaultTake, 1, 100);
-
-        // One extra row, so `hasMore` is known without a second count query.
-        var rows = await _earnings.ListForCreatorAsync(
-            creator.Value.Id, state, source, after, take + 1, cancellationToken);
-
-        var hasMore = rows.Count > take;
-        var page = hasMore ? rows.Take(take).ToList() : rows;
+        var page = await _earnings.ListForCreatorAsync(
+            creator.Value.Id, state, source, query.Cursor, query.Take ?? DefaultTake,
+            cancellationToken);
 
         return Result.Success(new CreatorEarningPageResponse
         {
-            Items = [.. page.Select(earning =>
+            Items = [.. page.Earnings.Select(earning =>
                 CreatorEarningMapper.ToResponse(earning, _shares.ClearingDays))],
 
-            NextCursor = hasMore
-                ? new CreatorEarningCursor(page[^1].OccurredAt, page[^1].Id.Value).ToString()
-                : null,
+            NextCursor = page.NextCursor,
 
-            HasMore = hasMore,
+            HasMore = page.HasMore,
         });
     }
 

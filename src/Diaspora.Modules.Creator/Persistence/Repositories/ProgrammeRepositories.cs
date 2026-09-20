@@ -3,9 +3,11 @@ using Diaspora.Modules.Creator.Domain.Challenges;
 using Diaspora.Modules.Creator.Domain.Enums;
 using Diaspora.Modules.Creator.Domain.Identifiers;
 using Diaspora.Modules.Creator.Domain.Milestones;
+using Diaspora.Modules.Creator.Domain.Policies;
 using Diaspora.Modules.Creator.Domain.Repositories;
 using Diaspora.Modules.Creator.Domain.Verification;
 using Diaspora.Persistence;
+using Diaspora.Persistence.Paging;
 using Microsoft.EntityFrameworkCore;
 
 namespace Diaspora.Modules.Creator.Persistence.Repositories;
@@ -434,29 +436,71 @@ public sealed class CreatorActivityRepository : ICreatorActivityRepository
             cancellationToken);
     }
 
-    public async Task<IReadOnlyList<CreatorActivityEntry>> ListForCreatorAsync(
+    public async Task<CreatorActivityPage> ListForCreatorAsync(
         CreatorId creatorId,
-        DateTimeOffset? before,
+        string? cursor,
         int take,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(creatorId);
 
+        var size = CreatorLimits.PageSize(take);
+
         var query = Entries.AsNoTracking().Where(entry => entry.CreatorId == creatorId);
 
-        if (before is { } boundary)
+        var parsed = CreatorCursor.Parse(cursor);
+        var boundary = parsed?.AsTimestamp();
+
+        // **The platform's tie-break, not a comparison on the identifier.** Entries sharing an
+        // `OccurredAt` to the tick are the ordinary case here — one publish raises several
+        // recognised actions — so a strict `OccurredAt < cursor` drops every sibling of the row a
+        // page ended on: not shown on the page that ended there, and gone from the one after it.
+        //
+        // The textbook repair, `key < @after OR (key == @after AND id < @lastId)`, cannot be
+        // written against these identifiers. They are value-converted, and no provider translates
+        // an ordering comparison on one — `EF.Property<Guid>(entry, nameof(Id)) < entryId`
+        // compiles, orders correctly, and throws `Object must implement IConvertible` the first
+        // time a cursor arrives, because EF types the parameter from the property and then hands
+        // the raw Guid to the identifier's converter. Excluding by set membership does translate,
+        // and is what ADR-017 and forty-odd sibling repositories already do.
+        if (boundary is { } after)
         {
-            query = query.Where(entry => entry.OccurredAt < boundary);
+            var exclusion = CursorBoundary.Exclusion(
+                parsed!.BoundaryKey, CreatorActivityEntryId.From);
+
+            query = exclusion.IsExhausted
+                ? query.Where(entry => entry.OccurredAt < after)
+                : query.Where(entry =>
+                    entry.OccurredAt < after
+                    || (entry.OccurredAt == after && !exclusion.Ids.Contains(entry.Id)));
         }
 
-        // Newest first, because a history opens at the top. `Id` breaks the tie so the cursor is
-        // stable: several entries can share an `OccurredAt` when one publish raises more than one
-        // recognised action, and an unstable order would drop or repeat rows across pages.
-        return await query
+        // Newest first, because a history opens at the top. Ordering by the identifier translates
+        // where comparing against one does not — an ORDER BY is a column reference and needs no
+        // parameter — and it is what makes the boundary above reproducible.
+        var rows = await query
             .OrderByDescending(entry => entry.OccurredAt)
             .ThenByDescending(entry => entry.Id)
-            .Take(Math.Clamp(take, 1, 100))
+            .Take(size + 1)
             .ToListAsync(cancellationToken);
+
+        var hasMore = rows.Count > size;
+        var page = hasMore ? rows.Take(size).ToList() : rows;
+
+        if (!hasMore || page.Count == 0)
+        {
+            return new CreatorActivityPage(page, null, false);
+        }
+
+        var next = CursorBoundary.Key(
+            page,
+            entry => entry.OccurredAt,
+            entry => entry.Id.Value,
+            parsed?.BoundaryKey,
+            boundary);
+
+        return new CreatorActivityPage(
+            page, CreatorCursor.FromTimestamp(page[^1].OccurredAt, next).Encode(), true);
     }
 
     public async Task<long> CountForCreatorAsync(

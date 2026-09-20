@@ -138,6 +138,66 @@ public sealed class PersistenceConventionAnalyzerTests
     }
 
     /// <summary>
+    /// <b>The shape that got past this rule.</b> It is what somebody reaches for once
+    /// <c>thing.Id.Value &lt; id</c> stops compiling, and the identifier never appears in it — so
+    /// the first three cases above all looked straight through it. It shipped in two repositories
+    /// and answered <c>Object must implement IConvertible</c> on the first cursor either was sent.
+    /// </summary>
+    [Fact]
+    public void Ordering_a_property_helper_against_an_identifier_is_reported()
+    {
+        var ids = AnalyzerHarness.Ids(Probes.File(
+            """
+            public sealed class Cursor
+            {
+                public IQueryable<Thing> After(IThingRepository things, Guid boundary) =>
+                    things.Query.Where(thing => EF.Property<Guid>(thing, nameof(Thing.Id)) < boundary);
+            }
+            """));
+
+        ids.Should().Contain("DSP3003");
+    }
+
+    /// <summary>
+    /// <b>Equality is not the defect, and the rule must not take it.</b> A keyset predicate needs
+    /// both halves — <c>key == boundary AND id NOT IN (…)</c> — so a rule that refused every
+    /// <c>EF.Property</c> would refuse the very shape it is asking for.
+    /// </summary>
+    [Fact]
+    public void Matching_a_property_helper_against_an_identifier_is_not_reported()
+    {
+        var ids = AnalyzerHarness.Ids(Probes.File(
+            """
+            public sealed class Cursor
+            {
+                public IQueryable<Thing> At(IThingRepository things, Guid boundary) =>
+                    things.Query.Where(thing => EF.Property<Guid>(thing, nameof(Thing.Id)) == boundary);
+            }
+            """));
+
+        ids.Should().NotContain("DSP3003");
+    }
+
+    /// <summary>
+    /// <b>Ordering by it is fine.</b> An ORDER BY is a column reference with no parameter to type,
+    /// which is why the two broken repositories sorted correctly and only failed on the filter.
+    /// </summary>
+    [Fact]
+    public void Sorting_by_a_property_helper_is_not_reported()
+    {
+        var ids = AnalyzerHarness.Ids(Probes.File(
+            """
+            public sealed class Cursor
+            {
+                public IQueryable<Thing> Ordered(IThingRepository things) =>
+                    things.Query.OrderByDescending(thing => EF.Property<Guid>(thing, nameof(Thing.Id)));
+            }
+            """));
+
+        ids.Should().NotContain("DSP3003");
+    }
+
+    /// <summary>
     /// <b>The two shapes the rule must not touch.</b> Ordering by a slug is the platform's
     /// documented tie-break and translates on every provider; stringifying an identifier inside a
     /// projection is how the response DTO gets built, and happens after the rows have already

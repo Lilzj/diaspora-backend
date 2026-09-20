@@ -376,16 +376,17 @@ public interface ICreatorEarningRepository
     /// <summary>
     /// One creator's earnings, newest first, optionally narrowed.
     /// <para>
-    /// <paramref name="after"/> is a position in the ledger rather than a timestamp, because two
-    /// earnings can share an instant and a timestamp cursor would drop one of them. See
-    /// <see cref="CreatorEarningCursor"/>.
+    /// <paramref name="cursor"/> is a position in the ledger rather than a timestamp, because two
+    /// earnings can share an instant — one purchase settling against two subjects records both at
+    /// the same <c>OccurredAt</c> — and a timestamp cursor would drop one of them. It is the
+    /// platform's token, read back through <c>CursorBoundary</c> (ADR-017).
     /// </para>
     /// </summary>
-    Task<IReadOnlyList<CreatorEarning>> ListForCreatorAsync(
+    Task<CreatorEarningPage> ListForCreatorAsync(
         CreatorId creatorId,
         CreatorEarningState? state,
         CreatorEarningSource? source,
-        CreatorEarningCursor? after,
+        string? cursor,
         int take,
         CancellationToken cancellationToken = default);
 
@@ -432,13 +433,16 @@ public interface ICreatorActivityRepository
     /// table that was being written to on every publish.
     /// </para>
     /// <para>
-    /// Cursor-paged on <c>OccurredAt</c> rather than offset-paged: an active creator's history grows
-    /// while they are reading it, and an offset would show them the same entry twice.
+    /// Cursor-paged rather than offset-paged: an active creator's history grows while they are
+    /// reading it, and an offset would show them the same entry twice. The cursor is the
+    /// platform's — a <c>CreatorCursor</c> token read back through <c>CursorBoundary</c> — because
+    /// entries sharing an instant are the ordinary case here and a bare timestamp loses them
+    /// (ADR-017).
     /// </para>
     /// </summary>
-    Task<IReadOnlyList<CreatorActivityEntry>> ListForCreatorAsync(
+    Task<CreatorActivityPage> ListForCreatorAsync(
         CreatorId creatorId,
-        DateTimeOffset? before,
+        string? cursor,
         int take,
         CancellationToken cancellationToken = default);
 
@@ -514,6 +518,14 @@ public sealed record ReferralCounts(
 
 public sealed record ReferralPage(
     IReadOnlyList<CreatorReferral> Referrals, string? NextCursor, bool HasMore);
+
+/// <summary>One page of a creator's recognised activity, and where to resume.</summary>
+public sealed record CreatorActivityPage(
+    IReadOnlyList<CreatorActivityEntry> Entries, string? NextCursor, bool HasMore);
+
+/// <summary>One page of a creator's ledger, and where to resume.</summary>
+public sealed record CreatorEarningPage(
+    IReadOnlyList<CreatorEarning> Earnings, string? NextCursor, bool HasMore);
 
 /// <summary>What a leaderboard is being asked for.</summary>
 public sealed record LeaderboardQuery
