@@ -98,6 +98,12 @@ internal static class SellerMapper
             Badge = seller.TrustMark.Badge,
             Status = seller.Status.ToString(),
             Bio = seller.Identity.Bio,
+
+            // The seller's and staff's, for the reason the field's own summary gives: a client
+            // updating one thing has to send everything back, and it can only send what it was
+            // told. A buyer browsing storefronts sees the trading name and nothing else.
+            LegalName = canManage || isStaff ? seller.Identity.LegalName : null,
+            RegistrationNumber = canManage || isStaff ? seller.Identity.RegistrationNumber : null,
             CountryCode = seller.PrimaryCountryCode,
             LogoMediaId = seller.LogoMediaId,
             BannerMediaId = seller.BannerMediaId,

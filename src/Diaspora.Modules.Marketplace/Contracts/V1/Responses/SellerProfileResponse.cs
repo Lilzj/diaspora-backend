@@ -41,6 +41,20 @@ public sealed record SellerProfileResponse
 
     public string? Bio { get; init; }
 
+    /// <summary>
+    /// What Trust verified, as opposed to the trading name. Present for the seller and for staff.
+    /// <para>
+    /// Returned because <c>PUT /marketplace/sellers/me</c> replaces rather than merges: a client
+    /// that read this profile, changed a telephone number and sent it back would blank a
+    /// business's legal name and its registration number, because neither was in what it read.
+    /// Write-only fields make the platform's own update contract unusable without data loss.
+    /// </para>
+    /// </summary>
+    public string? LegalName { get; init; }
+
+    /// <summary>The company number Trust checks against. Present for the seller and for staff.</summary>
+    public string? RegistrationNumber { get; init; }
+
     public required string CountryCode { get; init; }
 
     public Guid? LogoMediaId { get; init; }
