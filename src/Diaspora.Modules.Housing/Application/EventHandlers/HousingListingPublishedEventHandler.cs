@@ -1,8 +1,6 @@
 using Diaspora.Application.Abstractions;
 using Diaspora.Modules.Housing.Application.Services;
 using Diaspora.Modules.Housing.Domain.Events;
-using Diaspora.Modules.Housing.Domain.Listings;
-using Diaspora.Modules.Housing.Domain.Neighborhoods;
 
 namespace Diaspora.Modules.Housing.Application.EventHandlers;
 
@@ -16,11 +14,17 @@ namespace Diaspora.Modules.Housing.Application.EventHandlers;
 /// <c>LandlordListingCountRefresher</c> and the handlers that now call it on the other moves.
 /// </para>
 /// <para>
-/// <b>The neighbourhood listing count is recomputed rather than incremented.</b> B1.1's rule for an
-/// at-least-once world taken as written: an increment applied twice on a redelivery drifts upward
-/// forever, and a neighbourhood claiming forty properties when it has eleven is a number members
-/// would act on. Recomputing costs one indexed count on a path that fires when a landlord
-/// publishes, which is rare.
+/// <b>And neither is the neighbourhood's.</b> That count was recomputed here and when a property
+/// was let, and nowhere else — so archiving, withdrawing or deleting a home left the directory
+/// advertising it. The reason this handler already gave for keeping it fresh, that a directory
+/// which still advertised a let property would send members to a home somebody else is living in,
+/// is the same reason it has to fall when one is withdrawn. See
+/// <c>NeighborhoodListingCountRefresher</c>.
+/// </para>
+/// <para>
+/// Both counts are recomputed rather than incremented. B1.1's rule for an at-least-once world
+/// taken as written: an increment applied twice on a redelivery drifts upward forever, and a
+/// neighbourhood claiming forty properties when it has eleven is a number members would act on.
 /// </para>
 /// <para>
 /// <b>Neither refresh may fail the publication.</b> A property that is live with a stale count
@@ -32,20 +36,17 @@ public sealed class HousingListingPublishedEventHandler
     : DomainEventHandler<HousingListingPublishedDomainEvent>
 {
     private readonly HousingIntegrationEventRelay _relay;
-    private readonly IHousingListingRepository _listings;
-    private readonly LandlordListingCountRefresher _counts;
-    private readonly INeighborhoodProfileRepository _profiles;
+    private readonly LandlordListingCountRefresher _landlordCounts;
+    private readonly NeighborhoodListingCountRefresher _neighborhoodCounts;
 
     public HousingListingPublishedEventHandler(
         HousingIntegrationEventRelay relay,
-        IHousingListingRepository listings,
-        LandlordListingCountRefresher counts,
-        INeighborhoodProfileRepository profiles)
+        LandlordListingCountRefresher landlordCounts,
+        NeighborhoodListingCountRefresher neighborhoodCounts)
     {
         _relay = relay;
-        _listings = listings;
-        _counts = counts;
-        _profiles = profiles;
+        _landlordCounts = landlordCounts;
+        _neighborhoodCounts = neighborhoodCounts;
     }
 
     protected override async Task HandleAsync(
@@ -53,30 +54,7 @@ public sealed class HousingListingPublishedEventHandler
     {
         await _relay.PublishAsync(domainEvent, cancellationToken);
 
-        await _counts.RefreshAsync(domainEvent.LandlordId, cancellationToken);
-        await RefreshNeighborhoodAsync(domainEvent, cancellationToken);
-    }
-
-    /// <summary>
-    /// Recomputes the neighbourhood's live-listing count. See the class summary for why it is set
-    /// rather than incremented.
-    /// </summary>
-    private async Task RefreshNeighborhoodAsync(
-        HousingListingPublishedDomainEvent domainEvent, CancellationToken cancellationToken)
-    {
-        if (domainEvent.NeighborhoodAreaId is not { } areaId || areaId == Guid.Empty)
-        {
-            return;
-        }
-
-        var profile = await _profiles.GetByAreaAsync(areaId, cancellationToken);
-
-        if (profile is null)
-        {
-            return;
-        }
-
-        profile.SetListingCount(
-            await _listings.CountInNeighborhoodAsync(areaId, cancellationToken));
+        await _landlordCounts.RefreshAsync(domainEvent.LandlordId, cancellationToken);
+        await _neighborhoodCounts.RefreshAsync(domainEvent.ListingId, cancellationToken);
     }
 }

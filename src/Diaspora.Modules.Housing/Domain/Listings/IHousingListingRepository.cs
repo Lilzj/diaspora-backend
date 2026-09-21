@@ -150,6 +150,19 @@ public interface IHousingListingRepository
     Task<int> CountInCountryAsync(
         string countryCode, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Which area a property is filed under, whether or not it still exists.
+    /// <para>
+    /// <b>Reads past the soft-delete filter, and that is the whole reason it exists.</b> When a
+    /// property is deleted its neighbourhood has one fewer home to advertise — so that is exactly
+    /// the moment the count must be recomputed, and exactly the moment an ordinary read can no
+    /// longer find the property to ask where it was. Null when the property is unknown or was
+    /// never filed under an area.
+    /// </para>
+    /// </summary>
+    Task<Guid?> NeighborhoodAreaOfAsync(
+        HousingListingId listingId, CancellationToken cancellationToken = default);
+
     /// <summary>Live listings against a B4 area exactly. What a neighbourhood profile counts.</summary>
     Task<int> CountInNeighborhoodAsync(
         Guid areaId, CancellationToken cancellationToken = default);

@@ -353,6 +353,23 @@ public sealed class HousingListingRepository : IHousingListingRepository
             .CountAsync(cancellationToken);
     }
 
+    public async Task<Guid?> NeighborhoodAreaOfAsync(
+        HousingListingId listingId, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(listingId);
+
+        // `IgnoreQueryFilters`, deliberately and narrowly. A soft-deleted property is invisible to
+        // every ordinary read, which is correct — and it is also the case in which its
+        // neighbourhood most needs recounting, because the directory would otherwise keep
+        // advertising it. One column, by primary key; nothing about the property itself escapes.
+        return await Listings
+            .AsNoTracking()
+            .IgnoreQueryFilters()
+            .Where(listing => listing.Id == listingId)
+            .Select(listing => listing.Location.NeighborhoodAreaId)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task<int> CountInNeighborhoodAsync(
         Guid areaId, CancellationToken cancellationToken = default)
     {

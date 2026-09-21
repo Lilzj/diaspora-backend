@@ -1,7 +1,6 @@
 using Diaspora.Application.Abstractions;
+using Diaspora.Modules.Housing.Application.Services;
 using Diaspora.Modules.Housing.Domain.Events;
-using Diaspora.Modules.Housing.Domain.Listings;
-using Diaspora.Modules.Housing.Domain.Neighborhoods;
 using Diaspora.Modules.Housing.Observability;
 
 namespace Diaspora.Modules.Housing.Application.EventHandlers;
@@ -17,23 +16,22 @@ namespace Diaspora.Modules.Housing.Application.EventHandlers;
 /// <para>
 /// The neighbourhood count is refreshed because an occupied property is no longer available: a
 /// directory that still advertised it would send members to a home somebody else is living in.
+/// That sentence was true here and nowhere else — the same count stayed stale when a property was
+/// archived, hidden or deleted, which <c>NeighborhoodListingCountRefresher</c> now closes.
 /// </para>
 /// </summary>
 public sealed class HousingListingOccupiedEventHandler
     : DomainEventHandler<HousingListingOccupiedDomainEvent>
 {
     private readonly HousingIntegrationEventRelay _relay;
-    private readonly IHousingListingRepository _listings;
-    private readonly INeighborhoodProfileRepository _profiles;
+    private readonly NeighborhoodListingCountRefresher _neighborhoodCounts;
 
     public HousingListingOccupiedEventHandler(
         HousingIntegrationEventRelay relay,
-        IHousingListingRepository listings,
-        INeighborhoodProfileRepository profiles)
+        NeighborhoodListingCountRefresher neighborhoodCounts)
     {
         _relay = relay;
-        _listings = listings;
-        _profiles = profiles;
+        _neighborhoodCounts = neighborhoodCounts;
     }
 
     protected override async Task HandleAsync(
@@ -46,16 +44,6 @@ public sealed class HousingListingOccupiedEventHandler
             HousingTelemetry.TimeToLetDays.Record(timeToLet.TotalDays);
         }
 
-        var listing = await _listings.GetAsync(domainEvent.ListingId, cancellationToken);
-
-        if (listing?.Location.NeighborhoodAreaId is not { } areaId || areaId == Guid.Empty)
-        {
-            return;
-        }
-
-        var profile = await _profiles.GetByAreaAsync(areaId, cancellationToken);
-
-        profile?.SetListingCount(
-            await _listings.CountInNeighborhoodAsync(areaId, cancellationToken));
+        await _neighborhoodCounts.RefreshAsync(domainEvent.ListingId, cancellationToken);
     }
 }
