@@ -52,6 +52,19 @@ public sealed record LandlordProfileResponse
     /// <summary>Survives redaction: it is already public, and it is how a member checks an agency is real.</summary>
     public string? WebsiteUrl { get; init; }
 
+    /// <summary>
+    /// Whether the landlord chose to publish the details above. Present for the landlord and for
+    /// staff, absent for everybody else.
+    /// <para>
+    /// A setting can be written and never read: this one could be set through
+    /// <c>POST /housing/landlords</c> and <c>PATCH /housing/landlords/me</c> and was returned by
+    /// neither, so a landlord had no way to see what they had chosen and a client had no way to
+    /// show it back to them. It is theirs, not a browser's, which is why a stranger gets null
+    /// rather than false.
+    /// </para>
+    /// </summary>
+    public bool? ShowContactPublicly { get; init; }
+
     public required bool IsOwner { get; init; }
 
     public required int Revision { get; init; }

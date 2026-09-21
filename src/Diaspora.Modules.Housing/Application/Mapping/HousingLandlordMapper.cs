@@ -105,6 +105,11 @@ public static class HousingLandlordMapper
             Email = contact.Email,
             WebsiteUrl = contact.WebsiteUrl,
 
+            // The landlord's own setting, read off the unredacted contact rather than the
+            // disclosed copy: `Disclose` answers what this viewer may see, and the question here
+            // is what the landlord chose. Null for anybody else, because it is not their business.
+            ShowContactPublicly = privileged ? landlord.Contact.ShowPublicly : null,
+
             IsOwner = isOwner,
             Revision = landlord.Revision,
             CreatedAt = landlord.CreatedAt
