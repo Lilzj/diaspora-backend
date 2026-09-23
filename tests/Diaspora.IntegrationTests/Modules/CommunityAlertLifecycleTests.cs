@@ -15,7 +15,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// and a client deciding whether to offer an Emergency option had nothing to ask.
 /// </para>
 /// </summary>
-public sealed class CommunityAlertLifecycleTests : IdentityTestBase
+[Collection(CommunityCollection.Name)]
+public sealed class CommunityAlertLifecycleTests : PooledIdentityTestBase
 {
     private const double PeckhamLatitude = 51.4742d;
     private const double PeckhamLongitude = -0.0691d;

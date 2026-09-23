@@ -28,7 +28,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// platform as an unverified member.
 /// </para>
 /// </summary>
-public sealed class ReapplyVerificationOutcomeTests : IdentityTestBase
+[Collection(AssortedCollection.Name)]
+public sealed class ReapplyVerificationOutcomeTests : PooledIdentityTestBase
 {
     public ReapplyVerificationOutcomeTests(CustomWebApplicationFactory factory) : base(factory) { }
 

@@ -22,7 +22,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// something — only staff decide it, and only a provider members can actually open may be in it.
 /// </para>
 /// </summary>
-public sealed class ProviderFeaturingTests : IdentityTestBase
+[Collection(AssortedCollection.Name)]
+public sealed class ProviderFeaturingTests : PooledIdentityTestBase
 {
     private const string Root = "/api/v1/providers";
 

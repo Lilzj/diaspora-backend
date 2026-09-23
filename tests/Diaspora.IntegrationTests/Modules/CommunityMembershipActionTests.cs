@@ -26,7 +26,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// follower, a revocation laundered by following, a count that moves when nobody joined.
 /// </para>
 /// </summary>
-public sealed class CommunityMembershipActionTests : IdentityTestBase
+[Collection(CommunityCollection.Name)]
+public sealed class CommunityMembershipActionTests : PooledIdentityTestBase
 {
     private const string Root = "/api/v1/communities";
 

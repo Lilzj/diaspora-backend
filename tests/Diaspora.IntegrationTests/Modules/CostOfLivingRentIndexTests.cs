@@ -28,7 +28,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// a nightly price that is not a rent at all.
 /// </para>
 /// </summary>
-public sealed class CostOfLivingRentIndexTests : IdentityTestBase
+[Collection(AssortedCollection.Name)]
+public sealed class CostOfLivingRentIndexTests : PooledIdentityTestBase
 {
     private const string Root = "/api/v1/geo";
 

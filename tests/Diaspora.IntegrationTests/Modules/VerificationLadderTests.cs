@@ -30,7 +30,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// every other suite's verified members were never affected by any of this.
 /// </para>
 /// </summary>
-public sealed class VerificationLadderTests : IdentityTestBase
+[Collection(AssortedCollection.Name)]
+public sealed class VerificationLadderTests : PooledIdentityTestBase
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 

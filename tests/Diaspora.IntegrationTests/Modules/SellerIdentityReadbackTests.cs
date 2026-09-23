@@ -23,7 +23,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// storefront is called, and a company registration number is not part of that.
 /// </para>
 /// </summary>
-public sealed class SellerIdentityReadbackTests : IdentityTestBase
+[Collection(AssortedCollection.Name)]
+public sealed class SellerIdentityReadbackTests : PooledIdentityTestBase
 {
     private const string Root = "/api/v1/marketplace";
 

@@ -22,7 +22,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// never registered — which is the commonest defect on this platform: right code, no producer.
 /// </para>
 /// </summary>
-public sealed class AlertRealtimeChannelTests : IdentityTestBase
+[Collection(AssortedCollection.Name)]
+public sealed class AlertRealtimeChannelTests : PooledIdentityTestBase
 {
     private const string HubPath = "/hubs/realtime";
     private const double PeckhamLatitude = 51.4742d;

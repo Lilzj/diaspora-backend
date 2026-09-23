@@ -32,7 +32,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// Nothing had caught it there, because nothing paged it against a database.
 /// </para>
 /// </summary>
-public sealed class CreatorActivityPagingTests : IdentityTestBase
+[Collection(AssortedCollection.Name)]
+public sealed class CreatorActivityPagingTests : PooledIdentityTestBase
 {
     private static readonly DateTimeOffset Moment =
         new(2026, 9, 20, 14, 45, 1, TimeSpan.Zero);

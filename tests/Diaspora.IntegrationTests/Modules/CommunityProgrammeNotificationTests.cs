@@ -22,7 +22,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// happened to fire.
 /// </para>
 /// </summary>
-public sealed class CommunityProgrammeNotificationTests : IdentityTestBase
+[Collection(CommunityCollection.Name)]
+public sealed class CommunityProgrammeNotificationTests : PooledIdentityTestBase
 {
     private const string Root = "/api/v1/communities";
     private const string CommunityLife = "/api/v1/community-life";

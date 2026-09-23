@@ -26,7 +26,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// holds</b>. Everything downstream already worked and still does.
 /// </para>
 /// </summary>
-public sealed class ProviderTrustSubmissionTests : IdentityTestBase
+[Collection(AssortedCollection.Name)]
+public sealed class ProviderTrustSubmissionTests : PooledIdentityTestBase
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 

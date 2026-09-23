@@ -26,7 +26,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// sweep gets to it — none of which a title and a coordinate can carry.
 /// </para>
 /// </summary>
-public sealed class NearbyUpdatePayloadTests : IdentityTestBase
+[Collection(AssortedCollection.Name)]
+public sealed class NearbyUpdatePayloadTests : PooledIdentityTestBase
 {
     // Peckham, which the seeded catalogue knows.
     private const double Latitude = 51.4742d;

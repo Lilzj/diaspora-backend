@@ -20,7 +20,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// Guides, Community Updates and Community Life the day those modules register a content source.
 /// </para>
 /// </summary>
-public sealed class CommunityModuleTests : IdentityTestBase
+[Collection(CommunityCollection.Name)]
+public sealed class CommunityModuleTests : PooledIdentityTestBase
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 

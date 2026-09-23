@@ -31,7 +31,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// module compiles.
 /// </para>
 /// </summary>
-public sealed class CommunityDirectoryTests : IdentityTestBase
+[Collection(CommunityCollection.Name)]
+public sealed class CommunityDirectoryTests : PooledIdentityTestBase
 {
     private const string Root = "/api/v1/communities";
 

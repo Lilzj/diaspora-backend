@@ -28,7 +28,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// published as unavailable, never as zero. Its parsing is covered by <c>PoliceUkCrimeDataTests</c>.
 /// </para>
 /// </summary>
-public sealed class SafetyCountsTests : IdentityTestBase
+[Collection(AssortedCollection.Name)]
+public sealed class SafetyCountsTests : PooledIdentityTestBase
 {
     private const string Root = "/api/v1/geo";
 

@@ -29,7 +29,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// than by setting a column. What is being tested is the queue, not the scanner.
 /// </para>
 /// </summary>
-public sealed class MediaQuarantineQueueTests : IdentityTestBase
+[Collection(AssortedCollection.Name)]
+public sealed class MediaQuarantineQueueTests : PooledIdentityTestBase
 {
     private const string Root = "/api/v1/media";
 

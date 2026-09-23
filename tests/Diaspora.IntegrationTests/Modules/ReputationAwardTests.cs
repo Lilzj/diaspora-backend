@@ -33,7 +33,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// event is ever published, which is the half that was actually missing.
 /// </para>
 /// </summary>
-public sealed class ReputationAwardTests : IdentityTestBase
+[Collection(AssortedCollection.Name)]
+public sealed class ReputationAwardTests : PooledIdentityTestBase
 {
     public ReputationAwardTests(CustomWebApplicationFactory factory) : base(factory) { }
 

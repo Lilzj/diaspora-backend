@@ -21,7 +21,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// closed account kept its location profile, and the home address in it, for ever.
 /// </para>
 /// </summary>
-public sealed class LocationPrivacyTests : IdentityTestBase
+[Collection(AssortedCollection.Name)]
+public sealed class LocationPrivacyTests : PooledIdentityTestBase
 {
     public LocationPrivacyTests(CustomWebApplicationFactory factory) : base(factory) { }
 

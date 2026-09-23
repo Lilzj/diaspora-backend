@@ -34,7 +34,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// and a per-country cooldown would let one burst through once for every country on the platform.
 /// </para>
 /// </summary>
-public sealed class CountryScopedCapTests : IdentityTestBase
+[Collection(AssortedCollection.Name)]
+public sealed class CountryScopedCapTests : PooledIdentityTestBase
 {
     public CountryScopedCapTests(CustomWebApplicationFactory factory) : base(factory) { }
 

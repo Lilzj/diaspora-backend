@@ -35,7 +35,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// would prove the filter and miss that entirely.
 /// </para>
 /// </summary>
-public sealed class RewardHistoryPagingTests : IdentityTestBase
+[Collection(AssortedCollection.Name)]
+public sealed class RewardHistoryPagingTests : PooledIdentityTestBase
 {
     private static readonly DateTimeOffset Moment =
         new(2026, 9, 20, 11, 30, 0, TimeSpan.Zero);
