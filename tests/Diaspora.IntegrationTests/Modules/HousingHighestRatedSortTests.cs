@@ -22,7 +22,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// bad review.
 /// </para>
 /// </summary>
-public sealed class HousingHighestRatedSortTests : IdentityTestBase
+[Collection(HousingCollection.Name)]
+public sealed class HousingHighestRatedSortTests : PooledIdentityTestBase
 {
     private const string Root = "/api/v1/housing";
 

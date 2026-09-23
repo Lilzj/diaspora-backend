@@ -30,7 +30,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// coordinates.
 /// </para>
 /// </summary>
-public sealed class HousingAreaFilingTests : IdentityTestBase
+[Collection(HousingCollection.Name)]
+public sealed class HousingAreaFilingTests : PooledIdentityTestBase
 {
     private const string PeckhamViewport = "51.49,51.46,-0.04,-0.10";
     private const double PeckhamLatitude = 51.4742d;

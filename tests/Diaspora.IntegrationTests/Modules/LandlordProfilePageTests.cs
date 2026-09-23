@@ -26,7 +26,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// a second landlord's home and expecting neither.
 /// </para>
 /// </summary>
-public sealed class LandlordProfilePageTests : IdentityTestBase
+[Collection(HousingCollection.Name)]
+public sealed class LandlordProfilePageTests : PooledIdentityTestBase
 {
     private const string Root = "/api/v1/housing";
 

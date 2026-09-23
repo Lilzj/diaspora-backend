@@ -18,6 +18,45 @@ public abstract class IdentityTestBase : IdentityTestBase<CustomWebApplicationFa
 }
 
 /// <summary>
+/// The same setup over a chosen host, with a host of its own.
+/// <para>
+/// <c>IClassFixture</c> lives here rather than on <see cref="IdentityTestCore{TFactory}"/>, which
+/// is the whole difference between this and <see cref="PooledIdentityTestBase"/>: xUnit builds one
+/// fixture per test class that asks for a class fixture, and building this application costs
+/// <b>32 seconds</b> — measured, against 4 seconds for the schema and 7 for the reference data.
+/// A class that does not need a host to itself should not pay that.
+/// </para>
+/// </summary>
+public abstract class IdentityTestBase<TFactory> : IdentityTestCore<TFactory>, IClassFixture<TFactory>
+    where TFactory : CustomWebApplicationFactory, new()
+{
+    protected IdentityTestBase(TFactory factory) : base(factory) { }
+}
+
+/// <summary>
+/// The same setup over a host shared with the rest of its collection.
+/// <para>
+/// <b>123 test classes were building 123 applications.</b> At 32 seconds each that is roughly
+/// 3,900 processor-seconds of construction before a single test body runs, and with eight of them
+/// building at once on an eight-processor machine it is also where the suite's timeouts came from:
+/// fifteen to twenty-four failures a run, every one a <c>TaskCanceledException</c>, never an
+/// assertion, a different set each time.
+/// </para>
+/// <para>
+/// A class using this base carries <c>[Collection(...)]</c> and gets the collection's one
+/// application. <b>It also gets the collection's one database</b>, which is the thing to think
+/// about before joining one: a test that assumes an empty table will find its neighbours' rows.
+/// The suite is largely written for this already — <see cref="NextPhoneNumber"/> is a static
+/// counter whose own note says the database is shared, and tests tag their data with a run
+/// identifier — but "largely" is not "entirely", and each collection is proved by running it.
+/// </para>
+/// </summary>
+public abstract class PooledIdentityTestBase : IdentityTestCore<CustomWebApplicationFactory>
+{
+    protected PooledIdentityTestBase(CustomWebApplicationFactory factory) : base(factory) { }
+}
+
+/// <summary>
 /// The same setup over a chosen host.
 /// <para>
 /// <b>Generic only because one suite needs a different database arrangement, not a different
@@ -28,7 +67,7 @@ public abstract class IdentityTestBase : IdentityTestBase<CustomWebApplicationFa
 /// database setup is how two copies of a registration helper start to drift.
 /// </para>
 /// </summary>
-public abstract class IdentityTestBase<TFactory> : IClassFixture<TFactory>, IDisposable
+public abstract class IdentityTestCore<TFactory> : IDisposable
     where TFactory : CustomWebApplicationFactory, new()
 {
     private static int _phoneCounter;
@@ -39,7 +78,7 @@ public abstract class IdentityTestBase<TFactory> : IClassFixture<TFactory>, IDis
 
     protected IdentityApiClient Api { get; }
 
-    protected IdentityTestBase(TFactory factory)
+    protected IdentityTestCore(TFactory factory)
     {
         ArgumentNullException.ThrowIfNull(factory);
 

@@ -21,7 +21,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// the town in lower case matched nothing (LIKE is case-sensitive on Postgres).
 /// </para>
 /// </summary>
-public sealed class HousingSearchByPlaceTests : IdentityTestBase
+[Collection(HousingCollection.Name)]
+public sealed class HousingSearchByPlaceTests : PooledIdentityTestBase
 {
     private const string Root = "/api/v1/housing";
 

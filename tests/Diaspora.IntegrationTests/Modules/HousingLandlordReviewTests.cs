@@ -29,7 +29,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// is the one this suite exists to hold.
 /// </para>
 /// </summary>
-public sealed class HousingLandlordReviewTests : IdentityTestBase
+[Collection(HousingCollection.Name)]
+public sealed class HousingLandlordReviewTests : PooledIdentityTestBase
 {
     private const string Root = "/api/v1/housing";
 

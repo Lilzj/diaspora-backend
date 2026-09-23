@@ -24,7 +24,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// every move.
 /// </para>
 /// </summary>
-public sealed class HousingViewingDiaryTests : IdentityTestBase
+[Collection(HousingCollection.Name)]
+public sealed class HousingViewingDiaryTests : PooledIdentityTestBase
 {
     private const string Root = "/api/v1/housing";
 

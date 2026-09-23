@@ -23,7 +23,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// know whether they have" are different answers, and only the first is a stranger's business.
 /// </para>
 /// </summary>
-public sealed class LandlordContactTests : IdentityTestBase
+[Collection(HousingCollection.Name)]
+public sealed class LandlordContactTests : PooledIdentityTestBase
 {
     private const string Root = "/api/v1/housing";
 

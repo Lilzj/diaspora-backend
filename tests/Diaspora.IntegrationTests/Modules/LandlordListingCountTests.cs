@@ -34,7 +34,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// nothing about whether any of these moves reaches it.
 /// </para>
 /// </summary>
-public sealed class LandlordListingCountTests : IdentityTestBase
+[Collection(HousingCollection.Name)]
+public sealed class LandlordListingCountTests : PooledIdentityTestBase
 {
     public LandlordListingCountTests(CustomWebApplicationFactory factory) : base(factory) =>
         factory.EnsureDatabaseCreated();
