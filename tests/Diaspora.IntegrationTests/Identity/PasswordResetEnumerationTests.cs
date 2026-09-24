@@ -29,7 +29,8 @@ namespace Diaspora.IntegrationTests.Identity;
 /// test would go green the moment any one of them was collapsed.
 /// </para>
 /// </summary>
-public sealed class PasswordResetEnumerationTests : IdentityTestBase
+[Collection(IdentityCollection.Name)]
+public sealed class PasswordResetEnumerationTests : PooledIdentityTestBase
 {
     private const string NewPassword = "Another-Correct-Horse-9";
 

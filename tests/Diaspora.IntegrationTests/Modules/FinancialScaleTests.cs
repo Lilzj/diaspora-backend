@@ -30,7 +30,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// does not get slower as versions accumulate.
 /// </para>
 /// </summary>
-public sealed class FinancialScaleTests : IdentityTestBase
+[Collection(FinanceCollection.Name)]
+public sealed class FinancialScaleTests : PooledIdentityTestBase
 {
     /// <summary>Enough to expose a paging or accumulation defect; small enough to run every commit.</summary>
     private const int LedgerDepth = 500;

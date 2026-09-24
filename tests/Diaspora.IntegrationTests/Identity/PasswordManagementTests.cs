@@ -8,7 +8,8 @@ using Xunit;
 
 namespace Diaspora.IntegrationTests.Identity;
 
-public class PasswordManagementTests : IdentityTestBase
+[Collection(IdentityCollection.Name)]
+public class PasswordManagementTests : PooledIdentityTestBase
 {
     private const string NewPassword = "Different-Mule-Cabinet-3";
 

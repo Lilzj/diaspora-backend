@@ -21,7 +21,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// against a real host rather than against a handler.
 /// </para>
 /// </summary>
-public sealed class CommunicationExtensionTests : IdentityTestBase
+[Collection(SignalsCollection.Name)]
+public sealed class CommunicationExtensionTests : PooledIdentityTestBase
 {
     private const string Root = "/api/v1/notifications";
 

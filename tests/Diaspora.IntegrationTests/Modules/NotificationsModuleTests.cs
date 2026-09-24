@@ -26,7 +26,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// which is the one thing a contract test must never do.
 /// </para>
 /// </summary>
-public sealed class NotificationsModuleTests : IdentityTestBase
+[Collection(SignalsCollection.Name)]
+public sealed class NotificationsModuleTests : PooledIdentityTestBase
 {
     private const string Root = "/api/v1/notifications";
 

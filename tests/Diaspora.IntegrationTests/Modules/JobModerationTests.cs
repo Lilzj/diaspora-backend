@@ -23,7 +23,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// arrived and has nobody to ask, and waiting for a second reporter is a day that costs them.
 /// </para>
 /// </summary>
-public sealed class JobModerationTests : IdentityTestBase
+[Collection(WorkCollection.Name)]
+public sealed class JobModerationTests : PooledIdentityTestBase
 {
     private const string Root = "/api/v1/jobs";
 

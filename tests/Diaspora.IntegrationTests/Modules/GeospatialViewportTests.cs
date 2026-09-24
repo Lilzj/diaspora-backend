@@ -36,7 +36,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// rounding this suite performs can confuse them.
 /// </para>
 /// </summary>
-public sealed class GeospatialViewportTests : IdentityTestBase
+[Collection(DiscoveryCollection.Name)]
+public sealed class GeospatialViewportTests : PooledIdentityTestBase
 {
     /// <summary>A rectangle around Peckham that excludes Woolwich. North,South,East,West.</summary>
     private const string PeckhamViewport = "51.49,51.46,-0.04,-0.10";

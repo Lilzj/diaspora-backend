@@ -9,7 +9,8 @@ namespace Diaspora.IntegrationTests.Identity;
 /// <summary>
 /// Refresh-token rotation and replay detection over the real endpoint.
 /// </summary>
-public class RefreshTokenTests : IdentityTestBase
+[Collection(IdentityCollection.Name)]
+public class RefreshTokenTests : PooledIdentityTestBase
 {
     public RefreshTokenTests(CustomWebApplicationFactory factory) : base(factory) { }
 

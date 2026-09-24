@@ -29,7 +29,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// (<c>GuideAnalyticsRecorder.RecordSearchImpressionsAsync</c>, which nothing calls).
 /// </para>
 /// </summary>
-public sealed class AdPerformanceTests : IdentityTestBase
+[Collection(WorkCollection.Name)]
+public sealed class AdPerformanceTests : PooledIdentityTestBase
 {
     private const string Root = "/api/v1/financial";
 

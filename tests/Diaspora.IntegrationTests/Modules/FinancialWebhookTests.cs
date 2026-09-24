@@ -30,7 +30,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// the aggregate allows.
 /// </para>
 /// </summary>
-public sealed class FinancialWebhookTests : IdentityTestBase
+[Collection(FinanceCollection.Name)]
+public sealed class FinancialWebhookTests : PooledIdentityTestBase
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 

@@ -31,7 +31,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// when it names its currency and its period.
 /// </para>
 /// </summary>
-public sealed class RankedSearchFilterTests : IdentityTestBase
+[Collection(DiscoveryCollection.Name)]
+public sealed class RankedSearchFilterTests : PooledIdentityTestBase
 {
     public RankedSearchFilterTests(CustomWebApplicationFactory factory) : base(factory) { }
 

@@ -23,7 +23,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// satisfy — and that repeating a submission does not open a second.
 /// </para>
 /// </summary>
-public sealed class TrustSubmissionContractTests : IdentityTestBase
+[Collection(FinanceCollection.Name)]
+public sealed class TrustSubmissionContractTests : PooledIdentityTestBase
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 

@@ -29,7 +29,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// not; an enquiry from a stranger and one the member sent themselves; a horizon that is armed and
 /// one that is cancelled. A query asserted only against zero rows is unproved.</para>
 /// </summary>
-public sealed class AutomationExtensionTests : IdentityTestBase
+[Collection(SignalsCollection.Name)]
+public sealed class AutomationExtensionTests : PooledIdentityTestBase
 {
     private const string Automations = "/api/v1/automations";
 

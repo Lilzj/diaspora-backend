@@ -26,7 +26,8 @@ namespace Diaspora.IntegrationTests.Platform;
 /// anything actually answers.
 /// </para>
 /// </summary>
-public sealed class PlatformSeamConnectionTests : IdentityTestBase
+[Collection(PlatformCollection.Name)]
+public sealed class PlatformSeamConnectionTests : PooledIdentityTestBase
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 

@@ -11,7 +11,8 @@ namespace Diaspora.IntegrationTests.Identity;
 /// <summary>
 /// The onboarding path, end to end over HTTP.
 /// </summary>
-public class RegistrationAndVerificationTests : IdentityTestBase
+[Collection(IdentityCollection.Name)]
+public class RegistrationAndVerificationTests : PooledIdentityTestBase
 {
     public RegistrationAndVerificationTests(CustomWebApplicationFactory factory) : base(factory) { }
 

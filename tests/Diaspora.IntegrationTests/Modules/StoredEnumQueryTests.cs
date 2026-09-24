@@ -26,7 +26,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// fails on the old predicate. <c>PersistenceRuleArchitectureTests</c> keeps the shape out.
 /// </para>
 /// </summary>
-public sealed class StoredEnumQueryTests : IdentityTestBase
+[Collection(DiscoveryCollection.Name)]
+public sealed class StoredEnumQueryTests : PooledIdentityTestBase
 {
     public StoredEnumQueryTests(CustomWebApplicationFactory factory) : base(factory) { }
 

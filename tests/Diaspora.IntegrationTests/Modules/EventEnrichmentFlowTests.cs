@@ -22,7 +22,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// wants delivery performs its action, drains, and then looks. Nothing here waits on a timer.
 /// </para>
 /// </summary>
-public sealed class EventEnrichmentFlowTests : IdentityTestBase
+[Collection(SignalsCollection.Name)]
+public sealed class EventEnrichmentFlowTests : PooledIdentityTestBase
 {
     public EventEnrichmentFlowTests(CustomWebApplicationFactory factory) : base(factory) { }
 

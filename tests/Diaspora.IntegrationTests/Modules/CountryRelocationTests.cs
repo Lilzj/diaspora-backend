@@ -27,7 +27,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// departure means; this covers whether one ever arrives.
 /// </para>
 /// </summary>
-public sealed class CountryRelocationTests : IdentityTestBase
+[Collection(DiscoveryCollection.Name)]
+public sealed class CountryRelocationTests : PooledIdentityTestBase
 {
     private static readonly DateOnly ArrivedInMauritius = new(2019, 3, 1);
     private static readonly DateOnly LeftMauritius = new(2025, 6, 30);

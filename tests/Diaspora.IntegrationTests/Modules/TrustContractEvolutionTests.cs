@@ -26,7 +26,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// consumer; this one proves the platform's real consumer now uses it.
 /// </para>
 /// </summary>
-public sealed class TrustContractEvolutionTests : IdentityTestBase
+[Collection(FinanceCollection.Name)]
+public sealed class TrustContractEvolutionTests : PooledIdentityTestBase
 {
     public TrustContractEvolutionTests(CustomWebApplicationFactory factory) : base(factory) { }
 

@@ -6,7 +6,8 @@ using Xunit;
 
 namespace Diaspora.IntegrationTests.Identity;
 
-public class SessionManagementTests : IdentityTestBase
+[Collection(IdentityCollection.Name)]
+public class SessionManagementTests : PooledIdentityTestBase
 {
     public SessionManagementTests(CustomWebApplicationFactory factory) : base(factory) { }
 

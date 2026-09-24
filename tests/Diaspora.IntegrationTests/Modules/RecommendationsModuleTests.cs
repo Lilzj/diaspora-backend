@@ -27,7 +27,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// CQRS handlers all composed.
 /// </para>
 /// </summary>
-public sealed class RecommendationsModuleTests : IdentityTestBase
+[Collection(DiscoveryCollection.Name)]
+public sealed class RecommendationsModuleTests : PooledIdentityTestBase
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 

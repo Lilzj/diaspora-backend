@@ -15,7 +15,8 @@ namespace Diaspora.IntegrationTests.Identity;
 /// the mapping is in place and that a replayed token is refused, which is the guarantee the
 /// concurrency token exists to keep under load.
 /// </summary>
-public sealed class RefreshTokenConcurrencyTests : IdentityTestBase
+[Collection(IdentityCollection.Name)]
+public sealed class RefreshTokenConcurrencyTests : PooledIdentityTestBase
 {
     public RefreshTokenConcurrencyTests(CustomWebApplicationFactory factory) : base(factory) { }
 

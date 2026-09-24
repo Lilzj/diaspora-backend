@@ -16,7 +16,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// mobile build.
 /// </para>
 /// </summary>
-public sealed class ConversationsModuleTests : IdentityTestBase
+[Collection(SignalsCollection.Name)]
+public sealed class ConversationsModuleTests : PooledIdentityTestBase
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 

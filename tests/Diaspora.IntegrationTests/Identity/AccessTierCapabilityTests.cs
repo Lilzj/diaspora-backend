@@ -25,7 +25,8 @@ namespace Diaspora.IntegrationTests.Identity;
 /// <em>wrong tier</em> fails here as well as in the architecture suite.
 /// </para>
 /// </summary>
-public sealed class AccessTierCapabilityTests : IdentityTestBase
+[Collection(IdentityCollection.Name)]
+public sealed class AccessTierCapabilityTests : PooledIdentityTestBase
 {
     public AccessTierCapabilityTests(CustomWebApplicationFactory factory) : base(factory) { }
 

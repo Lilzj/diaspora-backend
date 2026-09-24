@@ -41,7 +41,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// a test asserting on a global count would pass or fail depending on which other tests ran first.
 /// </para>
 /// </summary>
-public sealed class GeographicIntelligenceScaleTests : IdentityTestBase
+[Collection(DiscoveryCollection.Name)]
+public sealed class GeographicIntelligenceScaleTests : PooledIdentityTestBase
 {
     private const string Root = "/api/v1/geo";
 

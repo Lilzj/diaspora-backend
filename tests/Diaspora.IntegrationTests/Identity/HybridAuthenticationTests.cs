@@ -16,7 +16,8 @@ namespace Diaspora.IntegrationTests.Identity;
 /// path B2 shipped and the integration suite already covers elsewhere — must keep working
 /// unchanged; these tests add the passwordless path the frontend leads with.
 /// </summary>
-public sealed class HybridAuthenticationTests : IdentityTestBase
+[Collection(IdentityCollection.Name)]
+public sealed class HybridAuthenticationTests : PooledIdentityTestBase
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 

@@ -31,7 +31,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// endpoint does when a purchase does or does not exist.
 /// </para>
 /// </summary>
-public sealed class MarketplaceSellerReviewTests : IdentityTestBase
+[Collection(WorkCollection.Name)]
+public sealed class MarketplaceSellerReviewTests : PooledIdentityTestBase
 {
     private const string Root = "/api/v1/marketplace";
 

@@ -20,7 +20,8 @@ namespace Diaspora.IntegrationTests.Platform;
 /// here asserts on a timer having fired.
 /// </para>
 /// </summary>
-public sealed class ReliableMessagingTests : IdentityTestBase
+[Collection(PlatformCollection.Name)]
+public sealed class ReliableMessagingTests : PooledIdentityTestBase
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 

@@ -11,7 +11,8 @@ namespace Diaspora.IntegrationTests.Platform;
 /// prove the check reflects the real state rather than always answering the same way, which
 /// is exactly what B2's placeholder did.
 /// </summary>
-public sealed class HealthCheckTests : IdentityTestBase
+[Collection(PlatformCollection.Name)]
+public sealed class HealthCheckTests : PooledIdentityTestBase
 {
     public HealthCheckTests(CustomWebApplicationFactory factory) : base(factory) { }
 

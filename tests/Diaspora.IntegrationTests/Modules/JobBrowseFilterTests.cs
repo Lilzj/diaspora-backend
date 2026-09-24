@@ -29,7 +29,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// <c>Full-Time</c>, returns everything while looking like a filter.
 /// </para>
 /// </summary>
-public sealed class JobBrowseFilterTests : IdentityTestBase
+[Collection(WorkCollection.Name)]
+public sealed class JobBrowseFilterTests : PooledIdentityTestBase
 {
     private const string Root = "/api/v1/jobs";
 

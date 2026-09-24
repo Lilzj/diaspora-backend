@@ -34,7 +34,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// for every member at once.
 /// </para>
 /// </summary>
-public sealed class PhoneVerificationMirrorTests : IdentityTestBase
+[Collection(FinanceCollection.Name)]
+public sealed class PhoneVerificationMirrorTests : PooledIdentityTestBase
 {
     public PhoneVerificationMirrorTests(CustomWebApplicationFactory factory) : base(factory) { }
 

@@ -23,7 +23,8 @@ namespace Diaspora.IntegrationTests.Platform;
 /// That combination is what actually failed in B5.
 /// </para>
 /// </summary>
-public sealed class SoftDeletePersistenceTests : IdentityTestBase
+[Collection(PlatformCollection.Name)]
+public sealed class SoftDeletePersistenceTests : PooledIdentityTestBase
 {
     private static readonly byte[] OnePixelPng = Convert.FromBase64String(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");

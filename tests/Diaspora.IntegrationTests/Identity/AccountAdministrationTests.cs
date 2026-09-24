@@ -24,7 +24,8 @@ namespace Diaspora.IntegrationTests.Identity;
 /// that, and the two refusals that keep role assignment from being an escalation ladder.
 /// </para>
 /// </summary>
-public sealed class AccountAdministrationTests : IdentityTestBase
+[Collection(IdentityCollection.Name)]
+public sealed class AccountAdministrationTests : PooledIdentityTestBase
 {
     private const string Root = "/api/v1/admin/accounts";
 

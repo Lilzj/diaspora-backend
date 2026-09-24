@@ -23,7 +23,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// cannot pass merely because the module compiles.
 /// </para>
 /// </summary>
-public sealed class TrustConfirmationTests : IdentityTestBase
+[Collection(FinanceCollection.Name)]
+public sealed class TrustConfirmationTests : PooledIdentityTestBase
 {
     private const string Root = "/api/v1/trust/contributions/confirmations";
 

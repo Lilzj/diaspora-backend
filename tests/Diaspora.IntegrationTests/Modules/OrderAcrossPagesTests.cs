@@ -28,7 +28,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// opposite order to the one expected, so a page-by-page sort cannot pass.
 /// </para>
 /// </summary>
-public sealed class OrderAcrossPagesTests : IdentityTestBase
+[Collection(DiscoveryCollection.Name)]
+public sealed class OrderAcrossPagesTests : PooledIdentityTestBase
 {
     public OrderAcrossPagesTests(CustomWebApplicationFactory factory) : base(factory) { }
 

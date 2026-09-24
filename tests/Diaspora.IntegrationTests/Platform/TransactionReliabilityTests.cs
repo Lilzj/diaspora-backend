@@ -19,7 +19,8 @@ namespace Diaspora.IntegrationTests.Platform;
 /// observe.
 /// </para>
 /// </summary>
-public sealed class TransactionReliabilityTests : IdentityTestBase
+[Collection(PlatformCollection.Name)]
+public sealed class TransactionReliabilityTests : PooledIdentityTestBase
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 

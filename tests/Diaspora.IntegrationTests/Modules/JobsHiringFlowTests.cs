@@ -18,7 +18,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// These are the failures that would be invisible until somebody was harmed by them.
 /// </para>
 /// </summary>
-public sealed class JobsHiringFlowTests : IdentityTestBase
+[Collection(WorkCollection.Name)]
+public sealed class JobsHiringFlowTests : PooledIdentityTestBase
 {
     private const string Root = "/api/v1/jobs";
 

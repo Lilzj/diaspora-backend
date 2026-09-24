@@ -17,7 +17,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// them can now be deleted.
 /// </para>
 /// </summary>
-public sealed class FinancialContractGapTests : IdentityTestBase
+[Collection(FinanceCollection.Name)]
+public sealed class FinancialContractGapTests : PooledIdentityTestBase
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 

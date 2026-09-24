@@ -26,7 +26,8 @@ namespace Diaspora.IntegrationTests.Platform;
 /// non-versioned surfaces — health and the manifest — are untouched.
 /// </para>
 /// </summary>
-public sealed class RouteCompatibilityTests : IdentityTestBase
+[Collection(PlatformCollection.Name)]
+public sealed class RouteCompatibilityTests : PooledIdentityTestBase
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 

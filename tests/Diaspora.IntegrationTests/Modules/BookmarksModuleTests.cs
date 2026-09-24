@@ -19,7 +19,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// module plugs in this cleanly, Trust, Marketplace, Messaging and the rest will too.
 /// </para>
 /// </summary>
-public sealed class BookmarksModuleTests : IdentityTestBase
+[Collection(DiscoveryCollection.Name)]
+public sealed class BookmarksModuleTests : PooledIdentityTestBase
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 

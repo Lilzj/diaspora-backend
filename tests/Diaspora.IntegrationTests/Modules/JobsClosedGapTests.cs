@@ -22,7 +22,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// exists at all.
 /// </para>
 /// </summary>
-public sealed class JobsClosedGapTests : IdentityTestBase
+[Collection(WorkCollection.Name)]
+public sealed class JobsClosedGapTests : PooledIdentityTestBase
 {
     private const string Root = "/api/v1/jobs";
 

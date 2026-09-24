@@ -11,7 +11,8 @@ namespace Diaspora.IntegrationTests.Identity;
 /// <summary>
 /// The progressive access ladder and the B2/B3 trust boundary, exercised over HTTP.
 /// </summary>
-public class ProgressiveAccessTests : IdentityTestBase
+[Collection(IdentityCollection.Name)]
+public class ProgressiveAccessTests : PooledIdentityTestBase
 {
     public ProgressiveAccessTests(CustomWebApplicationFactory factory) : base(factory) { }
 

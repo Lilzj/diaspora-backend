@@ -35,7 +35,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// directly would prove the arithmetic and nothing about whether any of these moves reaches it.
 /// </para>
 /// </summary>
-public sealed class NeighborhoodListingCountTests : IdentityTestBase
+[Collection(DiscoveryCollection.Name)]
+public sealed class NeighborhoodListingCountTests : PooledIdentityTestBase
 {
     public NeighborhoodListingCountTests(CustomWebApplicationFactory factory) : base(factory) =>
         factory.EnsureDatabaseCreated();

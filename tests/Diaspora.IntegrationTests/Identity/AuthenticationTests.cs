@@ -11,7 +11,8 @@ using Xunit;
 
 namespace Diaspora.IntegrationTests.Identity;
 
-public class AuthenticationTests : IdentityTestBase
+[Collection(IdentityCollection.Name)]
+public class AuthenticationTests : PooledIdentityTestBase
 {
     public AuthenticationTests(CustomWebApplicationFactory factory) : base(factory) { }
 

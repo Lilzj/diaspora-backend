@@ -25,7 +25,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// is the one thing a contract test must never do.
 /// </para>
 /// </summary>
-public sealed class MarketplaceModuleTests : IdentityTestBase
+[Collection(WorkCollection.Name)]
+public sealed class MarketplaceModuleTests : PooledIdentityTestBase
 {
     private const string Root = "/api/v1/marketplace";
 

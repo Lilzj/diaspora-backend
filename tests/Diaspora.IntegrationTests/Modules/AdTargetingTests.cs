@@ -31,7 +31,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// returning zero. Both would render as "nothing matches", which is a different and false answer.
 /// </para>
 /// </summary>
-public sealed class AdTargetingTests : IdentityTestBase
+[Collection(WorkCollection.Name)]
+public sealed class AdTargetingTests : PooledIdentityTestBase
 {
     private const string Root = "/api/v1/financial";
 
