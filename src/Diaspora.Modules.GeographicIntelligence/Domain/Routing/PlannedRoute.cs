@@ -116,4 +116,14 @@ public sealed record PlannedRoute
     /// </para>
     /// </summary>
     public IReadOnlyList<GeoCoordinate> Geometry { get; init; } = [];
+
+    /// <summary>
+    /// Warnings the provider requires a member to see with this route, verbatim.
+    /// <para>
+    /// Some are a licence condition rather than advice: a vendor may require its "walking directions
+    /// are in beta" notice on every walking route. The client shows every entry, and never
+    /// paraphrases one.
+    /// </para>
+    /// </summary>
+    public IReadOnlyList<string> Warnings { get; init; } = [];
 }

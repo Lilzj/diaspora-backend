@@ -152,7 +152,7 @@ public sealed class PlanRouteQueryHandler : IQueryHandler<PlanRouteQuery, RouteR
             settings,
             cancellationToken);
 
-        return Result.Success(Map(result, mode));
+        return Result.Success(Map(result, mode, _provider.Attribution));
     }
 
     /// <summary>
@@ -230,7 +230,7 @@ public sealed class PlanRouteQueryHandler : IQueryHandler<PlanRouteQuery, RouteR
         }
     }
 
-    private static RouteResponse Map(RouteProviderResult result, TravelMode mode) =>
+    private static RouteResponse Map(RouteProviderResult result, TravelMode mode, string? attribution) =>
         new()
         {
             Status = result.Outcome.ToString(),
@@ -286,9 +286,11 @@ public sealed class PlanRouteQueryHandler : IQueryHandler<PlanRouteQuery, RouteR
                             Latitude = point.Latitude,
                             Longitude = point.Longitude
                         })
-                    ]
+                    ],
+                    Warnings = route.Warnings
                 })
             ],
+            Attribution = result.IsSuccess ? attribution : null,
             Message = Explain(result.Outcome)
         };
 
@@ -313,6 +315,8 @@ public sealed class PlanRouteQueryHandler : IQueryHandler<PlanRouteQuery, RouteR
             "Too many directions requests just now. Please try again in a moment.",
         RouteOutcome.NoRoute =>
             "No route was found between those two points for that travel mode.",
+        RouteOutcome.AllowanceExhausted =>
+            "Directions have reached this month's limit and will be back next month.",
         _ => "That directions request could not be understood."
     };
 

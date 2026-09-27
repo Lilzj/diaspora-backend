@@ -67,6 +67,9 @@ public sealed record PlannedRouteResponse
     public IReadOnlyList<RouteLegResponse> Legs { get; init; } = [];
 
     public IReadOnlyList<RoutePointResponse> Geometry { get; init; } = [];
+
+    /// <summary>Provider warnings the member must see with this route, verbatim.</summary>
+    public IReadOnlyList<string> Warnings { get; init; } = [];
 }
 
 /// <summary>
@@ -89,7 +92,7 @@ public sealed record RouteResponse
 {
     /// <summary>
     /// <c>Success</c>, <c>NotConfigured</c>, <c>Unavailable</c>, <c>Unsupported</c>,
-    /// <c>RateLimited</c>, <c>InvalidRequest</c> or <c>NoRoute</c>.
+    /// <c>RateLimited</c>, <c>InvalidRequest</c>, <c>NoRoute</c> or <c>AllowanceExhausted</c>.
     /// </summary>
     public required string Status { get; init; }
 
@@ -114,4 +117,10 @@ public sealed record RouteResponse
 
     /// <summary>A member-readable sentence for a non-success status.</summary>
     public string? Message { get; init; }
+
+    /// <summary>
+    /// Credit the provider requires when its routes are shown away from its own map. Null when
+    /// none is owed.
+    /// </summary>
+    public string? Attribution { get; init; }
 }

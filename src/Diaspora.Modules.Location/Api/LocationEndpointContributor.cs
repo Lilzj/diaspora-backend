@@ -40,6 +40,7 @@ public sealed class LocationEndpointContributor : IEndpointContributor
         CountryEndpoints.Map(group);
         AreaEndpoints.Map(group);
         SearchEndpoints.Map(group);
+        PlaceEndpoints.Map(group);
         HyperlocalEndpoints.Map(group);
         ProfileEndpoints.Map(group);
         ExperienceEndpoints.Map(group);

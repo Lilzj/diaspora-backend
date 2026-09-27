@@ -7,6 +7,7 @@ using Diaspora.Api.Identity.Authentication;
 using Diaspora.Api.Middleware;
 using Diaspora.Api.RateLimiting;
 using Diaspora.Email;
+using Diaspora.Maps.Google;
 using Diaspora.Operations;
 using Diaspora.Application;
 using Diaspora.Infrastructure;
@@ -126,6 +127,12 @@ builder.Services.AddStripePayments(builder.Configuration);
 // own credentials are configured, and registering one enables no corridor by itself.
 builder.Services.AddPayPalPayments(builder.Configuration);
 builder.Services.AddFlutterwavePayments(builder.Configuration);
+
+// Google Maps, behind GeographicIntelligence's IRoutingProvider and Location's
+// IPlaceSearchProvider. A no-op unless Maps:Google:ApiKey is configured, so both routes keep
+// answering NotConfigured rather than advertising a provider that answers 403. Free tier only:
+// every billable call takes a unit from a monthly allowance in platform.provider_usage first.
+builder.Services.AddGoogleMaps(builder.Configuration);
 
 // How a verification decision reaches a member's access state.
 //

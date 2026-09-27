@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The Google Maps adapter: routing (Routes API) and street-address search (Places API, New).
+
+    A separate assembly for the reason Diaspora.Email is one. The modules own the policy — what a
+    route is, what a place suggestion is, what a member may ask for — and architecture tests refuse
+    a vendor name inside a module. The vendor lives here, behind IRoutingProvider and
+    IPlaceSearchProvider, and registers after the modules on last-registration-wins.
+
+    Free tier only, by the user's decision of 27 Sep 2026. Every billable call takes a unit from a
+    monthly allowance held in the database (IProviderUsageMeter) before it is made, and the options
+    refuse an allowance above Google's free monthly cap for its SKU.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Diaspora.Maps.Google</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Diaspora.UnitTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The routing port. -->
+    <ProjectReference Include="..\Diaspora.Modules.GeographicIntelligence\Diaspora.Modules.GeographicIntelligence.csproj" />
+    <!-- The place search port. -->
+    <ProjectReference Include="..\Diaspora.Modules.Location\Diaspora.Modules.Location.csproj" />
+    <!-- The allowance meter. -->
+    <ProjectReference Include="..\Diaspora.Platform\Diaspora.Platform.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+</Project>

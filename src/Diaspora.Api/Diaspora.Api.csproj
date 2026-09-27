@@ -95,6 +95,11 @@
       See Diaspora.Email.
     -->
     <ProjectReference Include="..\Diaspora.Email\Diaspora.Email.csproj" />
+    <!--
+      The Google Maps adapter: routing and street-address search. A no-op unless
+      Maps:Google:ApiKey is configured. Free tier only; see Diaspora.Maps.Google.
+    -->
+    <ProjectReference Include="..\Diaspora.Maps.Google\Diaspora.Maps.Google.csproj" />
 
     <!--
       The Stripe payout adapter. Registers ISettlementProvider and

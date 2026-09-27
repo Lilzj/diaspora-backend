@@ -33,6 +33,7 @@
     <Project Path="src/Diaspora.Observability/Diaspora.Observability.csproj" />
     <Project Path="src/Diaspora.Operations/Diaspora.Operations.csproj" />
     <Project Path="src/Diaspora.Email/Diaspora.Email.csproj" />
+    <Project Path="src/Diaspora.Maps.Google/Diaspora.Maps.Google.csproj" />
     <Project Path="src/Diaspora.Push.Firebase/Diaspora.Push.Firebase.csproj" />
     <Project Path="src/Diaspora.Sms/Diaspora.Sms.csproj" />
     <Project Path="src/Diaspora.Persistence/Diaspora.Persistence.csproj" />

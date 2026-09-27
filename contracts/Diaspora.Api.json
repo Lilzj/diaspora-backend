@@ -12771,15 +12771,14 @@
         "operationId": "GetMyCreatorActivity",
         "parameters": [
           {
-            "name": "before",
+            "name": "cursor",
             "in": "query",
             "schema": {
-              "type": "string",
-              "format": "date-time"
+              "type": "string"
             }
           },
           {
-            "name": "take",
+            "name": "limit",
             "in": "query",
             "schema": {
               "pattern": "^-?(?:0|[1-9]\\d*)$",
@@ -15664,7 +15663,7 @@
         "tags": [
           "Financial"
         ],
-        "summary": "How the caller earned and spent their points.",
+        "summary": "How the caller earned and spent their points. Cursor-paged.",
         "operationId": "GetMyRewardHistory",
         "parameters": [
           {
@@ -15673,6 +15672,17 @@
             "schema": {
               "type": "string",
               "format": "date-time"
+            }
+          },
+          {
+            "name": "excludeIds",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
             }
           },
           {
@@ -27066,6 +27076,54 @@
         }
       }
     },
+    "/api/v1/location/places/autocomplete": {
+      "post": {
+        "tags": [
+          "Location"
+        ],
+        "summary": "Street-address and place suggestions for what a member has typed.",
+        "operationId": "AutocompletePlaces",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlaceAutocompleteRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/location/places/details": {
+      "post": {
+        "tags": [
+          "Location"
+        ],
+        "summary": "The coordinate and address of a picked suggestion. Ends the search session.",
+        "operationId": "GetPlaceDetails",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlaceDetailsRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/location/nearby": {
       "get": {
         "tags": [
@@ -33965,6 +34023,31 @@
           },
           "required": true
         },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/trust/verifications/{verificationId}/reapply-outcome": {
+      "post": {
+        "tags": [
+          "Trust"
+        ],
+        "summary": "Apply the standing effects of an approval that never granted anything.",
+        "operationId": "ReapplyVerificationOutcome",
+        "parameters": [
+          {
+            "name": "verificationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -43808,6 +43891,118 @@
         "properties": {
           "pinned": {
             "type": "boolean"
+          }
+        }
+      },
+      "PlaceAutocompleteRequestBody": {
+        "required": [
+          "input",
+          "sessionToken",
+          "near",
+          "nearRadiusMetres",
+          "countryCodes",
+          "language"
+        ],
+        "type": "object",
+        "properties": {
+          "input": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sessionToken": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "near": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PlacePointBody"
+              }
+            ]
+          },
+          "nearRadiusMetres": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "countryCodes": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "language": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PlaceDetailsRequestBody": {
+        "required": [
+          "placeId",
+          "sessionToken",
+          "language"
+        ],
+        "type": "object",
+        "properties": {
+          "placeId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sessionToken": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "language": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PlacePointBody": {
+        "required": [
+          "latitude",
+          "longitude"
+        ],
+        "type": "object",
+        "properties": {
+          "latitude": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "longitude": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
           }
         }
       },

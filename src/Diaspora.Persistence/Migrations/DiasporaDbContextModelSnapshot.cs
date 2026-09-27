@@ -17659,6 +17659,35 @@ namespace Diaspora.Persistence.Migrations
                     b.ToTable("transaction_receipts", "platform");
                 });
 
+            modelBuilder.Entity("Diaspora.Platform.Usage.ProviderUsageCounter", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<string>("Period")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("Sku")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<int>("Used")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("provider_usage", "platform");
+                });
+
             modelBuilder.Entity("Diaspora.Domain.Identity.Sessions.RefreshToken", b =>
                 {
                     b.HasOne("Diaspora.Domain.Identity.Sessions.UserSession", null)

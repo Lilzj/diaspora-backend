@@ -5,6 +5,8 @@ using Diaspora.Platform.Operations.Privacy;
 using Diaspora.Persistence.Modules;
 using Diaspora.Persistence.Outbox;
 using Diaspora.Persistence.Transactions;
+using Diaspora.Persistence.Usage;
+using Diaspora.Platform.Usage;
 using Diaspora.Platform.Transactions;
 using Diaspora.Platform.Modules;
 using Microsoft.EntityFrameworkCore;
@@ -39,6 +41,10 @@ public static class DependencyInjection
         // commit verifiable live inside the unit of work itself — they are steps in a transaction,
         // not services anything else may call — so this is the only one that needs registering.
         services.AddScoped<ITransactionReceiptStore, EfTransactionReceiptStore>();
+
+        // The monthly allowance on paid vendor calls. In the database rather than in memory
+        // because every Fly machine has to draw on the same allowance.
+        services.AddScoped<IProviderUsageMeter, EfProviderUsageMeter>();
 
         // The two subject-rights providers for the identity schema. Registered here, with the identity
         // mappings they operate on, and scoped because they read and write through the request's own

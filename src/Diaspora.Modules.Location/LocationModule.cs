@@ -5,8 +5,10 @@ using Diaspora.Modules.Location.Domain.Countries;
 using Diaspora.Modules.Location.Domain.Experience;
 using Diaspora.Modules.Location.Domain.Profiles;
 using Diaspora.Modules.Location.Domain.Residency;
+using Diaspora.Modules.Location.Domain.Places;
 using Diaspora.Modules.Location.Domain.Spatial;
 using Diaspora.Modules.Location.Extensibility;
+using Diaspora.Modules.Location.Infrastructure.Places;
 using Diaspora.Modules.Location.Integration;
 using Diaspora.Modules.Location.Persistence.Repositories;
 using Diaspora.Modules.Location.Persistence.Seeding;
@@ -16,6 +18,7 @@ using Diaspora.Platform.Modules.Seeding;
 using FluentValidation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using System.Reflection;
 
 namespace Diaspora.Modules.Location;
@@ -64,6 +67,11 @@ public sealed class LocationModule : IPlatformModule
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
+        services.AddOptions<LocationPlacesOptions>()
+            .Bind(configuration.GetSection(LocationPlacesOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
         RegisterRepositories(services);
         RegisterSpatial(services);
         RegisterExtensibility(services, assembly);
@@ -106,6 +114,10 @@ public sealed class LocationModule : IPlatformModule
         services.AddScoped<GeospatialProviderRegistry>();
 
         services.AddScoped<IGeocodingProvider, CatalogGeocodingProvider>();
+
+        // Street addresses. "Not configured" until a vendor adapter registers after this module;
+        // TryAdd so an adapter registered earlier also wins.
+        services.TryAddScoped<IPlaceSearchProvider, NotConfiguredPlaceSearchProvider>();
     }
 
     /// <summary>

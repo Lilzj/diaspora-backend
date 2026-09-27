@@ -48,5 +48,12 @@ public enum RouteOutcome
     /// The provider answered, and the answer is that no route exists. An island, a closed border,
     /// a pedestrian origin inside a motorway junction. Not a failure and never retryable.
     /// </summary>
-    NoRoute = 6
+    NoRoute = 6,
+
+    /// <summary>
+    /// The deployment's monthly allowance with its provider is spent. Distinct from
+    /// <see cref="RateLimited"/>, which recovers in moments: this recovers next month, and telling a
+    /// member to try again shortly would be untrue.
+    /// </summary>
+    AllowanceExhausted = 7
 }

@@ -101,6 +101,9 @@ public sealed record RouteProviderResult
 
     public static RouteProviderResult NoRoute(string providerKey) =>
         new(RouteOutcome.NoRoute, providerKey, [], detail: null);
+
+    public static RouteProviderResult AllowanceExhausted(string providerKey) =>
+        new(RouteOutcome.AllowanceExhausted, providerKey, [], detail: null);
 }
 
 /// <summary>
@@ -137,6 +140,12 @@ public interface IRoutingProvider
     /// </para>
     /// </summary>
     IReadOnlyCollection<TravelMode> SupportedModes { get; }
+
+    /// <summary>
+    /// The credit the provider's licence requires beside its routes, or null. Declared by the
+    /// adapter, so this module never has to know which vendor needs what.
+    /// </summary>
+    string? Attribution => null;
 
     /// <summary>
     /// Plans a journey.

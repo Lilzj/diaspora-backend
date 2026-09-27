@@ -4,6 +4,7 @@ using Diaspora.Modules.GeographicIntelligence.Domain.Heat;
 using Diaspora.Modules.GeographicIntelligence.Domain.Routing;
 using Diaspora.Modules.GeographicIntelligence.Domain.Scores;
 using Diaspora.Modules.GeographicIntelligence.Options;
+using Diaspora.Modules.Location.Domain.Places;
 using Diaspora.Modules.Location.Domain.Spatial;
 using Diaspora.Modules.Location.Extensibility;
 using Diaspora.SharedKernel.Results;
@@ -33,15 +34,18 @@ public sealed class GetGeoCapabilitiesQueryHandler
     : IQueryHandler<GetGeoCapabilitiesQuery, GeoCapabilitiesResponse>
 {
     private readonly IRoutingProvider _routing;
+    private readonly IPlaceSearchProvider _places;
     private readonly GeospatialProviderRegistry _spatial;
     private readonly IOptions<GeographicIntelligenceOptions> _options;
 
     public GetGeoCapabilitiesQueryHandler(
         IRoutingProvider routing,
+        IPlaceSearchProvider places,
         GeospatialProviderRegistry spatial,
         IOptions<GeographicIntelligenceOptions> options)
     {
         _routing = routing;
+        _places = places;
         _spatial = spatial;
         _options = options;
     }
@@ -136,12 +140,15 @@ public sealed class GetGeoCapabilitiesQueryHandler
             new()
             {
                 Capability = "street-level-geocoding",
-                Available = false,
-                Provider = "catalog",
-                Detail =
-                    "Addresses resolve to Diaspora's own place catalogue — neighbourhoods and "
-                    + "cities. Street addresses and points of interest need a vendor and none is "
-                    + "configured."
+                Available = _places.IsConfigured,
+                Provider = _places.IsConfigured ? _places.Key : "catalog",
+                Detail = _places.IsConfigured
+                    ? "Street addresses and points of interest resolve through the configured "
+                      + "provider at POST /location/places/autocomplete and /details, within a "
+                      + "monthly allowance."
+                    : "Addresses resolve to Diaspora's own place catalogue — neighbourhoods and "
+                      + "cities. Street addresses and points of interest need a vendor and none is "
+                      + "configured."
             }
         };
 
