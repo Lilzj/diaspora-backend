@@ -22,7 +22,7 @@ internal static class PlaceEndpoints
         ArgumentNullException.ThrowIfNull(group);
 
         group.MapPost("/places/autocomplete", async (
-                PlaceAutocompleteRequestBody body,
+                AutocompletePlacesRequest body,
                 ISender sender,
                 HttpContext context,
                 CancellationToken cancellationToken) =>
@@ -47,7 +47,7 @@ internal static class PlaceEndpoints
             .WithSummary("Street-address and place suggestions for what a member has typed.");
 
         group.MapPost("/places/details", async (
-                PlaceDetailsRequestBody body,
+                LookUpPlaceRequest body,
                 ISender sender,
                 HttpContext context,
                 CancellationToken cancellationToken) =>
@@ -69,14 +69,14 @@ internal static class PlaceEndpoints
     }
 }
 
-internal sealed record PlacePointBody(double Latitude, double Longitude);
+internal sealed record PlacePointRequest(double Latitude, double Longitude);
 
-internal sealed record PlaceAutocompleteRequestBody(
+internal sealed record AutocompletePlacesRequest(
     string? Input,
     string? SessionToken,
-    PlacePointBody? Near,
+    PlacePointRequest? Near,
     int? NearRadiusMetres,
     IReadOnlyList<string>? CountryCodes,
     string? Language);
 
-internal sealed record PlaceDetailsRequestBody(string? PlaceId, string? SessionToken, string? Language);
+internal sealed record LookUpPlaceRequest(string? PlaceId, string? SessionToken, string? Language);

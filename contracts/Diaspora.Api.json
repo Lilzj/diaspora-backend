@@ -27087,7 +27087,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PlaceAutocompleteRequestBody"
+                "$ref": "#/components/schemas/AutocompletePlacesRequest"
               }
             }
           },
@@ -27111,7 +27111,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PlaceDetailsRequestBody"
+                "$ref": "#/components/schemas/LookUpPlaceRequest"
               }
             }
           },
@@ -36301,6 +36301,65 @@
           }
         }
       },
+      "AutocompletePlacesRequest": {
+        "required": [
+          "input",
+          "sessionToken",
+          "near",
+          "nearRadiusMetres",
+          "countryCodes",
+          "language"
+        ],
+        "type": "object",
+        "properties": {
+          "input": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sessionToken": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "near": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PlacePointRequest"
+              }
+            ]
+          },
+          "nearRadiusMetres": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "countryCodes": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "language": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "AutomationActionRequest": {
         "type": "object",
         "properties": {
@@ -42543,6 +42602,34 @@
           }
         }
       },
+      "LookUpPlaceRequest": {
+        "required": [
+          "placeId",
+          "sessionToken",
+          "language"
+        ],
+        "type": "object",
+        "properties": {
+          "placeId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sessionToken": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "language": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "MakeOfferRequest": {
         "required": [
           "amount"
@@ -43894,94 +43981,7 @@
           }
         }
       },
-      "PlaceAutocompleteRequestBody": {
-        "required": [
-          "input",
-          "sessionToken",
-          "near",
-          "nearRadiusMetres",
-          "countryCodes",
-          "language"
-        ],
-        "type": "object",
-        "properties": {
-          "input": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "sessionToken": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "near": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/PlacePointBody"
-              }
-            ]
-          },
-          "nearRadiusMetres": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "null",
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "countryCodes": {
-            "type": [
-              "null",
-              "array"
-            ],
-            "items": {
-              "type": "string"
-            }
-          },
-          "language": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
-      "PlaceDetailsRequestBody": {
-        "required": [
-          "placeId",
-          "sessionToken",
-          "language"
-        ],
-        "type": "object",
-        "properties": {
-          "placeId": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "sessionToken": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "language": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
-      "PlacePointBody": {
+      "PlacePointRequest": {
         "required": [
           "latitude",
           "longitude"
