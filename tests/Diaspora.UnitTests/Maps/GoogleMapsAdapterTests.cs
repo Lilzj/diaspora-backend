@@ -163,6 +163,20 @@ public sealed class GoogleMapsAdapterTests
     }
 
     [Fact]
+    public void A_walking_route_carries_the_beta_notice_even_when_Google_sends_none()
+    {
+        // The live answer of 4 Oct 2026: a walking route with no warnings at all.
+        var body = JsonNode.Parse(RouteBody.Replace(
+            "\"warnings\":[\"Walking directions are in beta. Use caution.\"],", string.Empty, StringComparison.Ordinal))!.AsObject();
+
+        var walking = GoogleRoutingProvider.ParseRoutes(body, TravelMode.Walking).Single();
+        var driving = GoogleRoutingProvider.ParseRoutes(body, TravelMode.Driving).Single();
+
+        walking.Warnings.Should().Equal(GoogleRoutingProvider.WalkingBetaNotice);
+        driving.Warnings.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task An_empty_answer_is_no_route()
     {
         var provider = Routing(new FakeTransport(_ => (HttpStatusCode.OK, "{}")), new FakeMeter());

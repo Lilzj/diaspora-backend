@@ -247,11 +247,46 @@ internal sealed class GoogleRoutingProvider : IRoutingProvider
                 DurationInTrafficSeconds = null,
                 Legs = legs,
                 Geometry = geometry,
-                Warnings = [.. (route["warnings"] as JsonArray ?? []).Select(Text).OfType<string>()]
+                Warnings = WithBetaNotice(
+                    [.. (route["warnings"] as JsonArray ?? []).Select(Text).OfType<string>()], mode)
             });
         }
 
         return planned;
+    }
+
+    /// <summary>Google's notice for walking routes, in the wording its Directions documentation uses.</summary>
+    internal const string WalkingBetaNotice =
+        "Walking directions are in beta. Use caution – this route may be missing pavements or pedestrian paths.";
+
+    /// <summary>Google's notice for cycling routes.</summary>
+    internal const string CyclingBetaNotice =
+        "Cycling directions are in beta. Use caution – this route may include streets not suited to cycling.";
+
+    /// <summary>
+    /// Adds the beta notice Google's terms require on walking and cycling routes.
+    /// <para>
+    /// Found live on 4 Oct 2026: the Routes API does <em>not</em> send this notice in
+    /// <c>warnings</c> (a Rose Hill walk came back with none), although the Routes API page says
+    /// it "must" be shown. A fixture written from the documentation had included it, and so passed.
+    /// The adapter adds it unless Google's own warnings already say "beta".
+    /// </para>
+    /// </summary>
+    internal static IReadOnlyList<string> WithBetaNotice(IReadOnlyList<string> warnings, TravelMode mode)
+    {
+        var notice = mode switch
+        {
+            TravelMode.Walking => WalkingBetaNotice,
+            TravelMode.Cycling => CyclingBetaNotice,
+            _ => null
+        };
+
+        if (notice is null || warnings.Any(warning => warning.Contains("beta", StringComparison.OrdinalIgnoreCase)))
+        {
+            return warnings;
+        }
+
+        return [notice, .. warnings];
     }
 
     private static RouteLeg SingleLeg(JsonObject leg, IReadOnlyList<JsonObject> steps, TravelMode mode) =>
