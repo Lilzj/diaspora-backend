@@ -131,6 +131,19 @@ public sealed class DefaultEventCategoryContributor : IEventCategoryContributor
         },
         new()
         {
+            // Added 5 Oct 2026. Conferences, summits and forums were filed under "Workshop or
+            // training", the nearest shelf, so the first conference posted read as a workshop.
+            // RSVP stays on: a conference takes registrations.
+            Key = "conference",
+            Name = "Conference",
+            Description = "A conference, summit or forum with speakers and panels.",
+            IconName = "microphone",
+            GroupName = "Professional",
+            Facets = ["business"],
+            Order = 105
+        },
+        new()
+        {
             Key = "career-fair",
             Name = "Career fair",
             Description = "A jobs fair, recruitment day or careers evening.",
