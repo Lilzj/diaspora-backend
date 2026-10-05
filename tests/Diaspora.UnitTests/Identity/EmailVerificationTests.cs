@@ -149,11 +149,13 @@ public sealed class EmailVerificationTests
         var sender = Substitute.For<IEmailVerificationSender>();
         sender.IsConfigured.Returns(true);
 
-        var result = await SendHandler(Member("amara@example.com"), sender: sender, limiter: limiter)
+        var send = () => SendHandler(Member("amara@example.com"), sender: sender, limiter: limiter)
             .Handle(new SendEmailVerificationCommand(), CancellationToken.None);
 
-        result.Error.Code.Should().Be("Identity.Email.Cooldown");
-        result.Error.Description.Should().Contain("42 seconds");
+        // Thrown, so the middleware sends Retry-After and the app can count down.
+        var refusal = await send.Should().ThrowAsync<Diaspora.Application.Exceptions.RateLimitException>();
+        refusal.Which.RetryAfterSeconds.Should().Be(42);
+        refusal.Which.Message.Should().Contain("42 seconds");
         await sender.DidNotReceiveWithAnyArgs().SendAsync(default!, default);
     }
 

@@ -1,4 +1,5 @@
 using Diaspora.Application.Abstractions;
+using Diaspora.Application.Exceptions;
 using Diaspora.Application.Identity.Abstractions;
 using Diaspora.Contracts.Identity.V1.Responses;
 using Diaspora.Domain.Abstractions;
@@ -147,17 +148,21 @@ public sealed class SendEmailVerificationCommandHandler
             EmailVerificationRules.CooldownKey(userId.Value), 1, EmailVerificationRules.Cooldown, cancellationToken);
         if (!cooldown.IsAllowed)
         {
-            return Result.Failure<EmailIdentityResponse>(Error.RateLimited(
-                "Identity.Email.Cooldown",
-                $"Please wait {Math.Ceiling(cooldown.RetryAfter.TotalSeconds):0} seconds before asking for another link."));
+            // Thrown rather than returned: the exception middleware turns it into a 429 with a
+            // Retry-After header, which the app reads into a countdown. A returned RateLimited error
+            // carries the wait only in its prose, and the app replaced it with "please wait"
+            // (seen on the device, 5 Oct 2026).
+            var wait = Math.Max(1, (int)Math.Ceiling(cooldown.RetryAfter.TotalSeconds));
+            throw new RateLimitException(wait, $"Please wait {wait} seconds before asking for another link.");
         }
 
         var daily = await _limiter.AcquireAsync(
             EmailVerificationRules.DailyKey(userId.Value), EmailVerificationRules.DailyLimit, TimeSpan.FromDays(1), cancellationToken);
         if (!daily.IsAllowed)
         {
-            return Result.Failure<EmailIdentityResponse>(Error.RateLimited(
-                "Identity.Email.DailyLimit", "Too many verification emails today. Please try again tomorrow."));
+            throw new RateLimitException(
+                Math.Max(1, (int)Math.Ceiling(daily.RetryAfter.TotalSeconds)),
+                "Too many verification emails today. Please try again tomorrow.");
         }
 
         var (token, expiresAt) = _links.Create(user.Id, user.Email.Value);
