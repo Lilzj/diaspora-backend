@@ -1,3 +1,4 @@
+using Diaspora.Application.Identity.Commands.EmailVerification;
 using Asp.Versioning;
 using Diaspora.Api.Common;
 using Diaspora.Api.RateLimiting;
@@ -311,6 +312,33 @@ public sealed class AuthController : ApiController
             NewPassword = request.NewPassword
         }, cancellationToken);
 
+        return HandleResult(result);
+    }
+
+    /// <summary>The member's email address and whether they have proven they receive mail there.</summary>
+    [HttpGet("email")]
+    [Authorize(Policy = DiasporaPolicies.ReadOwnProfile)]
+    [ProducesResponseType<ApiResponse<EmailIdentityResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetEmailAsync(CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new GetEmailIdentityQuery(), cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Sends a verification link to the address on file. At most one a minute and six a day; a
+    /// refusal is a 429 whose message says how long to wait.
+    /// </summary>
+    [HttpPost("email/verification")]
+    [Authorize(Policy = DiasporaPolicies.UpdateOwnProfile)]
+    [ProducesResponseType<ApiResponse<EmailIdentityResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<IActionResult> SendEmailVerificationAsync(CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new SendEmailVerificationCommand(), cancellationToken);
         return HandleResult(result);
     }
 

@@ -178,6 +178,34 @@ public sealed class User : AggregateRoot<UserId>, IAuditableEntity, ISoftDeletab
 
     public bool IsPhoneVerified => Security.PhoneVerifiedAt is not null;
 
+    public bool IsEmailVerified => Email is not null && Security.EmailVerifiedAt is not null;
+
+    /// <summary>
+    /// Records that the member opened a verification link sent to <paramref name="address"/>.
+    /// <para>
+    /// Refused when the address on the account is no longer the one the link was sent to: a link
+    /// proves ownership of one address, and the member may have changed it since. Succeeds without
+    /// change when already verified, because a member who taps the same link twice has done
+    /// nothing wrong.
+    /// </para>
+    /// </summary>
+    public Result ConfirmEmailVerified(EmailAddress address, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(address);
+
+        if (Email is null || Email != address)
+        {
+            return Result.Failure(UserErrors.EmailVerificationAddressChanged);
+        }
+
+        if (IsEmailVerified) return Result.Success();
+
+        Security = Security.WithEmailVerified(now);
+        RaiseDomainEvent(new UserProfileUpdatedDomainEvent(Id, ["EmailVerified"], now));
+
+        return Result.Success();
+    }
+
     // ─── Authentication ─────────────────────────────────────────────────
 
     /// <summary>
@@ -385,6 +413,12 @@ public sealed class User : AggregateRoot<UserId>, IAuditableEntity, ISoftDeletab
         if (Email == email) return Result.Success();
 
         Email = email;
+
+        // A proof of ownership belongs to the address that received the link. Without this, the
+        // first address's verification would carry over to whatever replaced it (found 5 Oct 2026,
+        // when verification was first wired: nothing had ever set the timestamp, so nothing had
+        // ever needed clearing).
+        Security = Security.WithEmailUnverified();
         RaiseDomainEvent(new UserProfileUpdatedDomainEvent(Id, [nameof(Email)], now));
 
         return Result.Success();

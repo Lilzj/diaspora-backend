@@ -45,6 +45,15 @@ public static class UserErrors
     public static readonly Error PhoneAlreadyVerified =
         Error.Conflict("Identity.User.PhoneAlreadyVerified", "The phone number on this account is already verified.");
 
+    public static readonly Error EmailVerificationAddressChanged =
+        Error.Conflict("Identity.User.EmailVerificationAddressChanged", "This link was sent to an email address that is no longer on the account.");
+
+    public static readonly Error NoEmailOnAccount =
+        Error.Validation("Identity.User.NoEmailOnAccount", "There is no email address on this account to verify.");
+
+    public static readonly Error EmailAlreadyVerified =
+        Error.Conflict("Identity.User.EmailAlreadyVerified", "The email address on this account is already verified.");
+
     public static readonly Error AccountLocked =
         Error.Forbidden("Identity.User.AccountLocked", "This account is locked. Complete account recovery to restore access.");
 

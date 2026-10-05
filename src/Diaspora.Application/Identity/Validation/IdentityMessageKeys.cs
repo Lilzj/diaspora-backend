@@ -69,6 +69,18 @@ public static class IdentityMessageKeys
     /// </remarks>
     public const string OtpEmailFooter = "identity.otp.emailFooter";
 
+    /// <summary>Subject of the email that proves a member receives mail at their address.</summary>
+    public const string EmailVerificationSubject = "identity.emailVerification.subject";
+
+    /// <summary>Body; <c>{0}</c> is how many hours the link stays valid.</summary>
+    public const string EmailVerificationBody = "identity.emailVerification.body";
+
+    /// <summary>The label on the link.</summary>
+    public const string EmailVerificationButton = "identity.emailVerification.button";
+
+    /// <summary>Why the member received it, and what to do if they did not ask.</summary>
+    public const string EmailVerificationFooter = "identity.emailVerification.footer";
+
     public const string RefreshTokenRequired = "identity.validation.refreshToken.required";
     public const string CurrentPasswordRequired = "identity.validation.currentPassword.required";
 

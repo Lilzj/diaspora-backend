@@ -1,3 +1,4 @@
+using Diaspora.Api.Identity;
 using Asp.Versioning;
 using Diaspora.Modules.Trust.Application.Services;
 using Diaspora.Api.Identity.Trust;
@@ -434,6 +435,10 @@ app.MapGet("/payments/checkout/cancelled", () => CheckoutReturn(
     "Payment cancelled",
     "Nothing was charged. You can try again from your wallet whenever you are ready.",
     "diaspora://wallet"));
+
+// The page an email verification link opens. It verifies only on its button's POST, because mail
+// scanners open every link in a message. See EmailConfirmationPages.
+EmailConfirmationPages.Map(app);
 
 // ─── Start ───────────────────────────────────────────────────────────
 

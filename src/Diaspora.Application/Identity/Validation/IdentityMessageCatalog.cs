@@ -98,6 +98,10 @@ public static class IdentityMessageCatalog
                 + "this message. Your password has not been changed.",
             [IdentityMessageKeys.OtpEmailFooter] =
                 "If you did not ask to reset your password, no action is needed and your password has not changed.",
+            [IdentityMessageKeys.EmailVerificationSubject] = "Confirm your email address for Diaspora",
+            [IdentityMessageKeys.EmailVerificationBody] = "Tap the button below to confirm this is your email address. The link works for {0} hours.",
+            [IdentityMessageKeys.EmailVerificationButton] = "Confirm my email",
+            [IdentityMessageKeys.EmailVerificationFooter] = "You are receiving this because this address was added to a Diaspora account. If that was not you, ignore this email and nothing will change.",
             [IdentityMessageKeys.RefreshTokenRequired] = "A refresh token is required.",
             [IdentityMessageKeys.CurrentPasswordRequired] = "Your current password is required.",
             [IdentityMessageKeys.DeviceIdentifierRequired] = "A device identifier is required.",
@@ -147,6 +151,10 @@ public static class IdentityMessageCatalog
             [IdentityMessageKeys.OtpEmailFooter] =
                 "Si vous n'avez pas demandé à réinitialiser votre mot de passe, aucune action "
                 + "n'est nécessaire et votre mot de passe reste inchangé.",
+            [IdentityMessageKeys.EmailVerificationSubject] = "Confirmez votre adresse e-mail pour Diaspora",
+            [IdentityMessageKeys.EmailVerificationBody] = "Appuyez sur le bouton ci-dessous pour confirmer que cette adresse e-mail est bien la vôtre. Le lien est valable {0} heures.",
+            [IdentityMessageKeys.EmailVerificationButton] = "Confirmer mon e-mail",
+            [IdentityMessageKeys.EmailVerificationFooter] = "Vous recevez ce message parce que cette adresse a été ajoutée à un compte Diaspora. Si ce n'était pas vous, ignorez cet e-mail : rien ne changera.",
             [IdentityMessageKeys.RefreshTokenRequired] = "Un jeton de rafraîchissement est requis.",
             [IdentityMessageKeys.CurrentPasswordRequired] = "Votre mot de passe actuel est requis.",
             [IdentityMessageKeys.DeviceIdentifierRequired] = "Un identifiant d'appareil est requis.",
@@ -196,6 +204,10 @@ public static class IdentityMessageCatalog
             [IdentityMessageKeys.OtpEmailFooter] =
                 "Se não pediu para redefinir a sua palavra-passe, não é necessária qualquer "
                 + "ação e a sua palavra-passe permanece inalterada.",
+            [IdentityMessageKeys.EmailVerificationSubject] = "Confirme o seu endereço de email para a Diaspora",
+            [IdentityMessageKeys.EmailVerificationBody] = "Toque no botão abaixo para confirmar que este é o seu endereço de email. A ligação é válida durante {0} horas.",
+            [IdentityMessageKeys.EmailVerificationButton] = "Confirmar o meu email",
+            [IdentityMessageKeys.EmailVerificationFooter] = "Está a receber esta mensagem porque este endereço foi adicionado a uma conta Diaspora. Se não foi você, ignore este email e nada será alterado.",
             [IdentityMessageKeys.RefreshTokenRequired] = "É necessário um token de atualização.",
             [IdentityMessageKeys.CurrentPasswordRequired] = "A sua palavra-passe atual é obrigatória.",
             [IdentityMessageKeys.DeviceIdentifierRequired] = "É necessário um identificador de dispositivo.",
@@ -243,6 +255,10 @@ public static class IdentityMessageCatalog
                 + "إذا لم تطلب هذا الرمز، يمكنك تجاهل هذه الرسالة. لم يتم تغيير كلمة المرور الخاصة بك.",
             [IdentityMessageKeys.OtpEmailFooter] =
                 "إذا لم تطلب إعادة تعيين كلمة المرور، فلا حاجة لأي إجراء ولم تتغير كلمة المرور الخاصة بك.",
+            [IdentityMessageKeys.EmailVerificationSubject] = "أكّد عنوان بريدك الإلكتروني في Diaspora",
+            [IdentityMessageKeys.EmailVerificationBody] = "اضغط على الزر أدناه لتأكيد أن هذا هو عنوان بريدك الإلكتروني. يبقى الرابط صالحًا لمدة {0} ساعة.",
+            [IdentityMessageKeys.EmailVerificationButton] = "تأكيد بريدي الإلكتروني",
+            [IdentityMessageKeys.EmailVerificationFooter] = "وصلتك هذه الرسالة لأن هذا العنوان أُضيف إلى حساب في Diaspora. إذا لم تكن أنت، فتجاهل هذه الرسالة ولن يتغير شيء.",
             [IdentityMessageKeys.RefreshTokenRequired] = "رمز التحديث مطلوب.",
             [IdentityMessageKeys.CurrentPasswordRequired] = "كلمة المرور الحالية مطلوبة.",
             [IdentityMessageKeys.DeviceIdentifierRequired] = "معرّف الجهاز مطلوب.",

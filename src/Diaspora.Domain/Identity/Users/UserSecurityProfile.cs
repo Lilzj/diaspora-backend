@@ -86,6 +86,14 @@ public sealed class UserSecurityProfile : ValueObject
         new(FailedLoginAttempts, LastFailedLoginAt, LockoutEndsAt, PasswordChangedAt,
             PhoneVerifiedAt, now, RequiresPasswordChange, SecurityStamp);
 
+    /// <summary>
+    /// Forgets that an address was proven. Called whenever the address changes: a verification
+    /// belongs to the address that received the link, never to whatever replaced it.
+    /// </summary>
+    public UserSecurityProfile WithEmailUnverified() =>
+        new(FailedLoginAttempts, LastFailedLoginAt, LockoutEndsAt, PasswordChangedAt,
+            PhoneVerifiedAt, null, RequiresPasswordChange, SecurityStamp);
+
     public UserSecurityProfile WithPasswordChangeRequired() =>
         new(FailedLoginAttempts, LastFailedLoginAt, LockoutEndsAt, PasswordChangedAt,
             PhoneVerifiedAt, EmailVerifiedAt, true, SecurityStamp);

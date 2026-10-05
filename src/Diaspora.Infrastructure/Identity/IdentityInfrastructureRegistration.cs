@@ -1,3 +1,4 @@
+using Diaspora.Infrastructure.Identity.EmailVerification;
 using Diaspora.Application.Identity.Abstractions;
 using Diaspora.Application.Identity.Access;
 using Diaspora.Application.Identity.Authentication;
@@ -73,6 +74,11 @@ public static class IdentityInfrastructureRegistration
 
         services.AddScoped<IPasswordPolicy, ConfigurablePasswordPolicy>();
         services.AddScoped<IOtpDeliveryService, LoggingOtpDeliveryService>();
+
+        // Email verification links: signed with a key derived from the JWT key, so nothing new
+        // to configure. The sender is a placeholder the email adapter replaces when Resend is set.
+        services.AddSingleton<IEmailVerificationLinks, EmailVerificationLinks>();
+        services.AddScoped<IEmailVerificationSender, UnconfiguredEmailVerificationSender>();
         services.AddScoped<ILocalizedMessageProvider, LocalizedMessageProvider>();
         services.AddScoped<ISecurityEventWriter, SecurityEventWriter>();
         services.AddScoped<IIdentityAuditWriter, IdentityAuditWriter>();

@@ -94,6 +94,10 @@ public static class EmailAdapterRegistration
         // placeholder's lifetime so nothing that resolves it has to change.
         services.AddScoped<IEmailSender, GatewayEmailSender>();
 
+        // Email verification links, replacing Identity's unconfigured placeholder. Registered here
+        // because only a deployment that can send email can prove a member receives it.
+        services.AddScoped<IEmailVerificationSender, GatewayEmailVerificationSender>();
+
         DecorateOtpDelivery(services);
 
         // ── The other half of an email provider ───────────────────────────────────────────
