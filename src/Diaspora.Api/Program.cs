@@ -440,6 +440,10 @@ app.MapGet("/payments/checkout/cancelled", () => CheckoutReturn(
 // scanners open every link in a message. See EmailConfirmationPages.
 EmailConfirmationPages.Map(app);
 
+// Android App Links: which app may open this host's links directly. Release keys only; see
+// AppLinkOptions for why the debug key never belongs here.
+AppLinkAssociation.Map(app);
+
 // ─── Start ───────────────────────────────────────────────────────────
 
 try

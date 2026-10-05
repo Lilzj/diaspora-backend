@@ -2600,6 +2600,45 @@
         }
       }
     },
+    "/api/v1/auth/email/confirm": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmEmailRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmEmailRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmEmailRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseOfEmailVerificationOutcomeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/me": {
       "get": {
         "tags": [
@@ -35305,6 +35344,28 @@
           }
         }
       },
+      "ApiResponseOfEmailVerificationOutcomeResponse": {
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EmailVerificationOutcomeResponse"
+              }
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        }
+      },
       "ApiResponseOfFeatureAccessResponse": {
         "required": [
           "data",
@@ -37594,6 +37655,17 @@
             "type": "string"
           },
           "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ConfirmEmailRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
             "type": [
               "null",
               "string"
@@ -41448,6 +41520,17 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "EmailVerificationOutcomeResponse": {
+        "required": [
+          "outcome"
+        ],
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "type": "string"
           }
         }
       },

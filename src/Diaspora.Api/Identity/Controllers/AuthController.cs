@@ -342,6 +342,26 @@ public sealed class AuthController : ApiController
         return HandleResult(result);
     }
 
+    /// <summary>
+    /// Confirms a verification link from inside the app, when an App Link opened the app instead of
+    /// the browser. Anonymous: the signed token is the credential, as on the web page.
+    /// </summary>
+    [HttpPost("email/confirm")]
+    [AllowAnonymous]
+    [EnableRateLimiting(RateLimitingRegistration.RecoveryPolicy)]
+    [ProducesResponseType<ApiResponse<EmailVerificationOutcomeResponse>>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> ConfirmEmailAsync(
+        [FromBody] ConfirmEmailRequest request,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var result = await _sender.Send(
+            new ConfirmEmailVerificationCommand { Token = request.Token ?? string.Empty }, cancellationToken);
+
+        return HandleResult(result);
+    }
+
     /// <summary>Returns the signed-in member's own profile.</summary>
     [HttpGet("me")]
     [Authorize(Policy = DiasporaPolicies.ReadOwnProfile)]

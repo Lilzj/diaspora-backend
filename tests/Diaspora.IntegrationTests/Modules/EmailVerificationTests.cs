@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 using Diaspora.Application.Identity.Abstractions;
 using Diaspora.IntegrationTests.Common;
@@ -103,6 +104,32 @@ public sealed class EmailVerificationTests : IdentityTestBase
         var html = await page.Content.ReadAsStringAsync();
         html.Should().NotContain("<script>alert(1)</script>");
         html.Should().Contain("&lt;script&gt;");
+    }
+
+    [Fact]
+    public async Task The_app_can_confirm_a_link_it_intercepted()
+    {
+        var (_, auth) = await RegisterAndVerifyAsync();
+        Api.Authenticate(auth.Tokens.AccessToken);
+        var token = Mint(auth.User.Id, auth.User.Email!);
+
+        // Anonymous on purpose: the app may hold the link on a device where nobody is signed in.
+        Api.ClearAuthentication();
+        var first = await DataAsync(await HttpClient.PostAsJsonAsync("/api/v1/auth/email/confirm", new { token }));
+        var second = await DataAsync(await HttpClient.PostAsJsonAsync("/api/v1/auth/email/confirm", new { token }));
+        var forged = await DataAsync(await HttpClient.PostAsJsonAsync("/api/v1/auth/email/confirm", new { token = "abc" }));
+
+        first.GetProperty("outcome").GetString().Should().Be("Verified");
+        second.GetProperty("outcome").GetString().Should().Be("AlreadyVerified");
+        forged.GetProperty("outcome").GetString().Should().Be("Invalid");
+    }
+
+    [Fact]
+    public async Task An_unconfigured_deployment_vouches_for_no_app()
+    {
+        var response = await HttpClient.GetAsync("/.well-known/assetlinks.json");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     private string Mint(Guid userId, string address)
