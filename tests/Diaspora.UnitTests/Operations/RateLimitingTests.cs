@@ -211,6 +211,38 @@ public sealed class PlatformRateLimiterTests
         limiter.BucketCount.Should().Be(1);
     }
 
+    /// <summary>
+    /// The wait a refusal reports is the real one. It used to be one segment length (10 seconds for
+    /// a one-minute window) whatever the attempts were, so a one-a-minute cooldown spent three
+    /// seconds ago said "10 seconds", and a client counting down was refused again (5 Oct 2026).
+    /// </summary>
+    [Fact]
+    public async Task A_sliding_window_refusal_reports_when_capacity_actually_returns()
+    {
+        var limiter = Build(out var clock, new RateLimitPolicy(Policy)
+        {
+            Algorithm = RateLimitAlgorithm.SlidingWindow,
+            PermitLimit = 1,
+            SegmentsPerWindow = 6,
+            Window = TimeSpan.FromMinutes(1)
+        });
+
+        (await limiter.AcquireAsync(Policy, Request())).IsAllowed.Should().BeTrue();
+
+        clock.Advance(TimeSpan.FromSeconds(3));
+        var refused = await limiter.AcquireAsync(Policy, Request());
+
+        refused.IsAllowed.Should().BeFalse();
+        refused.RetryAfter.Should().Be(TimeSpan.FromSeconds(57));
+
+        // Honest from both sides: still refused just before the reported moment, allowed at it.
+        clock.Advance(refused.RetryAfter - TimeSpan.FromSeconds(1));
+        (await limiter.AcquireAsync(Policy, Request())).IsAllowed.Should().BeFalse();
+
+        clock.Advance(TimeSpan.FromSeconds(1));
+        (await limiter.AcquireAsync(Policy, Request())).IsAllowed.Should().BeTrue();
+    }
+
     private static RateLimitRequest Request() => new(Subject: "subject");
 
     private static PlatformRateLimiter Build(out FakeClock clock, RateLimitPolicy policy)

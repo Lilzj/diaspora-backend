@@ -257,6 +257,7 @@ public sealed class PlatformRateLimiter : IPlatformRateLimiter
                 {
                     Array.Clear(_segments);
                     _segmentHead = 0;
+                    _segmentStartedAt = now;
                 }
                 else
                 {
@@ -265,9 +266,13 @@ public sealed class PlatformRateLimiter : IPlatformRateLimiter
                         _segmentHead = (_segmentHead + 1) % segments;
                         _segments[_segmentHead] = 0;
                     }
-                }
 
-                _segmentStartedAt = now;
+                    // Moved forward by whole segments, never to "now". Restarting the head segment at
+                    // the moment of the call stretched it by however far into the segment the call
+                    // arrived, so the window drifted longer than configured and an attempt outlived
+                    // it (found 5 Oct 2026: still refused at 60 s on a one-minute window).
+                    _segmentStartedAt += segmentDuration * advance;
+                }
             }
 
             long total = 0;
@@ -279,14 +284,54 @@ public sealed class PlatformRateLimiter : IPlatformRateLimiter
 
             if (total >= policy.PermitLimit)
             {
-                // The oldest segment is the next to age out, so that is when capacity returns.
-                return RateLimitDecision.Deny(segmentDuration, policy.Name, policy.Dimension);
+                return RateLimitDecision.Deny(
+                    UntilCapacityReturns(policy, segments, segmentDuration, total, now),
+                    policy.Name, policy.Dimension);
             }
 
             _segments[_segmentHead]++;
 
             return RateLimitDecision.Allow(
                 (int)(policy.PermitLimit - total - 1), policy.Name, policy.Dimension);
+        }
+
+        /// <summary>
+        /// How long until enough attempts age out for one more to fit.
+        /// <para>
+        /// Walks the ring from the oldest segment to the newest, dropping each one's count, and
+        /// answers when the first segment whose departure brings the total under the limit ages out.
+        /// A segment <c>k</c> places behind the head started <c>k</c> segment-lengths before the head
+        /// did, and leaves the window one full window after it started.
+        /// </para>
+        /// <para>
+        /// This used to answer one segment length regardless, on the reasoning that "the oldest
+        /// segment is the next to age out". That holds only when the oldest segment holds the
+        /// attempts. A one-a-minute cooldown spent a few seconds ago holds its attempt in the
+        /// newest segment, so the answer was "10 seconds" for a minute's wait, and a client
+        /// counting down from it was refused again, and again (found 5 Oct 2026 on the email
+        /// verification cooldown).
+        /// </para>
+        /// </summary>
+        private TimeSpan UntilCapacityReturns(
+            RateLimitPolicy policy, int segments, TimeSpan segmentDuration, long total, DateTimeOffset now)
+        {
+            var remaining = total;
+
+            for (var behind = segments - 1; behind >= 0; behind--)
+            {
+                var index = ((_segmentHead - behind) % segments + segments) % segments;
+                remaining -= _segments[index];
+
+                if (remaining < policy.PermitLimit)
+                {
+                    var leavesAt = _segmentStartedAt - (segmentDuration * behind) + policy.Window;
+                    var wait = leavesAt - now;
+
+                    return wait > TimeSpan.Zero ? wait : TimeSpan.FromSeconds(1);
+                }
+            }
+
+            return segmentDuration;
         }
 
         /// <summary>

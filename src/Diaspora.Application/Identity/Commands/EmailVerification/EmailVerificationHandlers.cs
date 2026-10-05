@@ -42,9 +42,12 @@ internal static class EmailVerificationRules
     /// </summary>
     public const int DailyLimit = 6;
 
-    public static string CooldownKey(Guid userId) => $"email-verification:cooldown:{userId:N}";
+    // Each key's purpose is the text before its first colon, and the platform limiter keeps one
+    // policy per purpose. These once shared "email-verification:", so every send rebuilt one policy
+    // alternately as one-a-minute and six-a-day (found 5 Oct 2026, from a "10 seconds" countdown).
+    public static string CooldownKey(Guid userId) => $"email-verification-cooldown:{userId:N}";
 
-    public static string DailyKey(Guid userId) => $"email-verification:daily:{userId:N}";
+    public static string DailyKey(Guid userId) => $"email-verification-daily:{userId:N}";
 
     public const string Ok = "ok";
 }
