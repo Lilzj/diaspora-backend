@@ -2,7 +2,6 @@ using System.Text;
 using Diaspora.Modules.Integrations.Application.Calendar;
 using Diaspora.Modules.Integrations.Application.Capabilities;
 using Diaspora.Modules.Integrations.Application.Connections;
-using Diaspora.Modules.Integrations.Application.Identities;
 using Diaspora.Modules.Integrations.Application.OAuth;
 using Diaspora.Modules.Integrations.Application.Sync;
 using Diaspora.Modules.Integrations.Application.Webhooks;
@@ -55,7 +54,6 @@ public sealed class IntegrationsEndpointContributor : IEndpointContributor
         MapOAuth(group);
         MapCalendar(group);
         MapSettings(group);
-        MapIdentities(group);
         MapCapabilities(group);
         MapWebhooks(group);
     }
@@ -370,41 +368,6 @@ public sealed class IntegrationsEndpointContributor : IEndpointContributor
             .RequireAuthorization(IntegrationsPolicies.SettingsWrite)
             .WithName("UpdateCalendarSettings")
             .WithSummary("A partial update. A missing field means 'leave it alone', never 'clear it'.");
-    }
-
-    // ── Identity — GAP-007 ──────────────────────────────────────────────────────────────────
-
-    private static void MapIdentities(RouteGroupBuilder group)
-    {
-        group.MapGet("/identities", async (
-                ISender sender, HttpContext context, CancellationToken cancellationToken) =>
-            {
-                var result = await sender.Send(new ListIdentityLinksQuery(), cancellationToken);
-
-                return PlatformResults.Ok(context, result);
-            })
-            .RequireAuthorization(IntegrationsPolicies.ConnectionsRead)
-            .WithName("ListIdentityLinks")
-            .WithSummary("Every way this member can sign in. Never cached — it is a lock-out input.");
-
-        group.MapDelete("/identities/{provider}", async (
-                string provider,
-                string? reauthToken,
-                ISender sender,
-                HttpContext context,
-                CancellationToken cancellationToken) =>
-            {
-                var result = await sender.Send(
-                    new UnlinkIdentityCommand { Provider = provider, ReauthToken = reauthToken },
-                    cancellationToken);
-
-                return PlatformResults.Ok(context, result);
-            })
-            .RequireAuthorization(IntegrationsPolicies.ConnectionsWrite)
-            .WithName("UnlinkIdentity")
-            .WithSummary(
-                "Detaches an external identity. Requires a recent authentication, and the server "
-                + "refuses to remove the last method regardless of what the client sent.");
     }
 
     // ── Capabilities ────────────────────────────────────────────────────────────────────────

@@ -53,7 +53,7 @@ public sealed class IntegrationSecretRequirementContributor : ISecretRequirement
             // exactly the deployment an operator needs the list for.
             foreach (var provider in new[]
                      {
-                         "calendar.google", "calendar.apple", "identity.google", "identity.apple"
+                         "calendar.google", "calendar.apple"
                      })
             {
                 yield return new SecretRequirement(

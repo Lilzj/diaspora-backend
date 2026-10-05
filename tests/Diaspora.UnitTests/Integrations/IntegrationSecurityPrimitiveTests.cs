@@ -31,7 +31,7 @@ public sealed class IntegrationSecurityPrimitiveTests
     /// </summary>
     [Theory]
     [InlineData("calendar.google", "calendar", "google")]
-    [InlineData("identity.apple", "identity", "apple")]
+    [InlineData("calendar.apple", "calendar", "apple")]
     [InlineData("CALENDAR.GOOGLE", "calendar", "google")]
     [InlineData("  calendar.device  ", "calendar", "device")]
     public void A_dotted_provider_key_parses_into_domain_and_vendor(
@@ -64,6 +64,8 @@ public sealed class IntegrationSecurityPrimitiveTests
     [InlineData("calendar.goo gle")]
     [InlineData("calendar.google\0")]
     [InlineData("calendar.google%2f")]
+    [InlineData("identity.google")]            // sign-in identities were removed on 5 Oct 2026
+    [InlineData("identity.apple")]
     public void A_key_that_is_not_exactly_two_safe_segments_is_refused(string? input)
     {
         ProviderKey.TryParse(input, out _).Should().BeFalse();

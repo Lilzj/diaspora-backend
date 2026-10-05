@@ -57,7 +57,6 @@ public static class IntegrationsErrorCodes
     // ── PermissionDenied ────────────────────────────────────────────────────────────────────
 
     public const string CalendarReadOnly = Prefix + "calendar.read-only";
-    public const string ReauthenticationRequired = Prefix + "identity.reauthentication-required";
 
     // ── Conflict ────────────────────────────────────────────────────────────────────────────
     //
@@ -67,7 +66,6 @@ public static class IntegrationsErrorCodes
 
     public const string AuthorizationCodeReplayed = Prefix + "oauth.code-replayed";
     public const string ExternalAccountAlreadyLinked = Prefix + "identity.already-linked";
-    public const string LastAuthenticationMethod = Prefix + "identity.last-method";
 
     // ── RateLimited ─────────────────────────────────────────────────────────────────────────
 

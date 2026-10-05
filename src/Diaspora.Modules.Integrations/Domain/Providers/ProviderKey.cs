@@ -81,6 +81,15 @@ public readonly record struct ProviderKey
             return false;
         }
 
+        // Email and password is the only way to sign in (decided 5 Oct 2026), so no external
+        // identity may be linked. Refused here, at the parse every route goes through, rather
+        // than in `Domains.IsKnown` — which nothing calls, so removing `identity` from it alone
+        // changed nothing.
+        if (string.Equals(domain, RemovedIdentityDomain, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
         key = new ProviderKey(domain, provider);
 
         return true;
@@ -94,9 +103,6 @@ public readonly record struct ProviderKey
 
     /// <summary>Whether the key names the calendar family.</summary>
     public bool IsCalendar => string.Equals(Domain, Domains.Calendar, StringComparison.Ordinal);
-
-    /// <summary>Whether the key names the identity family.</summary>
-    public bool IsIdentity => string.Equals(Domain, Domains.Identity, StringComparison.Ordinal);
 
     /// <summary>
     /// Lower-case ASCII letters, digits and a hyphen. No dot, so a segment cannot contain the
@@ -125,11 +131,12 @@ public readonly record struct ProviderKey
         return true;
     }
 
+    private const string RemovedIdentityDomain = "identity";
+
     /// <summary>The domain segments the frontend declares.</summary>
     public static class Domains
     {
         public const string Calendar = "calendar";
-        public const string Identity = "identity";
         public const string Push = "push";
         public const string Email = "email";
         public const string Sms = "sms";
@@ -140,7 +147,9 @@ public readonly record struct ProviderKey
         /// <summary>Whether a parsed domain is one the client's union contains.</summary>
         public static bool IsKnown([NotNullWhen(true)] string? domain) => domain switch
         {
-            Calendar or Identity or Push or Email or Sms or Government or Maps or Payments => true,
+            // `identity` was removed on 5 Oct 2026: email and password is the only way to sign
+            // in, so no `identity.*` key parses and nothing can link one.
+            Calendar or Push or Email or Sms or Government or Maps or Payments => true,
             _ => false
         };
     }

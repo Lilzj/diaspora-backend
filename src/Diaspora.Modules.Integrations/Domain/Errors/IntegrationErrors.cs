@@ -92,14 +92,6 @@ public static class IntegrationErrors
         IntegrationsErrorCodes.ExternalAccountAlreadyLinked,
         "That account is already connected to a different Diaspora account.");
 
-    public static Error LastAuthenticationMethod() => Error.Conflict(
-        IntegrationsErrorCodes.LastAuthenticationMethod,
-        "That is your only way to sign in, so it cannot be removed.");
-
-    public static Error ReauthenticationRequired() => Error.Unauthorized(
-        IntegrationsErrorCodes.ReauthenticationRequired,
-        "Confirm it is you before changing how you sign in.");
-
     public static Error TimeZoneRequired() => Error.Validation(
         IntegrationsErrorCodes.TimeZoneRequired,
         "A calendar entry needs an IANA time zone. Without one the entry would claim the wrong "

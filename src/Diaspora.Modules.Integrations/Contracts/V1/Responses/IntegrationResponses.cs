@@ -227,46 +227,6 @@ public sealed record CalendarSyncSettingsResponse
 }
 
 /// <summary>
-/// One way a member can sign in.
-/// <para>
-/// The client's <c>IdentityLink</c>. Composed from Identity's own credentials — a phone number and a
-/// password, which every account on this platform has — plus this module's <c>identity.*</c>
-/// connections. B22 owns neither half of the first, which is why <c>canUnlink</c> is computed from
-/// the whole set here rather than stored on a row.
-/// </para>
-/// </summary>
-public sealed record IdentityLinkResponse
-{
-    public required string Provider { get; init; }
-
-    public required string Status { get; init; }
-
-    public required string Mode { get; init; }
-
-    public IntegrationAccountResponse? Account { get; init; }
-
-    public DateTimeOffset? LinkedAt { get; init; }
-
-    public DateTimeOffset? LastUsedAt { get; init; }
-
-    /// <summary>Whether this is the method the account was created with.</summary>
-    public required bool IsPrimary { get; init; }
-
-    /// <summary>
-    /// False when removing it would lock the member out.
-    /// <para>
-    /// Computed from the whole set, never from one entry — "a rule about 'the last one' cannot be
-    /// evaluated one at a time" — and enforced again on the unlink path, because "the client's
-    /// disabled button is a courtesy, and a courtesy is not a control".
-    /// </para>
-    /// </summary>
-    public required bool CanUnlink { get; init; }
-
-    /// <summary>Why not, when <see cref="CanUnlink"/> is false.</summary>
-    public string? CannotUnlinkReason { get; init; }
-}
-
-/// <summary>
 /// What this deployment actually has.
 /// <para>
 /// The same shape B21 established for the same reason: a client should be able to discover that a

@@ -203,14 +203,6 @@ public static class IntegrationMapper
             return [];
         }
 
-        if (key.IsIdentity)
-        {
-            // Identity's capabilities do not depend on a provider scope: a linked external account
-            // can always be unlinked, and can always be re-authorized. Sign-in is deliberately
-            // absent — see the OAuth handler's refusal of `signIn`.
-            return ["identity.link", "identity.unlink", "identity.reauthenticate"];
-        }
-
         if (!key.IsCalendar)
         {
             return [];

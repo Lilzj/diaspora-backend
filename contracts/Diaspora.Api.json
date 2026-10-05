@@ -2149,124 +2149,6 @@
         }
       }
     },
-    "/api/v1/auth/otp/start": {
-      "post": {
-        "tags": [
-          "Auth"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RequestSignInOtpRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RequestSignInOtpRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/RequestSignInOtpRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseOfOperationAcknowledgedResponse"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/auth/otp/sign-in": {
-      "post": {
-        "tags": [
-          "Auth"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OtpSignInRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OtpSignInRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/OtpSignInRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseOfAuthenticationResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/auth/refresh": {
       "post": {
         "tags": [
@@ -25224,51 +25106,6 @@
         }
       }
     },
-    "/api/v1/integrations/identities": {
-      "get": {
-        "tags": [
-          "Integrations"
-        ],
-        "summary": "Every way this member can sign in. Never cached — it is a lock-out input.",
-        "operationId": "ListIdentityLinks",
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/integrations/identities/{provider}": {
-      "delete": {
-        "tags": [
-          "Integrations"
-        ],
-        "summary": "Detaches an external identity. Requires a recent authentication, and the server refuses to remove the last method regardless of what the client sent.",
-        "operationId": "UnlinkIdentity",
-        "parameters": [
-          {
-            "name": "provider",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "reauthToken",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
     "/api/v1/integrations/capabilities": {
       "get": {
         "tags": [
@@ -43664,45 +43501,6 @@
           }
         }
       },
-      "OtpSignInRequest": {
-        "required": [
-          "phoneNumber",
-          "code"
-        ],
-        "type": "object",
-        "properties": {
-          "phoneNumber": {
-            "type": "string"
-          },
-          "code": {
-            "type": "string"
-          },
-          "deviceIdentifier": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "deviceName": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "platform": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "appVersion": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
       "OutboxDeadLetterResponse": {
         "required": [
           "id",
@@ -46138,17 +45936,6 @@
               "null",
               "string"
             ]
-          }
-        }
-      },
-      "RequestSignInOtpRequest": {
-        "required": [
-          "phoneNumber"
-        ],
-        "type": "object",
-        "properties": {
-          "phoneNumber": {
-            "type": "string"
           }
         }
       },

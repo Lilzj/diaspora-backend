@@ -1,8 +1,6 @@
 using Diaspora.Infrastructure.Identity.EmailVerification;
 using Diaspora.Application.Identity.Abstractions;
 using Diaspora.Application.Identity.Access;
-using Diaspora.Application.Identity.Authentication;
-using Diaspora.Application.Identity.Authentication.Providers;
 using Diaspora.Application.Identity.Authorization;
 using Diaspora.Application.Identity.Services;
 using Diaspora.Infrastructure.Identity.Auditing;
@@ -54,15 +52,6 @@ public static class IdentityInfrastructureRegistration
         services.AddScoped<ITokenIssuanceService, TokenIssuanceService>();
         services.AddScoped<ISessionRevocationService, SessionRevocationService>();
         services.AddScoped<IDeviceRegistrationService, DeviceRegistrationService>();
-
-        // ─── Authentication providers ───────────────────────────────────────
-        // Registered as a set behind the registry. A future method — Google, Apple, a
-        // magic link — is one more AddScoped<IAuthenticationProvider, ...> line and nothing
-        // else: no existing provider, handler or endpoint changes. That is the extensibility
-        // the audit asked for, applied to sign-in.
-        services.AddScoped<IAuthenticationProvider, PasswordAuthenticationProvider>();
-        services.AddScoped<IAuthenticationProvider, PhoneOtpAuthenticationProvider>();
-        services.AddScoped<IAuthenticationProviderRegistry, AuthenticationProviderRegistry>();
 
         // ─── Infrastructure adapters ────────────────────────────────────────
         services.AddSingleton<IPasswordHasher, PbkdfPasswordHasher>();

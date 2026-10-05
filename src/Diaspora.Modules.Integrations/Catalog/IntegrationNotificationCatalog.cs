@@ -39,8 +39,6 @@ public static class IntegrationNotificationKeys
     public const string SyncFailedTemplate = "integrations.sync.failed";
     public const string DisconnectedTemplate = "integrations.disconnected";
 
-    /// <summary>The security one. Lives in B13's mandatory <c>security</c> category.</summary>
-    public const string SignInMethodLinkedTemplate = "integrations.identity.linked";
 
     // Rule event names are the contract's type name, written as `nameof` so a rename is a compile
     // error rather than a rule that silently stops matching. B13's ModuleEventConsumer resolves on
@@ -119,24 +117,6 @@ public sealed class IntegrationNotificationRuleContributor : INotificationRuleCo
 
     public IEnumerable<NotificationRuleSeed> GetRules()
     {
-        // A security notification, in the mandatory category, and it cannot be switched off.
-        // "A member must not be able to switch off the alert that tells them somebody attached an
-        // account to theirs."
-        yield return new NotificationRuleSeed
-        {
-            Key = "integrations.identity.linked",
-            EventName = IntegrationNotificationKeys.ConnectedEvent,
-            Audience = "identity",
-            TemplateKey = IntegrationNotificationKeys.SignInMethodLinkedTemplate,
-            CategoryKey = NotificationCategoryKeys.Security,
-            Priority = NotificationPriority.High,
-            Policy = DeliveryPolicy.Immediate,
-            Channels = [NotificationChannelKind.InApp, NotificationChannelKind.Push],
-            DeduplicationWindow = TimeSpan.FromMinutes(5)
-        };
-
-        // The grant is gone. Immediate and high, because the member's calendar export has stopped
-        // working right now and every attempt until they act will fail.
         yield return new NotificationRuleSeed
         {
             Key = "integrations.grant.reauthorization-required",
@@ -221,40 +201,6 @@ public sealed class IntegrationNotificationTemplateContributor : INotificationTe
 
     public IEnumerable<NotificationTemplateSeed> GetTemplates()
     {
-        yield return new NotificationTemplateSeed
-        {
-            Key = IntegrationNotificationKeys.SignInMethodLinkedTemplate,
-            CategoryKey = NotificationCategoryKeys.Security,
-            Priority = NotificationPriority.High,
-            RouteTemplate = "/settings/integrations/identity",
-            Description = "A new sign-in method was attached to this account.",
-            Variables =
-            [
-                new TemplateVariableSeed { Name = "provider", Sample = "identity.google" }
-            ],
-            Localizations =
-            [
-                new TemplateLocalizationSeed
-                {
-                    Language = "en",
-                    Title = "A new sign-in method was added",
-                    Body =
-                        "A {provider} account was connected to your Diaspora account. If this was "
-                        + "not you, open your sign-in settings now.",
-                    ShortBody = "New sign-in method added"
-                },
-                new TemplateLocalizationSeed
-                {
-                    Language = "fr",
-                    Title = "Une nouvelle méthode de connexion a été ajoutée",
-                    Body =
-                        "Un compte {provider} a été connecté à votre compte Diaspora. Si ce n'était "
-                        + "pas vous, ouvrez vos paramètres de connexion maintenant.",
-                    ShortBody = "Nouvelle méthode de connexion"
-                }
-            ]
-        };
-
         yield return new NotificationTemplateSeed
         {
             Key = IntegrationNotificationKeys.ReauthorizationRequiredTemplate,

@@ -34,7 +34,6 @@ public sealed class IntegrationsWebApplicationFactory : CustomWebApplicationFact
     public const string CalendarProvider = "calendar.google";
 
     /// <summary>A second family on the same vendor, to prove the two are separate connections.</summary>
-    public const string IdentityProvider = "identity.google";
 
     /// <summary>The webhook secret. A test secret, and it is only ever a test secret.</summary>
     public const string WebhookSecret = "integration-suite-webhook-secret-not-a-real-one";
@@ -57,10 +56,6 @@ public sealed class IntegrationsWebApplicationFactory : CustomWebApplicationFact
             services.AddScoped<IOAuthProvider>(sp =>
                 new SimulatedOAuthProvider(
                     CalendarProvider, sp.GetRequiredService<SimulatedProviderState>()));
-
-            services.AddScoped<IOAuthProvider>(sp =>
-                new SimulatedOAuthProvider(
-                    IdentityProvider, sp.GetRequiredService<SimulatedProviderState>()));
 
             services.AddScoped<IExternalCalendarProvider>(sp =>
                 new SimulatedCalendarProvider(sp.GetRequiredService<SimulatedProviderState>()));

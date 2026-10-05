@@ -4,11 +4,9 @@ using Diaspora.Api.Common;
 using Diaspora.Api.RateLimiting;
 using Diaspora.Platform.Http;
 using Diaspora.Application.Identity.Authorization;
-using Diaspora.Application.Identity.Commands.Authentication.Authenticate;
 using Diaspora.Application.Identity.Commands.Authentication.Login;
 using Diaspora.Application.Identity.Commands.Authentication.Logout;
 using Diaspora.Application.Identity.Commands.Authentication.RefreshToken;
-using Diaspora.Application.Identity.Commands.Authentication.RequestSignInOtp;
 using Diaspora.Application.Identity.Commands.Passwords.ChangePassword;
 using Diaspora.Application.Identity.Commands.Passwords.ForgotPassword;
 using Diaspora.Application.Identity.Commands.Passwords.ResetPassword;
@@ -151,63 +149,8 @@ public sealed class AuthController : ApiController
         return HandleResult(result);
     }
 
-    /// <summary>Starts a passwordless sign-in by texting a one-time code.</summary>
-    /// <remarks>
-    /// The frontend's primary sign-in. Anonymous, and the response is identical whether or
-    /// not the number is registered, so it cannot enumerate accounts. Redeem the code at
-    /// <c>POST /auth/otp/sign-in</c>.
-    /// </remarks>
-    [HttpPost("otp/start")]
-    [AllowAnonymous]
-    [EnableRateLimiting(RateLimitingRegistration.OneTimeCodePolicy)]
-    [ProducesResponseType<ApiResponse<OperationAcknowledgedResponse>>(StatusCodes.Status200OK)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status429TooManyRequests)]
-    public async Task<IActionResult> StartOtpSignInAsync(
-        [FromBody] RequestSignInOtpRequest request,
-        CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(request);
-
-        var result = await _sender.Send(new RequestSignInOtpCommand
-        {
-            PhoneNumber = request.PhoneNumber
-        }, cancellationToken);
-
-        return HandleResult(result);
-    }
-
-    /// <summary>Completes a passwordless sign-in by redeeming the one-time code.</summary>
-    /// <remarks>
-    /// Runs through the authentication-provider registry with the <c>phone-otp</c> method,
-    /// then the same access-state gate and token issuance every sign-in shares — so the
-    /// response is identical to <c>POST /auth/login</c>.
-    /// </remarks>
-    [HttpPost("otp/sign-in")]
-    [AllowAnonymous]
-    [EnableRateLimiting(RateLimitingRegistration.SignInPolicy)]
-    [ProducesResponseType<ApiResponse<AuthenticationResponse>>(StatusCodes.Status200OK)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status429TooManyRequests)]
-    public async Task<IActionResult> OtpSignInAsync(
-        [FromBody] OtpSignInRequest request,
-        CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(request);
-
-        var result = await _sender.Send(new AuthenticateCommand
-        {
-            Method = "phone-otp",
-            PhoneNumber = request.PhoneNumber,
-            Code = request.Code,
-            DeviceIdentifier = request.DeviceIdentifier,
-            DeviceName = request.DeviceName,
-            Platform = request.Platform,
-            AppVersion = request.AppVersion
-        }, cancellationToken);
-
-        return HandleResult(result);
-    }
+    // Sign-in by one-time code (`otp/start`, `otp/sign-in`) was removed on 5 Oct 2026:
+    // email and password is the only way to sign in. Codes still verify a phone number.
 
     /// <summary>Rotates a refresh token for a new token pair.</summary>
     /// <remarks>

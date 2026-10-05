@@ -36,7 +36,6 @@ public sealed class IntegrationFoundationTests
 {
     private const string Root = "/api/v1/integrations";
     private const string Calendar = IntegrationsWebApplicationFactory.CalendarProvider;
-    private const string Identity = IntegrationsWebApplicationFactory.IdentityProvider;
     private const string Redirect = "https://app.diaspora.test/oauth/callback";
 
     /// <summary>A PKCE verifier of legal length (RFC 7636: 43–128 characters).</summary>
@@ -207,30 +206,29 @@ public sealed class IntegrationFoundationTests
     }
 
     /// <summary>
-    /// Signing in with an external identity is refused explicitly, not downgraded to a link.
+    /// No external identity can be linked, because no <c>identity.*</c> key parses.
     /// <para>
-    /// Minting a platform session from an external assertion is Identity's decision, and silently
-    /// treating a sign-in as a link would attach an account to whichever session happened to be
-    /// open.
+    /// Email and password is the only way to sign in (decided 5 Oct 2026). The OAuth routes still
+    /// serve calendars; an identity provider is refused as unknown before any adapter is asked.
     /// </para>
     /// </summary>
     [Fact]
-    public async Task Signing_in_with_an_external_identity_is_refused_rather_than_downgraded()
+    public async Task An_identity_provider_cannot_be_authorized()
     {
         await AuthenticateVerifiedMemberAsync();
 
         var response = await HttpClient.PostAsJsonAsync(
-            $"{Root}/oauth/{Identity}/authorize",
+            $"{Root}/oauth/identity.google/authorize",
             new
             {
                 redirectUri = Redirect,
                 codeChallenge = Challenge(Verifier),
                 scopes = new[] { "profile" },
-                intent = "signIn"
+                intent = "link"
             });
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        await AssertErrorCodeAsync(response, "integrations.oauth.intent-unsupported");
+        await AssertErrorCodeAsync(response, "integrations.provider.unknown");
     }
 
     /// <summary>
@@ -866,33 +864,6 @@ public sealed class IntegrationFoundationTests
             "the entry is the member's and stays in their calendar");
     }
 
-    /// <summary>
-    /// The identity list always includes the platform's own method, and it can never be unlinked.
-    /// <para>
-    /// A list that showed only external identities would make an account with one Google link look
-    /// like an account with one way in.
-    /// </para>
-    /// </summary>
-    [Fact]
-    public async Task The_identity_list_includes_the_platform_method_and_refuses_to_remove_it()
-    {
-        await AuthenticateVerifiedMemberAsync();
-
-        var links = await ReadAsync<JsonElement>(await HttpClient.GetAsync($"{Root}/identities"));
-
-        var phone = links.EnumerateArray()
-            .Single(row => row.GetProperty("provider").GetString() == "identity.phone");
-
-        phone.GetProperty("canUnlink").GetBoolean().Should().BeFalse();
-        phone.GetProperty("isPrimary").GetBoolean().Should().BeTrue();
-        phone.GetProperty("cannotUnlinkReason").GetString().Should().NotBeNullOrEmpty();
-
-        // And it is not a provider key this module will even parse as an external identity.
-        (await HttpClient.DeleteAsync($"{Root}/identities/identity.phone?reauthToken=x"))
-            .StatusCode.Should().Be(HttpStatusCode.Conflict,
-                "removing the last method is refused server-side, whatever the client sent");
-    }
-
     // ════════════════════════════════════════════════════════════════════════════════════════
     // Webhooks. §14, §15, §16.
     // ════════════════════════════════════════════════════════════════════════════════════════
@@ -1071,7 +1042,7 @@ public sealed class IntegrationFoundationTests
         using var anonymous = Factory.CreateClient();
 
         using var request = new HttpRequestMessage(
-            HttpMethod.Post, $"{Root}/webhooks/identity.apple")
+            HttpMethod.Post, $"{Root}/webhooks/calendar.apple")
         {
             Content = new StringContent(body, Encoding.UTF8, "application/json")
         };
@@ -1208,9 +1179,9 @@ public sealed class IntegrationFoundationTests
 
         connections.EnumerateArray()
             .Select(row => row.GetProperty("provider").GetString())
-            .Should().Contain(Calendar).And.NotContain(Identity);
+            .Should().Contain(Calendar);
 
-        (await HttpClient.GetAsync($"{Root}/calendar/{Identity}/calendars"))
+        (await HttpClient.GetAsync($"{Root}/calendar/identity.apple/calendars"))
             .StatusCode.Should().Be(HttpStatusCode.BadRequest,
                 "an identity provider key is not a calendar provider key");
     }
@@ -1314,43 +1285,11 @@ public sealed class IntegrationFoundationTests
 
         templates.Select(template => template.Key).Should().BeEquivalentTo(
         [
-            "integrations.identity.linked",
             "integrations.grant.reauthorization-required",
             "integrations.grant.expiring",
             "integrations.sync.failed",
             "integrations.disconnected"
         ]);
-    }
-
-    /// <summary>
-    /// <b>The security notification is in B13's mandatory category, so it cannot be switched off.</b>
-    /// <para>
-    /// The register: "a member must not be able to switch off the alert that tells them somebody
-    /// attached an account to theirs." The enforcement is which category the template names, and
-    /// nothing else — so this asserts the category rather than the wording.
-    /// </para>
-    /// </summary>
-    [Fact]
-    public async Task The_new_sign_in_method_alert_lives_in_the_mandatory_security_category()
-    {
-        await AuthenticateVerifiedMemberAsync();
-
-        await using var scope = Factory.Services.CreateAsyncScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<DiasporaDbContext>();
-
-        var template = await dbContext
-            .Set<Diaspora.Modules.Notifications.Domain.Templates.NotificationTemplate>()
-            .FirstOrDefaultAsync(row => row.Key == "integrations.identity.linked");
-
-        template.Should().NotBeNull();
-        template!.CategoryKey.Should().Be("security");
-
-        var security = await dbContext
-            .Set<Diaspora.Modules.Notifications.Domain.Catalog.NotificationCategory>()
-            .FirstAsync(row => row.Key == "security");
-
-        security.IsMandatory.Should().BeTrue(
-            "the whole point of putting the alert here is that it cannot be muted");
     }
 
     // ════════════════════════════════════════════════════════════════════════════════════════
