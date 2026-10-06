@@ -284,6 +284,21 @@ public sealed class AutomationReminder : AggregateRoot<AutomationReminderId>
         return reminder;
     }
 
+    /// <summary>
+    /// How long after its moment a reminder may still be sent.
+    /// <para>
+    /// The sweeper runs every two minutes in production, so a reminder always goes out a little
+    /// after it falls due. Until 6 Oct 2026 the rule was "the moment has passed", which a
+    /// "when it starts" reminder (offset 0, due exactly at the moment) always met by the time it
+    /// was swept: every one was abandoned as late and never sent. Ten minutes covers the sweep
+    /// with room to spare and still drops one held up for longer, such as by an outage.
+    /// </para>
+    /// </summary>
+    public static readonly TimeSpan LateGrace = TimeSpan.FromMinutes(10);
+
+    /// <summary>Whether sending now would arrive too long after the moment it was about.</summary>
+    public bool IsTooLateToSend(DateTimeOffset now) => now > SubjectMoment + LateGrace;
+
     public static string BuildKey(
         UserId memberId, string subjectKind, Guid subjectId, int offsetMinutes, string anchor) =>
         $"{memberId.Value:N}:{subjectKind}:{subjectId:N}:{offsetMinutes}:{anchor}";

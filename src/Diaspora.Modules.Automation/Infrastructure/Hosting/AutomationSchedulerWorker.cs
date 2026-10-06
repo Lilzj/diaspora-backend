@@ -412,14 +412,14 @@ public sealed class AutomationSchedulerWorker : BackgroundService
 
         foreach (var reminder in due)
         {
-            // Past the moment it was about. A late reminder is worse than none, so it is failed with a
-            // visible state rather than delivered after the moment passed.
+            // Too long past the moment it was about (`AutomationReminder.LateGrace`). A late reminder
+            // is worse than none, so it is failed with a visible state rather than delivered.
             //
             // The reason names the subject's own kind. Wave 11 said "the event had already started"
             // whatever the reminder was about, which was true while every reminder was an event and
             // became a description of something that did not happen the moment a job closing or a
             // viewing appointment could also be reminded about.
-            if (reminder.SubjectMoment < now)
+            if (reminder.IsTooLateToSend(now))
             {
                 reminder.Abandon(AutomationSubjectKinds.LateReason(reminder.SubjectKind));
                 continue;

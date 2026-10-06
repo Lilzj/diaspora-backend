@@ -372,6 +372,30 @@ public sealed class AutomationExtensionTests
             .Should().Contain("event");
     }
 
+    /// <summary>
+    /// A "when it starts" reminder is sent, not abandoned.
+    /// <para>
+    /// Offset 0 falls due at the moment itself, and the sweeper always runs a little after. Until
+    /// 6 Oct 2026 "the moment has passed" counted as late, so every one of these was abandoned.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [InlineData(0, false)]     // swept at the moment
+    [InlineData(2, false)]     // one production sweep later
+    [InlineData(10, false)]    // the edge of the grace
+    [InlineData(11, true)]     // held up past it: dropped, not sent late
+    [InlineData(-60, false)]   // an hour early, as a "1 hour before" reminder is sent
+    public void A_reminder_is_late_only_past_the_grace(int minutesAfterMoment, bool tooLate)
+    {
+        var moment = new DateTimeOffset(2026, 12, 9, 4, 0, 0, TimeSpan.Zero);
+        var reminder = AutomationReminder.Configure(
+            UserId.New(), AutomationSubjectKinds.Event, Guid.NewGuid(), "Women's Legacy Conference 2026",
+            moment, offsetMinutes: 0, anchor: "start", timeZoneId: "Indian/Mauritius",
+            now: moment.AddDays(-60));
+
+        reminder.IsTooLateToSend(moment.AddMinutes(minutesAfterMoment)).Should().Be(tooLate);
+    }
+
     // ── Helpers ─────────────────────────────────────────────────────────────────────────────
 
     private static AutomationSubjectHorizon Horizon(DateTimeOffset now, DateTimeOffset moment) =>
