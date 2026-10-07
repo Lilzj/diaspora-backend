@@ -186,6 +186,67 @@ public sealed class ReapplyVerificationOutcomeTests : PooledIdentityTestBase
         state.State.Should().Be("Verified");
     }
 
+    /// <summary>
+    /// A document cannot have been issued after today, and cannot expire before it was issued.
+    /// Added 7 Oct 2026, after a passport issued three weeks in the future was accepted and approved.
+    /// </summary>
+    [Theory]
+    [InlineData(30, 400, "issued in the future")]
+    [InlineData(-400, -500, "expiring before it was issued")]
+    public async Task Impossible_document_dates_are_refused(int issuedInDays, int expiresInDays, string why)
+    {
+        var (_, auth) = await RegisterAndVerifyAsync();
+
+        Api.Authenticate(auth.Tokens.AccessToken);
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var response = await HttpClient.PostAsJsonAsync(
+            "/api/v1/trust/verifications/diaspora",
+            new
+            {
+                nationality = "NG",
+                residenceCountry = "MU",
+                documentType = "Passport",
+                issueCountry = "NG",
+                documentNumber = "A12345678",
+                issueDate = today.AddDays(issuedInDays),
+                expiryDate = today.AddDays(expiresInDays),
+                documentReference = "media:" + Guid.NewGuid(),
+                selfieReference = "media:" + Guid.NewGuid()
+            });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest, why);
+    }
+
+    [Fact]
+    public async Task A_document_issued_today_is_accepted()
+    {
+        // The boundary, so the rule cannot drift into refusing a passport collected this morning.
+        var (_, auth) = await RegisterAndVerifyAsync();
+
+        Api.Authenticate(auth.Tokens.AccessToken);
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var response = await HttpClient.PostAsJsonAsync(
+            "/api/v1/trust/verifications/diaspora",
+            new
+            {
+                nationality = "NG",
+                residenceCountry = "MU",
+                documentType = "Passport",
+                issueCountry = "NG",
+                documentNumber = "A12345678",
+                issueDate = today,
+                expiryDate = today.AddYears(10),
+                documentReference = "media:" + Guid.NewGuid(),
+                selfieReference = "media:" + Guid.NewGuid()
+            });
+
+        response.IsSuccessStatusCode.Should().BeTrue(await response.Content.ReadAsStringAsync());
+    }
+
     // ── Helpers ─────────────────────────────────────────────────────────────────────────────
 
     /// <summary>

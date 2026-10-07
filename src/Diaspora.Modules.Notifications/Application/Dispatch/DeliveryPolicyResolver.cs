@@ -124,17 +124,24 @@ public sealed class DeliveryPolicyResolver
                 return ChannelPlan.Suppress(channel, SuppressionReasons.DoNotDisturb, now);
             }
 
-            if (!preference.IsChannelEnabled(channel))
+            // Account mail passes the email switches that start off by default — the channel's
+            // and the category's — but not a mute the member chose. See AccountMail.
+            var isAccountMail = channel == NotificationChannelKind.Email && AccountMail.Covers(rule.Key);
+
+            if (!preference.IsChannelEnabled(channel) && !isAccountMail)
             {
                 return ChannelPlan.Suppress(channel, SuppressionReasons.ChannelDisabled, now);
             }
 
             var categoryPreference = preference.CategoryFor(rule.CategoryKey);
+            var categoryAllows = isAccountMail
+                ? !categoryPreference.IsMuted
+                : categoryPreference.Allows(channel);
 
             // A mandatory category ignores a mute. The preference screen renders its switch
             // disabled, and the aggregate refusing it here is what makes that honest rather than
             // cosmetic.
-            if (category?.IsMandatory != true && !categoryPreference.Allows(channel))
+            if (category?.IsMandatory != true && !categoryAllows)
             {
                 return ChannelPlan.Suppress(channel, SuppressionReasons.CategoryMuted, now);
             }

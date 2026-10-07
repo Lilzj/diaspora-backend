@@ -53,6 +53,33 @@ public sealed class TrustNotificationTemplateContributor : INotificationTemplate
                     Body = "Votre vérification {verificationtype} a été approuvée. De nouvelles fonctionnalités sont maintenant disponibles sur votre compte.",
                     ShortBody = "Votre vérification {verificationtype} a été approuvée."
                 }
+            ],
+            // Verification results go by email even with email switched off (AccountMail, 7 Oct
+            // 2026), so this is often the first email a member gets after the welcome. It arrives
+            // without the app around it, so it says what happened and what is now open to them.
+            Variants =
+            [
+                new TemplateVariantSeed
+                {
+                    Channel = NotificationChannelKind.Email,
+                    Language = "en",
+                    Title = "You are verified on Diaspora",
+                    Body =
+                        "Good news: your {verificationtype} verification has been approved.\n\n"
+                        + "Your account now has full community access. Open the Diaspora app to "
+                        + "post, sell, list a property and message other members."
+                },
+                new TemplateVariantSeed
+                {
+                    Channel = NotificationChannelKind.Email,
+                    Language = "fr",
+                    Title = "Vous êtes vérifié sur Diaspora",
+                    Body =
+                        "Bonne nouvelle : votre vérification {verificationtype} a été approuvée.\n\n"
+                        + "Votre compte a désormais un accès complet à la communauté. Ouvrez "
+                        + "l'application Diaspora pour publier, vendre, proposer un logement et "
+                        + "contacter les autres membres."
+                }
             ]
         };
 
@@ -66,7 +93,10 @@ public sealed class TrustNotificationTemplateContributor : INotificationTemplate
             Variables =
             [
                 new TemplateVariableSeed { Name = "verificationtype", Sample = "Identity" },
-                new TemplateVariableSeed { Name = "reasoncode", Sample = "DocumentUnreadable" }
+                new TemplateVariableSeed { Name = "reasoncode", Sample = "DocumentUnreadable" },
+                // What the reviewer wrote under "What the member is told". Optional, and empty
+                // when they wrote nothing.
+                new TemplateVariableSeed { Name = "details", IsRequired = false, Sample = "The photo of the document is blurred." }
             ],
             Localizations =
             [
@@ -83,6 +113,31 @@ public sealed class TrustNotificationTemplateContributor : INotificationTemplate
                     Title = "Vérification non approuvée",
                     Body = "Votre vérification {verificationtype} n'a pas été approuvée. Ouvrez votre centre de confiance pour connaître la suite.",
                     ShortBody = "Votre vérification {verificationtype} n'a pas été approuvée."
+                }
+            ],
+            Variants =
+            [
+                new TemplateVariantSeed
+                {
+                    Channel = NotificationChannelKind.Email,
+                    Language = "en",
+                    Title = "Your Diaspora verification was not approved",
+                    Body =
+                        "We reviewed your {verificationtype} verification and could not approve it.\n\n"
+                        + "{details}\n\n"
+                        + "Open your Trust Centre in the Diaspora app to see the reason, then send "
+                        + "it again or appeal the decision."
+                },
+                new TemplateVariantSeed
+                {
+                    Channel = NotificationChannelKind.Email,
+                    Language = "fr",
+                    Title = "Votre vérification Diaspora n'a pas été approuvée",
+                    Body =
+                        "Nous avons examiné votre vérification {verificationtype} et n'avons pas pu l'approuver.\n\n"
+                        + "{details}\n\n"
+                        + "Ouvrez votre centre de confiance dans l'application Diaspora pour en "
+                        + "connaître la raison, puis renvoyez-la ou faites appel de la décision."
                 }
             ],
             Actions =

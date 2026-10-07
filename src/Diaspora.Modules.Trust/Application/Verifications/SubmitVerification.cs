@@ -74,8 +74,14 @@ public sealed record DocumentSubmission
 
 public sealed class SubmitVerificationCommandValidator : AbstractValidator<SubmitVerificationCommand>
 {
-    public SubmitVerificationCommandValidator()
+    public SubmitVerificationCommandValidator(IClock clock)
     {
+        ArgumentNullException.ThrowIfNull(clock);
+
+        // The latest calendar date anywhere (UTC+14). A member whose day has already begun is
+        // never told their document was issued "in the future" because the server is in UTC.
+        var latestToday = DateOnly.FromDateTime(clock.UtcNow.UtcDateTime.AddHours(14));
+
         RuleFor(command => command.Type).IsInEnum();
 
         RuleFor(command => command.Nationality)
@@ -111,6 +117,16 @@ public sealed class SubmitVerificationCommandValidator : AbstractValidator<Submi
 
             document.RuleFor(item => item.DocumentNumber)
                 .MaximumLength(VerificationDocument.MaxDocumentNumberLength);
+
+            // Added 7 Oct 2026: a passport "issued" three weeks from now was accepted and
+            // approved. A document cannot have been issued after today.
+            document.RuleFor(item => item.IssuedOn)
+                .Must(issued => issued is null || issued.Value <= latestToday)
+                .WithMessage("The issue date cannot be in the future.");
+
+            document.RuleFor(item => item.ExpiresOn)
+                .Must((item, expires) => expires is null || item.IssuedOn is null || expires.Value > item.IssuedOn.Value)
+                .WithMessage("The expiry date must be after the issue date.");
         });
     }
 }
