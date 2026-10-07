@@ -418,9 +418,18 @@ public sealed class NotificationTemplate : AggregateRoot<NotificationTemplateId>
     /// wrong the old one is still there to publish again.
     /// </para>
     /// </summary>
+    /// <remarks>
+    /// <b>Copies, never shares.</b> Until 7 Oct 2026 the draft was handed this version's own child
+    /// objects, and because each row carries its template's id, saving the draft moved every
+    /// localization, variant, variable and action off the published version. The published
+    /// template was left empty, still live, with nothing to render; an edit could not be undone.
+    /// <paramref name="newId"/> gives each copy its own row.
+    /// </remarks>
     public Result<NotificationTemplate> CreateNextVersion(
-        NotificationTemplateId id, DateTimeOffset createdAt)
+        NotificationTemplateId id, DateTimeOffset createdAt, Func<Guid> newId)
     {
+        ArgumentNullException.ThrowIfNull(newId);
+
         var draft = Draft(
             id,
             Key,
@@ -438,10 +447,14 @@ public sealed class NotificationTemplate : AggregateRoot<NotificationTemplateId>
             return draft;
         }
 
-        draft.Value._localizations.AddRange(_localizations);
-        draft.Value._variants.AddRange(_variants);
-        draft.Value._variables.AddRange(_variables);
-        draft.Value._actions.AddRange(_actions);
+        draft.Value._localizations.AddRange(_localizations.Select(item => TemplateLocalization.Create(
+            newId(), item.Language, item.Title, item.Body, item.ShortBody, item.PluralBody, item.Format)));
+        draft.Value._variants.AddRange(_variants.Select(item => TemplateChannelVariant.Create(
+            newId(), item.Channel, item.Language, item.Title, item.Body, item.Format)));
+        draft.Value._variables.AddRange(_variables.Select(item => TemplateVariable.Create(
+            newId(), item.Name, item.IsRequired, item.Format, item.Sample)));
+        draft.Value._actions.AddRange(_actions.Select(item => TemplateActionDefinition.Create(
+            newId(), item.Key, item.Label, item.RouteTemplate, item.Style, item.Position)));
 
         return draft;
     }

@@ -70,7 +70,7 @@ public sealed class UpdateNotificationTemplateCommandHandler
         if (template.Status != TemplateStatus.Draft)
         {
             var next = template.CreateNextVersion(
-                NotificationTemplateId.From(_guids.NewSequentialGuid()), _clock.UtcNow);
+                NotificationTemplateId.From(_guids.NewSequentialGuid()), _clock.UtcNow, _guids.NewSequentialGuid);
 
             if (next.IsFailure)
             {
