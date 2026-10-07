@@ -50,6 +50,7 @@ public sealed class ReapplyVerificationOutcomeCommandHandler
     private readonly BadgeEvaluator _badges;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
+    private readonly ITrustDecisionPublisher _decisions;
     private readonly ILogger<ReapplyVerificationOutcomeCommandHandler> _logger;
 
     public ReapplyVerificationOutcomeCommandHandler(
@@ -59,6 +60,7 @@ public sealed class ReapplyVerificationOutcomeCommandHandler
         BadgeEvaluator badges,
         IUnitOfWork unitOfWork,
         IClock clock,
+        ITrustDecisionPublisher decisions,
         ILogger<ReapplyVerificationOutcomeCommandHandler> logger)
     {
         _verifications = verifications;
@@ -67,6 +69,7 @@ public sealed class ReapplyVerificationOutcomeCommandHandler
         _badges = badges;
         _unitOfWork = unitOfWork;
         _clock = clock;
+        _decisions = decisions;
         _logger = logger;
     }
 
@@ -99,6 +102,28 @@ public sealed class ReapplyVerificationOutcomeCommandHandler
         // produced three times already. See ReputationAwardConsumers.
         if (AlreadyApplied(profile, verification.Type, country))
         {
+            // The standing half arrived; the account half may not have. Until 7 Oct 2026 an
+            // approval made without assigning the request first was refused by Identity's
+            // ladder, so the member held a Verified tier on an account still waiting for a
+            // decision. Re-sending the grant pays nothing and Identity accepts a repeat, so
+            // this is the one part of a repair that is always safe to run again.
+            if (GatesAccess(verification.Type)
+                && await _decisions.PublishAsync(
+                    verification.UserId,
+                    TrustDecisionOutcome.Granted,
+                    $"{verification.Type} verification approved.",
+                    "trust-engine",
+                    cancellationToken))
+            {
+                _logger.LogWarning(
+                    "Re-sent the approval of {Type} verification {VerificationId} to the account of {UserId}.",
+                    verification.Type,
+                    verification.Id.Value,
+                    verification.UserId.Value);
+
+                return Result.Success(verification.ToResponse());
+            }
+
             return Result.Failure<VerificationResponse>(TrustErrors.VerificationAlreadyApplied);
         }
 
@@ -114,6 +139,16 @@ public sealed class ReapplyVerificationOutcomeCommandHandler
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+        if (GatesAccess(verification.Type))
+        {
+            await _decisions.PublishAsync(
+                verification.UserId,
+                TrustDecisionOutcome.Granted,
+                $"{verification.Type} verification approved.",
+                "trust-engine",
+                cancellationToken);
+        }
+
         _logger.LogWarning(
             "Re-applied the outcome of {Type} verification {VerificationId} for {UserId}. "
             + "An approval reached the member's standing late, which means something set the "
@@ -124,6 +159,10 @@ public sealed class ReapplyVerificationOutcomeCommandHandler
 
         return Result.Success(verification.ToResponse());
     }
+
+    /// <summary>The verification types whose approval moves the member's account, as in the approval handler.</summary>
+    private static bool GatesAccess(VerificationType type) =>
+        type is VerificationType.Diaspora or VerificationType.Identity or VerificationType.Country;
 
     /// <summary>
     /// Whether this approval already reached the member's standing.

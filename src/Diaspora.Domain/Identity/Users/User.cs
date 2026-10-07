@@ -497,6 +497,34 @@ public sealed class User : AggregateRoot<UserId>, IAuditableEntity, ISoftDeletab
                 nameof(decision), decision.Outcome, "Unrecognised trust decision outcome.")
         };
 
+        if (decision.Outcome == TrustDecisionOutcome.Granted)
+        {
+            // A repeat of a grant already applied is not a refusal: it is how a repair
+            // re-sends an approval without first knowing whether it arrived.
+            if (AccessState == AccessState.Verified)
+            {
+                return Result.Success();
+            }
+
+            // A reviewer may approve straight from the queue without assigning it first,
+            // so nothing ever put the member on the review rung — and Verified is
+            // reachable only from there. Every such approval was refused and logged as a
+            // warning while the reviewer was told it worked (7 Oct 2026). The approval
+            // is the review, so the member passes through that rung on the way.
+            if (AccessState == AccessState.VerificationPending)
+            {
+                var review = TransitionTo(
+                    AccessState.VerificationUnderReview,
+                    AccessStateChangeReason.VerificationReviewStarted,
+                    now);
+
+                if (review.IsFailure)
+                {
+                    return review;
+                }
+            }
+        }
+
         return TransitionTo(target, reason, now, decision.Reason);
     }
 

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Diaspora.Contracts.Identity.V1.Responses;
 using Diaspora.IntegrationTests.Common;
 using Diaspora.Modules.Trust.Domain;
 using Diaspora.Modules.Trust.Persistence;
@@ -59,7 +60,7 @@ public sealed class ReapplyVerificationOutcomeTests : PooledIdentityTestBase
     /// produced that defect three times, once paying thirty points twice for one approval.
     /// </summary>
     [Fact]
-    public async Task Re_applying_a_second_time_is_refused_rather_than_paid_again()
+    public async Task Re_applying_a_second_time_is_not_paid_again()
     {
         var (member, verificationId) = await ApprovedButUngrantedAsync();
 
@@ -72,7 +73,10 @@ public sealed class ReapplyVerificationOutcomeTests : PooledIdentityTestBase
         var again = await HttpClient.PostAsync(
             $"/api/v1/trust/verifications/{verificationId}/reapply-outcome", content: null);
 
-        again.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        // Accepted since 7 Oct 2026: the standing half is skipped and only the grant to the
+        // account is re-sent, which is how a member stranded on VerificationPending is repaired.
+        // What must not happen is a second payment.
+        again.StatusCode.Should().Be(HttpStatusCode.OK);
 
         (await CountryPointsAsync(member)).Should().Be(paidOnce);
     }
@@ -108,6 +112,7 @@ public sealed class ReapplyVerificationOutcomeTests : PooledIdentityTestBase
     public async Task A_country_the_member_already_stands_in_is_not_applied_again()
     {
         var (_, auth) = await RegisterVerifiedMemberAsync();
+        var member = auth.User.Id;
 
         Api.Authenticate(auth.Tokens.AccessToken);
 
@@ -127,10 +132,58 @@ public sealed class ReapplyVerificationOutcomeTests : PooledIdentityTestBase
         // Grants emptied, standing left alone: the type is gone but the country is still proven.
         await StripTheGrantAsync(auth.User.Id);
 
+        var paidOnce = await CountryPointsAsync(member);
+
         var applied = await HttpClient.PostAsync(
             $"/api/v1/trust/verifications/{verificationId}/reapply-outcome", content: null);
 
-        applied.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        // The grant to the account is re-sent (200); the standing is not touched again.
+        applied.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await CountryPointsAsync(member)).Should().Be(paidOnce);
+    }
+
+    /// <summary>
+    /// <b>The defect of 7 Oct 2026.</b> The console approves straight from the queue, so no
+    /// assignment ever moved the account onto the review rung, and Identity refused the grant:
+    /// the request said Approved, the tier said Verified, and the account stayed on
+    /// VerificationPending — so the app kept offering "Start verification".
+    /// </summary>
+    [Fact]
+    public async Task Approving_without_assigning_first_verifies_the_account()
+    {
+        // Phone-verified only, like a real new member. RegisterVerifiedMemberAsync would not
+        // do: it sends UnderReview and Granted to Identity by hand, which is the very step the
+        // product never takes — this test passed without the fix until it stopped using it.
+        var (_, auth) = await RegisterAndVerifyAsync();
+
+        Api.Authenticate(auth.Tokens.AccessToken);
+
+        var verificationId = await ReadIdAsync(await SubmitDiasporaAsync());
+
+        (await IdentityApiClient.ReadDataAsync<AccessStateResponse>(await Api.GetAccessStateAsync()))
+            .State.Should().Be("VerificationPending", "the premise: submitting is what puts the account on the ladder");
+
+        await SignInAsRoleAsync("Admin");
+
+        (await HttpClient.PostAsJsonAsync(
+                $"/api/v1/trust/verifications/{verificationId}/review",
+                new { decision = "Approve" }))
+            .EnsureSuccessStatusCode();
+
+        // The reviewer sees who the person is, not only an identifier.
+        using (var detail = JsonDocument.Parse(await HttpClient.GetStringAsync(
+                   $"/api/v1/trust/verifications/{verificationId}")))
+        {
+            detail.RootElement.GetProperty("data").GetProperty("memberName").GetString()
+                .Should().NotBeNullOrWhiteSpace();
+        }
+
+        Api.Authenticate(auth.Tokens.AccessToken);
+
+        var state = await IdentityApiClient.ReadDataAsync<AccessStateResponse>(
+            await Api.GetAccessStateAsync());
+
+        state.State.Should().Be("Verified");
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────────────────────

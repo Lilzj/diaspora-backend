@@ -75,15 +75,18 @@ public sealed class GetVerificationQueryHandler
     private readonly IVerificationRequestRepository _verifications;
     private readonly ICurrentUser _currentUser;
     private readonly DocumentLinkFactory _links;
+    private readonly IMemberProfileService _members;
 
     public GetVerificationQueryHandler(
         IVerificationRequestRepository verifications,
         ICurrentUser currentUser,
-        DocumentLinkFactory links)
+        DocumentLinkFactory links,
+        IMemberProfileService members)
     {
         _verifications = verifications;
         _currentUser = currentUser;
         _links = links;
+        _members = members;
     }
 
     public async Task<Result<VerificationDetailResponse>> Handle(
@@ -122,7 +125,27 @@ public sealed class GetVerificationQueryHandler
             verification.Documents.Select(document => (document.Id.Value, document.StorageKey)),
             cancellationToken);
 
-        return Result.Success(verification.ToDetailResponse(urls, forStaff: isStaff));
+        var detail = verification.ToDetailResponse(urls, forStaff: isStaff);
+
+        if (!isStaff)
+        {
+            return Result.Success(detail);
+        }
+
+        // What a reviewer is actually comparing: the person, their document and their face.
+        // The document links above were always minted; the name and the selfie were not, so the
+        // console showed an identifier and a document with nothing to compare it against.
+        var members = await _members.ResolveAsync([verification.UserId], cancellationToken);
+
+        return Result.Success(detail with
+        {
+            MemberName = members.TryGetValue(verification.UserId.Value, out var member)
+                ? member.DisplayName
+                : null,
+            SelfieUrl = verification.SelfieStorageKey is { } selfie
+                ? await _links.TryCreateLinkAsync(selfie, cancellationToken)
+                : null
+        });
     }
 }
 

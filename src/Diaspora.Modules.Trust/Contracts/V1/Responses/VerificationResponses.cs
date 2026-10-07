@@ -65,6 +65,19 @@ public sealed record VerificationDetailResponse
     /// the decisions that were communicated to them, with reviewers anonymised.
     /// </summary>
     public required IReadOnlyList<VerificationReviewResponse> Reviews { get; init; }
+
+    /// <summary>
+    /// The member's name as the platform knows them. Staff only — a reviewer deciding a claim
+    /// about a person needs to know who the person is, and an identifier tells them nothing.
+    /// Null for the member themselves, and when the name cannot be resolved.
+    /// </summary>
+    public string? MemberName { get; init; }
+
+    /// <summary>
+    /// A short-lived link to the selfie taken with the submission, for comparison against the
+    /// document's photograph. Staff only; null when none was taken or it cannot be served.
+    /// </summary>
+    public string? SelfieUrl { get; init; }
 }
 
 /// <summary>

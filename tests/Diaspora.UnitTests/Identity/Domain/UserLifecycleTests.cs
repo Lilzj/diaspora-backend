@@ -65,6 +65,39 @@ public class UserLifecycleTests
     }
 
     [Fact]
+    public void A_grant_straight_from_the_queue_still_verifies_the_member()
+    {
+        // The console approves without assigning first, so no UnderReview decision is
+        // ever sent. Before 7 Oct 2026 this grant was refused and the member stayed on
+        // VerificationPending with an approved verification.
+        var user = IdentityTestData.LimitedAccessUser();
+        user.RequestVerification(IdentityTestData.Now);
+
+        var result = user.ApplyTrustDecision(
+            TrustDecision.Create(TrustDecisionOutcome.Granted, IdentityTestData.Now), IdentityTestData.Now);
+
+        result.IsSuccess.Should().BeTrue();
+        user.AccessState.Should().Be(AccessState.Verified);
+    }
+
+    [Fact]
+    public void A_repeated_grant_is_accepted_and_changes_nothing()
+    {
+        var user = IdentityTestData.LimitedAccessUser();
+        user.RequestVerification(IdentityTestData.Now);
+        user.ApplyTrustDecision(
+            TrustDecision.Create(TrustDecisionOutcome.Granted, IdentityTestData.Now), IdentityTestData.Now);
+        user.ClearDomainEvents();
+
+        var again = user.ApplyTrustDecision(
+            TrustDecision.Create(TrustDecisionOutcome.Granted, IdentityTestData.Now), IdentityTestData.Now);
+
+        again.IsSuccess.Should().BeTrue();
+        user.AccessState.Should().Be(AccessState.Verified);
+        user.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
     public void A_rejected_trust_decision_returns_the_member_to_limited_access()
     {
         var user = IdentityTestData.LimitedAccessUser();
