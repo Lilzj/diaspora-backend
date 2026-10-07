@@ -64,7 +64,8 @@ public static class OfficialNoticeMapper
             AuthorityType = authority is null
                 ? string.Empty
                 : IntelligenceWireNames.ToWire(authority.AuthorityType),
-            IsOfficial = authority?.IsVerified ?? false,
+            IsOfficial = authority?.IsOfficial ?? false,
+            PostedByPlatform = authority?.IsPlatform ?? false,
 
             PublicationDate = notice.PublicationDate,
             PublishedAt = notice.PublishedAt,

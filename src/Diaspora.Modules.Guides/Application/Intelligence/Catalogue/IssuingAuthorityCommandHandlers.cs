@@ -46,6 +46,11 @@ public sealed class CreateIssuingAuthorityCommandHandler
         var request = command.Request;
         var caller = _authorization.CallerId;
 
+        if (IntelligenceWireNames.ParseAuthorityType(request.AuthorityType) == AuthorityType.Platform)
+        {
+            return Result.Failure<IssuingAuthorityResponse>(IntelligenceErrors.AuthorityTypeReserved);
+        }
+
         var created = IssuingAuthority.Create(
             IssuingAuthorityId.From(_guids.NewSequentialGuid()),
             request.CountryCode,
@@ -87,6 +92,67 @@ public sealed class CreateIssuingAuthorityCommandHandler
     }
 }
 
+/// <summary>Returns, or creates and confirms, the platform's authority for a country.</summary>
+public sealed class EnsurePlatformAuthorityCommandHandler
+    : ICommandHandler<EnsurePlatformAuthorityCommand, IssuingAuthorityResponse>
+{
+    private readonly IIssuingAuthorityRepository _authorities;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IntelligenceAuthorizationService _authorization;
+    private readonly IGuidGenerator _guids;
+    private readonly IClock _clock;
+
+    public EnsurePlatformAuthorityCommandHandler(
+        IIssuingAuthorityRepository authorities,
+        IUnitOfWork unitOfWork,
+        IntelligenceAuthorizationService authorization,
+        IGuidGenerator guids,
+        IClock clock)
+    {
+        _authorities = authorities;
+        _unitOfWork = unitOfWork;
+        _authorization = authorization;
+        _guids = guids;
+        _clock = clock;
+    }
+
+    public async Task<Result<IssuingAuthorityResponse>> Handle(
+        EnsurePlatformAuthorityCommand command, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+
+        var country = IntelligenceNormalization.Country(command.CountryCode);
+        if (country is null)
+        {
+            return Result.Failure<IssuingAuthorityResponse>(IntelligenceErrors.CountryInvalid);
+        }
+
+        var existing = await _authorities.ListForCountryAsync(
+            country, AuthorityType.Platform, cancellationToken: cancellationToken);
+        if (existing.Count > 0)
+        {
+            return Result.Success(
+                IntelligenceCatalogueMapper.ToResponse(existing[0], forEditor: true));
+        }
+
+        var created = IssuingAuthority.CreatePlatform(
+            IssuingAuthorityId.From(_guids.NewSequentialGuid()),
+            country,
+            _clock.UtcNow,
+            _authorization.CallerId);
+        if (created.IsFailure)
+        {
+            return Result.Failure<IssuingAuthorityResponse>(created.Error);
+        }
+
+        await _authorities.AddAsync(created.Value, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return Result.Success(
+            IntelligenceCatalogueMapper.ToResponse(created.Value, forEditor: true));
+    }
+}
+
 /// <summary>Rewrites an authority record.</summary>
 public sealed class UpdateIssuingAuthorityCommandHandler
     : ICommandHandler<UpdateIssuingAuthorityCommand, IssuingAuthorityResponse>
@@ -119,6 +185,15 @@ public sealed class UpdateIssuingAuthorityCommandHandler
         }
 
         var request = command.Request;
+
+        // Neither into nor out of the reserved type: the platform's authority is made only by
+        // EnsurePlatformAuthorityCommand, and a government body never becomes Diaspora.
+        var requestedType = IntelligenceWireNames.ParseAuthorityType(request.AuthorityType);
+        if (requestedType is not null
+            && (requestedType == AuthorityType.Platform) != authority.IsPlatform)
+        {
+            return Result.Failure<IssuingAuthorityResponse>(IntelligenceErrors.AuthorityTypeReserved);
+        }
 
         var revision = authority.EnsureRevision(request.ExpectedRevision);
 

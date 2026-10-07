@@ -159,6 +159,21 @@ internal static class IntelligenceCatalogueEndpoints
             .WithName("CreateIssuingAuthority")
             .WithSummary("Record a body. It cannot publish anything until Trust verifies it.");
 
+        group.MapPost("/countries/{countryCode}/platform-authority", async (
+                string countryCode,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new EnsurePlatformAuthorityCommand { CountryCode = countryCode },
+                        cancellationToken)))
+            .RequireAuthorization(IntelligencePolicies.ManageNotices)
+            .WithName("EnsurePlatformAuthority")
+            .WithSummary("The platform's own authority for a country, created and confirmed on "
+                + "first use. Admin-written notices name it and read as posted by Diaspora.");
+
         group.MapPut("/authorities/{authorityId:guid}", async (
                 Guid authorityId,
                 UpdateIssuingAuthorityRequest request,

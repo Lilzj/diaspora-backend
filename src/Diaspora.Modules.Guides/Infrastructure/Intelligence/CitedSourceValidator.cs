@@ -35,6 +35,14 @@ public sealed class CitedSourceValidator : IIntelligenceSourceValidator
     {
         ArgumentNullException.ThrowIfNull(request);
 
+        // The platform's own notices may cite a source and are not required to (decided
+        // 7 Oct 2026). They are shown as posted by Diaspora, never as official, so the rule this
+        // enforces, that an official notice cites something, does not apply to them.
+        if (request.AuthorityType == Domain.Enums.AuthorityType.Platform)
+        {
+            return Task.FromResult(SourceValidationVerdict.Accept());
+        }
+
         var cited = !string.IsNullOrWhiteSpace(request.SourceUrl)
             || !string.IsNullOrWhiteSpace(request.ReferenceNumber);
 

@@ -47,6 +47,12 @@ public sealed record VisaAdvisoryResponse
 
     public required bool IsOfficial { get; init; }
 
+    /// <summary>
+    /// Written by a Diaspora platform admin. Clients show "Posted by Diaspora platform admin"
+    /// and never an official badge (<c>IsOfficial</c> is false for these).
+    /// </summary>
+    public bool PostedByPlatform { get; init; }
+
     // ── The rules ───────────────────────────────────────────────────────────────────────────
 
     /// <summary>Conditions to satisfy, in the order an editor put them. Prose, not structure.</summary>

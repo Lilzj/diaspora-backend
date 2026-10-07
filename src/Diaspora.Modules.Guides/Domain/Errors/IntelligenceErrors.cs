@@ -144,6 +144,10 @@ public static class IntelligenceErrors
         IntelligenceErrorCodes.AuthorityCountryMismatch,
         "That authority does not issue for this country.");
 
+    public static readonly Error AuthorityTypeReserved = Error.Validation(
+        IntelligenceErrorCodes.AuthorityTypeReserved,
+        "The platform authority is created by the platform. Choose another authority type.");
+
     public static readonly Error AuthorityUnverified = Error.Conflict(
         IntelligenceErrorCodes.AuthorityUnverified,
         "That authority has not been verified, so notices from it cannot be published.");

@@ -52,6 +52,7 @@ public static class IntelligenceErrorCodes
     public const string SourceRejected = "intelligence.source.rejected";
     public const string AuthorityCountryMismatch = "intelligence.authority.country-mismatch";
     public const string AuthorityUnverified = "intelligence.authority.unverified";
+    public const string AuthorityTypeReserved = "intelligence.authority.type-reserved";
 
     // Dates
     public const string EffectiveAfterExpiry = "intelligence.dates.effective-after-expiry";

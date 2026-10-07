@@ -106,6 +106,35 @@ public sealed class IssuingAuthority
     // Construction and editing
     // ════════════════════════════════════════════════════════════════════════════════════════
 
+    /// <summary>The name every platform authority carries.</summary>
+    public const string PlatformName = "Diaspora platform";
+
+    /// <summary>Whether this is Diaspora itself rather than a body that issues for a country.</summary>
+    public bool IsPlatform => AuthorityType == AuthorityType.Platform;
+
+    /// <summary>
+    /// What a reader may be told is official: confirmed by Trust, and not the platform. A notice
+    /// an admin wrote is never presented as a government's.
+    /// </summary>
+    public bool IsOfficial => IsVerified && !IsPlatform;
+
+    /// <summary>
+    /// The platform's authority for a country, confirmed at creation. There is nothing for Trust to
+    /// check: the platform is the one asserting it, and readers are told so.
+    /// </summary>
+    public static Result<IssuingAuthority> CreatePlatform(
+        IssuingAuthorityId id, string? countryCode, DateTimeOffset now, UserId? createdBy = null)
+    {
+        var created = Create(id, countryCode, PlatformName, AuthorityType.Platform, now, createdBy);
+        if (created.IsFailure)
+        {
+            return created;
+        }
+
+        created.Value.ApplyVerification(true, now);
+        return created;
+    }
+
     public static Result<IssuingAuthority> Create(
         IssuingAuthorityId id,
         string? countryCode,

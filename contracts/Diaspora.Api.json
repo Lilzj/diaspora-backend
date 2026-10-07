@@ -20070,6 +20070,30 @@
         }
       }
     },
+    "/api/v1/intelligence/countries/{countryCode}/platform-authority": {
+      "post": {
+        "tags": [
+          "Country Intelligence"
+        ],
+        "summary": "The platform's own authority for a country, created and confirmed on first use. Admin-written notices name it and read as posted by Diaspora.",
+        "operationId": "EnsurePlatformAuthority",
+        "parameters": [
+          {
+            "name": "countryCode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/intelligence/authorities/{authorityId}/verification": {
       "post": {
         "tags": [

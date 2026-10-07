@@ -74,6 +74,12 @@ public sealed record OfficialNoticeCardResponse
     /// </summary>
     public required bool IsOfficial { get; init; }
 
+    /// <summary>
+    /// Written by a Diaspora platform admin. Clients show "Posted by Diaspora platform admin"
+    /// and never an official badge (<c>IsOfficial</c> is false for these).
+    /// </summary>
+    public bool PostedByPlatform { get; init; }
+
     // ── When ────────────────────────────────────────────────────────────────────────────────
 
     /// <summary>When the authority issued it, which is not when this platform published it.</summary>

@@ -200,6 +200,89 @@ public sealed class CountryIntelligenceTests : IdentityTestBase
             .Should().Contain("intelligence.source.rejected");
     }
 
+    // ── Written by Diaspora (decided 7 Oct 2026) ─────────────────────────────────────────────
+    //
+    // Notices, visa advisories and embassy details are written by platform admins in the console
+    // and shown as "Posted by Diaspora platform admin". The platform's own authority makes that
+    // possible without pretending to be a government: confirmed at creation, never official.
+
+    [Fact]
+    public async Task The_platform_authority_is_made_once_per_country_and_confirmed()
+    {
+        await AuthenticateAsStaffAsync("Admin");
+
+        var first = await ReadDataAsync<AuthorityDto>(
+            await PostAsync($"{Root}/countries/MU/platform-authority"));
+        var second = await ReadDataAsync<AuthorityDto>(
+            await PostAsync($"{Root}/countries/MU/platform-authority"));
+
+        second.IssuingAuthorityId.Should().Be(first.IssuingAuthorityId, "it is idempotent");
+        first.AuthorityType.Should().Be("Platform");
+        first.Name.Should().Be("Diaspora platform");
+        first.IsVerified.Should().BeTrue("nothing has to confirm Diaspora to itself");
+    }
+
+    [Fact]
+    public async Task An_admin_notice_publishes_without_a_source_and_reads_as_posted_by_the_platform()
+    {
+        await AuthenticateAsStaffAsync("Admin");
+
+        var platform = await ReadDataAsync<AuthorityDto>(
+            await PostAsync($"{Root}/countries/MU/platform-authority"));
+        var notice = await CreateNoticeAsync("MU", platform.IssuingAuthorityId,
+            title: "Cyclone warning class 2");
+
+        await PostAsync($"{Root}/notices/{notice.Card.OfficialNoticeId}/submit");
+        await VerifyAsync(notice.Card.OfficialNoticeId, approved: true);
+
+        var published = await ReadDataAsync<PlatformNoticeDto>(
+            await PostAsync($"{Root}/notices/{notice.Card.OfficialNoticeId}/publish"));
+
+        published.Card.Status.Should().Be("Published");
+        published.Card.PostedByPlatform.Should().BeTrue();
+        published.Card.IsOfficial.Should().BeFalse("an admin's notice is never shown as a government's");
+        published.Card.AuthorityName.Should().Be("Diaspora platform");
+
+        Api.ClearAuthentication();
+        var read = await ReadDataAsync<PlatformNoticeDto>(
+            await HttpClient.GetAsync($"{Root}/notices/{notice.Card.OfficialNoticeId}"));
+
+        read.Card.PostedByPlatform.Should().BeTrue();
+        read.Card.IsOfficial.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task The_platform_type_cannot_be_claimed_through_the_authority_routes()
+    {
+        await AuthenticateAsStaffAsync("Admin");
+
+        var response = await PostAsync(
+            $"{Root}/authorities",
+            new { countryCode = "MU", name = "Not Diaspora", authorityType = "Platform" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync())
+            .Should().Contain("intelligence.authority.type-reserved");
+    }
+
+    [Fact]
+    public async Task An_admin_visa_advisory_publishes_and_reads_as_posted_by_the_platform()
+    {
+        await AuthenticateAsStaffAsync("Admin");
+
+        var platform = await ReadDataAsync<AuthorityDto>(
+            await PostAsync($"{Root}/countries/MU/platform-authority"));
+        var advisory = await CreateAdvisoryAsync("MU", null, platform.IssuingAuthorityId,
+            "Visitor entry for everyone");
+
+        var published = await ReadDataAsync<PlatformVisaDto>(
+            await PostAsync($"{Root}/visas/{advisory}/publish"));
+
+        published.Status.Should().Be("Published");
+        published.PostedByPlatform.Should().BeTrue();
+        published.IsOfficial.Should().BeFalse();
+    }
+
     [Fact]
     public async Task A_notice_walks_draft_to_submitted_to_verified_to_published()
     {
@@ -1246,6 +1329,18 @@ public sealed class CountryIntelligenceTests : IdentityTestBase
         IReadOnlyList<OfficeHoursDto> OfficeHours,
         IReadOnlyList<EmbassyServiceDto> Services,
         int? Revision);
+
+    private sealed record PlatformCardDto(
+        Guid OfficialNoticeId,
+        string Status,
+        string AuthorityName,
+        bool IsOfficial,
+        bool PostedByPlatform);
+
+    private sealed record PlatformNoticeDto(PlatformCardDto Card);
+
+    private sealed record PlatformVisaDto(
+        Guid VisaAdvisoryId, string Status, bool IsOfficial, bool PostedByPlatform);
 
     private sealed record VisaDto(
         Guid VisaAdvisoryId,

@@ -54,5 +54,12 @@ public enum AuthorityType
     Municipality = 11,
 
     /// <summary>An official body none of the above describes. Named on the record.</summary>
-    Other = 12
+    Other = 12,
+
+    /// <summary>
+    /// Diaspora itself. Added 7 Oct 2026: notices, advisories and embassy details are written by
+    /// platform admins, and shown as "Posted by Diaspora platform admin", never as official. One
+    /// per country, created and confirmed by <c>EnsurePlatformAuthorityCommand</c> only.
+    /// </summary>
+    Platform = 13
 }

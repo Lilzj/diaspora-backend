@@ -60,6 +60,18 @@ public sealed record RestoreNoticeCategoryCommand : ICommand<NoticeCategoryRespo
     public required string Key { get; init; }
 }
 
+/// <summary>
+/// Returns the platform's authority for a country, creating and confirming it the first time.
+/// Notices, visa advisories and embassy details written by platform admins name it as their
+/// issuer, and readers are shown "Posted by Diaspora platform admin". Idempotent.
+/// </summary>
+[Authorize(Permission = IntelligencePermissions.ManageNotices)]
+[Auditable]
+public sealed record EnsurePlatformAuthorityCommand : ICommand<IssuingAuthorityResponse>
+{
+    public required string CountryCode { get; init; }
+}
+
 /// <summary>Records a body whose statements this platform will treat as official.</summary>
 [Authorize(Permission = IntelligencePermissions.ManageAuthorities)]
 [Auditable]

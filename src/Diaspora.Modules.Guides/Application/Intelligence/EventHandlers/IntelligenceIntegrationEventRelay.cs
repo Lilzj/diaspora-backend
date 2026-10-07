@@ -250,7 +250,7 @@ public sealed class IntelligenceIntegrationEventRelay
                 Severity = IntelligenceWireNames.ToWire(domainEvent.Severity),
                 AuthorityId = domainEvent.AuthorityId.Value,
                 AuthorityName = authority?.Name ?? string.Empty,
-                IsOfficial = authority?.IsVerified ?? false,
+                IsOfficial = authority?.IsOfficial ?? false,
                 PublicationDate = domainEvent.PublicationDate,
                 EffectiveFrom = domainEvent.EffectiveFrom,
                 ExpiresAt = domainEvent.ExpiresAt,
