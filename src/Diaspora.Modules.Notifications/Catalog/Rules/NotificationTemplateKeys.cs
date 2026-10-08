@@ -142,6 +142,8 @@ public static class NotificationTemplateKeys
     public const string KnowledgeGuideFeatured = "learning.guide.featured";
     public const string LearningPathUpdated = "learning.path.updated";
 
+    public const string OfficialNoticePublished = "intelligence.notice.published";
+
     public const string ProviderReviewPublished = "provider.review.published";
     public const string ProviderRecommendationPublished = "provider.recommendation.published";
 

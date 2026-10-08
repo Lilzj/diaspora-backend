@@ -72,6 +72,9 @@ public static class DeepLinkRouteTable
         "/knowledge",
         "/neighborhood",
         "/country",
+        // Official notices, embassies and visa advisories (Phase 10). Added 8 Oct 2026 so a
+        // notice notification opens the notice rather than falling back to the inbox.
+        "/intelligence",
         "/update",
         "/contributor",
 

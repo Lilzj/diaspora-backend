@@ -52,6 +52,7 @@ public sealed class DeepLinkRouteTableTests
         "/knowledge",
         "/neighborhood",
         "/country",
+        "/intelligence",
         "/update",
         "/contributor",
         "/community",

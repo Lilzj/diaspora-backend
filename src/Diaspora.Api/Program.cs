@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Diaspora.Api.Identity;
 using Asp.Versioning;
 using Diaspora.Modules.Trust.Application.Services;
@@ -151,6 +152,13 @@ if (builder.Configuration
 {
     builder.Services.AddScoped<ITrustDecisionPublisher, LoopbackTrustDecisionPublisher>();
 }
+
+// Notifications ships an audience resolver that answers "nobody" and waits for this one. Same
+// reasoning as the bridge above: the composition root is where Identity and Notifications may meet.
+// Replace, not Add, so exactly one answer exists whichever order the modules registered in.
+builder.Services.Replace(ServiceDescriptor.Scoped<
+    Diaspora.Modules.Notifications.Extensibility.Audiences.INotificationAudienceResolver,
+    Diaspora.Api.Identity.Audiences.ResidenceCountryAudienceResolver>());
 
 // The Production Platform (B17): caching, resilience, rate limiting, feature management, runtime
 // configuration, scheduling, health aggregation, dashboards, security and privacy tooling.
