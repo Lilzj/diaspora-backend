@@ -54,6 +54,13 @@ public sealed class ReportContentCommandHandler
             return Result.Failure<ReportResponse>(reference.Error);
         }
 
+        // Written and published by the platform's own staff (13 Oct 2026). Hiding the button in
+        // the app is not enough on its own: the route would still take a report.
+        if (reference.Value.Type == CommunityContentType.Notice)
+        {
+            return Result.Failure<ReportResponse>(CommunityErrors.ContentNotReportable);
+        }
+
         var reason = CommunityWireNames.ParseReportReason(request.Request.Reason);
 
         if (reason.IsFailure)

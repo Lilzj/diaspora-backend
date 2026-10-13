@@ -27,6 +27,7 @@ public static class CommunityWireNames
             ["communityupdate"] = CommunityContentType.Post,
             ["update"] = CommunityContentType.Post,
             ["communitypost"] = CommunityContentType.Post,
+            ["officialnotice"] = CommunityContentType.Notice,
             ["provider"] = CommunityContentType.Listing,
         };
 
@@ -147,6 +148,7 @@ public static class CommunityWireNames
         CommunityContentType.Marketplace => "Marketplace",
         CommunityContentType.Event => "Events",
         CommunityContentType.Organization => "Community Groups",
+        CommunityContentType.Notice => "Official notices",
         _ => type.ToString()
     };
 }

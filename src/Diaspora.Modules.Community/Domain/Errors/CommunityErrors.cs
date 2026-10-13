@@ -239,6 +239,10 @@ public static class CommunityErrors
         CommunityErrorCodes.ReportEvidenceRequired,
         "This reason needs a link to the conflicting content.");
 
+    public static readonly Error ContentNotReportable = Error.Validation(
+        CommunityErrorCodes.ContentNotReportable,
+        "Official notices are published by Diaspora and cannot be reported.");
+
     public static readonly Error ReportAlreadyResolved = Error.Conflict(
         CommunityErrorCodes.ReportAlreadyResolved, "That report has already been decided.");
 

@@ -71,6 +71,17 @@ public enum CommunityContentType
     /// </summary>
     Message = 12,
 
+    /// <summary>
+    /// An official notice a Diaspora platform admin published (Guides' intelligence notices).
+    /// <para>
+    /// Added 13 Oct 2026 so members can react to and discuss a notice the way they do an update.
+    /// <b>Never reportable</b>: it was written and published by the platform's own staff, so a
+    /// report on it is refused in <c>ReportContentCommandHandler</c>. Comments under it are
+    /// ordinary comments and can be reported like any other.
+    /// </para>
+    /// </summary>
+    Notice = 13,
+
     /// <summary>A content type a later module introduced before this enum caught up.</summary>
     Other = 99
 }

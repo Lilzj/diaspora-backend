@@ -335,6 +335,46 @@ public sealed class CountryIntelligenceTests : IdentityTestBase
         edited.Card.VerificationStatus.Should().Be("Unverified");
     }
 
+    /// <summary>
+    /// Members react to and discuss a notice as they do an update, and cannot report it (13 Oct
+    /// 2026). Before, a notice had no reactions, no comments and nothing to read them back from.
+    /// </summary>
+    [Fact]
+    public async Task Members_react_to_and_comment_on_a_notice_but_cannot_report_it()
+    {
+        await AuthenticateAsStaffAsync("Admin");
+        var authority = await CreateVerifiedAuthorityAsync("MU", "Engagement Ministry");
+        var notice = await PublishedNoticeAsync("MU", authority);
+
+        var (_, member) = await RegisterAndVerifyAsync();
+        Api.Authenticate(member.Tokens.AccessToken);
+
+        var reacted = await HttpClient.PostAsJsonAsync(
+            $"/api/v1/community/content/notice/{notice}/reactions", new { reactionKey = "helpful" });
+        reacted.IsSuccessStatusCode.Should().BeTrue(await reacted.Content.ReadAsStringAsync());
+
+        var commented = await HttpClient.PostAsJsonAsync(
+            $"/api/v1/community/content/notice/{notice}/comments", new { body = "Is this open on Saturdays?" });
+        commented.IsSuccessStatusCode.Should().BeTrue(await commented.Content.ReadAsStringAsync());
+
+        var engagement = await HttpClient.GetStringAsync(
+            $"/api/v1/community/content/notice/{notice}/engagement");
+        using (var document = System.Text.Json.JsonDocument.Parse(engagement))
+        {
+            var data = document.RootElement.GetProperty("data");
+            data.GetProperty("commentCount").GetInt32().Should().Be(1);
+            data.GetProperty("reactions").GetProperty("helpfulCount").GetInt32().Should().Be(1);
+            data.GetProperty("reactions").GetProperty("viewerReactions").EnumerateArray()
+                .Select(key => key.GetString()).Should().Contain("helpful");
+        }
+
+        var reported = await HttpClient.PostAsJsonAsync(
+            "/api/v1/community/reports",
+            new { contentType = "notice", contentId = notice, reason = "misinformation" });
+        reported.StatusCode.Should().Be(System.Net.HttpStatusCode.BadRequest);
+        (await reported.Content.ReadAsStringAsync()).Should().Contain("community.report.not-reportable");
+    }
+
     [Fact]
     public async Task A_published_notice_cannot_have_its_text_rewritten()
     {

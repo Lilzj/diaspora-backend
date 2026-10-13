@@ -81,6 +81,7 @@ public static class CommunityErrorCodes
     public const string ReportNotFound = "community.report.not-found";
     public const string ReportSelfContent = "community.report.self-content";
     public const string ReportEvidenceRequired = "community.report.evidence-required";
+    public const string ContentNotReportable = "community.report.not-reportable";
     public const string ReportAlreadyResolved = "community.report.already-resolved";
 
     public const string ModerationDecisionInvalid = "community.moderation.invalid-decision";

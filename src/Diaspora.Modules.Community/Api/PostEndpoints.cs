@@ -96,6 +96,17 @@ internal static class PostEndpoints
             .WithName("CancelCommunityPost")
             .WithSummary("Cancel your own alert because what it reported is over. It stays readable, marked cancelled.");
 
+        group.MapGet("/posts/categories", async (
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(new GetPostCategoriesQuery(), cancellationToken)))
+            .RequireAuthorization(CommunityPolicies.Read)
+            .WithName("GetCommunityPostCategories")
+            .WithSummary("The categories an update may be filed under, with the key to send.");
+
         group.MapGet("/alerts/capabilities", async (
                 ISender sender,
                 HttpContext context,

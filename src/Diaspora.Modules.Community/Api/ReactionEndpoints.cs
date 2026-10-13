@@ -21,6 +21,21 @@ internal static class ReactionEndpoints
     {
         ArgumentNullException.ThrowIfNull(group);
 
+        group.MapGet("/content/{contentType}/{contentId:guid}/engagement", async (
+                string contentType,
+                Guid contentId,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new GetContentEngagementQuery { ContentType = contentType, ContentId = contentId },
+                        cancellationToken)))
+            .RequireAuthorization(CommunityPolicies.Read)
+            .WithName("GetCommunityContentEngagement")
+            .WithSummary("Reaction counts, the viewer's reactions and the comment count on any content.");
+
         group.MapPost("/content/{contentType}/{contentId:guid}/reactions", async (
                 string contentType,
                 Guid contentId,
