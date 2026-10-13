@@ -4701,6 +4701,20 @@
         }
       }
     },
+    "/api/v1/community/posts/categories": {
+      "get": {
+        "tags": [
+          "Community"
+        ],
+        "summary": "The categories an update may be filed under, with the key to send.",
+        "operationId": "GetCommunityPostCategories",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/community/alerts/capabilities": {
       "get": {
         "tags": [
@@ -5101,6 +5115,39 @@
           },
           "required": true
         },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/community/content/{contentType}/{contentId}/engagement": {
+      "get": {
+        "tags": [
+          "Community"
+        ],
+        "summary": "Reaction counts, the viewer's reactions and the comment count on any content.",
+        "operationId": "GetCommunityContentEngagement",
+        "parameters": [
+          {
+            "name": "contentType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
