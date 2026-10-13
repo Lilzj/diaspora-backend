@@ -24399,6 +24399,20 @@
         }
       }
     },
+    "/api/v1/housing/listing-options": {
+      "get": {
+        "tags": [
+          "Housing"
+        ],
+        "summary": "The furnishing and lease choices a listing may be created with.",
+        "operationId": "GetHousingListingOptions",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/housing/accommodation-types": {
       "get": {
         "tags": [

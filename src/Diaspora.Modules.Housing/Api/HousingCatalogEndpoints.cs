@@ -22,6 +22,15 @@ internal static class HousingCatalogEndpoints
     {
         ArgumentNullException.ThrowIfNull(group);
 
+        group.MapGet("/listing-options", async (
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(context, await sender.Send(new GetListingOptionsQuery(), cancellationToken)))
+            .AllowAnonymous()
+            .WithName("GetHousingListingOptions")
+            .WithSummary("The furnishing and lease choices a listing may be created with.");
+
         group.MapGet("/accommodation-types", async (
                 [FromQuery] bool? includeInactive,
                 ISender sender,
