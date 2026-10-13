@@ -65,7 +65,9 @@ public sealed class IdentityPolicyProvider : IIdentityPolicyProvider
                     ? PasswordHistoryPolicy.Create(password.HistoryDepth, enforced: true)
                     : PasswordHistoryPolicy.Disabled,
 
-                RefreshTokenLifetime = TimeSpan.FromDays(refreshToken.LifetimeDays),
+                RefreshTokenLifetime = refreshToken.IdleLifetimeMinutes > 0
+                    ? TimeSpan.FromMinutes(refreshToken.IdleLifetimeMinutes)
+                    : TimeSpan.FromDays(refreshToken.LifetimeDays),
                 AbsoluteSessionLifetime = TimeSpan.FromDays(refreshToken.AbsoluteSessionLifetimeDays),
                 IncludeFeaturesInAccessToken = _jwt.CurrentValue.IncludeFeatureClaims,
                 MaxDevicesPerUser = _identity.CurrentValue.MaxDevicesPerUser,
