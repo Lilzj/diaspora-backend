@@ -179,6 +179,12 @@ public sealed class AdministrativeAreaRepository : IAdministrativeAreaRepository
             items, pagination.Page, pagination.PageSize, total);
     }
 
+    [SuppressMessage(
+        "Globalization", "CA1304:Specify CultureInfo",
+        Justification = "Inside an expression tree, translated to SQL lower(); see FindByNameAsync.")]
+    [SuppressMessage(
+        "Globalization", "CA1311:Specify a culture or use an invariant version",
+        Justification = "See CA1304.")]
     public async Task<IReadOnlyList<AdministrativeArea>> SearchAsync(
         LocationTextQuery query, CancellationToken cancellationToken = default)
     {
@@ -198,11 +204,15 @@ public sealed class AdministrativeAreaRepository : IAdministrativeAreaRepository
             candidates = candidates.Where(area => levels.Contains(area.Level));
         }
 
-        var term = query.Term;
+        // Lowered on both sides. LIKE is case-sensitive on Postgres and not on the SQLite test
+        // host, so "Port louis" found nothing in production and everything in the tests: a member
+        // in Mauritius typing their own city in lower case was told it was not in the directory
+        // (13 Oct 2026). Ranking below already ignored case; only this filter did not.
+        var term = query.Term.ToLowerInvariant();
 
         candidates = candidates.Where(area =>
-            EF.Functions.Like(area.Name.Value, $"%{term}%") ||
-            (area.Name.LocalName != null && EF.Functions.Like(area.Name.LocalName, $"%{term}%")));
+            EF.Functions.Like(area.Name.Value.ToLower(), $"%{term}%") ||
+            (area.Name.LocalName != null && EF.Functions.Like(area.Name.LocalName.ToLower(), $"%{term}%")));
 
         // Over-fetch, then rank in memory. Ranking is a product decision — exact beats prefix
         // beats substring — and expressing it as a translatable ORDER BY would either be

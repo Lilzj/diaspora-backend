@@ -178,6 +178,26 @@ public sealed class LocationModuleTests : IdentityTestBase
     }
 
     /// <summary>
+    /// What a member in Mauritius actually typed (13 Oct 2026): lower-case, and a trailing space
+    /// from the keyboard's word suggestion. The sheet said "No locations found".
+    /// </summary>
+    [Theory]
+    [InlineData("Port Louis")]
+    [InlineData("Port louis ")]
+    [InlineData("port louis")]
+    public async Task A_member_can_find_a_launch_city_however_it_is_typed(string typed)
+    {
+        var (_, auth) = await RegisterAndVerifyAsync();
+        Api.Authenticate(auth.Tokens.AccessToken);
+
+        var response = await HttpClient.GetAsync(
+            $"/api/v1/location/search?query={Uri.EscapeDataString(typed)}");
+        var result = await ReadDataAsync<SearchDto>(response);
+
+        result.Results.Should().Contain(item => item.CityName == "Port Louis");
+    }
+
+    /// <summary>
     /// The canonical reference is a superset of PlatformLocation, so the client's store binds
     /// to a search result unchanged.
     /// </summary>
