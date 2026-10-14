@@ -36606,6 +36606,12 @@
               "null",
               "string"
             ]
+          },
+          "townsOnly": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       },

@@ -27,6 +27,9 @@ public sealed record AutocompletePlacesQuery : IQuery<PlaceAutocompleteResponse>
     public IReadOnlyList<string> CountryCodes { get; init; } = [];
 
     public string? Language { get; init; }
+
+    /// <summary>Towns and cities only, not streets or businesses (14 Oct 2026, the town picker).</summary>
+    public bool TownsOnly { get; init; }
 }
 
 /// <summary>The suggestion a member picked.</summary>
@@ -219,7 +222,8 @@ public sealed class AutocompletePlacesQueryHandler
                             ? Math.Clamp(radius, 100, PlaceSearchRules.MaximumBiasRadiusMetres)
                             : null,
                         CountryCodes = [.. request.CountryCodes.Select(code => code.ToUpperInvariant()).Distinct()],
-                        Language = request.Language
+                        Language = request.Language,
+                        TownsOnly = request.TownsOnly
                     },
                     token),
                 settings.TimeoutMilliseconds,

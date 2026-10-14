@@ -67,6 +67,12 @@ public sealed record PlaceAutocompleteRequest
 
     /// <summary>BCP-47. Passed through, never interpreted.</summary>
     public string? Language { get; init; }
+
+    /// <summary>
+    /// Towns and cities only. Added 14 Oct 2026 for the one town picker every form uses, so a
+    /// member in any country finds their town, not a street or a shop of the same name.
+    /// </summary>
+    public bool TownsOnly { get; init; }
 }
 
 public sealed record PlaceDetailsRequest

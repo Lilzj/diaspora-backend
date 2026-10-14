@@ -246,6 +246,28 @@ public sealed class GoogleMapsAdapterTests
         body["locationBias"]!["circle"]!["radius"]!.GetValue<double>().Should().Be(20_000);
         body["includedRegionCodes"]!.AsArray().Select(code => code!.GetValue<string>())
             .Should().Equal("mu", "gb");
+
+        // An address search is not limited to towns.
+        body.ContainsKey("includedPrimaryTypes").Should().BeFalse();
+    }
+
+    [Fact]
+    public void A_town_search_asks_google_for_towns_in_the_members_country()
+    {
+        // The one town picker every form uses (14 Oct 2026): a member in any country finds their
+        // town, not a street or a shop of the same name.
+        var body = GooglePlaceSearchProvider.BuildAutocompleteBody(new PlaceAutocompleteRequest
+        {
+            Input = "Grand Ba",
+            SessionToken = "0f8fad5b-d9cb-469f-a165-70867728950e",
+            CountryCodes = ["MU"],
+            TownsOnly = true
+        });
+
+        body["includedPrimaryTypes"]!.AsArray().Select(type => type!.GetValue<string>())
+            .Should().Equal("(cities)");
+        body["includedRegionCodes"]!.AsArray().Select(code => code!.GetValue<string>())
+            .Should().Equal("mu");
     }
 
     [Fact]

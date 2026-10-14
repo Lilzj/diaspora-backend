@@ -36,7 +36,8 @@ internal static class PlaceEndpoints
                         NearLongitude = body.Near?.Longitude,
                         NearRadiusMetres = body.NearRadiusMetres,
                         CountryCodes = body.CountryCodes ?? [],
-                        Language = body.Language
+                        Language = body.Language,
+                        TownsOnly = body.TownsOnly == true
                     },
                     cancellationToken);
 
@@ -77,6 +78,7 @@ internal sealed record AutocompletePlacesRequest(
     PlacePointRequest? Near,
     int? NearRadiusMetres,
     IReadOnlyList<string>? CountryCodes,
-    string? Language);
+    string? Language,
+    bool? TownsOnly = null);
 
 internal sealed record LookUpPlaceRequest(string? PlaceId, string? SessionToken, string? Language);

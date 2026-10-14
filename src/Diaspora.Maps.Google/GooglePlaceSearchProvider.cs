@@ -210,6 +210,13 @@ internal sealed class GooglePlaceSearchProvider : IPlaceSearchProvider
                 [.. request.CountryCodes.Select(code => (JsonNode)JsonValue.Create(RegionCode(code))!)]);
         }
 
+        // Google's own collection of town-like types (localities and their equivalents). The
+        // Places API takes "(cities)" here instead of listing them.
+        if (request.TownsOnly)
+        {
+            body["includedPrimaryTypes"] = new JsonArray(JsonValue.Create("(cities)"));
+        }
+
         if (!string.IsNullOrWhiteSpace(request.Language))
         {
             body["languageCode"] = request.Language;
