@@ -65,6 +65,72 @@ public sealed class ProviderPhotoTests : PooledIdentityTestBase
         attached.IsSuccessStatusCode.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task An_owner_changes_the_description_contact_and_town_after_registering()
+    {
+        var (providerId, _) = await RegisterProviderAsync("Josh Kitchen");
+
+        var patched = await HttpClient.PatchAsJsonAsync($"{Root}/{providerId}/details", new
+        {
+            description = "Home-cooked West African food, weekdays from noon.",
+            email = "kitchen@example.com",
+            phone = "",
+            cityName = "Manchester"
+        });
+
+        patched.StatusCode.Should().Be(HttpStatusCode.OK, await patched.Content.ReadAsStringAsync());
+
+        using var page = JsonDocument.Parse(await patched.Content.ReadAsStringAsync());
+        var data = page.RootElement.GetProperty("data");
+
+        data.GetProperty("profile").GetProperty("description").GetString()
+            .Should().Be("Home-cooked West African food, weekdays from noon.");
+        data.GetProperty("location").GetProperty("cityName").GetString().Should().Be("Manchester");
+
+        var kinds = data.GetProperty("contactMethods").EnumerateArray()
+            .Select(method => method.GetProperty("kind").GetString()).ToList();
+        kinds.Should().Contain(kind => string.Equals(kind, "Email", StringComparison.OrdinalIgnoreCase));
+        kinds.Should().NotContain(kind => string.Equals(kind, "Phone", StringComparison.OrdinalIgnoreCase),
+            "an empty phone removes it");
+    }
+
+    [Fact]
+    public async Task An_owner_removes_a_photo_and_the_next_one_becomes_the_cover()
+    {
+        var (providerId, _) = await RegisterProviderAsync("Two Photo Grill");
+        var first = await UploadAsync();
+        var second = await UploadAsync();
+
+        await HttpClient.PostAsJsonAsync($"{Root}/{providerId}/photos", new { mediaId = first, role = "cover" });
+        await HttpClient.PostAsJsonAsync($"{Root}/{providerId}/photos", new { mediaId = second, role = "gallery" });
+
+        var removed = await HttpClient.DeleteAsync($"{Root}/{providerId}/photos/{first}");
+
+        removed.StatusCode.Should().Be(HttpStatusCode.OK, await removed.Content.ReadAsStringAsync());
+
+        using var page = JsonDocument.Parse(await removed.Content.ReadAsStringAsync());
+        var data = page.RootElement.GetProperty("data");
+
+        data.GetProperty("gallery").GetArrayLength().Should().Be(1);
+        data.GetProperty("coverMedia").GetProperty("mediaId").GetGuid().Should().Be(second);
+    }
+
+    [Fact]
+    public async Task Nobody_else_can_change_a_providers_details_or_photos()
+    {
+        var (providerId, _) = await RegisterProviderAsync("Owned Elsewhere");
+        var photo = await UploadAsync();
+        await HttpClient.PostAsJsonAsync($"{Root}/{providerId}/photos", new { mediaId = photo, role = "cover" });
+
+        var (_, stranger) = await RegisterVerifiedMemberAsync();
+        Api.Authenticate(stranger.Tokens.AccessToken);
+
+        (await HttpClient.PatchAsJsonAsync($"{Root}/{providerId}/details", new { description = "Mine now" }))
+            .IsSuccessStatusCode.Should().BeFalse();
+        (await HttpClient.DeleteAsync($"{Root}/{providerId}/photos/{photo}"))
+            .IsSuccessStatusCode.Should().BeFalse();
+    }
+
     private async Task<(Guid ProviderId, string Token)> RegisterProviderAsync(string name)
     {
         var (_, auth) = await RegisterVerifiedMemberAsync();

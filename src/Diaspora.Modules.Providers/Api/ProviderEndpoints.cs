@@ -234,6 +234,36 @@ internal static class ProviderEndpoints
     /// </summary>
     private static void MapServices(RouteGroupBuilder group)
     {
+        group.MapPatch("/{providerId:guid}/details", async (
+                Guid providerId,
+                UpdateProviderDetailsRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new UpdateProviderDetailsCommand { ProviderId = providerId, Request = request },
+                        cancellationToken)))
+            .RequireAuthorization(ProviderPolicies.Manage)
+            .WithName("UpdateProviderDetails")
+            .WithSummary("Change a provider's description, contact methods or location. Partial.");
+
+        group.MapDelete("/{providerId:guid}/photos/{mediaId:guid}", async (
+                Guid providerId,
+                Guid mediaId,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new RemoveProviderPhotoCommand { ProviderId = providerId, MediaId = mediaId },
+                        cancellationToken)))
+            .RequireAuthorization(ProviderPolicies.ManageMedia)
+            .WithName("RemoveProviderPhoto")
+            .WithSummary("Take a photograph off a provider.");
+
         group.MapPost("/{providerId:guid}/photos", async (
                 Guid providerId,
                 ProviderGalleryItemRequest request,
