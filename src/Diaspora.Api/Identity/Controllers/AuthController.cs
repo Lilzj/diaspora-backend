@@ -3,7 +3,9 @@ using Asp.Versioning;
 using Diaspora.Api.Common;
 using Diaspora.Api.RateLimiting;
 using Diaspora.Platform.Http;
+using Diaspora.Application.Identity.Abstractions;
 using Diaspora.Application.Identity.Authorization;
+using Diaspora.Application.Identity.Models;
 using Diaspora.Application.Identity.Commands.Authentication.Login;
 using Diaspora.Application.Identity.Commands.Authentication.Logout;
 using Diaspora.Application.Identity.Commands.Authentication.RefreshToken;
@@ -73,6 +75,32 @@ public sealed class AuthController : ApiController
         }, cancellationToken);
 
         return HandleCreated(result);
+    }
+
+    /// <summary>Whether a password would be accepted, checked by the same policy as registration.</summary>
+    /// <remarks>
+    /// Creates nothing and touches no account, so it says nothing about who is registered.
+    /// 200 when the password would be accepted; otherwise the same 400 registration would
+    /// give, with the same localised message.
+    /// </remarks>
+    [HttpPost("password-check")]
+    [AllowAnonymous]
+    [EnableRateLimiting(RateLimitingRegistration.SignInPolicy)]
+    [ProducesResponseType<ApiResponse<object>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    public IActionResult CheckPassword(
+        [FromBody] CheckPasswordRequest request,
+        [FromServices] IPasswordPolicy passwordPolicy)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(passwordPolicy);
+
+        return HandleResult(passwordPolicy.Validate(request.Password, new PasswordPolicyContext
+        {
+            Email = request.Email,
+            FullName = request.FullName,
+            PhoneNumber = request.PhoneNumber
+        }));
     }
 
     /// <summary>Redeems the phone verification code and issues the first token pair.</summary>
