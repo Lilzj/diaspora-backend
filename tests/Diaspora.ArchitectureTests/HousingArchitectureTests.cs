@@ -269,7 +269,7 @@ public class HousingArchitectureTests
         // publishes the forward transitions the relay dropped — a seeker could learn a landlord had
         // refused and not that one had agreed. The count is bumped deliberately, so a contract added
         // without a reason still fails here.
-        contracts.Should().HaveCount(15, "B11 named thirteen published facts and Wave 12 added two");
+        contracts.Should().HaveCount(16, "B11 named thirteen published facts, Wave 12 added two, and HousingDeleted (14 Oct 2026) took a deleted home out of recommendation feeds");
 
         var leaked = contracts
             .SelectMany(type => type.GetProperties())

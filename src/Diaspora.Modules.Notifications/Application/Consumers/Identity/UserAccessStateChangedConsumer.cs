@@ -1,5 +1,6 @@
 using Diaspora.Contracts.Identity.V1.Events;
 using Diaspora.Modules.Notifications.Application.Dispatch;
+using Diaspora.Modules.Notifications.Realtime;
 using Diaspora.SharedKernel.Identity;
 
 namespace Diaspora.Modules.Notifications.Application.Consumers.Identity;
@@ -20,7 +21,21 @@ namespace Diaspora.Modules.Notifications.Application.Consumers.Identity;
 public sealed class UserAccessStateChangedConsumer
     : ModuleEventConsumer<UserAccessStateChangedIntegrationEvent>
 {
-    public UserAccessStateChangedConsumer(INotificationDispatcher dispatcher) : base(dispatcher) { }
+    private readonly AccessStateRealtimeRelay _realtime;
+
+    public UserAccessStateChangedConsumer(INotificationDispatcher dispatcher, AccessStateRealtimeRelay realtime)
+        : base(dispatcher) => _realtime = realtime;
+
+    /// <summary>
+    /// The open app hears first (14 Oct 2026, see <see cref="AccessStateRealtimeRelay"/>), then the
+    /// notification is rendered as before.
+    /// </summary>
+    protected override async Task HandleAsync(
+        UserAccessStateChangedIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+    {
+        await _realtime.SendAsync(integrationEvent, cancellationToken);
+        await base.HandleAsync(integrationEvent, cancellationToken);
+    }
 
     protected override string SourceModule => "Identity";
 

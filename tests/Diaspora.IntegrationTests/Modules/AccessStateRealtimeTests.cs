@@ -1,7 +1,6 @@
-using Diaspora.Application.Abstractions;
 using Diaspora.Contracts.Identity.V1.Events;
 using Diaspora.IntegrationTests.Common;
-using Diaspora.Modules.Notifications.Application.Consumers.Identity;
+using Diaspora.Modules.Notifications.Realtime;
 using Diaspora.Modules.Notifications.Extensibility.Realtime;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http.Connections;
@@ -42,15 +41,14 @@ public sealed class AccessStateRealtimeTests : PooledIdentityTestBase
             {
                 var relay = new AccessStateRealtimeRelay(scope.ServiceProvider.GetRequiredService<IRealtimeNotifier>());
 
-                await relay.Handle(
-                    new IntegrationEventNotification<UserAccessStateChangedIntegrationEvent>(
-                        new UserAccessStateChangedIntegrationEvent
-                        {
-                            UserId = member.User.Id,
-                            FromState = "VerificationUnderReview",
-                            ToState = "DiasporaVerified",
-                            Reason = "VerificationApproved"
-                        }),
+                await relay.SendAsync(
+                    new UserAccessStateChangedIntegrationEvent
+                    {
+                        UserId = member.User.Id,
+                        FromState = "VerificationUnderReview",
+                        ToState = "DiasporaVerified",
+                        Reason = "VerificationApproved"
+                    },
                     CancellationToken.None);
             }
 

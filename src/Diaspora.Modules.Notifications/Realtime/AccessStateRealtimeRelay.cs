@@ -1,9 +1,8 @@
-using Diaspora.Application.Abstractions;
 using Diaspora.Contracts.Identity.V1.Events;
 using Diaspora.Modules.Notifications.Extensibility.Realtime;
 using Diaspora.SharedKernel.Identity;
 
-namespace Diaspora.Modules.Notifications.Application.Consumers.Identity;
+namespace Diaspora.Modules.Notifications.Realtime;
 
 /// <summary>
 /// Tells a member's open app, over the socket, that their access changed.
@@ -15,14 +14,15 @@ namespace Diaspora.Modules.Notifications.Application.Consumers.Identity;
 /// <c>account</c>, and the app fetches its new access once.
 /// </para>
 /// <para>
-/// <b>Separate from <see cref="UserAccessStateChangedConsumer"/> on purpose.</b> That one renders a
-/// notification, which a member's preferences or quiet hours may hold back. This is not a message
-/// to the member; it is the account telling the app it changed, and it must always arrive. It
-/// carries no state names: the app asks for the access decision itself, so a frame can never be
-/// the thing that grants anything.
+/// <b>Called by <see cref="UserAccessStateChangedConsumer"/>, not a handler of its own:</b> one
+/// module reacts to one published fact once (an architecture rule). It runs before the
+/// notification is rendered and regardless of it, because a notification may be held back by the
+/// member's preferences or quiet hours, and this is not a message to the member; it is the
+/// account telling the app it changed. It carries no state names: the app asks for the access
+/// decision itself, so a frame can never be the thing that grants anything.
 /// </para>
 /// </summary>
-public sealed class AccessStateRealtimeRelay : IntegrationEventHandler<UserAccessStateChangedIntegrationEvent>
+public sealed class AccessStateRealtimeRelay
 {
     /// <summary>The resource type a client switches on.</summary>
     public const string ResourceType = "account";
@@ -34,8 +34,8 @@ public sealed class AccessStateRealtimeRelay : IntegrationEventHandler<UserAcces
 
     public AccessStateRealtimeRelay(IRealtimeNotifier realtime) => _realtime = realtime;
 
-    protected override Task HandleAsync(
-        UserAccessStateChangedIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+    public Task SendAsync(
+        UserAccessStateChangedIntegrationEvent integrationEvent, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
 
