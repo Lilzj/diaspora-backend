@@ -1,8 +1,10 @@
+using Diaspora.Modules.GeographicIntelligence.Application.Areas;
 using Diaspora.Modules.GeographicIntelligence.Application.Capabilities;
 using Diaspora.Modules.GeographicIntelligence.Application.Heat;
 using Diaspora.Modules.GeographicIntelligence.Application.Intelligence;
 using Diaspora.Modules.GeographicIntelligence.Application.Routing;
 using Diaspora.Modules.GeographicIntelligence.Application.Scores;
+using Diaspora.Modules.GeographicIntelligence.Application.Services;
 using Diaspora.Modules.GeographicIntelligence.Contracts.V1.Requests;
 using Diaspora.Platform.Http;
 using Diaspora.Platform.Modules.Contributors;
@@ -44,6 +46,7 @@ public sealed class GeographicIntelligenceEndpointContributor : IEndpointContrib
             .WithTags("Geographic Intelligence");
 
         MapIntelligence(group);
+        MapAreas(group);
         MapHeat(group);
         MapRouting(group);
         MapCapabilities(group);
@@ -137,6 +140,98 @@ public sealed class GeographicIntelligenceEndpointContributor : IEndpointContrib
             .RequireAuthorization(GeographicIntelligencePolicies.IntelligenceRead)
             .WithName("GetNeighborhoodSafety")
             .WithSummary("The safety surface. Always unavailable, with the reason and limitations.");
+    }
+
+    /// <summary>
+    /// The area around a point (Phase 2A of retiring the place catalogue, 14 Oct 2026).
+    /// <para>
+    /// The point-keyed successor of the four <c>/neighborhoods/{idOrSlug}/…</c> routes, which keep
+    /// working unchanged for old app builds until Phase 3 removes them. One read returns the overview,
+    /// the counts, the score dimensions (all unavailable, with reasons), the rent index and the safety
+    /// counts, because a circle is cheap to describe once and four round trips for one screen were the
+    /// shape the catalogue forced, not one anybody chose.
+    /// </para>
+    /// <para>
+    /// <c>name</c> is the Google place name the member picked, echoed back as the page's title and
+    /// never inferred; without it the title is "Within 2 km of you". <c>countryCode</c> is required —
+    /// nothing infers a country from a coordinate.
+    /// </para>
+    /// </summary>
+    private static void MapAreas(RouteGroupBuilder group)
+    {
+        group.MapGet("/area/compare", async (
+                double latitudeA,
+                double longitudeA,
+                string? countryCodeA,
+                string? nameA,
+                double latitudeB,
+                double longitudeB,
+                string? countryCodeB,
+                string? nameB,
+                double? radiusKm,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await sender.Send(
+                    new CompareAreasQuery
+                    {
+                        Points =
+                        [
+                            new AreaPoint
+                            {
+                                Latitude = latitudeA,
+                                Longitude = longitudeA,
+                                CountryCode = countryCodeA,
+                                Name = nameA
+                            },
+                            new AreaPoint
+                            {
+                                Latitude = latitudeB,
+                                Longitude = longitudeB,
+                                CountryCode = countryCodeB,
+                                Name = nameB
+                            }
+                        ],
+                        RadiusKm = radiusKm
+                    },
+                    cancellationToken);
+
+                return PlatformResults.Ok(context, result);
+            })
+            .RequireAuthorization(GeographicIntelligencePolicies.IntelligenceRead)
+            .WithName("CompareAreasAroundPoints")
+            .WithSummary("Two areas around points, composed identically with one radius.");
+
+        group.MapGet("/area", async (
+                double latitude,
+                double longitude,
+                string? countryCode,
+                string? name,
+                double? radiusKm,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await sender.Send(
+                    new GetAreaReportQuery
+                    {
+                        Point = new AreaPoint
+                        {
+                            Latitude = latitude,
+                            Longitude = longitude,
+                            CountryCode = countryCode,
+                            Name = name
+                        },
+                        RadiusKm = radiusKm
+                    },
+                    cancellationToken);
+
+                return PlatformResults.Ok(context, result);
+            })
+            .RequireAuthorization(GeographicIntelligencePolicies.IntelligenceRead)
+            .WithName("GetAreaAroundPoint")
+            .WithSummary("The area around a point: counts, rent and safety within a circle, in any country.");
     }
 
     private static void MapHeat(RouteGroupBuilder group) =>

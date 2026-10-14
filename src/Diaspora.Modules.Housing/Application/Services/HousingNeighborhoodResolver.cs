@@ -158,6 +158,8 @@ public sealed class HousingNeighborhoodResolver
             return profile;
         }
 
+        profile.Value.SetPoint(area.Center?.Latitude, area.Center?.Longitude);
+
         await _profiles.AddAsync(profile.Value, cancellationToken);
 
         return profile;
@@ -191,6 +193,8 @@ public sealed class HousingNeighborhoodResolver
             ancestors.FirstOrDefault(node => node.Level == AdministrativeLevel.City)?.Name.Value,
             ancestors.FirstOrDefault(node => node.Level == AdministrativeLevel.Region)?.Name.Value,
             area.Path.Value);
+
+        profile.SetPoint(area.Center?.Latitude, area.Center?.Longitude);
     }
 
     /// <summary>

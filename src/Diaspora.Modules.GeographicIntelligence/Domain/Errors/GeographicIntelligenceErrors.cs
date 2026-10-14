@@ -34,6 +34,16 @@ public static class GeographicIntelligenceErrors
             GeographicIntelligenceErrorCodes.CoordinateNotFinite,
             $"{field} must be a finite number.");
 
+    /// <summary>
+    /// An area around a point needs its country: the rent baseline is the country's and the police
+    /// source covers some countries and not others. Nothing infers a country from a coordinate any
+    /// more (14 Oct 2026), so the client sends the one its Google place, or the member, gave.
+    /// </summary>
+    public static readonly Error AreaCountryRequired =
+        Error.Validation(
+            GeographicIntelligenceErrorCodes.AreaCountryRequired,
+            "countryCode is required: the two-letter code of the country the point is in.");
+
     public static readonly Error BoundsInvalid =
         Error.Validation(
             GeographicIntelligenceErrorCodes.BoundsInvalid,

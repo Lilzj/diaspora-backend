@@ -19,7 +19,17 @@ public sealed record NeighborhoodInsightApprovedIntegrationEvent : IntegrationEv
 {
     public required Guid InsightId { get; init; }
 
-    public required Guid AreaId { get; init; }
+    /// <summary>
+    /// The Location area the insight is about. Null for an insight written at a point rather than
+    /// about a catalogue neighbourhood (14 Oct 2026); <see cref="Latitude"/> and
+    /// <see cref="Longitude"/> say where.
+    /// </summary>
+    public Guid? AreaId { get; init; }
+
+    /// <summary>The point the insight is about, where it has one.</summary>
+    public double? Latitude { get; init; }
+
+    public double? Longitude { get; init; }
 
     public required Guid AuthorId { get; init; }
 

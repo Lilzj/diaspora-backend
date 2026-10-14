@@ -33,6 +33,59 @@ internal static class NeighborhoodEndpoints
 
         MapProfiles(group);
         MapInsights(group);
+        MapAreaInsights(group);
+    }
+
+    /// <summary>
+    /// Insights about the area around a point (14 Oct 2026, Phase 2A of retiring the place
+    /// catalogue). The point-keyed successors of <c>/neighborhoods/insights</c>, which keep working
+    /// for old app builds until Phase 3. Moderation (<c>decide</c>) and endorsement are shared: an
+    /// insight is an insight, wherever it is.
+    /// </summary>
+    private static void MapAreaInsights(RouteGroupBuilder group)
+    {
+        group.MapPost("/area/insights", async (
+                [FromBody] SubmitAreaInsightRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Created(
+                    context,
+                    await sender.Send(
+                        new SubmitAreaInsightCommand { Request = request },
+                        cancellationToken)))
+            .RequireAuthorization(HousingPolicies.InsightSubmit)
+            .WithName("SubmitAreaInsight")
+            .WithSummary("Share what you know about the area around a point. Moderated before it appears.");
+
+        group.MapGet("/area/insights", async (
+                [FromQuery] double latitude,
+                [FromQuery] double longitude,
+                [FromQuery] double? radiusKm,
+                [FromQuery] string? category,
+                [FromQuery] bool? mineOnly,
+                [FromQuery] string? cursor,
+                [FromQuery] int? limit,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new ListAreaInsightsQuery
+                        {
+                            Latitude = latitude,
+                            Longitude = longitude,
+                            RadiusKm = radiusKm,
+                            Category = category,
+                            MineOnly = mineOnly ?? false,
+                            Cursor = cursor,
+                            Limit = limit
+                        },
+                        cancellationToken)))
+            .AllowAnonymous()
+            .WithName("ListAreaInsights")
+            .WithSummary("What members say about the area around a point. Approved only, unless your own.");
     }
 
     private static void MapProfiles(RouteGroupBuilder group)

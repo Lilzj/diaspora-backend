@@ -157,6 +157,11 @@ public static class NeighborhoodMapper
         {
             Id = insight.Id.Value,
             AreaId = insight.AreaId,
+            Latitude = insight.Latitude,
+            Longitude = insight.Longitude,
+            PlaceName = insight.PlaceName,
+            PlaceId = insight.PlaceId,
+            CountryCode = insight.CountryCode,
             Category = insight.Category.ToString(),
             Body = insight.Body,
             Label = insight.Label,

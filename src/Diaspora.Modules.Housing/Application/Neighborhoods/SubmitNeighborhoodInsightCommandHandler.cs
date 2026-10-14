@@ -120,7 +120,11 @@ public sealed class SubmitNeighborhoodInsightCommandHandler
             category,
             request.Body,
             request.Label,
-            now);
+            now,
+
+            // The neighbourhood's centre, so the area around a point finds this insight too.
+            profile.Value.Latitude,
+            profile.Value.Longitude);
 
         if (insight.IsFailure)
         {

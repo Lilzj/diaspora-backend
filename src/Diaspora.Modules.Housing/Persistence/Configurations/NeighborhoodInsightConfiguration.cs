@@ -36,11 +36,29 @@ public sealed class NeighborhoodInsightConfiguration
         builder.Property(insight => insight.Id)
             .HasConversion(HousingValueConverters.Id<NeighborhoodInsightId>());
 
+        // Nullable since 14 Oct 2026: an insight written at a point belongs to no catalogue
+        // neighbourhood and so to no profile. Every insight written before then keeps both.
         builder.Property(insight => insight.ProfileId)
-            .HasConversion(HousingValueConverters.Id<NeighborhoodProfileId>())
-            .IsRequired();
+            .HasConversion(HousingValueConverters.Id<NeighborhoodProfileId>());
 
-        builder.Property(insight => insight.AreaId).IsRequired();
+        builder.Property(insight => insight.AreaId);
+
+        // The point an insight is about — the area around a point (14 Oct 2026).
+        builder.Property(insight => insight.Latitude).HasColumnName("latitude");
+
+        builder.Property(insight => insight.Longitude).HasColumnName("longitude");
+
+        builder.Property(insight => insight.PlaceName)
+            .HasColumnName("place_name")
+            .HasMaxLength(HousingLimits.MaxInsightPlaceName);
+
+        builder.Property(insight => insight.PlaceId)
+            .HasColumnName("place_id")
+            .HasMaxLength(HousingLimits.MaxInsightPlaceId);
+
+        builder.Property(insight => insight.CountryCode)
+            .HasColumnName("country_code")
+            .HasMaxLength(2);
 
         builder.Property(insight => insight.AuthorId)
             .HasConversion(HousingValueConverters.Id<UserId>())
@@ -85,6 +103,11 @@ public sealed class NeighborhoodInsightConfiguration
         builder.HasIndex(insight =>
                 new { insight.AuthorId, insight.AreaId, insight.Fingerprint })
             .HasDatabaseName("ix_housing_insights_author_fingerprint");
+
+        // The area page's filter: a range over latitude, then longitude, inside the rectangle around
+        // the circle. The exact circle is applied over the few rows the range returns.
+        builder.HasIndex(insight => new { insight.Latitude, insight.Longitude })
+            .HasDatabaseName("ix_housing_insights_point");
 
         // The profile's ordering: most attested first.
         builder.HasIndex(insight => insight.EndorsementCount)

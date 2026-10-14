@@ -158,6 +158,7 @@ public static class HousingErrorCodes
     // ── Neighbourhoods & insights ───────────────────────────────────────────────────────────
 
     public const string NeighborhoodAreaInvalid = "housing.neighborhood.area-invalid";
+    public const string InsightPointInvalid = "housing.insight.point-invalid";
     public const string NeighborhoodAlreadyProfiled = "housing.neighborhood.already-profiled";
     public const string NeighborhoodSummaryInvalid = "housing.neighborhood.summary.invalid";
     public const string NeighborhoodLanguageLimit = "housing.neighborhood.languages.limit";

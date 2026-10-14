@@ -24,6 +24,20 @@ public interface IRentStatistics
     /// </summary>
     Task<RentComparison> CompareMonthlyRentAsync(
         string countryCode, string areaPath, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The monthly asking rents of homes within <paramref name="radiusKm"/> of a point against those
+    /// of the whole country, in the country's most-listed currency (14 Oct 2026, the area around a
+    /// point). Each home is placed at the coordinate a stranger is shown, so a small circle cannot
+    /// reveal more about where a home is than its card does; a home with no coordinate is in the
+    /// country's sample and never in the circle's.
+    /// </summary>
+    Task<RentComparison> CompareMonthlyRentWithinAsync(
+        string countryCode,
+        double latitude,
+        double longitude,
+        double radiusKm,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>A place's median monthly asking rent against its country's, with the samples behind both.</summary>

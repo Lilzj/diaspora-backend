@@ -476,6 +476,10 @@ public static class HousingErrors
         HousingErrorCodes.NeighborhoodAreaInvalid,
         "A neighbourhood profile must name a neighbourhood in the location catalogue.");
 
+    public static readonly Error InsightPointInvalid = Error.Validation(
+        HousingErrorCodes.InsightPointInvalid,
+        "An insight about a place needs a latitude between -90 and 90 and a longitude between -180 and 180.");
+
     public static readonly Error NeighborhoodAlreadyProfiled = Error.Conflict(
         HousingErrorCodes.NeighborhoodAlreadyProfiled,
         "That neighbourhood already has a profile.");

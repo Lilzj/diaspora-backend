@@ -12,8 +12,37 @@ public sealed record NeighborhoodInsightResponse
 {
     public required Guid Id { get; init; }
 
-    /// <summary>B4 area the insight is about.</summary>
-    public required Guid AreaId { get; init; }
+    /// <summary>
+    /// B4 area the insight is about. Null for an insight written at a point (14 Oct 2026), which
+    /// belongs to no catalogue neighbourhood.
+    /// </summary>
+    public Guid? AreaId { get; init; }
+
+    /// <summary>
+    /// The point the insight is about. For a catalogue insight, its neighbourhood's centre. Null
+    /// only where that neighbourhood had none.
+    /// </summary>
+    public double? Latitude { get; init; }
+
+    public double? Longitude { get; init; }
+
+    /// <summary>
+    /// The Google place name the author chose, as they chose it. Null when they wrote about "around
+    /// here" or about a catalogue neighbourhood; never a name the platform inferred.
+    /// </summary>
+    public string? PlaceName { get; init; }
+
+    /// <summary>The Google place identifier behind <see cref="PlaceName"/>, where one was sent.</summary>
+    public string? PlaceId { get; init; }
+
+    /// <summary>The country the point is in, where the author's client said.</summary>
+    public string? CountryCode { get; init; }
+
+    /// <summary>
+    /// How far the point is from the one a point-keyed list was asked about, in kilometres. Null on
+    /// every other read.
+    /// </summary>
+    public double? DistanceKm { get; init; }
 
     public required string Category { get; init; }
 

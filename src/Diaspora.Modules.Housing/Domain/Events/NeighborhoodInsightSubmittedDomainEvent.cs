@@ -18,9 +18,15 @@ public sealed record NeighborhoodInsightSubmittedDomainEvent : DomainEvent
 {
     public required NeighborhoodInsightId InsightId { get; init; }
 
-    public required NeighborhoodProfileId ProfileId { get; init; }
+    /// <summary>Null for an insight written at a point rather than about a catalogue neighbourhood.</summary>
+    public NeighborhoodProfileId? ProfileId { get; init; }
 
-    public required Guid AreaId { get; init; }
+    /// <summary>Null for an insight written at a point (14 Oct 2026).</summary>
+    public Guid? AreaId { get; init; }
+
+    public double? Latitude { get; init; }
+
+    public double? Longitude { get; init; }
 
     public required UserId AuthorId { get; init; }
 

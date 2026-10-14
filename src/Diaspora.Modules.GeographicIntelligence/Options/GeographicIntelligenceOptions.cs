@@ -113,4 +113,18 @@ public sealed class GeographicIntelligenceOptions
     /// </summary>
     [Range(7, 730)]
     public int SafetyReportWindowDays { get; set; } = 90;
+
+    /// <summary>
+    /// The radius of "the area around a point" when the client names none (14 Oct 2026, Phase 2A of
+    /// retiring the place catalogue). Two kilometres is roughly what a member means by "around here".
+    /// </summary>
+    [Range(0.1, 50)]
+    public double DefaultAreaRadiusKm { get; set; } = 2d;
+
+    /// <summary>
+    /// The widest circle an area page describes. Past this a circle is a town or a region, and the
+    /// counts stop describing anywhere a member would call one place.
+    /// </summary>
+    [Range(0.5, 50)]
+    public double MaximumAreaRadiusKm { get; set; } = 10d;
 }

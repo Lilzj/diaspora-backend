@@ -102,15 +102,20 @@ public sealed class DecideNeighborhoodInsightCommandHandler
     private async Task RefreshProfileCountAsync(
         NeighborhoodInsight insight, CancellationToken cancellationToken)
     {
-        var profile = await _profiles.GetAsync(insight.ProfileId, cancellationToken);
+        // An insight written at a point belongs to no profile, so there is no count to keep.
+        if (insight.ProfileId is not { } profileId || insight.AreaId is not { } areaId)
+        {
+            return;
+        }
+
+        var profile = await _profiles.GetAsync(profileId, cancellationToken);
 
         if (profile is null)
         {
             return;
         }
 
-        var approved = await _insights.CountApprovedForAreaAsync(
-            insight.AreaId, cancellationToken);
+        var approved = await _insights.CountApprovedForAreaAsync(areaId, cancellationToken);
 
         profile.SetApprovedInsightCount(approved);
     }

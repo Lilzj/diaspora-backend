@@ -44,6 +44,21 @@ public interface IEventAnalyticsRepository
     /// a not-found: an area with no events is a real answer to "what is happening here".
     /// </para>
     /// </summary>
+    /// <summary>
+    /// The analytics of events whose venue is inside a rectangle and that opened within a window,
+    /// one row per event, with the venue's coordinate (14 Oct 2026, the area around a point). The
+    /// caller applies the circle; at most <paramref name="limit"/> rows.
+    /// </summary>
+    Task<IReadOnlyList<EventActivityPoint>> FindActivityWithinBoxAsync(
+        double minLatitude,
+        double maxLatitude,
+        double minLongitude,
+        double maxLongitude,
+        DateTimeOffset from,
+        DateTimeOffset to,
+        int limit,
+        CancellationToken cancellationToken = default);
+
     Task<NeighborhoodActivity?> SummariseNeighborhoodAsync(
         Guid areaId,
         DateTimeOffset from,

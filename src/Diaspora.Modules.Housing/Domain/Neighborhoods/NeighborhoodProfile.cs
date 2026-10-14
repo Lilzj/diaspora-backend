@@ -91,6 +91,16 @@ public sealed class NeighborhoodProfile
     /// <summary>B4's materialised path, cached so a subtree query needs no join to Location.</summary>
     public string? AreaPath { get; private set; }
 
+    /// <summary>
+    /// The neighbourhood's centre, copied from B4 (14 Oct 2026). How a profile is found from a
+    /// point once the catalogue is retired: the area around a point lists the profiles whose centre
+    /// is inside its circle. The profile keeps its editor's <see cref="Name"/>; the point says only
+    /// where that place is.
+    /// </summary>
+    public double? Latitude { get; private set; }
+
+    public double? Longitude { get; private set; }
+
     // ── The profile, which Housing owns ─────────────────────────────────────────────────────
 
     /// <summary>The living summaries. Prose, revised as places change.</summary>
@@ -379,6 +389,22 @@ public sealed class NeighborhoodProfile
         CityName = Clamp(cityName, HousingLimits.MaxLocationName) ?? CityName;
         RegionName = Clamp(regionName, HousingLimits.MaxLocationName) ?? RegionName;
         AreaPath = Clamp(areaPath, HousingLimits.MaxAreaPath) ?? AreaPath;
+    }
+
+    /// <summary>
+    /// Records where the neighbourhood is. Copied from B4's centre when the profile is created or
+    /// its place refreshed; an absent centre leaves the last known point.
+    /// </summary>
+    public void SetPoint(double? latitude, double? longitude)
+    {
+        if (latitude is not { } lat || longitude is not { } lng
+            || lat is < -90d or > 90d || lng is < -180d or > 180d)
+        {
+            return;
+        }
+
+        Latitude = lat;
+        Longitude = lng;
     }
 
     // ════════════════════════════════════════════════════════════════════════════════════════

@@ -134,6 +134,9 @@ public class JobsArchitectureTests
             [
                 nameof(JobGeographicScopeAdapter),
                 nameof(JobResourceCounter),
+
+                // The area around a point (14 Oct 2026): the same counter seam, by coordinates.
+                nameof(JobCircleCounter),
                 nameof(JobAreaFiling),
                 nameof(JobAreaFilingSource)
             ],

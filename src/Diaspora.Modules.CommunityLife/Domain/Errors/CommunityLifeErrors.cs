@@ -62,6 +62,11 @@ public static class CommunityLifeErrors
         CommunityLifeErrorCodes.NeighborhoodNotFound,
         "We do not know that neighbourhood.");
 
+    public static readonly Error AreaPointInvalid = Error.Validation(
+        CommunityLifeErrorCodes.AreaPointInvalid,
+        "The area needs a latitude between -90 and 90, a longitude between -180 and 180, and a radius "
+        + "above 0 and at most 10 km.");
+
     public static readonly Error CountryInvalid = Error.Validation(
         CommunityLifeErrorCodes.CountryInvalid,
         "We do not operate in that country yet.");

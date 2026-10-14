@@ -11333,7 +11333,7 @@ namespace Diaspora.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("AreaId")
+                    b.Property<Guid?>("AreaId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("AuthorId")
@@ -11348,6 +11348,11 @@ namespace Diaspora.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
+
+                    b.Property<string>("CountryCode")
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("country_code");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -11387,13 +11392,31 @@ namespace Diaspora.Persistence.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)");
 
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("latitude");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("longitude");
+
                     b.Property<DateTimeOffset?>("ModifiedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("ModifiedBy")
                         .HasColumnType("text");
 
-                    b.Property<Guid>("ProfileId")
+                    b.Property<string>("PlaceId")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("place_id");
+
+                    b.Property<string>("PlaceName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("place_name");
+
+                    b.Property<Guid?>("ProfileId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Status")
@@ -11408,6 +11431,9 @@ namespace Diaspora.Persistence.Migrations
 
                     b.HasIndex("AreaId", "Status")
                         .HasDatabaseName("ix_housing_insights_area_status");
+
+                    b.HasIndex("Latitude", "Longitude")
+                        .HasDatabaseName("ix_housing_insights_point");
 
                     b.HasIndex("ProfileId", "Status")
                         .HasDatabaseName("ix_housing_insights_profile_status");
@@ -11498,8 +11524,16 @@ namespace Diaspora.Persistence.Migrations
                     b.Property<Guid?>("LastReviewedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("latitude");
+
                     b.Property<int>("ListingCount")
                         .HasColumnType("integer");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("longitude");
 
                     b.Property<DateTimeOffset?>("ModifiedAt")
                         .HasColumnType("timestamp with time zone");
@@ -11539,6 +11573,9 @@ namespace Diaspora.Persistence.Migrations
 
                     b.HasIndex("CountryCode", "Slug")
                         .HasDatabaseName("ix_housing_neighborhoods_country_slug");
+
+                    b.HasIndex("Latitude", "Longitude")
+                        .HasDatabaseName("ix_housing_neighborhoods_point");
 
                     b.ToTable("housing_neighborhoods", "housing");
                 });

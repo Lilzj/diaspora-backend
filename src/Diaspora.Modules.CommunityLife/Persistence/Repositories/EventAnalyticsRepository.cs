@@ -1,4 +1,6 @@
 using Diaspora.Modules.CommunityLife.Domain.Analytics;
+using Diaspora.Modules.CommunityLife.Domain.CommunityEvents;
+using Diaspora.Modules.CommunityLife.Domain.Enums;
 using Diaspora.Modules.CommunityLife.Domain.Identifiers;
 using Diaspora.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -138,6 +140,49 @@ public sealed class EventAnalyticsRepository : IEventAnalyticsRepository
     /// One neighbourhood's totals. An indexed equality on the area rather than a grouped scan of
     /// every area on the platform.
     /// </summary>
+    public async Task<IReadOnlyList<EventActivityPoint>> FindActivityWithinBoxAsync(
+        double minLatitude,
+        double maxLatitude,
+        double minLongitude,
+        double maxLongitude,
+        DateTimeOffset from,
+        DateTimeOffset to,
+        int limit,
+        CancellationToken cancellationToken = default)
+    {
+        // Joined to the event for the venue's coordinate, which the analytics row does not copy. The
+        // same publication rule as every public read: published or since run, public, not hidden.
+        EventStatus[] happened = [EventStatus.Published, EventStatus.InProgress, EventStatus.Completed];
+
+        return await Analytics
+            .AsNoTracking()
+            .Where(analytics => analytics.OpenedAt >= from && analytics.OpenedAt <= to)
+            .Join(
+                _dbContext.Set<CommunityEvent>().AsNoTracking(),
+                analytics => analytics.EventId,
+                communityEvent => communityEvent.Id,
+                (analytics, communityEvent) => new { analytics, communityEvent })
+            .Where(row =>
+                happened.Contains(row.communityEvent.Status)
+                && row.communityEvent.Visibility == EventVisibility.Public
+                && row.communityEvent.ModerationState != CommunityLifeModerationState.Hidden
+                && row.communityEvent.ModerationState != CommunityLifeModerationState.Suspended
+                && row.communityEvent.Venue.Latitude != null
+                && row.communityEvent.Venue.Longitude != null
+                && row.communityEvent.Venue.Latitude >= minLatitude
+                && row.communityEvent.Venue.Latitude <= maxLatitude
+                && row.communityEvent.Venue.Longitude >= minLongitude
+                && row.communityEvent.Venue.Longitude <= maxLongitude)
+            .OrderByDescending(row => row.analytics.OpenedAt)
+            .Take(Math.Clamp(limit, 1, 2_000))
+            .Select(row => new EventActivityPoint(
+                row.communityEvent.Venue.Latitude!.Value,
+                row.communityEvent.Venue.Longitude!.Value,
+                row.analytics.RsvpCount,
+                row.analytics.AttendedCount))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<NeighborhoodActivity?> SummariseNeighborhoodAsync(
         Guid areaId,
         DateTimeOffset from,

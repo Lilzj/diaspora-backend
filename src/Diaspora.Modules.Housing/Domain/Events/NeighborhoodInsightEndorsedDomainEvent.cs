@@ -16,7 +16,8 @@ public sealed record NeighborhoodInsightEndorsedDomainEvent : DomainEvent
 {
     public required NeighborhoodInsightId InsightId { get; init; }
 
-    public required NeighborhoodProfileId ProfileId { get; init; }
+    /// <summary>Null for an insight written at a point.</summary>
+    public NeighborhoodProfileId? ProfileId { get; init; }
 
     public required UserId EndorsedBy { get; init; }
 

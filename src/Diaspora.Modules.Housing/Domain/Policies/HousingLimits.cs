@@ -148,6 +148,12 @@ public static class HousingLimits
 
     public const int MaxInsightLabel = 80;
 
+    /// <summary>The longest Google place name an insight at a point keeps (14 Oct 2026).</summary>
+    public const int MaxInsightPlaceName = 200;
+
+    /// <summary>The longest Google place identifier an insight at a point keeps.</summary>
+    public const int MaxInsightPlaceId = 256;
+
     public const int MaxInsightDecisionNote = 1_000;
 
     // ── Reports ─────────────────────────────────────────────────────────────────────────────

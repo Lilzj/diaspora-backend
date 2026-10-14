@@ -334,7 +334,10 @@ public sealed class HousingListingRepository : IHousingListingRepository
                 listing.Price.Amount!.Value,
                 listing.Price.CurrencyCode!,
                 listing.Price.Period,
-                listing.PublishedAt))
+                listing.PublishedAt,
+                listing.Address.Latitude,
+                listing.Address.Longitude,
+                listing.Address.Visibility))
             .ToListAsync(cancellationToken);
     }
 

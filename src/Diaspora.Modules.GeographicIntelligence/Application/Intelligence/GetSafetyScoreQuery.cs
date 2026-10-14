@@ -206,9 +206,20 @@ public sealed class GetSafetyScoreQueryHandler
 
         var answer = await _police.CountAsync(centre.Latitude, centre.Longitude, cancellationToken);
 
+        return FromPoliceAnswer(answer, area, Method);
+    }
+
+    /// <summary>
+    /// What the police source said, as a sourced count — or why it said nothing. Shared with the
+    /// area around a point, which asks the same source about a point the member chose.
+    /// </summary>
+    internal static SafetyCountResponse FromPoliceAnswer(PoliceCrimeAnswer answer, string area, string method)
+    {
+        ArgumentNullException.ThrowIfNull(answer);
+
         if (answer.Counts is not { } counts)
         {
-            return PoliceUnavailable(area, Method, answer.UnavailableReason ?? PoliceCrimeUnavailable.SourceUnavailable);
+            return PoliceUnavailable(area, method, answer.UnavailableReason ?? PoliceCrimeUnavailable.SourceUnavailable);
         }
 
         return new SafetyCountResponse
@@ -219,7 +230,7 @@ public sealed class GetSafetyScoreQueryHandler
             From = MonthStart(counts.FirstMonth),
             To = MonthStart(counts.LastMonth)?.AddMonths(1).AddTicks(-1),
             Area = area,
-            Method = Method,
+            Method = method,
             Licence = PoliceLicence,
             Attribution = PoliceAttribution,
             Total = counts.Total,
@@ -252,7 +263,7 @@ public sealed class GetSafetyScoreQueryHandler
     /// Scottish street data. Neither can be republished here, so neither is.
     /// </para>
     /// </summary>
-    private static SafetyCountResponse PoliceNotPublished(string country) =>
+    internal static SafetyCountResponse PoliceNotPublished(string country) =>
         new()
         {
             Kind = "police-recorded-crime",
@@ -268,7 +279,7 @@ public sealed class GetSafetyScoreQueryHandler
                 country)
         };
 
-    private static SafetyCountResponse PoliceUnavailable(string area, string method, string reason) =>
+    internal static SafetyCountResponse PoliceUnavailable(string area, string method, string reason) =>
         new()
         {
             Kind = "police-recorded-crime",

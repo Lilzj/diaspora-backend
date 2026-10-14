@@ -141,6 +141,10 @@ public sealed class LocationModule : IPlatformModule
 
         RegisterImplementations<INearbyResourceProvider>(services, assemblies, ServiceLifetime.Scoped);
         RegisterImplementations<ILocationResourceCounter>(services, assemblies, ServiceLifetime.Scoped);
+
+        // Counts by a row's own coordinates within a circle — the area around a point (Phase 2A of
+        // retiring the place catalogue, 14 Oct 2026).
+        RegisterImplementations<ICircleResourceCounter>(services, assemblies, ServiceLifetime.Scoped);
         RegisterImplementations<ILocationCatalogSeeder>(services, assemblies, ServiceLifetime.Scoped);
         RegisterImplementations<IAreaFilingSource>(services, assemblies, ServiceLifetime.Scoped);
 

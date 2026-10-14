@@ -43,8 +43,8 @@ public sealed class NeighborhoodInsight
 {
     private NeighborhoodInsight(
         NeighborhoodInsightId id,
-        NeighborhoodProfileId profileId,
-        Guid areaId,
+        NeighborhoodProfileId? profileId,
+        Guid? areaId,
         UserId authorId,
         NeighborhoodInsightCategory category,
         string body,
@@ -66,14 +66,41 @@ public sealed class NeighborhoodInsight
 
     // ── Subject & author ────────────────────────────────────────────────────────────────────
 
-    public NeighborhoodProfileId ProfileId { get; private set; } = default!;
+    /// <summary>
+    /// The catalogue neighbourhood's profile, for an insight written about one. Null for an insight
+    /// written at a point (14 Oct 2026): it belongs to no profile.
+    /// </summary>
+    public NeighborhoodProfileId? ProfileId { get; private set; }
 
     /// <summary>
     /// B4's area, denormalised beside the profile identifier. Carried so a query for "everything
     /// said about this place" needs no join through the profile, and so an insight survives a
-    /// profile being rebuilt.
+    /// profile being rebuilt. Null for an insight written at a point.
     /// </summary>
-    public Guid AreaId { get; private set; }
+    public Guid? AreaId { get; private set; }
+
+    // ── Where (14 Oct 2026, the area around a point) ────────────────────────────────────────
+    //
+    // The place catalogue is being retired for Google place search and coordinates. An insight is
+    // now about a point: the place a member picked, or where they stand. An insight written about a
+    // catalogue neighbourhood carries that neighbourhood's centre, so the area page finds both.
+
+    /// <summary>The point the insight is about. Null only for a catalogue insight whose area had no centre.</summary>
+    public double? Latitude { get; private set; }
+
+    public double? Longitude { get; private set; }
+
+    /// <summary>
+    /// The Google place name the member chose, as they chose it. Never inferred from the point: a
+    /// name the platform guessed would be shown as the member's words.
+    /// </summary>
+    public string? PlaceName { get; private set; }
+
+    /// <summary>The Google place identifier the name came from, where the client sent one.</summary>
+    public string? PlaceId { get; private set; }
+
+    /// <summary>The country the point is in, as the client sent it.</summary>
+    public string? CountryCode { get; private set; }
 
     public UserId AuthorId { get; private set; } = default!;
 
@@ -159,7 +186,9 @@ public sealed class NeighborhoodInsight
         NeighborhoodInsightCategory category,
         string? body,
         string? label,
-        DateTimeOffset now)
+        DateTimeOffset now,
+        double? latitude = null,
+        double? longitude = null)
     {
         ArgumentNullException.ThrowIfNull(id);
         ArgumentNullException.ThrowIfNull(profileId);
@@ -170,6 +199,79 @@ public sealed class NeighborhoodInsight
             return Result.Failure<NeighborhoodInsight>(HousingErrors.NeighborhoodAreaInvalid);
         }
 
+        return Create(
+            id, profileId, areaId, authorId, category, body, label, now,
+            latitude is not null && longitude is not null ? latitude : null,
+            latitude is not null && longitude is not null ? longitude : null,
+            placeName: null, placeId: null, countryCode: null);
+    }
+
+    /// <summary>
+    /// An insight about a point rather than a catalogue neighbourhood (14 Oct 2026).
+    /// <para>
+    /// Belongs to no profile. The place name is the member's choice from Google place search, kept
+    /// as they chose it; without one the insight is about "around here" and is shown that way.
+    /// Moderated exactly like any other insight: submitted is not published.
+    /// </para>
+    /// </summary>
+    public static Result<NeighborhoodInsight> SubmitAtPoint(
+        NeighborhoodInsightId id,
+        UserId authorId,
+        NeighborhoodInsightCategory category,
+        string? body,
+        string? label,
+        double latitude,
+        double longitude,
+        string? placeName,
+        string? placeId,
+        string? countryCode,
+        DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+        ArgumentNullException.ThrowIfNull(authorId);
+
+        if (double.IsNaN(latitude) || latitude is < -90d or > 90d
+            || double.IsNaN(longitude) || longitude is < -180d or > 180d)
+        {
+            return Result.Failure<NeighborhoodInsight>(HousingErrors.InsightPointInvalid);
+        }
+
+        return Create(
+            id, profileId: null, areaId: null, authorId, category, body, label, now,
+            latitude,
+            longitude,
+            Shorten(placeName, HousingLimits.MaxInsightPlaceName),
+            Shorten(placeId, HousingLimits.MaxInsightPlaceId),
+            Shorten(countryCode, 2)?.ToUpperInvariant());
+    }
+
+    private static string? Shorten(string? value, int maximum)
+    {
+        var trimmed = value?.Trim();
+
+        if (string.IsNullOrEmpty(trimmed))
+        {
+            return null;
+        }
+
+        return trimmed.Length > maximum ? trimmed[..maximum] : trimmed;
+    }
+
+    private static Result<NeighborhoodInsight> Create(
+        NeighborhoodInsightId id,
+        NeighborhoodProfileId? profileId,
+        Guid? areaId,
+        UserId authorId,
+        NeighborhoodInsightCategory category,
+        string? body,
+        string? label,
+        DateTimeOffset now,
+        double? latitude,
+        double? longitude,
+        string? placeName,
+        string? placeId,
+        string? countryCode)
+    {
         var trimmed = body?.Trim();
 
         if (string.IsNullOrWhiteSpace(trimmed)
@@ -193,13 +295,22 @@ public sealed class NeighborhoodInsight
             category,
             trimmed,
             string.IsNullOrWhiteSpace(chip) ? null : chip,
-            now);
+            now)
+        {
+            Latitude = latitude,
+            Longitude = longitude,
+            PlaceName = placeName,
+            PlaceId = placeId,
+            CountryCode = countryCode
+        };
 
         insight.RaiseDomainEvent(new NeighborhoodInsightSubmittedDomainEvent
         {
             InsightId = id,
             ProfileId = profileId,
             AreaId = areaId,
+            Latitude = latitude,
+            Longitude = longitude,
             AuthorId = authorId,
             Category = category,
             SubmittedAt = now
@@ -379,6 +490,8 @@ public sealed class NeighborhoodInsight
             InsightId = Id,
             ProfileId = ProfileId,
             AreaId = AreaId,
+            Latitude = Latitude,
+            Longitude = Longitude,
             AuthorId = AuthorId,
             Category = Category,
             PreviousStatus = previous,

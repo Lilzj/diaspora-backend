@@ -1,6 +1,8 @@
 using Diaspora.Modules.Housing.Domain.Enums;
 using Diaspora.Modules.Housing.Domain.Listings;
+using Diaspora.Modules.Housing.Domain.ValueObjects;
 using Diaspora.Modules.Housing.Integration;
+using Diaspora.SharedKernel.Geography;
 
 namespace Diaspora.Modules.Housing.Infrastructure.Statistics;
 
@@ -20,8 +22,33 @@ public sealed class HousingRentStatistics : IRentStatistics
 
     public HousingRentStatistics(IHousingListingRepository listings) => _listings = listings;
 
-    public async Task<RentComparison> CompareMonthlyRentAsync(
-        string countryCode, string areaPath, CancellationToken cancellationToken = default)
+    public Task<RentComparison> CompareMonthlyRentAsync(
+        string countryCode, string areaPath, CancellationToken cancellationToken = default) =>
+        CompareAsync(countryCode, price => IsWithin(price.AreaPath, areaPath), cancellationToken);
+
+    public Task<RentComparison> CompareMonthlyRentWithinAsync(
+        string countryCode,
+        double latitude,
+        double longitude,
+        double radiusKm,
+        CancellationToken cancellationToken = default)
+    {
+        var circle = CircleArea.Around(latitude, longitude, radiusKm);
+
+        return CompareAsync(
+            countryCode,
+            price =>
+            {
+                var (shownLatitude, shownLongitude) = PropertyAddress.PublicCoordinates(
+                    price.Latitude, price.Longitude, price.Visibility);
+
+                return circle.Contains(shownLatitude, shownLongitude);
+            },
+            cancellationToken);
+    }
+
+    private async Task<RentComparison> CompareAsync(
+        string countryCode, Func<HousingRentPrice, bool> inArea, CancellationToken cancellationToken)
     {
         var prices = await _listings.GetRentPricesAsync(countryCode, MaximumListingsRead, cancellationToken);
 
@@ -51,7 +78,7 @@ public sealed class HousingRentStatistics : IRentStatistics
         var country = comparable.Select(Monthly).ToList();
 
         var area = comparable
-            .Where(price => IsWithin(price.AreaPath, areaPath))
+            .Where(inArea)
             .Select(Monthly)
             .ToList();
 

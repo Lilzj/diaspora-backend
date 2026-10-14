@@ -37,6 +37,20 @@ public interface INeighborhoodInsightRepository
         string fingerprint,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Whether this member has already said this about a point within the given rectangle — the
+    /// duplicate check for an insight written at a point (14 Oct 2026), where there is no area to
+    /// compare on. Retired insights are excluded, as they are for an area.
+    /// </summary>
+    Task<bool> HasDuplicateNearAsync(
+        UserId authorId,
+        string fingerprint,
+        double minLatitude,
+        double maxLatitude,
+        double minLongitude,
+        double maxLongitude,
+        CancellationToken cancellationToken = default);
+
     /// <summary>How many insights this member has submitted since a moment. The abuse bound.</summary>
     Task<int> CountByAuthorSinceAsync(
         UserId authorId, DateTimeOffset since, CancellationToken cancellationToken = default);

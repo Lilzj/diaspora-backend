@@ -71,6 +71,10 @@ public sealed class GeographicIntelligenceModule : IPlatformModule
         services.AddScoped<NeighborhoodResolver>();
         services.AddScoped<NeighborhoodScoreComposer>();
 
+        // The area around a point (14 Oct 2026): counts, rent and safety within a circle, from rows'
+        // own coordinates rather than the place catalogue.
+        services.AddScoped<AreaReportComposer>();
+
         // The clock, so a composed `computedAt` and a `validUntil` are testable rather than
         // whatever the machine said. Registered defensively: the host registers one, and a module
         // that assumed so and was composed into a bare test container would fail on resolution

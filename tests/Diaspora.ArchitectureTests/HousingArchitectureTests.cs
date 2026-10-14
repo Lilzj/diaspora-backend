@@ -206,6 +206,9 @@ public class HousingArchitectureTests
                 nameof(HousingNeighborhoodResolver),
                 nameof(HousingNearbyResourceProvider),
                 nameof(HousingResourceCounter),
+
+                // The area around a point (14 Oct 2026): the same counter seam, by coordinates.
+                nameof(HousingCircleCounter),
                 nameof(HousingAreaFilingSource),
                 nameof(NeighborhoodStatisticsService),
                 "SearchHousingQueryHandler",

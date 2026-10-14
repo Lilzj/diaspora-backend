@@ -492,6 +492,8 @@ public sealed class HousingIntegrationEventRelay
             {
                 InsightId = domainEvent.InsightId.Value,
                 AreaId = domainEvent.AreaId,
+                Latitude = domainEvent.Latitude,
+                Longitude = domainEvent.Longitude,
                 AuthorId = domainEvent.AuthorId.Value,
                 Category = domainEvent.Category.ToString(),
                 SubmittedAt = domainEvent.SubmittedAt
@@ -525,6 +527,8 @@ public sealed class HousingIntegrationEventRelay
             {
                 InsightId = domainEvent.InsightId.Value,
                 AreaId = domainEvent.AreaId,
+                Latitude = domainEvent.Latitude,
+                Longitude = domainEvent.Longitude,
                 AuthorId = domainEvent.AuthorId.Value,
                 Category = domainEvent.Category.ToString(),
                 Body = body,

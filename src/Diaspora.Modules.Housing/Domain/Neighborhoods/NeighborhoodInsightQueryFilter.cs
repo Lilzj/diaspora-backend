@@ -22,6 +22,24 @@ public sealed record NeighborhoodInsightQueryFilter
 
     public UserId? AuthorId { get; init; }
 
+    /// <summary>
+    /// With the other three edges: insights whose point is inside this rectangle (14 Oct 2026). The
+    /// rectangle around a circle; the caller applies the circle. An insight with no point is never
+    /// inside it.
+    /// </summary>
+    public double? MinLatitude { get; init; }
+
+    public double? MaxLatitude { get; init; }
+
+    public double? MinLongitude { get; init; }
+
+    public double? MaxLongitude { get; init; }
+
+    /// <summary>Whether all four edges are set.</summary>
+    public bool HasBounds =>
+        MinLatitude is not null && MaxLatitude is not null
+        && MinLongitude is not null && MaxLongitude is not null;
+
     public IReadOnlyCollection<NeighborhoodInsightCategory>? Categories { get; init; }
 
     public IReadOnlyCollection<NeighborhoodInsightStatus>? Statuses { get; init; }

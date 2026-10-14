@@ -21,6 +21,20 @@ public interface ICommunitySafetyReports
         DateTimeOffset asOf,
         TimeSpan window,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Corroborated Police and Emergency reports pinned within <paramref name="radiusKm"/> of a
+    /// point, published within the last <paramref name="window"/> before <paramref name="asOf"/>
+    /// (14 Oct 2026, the area around a point). Measured at each report's own pin; a report with no
+    /// pin is within nothing.
+    /// </summary>
+    Task<CommunitySafetyReportCounts> CountCorroboratedWithinAsync(
+        double latitude,
+        double longitude,
+        double radiusKm,
+        DateTimeOffset asOf,
+        TimeSpan window,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>Corroborated safety reports in a place over a period, per category.</summary>
@@ -34,4 +48,10 @@ public sealed record CommunitySafetyReportCounts
     public required IReadOnlyDictionary<string, int> ByCategory { get; init; }
 
     public int Total => ByCategory.Values.Sum();
+
+    /// <summary>
+    /// True when the count stopped at its reading cap, so the true figure is at least
+    /// <see cref="Total"/>. Never set by the path-based count.
+    /// </summary>
+    public bool IsLowerBound { get; init; }
 }

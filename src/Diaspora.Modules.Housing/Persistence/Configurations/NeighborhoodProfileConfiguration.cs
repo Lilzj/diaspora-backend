@@ -89,6 +89,14 @@ public sealed class NeighborhoodProfileConfiguration
         builder.HasIndex(profile => profile.AreaPath)
             .HasDatabaseName("ix_housing_neighborhoods_area_path");
 
+        // Where the neighbourhood is (14 Oct 2026), so a point can find it once the catalogue is
+        // retired. Backfilled from B4's centre by the migration that added it.
+        builder.Property(profile => profile.Latitude).HasColumnName("latitude");
+        builder.Property(profile => profile.Longitude).HasColumnName("longitude");
+
+        builder.HasIndex(profile => new { profile.Latitude, profile.Longitude })
+            .HasDatabaseName("ix_housing_neighborhoods_point");
+
         // The discovery ordering: the places with the most to look at, first.
         builder.HasIndex(profile => profile.ListingCount)
             .HasDatabaseName("ix_housing_neighborhoods_listing_count");

@@ -381,6 +381,9 @@ public class CommunityLifeArchitectureTests
         {
             typeof(CommunityLifeNearbyResourceProvider),
             typeof(CommunityLifeResourceCounter),
+
+            // The area around a point (14 Oct 2026): the same counter seam, by coordinates.
+            typeof(CommunityLifeCircleCounter),
             typeof(CommunityLifeNeighborhoodResolver),
 
             // B4.1. The module's description claimed IGeographicScopeResolver as a dependency

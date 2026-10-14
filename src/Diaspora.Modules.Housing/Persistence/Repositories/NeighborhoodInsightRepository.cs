@@ -165,6 +165,35 @@ public sealed class NeighborhoodInsightRepository : INeighborhoodInsightReposito
             cancellationToken);
     }
 
+    public async Task<bool> HasDuplicateNearAsync(
+        UserId authorId,
+        string fingerprint,
+        double minLatitude,
+        double maxLatitude,
+        double minLongitude,
+        double maxLongitude,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(authorId);
+
+        if (string.IsNullOrWhiteSpace(fingerprint))
+        {
+            return false;
+        }
+
+        return await Insights.AsNoTracking().AnyAsync(
+            insight => insight.AuthorId == authorId
+                && insight.Fingerprint == fingerprint
+                && insight.Status != NeighborhoodInsightStatus.Retired
+                && insight.Latitude != null
+                && insight.Longitude != null
+                && insight.Latitude >= minLatitude
+                && insight.Latitude <= maxLatitude
+                && insight.Longitude >= minLongitude
+                && insight.Longitude <= maxLongitude,
+            cancellationToken);
+    }
+
     public async Task<int> CountByAuthorSinceAsync(
         UserId authorId, DateTimeOffset since, CancellationToken cancellationToken = default)
     {
@@ -250,6 +279,22 @@ public sealed class NeighborhoodInsightRepository : INeighborhoodInsightReposito
         if (filter.AuthorId is { } authorId)
         {
             query = query.Where(insight => insight.AuthorId == authorId);
+        }
+
+        if (filter.HasBounds)
+        {
+            var south = filter.MinLatitude!.Value;
+            var north = filter.MaxLatitude!.Value;
+            var west = filter.MinLongitude!.Value;
+            var east = filter.MaxLongitude!.Value;
+
+            query = query.Where(insight =>
+                insight.Latitude != null
+                && insight.Longitude != null
+                && insight.Latitude >= south
+                && insight.Latitude <= north
+                && insight.Longitude >= west
+                && insight.Longitude <= east);
         }
 
         if (filter.Categories is { Count: > 0 })

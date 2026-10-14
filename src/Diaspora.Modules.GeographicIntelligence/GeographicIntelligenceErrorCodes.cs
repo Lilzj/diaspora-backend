@@ -36,4 +36,7 @@ public static class GeographicIntelligenceErrorCodes
     public const string ComparisonTooManySubjects = Prefix + "comparison.too_many_subjects";
 
     public const string ComparisonEmpty = Prefix + "comparison.empty";
+
+    /// <summary>An area page was asked for without the country its point is in.</summary>
+    public const string AreaCountryRequired = Prefix + "area.country_required";
 }

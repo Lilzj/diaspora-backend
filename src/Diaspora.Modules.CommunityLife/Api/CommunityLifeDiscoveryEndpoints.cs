@@ -100,6 +100,34 @@ internal static class CommunityLifeDiscoveryEndpoints
             .AllowAnonymous()
             .WithName("GetNeighborhoodActivity")
             .WithSummary("How much community life one neighbourhood has.");
+
+        // The area around a point (14 Oct 2026, Phase 2A of retiring the place catalogue). The
+        // point-keyed successor of the two routes above, which keep working for old app builds until
+        // Phase 3. The events themselves around a point are /events?latitude=&longitude=&radiusKm=.
+        group.MapGet("/area/activity", async (
+                [FromQuery] double latitude,
+                [FromQuery] double longitude,
+                [FromQuery] double? radiusKm,
+                [FromQuery] string? name,
+                [FromQuery] int? windowDays,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new GetAreaActivityQuery
+                        {
+                            Latitude = latitude,
+                            Longitude = longitude,
+                            RadiusKm = radiusKm,
+                            Name = name,
+                            WindowDays = windowDays
+                        },
+                        cancellationToken)))
+            .AllowAnonymous()
+            .WithName("GetAreaActivity")
+            .WithSummary("How much community life the area around a point has.");
     }
 }
 
