@@ -35,8 +35,11 @@ public sealed class DefaultReactionCatalogContributor : IReactionCatalogContribu
             "like", "Like", "\U0001F44D", ReactionSentiment.Positive, 1d,
             position: 0, isBuiltIn: true);
 
+        // Not the like glyph: both were 👍, so every post showed two identical buttons and
+        // nobody could tell which meant what (14 Oct 2026). The seeder only inserts missing
+        // keys, so existing deployments were corrected with a data update.
         yield return ReactionDefinition.Create(
-            "helpful", "Helpful", "\U0001F44D", ReactionSentiment.Positive, 2d,
+            "helpful", "Helpful", "\U0001F64F", ReactionSentiment.Positive, 2d,
             position: 1, isBuiltIn: true);
 
         yield return ReactionDefinition.Create(
