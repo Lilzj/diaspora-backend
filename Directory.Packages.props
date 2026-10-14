@@ -20,7 +20,7 @@
 
       Rule for this file: one version variable per band, no per-package drift.
     -->
-    <DotnetVersion>10.0.10</DotnetVersion>
+    <DotnetVersion>10.0.13</DotnetVersion>
     <OpenTelemetryVersion>1.17.0</OpenTelemetryVersion>
   </PropertyGroup>
 
@@ -89,7 +89,7 @@
       same major, so the API surface AspNetCore.OpenApi compiles against is unchanged.
       Remove this pin when the ASP.NET Core servicing band moves past it on its own.
     -->
-    <PackageVersion Include="Microsoft.OpenApi" Version="2.11.0" />
+    <PackageVersion Include="Microsoft.OpenApi" Version="2.12.2" />
 
     <!--
       Build-time OpenAPI emission (M1). Tooling only: it contributes MSBuild targets that
@@ -158,10 +158,10 @@
       The native library never reaches a deployed artifact — SQLite is the integration
       suite's database — but a vulnerability that only fails in CI still fails CI.
     -->
-    <PackageVersion Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.12" />
-    <PackageVersion Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.12" />
-    <PackageVersion Include="SQLitePCLRaw.core" Version="2.1.12" />
-    <PackageVersion Include="SQLitePCLRaw.provider.e_sqlite3" Version="2.1.12" />
+    <PackageVersion Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.13" />
+    <PackageVersion Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.13" />
+    <PackageVersion Include="SQLitePCLRaw.core" Version="2.1.13" />
+    <PackageVersion Include="SQLitePCLRaw.provider.e_sqlite3" Version="2.1.13" />
 
     <!-- JSON -->
     <PackageVersion Include="System.Text.Json" Version="$(DotnetVersion)" />
