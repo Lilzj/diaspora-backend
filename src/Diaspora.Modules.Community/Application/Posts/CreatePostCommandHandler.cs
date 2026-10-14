@@ -195,8 +195,9 @@ public sealed class CreatePostCommandHandler
         {
             VisibilityLevel.Custom when payload.VisibilityRuleId is { } ruleId =>
                 ContentAudience.ForRule(VisibilityRuleId.From(ruleId)),
-            _ => ContentAudience.FromLevel(
-                level, payload.AudienceCountryCode, payload.AudienceAreaId)
+            // A neighbourhood audience is a radius around the post's own pin since 14 Oct 2026;
+            // an area id from an older app build is accepted and not stored.
+            _ => ContentAudience.FromLevel(level, payload.AudienceCountryCode, areaId: null)
         };
     }
 

@@ -23,11 +23,15 @@ public sealed record AdAudienceRequest
 
     public IReadOnlyList<Guid>? CommunityIds { get; init; }
 
+    /// <summary>Legacy catalogue ids. Accepted and ignored since 14 Oct 2026; use <see cref="TownNames"/>.</summary>
     public IReadOnlyList<Guid>? NeighbourhoodIds { get; init; }
 
     public IReadOnlyList<string>? Interests { get; init; }
 
     public IReadOnlyList<string>? Categories { get; init; }
+
+    /// <summary>Towns by name, replacing neighbourhood targeting (14 Oct 2026).</summary>
+    public IReadOnlyList<string>? TownNames { get; init; }
 }
 
 /// <summary>

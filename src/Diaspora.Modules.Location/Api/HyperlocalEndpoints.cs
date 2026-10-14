@@ -94,6 +94,7 @@ internal static class HyperlocalEndpoints
                 string? level,
                 string? resourceTypes,
                 string? countryCode,
+                double? cellSizeKm,
                 ISender sender,
                 HttpContext context,
                 CancellationToken cancellationToken) =>
@@ -104,7 +105,8 @@ internal static class HyperlocalEndpoints
                         Bounds = bounds,
                         Level = level,
                         ResourceTypes = ParseResourceTypes(resourceTypes),
-                        CountryCode = countryCode
+                        CountryCode = countryCode,
+                        CellSizeKm = cellSizeKm
                     },
                     cancellationToken);
 
@@ -112,7 +114,7 @@ internal static class HyperlocalEndpoints
             })
             .RequireAuthorization(LocationPolicies.Hyperlocal)
             .WithName("GetMapClusters")
-            .WithSummary("Aggregated markers for a viewport, by catalogue node.");
+            .WithSummary("Aggregated markers for a viewport, by square grid cell over each row's own coordinates.");
 
         group.MapGet("/map/boundaries", async (
                 string bounds,
@@ -133,7 +135,7 @@ internal static class HyperlocalEndpoints
             })
             .RequireAuthorization(LocationPolicies.Hyperlocal)
             .WithName("GetMapBoundaries")
-            .WithSummary("The place outlines a viewport overlaps, with their source, licence and credit.");
+            .WithSummary("Retired 14 Oct 2026: always an empty page with a reason. Kept until Phase 3 removes it.");
 
         // POST rather than GET: a simplified city outline is several hundred coordinate pairs,
         // well past what proxies and browsers accept in a URL.

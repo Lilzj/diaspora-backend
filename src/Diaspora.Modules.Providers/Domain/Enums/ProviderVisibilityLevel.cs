@@ -30,7 +30,11 @@ public enum ProviderVisibilityLevel
     /// </summary>
     CountryCommunity = 3,
 
-    /// <summary>Members whose active location falls inside one catalogue area.</summary>
+    /// <summary>
+    /// Members near the provider. Since 14 Oct 2026 no catalogue area is stored: "near" is the
+    /// provider's own pin and service areas (country, town, radius). Discovery admits it for any
+    /// signed-in member, as it always has; nothing here narrows by a catalogue node any more.
+    /// </summary>
     AreaOnly = 4,
 
     /// <summary>

@@ -96,6 +96,34 @@ public sealed class LocationAggregatorConcurrencyTests
             + "context while the first is running");
     }
 
+    /// <summary>
+    /// The map grid's point listing (14 Oct 2026) runs through the same sequential collector, so
+    /// it inherits both properties: one contributor at a time, and a failure costs only its key.
+    /// </summary>
+    [Fact]
+    public async Task Map_points_are_listed_one_counter_at_a_time_and_a_failure_costs_its_own_key()
+    {
+        var watch = new OverlapWatch();
+
+        var aggregator = new ResourceCountAggregator(
+            new LocationResourceCounterRegistry(
+            [
+                new WatchingCounter("housing", watch),
+                new ThrowingCounter("jobs"),
+                new WatchingCounter("marketplace", watch),
+                new WatchingCounter("events", watch)
+            ]),
+            UntimedOptions(),
+            NullLogger<ResourceCountAggregator>.Instance);
+
+        var points = await aggregator.ListPointsAsync(
+            new MapPointQuery { South = -4.2, West = 39.5, North = -3.9, East = 39.8, Limit = 100 },
+            resourceTypes: null);
+
+        points.Keys.Should().BeEquivalentTo(["housing", "marketplace", "events"]);
+        watch.MaximumConcurrent.Should().Be(1);
+    }
+
     [Fact]
     public async Task Nearby_providers_are_never_asked_two_at_a_time()
     {
@@ -235,6 +263,13 @@ public sealed class LocationAggregatorConcurrencyTests
             await _watch.ObserveAsync();
             return 1;
         }
+
+        public async Task<MapPointPage> ListPointsAsync(
+            MapPointQuery query, CancellationToken cancellationToken = default)
+        {
+            await _watch.ObserveAsync();
+            return new MapPointPage([new MapPoint(query.South, query.West)], false);
+        }
     }
 
     private sealed class ThrowingCounter : ILocationResourceCounter
@@ -250,6 +285,11 @@ public sealed class LocationAggregatorConcurrencyTests
 
         public Task<int> CountInCountryAsync(
             CountryCode countryCode, CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException(
+                "A second operation was started on this context instance.");
+
+        public Task<MapPointPage> ListPointsAsync(
+            MapPointQuery query, CancellationToken cancellationToken = default) =>
             throw new InvalidOperationException(
                 "A second operation was started on this context instance.");
     }

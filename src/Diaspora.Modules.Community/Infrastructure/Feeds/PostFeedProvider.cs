@@ -52,6 +52,8 @@ public abstract class PostFeedProvider : IFeedProvider
             ? [PostStatus.Published, PostStatus.Expired]
             : [PostStatus.Published],
         AllowedVisibility = request.AllowedVisibility,
+        NeighborhoodViewer = request.NeighborhoodViewer,
+        NeighborhoodAuthorId = request.ViewerId,
         ExcludedAuthorIds = request.ExcludedAuthorIds,
         ExcludeExpired = !request.IncludeExpired,
         Category = request.Category,

@@ -632,6 +632,12 @@ public sealed record CommunityPollResponse
 
     public required string Audience { get; init; }
 
+    /// <summary>Added 14 Oct 2026. The country a country or neighbourhood poll is about.</summary>
+    public string? CountryCode { get; init; }
+
+    /// <summary>Added 14 Oct 2026. The town a neighbourhood poll is about.</summary>
+    public string? CityName { get; init; }
+
     public required IReadOnlyList<PollOptionResponse> Options { get; init; }
 
     public int? MaxSelections { get; init; }

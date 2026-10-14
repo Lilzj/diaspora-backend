@@ -10,14 +10,17 @@ public sealed record GetMapClustersQuery : IQuery<MapClusterPageResponse>
     public required string Bounds { get; init; }
 
     /// <summary>
-    /// The rung to aggregate on. <c>Neighborhood</c> by default, <c>City</c> when zoomed out.
-    /// <para>
-    /// The client chooses because the client knows its zoom. Deriving the rung from the box's
-    /// span here would be the server guessing at a viewport it cannot see the pixels of, and
-    /// would change the answer under a client that resized rather than zoomed.
-    /// </para>
+    /// The granularity of the grid: <c>Neighborhood</c> (about 12 cells across, the default) or
+    /// <c>City</c> (about 6). Since 14 Oct 2026 the cells are square grid cells over the rows' own
+    /// coordinates, not catalogue nodes; the word only chooses how fine they are.
     /// </summary>
     public string? Level { get; init; }
+
+    /// <summary>
+    /// An explicit cell side in kilometres, overriding <see cref="Level"/>. Rounded up to the grid's
+    /// power-of-two steps, and coarsened if the viewport would hold more than the cell cap.
+    /// </summary>
+    public double? CellSizeKm { get; init; }
 
     /// <summary>Which verticals to count. Empty means every counter this deployment has.</summary>
     public IReadOnlyList<string>? ResourceTypes { get; init; }

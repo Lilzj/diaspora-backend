@@ -113,6 +113,62 @@ public class VisibilityTests
             VisibilityDecision.Deny("test");
     }
 
+    /// <summary>
+    /// A neighbourhood audience is a radius around the post's own pin since 14 Oct 2026, measured
+    /// against the reader's active location — no catalogue area on either side.
+    /// </summary>
+    [Fact]
+    public void Neighborhood_content_reaches_a_reader_within_the_radius_of_its_pin_and_nobody_further()
+    {
+        var radius = AudienceVisibilityEvaluator.NeighborhoodRadiusKm;
+
+        NeighborhoodDecision(contentPinned: true, distanceKm: radius - 0.1).Denied.Should().BeFalse();
+        NeighborhoodDecision(contentPinned: true, distanceKm: radius + 0.1).Denied.Should().BeTrue();
+
+        // A reader with no active location cannot be near anything pinned.
+        NeighborhoodDecision(contentPinned: true, distanceKm: null).Denied.Should().BeTrue();
+
+        // Never a signed-out reader, however near.
+        NeighborhoodDecision(contentPinned: true, distanceKm: 0.1, signedIn: false)
+            .Denied.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Neighborhood_content_with_no_pin_falls_back_to_its_country()
+    {
+        NeighborhoodDecision(contentPinned: false, distanceKm: null, viewerCountry: "KE")
+            .Denied.Should().BeFalse();
+
+        NeighborhoodDecision(contentPinned: false, distanceKm: null, viewerCountry: "GB")
+            .Denied.Should().BeTrue();
+
+        NeighborhoodDecision(
+                contentPinned: false, distanceKm: null, viewerCountry: "GB", verifiedCountries: ["KE"])
+            .Denied.Should().BeFalse("a verified resident of the country is of it, wherever they are");
+    }
+
+    private static VisibilityDecision NeighborhoodDecision(
+        bool contentPinned,
+        double? distanceKm,
+        bool signedIn = true,
+        string? viewerCountry = "KE",
+        IReadOnlyCollection<string>? verifiedCountries = null) =>
+        new AudienceVisibilityEvaluator().Evaluate(new VisibilityRequest
+        {
+            Content = Content,
+            AuthorId = Author,
+            Audience = ContentAudience.FromLevel(VisibilityLevel.Neighborhood),
+            ViewerId = signedIn ? UserId.New() : null,
+            ViewerCountryCode = viewerCountry,
+            ViewerVerifiedCountries = verifiedCountries ?? [],
+            ContentCountryCode = "KE",
+            ContentLatitude = contentPinned ? -4.0435 : null,
+            ContentLongitude = contentPinned ? 39.6682 : null,
+            ViewerLatitude = distanceKm is null ? null : -4.05,
+            ViewerLongitude = distanceKm is null ? null : 39.67,
+            ViewerDistanceKm = distanceKm
+        });
+
     private static VisibilityDecision Evaluate(
         ContentAudience audience,
         UserId? viewer,

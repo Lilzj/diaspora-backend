@@ -2,6 +2,7 @@
 using Diaspora.Modules.Community.Application.Mapping;
 using Diaspora.Modules.Community.Application.Services;
 using Diaspora.Modules.Community.Contracts.V1.Responses;
+using Diaspora.Modules.Community.Domain.Posts;
 using Diaspora.Modules.Community.Domain.Enums;
 using Diaspora.Modules.Community.Domain.Policies;
 using Diaspora.Modules.Community.Domain.ValueObjects;
@@ -84,6 +85,16 @@ public sealed class GetFeedQueryHandler : IQueryHandler<GetFeedQuery, FeedRespon
             FeedKey = request.FeedKey,
             ViewerId = viewer.UserId,
             AllowedVisibility = ViewerContextResolver.AllowedLevels(viewer),
+            NeighborhoodViewer = viewer.IsAuthenticated
+                ? new NeighborhoodAudienceViewer
+                {
+                    Latitude = viewer.Latitude,
+                    Longitude = viewer.Longitude,
+                    Countries = viewer.CountryCode is null
+                        ? [.. viewer.VerifiedCountries]
+                        : [viewer.CountryCode, .. viewer.VerifiedCountries]
+                }
+                : null,
             ExcludedAuthorIds = viewer.BlockedMemberIds,
             CountryCode = resolved.CountryCode?.Value ?? request.CountryCode,
             AreaId = null,

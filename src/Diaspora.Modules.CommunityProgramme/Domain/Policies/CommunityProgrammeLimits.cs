@@ -24,6 +24,9 @@ public static class CommunityProgrammeLimits
     public const int MaxOpenResponseLength = 2000;
     public const int MaxCurrencyLength = 3;
     public const int MaxCountryLength = 2;
+
+    /// <summary>A town name, as a neighbourhood poll names it (14 Oct 2026).</summary>
+    public const int MaxCityNameLength = 160;
     public const int MaxIdempotencyKeyLength = 200;
     public const int MaxMediaReferences = 10;
 

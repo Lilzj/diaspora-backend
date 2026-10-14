@@ -29,6 +29,7 @@ public sealed class ViewerContextResolver
     private readonly ITrustService _trust;
     private readonly IResidencyDirectory _residency;
     private readonly IFollowRepository _follows;
+    private readonly IGeographicScopeResolver _scopes;
     private readonly ILogger<ViewerContextResolver> _logger;
 
     private ViewerContext? _cached;
@@ -38,12 +39,14 @@ public sealed class ViewerContextResolver
         ITrustService trust,
         IResidencyDirectory residency,
         IFollowRepository follows,
+        IGeographicScopeResolver scopes,
         ILogger<ViewerContextResolver> logger)
     {
         _currentUser = currentUser;
         _trust = trust;
         _residency = residency;
         _follows = follows;
+        _scopes = scopes;
         _logger = logger;
     }
 
@@ -81,6 +84,19 @@ public sealed class ViewerContextResolver
 
         var current = residencies.FirstOrDefault(residency => residency.IsCurrentResidence);
 
+        // The reader's own saved location, as Location stores it: its point and its country.
+        // Asked with nothing but the reader, so the resolver answers from the profile alone.
+        var active = await SafeAsync(
+            async () =>
+            {
+                var scope = await _scopes.ResolveForDiscoveryAsync(
+                    new GeographicScopeRequest { UserId = userId }, cancellationToken);
+
+                return scope.IsSuccess ? scope.Value : GeographicScope.Unbounded;
+            },
+            GeographicScope.Unbounded,
+            "active location");
+
         _cached = new ViewerContext
         {
             UserId = userId,
@@ -91,7 +107,9 @@ public sealed class ViewerContextResolver
                 .Where(residency => residency.IsVerified)
                 .Select(residency => residency.CountryCode)
                 .ToList(),
-            CountryCode = current?.CountryCode,
+            CountryCode = current?.CountryCode ?? active.CountryCode?.Value,
+            Latitude = active.Center?.Latitude,
+            Longitude = active.Center?.Longitude,
             FollowedMemberIds = followed.ToHashSet(),
 
             // Empty until Identity publishes a block-list contract. See ViewerContext.
@@ -133,10 +151,10 @@ public sealed class ViewerContextResolver
             levels.Add(VisibilityLevel.Country);
         }
 
-        if (viewer.AreaId is not null || viewer.HierarchyPath is not null)
-        {
-            levels.Add(VisibilityLevel.Neighborhood);
-        }
+        // Neighbourhood content is measured per item against the reader's active location (or,
+        // for content with no pin, their country), so it is admitted to the coarse filter for any
+        // signed-in reader and narrowed by the feed query and the per-item check.
+        levels.Add(VisibilityLevel.Neighborhood);
 
         levels.Add(VisibilityLevel.Followers);
 

@@ -35,6 +35,7 @@ public sealed class AdAudience : ValueObject
     private readonly List<Guid> _neighbourhoodIds = [];
     private readonly List<string> _interests = [];
     private readonly List<string> _categories = [];
+    private readonly List<string> _townNames = [];
 
     private AdAudience() { }
 
@@ -44,7 +45,17 @@ public sealed class AdAudience : ValueObject
     /// <summary>Communities from B18's directory.</summary>
     public IReadOnlyCollection<Guid> CommunityIds => _communityIds.AsReadOnly();
 
+    /// <summary>
+    /// Legacy catalogue neighbourhood ids. Nothing has been stored here since 14 Oct 2026, when the
+    /// platform began retiring its place catalogue; campaigns saved before then keep theirs.
+    /// </summary>
     public IReadOnlyCollection<Guid> NeighbourhoodIds => _neighbourhoodIds.AsReadOnly();
+
+    /// <summary>
+    /// Towns by name — "Mombasa", "Port Louis" — the replacement for neighbourhood targeting
+    /// (14 Oct 2026). Pair with <see cref="CountryCodes"/> where a name is ambiguous.
+    /// </summary>
+    public IReadOnlyCollection<string> TownNames => _townNames.AsReadOnly();
 
     public IReadOnlyCollection<string> Interests => _interests.AsReadOnly();
 
@@ -69,7 +80,8 @@ public sealed class AdAudience : ValueObject
         IEnumerable<Guid>? communityIds = null,
         IEnumerable<Guid>? neighbourhoodIds = null,
         IEnumerable<string>? interests = null,
-        IEnumerable<string>? categories = null)
+        IEnumerable<string>? categories = null,
+        IEnumerable<string>? townNames = null)
     {
         var audience = new AdAudience();
 
@@ -78,6 +90,7 @@ public sealed class AdAudience : ValueObject
         audience._neighbourhoodIds.AddRange(Identifiers(neighbourhoodIds));
         audience._interests.AddRange(Keys(interests));
         audience._categories.AddRange(Keys(categories));
+        audience._townNames.AddRange(Keys(townNames));
 
         return audience;
     }
@@ -88,7 +101,8 @@ public sealed class AdAudience : ValueObject
         && _communityIds.Count == 0
         && _neighbourhoodIds.Count == 0
         && _interests.Count == 0
-        && _categories.Count == 0;
+        && _categories.Count == 0
+        && _townNames.Count == 0;
 
     /// <summary>
     /// The dimensions this audience actually constrains.
@@ -99,13 +113,14 @@ public sealed class AdAudience : ValueObject
     /// </summary>
     public IReadOnlyList<AdTargetingDimension> ConstrainedDimensions()
     {
-        var dimensions = new List<AdTargetingDimension>(5);
+        var dimensions = new List<AdTargetingDimension>(6);
 
         if (_countryCodes.Count > 0) dimensions.Add(AdTargetingDimension.Country);
         if (_communityIds.Count > 0) dimensions.Add(AdTargetingDimension.Community);
         if (_neighbourhoodIds.Count > 0) dimensions.Add(AdTargetingDimension.Neighbourhood);
         if (_interests.Count > 0) dimensions.Add(AdTargetingDimension.Interest);
         if (_categories.Count > 0) dimensions.Add(AdTargetingDimension.Category);
+        if (_townNames.Count > 0) dimensions.Add(AdTargetingDimension.Town);
 
         return dimensions;
     }
@@ -119,6 +134,7 @@ public sealed class AdAudience : ValueObject
         yield return string.Join(',', _neighbourhoodIds.Order());
         yield return string.Join(',', _interests.Order(StringComparer.Ordinal));
         yield return string.Join(',', _categories.Order(StringComparer.Ordinal));
+        yield return string.Join(',', _townNames.Order(StringComparer.Ordinal));
     }
 
     private static IEnumerable<string> Codes(IEnumerable<string>? values) =>

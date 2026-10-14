@@ -197,10 +197,10 @@ public sealed class HousingAreaFilingTests : PooledIdentityTestBase
             await HttpClient.GetAsync(
                 $"/api/v1/location/map/clusters?bounds={PeckhamViewport}&resourceTypes=housing"));
 
-        var peckham = page.Clusters.Should().ContainSingle(cluster => cluster.Name == "Peckham").Subject;
-
-        peckham.Counts.Should().ContainKey("housing");
-        peckham.Counts["housing"].Should().BeGreaterThan(0, $"the listing seeded for {run} is in it");
+        // Grid cells over the listing's own coordinates since 14 Oct 2026, not the Peckham node:
+        // the pin alone puts it on the map.
+        page.Clusters.Sum(cluster => cluster.Counts.GetValueOrDefault("housing"))
+            .Should().BeGreaterThan(0, $"the listing seeded for {run} is in a cell");
     }
 
     /// <summary>

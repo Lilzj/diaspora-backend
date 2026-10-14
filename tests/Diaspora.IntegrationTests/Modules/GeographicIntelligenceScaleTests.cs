@@ -105,10 +105,9 @@ public sealed class GeographicIntelligenceScaleTests : PooledIdentityTestBase
     }
 
     /// <summary>
-    /// <b>A dense viewport is truncated and says so.</b> The cell cap is twenty; ninety places in
-    /// one rectangle must produce twenty cells and <c>truncated: true</c>, never twenty cells
-    /// silently. A truncated map that says nothing reads as a complete one, and a member would
-    /// conclude a district was empty.
+    /// <b>A dense viewport stays bounded.</b> Since 14 Oct 2026 the layer is square grid cells over
+    /// each row's coordinates, and the server coarsens the grid until the viewport holds no more
+    /// than the cell cap — so a response's size never depends on how much is in view.
     /// </summary>
     [Fact]
     public async Task A_dense_viewport_is_capped_and_declares_that_it_was()
@@ -125,11 +124,13 @@ public sealed class GeographicIntelligenceScaleTests : PooledIdentityTestBase
 
         stopwatch.Stop();
 
+        // Grid cells since 14 Oct 2026: the cap is on cells, enforced by coarsening the grid, and
+        // `truncated` now means a vertical stopped reading rows — which a few dozen homes do not.
         layer.Points.Count.Should().BeLessThanOrEqualTo(
-            20, "the cell cap bounds the response regardless of how many places are in view");
+            256, "the cell cap bounds the response regardless of how much is in view");
 
-        layer.Truncated.Should().BeTrue(
-            $"{Neighborhoods} places are in the rectangle and only 20 are returned");
+        layer.CellSizeDegrees.Should().BeGreaterThan(
+            0, "the grid's resolution is chosen by the server from the viewport and stated");
 
         _output.WriteLine(
             $"Aggregated a viewport holding {Neighborhoods} places into {layer.Points.Count} cells "
@@ -205,7 +206,9 @@ public sealed class GeographicIntelligenceScaleTests : PooledIdentityTestBase
             + "into a jobs layer");
 
         jobs.SuppressedCells.Should().Be(
-            PopulatedCells, "the cells exist and are withheld for holding no jobs");
+            0,
+            "a grid cell exists only where a row of the layer's own vertical is (14 Oct 2026), so "
+            + "an empty one is never made and never withheld");
     }
 
     /// <summary>
@@ -429,7 +432,8 @@ public sealed class GeographicIntelligenceScaleTests : PooledIdentityTestBase
         int MaxValue,
         int MinimumCellCount,
         int SuppressedCells,
-        bool Truncated);
+        bool Truncated,
+        double CellSizeDegrees);
 
     private sealed record HeatPointDto(
         double Latitude, double Longitude, double Intensity, int RawValue);

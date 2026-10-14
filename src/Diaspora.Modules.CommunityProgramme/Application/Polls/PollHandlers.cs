@@ -426,7 +426,9 @@ public sealed class CreatePollCommandHandler
         var described = poll.Describe(
             command.Request.Description,
             command.Request.OrganizationId,
-            command.Request.NeighborhoodAreaId,
+
+            // Catalogue areas are retired (14 Oct 2026): an id from an older client is ignored.
+            neighborhoodAreaId: null,
             command.Request.CountryCode,
             command.Request.MaxSelections,
             command.Request.IsAnonymous,
@@ -434,7 +436,8 @@ public sealed class CreatePollCommandHandler
             command.Request.ShowResultsBeforeClose,
             command.Request.OpensAt,
             command.Request.ClosesAt,
-            now);
+            now,
+            command.Request.CityName);
 
         if (described.IsFailure)
         {

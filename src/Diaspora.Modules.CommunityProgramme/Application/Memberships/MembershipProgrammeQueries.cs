@@ -408,8 +408,10 @@ public sealed class DiscoverMembershipsQueryHandler
             return false;
         }
 
-        return query.NeighborhoodAreaId is not { } areaId
-            || organization.NeighborhoodAreaId == areaId;
+        // A catalogue neighbourhood id no longer narrows (14 Oct 2026): organizations stopped
+        // carrying one when the platform began retiring its place catalogue, so matching on it
+        // would hide every body created since. The town name above is the narrowing that remains.
+        return true;
     }
 
     private static CommunityPageResponse<MembershipProgrammeResponse> Empty() =>

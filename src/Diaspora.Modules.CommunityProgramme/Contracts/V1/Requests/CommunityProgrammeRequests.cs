@@ -280,9 +280,13 @@ public sealed record CreatePollRequest
 
     public Guid? OrganizationId { get; init; }
 
+    /// <summary>Legacy catalogue area. Ignored since 14 Oct 2026; send <see cref="CityName"/> and <see cref="CountryCode"/>.</summary>
     public Guid? NeighborhoodAreaId { get; init; }
 
     public string? CountryCode { get; init; }
+
+    /// <summary>The town a <c>Neighborhood</c> poll is about, with <see cref="CountryCode"/> (14 Oct 2026).</summary>
+    public string? CityName { get; init; }
 
     public IReadOnlyList<Guid>? InviteeUserIds { get; init; }
 

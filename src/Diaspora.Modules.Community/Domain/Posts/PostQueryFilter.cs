@@ -51,6 +51,18 @@ public sealed record PostQueryFilter
     /// <summary>The audiences a viewer is eligible for. Computed before the query, never in it.</summary>
     public IReadOnlyCollection<VisibilityLevel>? AllowedVisibility { get; init; }
 
+    /// <summary>
+    /// With <see cref="VisibilityLevel.Neighborhood"/> allowed: the reader a neighbourhood-only
+    /// post must be near (14 Oct 2026). A pinned post is kept when its pin is inside the rectangle
+    /// around the reader's circle (the feed then measures the circle exactly); an unpinned one
+    /// when its country is the reader's. Null keeps neighbourhood-only posts by
+    /// <see cref="NeighborhoodAuthorId"/> only.
+    /// </summary>
+    public NeighborhoodAudienceViewer? NeighborhoodViewer { get; init; }
+
+    /// <summary>The reader, whose own neighbourhood-only posts are always theirs to see.</summary>
+    public UserId? NeighborhoodAuthorId { get; init; }
+
     /// <summary>Excludes posts by these authors. How blocking reaches the feed.</summary>
     public IReadOnlyCollection<Guid>? ExcludedAuthorIds { get; init; }
 

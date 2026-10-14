@@ -81,7 +81,8 @@ public sealed class FeedComposer
             return Result.Failure<(FeedPage, string)>(CommunityErrors.FeedScopeRequired);
         }
 
-        var page = await provider.GetAsync(request, cancellationToken);
+        var page = WithinNeighborhoodReach(
+            await provider.GetAsync(request, cancellationToken), viewer);
 
         if (page.Items.Count == 0)
         {
@@ -114,6 +115,47 @@ public sealed class FeedComposer
             : null;
 
         return Result.Success((FeedPage.Of(trimmed, next), strategy.RankingKey));
+    }
+
+    /// <summary>
+    /// Drops the neighbourhood-only posts whose pin is beyond the audience radius of the reader's
+    /// active location (14 Oct 2026).
+    /// <para>
+    /// The post query admits them by the rectangle around the reader's circle, which an index can
+    /// serve; this measures the circle itself, with Location's distance, so a post in the
+    /// rectangle's corner is not shown to a reader 2.8 km away. Every other post, the reader's own
+    /// posts and unpinned neighbourhood posts (already narrowed to the reader's countries) pass.
+    /// A page can come back shorter, never longer; its cursor is the provider's, so paging goes on.
+    /// </para>
+    /// </summary>
+    private FeedPage WithinNeighborhoodReach(FeedPage page, ViewerContext viewer)
+    {
+        var kept = page.Items
+            .Where(item =>
+                item.Post is not { } post
+                || post.Audience.Level != Domain.Enums.VisibilityLevel.Neighborhood
+                || !post.Location.HasCoordinates
+                || (viewer.UserId is not null && post.AuthorId == viewer.UserId)
+                || IsNear(viewer, post.Location.Latitude!.Value, post.Location.Longitude!.Value))
+            .ToList();
+
+        return kept.Count == page.Items.Count ? page : page with { Items = kept };
+    }
+
+    private bool IsNear(ViewerContext viewer, double latitude, double longitude)
+    {
+        if (viewer.Latitude is not { } viewerLatitude || viewer.Longitude is not { } viewerLongitude)
+        {
+            return false;
+        }
+
+        var origin = Modules.Location.Domain.ValueObjects.GeoCoordinate.TryCreate(viewerLatitude, viewerLongitude);
+        var destination = Modules.Location.Domain.ValueObjects.GeoCoordinate.TryCreate(latitude, longitude);
+
+        return origin.IsSuccess
+               && destination.IsSuccess
+               && _location.DistanceBetween(origin.Value, destination.Value).Kilometers
+                   <= Domain.Policies.CommunityLimits.NeighborhoodAudienceRadiusKm;
     }
 
     private async Task<RankingContext> BuildContextAsync(

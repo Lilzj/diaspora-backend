@@ -1,3 +1,4 @@
+using Diaspora.Modules.Community.Domain.Posts;
 using Diaspora.Modules.Community.Domain.Enums;
 using Diaspora.Modules.Community.Domain.Policies;
 using Diaspora.Modules.Community.Domain.ValueObjects;
@@ -78,4 +79,10 @@ public sealed record FeedRequest
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
     public bool HasCoordinates => Latitude is not null && Longitude is not null;
+
+    /// <summary>
+    /// Who neighbourhood-only posts are measured against: the reader's active location and
+    /// country (14 Oct 2026). Null admits no neighbourhood-only post from anybody else.
+    /// </summary>
+    public NeighborhoodAudienceViewer? NeighborhoodViewer { get; init; }
 }

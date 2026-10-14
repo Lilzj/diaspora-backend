@@ -21,6 +21,9 @@ public sealed record ProviderServiceAreaResponse
     /// <summary>What to call it on screen. "South London", "Within the M25".</summary>
     public string? Label { get; init; }
 
+    /// <summary>Added 14 Oct 2026. The town a <c>Town</c> service area names.</summary>
+    public string? CityName { get; init; }
+
     public double? CentreLatitude { get; init; }
 
     public double? CentreLongitude { get; init; }

@@ -48,6 +48,9 @@ public sealed class ProviderServiceArea : Entity<ProviderServiceAreaId>
     /// <summary>What to call this area on screen. "South London", "Within the M25".</summary>
     public string? Label { get; private set; }
 
+    /// <summary>The town a <see cref="ServiceAreaKind.Town"/> area names (14 Oct 2026).</summary>
+    public string? CityName { get; private set; }
+
     /// <summary>Set for <see cref="ServiceAreaKind.Radius"/>.</summary>
     public double? CentreLatitude { get; private set; }
 
@@ -80,6 +83,34 @@ public sealed class ProviderServiceArea : Entity<ProviderServiceAreaId>
             });
     }
 
+    /// <summary>
+    /// A town by name within a country (14 Oct 2026) — what replaces a catalogue node now that the
+    /// platform is retiring its place catalogue. Both halves are required: a town name alone is
+    /// ambiguous across countries.
+    /// </summary>
+    public static Result<ProviderServiceArea> ForTown(
+        ProviderServiceAreaId id, string? countryCode, string? cityName, string? label = null)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+
+        var country = NormalizeCountry(countryCode);
+        var city = Trim(cityName);
+
+        return country is null || city is null
+            ? Result.Failure<ProviderServiceArea>(ProviderErrors.ServiceAreaScopeRequired)
+            : Result.Success(new ProviderServiceArea(id, ServiceAreaKind.Town)
+            {
+                CountryCode = country,
+                CityName = city,
+                Label = Trim(label) ?? city
+            });
+    }
+
+    /// <summary>
+    /// Legacy: one catalogue node by id and path. Nothing has created one since 14 Oct 2026, when
+    /// the platform began retiring its place catalogue; kept so stored rows still materialise.
+    /// Use <see cref="ForTown"/> or <see cref="ForRadius"/>.
+    /// </summary>
     public static Result<ProviderServiceArea> ForArea(
         ProviderServiceAreaId id,
         Guid areaId,
@@ -173,6 +204,7 @@ public sealed class ProviderServiceArea : Entity<ProviderServiceAreaId>
     {
         ServiceAreaKind.Country => $"country:{CountryCode}",
         ServiceAreaKind.Area => $"area:{AreaId:N}",
+        ServiceAreaKind.Town => $"town:{CountryCode}:{CityName?.ToUpperInvariant()}",
         ServiceAreaKind.Radius => $"radius:{CentreLatitude:F4},{CentreLongitude:F4},{RadiusKm:F1}",
         _ => "remote"
     };

@@ -1,4 +1,6 @@
+using Diaspora.Modules.Guides.Domain.Enums;
 using Diaspora.Modules.Guides.Domain.Guides;
+using Diaspora.Modules.Guides.Domain.Policies;
 using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Modules.Location.Extensibility;
 using Diaspora.SharedKernel.Identity;
@@ -47,5 +49,42 @@ public sealed class GuideResourceCounter : ILocationResourceCounter
         ArgumentNullException.ThrowIfNull(countryCode);
 
         return await _guides.CountInCountryAsync(countryCode.Value, cancellationToken);
+    }
+
+    /// <summary>
+    /// Where the published guides sit inside a viewport, by the pin each guide carries
+    /// (14 Oct 2026). A guide with no pin (most of them, since a guide is usually about a country)
+    /// is not on the map.
+    /// </summary>
+    public Task<MapPointPage> ListPointsAsync(
+        MapPointQuery query, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var filter = new GuideQueryFilter
+        {
+            Statuses = [GuideStatus.Published],
+            CountryCode = query.CountryCode,
+            MinLatitude = query.South,
+            MaxLatitude = query.North,
+            MinLongitude = query.West,
+            MaxLongitude = query.East,
+
+            // A public surface: no viewer, so no draft or hidden guide is in scope.
+            ViewerId = null,
+            ViewerIsStaff = false,
+            Sort = GuideSortOrder.Newest
+        };
+
+        return MapPointReader.ReadAsync(
+            query,
+            async (cursor, size, token) =>
+            {
+                var page = await _guides.QueryAsync(filter, cursor, size, token);
+                return (page.Items, page.HasMore ? page.NextCursor : null);
+            },
+            guide => (guide.Latitude, guide.Longitude),
+            GuideLimits.MaxPageSize,
+            cancellationToken);
     }
 }

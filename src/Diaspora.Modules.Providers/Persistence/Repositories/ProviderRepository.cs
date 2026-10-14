@@ -560,8 +560,13 @@ public sealed class ProviderRepository : IProviderRepository
             // so "mombasa" found "Mombasa" in every test and nothing in production.
             var city = filter.CityName.Trim().ToLowerInvariant();
 
+            // A provider that serves the town by name counts as being there (14 Oct 2026).
             query = query.Where(provider =>
                 (provider.Location.CityName != null && provider.Location.CityName.ToLower() == city)
+                || (matchAreas && provider.ServiceAreas.Any(area =>
+                    area.Kind == ServiceAreaKind.Town
+                    && area.CityName != null
+                    && area.CityName.ToLower() == city))
                 || (includeRemote && provider.DeliveryMode == ServiceDeliveryMode.Remote));
         }
 

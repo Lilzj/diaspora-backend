@@ -12,11 +12,11 @@ namespace Diaspora.Modules.Location.Application.Services;
 /// <summary>
 /// Turns the loose location payload a client sends into a validated snapshot.
 /// <para>
-/// The client can describe a place three ways — by catalogue node, by coordinates, or by name
-/// alone — and every one of them arrives at this endpoint. Resolving them in one place means
-/// the profile, the saved location and the travel destination all get the same treatment, and
-/// a snapshot built from a node is enriched with its city and state rather than stored as a
-/// bare neighbourhood name that renders as half an address.
+/// <b>Coordinates and names, never a catalogue id, since 14 Oct 2026</b> (Phase 2B of retiring the
+/// place catalogue). The client describes a place by its Google result: a country, the names, and
+/// a point. Those are stored as sent. An <c>areaId</c> from an older app build is used only when
+/// the payload names no country at all — to recover the country, names and centre the node knows —
+/// and even then the id itself is not stored.
 /// </para>
 /// </summary>
 public sealed class LocationSnapshotFactory
@@ -36,10 +36,8 @@ public sealed class LocationSnapshotFactory
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        // A catalogue node wins over everything else in the payload. The client resolved it
-        // deliberately, and the node knows its own ancestors — which is more than the client
-        // sent.
-        if (request.AreaId is not null)
+        // An older client that sent only a node: read the names and point off it, keep no id.
+        if (request.AreaId is not null && string.IsNullOrWhiteSpace(request.CountryCode))
         {
             var fromArea = await FromAreaAsync(
                 AreaId.From(request.AreaId.Value), cancellationToken);
@@ -135,6 +133,6 @@ public sealed class LocationSnapshotFactory
             neighborhood,
             street: null,
             area.Center,
-            area.Id);
+            areaId: null);
     }
 }

@@ -1,4 +1,6 @@
+using Diaspora.Modules.Housing.Domain.Enums;
 using Diaspora.Modules.Housing.Domain.Listings;
+using Diaspora.Modules.Housing.Domain.ValueObjects;
 using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Modules.Location.Extensibility;
 using Diaspora.SharedKernel.Identity;
@@ -47,5 +49,51 @@ public sealed class HousingResourceCounter : ILocationResourceCounter
         ArgumentNullException.ThrowIfNull(countryCode);
 
         return await _listings.CountInCountryAsync(countryCode.Value, cancellationToken);
+    }
+
+    /// <summary>
+    /// Where the publicly visible homes sit inside a viewport (14 Oct 2026).
+    /// <para>
+    /// <b>At the coordinate a stranger is shown, never the stored one.</b> A home whose address is
+    /// not public is placed at its fuzzed point, exactly as a search result places it, so a small
+    /// grid cell cannot say more about where a home is than its card does. The rectangle is
+    /// snapped outward to that precision for the same reason. A home with no pin is not on the map.
+    /// </para>
+    /// </summary>
+    public async Task<MapPointPage> ListPointsAsync(
+        MapPointQuery query, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var scale = Math.Pow(10d, PropertyAddress.FuzzedPrecision);
+        var limit = Math.Clamp(query.Limit, 1, MapPointReader.MaximumRowsRead);
+
+        var candidates = await _listings.QueryNearestCandidatesAsync(
+            new HousingListingQueryFilter
+            {
+                CountryCode = query.CountryCode,
+                BoundsSouth = Math.Floor(query.South * scale) / scale,
+                BoundsNorth = Math.Ceiling(query.North * scale) / scale,
+                BoundsWest = Math.Floor(query.West * scale) / scale,
+                BoundsEast = Math.Ceiling(query.East * scale) / scale,
+                Statuses =
+                [
+                    HousingListingStatus.Available,
+                    HousingListingStatus.Published
+                ],
+                AvailableOnly = true,
+
+                // A public surface: no viewer, so no draft, hidden or unlisted home is in scope.
+                ViewerId = null,
+                ViewerIsStaff = false
+            },
+            limit + 1,
+            cancellationToken);
+
+        return MapPointReader.FromList(
+            query,
+            candidates,
+            candidate => PropertyAddress.PublicCoordinates(
+                candidate.Latitude, candidate.Longitude, candidate.Visibility));
     }
 }

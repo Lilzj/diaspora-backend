@@ -124,7 +124,7 @@ public enum AdTargetingDimension
     /// <summary>A community id, from B18's directory.</summary>
     Community = 2,
 
-    /// <summary>A neighbourhood area id.</summary>
+    /// <summary>Legacy: a catalogue neighbourhood id. Not stored since 14 Oct 2026; see <see cref="Town"/>.</summary>
     Neighbourhood = 3,
 
     /// <summary>An interest key.</summary>
@@ -132,4 +132,7 @@ public enum AdTargetingDimension
 
     /// <summary>A vertical's category key — a job category, a marketplace category.</summary>
     Category = 5,
+
+    /// <summary>A town by name (14 Oct 2026), replacing catalogue neighbourhoods.</summary>
+    Town = 6,
 }

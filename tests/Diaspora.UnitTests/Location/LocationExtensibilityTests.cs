@@ -197,6 +197,10 @@ public sealed class LocationExtensibilityTests
         public Task<int> CountInCountryAsync(
             CountryCode countryCode, CancellationToken cancellationToken = default) =>
             Task.FromResult(0);
+
+        public Task<MapPointPage> ListPointsAsync(
+            MapPointQuery query, CancellationToken cancellationToken = default) =>
+            Task.FromResult(MapPointPage.Empty);
     }
 
     private sealed class StubMetadataContributor : ICountryMetadataContributor

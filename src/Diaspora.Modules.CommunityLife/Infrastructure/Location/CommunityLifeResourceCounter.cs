@@ -1,4 +1,6 @@
 using Diaspora.Modules.CommunityLife.Domain.CommunityEvents;
+using Diaspora.Modules.CommunityLife.Domain.Enums;
+using Diaspora.Modules.CommunityLife.Domain.Policies;
 using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Modules.Location.Extensibility;
 using Diaspora.Platform.Services.Abstractions;
@@ -50,5 +52,40 @@ public sealed class CommunityLifeResourceCounter : ILocationResourceCounter
 
         return await _events.CountInCountryAsync(
             countryCode.Value, _clock.UtcNow, cancellationToken);
+    }
+
+    /// <summary>
+    /// Where the public, not-yet-finished events sit inside a viewport, by their venue's
+    /// coordinates (14 Oct 2026). An online event, or one whose venue has no pin, is not on the map.
+    /// </summary>
+    public Task<MapPointPage> ListPointsAsync(
+        MapPointQuery query, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var filter = new EventQueryFilter
+        {
+            CountryCode = query.CountryCode,
+            BoundsSouth = query.South,
+            BoundsNorth = query.North,
+            BoundsWest = query.West,
+            BoundsEast = query.East,
+            Statuses = [EventStatus.Published, EventStatus.InProgress],
+            IncludeNonPublic = false,
+            IncludePast = false,
+            SortOrder = EventSortOrder.Soonest
+        };
+
+        return MapPointReader.ReadAsync(
+            query,
+            async (cursor, size, token) =>
+            {
+                var page = await _events.SearchAsync(
+                    filter with { Cursor = cursor, Limit = size }, token);
+                return (page.Items, page.HasMore ? page.NextCursor : null);
+            },
+            communityEvent => (communityEvent.Venue.Latitude, communityEvent.Venue.Longitude),
+            CommunityLifeLimits.MaxPageSize,
+            cancellationToken);
     }
 }

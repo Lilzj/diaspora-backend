@@ -416,11 +416,13 @@ public sealed class AreaFilingTests : IdentityTestBase
     }
 
     /// <summary>
-    /// The payoff, over HTTP. Before the sweep none of these rows is in any cluster; after it, each
-    /// is counted in the cell for the town it named — which is what the map endpoint was for.
+    /// <b>The map no longer depends on filing</b> — 14 Oct 2026, Phase 2B of retiring the place
+    /// catalogue. Clusters are grid cells over each row's own coordinates, so filing rows under
+    /// catalogue areas moves no count: the totals are the same before the sweep and after it.
+    /// (Until then this test proved the opposite — that only filed rows reached the map.)
     /// </summary>
     [Fact]
-    public async Task Filed_rows_reach_the_map_cluster_counts()
+    public async Task Filing_rows_moves_no_map_cluster_count()
     {
         await SeedUnfiledRowsAsync();
 
@@ -435,12 +437,14 @@ public sealed class AreaFilingTests : IdentityTestBase
         var townsAfter = await ClustersAsync(MauritiusViewport, "City", "housing,marketplace,jobs");
         var peckhamAfter = await ClustersAsync(PeckhamViewport, "Neighborhood", "providers");
 
-        CountIn(townsAfter, "Rose Hill", "housing").Should().Be(CountIn(towns, "Rose Hill", "housing") + 1);
-        CountIn(townsAfter, "Quatre Bornes", "marketplace")
-            .Should().Be(CountIn(towns, "Quatre Bornes", "marketplace") + 1);
-        CountIn(townsAfter, "Curepipe", "jobs").Should().Be(CountIn(towns, "Curepipe", "jobs") + 1);
-        CountIn(peckhamAfter, "Peckham", "providers")
-            .Should().Be(CountIn(peckham, "Peckham", "providers") + 1);
+        foreach (var type in new[] { "housing", "marketplace", "jobs" })
+        {
+            Total(townsAfter, type).Should().Be(Total(towns, type), $"filing moved no {type} on the map");
+        }
+
+        Total(peckhamAfter, "providers").Should().Be(Total(peckham, "providers"));
+        Total(peckhamAfter, "providers").Should().BeGreaterThan(
+            0, "the provider seeded with Peckham's coordinates is on the map by its pin alone");
     }
 
     // ── Through the handlers ─────────────────────────────────────────────────────────────────────
@@ -568,11 +572,8 @@ public sealed class AreaFilingTests : IdentityTestBase
             await HttpClient.GetAsync(
                 $"/api/v1/location/map/clusters?bounds={bounds}&level={level}&resourceTypes={resourceTypes}"));
 
-    private static int CountIn(ClusterPageShape page, string name, string resourceType) =>
-        page.Clusters.FirstOrDefault(cluster => cluster.Name == name) is { } cluster
-        && cluster.Counts.TryGetValue(resourceType, out var count)
-            ? count
-            : 0;
+    private static int Total(ClusterPageShape page, string resourceType) =>
+        page.Clusters.Sum(cluster => cluster.Counts.TryGetValue(resourceType, out var count) ? count : 0);
 
     /// <summary>
     /// One row per vertical, written as production's were: a Rose Hill home with no coordinates, a

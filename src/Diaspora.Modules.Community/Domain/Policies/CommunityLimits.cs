@@ -91,4 +91,11 @@ public static class CommunityLimits
     public const int MaxFeedPageSize = 50;
 
     public const int DefaultFeedPageSize = 20;
+
+    /// <summary>
+    /// How near a reader's active location must be to a neighbourhood-only post's pin, in
+    /// kilometres. The neighbourhood audience is this radius around the post's point since
+    /// 14 Oct 2026, when the platform retired its place catalogue.
+    /// </summary>
+    public const double NeighborhoodAudienceRadiusKm = 2d;
 }

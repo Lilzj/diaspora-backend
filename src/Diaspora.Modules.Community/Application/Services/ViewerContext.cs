@@ -35,6 +35,17 @@ public sealed record ViewerContext
 
     public string? HierarchyPath { get; init; }
 
+    /// <summary>
+    /// The reader's active location (their travel destination while travelling, else their
+    /// current location), from Location. What a neighbourhood audience is measured from since
+    /// 14 Oct 2026. Null when the reader has set none, or it has no point.
+    /// </summary>
+    public double? Latitude { get; init; }
+
+    public double? Longitude { get; init; }
+
+    public bool HasPoint => Latitude is not null && Longitude is not null;
+
     /// <summary>Members this reader follows. Read by visibility and by ranking.</summary>
     public IReadOnlySet<Guid> FollowedMemberIds { get; init; } = new HashSet<Guid>();
 

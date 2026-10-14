@@ -86,10 +86,9 @@ public sealed class UpdateGeographicPreferencesCommandHandler
             preferences = preferences.WithPreferredCountry(country.Value);
         }
 
-        if (payload.PreferredAreaId is not null)
-        {
-            preferences = preferences.WithPreferredArea(AreaId.From(payload.PreferredAreaId.Value));
-        }
+        // A preferred catalogue area is no longer stored (14 Oct 2026): the platform is retiring
+        // its place catalogue, and a preference is a country plus the member's own saved points.
+        // An id from an older client is accepted and ignored; one stored before stays as it was.
 
         profile.UpdatePreferences(preferences);
 

@@ -171,6 +171,10 @@ public sealed class AdCampaignConfiguration : IEntityTypeConfiguration<AdCampaig
 
             audience.PrimitiveCollection(selection => selection.Categories)
                 .HasColumnName("AudienceCategories");
+
+            // Towns by name, replacing catalogue neighbourhoods (14 Oct 2026).
+            audience.PrimitiveCollection(selection => selection.TownNames)
+                .HasColumnName("AudienceTownNames");
         });
 
         builder.Navigation(campaign => campaign.Audience).IsRequired();

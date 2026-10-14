@@ -3,9 +3,9 @@ namespace Diaspora.Modules.Location.Contracts.V1.Responses;
 /// <summary>
 /// The place outlines a map viewport overlaps, and the credits they require.
 /// <para>
-/// Only places whose outline the catalogue holds appear — today the towns, districts and regions
-/// with an exact OpenStreetMap match. A place that is absent has no stored outline; it is not
-/// outside the viewport, and a client must not draw one for it.
+/// <b>Retired 14 Oct 2026.</b> The platform is retiring its own place catalogue, and with it the
+/// OpenStreetMap outlines it held. The route answers an empty page with <see cref="Reason"/> set
+/// until Phase 3 removes it; a client must draw no outline.
 /// </para>
 /// </summary>
 public sealed record MapBoundaryPageResponse
@@ -27,6 +27,12 @@ public sealed record MapBoundaryPageResponse
     /// draws outlines for, or more outlines overlapped it than one page carries.
     /// </summary>
     public required bool IsComplete { get; init; }
+
+    /// <summary>
+    /// Added 14 Oct 2026. Why the page is empty when it is empty for a reason other than the
+    /// viewport — today always <c>outlines-retired</c>.
+    /// </summary>
+    public string? Reason { get; init; }
 }
 
 /// <summary>One place's outline, named so a client can label it and link to the place.</summary>

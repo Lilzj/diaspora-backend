@@ -574,6 +574,9 @@ public sealed class ProviderConfiguration : IEntityTypeConfiguration<Provider>
 
             area.Property(value => value.Label).HasMaxLength(ProviderServiceArea.MaxLabelLength);
 
+            // A town service area by name (14 Oct 2026). Nullable: every other kind leaves it empty.
+            area.Property(value => value.CityName).HasMaxLength(ProviderPersistenceConstants.NameLength);
+
             area.Property(value => value.TravelSurcharge)
                 .HasPrecision(
                     ProviderPersistenceConstants.MoneyPrecision,

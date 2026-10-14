@@ -105,6 +105,7 @@ internal static class AdCampaignMapper
             NeighbourhoodIds = [.. audience.NeighbourhoodIds],
             Interests = [.. audience.Interests],
             Categories = [.. audience.Categories],
+            TownNames = [.. audience.TownNames],
             IsEveryone = audience.IsEveryone,
             ConstrainedDimensions =
                 [.. audience.ConstrainedDimensions().Select(dimension => dimension.ToString())]

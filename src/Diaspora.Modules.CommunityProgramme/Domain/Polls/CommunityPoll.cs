@@ -69,8 +69,17 @@ public sealed class CommunityPoll : AggregateRoot<CommunityPollId>, IAuditableEn
 
     public PollAudience Audience { get; private set; }
 
-    /// <summary>The B4 area, on a neighbourhood poll.</summary>
+    /// <summary>
+    /// Legacy: the catalogue area of a neighbourhood poll drafted before 14 Oct 2026. Nothing
+    /// writes it any more; <see cref="CityName"/> names the place instead.
+    /// </summary>
     public Guid? NeighborhoodAreaId { get; private set; }
+
+    /// <summary>
+    /// The town a neighbourhood poll is about, by name (14 Oct 2026) — what replaces a catalogue
+    /// area now that the platform is retiring its place catalogue.
+    /// </summary>
+    public string? CityName { get; private set; }
 
     /// <summary>The country, on a country poll.</summary>
     public string? CountryCode { get; private set; }
@@ -187,12 +196,14 @@ public sealed class CommunityPoll : AggregateRoot<CommunityPollId>, IAuditableEn
         bool showResultsBeforeClose,
         DateTimeOffset? opensAt,
         DateTimeOffset? closesAt,
-        DateTimeOffset now)
+        DateTimeOffset now,
+        string? cityName = null)
     {
         Description = MembershipProgramme.Clip(
             description, CommunityProgrammeLimits.MaxDescriptionLength);
         OrganizationId = organizationId;
         NeighborhoodAreaId = neighborhoodAreaId;
+        CityName = MembershipProgramme.Clip(cityName, CommunityProgrammeLimits.MaxCityNameLength);
         CountryCode = MembershipProgramme.Clip(countryCode, CommunityProgrammeLimits.MaxCountryLength)
             ?.ToUpperInvariant();
         MaxSelections = VotingType == PollVotingType.MultipleChoice
@@ -220,10 +231,14 @@ public sealed class CommunityPoll : AggregateRoot<CommunityPollId>, IAuditableEn
                 "A members-only poll must name the organization whose members may vote."));
         }
 
-        if (Audience == PollAudience.Neighborhood && neighborhoodAreaId is null)
+        // A town and its country since 14 Oct 2026: the neighbourhood is no longer a catalogue
+        // node. An area id stored by an older draft still satisfies the rule on a re-describe.
+        if (Audience == PollAudience.Neighborhood
+            && (string.IsNullOrWhiteSpace(CityName) || string.IsNullOrWhiteSpace(CountryCode))
+            && neighborhoodAreaId is null)
         {
             return Result.Failure(CommunityProgrammeErrors.Validation(
-                "A neighbourhood poll must name the neighbourhood."));
+                "A neighbourhood poll must name its town and country."));
         }
 
         if (Audience == PollAudience.Country && string.IsNullOrWhiteSpace(CountryCode))

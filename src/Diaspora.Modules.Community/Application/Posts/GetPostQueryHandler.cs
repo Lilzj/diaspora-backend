@@ -71,6 +71,8 @@ public sealed class GetPostQueryHandler : IQueryHandler<GetPostQuery, CommunityP
             post.Location.CountryCode,
             post.Location.AreaId,
             post.Location.HierarchyPath,
+            post.Location.Latitude,
+            post.Location.Longitude,
             cancellationToken);
 
         if (!visible)

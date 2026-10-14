@@ -51,4 +51,23 @@ public sealed record VisibilityRequest
     public Guid? ContentAreaId { get; init; }
 
     public string? ContentHierarchyPath { get; init; }
+
+    /// <summary>The content's own pin, for a neighbourhood audience (14 Oct 2026).</summary>
+    public double? ContentLatitude { get; init; }
+
+    public double? ContentLongitude { get; init; }
+
+    /// <summary>The reader's active location, for a neighbourhood audience (14 Oct 2026).</summary>
+    public double? ViewerLatitude { get; init; }
+
+    public double? ViewerLongitude { get; init; }
+
+    /// <summary>
+    /// How far the reader's active location is from the content's pin, in kilometres, measured by
+    /// Location. Null when either side has no point.
+    /// </summary>
+    public double? ViewerDistanceKm { get; init; }
+
+    /// <summary>Whether the content carries a pin.</summary>
+    public bool ContentHasPoint => ContentLatitude is not null && ContentLongitude is not null;
 }

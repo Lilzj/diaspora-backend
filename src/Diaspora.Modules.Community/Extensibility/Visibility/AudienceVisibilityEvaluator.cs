@@ -18,6 +18,12 @@ namespace Diaspora.Modules.Community.Extensibility.Visibility;
 /// </summary>
 public sealed class AudienceVisibilityEvaluator : IVisibilityEvaluator
 {
+    /// <summary>
+    /// How near a reader's active location must be to a neighbourhood-only post's pin, in
+    /// kilometres (14 Oct 2026).
+    /// </summary>
+    public const double NeighborhoodRadiusKm = Domain.Policies.CommunityLimits.NeighborhoodAudienceRadiusKm;
+
     public int Order => 0;
 
     public VisibilityDecision Evaluate(VisibilityRequest request)
@@ -86,26 +92,41 @@ public sealed class AudienceVisibilityEvaluator : IVisibilityEvaluator
     }
 
     /// <summary>
-    /// A reader matches a neighbourhood audience if they are in that area or anywhere beneath
-    /// it. The prefix match is on Location's own materialised path, copied onto the content —
-    /// B6 compares two strings and does no hierarchy reasoning of its own.
+    /// A reader matches a neighbourhood audience when their active location is within
+    /// <see cref="NeighborhoodRadiusKm"/> of the content's pin.
+    /// <para>
+    /// <b>A radius around the post's point since 14 Oct 2026</b>, not a catalogue area: the platform
+    /// is retiring its place catalogue, and an area id matched nobody — no reader's context had
+    /// carried one since the catalogue stopped being written. The distance is measured by Location
+    /// and handed in; B6 computes no geometry of its own.
+    /// </para>
+    /// <para>
+    /// <b>Content with no pin falls back to its country</b>, matched the way a country audience is.
+    /// Content with neither is readable by any signed-in member — the same widening to "members"
+    /// a provider's area-only visibility makes when its scope cannot be enforced — never by a
+    /// signed-out reader. A reader with no active location sees no pinned neighbourhood content.
+    /// </para>
     /// </summary>
     private static bool MatchesNeighborhood(VisibilityRequest request)
     {
-        var targetArea = request.Audience.AreaId ?? request.ContentAreaId;
+        if (request.ViewerId is null)
+        {
+            return false;
+        }
 
-        if (targetArea is null)
+        if (request.ContentHasPoint)
+        {
+            return request.ViewerDistanceKm is { } distance && distance <= NeighborhoodRadiusKm;
+        }
+
+        var country = request.ContentCountryCode ?? request.Audience.CountryCode;
+
+        if (country is null)
         {
             return true;
         }
 
-        if (request.ViewerAreaId == targetArea)
-        {
-            return true;
-        }
-
-        return request.ContentHierarchyPath is { } contentPath
-               && request.ViewerHierarchyPath is { } viewerPath
-               && viewerPath.StartsWith(contentPath, StringComparison.Ordinal);
+        return string.Equals(request.ViewerCountryCode, country, StringComparison.OrdinalIgnoreCase)
+               || request.ViewerVerifiedCountries.Contains(country, StringComparer.OrdinalIgnoreCase);
     }
 }

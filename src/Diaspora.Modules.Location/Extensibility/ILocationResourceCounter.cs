@@ -43,4 +43,18 @@ public interface ILocationResourceCounter
     /// <summary>How many of this vertical's things sit in a country.</summary>
     Task<int> CountInCountryAsync(
         CountryCode countryCode, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Where this vertical's publicly visible things sit inside a map viewport, by their own
+    /// coordinates.
+    /// <para>
+    /// <b>Phase 2B of retiring the place catalogue (14 Oct 2026).</b> The map's clusters and heat
+    /// layer bucket these points into square grid cells. Same audience as the counts above —
+    /// published, publicly discoverable rows only — and the position is the one a stranger is
+    /// shown (a home whose address is private is placed at its fuzzed point). A row with no
+    /// coordinates is not returned. <see cref="MapPointReader"/> holds the shared paging loop.
+    /// </para>
+    /// </summary>
+    Task<MapPointPage> ListPointsAsync(
+        MapPointQuery query, CancellationToken cancellationToken = default);
 }

@@ -115,9 +115,13 @@ public sealed record PollQueryFilter
 
     public IReadOnlyList<PollStatus>? Statuses { get; init; }
 
+    /// <summary>Legacy catalogue area. Matches only polls drafted before 14 Oct 2026.</summary>
     public Guid? NeighborhoodAreaId { get; init; }
 
     public string? CountryCode { get; init; }
+
+    /// <summary>A town by name, compared case-insensitively (14 Oct 2026).</summary>
+    public string? CityName { get; init; }
 
     /// <summary>
     /// The organizations whose members the caller is one of.

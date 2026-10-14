@@ -17,7 +17,10 @@ public sealed record MapClusterPageResponse
     /// <summary>The viewport as the server read it, so a client can confirm what it asked.</summary>
     public required BoundingBoxResponse Bounds { get; init; }
 
-    /// <summary>The rung the cells sit on.</summary>
+    /// <summary>
+    /// The granularity asked for — <c>Neighborhood</c> or <c>City</c>. Since 14 Oct 2026 it chooses
+    /// the grid's cell size; the cells themselves are squares, not places.
+    /// </summary>
     public required string Level { get; init; }
 
     /// <summary>The resource types actually counted, after any filter the caller applied.</summary>
@@ -43,11 +46,21 @@ public sealed record MapClusterPageResponse
     public required int SuppressedCells { get; init; }
 
     /// <summary>
-    /// Whether the viewport held more catalogue nodes than one response aggregates.
+    /// Whether a vertical had more rows in the viewport than it reads for one request, so the
+    /// totals are lower bounds.
     /// <para>
-    /// True means "zoom in for the rest", and it is never silent: a truncated map that says
-    /// nothing reads as a complete one, and a member would conclude a district was empty.
+    /// True means "zoom in for exact figures", and it is never silent: a truncated map that says
+    /// nothing reads as a complete one.
     /// </para>
     /// </summary>
     public required bool Truncated { get; init; }
+
+    /// <summary>
+    /// Added 14 Oct 2026: <c>grid</c>. The cells are squares over each row's own coordinates; a
+    /// row with no coordinates is not on the map.
+    /// </summary>
+    public string Aggregation { get; init; } = "grid";
+
+    /// <summary>Added 14 Oct 2026. The side of every cell, in degrees of latitude and longitude.</summary>
+    public double? CellSizeDegrees { get; init; }
 }

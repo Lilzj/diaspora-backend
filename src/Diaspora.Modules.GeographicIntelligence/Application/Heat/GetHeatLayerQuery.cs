@@ -73,8 +73,9 @@ public sealed record GetHeatLayerQuery : IQuery<HeatLayerResponse>
 /// <see cref="MapCellAggregator"/> cells and answers in the shape the client declared.
 /// </para>
 /// <para>
-/// <b>Three privacy properties, and none of them is new.</b> Every point is a catalogue node's
-/// centroid, never an address. Every value is a count of individually discoverable published
+/// <b>Three privacy properties, and none of them is new.</b> Every point is a square grid cell's
+/// centre or the mean of three or more rows in it (14 Oct 2026; catalogue centroids before),
+/// never an address. Every value is a count of individually discoverable published
 /// content, never of people. And the minimum-cell-count floor is B4's own — the same
 /// <c>Location:Spatial:MinimumClusterCellCount</c> knob, published on the response as
 /// <c>minimumCellCount</c> with the number of cells it withheld, so suppression is visible rather
@@ -147,6 +148,7 @@ public sealed class GetHeatLayerQueryHandler : IQueryHandler<GetHeatLayerQuery, 
             request.ResolvedLevel,
             [definition.ResourceType],
             request.CountryCode,
+            cellSizeKm: null,
             cancellationToken);
 
         if (page.IsFailure)
@@ -179,12 +181,20 @@ public sealed class GetHeatLayerQueryHandler : IQueryHandler<GetHeatLayerQuery, 
             [
                 .. cells.Select((cell, index) => new HeatPointResponse
                 {
-                    Latitude = cell.Area.Center!.Latitude,
-                    Longitude = cell.Area.Center!.Longitude,
+                    Latitude = cell.Latitude,
+                    Longitude = cell.Longitude,
                     Intensity = Normalize(values[index], minimum, peak),
                     RawValue = values[index],
-                    AreaName = cell.Area.Name.Value,
-                    AreaId = cell.Area.Id.Value
+                    AreaName = cell.Label,
+                    AreaId = cell.Id,
+                    CellKey = cell.Key,
+                    CellBounds = new BoundsResponse
+                    {
+                        North = cell.North,
+                        South = cell.South,
+                        East = cell.East,
+                        West = cell.West
+                    }
                 })
             ],
 
@@ -194,6 +204,7 @@ public sealed class GetHeatLayerQueryHandler : IQueryHandler<GetHeatLayerQuery, 
             MinValue = minimum,
             MaxValue = peak,
             Level = page.Value.Level.ToString(),
+            CellSizeDegrees = page.Value.CellSizeDegrees,
             MinimumCellCount = page.Value.MinimumCellCount,
             SuppressedCells = page.Value.SuppressedCells,
             Truncated = page.Value.Truncated,
@@ -209,16 +220,17 @@ public sealed class GetHeatLayerQueryHandler : IQueryHandler<GetHeatLayerQuery, 
                 ComputedAt = now,
                 SourceName = PlatformSource,
                 Methodology =
-                    $"Live count of published {definition.Unit} per catalogue place inside the "
-                    + "viewport, computed on request. Intensity is scaled to the highest cell in "
-                    + "this viewport, so it is comparable within this layer and not across layers "
-                    + "or across viewports.",
+                    $"Live count of published {definition.Unit} per square grid cell inside the "
+                    + "viewport, from each row's own coordinates, computed on request. Intensity is "
+                    + "scaled to the highest cell in this viewport, so it is comparable within this "
+                    + "layer and not across layers or across viewports.",
                 Limitations =
                 [
                     $"Counts {definition.Unit} published on Diaspora, not what exists in the area.",
-                    "Each point is a place's centre, not an address. No individual record is "
-                    + "identifiable from this layer.",
-                    $"Places with fewer than {page.Value.MinimumCellCount} are withheld; "
+                    "Each point is a grid cell's centre, or the mean of three or more rows in it, "
+                    + "never an address. No individual record is identifiable from this layer.",
+                    "Rows without coordinates are not counted.",
+                    $"Cells with fewer than {page.Value.MinimumCellCount} are withheld; "
                     + $"{page.Value.SuppressedCells} were withheld here."
                 ],
                 ValidUntil = now.AddHours(_options.Value.FreshnessWindowHours),

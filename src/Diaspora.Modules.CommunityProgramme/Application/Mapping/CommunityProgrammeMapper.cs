@@ -444,6 +444,8 @@ public static class CommunityProgrammeMapper
             Status = poll.Status.ToString(),
             VotingType = poll.VotingType.ToString(),
             Audience = poll.Audience.ToString(),
+            CountryCode = poll.CountryCode,
+            CityName = poll.CityName,
             Options = [.. poll.Options.Select(ToResponse)],
             MaxSelections = poll.MaxSelections,
             IsAnonymous = poll.IsAnonymous,

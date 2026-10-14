@@ -644,9 +644,13 @@ internal static class AdCampaignFactory
             : AdAudience.Create(
                 request.CountryCodes,
                 request.CommunityIds,
-                request.NeighbourhoodIds,
+
+                // Catalogue neighbourhoods are retired (14 Oct 2026): accepted from an older
+                // client and not stored. Town names replace them.
+                neighbourhoodIds: null,
                 request.Interests,
-                request.Categories);
+                request.Categories,
+                request.TownNames);
 
     /// <summary>
     /// What a click leads to. Both halves or neither — a subject type with no id, or an id with no

@@ -4,6 +4,7 @@ using Diaspora.Modules.Community.Domain.ValueObjects;
 using Diaspora.Modules.Community.Domain.Visibility;
 using Diaspora.Modules.Community.Extensibility.Visibility;
 using Diaspora.Modules.Community.Integration;
+using Diaspora.Modules.Location.Integration;
 using Diaspora.SharedKernel.Identity;
 
 namespace Diaspora.Modules.Community.Application.Services;
@@ -22,15 +23,18 @@ public sealed class VisibilityService : ICommunityVisibilityService
     private readonly VisibilityEvaluatorRegistry _evaluators;
     private readonly ViewerContextResolver _viewers;
     private readonly IVisibilityRuleRepository _rules;
+    private readonly ILocationDirectory _location;
 
     public VisibilityService(
         VisibilityEvaluatorRegistry evaluators,
         ViewerContextResolver viewers,
-        IVisibilityRuleRepository rules)
+        IVisibilityRuleRepository rules,
+        ILocationDirectory location)
     {
         _evaluators = evaluators;
         _viewers = viewers;
         _rules = rules;
+        _location = location;
     }
 
     public async Task<bool> CanViewAsync(
@@ -81,11 +85,14 @@ public sealed class VisibilityService : ICommunityVisibilityService
         string? contentCountryCode = null,
         Guid? contentAreaId = null,
         string? contentHierarchyPath = null,
+        double? contentLatitude = null,
+        double? contentLongitude = null,
         CancellationToken cancellationToken = default)
     {
         var request = await BuildAsync(
             content, authorId, audience, viewer, cancellationToken,
-            contentCountryCode, contentAreaId, contentHierarchyPath);
+            contentCountryCode, contentAreaId, contentHierarchyPath,
+            contentLatitude, contentLongitude);
 
         return _evaluators.IsVisible(request);
     }
@@ -98,7 +105,9 @@ public sealed class VisibilityService : ICommunityVisibilityService
         CancellationToken cancellationToken,
         string? contentCountryCode = null,
         Guid? contentAreaId = null,
-        string? contentHierarchyPath = null)
+        string? contentHierarchyPath = null,
+        double? contentLatitude = null,
+        double? contentLongitude = null)
     {
         ArgumentNullException.ThrowIfNull(content);
         ArgumentNullException.ThrowIfNull(audience);
@@ -133,7 +142,33 @@ public sealed class VisibilityService : ICommunityVisibilityService
             ViewerTier = viewer.Tier,
             ContentCountryCode = contentCountryCode,
             ContentAreaId = contentAreaId,
-            ContentHierarchyPath = contentHierarchyPath
+            ContentHierarchyPath = contentHierarchyPath,
+            ContentLatitude = contentLatitude,
+            ContentLongitude = contentLongitude,
+            ViewerLatitude = viewer.Latitude,
+            ViewerLongitude = viewer.Longitude,
+            ViewerDistanceKm = Distance(viewer.Latitude, viewer.Longitude, contentLatitude, contentLongitude)
         };
+    }
+
+    /// <summary>
+    /// The great-circle distance Location measures, or null when either side has no valid point.
+    /// Public so the feed applies the same measurement to a page of neighbourhood posts.
+    /// </summary>
+    public double? Distance(
+        double? fromLatitude, double? fromLongitude, double? toLatitude, double? toLongitude)
+    {
+        if (fromLatitude is not { } fromLat || fromLongitude is not { } fromLng
+            || toLatitude is not { } toLat || toLongitude is not { } toLng)
+        {
+            return null;
+        }
+
+        var from = Location.Domain.ValueObjects.GeoCoordinate.TryCreate(fromLat, fromLng);
+        var to = Location.Domain.ValueObjects.GeoCoordinate.TryCreate(toLat, toLng);
+
+        return from.IsSuccess && to.IsSuccess
+            ? _location.DistanceBetween(from.Value, to.Value).Kilometers
+            : null;
     }
 }

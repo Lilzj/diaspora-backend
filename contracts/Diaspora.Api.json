@@ -27531,7 +27531,7 @@
         "tags": [
           "Location"
         ],
-        "summary": "Aggregated markers for a viewport, by catalogue node.",
+        "summary": "Aggregated markers for a viewport, by square grid cell over each row's own coordinates.",
         "operationId": "GetMapClusters",
         "parameters": [
           {
@@ -27562,6 +27562,18 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "cellSizeKm",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+              "type": [
+                "number",
+                "string"
+              ],
+              "format": "double"
+            }
           }
         ],
         "responses": {
@@ -27576,7 +27588,7 @@
         "tags": [
           "Location"
         ],
-        "summary": "The place outlines a viewport overlaps, with their source, licence and credit.",
+        "summary": "Retired 14 Oct 2026: always an empty page with a reason. Kept until Phase 3 removes it.",
         "operationId": "GetMapBoundaries",
         "parameters": [
           {
@@ -35084,6 +35096,15 @@
             "items": {
               "type": "string"
             }
+          },
+          "townNames": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -40653,6 +40674,12 @@
             "format": "uuid"
           },
           "countryCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "cityName": {
             "type": [
               "null",
               "string"

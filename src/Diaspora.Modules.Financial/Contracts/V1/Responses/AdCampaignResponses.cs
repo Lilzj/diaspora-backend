@@ -48,6 +48,9 @@ public sealed record AdAudienceResponse
 
     public IReadOnlyList<Guid> NeighbourhoodIds { get; init; } = [];
 
+    /// <summary>Added 14 Oct 2026. Towns by name.</summary>
+    public IReadOnlyList<string> TownNames { get; init; } = [];
+
     public IReadOnlyList<string> Interests { get; init; } = [];
 
     public IReadOnlyList<string> Categories { get; init; } = [];

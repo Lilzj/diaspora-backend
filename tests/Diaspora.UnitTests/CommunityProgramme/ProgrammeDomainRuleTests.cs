@@ -209,6 +209,39 @@ public sealed class ProgrammeDomainRuleTests
             .IsFailure.Should().BeTrue();
     }
 
+    /// <summary>
+    /// A neighbourhood poll names its town and country since 14 Oct 2026 — the neighbourhood is no
+    /// longer a catalogue node, and no area id is needed or stored.
+    /// </summary>
+    [Fact]
+    public void A_neighbourhood_poll_must_name_its_town_and_country()
+    {
+        CommunityPoll Neighbourhood() => CommunityPoll.Draft(
+            CommunityPollId.New(),
+            UserId.From(Guid.NewGuid()),
+            "Should the market open on Sundays?",
+            PollVotingType.SingleChoice,
+            PollAudience.Neighborhood,
+            Now).Value;
+
+        Neighbourhood()
+            .Describe(null, null, null, "KE", null, false, false, false, null, null, Now)
+            .IsFailure.Should().BeTrue("a country alone is not a neighbourhood");
+
+        Neighbourhood()
+            .Describe(null, null, null, null, null, false, false, false, null, null, Now, cityName: "Mombasa")
+            .IsFailure.Should().BeTrue("a town name alone is ambiguous across countries");
+
+        var poll = Neighbourhood();
+
+        poll.Describe(null, null, null, "ke", null, false, false, false, null, null, Now, cityName: " Mombasa ")
+            .IsSuccess.Should().BeTrue();
+
+        poll.CityName.Should().Be("Mombasa");
+        poll.CountryCode.Should().Be("KE");
+        poll.NeighborhoodAreaId.Should().BeNull();
+    }
+
     /// <summary>A poll with choices needs at least two of them before it can open.</summary>
     [Fact]
     public void A_poll_with_one_option_cannot_open()

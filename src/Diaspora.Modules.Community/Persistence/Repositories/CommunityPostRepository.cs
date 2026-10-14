@@ -228,6 +228,76 @@ public sealed class CommunityPostRepository : ICommunityPostRepository
     public void Remove(CommunityPost post) => Posts.Remove(post);
 
     /// <summary>
+    /// Narrows neighbourhood-only posts to the ones the reader is near (14 Oct 2026).
+    /// <para>
+    /// A pinned post is kept when its pin is inside the rectangle around the reader's circle; the
+    /// feed then measures the circle exactly. An unpinned post is kept when its country is one of
+    /// the reader's, or when it names no country at all. The reader's own posts are always kept.
+    /// Every other audience passes through untouched.
+    /// </para>
+    /// </summary>
+    private static IQueryable<CommunityPost> ApplyNeighborhoodAudience(
+        IQueryable<CommunityPost> query, PostQueryFilter filter)
+    {
+        var viewer = filter.NeighborhoodViewer;
+        var author = filter.NeighborhoodAuthorId;
+        var countries = viewer?.Countries.Select(code => code.ToUpperInvariant()).ToList() ?? [];
+        var box = viewer?.Box();
+
+        if (viewer is null)
+        {
+            return author is null
+                ? query.Where(post => post.Audience.Level != VisibilityLevel.Neighborhood)
+                : query.Where(post =>
+                    post.Audience.Level != VisibilityLevel.Neighborhood || post.AuthorId == author);
+        }
+
+        if (box is { } rectangle)
+        {
+            var (south, west, north, east) = rectangle;
+
+            return author is null
+                ? query.Where(post =>
+                    post.Audience.Level != VisibilityLevel.Neighborhood
+                    || (post.Location.Latitude != null
+                        && post.Location.Longitude != null
+                        && post.Location.Latitude >= south
+                        && post.Location.Latitude <= north
+                        && post.Location.Longitude >= west
+                        && post.Location.Longitude <= east)
+                    || (post.Location.Latitude == null
+                        && (post.Location.CountryCode == null
+                            || countries.Contains(post.Location.CountryCode))))
+                : query.Where(post =>
+                    post.Audience.Level != VisibilityLevel.Neighborhood
+                    || post.AuthorId == author
+                    || (post.Location.Latitude != null
+                        && post.Location.Longitude != null
+                        && post.Location.Latitude >= south
+                        && post.Location.Latitude <= north
+                        && post.Location.Longitude >= west
+                        && post.Location.Longitude <= east)
+                    || (post.Location.Latitude == null
+                        && (post.Location.CountryCode == null
+                            || countries.Contains(post.Location.CountryCode))));
+        }
+
+        // No active location: no pinned neighbourhood post can be near the reader.
+        return author is null
+            ? query.Where(post =>
+                post.Audience.Level != VisibilityLevel.Neighborhood
+                || (post.Location.Latitude == null
+                    && (post.Location.CountryCode == null
+                        || countries.Contains(post.Location.CountryCode))))
+            : query.Where(post =>
+                post.Audience.Level != VisibilityLevel.Neighborhood
+                || post.AuthorId == author
+                || (post.Location.Latitude == null
+                    && (post.Location.CountryCode == null
+                        || countries.Contains(post.Location.CountryCode))));
+    }
+
+    /// <summary>
     /// Translates the filter.
     /// <para>
     /// Comparisons are against the converted identifier types rather than their <c>Value</c>
@@ -263,6 +333,11 @@ public sealed class CommunityPostRepository : ICommunityPostRepository
         if (filter.AllowedVisibility is { Count: > 0 } visibility)
         {
             query = query.Where(post => visibility.Contains(post.Audience.Level));
+
+            if (visibility.Contains(VisibilityLevel.Neighborhood))
+            {
+                query = ApplyNeighborhoodAudience(query, filter);
+            }
         }
 
         if (filter.AuthorIds is { Count: > 0 } authors)

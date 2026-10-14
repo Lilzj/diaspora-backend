@@ -76,10 +76,11 @@ public sealed class ProviderVisibility : ValueObject
             // one. Widening to Members is the safe reading: still signed-in only, still visible.
             ProviderVisibilityLevel.CountryCommunity => Members,
 
-            ProviderVisibilityLevel.AreaOnly when areaId is { } area && area != Guid.Empty =>
-                new ProviderVisibility(level, null, area),
-
-            ProviderVisibilityLevel.AreaOnly => Members,
+            // Near the provider rather than inside a catalogue node (14 Oct 2026): no area id is
+            // stored any more, and the provider's own pin and service areas say where "near" is.
+            // A country, when given, is kept so the scope can still be narrowed to it.
+            ProviderVisibilityLevel.AreaOnly =>
+                new ProviderVisibility(level, countryCode?.Trim().ToUpperInvariant(), null),
 
             _ => new ProviderVisibility(level, null, null)
         };

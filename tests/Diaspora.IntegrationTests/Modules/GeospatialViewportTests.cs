@@ -218,15 +218,13 @@ public sealed class GeospatialViewportTests : PooledIdentityTestBase
     // ── Clusters ────────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Server-side aggregation, on catalogue nodes rather than grid tiles — so a cluster carries a
-    /// name and a slug a member can tap through to, and Jobs and Marketplace (which store no
-    /// coordinate at all) are included rather than absent.
+    /// Server-side aggregation on square grid cells over each row's own coordinates — 14 Oct 2026,
+    /// Phase 2B of retiring the place catalogue (catalogue nodes before). The row's catalogue path
+    /// no longer matters; its pin does, and a row with none is on no map.
     /// </summary>
     [Fact]
-    public async Task Map_clusters_aggregate_a_viewport_into_places_with_counts()
+    public async Task Map_clusters_aggregate_a_viewport_into_grid_cells_with_counts()
     {
-        // Filed against the real Peckham path: the counters aggregate by hierarchy prefix, and a
-        // listing filed against an area the catalogue does not have contributes to nothing.
         await SeedListingsAsync(
             await NeighborhoodPathAsync("Peckham"), ("clustered", 51.4742d, -0.0691d));
 
@@ -238,15 +236,24 @@ public sealed class GeospatialViewportTests : PooledIdentityTestBase
 
         var page = await ReadDataAsync<ClusterPageDto>(response);
 
-        page.Level.Should().Be("Neighborhood");
+        page.Level.Should().Be("Neighborhood", "the granularity asked for, which sets the cell size");
+        page.Aggregation.Should().Be("grid");
+        page.CellSizeDegrees.Should().BeGreaterThan(0);
         page.ResourceTypes.Should().BeEquivalentTo(["housing"]);
         page.MinimumCellCount.Should().Be(1);
 
-        var peckham = page.Clusters.Single(cluster => cluster.Name == "Peckham");
+        page.Clusters.Should().NotBeEmpty();
+        page.Clusters.Sum(cluster => cluster.Counts["housing"]).Should().BeGreaterThan(0);
 
-        peckham.Total.Should().BeGreaterThan(0);
-        peckham.Counts.Should().ContainKey("housing");
-        peckham.Latitude.Should().BeApproximately(51.4742d, 0.001d);
+        page.Clusters.Should().AllSatisfy(cluster =>
+        {
+            cluster.Level.Should().Be("Grid");
+            cluster.Slug.Should().Be(cluster.CellKey);
+            cluster.Bounds!.South.Should().BeLessThanOrEqualTo(cluster.Latitude);
+            cluster.Bounds.North.Should().BeGreaterThanOrEqualTo(cluster.Latitude);
+            cluster.Bounds.West.Should().BeLessThanOrEqualTo(cluster.Longitude);
+            cluster.Bounds.East.Should().BeGreaterThanOrEqualTo(cluster.Longitude);
+        });
     }
 
     /// <summary>A viewport wider than the catalogue's continental cap is refused, not scanned.</summary>
@@ -749,7 +756,9 @@ public sealed class GeospatialViewportTests : PooledIdentityTestBase
         List<string> ResourceTypes,
         int MinimumCellCount,
         int SuppressedCells,
-        bool Truncated);
+        bool Truncated,
+        string Aggregation,
+        double CellSizeDegrees);
 
     private sealed record ClusterDto(
         Guid AreaId,
@@ -759,7 +768,9 @@ public sealed class GeospatialViewportTests : PooledIdentityTestBase
         double Latitude,
         double Longitude,
         Dictionary<string, int> Counts,
-        int Total);
+        int Total,
+        string CellKey,
+        BoundsDto? Bounds);
 
     private sealed record HubDto(string Name, Dictionary<string, int> ResourceCounts);
 

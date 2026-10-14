@@ -68,6 +68,8 @@ public sealed class FollowingFeedProvider : IFeedProvider
         {
             Statuses = [PostStatus.Published],
             AllowedVisibility = request.AllowedVisibility,
+            NeighborhoodViewer = request.NeighborhoodViewer,
+            NeighborhoodAuthorId = request.ViewerId,
             ExcludedAuthorIds = request.ExcludedAuthorIds,
             AuthorIds = members.Select(UserId.From).ToList(),
             OrganizationIds = organizations,

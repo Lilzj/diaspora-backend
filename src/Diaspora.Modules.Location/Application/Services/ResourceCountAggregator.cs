@@ -71,12 +71,33 @@ public sealed class ResourceCountAggregator
             cancellationToken);
     }
 
+    /// <summary>
+    /// Every vertical's points inside a viewport, keyed by resource type (14 Oct 2026).
+    /// <para>
+    /// Same isolation as the counts: a vertical that fails or runs out of time omits its key, and
+    /// the grid built from these says that vertical could not be asked rather than drawing it as
+    /// empty.
+    /// </para>
+    /// </summary>
+    public Task<IReadOnlyDictionary<string, MapPointPage>> ListPointsAsync(
+        MapPointQuery query,
+        IReadOnlyCollection<string>? resourceTypes,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        return CollectAsync(
+            (counter, token) => counter.ListPointsAsync(query, token),
+            resourceTypes,
+            cancellationToken);
+    }
+
     /// <summary>The resource types this deployment can count, for a contract that publishes them.</summary>
     public IReadOnlyList<string> ResourceTypes =>
         _registry.All.Select(counter => counter.ResourceType).ToList();
 
-    private async Task<IReadOnlyDictionary<string, int>> CollectAsync(
-        Func<ILocationResourceCounter, CancellationToken, Task<int>> count,
+    private async Task<IReadOnlyDictionary<string, T>> CollectAsync<T>(
+        Func<ILocationResourceCounter, CancellationToken, Task<T>> count,
         IReadOnlyCollection<string>? resourceTypes,
         CancellationToken cancellationToken)
     {
@@ -89,7 +110,7 @@ public sealed class ResourceCountAggregator
 
         if (counters.Count == 0)
         {
-            return new Dictionary<string, int>(StringComparer.Ordinal);
+            return new Dictionary<string, T>(StringComparer.Ordinal);
         }
 
         var timeout = TimeSpan.FromMilliseconds(
@@ -101,7 +122,7 @@ public sealed class ResourceCountAggregator
         // the catch below turned each throw into an omitted key — which this class's own contract
         // defines as "we could not find out". A neighbourhood hub rendered dashes for five of its
         // six numbers and said nothing was wrong.
-        var outcomes = new List<CounterOutcome>(counters.Count);
+        var outcomes = new List<CounterOutcome<T>>(counters.Count);
 
         using var total = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         total.CancelAfter(counters.Count <= 1 ? timeout : timeout * 2);
@@ -112,16 +133,16 @@ public sealed class ResourceCountAggregator
         }
 
         return outcomes
-            .Where(outcome => outcome.Count is not null)
+            .Where(outcome => outcome.Answered)
             .ToDictionary(
                 outcome => outcome.ResourceType,
-                outcome => outcome.Count!.Value,
+                outcome => outcome.Value!,
                 StringComparer.Ordinal);
     }
 
-    private async Task<CounterOutcome> RunAsync(
+    private async Task<CounterOutcome<T>> RunAsync<T>(
         ILocationResourceCounter counter,
-        Func<ILocationResourceCounter, CancellationToken, Task<int>> count,
+        Func<ILocationResourceCounter, CancellationToken, Task<T>> count,
         TimeSpan timeout,
         CancellationToken totalBudget,
         CancellationToken cancellationToken)
@@ -132,7 +153,7 @@ public sealed class ResourceCountAggregator
                 "Resource counter '{ResourceType}' was not asked: the aggregate budget expired.",
                 counter.ResourceType);
 
-            return new CounterOutcome(counter.ResourceType, null);
+            return CounterOutcome<T>.Unanswered(counter.ResourceType);
         }
 
         using var budget = CancellationTokenSource.CreateLinkedTokenSource(totalBudget);
@@ -140,7 +161,7 @@ public sealed class ResourceCountAggregator
 
         try
         {
-            return new CounterOutcome(counter.ResourceType, await count(counter, budget.Token));
+            return CounterOutcome<T>.Of(counter.ResourceType, await count(counter, budget.Token));
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
@@ -148,16 +169,21 @@ public sealed class ResourceCountAggregator
                 "Resource counter '{ResourceType}' exceeded its {Timeout}ms budget.",
                 counter.ResourceType, timeout.TotalMilliseconds);
 
-            return new CounterOutcome(counter.ResourceType, null);
+            return CounterOutcome<T>.Unanswered(counter.ResourceType);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
             _logger.LogError(
                 exception, "Resource counter '{ResourceType}' failed.", counter.ResourceType);
 
-            return new CounterOutcome(counter.ResourceType, null);
+            return CounterOutcome<T>.Unanswered(counter.ResourceType);
         }
     }
 
-    private sealed record CounterOutcome(string ResourceType, int? Count);
+    private sealed record CounterOutcome<T>(string ResourceType, T? Value, bool Answered)
+    {
+        public static CounterOutcome<T> Of(string resourceType, T value) => new(resourceType, value, true);
+
+        public static CounterOutcome<T> Unanswered(string resourceType) => new(resourceType, default, false);
+    }
 }

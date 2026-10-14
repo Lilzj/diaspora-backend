@@ -56,6 +56,10 @@ public sealed class CommunityPollConfiguration : IEntityTypeConfiguration<Commun
         builder.Property(poll => poll.CountryCode)
             .HasMaxLength(CommunityProgrammeLimits.MaxCountryLength);
 
+        // The town a neighbourhood poll is about (14 Oct 2026). Nullable: only that audience sets it.
+        builder.Property(poll => poll.CityName)
+            .HasMaxLength(CommunityProgrammeLimits.MaxCityNameLength);
+
         builder.OwnsMany(poll => poll.Options, option =>
         {
             option.ToTable(

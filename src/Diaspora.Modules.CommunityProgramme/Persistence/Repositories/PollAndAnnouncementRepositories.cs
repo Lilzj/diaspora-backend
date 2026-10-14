@@ -90,6 +90,16 @@ public sealed class CommunityPollRepository : ICommunityPollRepository
             query = query.Where(poll => poll.NeighborhoodAreaId == areaId);
         }
 
+        if (!string.IsNullOrWhiteSpace(filter.CityName))
+        {
+            // Lowered on both sides: Postgres compares text case-sensitively and SQLite does not.
+            var city = filter.CityName.Trim().ToLowerInvariant();
+
+#pragma warning disable CA1304, CA1311, CA1862 // Inside an expression tree: EF translates ToLower to SQL lower().
+            query = query.Where(poll => poll.CityName != null && poll.CityName.ToLower() == city);
+#pragma warning restore CA1304, CA1311, CA1862
+        }
+
         if (!string.IsNullOrWhiteSpace(filter.CountryCode))
         {
             var country = filter.CountryCode.Trim().ToUpperInvariant();

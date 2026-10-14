@@ -25,6 +25,7 @@ public sealed record UpdateGeographicPreferencesRequest
 
     public string? PreferredCountryCode { get; init; }
 
+    /// <summary>Legacy. Accepted and ignored since 14 Oct 2026.</summary>
     public Guid? PreferredAreaId { get; init; }
 
     public string? HomeCountryCode { get; init; }

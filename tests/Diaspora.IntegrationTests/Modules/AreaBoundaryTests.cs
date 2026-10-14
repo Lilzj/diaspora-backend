@@ -143,28 +143,23 @@ public sealed class AreaBoundaryTests : IdentityTestBase
         detail.Boundary.Vertices.Should().HaveCount(quatreBornes.Boundary!.Vertices.Count);
     }
 
+    /// <summary>
+    /// <b>Map outlines are retired</b> — 14 Oct 2026, Phase 2B of retiring the place catalogue. The
+    /// viewport that drew Plaines Wilhems and Quatre Bornes now gets an empty, complete page that
+    /// says why; the stored outlines are no longer read for the map.
+    /// </summary>
     [Fact]
-    public async Task A_map_gets_the_outlines_its_viewport_overlaps_broadest_first_with_the_credit_once()
+    public async Task The_map_draws_no_outlines_since_the_catalogue_was_retired()
     {
         await SignInAsync();
 
         var page = await IdentityApiClient.ReadDataAsync<BoundaryPageShape>(
             await HttpClient.GetAsync($"/api/v1/location/map/boundaries?bounds={RoseHillQuatreBornesViewport}"));
 
-        // The Quatre Bornes line is in view although the town's centre is south of the viewport;
-        // Port Louis and Curepipe are near and not in it.
-        page.Boundaries.Select(boundary => (boundary.Name, boundary.Level))
-            .Should().Equal(("Plaines Wilhems", "District"), ("Quatre Bornes", "City"));
-
-        page.Boundaries.Should().AllSatisfy(boundary =>
-        {
-            boundary.CountryCode.Should().Be("MU");
-            boundary.Boundary.Attribution.Should().Be(OsmCredit);
-            boundary.Boundary.Vertices.Count.Should().BeGreaterThan(3);
-        });
-
-        page.Attributions.Should().Equal(OsmCredit);
-        page.IsComplete.Should().BeTrue();
+        page.Boundaries.Should().BeEmpty();
+        page.Attributions.Should().BeEmpty("nothing is drawn, so nothing needs crediting");
+        page.IsComplete.Should().BeTrue("there are no outlines anywhere, so none is missing");
+        page.Reason.Should().Be("outlines-retired");
     }
 
     /// <summary>
@@ -206,7 +201,7 @@ public sealed class AreaBoundaryTests : IdentityTestBase
     }
 
     [Fact]
-    public async Task A_viewport_too_wide_for_outlines_is_answered_empty_and_marked_incomplete()
+    public async Task A_wide_viewport_gets_the_same_retired_answer()
     {
         await SignInAsync();
 
@@ -215,7 +210,7 @@ public sealed class AreaBoundaryTests : IdentityTestBase
 
         page.Boundaries.Should().BeEmpty();
         page.Attributions.Should().BeEmpty();
-        page.IsComplete.Should().BeFalse("empty because the view is too wide, not because nothing is there");
+        page.Reason.Should().Be("outlines-retired");
     }
 
     [Fact]
@@ -403,6 +398,8 @@ public sealed class AreaBoundaryTests : IdentityTestBase
         public List<string> Attributions { get; init; } = [];
 
         public bool IsComplete { get; init; }
+
+        public string? Reason { get; init; }
     }
 
     private sealed record MapBoundaryShape

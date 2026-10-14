@@ -304,6 +304,7 @@ public sealed class ProviderMapper
             CountryCode = area.CountryCode,
             AreaId = area.AreaId,
             Label = area.Label,
+            CityName = area.CityName,
             CentreLatitude = area.CentreLatitude,
             CentreLongitude = area.CentreLongitude,
             RadiusKm = area.RadiusKm,

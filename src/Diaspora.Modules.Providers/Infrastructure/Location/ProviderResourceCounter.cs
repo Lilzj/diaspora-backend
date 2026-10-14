@@ -1,5 +1,6 @@
 using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Modules.Location.Extensibility;
+using Diaspora.Modules.Providers.Domain.Enums;
 using Diaspora.Modules.Providers.Domain.Providers;
 using Diaspora.SharedKernel.Identity;
 
@@ -44,5 +45,37 @@ public sealed class ProviderResourceCounter : ILocationResourceCounter
         ArgumentNullException.ThrowIfNull(countryCode);
 
         return await _providers.CountInCountryAsync(countryCode.Value, cancellationToken);
+    }
+
+    /// <summary>
+    /// Where the active public providers sit inside a viewport, by their own location's pin
+    /// (14 Oct 2026). A provider with no pin (a remote one, or one that never set it) is not on
+    /// the map, and service areas do not widen the box.
+    /// </summary>
+    public async Task<MapPointPage> ListPointsAsync(
+        MapPointQuery query, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var limit = Math.Clamp(query.Limit, 1, MapPointReader.MaximumRowsRead);
+
+        var candidates = await _providers.QueryNearestCandidatesAsync(
+            new ProviderQueryFilter
+            {
+                Statuses = [ProviderStatus.Active],
+                AllowedVisibility = [ProviderVisibilityLevel.Public],
+                CountryCode = query.CountryCode,
+                MinLatitude = query.South,
+                MaxLatitude = query.North,
+                MinLongitude = query.West,
+                MaxLongitude = query.East,
+                IncludeRemoteProviders = false,
+                MatchServiceAreas = false
+            },
+            limit + 1,
+            cancellationToken);
+
+        return MapPointReader.FromList(
+            query, candidates, candidate => (candidate.Latitude, candidate.Longitude));
     }
 }

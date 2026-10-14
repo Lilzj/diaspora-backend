@@ -14,16 +14,22 @@ public sealed record HeatPointResponse
     public required int RawValue { get; init; }
 
     /// <summary>
-    /// The catalogue node the cell aggregates.
+    /// A plain description of where the cell is: "Area around 4.05°S, 39.67°E".
     /// <para>
-    /// Present because these cells are places rather than grid tiles, so a member can tap one and
-    /// go somewhere. It is also what makes the layer honest about its own resolution: a client can
-    /// see that the "cell" is Peckham, not a 500-metre square.
+    /// Since 14 Oct 2026 the cells are square grid cells over each row's own coordinates, not
+    /// catalogue places; the field keeps its name so existing clients keep working.
     /// </para>
     /// </summary>
     public required string AreaName { get; init; }
 
+    /// <summary>The grid cell's stable identifier — the same cell has the same id on every request.</summary>
     public required Guid AreaId { get; init; }
+
+    /// <summary>Added 14 Oct 2026. The cell's key on the world grid: <c>{exponent}:{row}:{column}</c>.</summary>
+    public string? CellKey { get; init; }
+
+    /// <summary>Added 14 Oct 2026. The cell's edges.</summary>
+    public BoundsResponse? CellBounds { get; init; }
 }
 
 /// <summary>The rectangle a layer covers, echoed so a client can confirm what the server read.</summary>
@@ -42,8 +48,8 @@ public sealed record BoundsResponse
 /// A density layer for a viewport.
 /// <para>
 /// <b>Aggregates, never records.</b> No cell here is an entity and no coordinate is an address:
-/// every point is a catalogue node's centroid with a count attached, which is what §29 means by
-/// "area plus intensity, not individual users".
+/// every point is a square grid cell's centre — or the mean of three or more rows in it — with a
+/// count attached, which is what §29 means by "area plus intensity, not individual users".
 /// </para>
 /// <para>
 /// <b>The suppression rule is B4's, not a second one.</b> The cells and their counts come from
@@ -78,8 +84,14 @@ public sealed record HeatLayerResponse
 
     public required int MaxValue { get; init; }
 
-    /// <summary>The rung the cells sit on: <c>Neighborhood</c> or <c>City</c>.</summary>
+    /// <summary>
+    /// The granularity asked for: <c>Neighborhood</c> (finer) or <c>City</c> (coarser). Since
+    /// 14 Oct 2026 it chooses the grid's cell size.
+    /// </summary>
     public required string Level { get; init; }
+
+    /// <summary>Added 14 Oct 2026. The side of every cell, in degrees.</summary>
+    public double? CellSizeDegrees { get; init; }
 
     /// <summary>The floor a cell must reach to be returned.</summary>
     public required int MinimumCellCount { get; init; }
@@ -87,7 +99,7 @@ public sealed record HeatLayerResponse
     /// <summary>How many cells were withheld by that floor. Published so suppression is visible.</summary>
     public required int SuppressedCells { get; init; }
 
-    /// <summary>Whether the viewport held more nodes than one response aggregates.</summary>
+    /// <summary>Whether a vertical had more rows in the viewport than one request reads.</summary>
     public required bool Truncated { get; init; }
 
     /// <summary>The area covered, so a UI never implies global coverage.</summary>

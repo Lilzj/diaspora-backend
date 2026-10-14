@@ -1,6 +1,8 @@
 using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Modules.Location.Extensibility;
+using Diaspora.Modules.Marketplace.Domain.Enums;
 using Diaspora.Modules.Marketplace.Domain.Listings;
+using Diaspora.Modules.Marketplace.Domain.Policies;
 using Diaspora.SharedKernel.Identity;
 
 namespace Diaspora.Modules.Marketplace.Infrastructure.Location;
@@ -48,5 +50,43 @@ public sealed class MarketplaceResourceCounter : ILocationResourceCounter
         ArgumentNullException.ThrowIfNull(countryCode);
 
         return await _listings.CountInCountryAsync(countryCode.Value, cancellationToken);
+    }
+
+    /// <summary>
+    /// Where the live public listings sit inside a viewport, by the pin each listing carries
+    /// (14 Oct 2026). A listing with no pin is not on the map, and shipping does not widen the box.
+    /// </summary>
+    public Task<MapPointPage> ListPointsAsync(
+        MapPointQuery query, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var filter = new ListingQueryFilter
+        {
+            CountryCode = query.CountryCode,
+            MinLatitude = query.South,
+            MaxLatitude = query.North,
+            MinLongitude = query.West,
+            MaxLongitude = query.East,
+            IncludeShippingOutsideBox = false,
+            Statuses = [ListingStatus.Active],
+            AvailableOnly = true,
+
+            // A public surface: no viewer, so no draft, unlisted or hidden listing is in scope.
+            ViewerId = null,
+            ViewerIsStaff = false,
+            Sort = ListingSortOrder.Newest
+        };
+
+        return MapPointReader.ReadAsync(
+            query,
+            async (cursor, size, token) =>
+            {
+                var page = await _listings.QueryAsync(filter, cursor, size, token);
+                return (page.Items, page.HasMore ? page.NextCursor : null);
+            },
+            listing => (listing.Latitude, listing.Longitude),
+            MarketplaceLimits.MaxPageSize,
+            cancellationToken);
     }
 }

@@ -4134,6 +4134,10 @@ namespace Diaspora.Persistence.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
+                    b.Property<string>("CityName")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
                     b.Property<DateTimeOffset?>("ClosesAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -22292,6 +22296,11 @@ namespace Diaspora.Persistence.Migrations
                                 .HasColumnType("uuid[]")
                                 .HasColumnName("AudienceNeighbourhoodIds");
 
+                            b1.PrimitiveCollection<string[]>("TownNames")
+                                .IsRequired()
+                                .HasColumnType("text[]")
+                                .HasColumnName("AudienceTownNames");
+
                             b1.HasKey("AdCampaignId");
 
                             b1.ToTable("financial_ad_campaigns", "financial");
@@ -31228,6 +31237,10 @@ namespace Diaspora.Persistence.Migrations
 
                             b1.Property<double?>("CentreLongitude")
                                 .HasColumnType("double precision");
+
+                            b1.Property<string>("CityName")
+                                .HasMaxLength(200)
+                                .HasColumnType("character varying(200)");
 
                             b1.Property<string>("CountryCode")
                                 .HasMaxLength(2)

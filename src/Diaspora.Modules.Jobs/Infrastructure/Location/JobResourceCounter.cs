@@ -1,3 +1,4 @@
+using Diaspora.Modules.Jobs.Domain.Policies;
 using Diaspora.Modules.Jobs.Domain.Postings;
 using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Modules.Location.Extensibility;
@@ -54,6 +55,37 @@ public sealed class JobResourceCounter : ILocationResourceCounter
 
         return await _postings.CountAsync(
             new JobQueryFilter { CountryCode = countryCode.Value, OpenOnly = true },
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Where the open public postings sit inside a viewport, by the pin each posting carries
+    /// (14 Oct 2026). A posting with no pin is not on the map.
+    /// </summary>
+    public Task<MapPointPage> ListPointsAsync(
+        MapPointQuery query, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var filter = new JobQueryFilter
+        {
+            CountryCode = query.CountryCode,
+            MinLatitude = query.South,
+            MaxLatitude = query.North,
+            MinLongitude = query.West,
+            MaxLongitude = query.East,
+            OpenOnly = true
+        };
+
+        return MapPointReader.ReadAsync(
+            query,
+            async (cursor, size, token) =>
+            {
+                var page = await _postings.QueryAsync(filter, cursor, size, token);
+                return (page.Items, page.HasMore ? page.NextCursor : null);
+            },
+            posting => (posting.Latitude, posting.Longitude),
+            JobLimits.MaxPageSize,
             cancellationToken);
     }
 }
