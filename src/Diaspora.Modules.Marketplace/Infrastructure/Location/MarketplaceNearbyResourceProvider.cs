@@ -39,9 +39,20 @@ public sealed class MarketplaceNearbyResourceProvider : INearbyResourceProvider
     {
         ArgumentNullException.ThrowIfNull(request);
 
+        // No catalogue node (14 Oct 2026). A circle is the rectangle around it over the pins
+        // sellers chose to give, with unpinned listings kept when they name the requested town; a
+        // town- or country-wide search is the town's name and the country.
+        var circle = request.IsCircle ? request.Search.Bounds : null;
+
         var filter = new ListingQueryFilter
         {
-            CountryCode = request.CountryCode.Value,
+            CountryCode = request.CountryCode?.Value,
+            CityName = circle is null ? request.CityName : null,
+            UnpinnedCityName = circle is null ? null : request.CityName,
+            MinLatitude = circle?.South,
+            MaxLatitude = circle?.North,
+            MinLongitude = circle?.West,
+            MaxLongitude = circle?.East,
             Statuses = [ListingStatus.Active],
             AvailableOnly = true,
 

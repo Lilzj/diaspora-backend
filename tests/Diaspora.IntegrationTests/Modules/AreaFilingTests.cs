@@ -315,6 +315,17 @@ public sealed class AreaFilingTests : IdentityTestBase
     }
 
     /// <summary>
+    /// The sweep is not hosted since 14 Oct 2026: the owner retired the place catalogue for filing
+    /// and discovery, and a sweep that kept writing area paths would only write data nothing reads.
+    /// </summary>
+    [Fact]
+    public void The_sweep_is_no_longer_hosted()
+    {
+        Factory.Services.GetServices<IHostedService>().OfType<AreaFilingSweep>()
+            .Should().BeEmpty();
+    }
+
+    /// <summary>
     /// The backfill. Rows written the way production's were — names or coordinates and no path —
     /// are filed by one pass, and each lands where a new row written today would.
     /// </summary>
@@ -435,13 +446,12 @@ public sealed class AreaFilingTests : IdentityTestBase
     // ── Through the handlers ─────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// The wiring, over HTTP: a listing created naming only its neighbourhood is filed in it — the
-    /// create handler's search resolver returns early with no town, so this listing used to be
-    /// filed nowhere — and an edit that moves it to another town refiles it, where the handler used
-    /// to keep the old path for ever.
+    /// The wiring, over HTTP, since 14 Oct 2026: a listing is no longer filed under a catalogue area
+    /// on create, and an edit that moves it writes no new one. It is found by its coordinates, its
+    /// country and the town its seller typed.
     /// </summary>
     [Fact]
-    public async Task A_listing_is_filed_on_create_and_refiled_when_an_edit_moves_it()
+    public async Task A_listing_is_not_filed_on_create_nor_refiled_when_an_edit_moves_it()
     {
         var (_, auth) = await RegisterVerifiedMemberAsync();
         Api.Authenticate(auth.Tokens.AccessToken);
@@ -477,8 +487,8 @@ public sealed class AreaFilingTests : IdentityTestBase
 
         var listingId = (await IdentityApiClient.ReadDataAsync<CreatedListingShape>(created)).ListingId;
 
-        (await StoredListingPathAsync(listingId)).Should().Be(
-            await PathOfAsync("Curepipe Town", AdministrativeLevel.Neighborhood));
+        (await StoredListingPathAsync(listingId)).Should().BeNull(
+            "nothing files a row under the catalogue on create any more");
 
         var edited = await HttpClient.PutAsJsonAsync(
             $"/api/v1/marketplace/listings/{listingId}",
@@ -498,9 +508,8 @@ public sealed class AreaFilingTests : IdentityTestBase
 
         edited.StatusCode.Should().Be(HttpStatusCode.OK, await edited.Content.ReadAsStringAsync());
 
-        (await StoredListingPathAsync(listingId)).Should().Be(
-            await PathOfAsync("Rose Hill", AdministrativeLevel.City),
-            "the listing moved town, and a path left pointing at Curepipe would count it there");
+        (await StoredListingPathAsync(listingId)).Should().BeNull(
+            "an edit writes no catalogue area either");
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────────────────────────
@@ -547,7 +556,9 @@ public sealed class AreaFilingTests : IdentityTestBase
     {
         Factory.EnsureDatabaseCreated();
 
-        var sweep = Factory.Services.GetServices<IHostedService>().OfType<AreaFilingSweep>().Single();
+        // No longer hosted (14 Oct 2026): the class stays until Phase 3 deletes it, so its own
+        // behaviour is still exercised here, built directly rather than found among the services.
+        var sweep = ActivatorUtilities.CreateInstance<AreaFilingSweep>(Factory.Services);
 
         return await sweep.RunOnceAsync();
     }

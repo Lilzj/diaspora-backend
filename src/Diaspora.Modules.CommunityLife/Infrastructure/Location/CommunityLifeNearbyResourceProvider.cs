@@ -48,11 +48,21 @@ public sealed class CommunityLifeNearbyResourceProvider : INearbyResourceProvide
     {
         ArgumentNullException.ThrowIfNull(request);
 
+        // No catalogue node (14 Oct 2026). A circle is the rectangle around it over venue
+        // coordinates, with venue-less events kept when they name the requested town; a town- or
+        // country-wide search is the town's name and the country.
+        var circle = request.IsCircle ? request.Search.Bounds : null;
+
         var page = await _events.SearchAsync(
             new EventQueryFilter
             {
-                CountryCode = request.CountryCode.Value,
-                NeighborhoodAreaId = request.AreaId?.Value,
+                CountryCode = request.CountryCode?.Value,
+                CityName = circle is null ? request.CityName : null,
+                UnpinnedCityName = circle is null ? null : request.CityName,
+                BoundsSouth = circle?.South,
+                BoundsNorth = circle?.North,
+                BoundsWest = circle?.West,
+                BoundsEast = circle?.East,
                 Statuses = [EventStatus.Published, EventStatus.InProgress],
                 StartsAfter = _clock.UtcNow,
                 IncludeNonPublic = false,

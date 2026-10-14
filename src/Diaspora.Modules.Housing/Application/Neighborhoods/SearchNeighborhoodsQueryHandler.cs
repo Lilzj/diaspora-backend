@@ -38,13 +38,10 @@ public sealed class SearchNeighborhoodsQueryHandler
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var scope = await _geography.ResolveAsync(
+        var scope = await _geography.ResolveForNeighborhoodsAsync(
             request.City,
             request.CountryCode,
             request.AreaId,
-            latitude: null,
-            longitude: null,
-            radiusKm: null,
             _authorization.CallerId,
             cancellationToken);
 

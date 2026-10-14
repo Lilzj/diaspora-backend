@@ -49,6 +49,12 @@ public sealed record EventQueryFilter
 
     public double? BoundsEast { get; init; }
 
+    /// <summary>
+    /// With a rectangle: a town whose events with no venue coordinate are kept, compared
+    /// case-insensitively. A circle search that also named a town still finds them (14 Oct 2026).
+    /// </summary>
+    public string? UnpinnedCityName { get; init; }
+
     /// <summary>Whether a viewport was supplied at all.</summary>
     public bool HasBounds =>
         BoundsSouth is not null && BoundsNorth is not null

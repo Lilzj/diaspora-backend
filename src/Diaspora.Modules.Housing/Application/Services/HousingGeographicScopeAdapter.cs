@@ -43,21 +43,34 @@ public sealed class HousingGeographicScopeAdapter
         _directory = directory;
     }
 
-    /// <summary>Resolves whatever geography a request carried.</summary>
-    public async Task<Result<GeographicScope>> ResolveAsync(
+    /// <summary>
+    /// Resolves a neighbourhood-directory request through the place catalogue.
+    /// <para>
+    /// The neighbourhood pages are the catalogue's own surface and keep it until Phase 2; a
+    /// member's discovery query never comes through here (see <see cref="ResolveAsync"/>).
+    /// </para>
+    /// </summary>
+    public async Task<Result<GeographicScope>> ResolveForNeighborhoodsAsync(
         string? cityName,
         string? countryCode,
         Guid? areaId,
-        double? latitude,
-        double? longitude,
-        double? radiusKm,
         UserId? viewerId,
         CancellationToken cancellationToken = default) =>
-        await ResolveAsync(
-            cityName, countryCode, areaId, latitude, longitude, radiusKm, bounds: null,
-            viewerId, cancellationToken);
+        await _resolver.ResolveAsync(
+            new GeographicScopeRequest
+            {
+                CityName = cityName,
+                CountryCode = countryCode,
+                AreaId = areaId is { } id && id != Guid.Empty ? AreaId.From(id) : null,
+                UserId = viewerId,
+                StrictCityResolution = false
+            },
+            cancellationToken);
 
-    /// <summary>Resolves whatever geography a request carried, including a map viewport.</summary>
+    /// <summary>
+    /// Resolves whatever geography a search carried, including a map viewport, without the place
+    /// catalogue (14 Oct 2026). The area id old app builds still send is accepted and ignored.
+    /// </summary>
     public async Task<Result<GeographicScope>> ResolveAsync(
         string? cityName,
         string? countryCode,
@@ -67,25 +80,23 @@ public sealed class HousingGeographicScopeAdapter
         double? radiusKm,
         string? bounds,
         UserId? viewerId,
-        CancellationToken cancellationToken = default) =>
-        await _resolver.ResolveAsync(
+        CancellationToken cancellationToken = default)
+    {
+        _ = areaId;
+
+        return await _resolver.ResolveForDiscoveryAsync(
             new GeographicScopeRequest
             {
                 CityName = cityName,
                 CountryCode = countryCode,
-                AreaId = areaId is { } id && id != Guid.Empty ? AreaId.From(id) : null,
                 Latitude = latitude,
                 Longitude = longitude,
                 RadiusKm = radiusKm,
                 Bounds = bounds,
-                UserId = viewerId,
-
-                // Lenient: a city name the catalogue does not know should narrow nothing rather
-                // than fail the browse. Somebody searching for housing in a place they have never
-                // been will misspell it, and an error is the worst possible answer to that.
-                StrictCityResolution = false
+                UserId = viewerId
             },
             cancellationToken);
+    }
 
     /// <summary>
     /// Turns a resolved scope into the geographic half of a listing filter.
@@ -126,32 +137,31 @@ public sealed class HousingGeographicScopeAdapter
         {
             narrowed = narrowed with
             {
+                CityName = null,
                 BoundsSouth = Floor(bounds.South),
                 BoundsNorth = Ceiling(bounds.North),
                 BoundsWest = Floor(bounds.West),
                 BoundsEast = Ceiling(bounds.East)
             };
 
-            // No path or city narrowing on top: B4 leaves both null for a viewport precisely so a
-            // property inside the rectangle but filed against the city next door is not dropped.
+            // No town narrowing on top: a property inside the rectangle but in the town next door
+            // is inside the rectangle.
             return narrowed;
         }
 
-        // ── A radius around the member — 15 Sep 2026 ─────────────────────────────────────────
+        // ── A radius around the member ───────────────────────────────────────────────────────
         //
-        // "Within 5 km" used to fall through to the path branch below. The resolver snaps a point
-        // to the nearest catalogued town and hands back that town's path, so the search answered
-        // "listings filed under the nearest town" — and, because no create screen files a listing
-        // under an area, nothing at all. A radius is a question about distance, so it is answered
-        // against the coordinate the listing has: the rectangle around the circle here, snapped
-        // outward like a viewport, and the corners trimmed by the search handler with Location's
-        // own distance (see WithinRadius). The town the point happened to be nearest, and any
-        // town name the request carried, are not part of the question.
-        if (aroundPoint && scope is { Center: not null, Radius.Scope: RadiusScope.Radius, Bounds: { } circle })
+        // Answered against the coordinate the listing has: the rectangle around the circle,
+        // snapped outward like a viewport, and the corners trimmed by the search handler with
+        // Location's own distance (see WithinRadius). Since 14 Oct 2026 nothing about the
+        // catalogue enters it — the resolver no longer snaps the point to a town — and a listing
+        // with no coordinates is kept when it names the town the request named.
+        if (aroundPoint && scope.IsAroundPoint && scope.Bounds is { } circle)
         {
             return narrowed with
             {
                 CityName = null,
+                UnpinnedCityName = scope.CityName,
                 BoundsSouth = Floor(circle.South),
                 BoundsNorth = Ceiling(circle.North),
                 BoundsWest = Floor(circle.West),
@@ -159,68 +169,16 @@ public sealed class HousingGeographicScopeAdapter
             };
         }
 
-        // B4's materialised path, matched as a prefix. The listing stores the same string precisely
-        // so this is an indexed LIKE rather than a hierarchy walk.
-        //
-        // ── DEFECT-010 ───────────────────────────────────────────────────────────────────────
-        //
-        // A **country root** is excluded, and this is the whole fix. `GeographicScopeResolver`
-        // step 5 answers a country-only request with both `CountryCode` and
-        // `Path = HierarchyPath.ForRoot(country)`. Narrowing on that path as well is redundant —
-        // `CountryCode` is applied above and is an exact match on the same country — but it is
-        // not harmless, because the repository matches the path as
-        // `AreaPath != null && AreaPath.StartsWith(prefix)`. A listing filed without a
-        // neighbourhood has a null `AreaPath`, so the redundant clause deleted it from the
-        // result.
-        //
-        // No create screen sends `neighborhoodAreaId`, so in practice *every* listing has a null
-        // path, and `GET /housing/search?countryCode=NG` answered `totalCount: 0` while the same
-        // search with no country returned the listings. Marketplace and Jobs never met this
-        // because their handlers skip scope resolution when nothing but a country was supplied;
-        // Housing resolves unconditionally, which is why it was the only vertical affected.
-        //
-        // Excluding the root loses nothing: a listing that would match `/NG…` by path is already
-        // matched by `CountryCode == "NG"`. Any deeper path still narrows, as it should.
-        if (scope.Path is { } path && !IsCountryRoot(path))
+        // A town: the name the landlord typed, either letter case, inside the country. No catalogue
+        // path (14 Oct 2026) — a town the catalogue never held, Mombasa or Grand Baie, is found
+        // exactly like one it did. Not for a country-wide search, where a point's town is not part
+        // of "the whole country".
+        if (scope.CityName is { Length: > 0 } city && scope.Radius.Scope != RadiusScope.Country)
         {
-            narrowed = narrowed with
-            {
-                AreaPathPrefix = path.Value,
-                AreaPathCityFallback = IsTownPath(path, scope.CityName) ? scope.CityName : null
-            };
-        }
-        else if (scope.CityName is { Length: > 0 } city && scope.Radius.Scope != RadiusScope.Country)
-        {
-            // Not for a country-wide search. The resolver still names the town nearest the point
-            // it was given, and narrowing to it is how "the whole country" came to mean one town.
             narrowed = narrowed with { CityName = city };
         }
 
         return narrowed;
-    }
-
-    /// <summary>
-    /// Whether a path ends at the named town itself rather than at a neighbourhood inside it —
-    /// <c>/MU/plaines-wilhems/rose-hill</c> for "Rose Hill", and not <c>…/london/peckham</c> for
-    /// "London".
-    /// </summary>
-    private static bool IsTownPath(HierarchyPath path, string? cityName)
-    {
-        if (string.IsNullOrWhiteSpace(cityName))
-        {
-            return false;
-        }
-
-        var slug = LocationSlug.TryCreate(cityName);
-
-        if (slug.IsFailure)
-        {
-            return false;
-        }
-
-        var last = path.Value[(path.Value.LastIndexOf(HierarchyPath.Separator) + 1)..];
-
-        return string.Equals(last, slug.Value.Value, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -329,23 +287,15 @@ public sealed class HousingGeographicScopeAdapter
         // The distances are rounded to a tenth, so the edge is given the same tenth back.
         var limit = scope.Radius.Distance.Kilometers + 0.05d;
 
+        // A listing with no coordinates passed the rectangle only by naming the requested town,
+        // and there is no distance to trim it by.
         return
         [
             .. listings.Where(listing =>
-                distances.TryGetValue(listing.Id.Value, out var kilometres) && kilometres <= limit)
+                listing.Address.Latitude is null
+                || (distances.TryGetValue(listing.Id.Value, out var kilometres) && kilometres <= limit))
         ];
     }
-
-    /// <summary>
-    /// Whether a path names a country and nothing below it — <c>/NG</c> rather than
-    /// <c>/NG/NG-LA/lagos</c>.
-    /// <para>
-    /// `HierarchyPath.ForRoot` builds exactly one leading separator and one segment, so a root is
-    /// the case where no second separator follows.
-    /// </para>
-    /// </summary>
-    private static bool IsCountryRoot(HierarchyPath path) =>
-        path.Value.IndexOf(HierarchyPath.Separator, 1) < 0;
 
     /// <summary>The disclosure grid line at or below a coordinate.</summary>
     private static double Floor(double value)

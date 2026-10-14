@@ -23,6 +23,14 @@ public sealed record SearchEventsQuery : IQuery<EventSearchResultResponse>
     /// <summary>A map viewport: <c>north,south,east,west</c>. Resolved and validated by B4.</summary>
     public string? Bounds { get; init; }
 
+    /// <summary>A point to search around (14 Oct 2026), with <see cref="Longitude"/> and <see cref="RadiusKm"/>.</summary>
+    public double? Latitude { get; init; }
+
+    public double? Longitude { get; init; }
+
+    /// <summary>Kilometres, or Location's sentinels.</summary>
+    public double? RadiusKm { get; init; }
+
     public DateTimeOffset? StartsAfter { get; init; }
 
     public DateTimeOffset? StartsBefore { get; init; }

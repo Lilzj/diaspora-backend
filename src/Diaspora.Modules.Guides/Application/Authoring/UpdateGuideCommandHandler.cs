@@ -97,8 +97,10 @@ public sealed class UpdateGuideCommandHandler : ICommandHandler<UpdateGuideComma
             return Result.Failure<GuideResponse>(seo.Error);
         }
 
+        // The area id old app builds still send is accepted and not written (14 Oct 2026): a guide
+        // is found by its country, the town its author typed and its pin.
         var location = GuideLocationContext.Create(
-            request.CountryCode, request.RegionName, request.CityName, request.AreaId);
+            request.CountryCode, request.RegionName, request.CityName, areaId: null);
 
         if (location.IsFailure)
         {

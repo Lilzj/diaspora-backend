@@ -308,9 +308,8 @@ public sealed class CreateOrganizationCommandHandler
             return resolved;
         }
 
-        // Where no neighbourhood was named, the country still has to be one B4 knows about.
-        return request.NeighborhoodAreaId is null
-            && !await _neighborhoods.CountryExistsAsync(request.CountryCode, cancellationToken)
+        // The country has to be one B4 knows about.
+        return !await _neighborhoods.CountryExistsAsync(request.CountryCode, cancellationToken)
             ? Result.Failure<CommunityLifeLocationContext>(CommunityLifeErrors.CountryInvalid)
             : resolved;
     }

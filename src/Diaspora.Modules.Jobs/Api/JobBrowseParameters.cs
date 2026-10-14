@@ -30,8 +30,20 @@ public sealed record JobBrowseParameters
     [FromQuery(Name = "bounds")]
     public string? Bounds { get; init; }
 
+    /// <summary>Accepted from old app builds and ignored (14 Oct 2026).</summary>
     [FromQuery(Name = "area")]
     public Guid? AreaId { get; init; }
+
+    /// <summary>A point to search around, with <see cref="Longitude"/> and <see cref="RadiusKm"/>.</summary>
+    [FromQuery(Name = "latitude")]
+    public double? Latitude { get; init; }
+
+    [FromQuery(Name = "longitude")]
+    public double? Longitude { get; init; }
+
+    /// <summary>Kilometres, or Location's sentinels: <c>-1</c> this town, <c>-2</c> this country.</summary>
+    [FromQuery(Name = "radiusKm")]
+    public double? RadiusKm { get; init; }
 
     [FromQuery(Name = "category")]
     public string? CategoryKey { get; init; }
@@ -73,6 +85,9 @@ public sealed record JobBrowseParameters
         CityName = CityName,
         Bounds = Bounds,
         AreaId = AreaId,
+        Latitude = Latitude,
+        Longitude = Longitude,
+        RadiusKm = RadiusKm,
         CategoryKey = CategoryKey,
         Tag = Tag,
         WorkplaceTypes = WorkplaceType is null ? null : [WorkplaceType],

@@ -54,18 +54,19 @@ public sealed class HousingRadiusSearchTests
     }
 
     [Fact]
-    public void The_centre_the_resolver_gives_a_town_search_does_not_turn_it_into_a_radius()
+    public void A_centre_the_member_did_not_send_does_not_turn_a_town_search_into_a_radius()
     {
         var scope = PointScope(RoseHill, kilometres: 5, nearestTown: "/MU/plaines-wilhems/rose-hill");
 
         var filter = HousingGeographicScopeAdapter.Apply(Empty, scope, aroundPoint: false);
 
         filter.HasBounds.Should().BeFalse();
-        filter.AreaPathPrefix.Should().Be("/MU/plaines-wilhems/rose-hill");
+        filter.CityName.Should().Be("Rose Hill");
+        filter.AreaPathPrefix.Should().BeNull("a catalogue path narrows nothing since 14 Oct 2026");
     }
 
     [Fact]
-    public void A_town_search_keeps_the_listings_filed_without_an_area()
+    public void A_town_search_is_the_town_name_and_never_a_catalogue_path()
     {
         var scope = new GeographicScope
         {
@@ -76,25 +77,21 @@ public sealed class HousingRadiusSearchTests
 
         var filter = HousingGeographicScopeAdapter.Apply(Empty, scope);
 
-        filter.AreaPathPrefix.Should().Be("/MU/plaines-wilhems/rose-hill");
-        filter.AreaPathCityFallback.Should().Be(
-            "Rose Hill", "no create screen files a listing under an area, so a prefix alone finds none");
+        filter.CityName.Should().Be("Rose Hill");
+        filter.CountryCode.Should().Be("MU");
+        filter.AreaPathPrefix.Should().BeNull();
+        filter.AreaPathCityFallback.Should().BeNull();
     }
 
     [Fact]
-    public void A_neighbourhood_search_does_not_widen_to_every_unfiled_listing_in_its_town()
+    public void A_circle_search_keeps_unpinned_homes_in_the_town_it_named()
     {
-        var scope = new GeographicScope
-        {
-            CountryCode = CountryCode.TryCreate("GB").Value,
-            Path = HierarchyPath.TryCreate("/GB/greater-london/london/peckham").Value,
-            CityName = "London"
-        };
+        var scope = PointScope(RoseHill, kilometres: 5, nearestTown: "/MU/plaines-wilhems/rose-hill");
 
-        var filter = HousingGeographicScopeAdapter.Apply(Empty, scope);
+        var filter = HousingGeographicScopeAdapter.Apply(Empty, scope, aroundPoint: true);
 
-        filter.AreaPathPrefix.Should().Be("/GB/greater-london/london/peckham");
-        filter.AreaPathCityFallback.Should().BeNull();
+        filter.UnpinnedCityName.Should().Be("Rose Hill");
+        filter.CityName.Should().BeNull();
     }
 
     [Fact]
@@ -148,8 +145,10 @@ public sealed class HousingRadiusSearchTests
             Arg.Is(RoseHill),
             Arg.Is<GeoCoordinate>(point => point.Latitude == -20.24 && point.Longitude == 57.48));
 
+        // A home with no position passed the rectangle only by naming the requested town (14 Oct
+        // 2026), and there is no distance to trim it by.
         HousingGeographicScopeAdapter.WithinRadius(scope, page, distances, aroundPoint: true)
-            .Should().Equal(near);
+            .Should().Equal(near, nowhere);
     }
 
     [Fact]

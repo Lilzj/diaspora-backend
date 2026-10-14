@@ -110,5 +110,19 @@ public sealed record GeographicScope
     /// <summary>Whether proximity ordering and distance annotation are possible.</summary>
     public bool IsSpatial => Center is not null;
 
+    /// <summary>
+    /// Whether this is a circle around a point: answered by the rectangle in <see cref="Bounds"/>
+    /// over the vertical's stored coordinates, with the corners trimmed by distance.
+    /// <para>
+    /// In a discovery scope (<see cref="IGeographicScopeResolver.ResolveForDiscoveryAsync"/>) a
+    /// circle's <see cref="CityName"/> is not a second filter: it is the town the request named,
+    /// and a vertical uses it only to keep rows that have no coordinates of their own but name
+    /// that town.
+    /// </para>
+    /// </summary>
+    public bool IsAroundPoint =>
+        !IsViewport && Center is not null && Bounds is not null
+        && Radius.Scope == Domain.Enums.RadiusScope.Radius;
+
     public static GeographicScope Unbounded { get; } = new();
 }

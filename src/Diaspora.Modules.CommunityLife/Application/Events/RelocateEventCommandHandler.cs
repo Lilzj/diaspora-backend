@@ -87,8 +87,7 @@ public sealed class RelocateEventCommandHandler
             return Result.Failure<EventResponse>(location.Error);
         }
 
-        if (request.NeighborhoodAreaId is null
-            && !await _neighborhoods.CountryExistsAsync(request.CountryCode, cancellationToken))
+        if (!await _neighborhoods.CountryExistsAsync(request.CountryCode, cancellationToken))
         {
             return Result.Failure<EventResponse>(CommunityLifeErrors.CountryInvalid);
         }

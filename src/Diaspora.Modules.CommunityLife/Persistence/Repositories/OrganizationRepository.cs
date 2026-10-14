@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Diaspora.Modules.CommunityLife.Domain.Enums;
 using Diaspora.Modules.CommunityLife.Domain.Identifiers;
 using Diaspora.Modules.CommunityLife.Domain.Organizations;
@@ -255,6 +256,21 @@ public sealed class OrganizationRepository : IOrganizationRepository
 
     // ── Query composition ───────────────────────────────────────────────────────────────────
 
+    [SuppressMessage(
+        "Globalization", "CA1304:Specify CultureInfo",
+        Justification =
+            "The ToLower calls are inside an expression tree. They are never executed in .NET: EF "
+            + "translates them to SQL lower(), which runs under the database collation. There is no "
+            + "CultureInfo to specify, and passing one would fail to translate.")]
+    [SuppressMessage(
+        "Globalization", "CA1311:Specify a culture or use an invariant version",
+        Justification = "See CA1304. ToLowerInvariant translates identically; neither is executed.")]
+    [SuppressMessage(
+        "Globalization", "CA1862:Use the StringComparison method overloads",
+        Justification =
+            "The StringComparison overloads have no translation on either provider, so they would "
+            + "move the search into memory. Lowering both sides is what makes the match "
+            + "case-insensitive on Postgres, where = is not.")]
     private static IQueryable<Organization> Apply(
         IQueryable<Organization> query, OrganizationQueryFilter filter)
     {
@@ -293,8 +309,49 @@ public sealed class OrganizationRepository : IOrganizationRepository
 
         if (!string.IsNullOrWhiteSpace(filter.CityName))
         {
-            var city = filter.CityName.Trim();
-            query = query.Where(organization => organization.Location.CityName == city);
+            // Lowered on both sides (14 Oct 2026): Postgres compares text case-sensitively and the
+            // SQLite tests do not.
+            var city = filter.CityName.Trim().ToLowerInvariant();
+            query = query.Where(organization =>
+                organization.Location.CityName != null
+                && organization.Location.CityName.ToLower() == city);
+        }
+
+        if (filter.HasBoundingBox)
+        {
+            var south = filter.MinLatitude!.Value;
+            var north = filter.MaxLatitude!.Value;
+            var west = filter.MinLongitude!.Value;
+            var east = filter.MaxLongitude!.Value;
+
+            // An organization nobody pinned, in the town a circle search named.
+            var unpinned = string.IsNullOrWhiteSpace(filter.UnpinnedCityName)
+                ? null
+                : filter.UnpinnedCityName.Trim().ToLowerInvariant();
+            var keepUnpinned = unpinned is not null;
+
+            query = filter.BoundingBoxCrossesAntimeridian
+                ? query.Where(organization =>
+                    (organization.Latitude != null
+                        && organization.Longitude != null
+                        && organization.Latitude >= south
+                        && organization.Latitude <= north
+                        && (organization.Longitude >= west || organization.Longitude <= east))
+                    || (keepUnpinned
+                        && organization.Latitude == null
+                        && organization.Location.CityName != null
+                        && organization.Location.CityName.ToLower() == unpinned))
+                : query.Where(organization =>
+                    (organization.Latitude != null
+                        && organization.Longitude != null
+                        && organization.Latitude >= south
+                        && organization.Latitude <= north
+                        && organization.Longitude >= west
+                        && organization.Longitude <= east)
+                    || (keepUnpinned
+                        && organization.Latitude == null
+                        && organization.Location.CityName != null
+                        && organization.Location.CityName.ToLower() == unpinned));
         }
 
         if (filter.NeighborhoodAreaId is { } areaId && areaId != Guid.Empty)

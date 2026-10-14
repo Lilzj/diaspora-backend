@@ -884,8 +884,11 @@ public sealed class HousingListingRepository : IHousingListingRepository
 
         if (!string.IsNullOrWhiteSpace(filter.CityName))
         {
-            var city = filter.CityName.Trim();
-            query = query.Where(listing => listing.Location.CityName == city);
+            // Lowered on both sides (14 Oct 2026): Postgres compares text case-sensitively and
+            // SQLite does not, so a test could never catch "mombasa" missing "Mombasa".
+            var city = filter.CityName.Trim().ToLowerInvariant();
+            query = query.Where(listing =>
+                listing.Location.CityName != null && listing.Location.CityName.ToLower() == city);
         }
 
         if (filter.HasBounds)
@@ -895,6 +898,12 @@ public sealed class HousingListingRepository : IHousingListingRepository
             var west = filter.BoundsWest!.Value;
             var east = filter.BoundsEast!.Value;
 
+            // A listing nobody pinned, in the town the circle search named (14 Oct 2026).
+            var unpinned = string.IsNullOrWhiteSpace(filter.UnpinnedCityName)
+                ? null
+                : filter.UnpinnedCityName.Trim().ToLowerInvariant();
+            var keepUnpinned = unpinned is not null;
+
             // A listing with no coordinate cannot be inside a rectangle, and is excluded rather
             // than kept "just in case" — a map that shows a pin for a property whose position
             // nobody recorded is showing it somewhere it is not.
@@ -903,18 +912,26 @@ public sealed class HousingListingRepository : IHousingListingRepository
             // stays a plain pair of range comparisons over the indexed columns.
             query = filter.BoundsCrossAntimeridian
                 ? query.Where(listing =>
-                    listing.Address.Latitude != null
-                    && listing.Address.Longitude != null
-                    && listing.Address.Latitude >= south
-                    && listing.Address.Latitude <= north
-                    && (listing.Address.Longitude >= west || listing.Address.Longitude <= east))
+                    (listing.Address.Latitude != null
+                        && listing.Address.Longitude != null
+                        && listing.Address.Latitude >= south
+                        && listing.Address.Latitude <= north
+                        && (listing.Address.Longitude >= west || listing.Address.Longitude <= east))
+                    || (keepUnpinned
+                        && listing.Address.Latitude == null
+                        && listing.Location.CityName != null
+                        && listing.Location.CityName.ToLower() == unpinned))
                 : query.Where(listing =>
-                    listing.Address.Latitude != null
-                    && listing.Address.Longitude != null
-                    && listing.Address.Latitude >= south
-                    && listing.Address.Latitude <= north
-                    && listing.Address.Longitude >= west
-                    && listing.Address.Longitude <= east);
+                    (listing.Address.Latitude != null
+                        && listing.Address.Longitude != null
+                        && listing.Address.Latitude >= south
+                        && listing.Address.Latitude <= north
+                        && listing.Address.Longitude >= west
+                        && listing.Address.Longitude <= east)
+                    || (keepUnpinned
+                        && listing.Address.Latitude == null
+                        && listing.Location.CityName != null
+                        && listing.Location.CityName.ToLower() == unpinned));
         }
 
         return query;

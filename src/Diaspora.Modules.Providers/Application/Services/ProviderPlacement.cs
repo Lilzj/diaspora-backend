@@ -16,10 +16,9 @@ namespace Diaspora.Modules.Providers.Application.Services;
 /// <list type="bullet">
 /// <item><b>The town shown is the owner's.</b> An inferred place may file a listing for search,
 /// never replace what the owner wrote.</item>
-/// <item><b>With a pin, the resolver's snap is not trusted for filing.</b> The area is left for
-/// <see cref="ProviderAreaFiling"/>, whose point ladder is bounded (a town within 25 km, inside
-/// any outline it has), and which files nothing rather than something wrong. Without a pin, the
-/// resolver's name match is strict and stands.</item>
+/// <item><b>No catalogue node is written</b> (14 Oct 2026, Phase 1 of retiring the place
+/// catalogue). A provider is stored at the owner's pin, country and typed town, and is found by
+/// them; its area id and path are left empty.</item>
 /// </list>
 /// </summary>
 public static class ProviderPlacement
@@ -34,19 +33,20 @@ public static class ProviderPlacement
     {
         ArgumentNullException.ThrowIfNull(scope);
 
-        var hasPin = latitude is not null && longitude is not null;
         var city = string.IsNullOrWhiteSpace(typedCity) ? scope.CityName : typedCity.Trim();
-        var resolverAgrees = !hasPin
-            || (scope.CityName is not null && string.Equals(scope.CityName, city, StringComparison.OrdinalIgnoreCase));
+
+        // Only the owner's own pin. A scope with no pin may still have a centre — the member's
+        // saved location — and a business is not at its owner's home.
+        var hasPin = latitude is not null && longitude is not null;
 
         return ProviderLocationContext.Create(
             scope.CountryCode?.Value,
-            resolverAgrees ? scope.AreaId?.Value : null,
+            areaId: null,
             areaName: null,
             city,
-            latitude ?? scope.Center?.Latitude,
-            longitude ?? scope.Center?.Longitude,
-            resolverAgrees ? scope.Path?.Value : null,
+            hasPin ? latitude : null,
+            hasPin ? longitude : null,
+            hierarchyPath: null,
             addressLine,
             postalCode);
     }

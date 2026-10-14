@@ -130,7 +130,15 @@ public sealed record HousingListingQueryFilter
 
     public string? CountryCode { get; init; }
 
+    /// <summary>A town, matched case-insensitively against the town the landlord typed.</summary>
     public string? CityName { get; init; }
+
+    /// <summary>
+    /// With a rectangle: a town whose listings are kept although they have no coordinates — a
+    /// circle search that also named a town still finds the homes in it nobody pinned (14 Oct
+    /// 2026). Compared case-insensitively. Ignored without a rectangle.
+    /// </summary>
+    public string? UnpinnedCityName { get; init; }
 
     /// <summary>B4's area, matched exactly. What the neighbourhood page narrows by.</summary>
     public Guid? NeighborhoodAreaId { get; init; }

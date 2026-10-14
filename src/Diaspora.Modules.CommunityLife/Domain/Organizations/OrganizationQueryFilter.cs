@@ -27,6 +27,32 @@ public sealed record OrganizationQueryFilter
     public string? AreaPathPrefix { get; init; }
 
     /// <summary>
+    /// A rectangle over the organization's own coordinates: a map viewport, or the rectangle
+    /// around a circle search (14 Oct 2026). An organization with no coordinates is outside it
+    /// unless it names <see cref="UnpinnedCityName"/>.
+    /// </summary>
+    public double? MinLatitude { get; init; }
+
+    public double? MaxLatitude { get; init; }
+
+    public double? MinLongitude { get; init; }
+
+    public double? MaxLongitude { get; init; }
+
+    /// <summary>
+    /// With a rectangle: a town whose unpinned organizations are kept, compared case-insensitively.
+    /// </summary>
+    public string? UnpinnedCityName { get; init; }
+
+    /// <summary>Whether all four edges of the rectangle are set.</summary>
+    public bool HasBoundingBox =>
+        MinLatitude is not null && MaxLatitude is not null
+        && MinLongitude is not null && MaxLongitude is not null;
+
+    /// <summary>Whether the rectangle wraps across ±180°.</summary>
+    public bool BoundingBoxCrossesAntimeridian => HasBoundingBox && MinLongitude > MaxLongitude;
+
+    /// <summary>
     /// Paths an organization may be filed <em>above</em> the narrowed subtree and still match.
     /// <para>
     /// Set only by a map viewport. An institution is filed against a place rather than pinned to

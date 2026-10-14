@@ -325,8 +325,7 @@ public sealed class CreateEventSeriesCommandHandler
             return resolved;
         }
 
-        return request.NeighborhoodAreaId is null
-            && !await _neighborhoods.CountryExistsAsync(request.CountryCode, cancellationToken)
+        return !await _neighborhoods.CountryExistsAsync(request.CountryCode, cancellationToken)
             ? Result.Failure<CommunityLifeLocationContext>(CommunityLifeErrors.CountryInvalid)
             : resolved;
     }

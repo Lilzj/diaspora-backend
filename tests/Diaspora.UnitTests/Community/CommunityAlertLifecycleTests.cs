@@ -230,7 +230,7 @@ public class CommunityAlertLifecycleTests
         caller.Permissions = [CommunityPermissions.Post];
 
         // The refusal comes before anything is read or written, so nothing else is needed.
-        var handler = new CreatePostCommandHandler(null!, null!, null!, null!, null!, caller, null!, null!, null!);
+        var handler = new CreatePostCommandHandler(null!, null!, null!, null!, caller, null!, null!, null!);
 
         var result = await handler.Handle(
             new CreatePostCommand

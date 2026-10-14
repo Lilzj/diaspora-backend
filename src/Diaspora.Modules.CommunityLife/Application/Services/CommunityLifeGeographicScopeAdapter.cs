@@ -1,5 +1,6 @@
 using Diaspora.Modules.CommunityLife.Domain.CommunityEvents;
 using Diaspora.Modules.CommunityLife.Domain.Organizations;
+using Diaspora.Modules.Location.Domain.Enums;
 using Diaspora.Modules.Location.Integration;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Results;
@@ -31,7 +32,8 @@ public sealed class CommunityLifeGeographicScopeAdapter
         _resolver = resolver;
 
     /// <summary>
-    /// Narrows an event filter to whatever geography the browse carried.
+    /// Narrows an event filter to whatever geography the browse carried, without the place
+    /// catalogue (14 Oct 2026).
     /// <para>
     /// <b>No B4 type crosses back out, and that is enforced.</b>
     /// <c>CommunityLifeArchitectureTests.Location_is_reached_only_from_its_adapters</c> names the
@@ -43,13 +45,15 @@ public sealed class CommunityLifeGeographicScopeAdapter
         EventQueryFilter filter,
         string? cityName,
         string? countryCode,
-        Guid? areaId,
+        double? latitude,
+        double? longitude,
+        double? radiusKm,
         string? bounds,
         UserId? viewerId,
         CancellationToken cancellationToken = default)
     {
         var scope = await ResolveAsync(
-            cityName, countryCode, areaId, bounds, viewerId, cancellationToken);
+            cityName, countryCode, latitude, longitude, radiusKm, bounds, viewerId, cancellationToken);
 
         return scope.IsFailure
             ? Result.Failure<EventQueryFilter>(scope.Error)
@@ -61,95 +65,121 @@ public sealed class CommunityLifeGeographicScopeAdapter
         OrganizationQueryFilter filter,
         string? cityName,
         string? countryCode,
-        Guid? areaId,
+        double? latitude,
+        double? longitude,
+        double? radiusKm,
         string? bounds,
         UserId? viewerId,
         CancellationToken cancellationToken = default)
     {
         var scope = await ResolveAsync(
-            cityName, countryCode, areaId, bounds, viewerId, cancellationToken);
+            cityName, countryCode, latitude, longitude, radiusKm, bounds, viewerId, cancellationToken);
 
         return scope.IsFailure
             ? Result.Failure<OrganizationQueryFilter>(scope.Error)
             : Result.Success(Apply(filter, scope.Value));
     }
 
-    /// <summary>Resolves whatever geography a browse request carried.</summary>
+    /// <summary>Resolves whatever geography a browse request carried, without the catalogue.</summary>
     private async Task<Result<GeographicScope>> ResolveAsync(
         string? cityName,
         string? countryCode,
-        Guid? areaId,
+        double? latitude,
+        double? longitude,
+        double? radiusKm,
         string? bounds,
         UserId? viewerId,
         CancellationToken cancellationToken = default) =>
-        await _resolver.ResolveAsync(
+        await _resolver.ResolveForDiscoveryAsync(
             new GeographicScopeRequest
             {
                 CityName = cityName,
                 CountryCode = countryCode,
-                AreaId = areaId is { } id && id != Guid.Empty ? AreaId.From(id) : null,
+                Latitude = latitude,
+                Longitude = longitude,
+                RadiusKm = radiusKm,
                 Bounds = bounds,
-                UserId = viewerId,
-
-                // Lenient: a city name the catalogue does not know should narrow nothing rather
-                // than fail the browse. Somebody looking for their community in a place they have
-                // just arrived in will spell it the way they heard it.
-                StrictCityResolution = false
+                UserId = viewerId
             },
             cancellationToken);
 
     /// <summary>
-    /// Narrows an event filter to a viewport.
-    /// <para>
-    /// The rectangle only — no path and no city on top of it. B4 leaves both null for a viewport
-    /// precisely so an event held just over a boundary is not dropped from a map that plainly
-    /// shows the venue.
-    /// </para>
+    /// Narrows an event filter: a viewport or a circle by the venue's own coordinate (a circle
+    /// also keeps events with no venue coordinate in the town it named), a town by its name in
+    /// either letter case, a country by the country. No path, no neighbourhood.
     /// </summary>
     private static EventQueryFilter Apply(EventQueryFilter filter, GeographicScope scope)
     {
         ArgumentNullException.ThrowIfNull(filter);
         ArgumentNullException.ThrowIfNull(scope);
 
-        if (scope is not { IsViewport: true, Bounds: { } bounds })
+        if (scope.IsUnbounded)
         {
             return filter;
         }
 
-        return filter with
+        var narrowed = filter with
         {
             CountryCode = scope.CountryCode?.Value ?? filter.CountryCode,
-            CityName = null,
             AreaPathPrefix = null,
-            NeighborhoodAreaId = null,
-            BoundsSouth = bounds.South,
-            BoundsNorth = bounds.North,
-            BoundsWest = bounds.West,
-            BoundsEast = bounds.East
+            NeighborhoodAreaId = null
+        };
+
+        if (scope.Bounds is { } box && (scope.IsViewport || scope.IsAroundPoint))
+        {
+            return narrowed with
+            {
+                CityName = null,
+                UnpinnedCityName = scope.IsViewport ? null : scope.CityName,
+                BoundsSouth = box.South,
+                BoundsNorth = box.North,
+                BoundsWest = box.West,
+                BoundsEast = box.East
+            };
+        }
+
+        return narrowed with
+        {
+            CityName = scope.Radius.Scope == RadiusScope.Country ? null : scope.CityName
         };
     }
 
-    /// <summary>Narrows an organization filter to the catalogue subtree a viewport resolved to.</summary>
+    /// <summary>Narrows an organization filter, by the same rules as an event filter.</summary>
     private static OrganizationQueryFilter Apply(
         OrganizationQueryFilter filter, GeographicScope scope)
     {
         ArgumentNullException.ThrowIfNull(filter);
         ArgumentNullException.ThrowIfNull(scope);
 
-        if (scope is not { IsViewport: true, ViewportPath: { } viewport })
+        if (scope.IsUnbounded)
         {
             return filter;
         }
 
-        return filter with
+        var narrowed = filter with
         {
             CountryCode = scope.CountryCode?.Value ?? filter.CountryCode,
-            CityName = null,
-            NeighborhoodAreaId = null,
-            AreaPathPrefix = viewport.Value,
-            AreaPathAncestors = scope.ViewportAncestorPaths
-                .Select(ancestor => ancestor.Value)
-                .ToList()
+            AreaPathPrefix = null,
+            AreaPathAncestors = null,
+            NeighborhoodAreaId = null
+        };
+
+        if (scope.Bounds is { } box && (scope.IsViewport || scope.IsAroundPoint))
+        {
+            return narrowed with
+            {
+                CityName = null,
+                UnpinnedCityName = scope.IsViewport ? null : scope.CityName,
+                MinLatitude = box.South,
+                MaxLatitude = box.North,
+                MinLongitude = box.West,
+                MaxLongitude = box.East
+            };
+        }
+
+        return narrowed with
+        {
+            CityName = scope.Radius.Scope == RadiusScope.Country ? null : scope.CityName
         };
     }
 }

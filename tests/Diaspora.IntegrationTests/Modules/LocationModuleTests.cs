@@ -577,12 +577,22 @@ public sealed class LocationModuleTests : IdentityTestBase
 
         var nearby = await ReadDataAsync<NearbyDto>(response);
 
-        nearby.Center.Neighborhood.Should().Be("Peckham");
+        // A point is no longer snapped to the nearest catalogued neighbourhood (14 Oct 2026), so
+        // nothing infers a country — or a "Peckham" — from it, and there is no centre to describe.
+        nearby.Center.Should().BeNull();
         nearby.RadiusKm.Should().Be(5d);
         nearby.Scope.Should().Be("Radius");
         // One group, from the one vertical that has shipped a provider. Empty until B6.
         nearby.Groups.Should().ContainKey("updates");
         nearby.UnavailableResourceTypes.Should().BeEmpty();
+
+        // With the country named, the centre is described by the point and the country only.
+        var named = await ReadDataAsync<NearbyDto>(await HttpClient.GetAsync(
+            "/api/v1/location/nearby?latitude=51.4742&longitude=-0.0691&radiusKm=5&countryCode=GB"));
+
+        named.Center.Should().NotBeNull();
+        named.Center!.CountryCode.Should().Be("GB");
+        named.Center.Neighborhood.Should().BeNull("no catalogue node is consulted");
     }
 
     /// <summary>The marketplace filter's second name for the radius binds too. Naming finding #18.</summary>
@@ -598,20 +608,28 @@ public sealed class LocationModuleTests : IdentityTestBase
         (await ReadDataAsync<NearbyDto>(response)).RadiusKm.Should().Be(3d);
     }
 
-    /// <summary>City-wide is a hierarchy question, not a circle, and reports itself as such.</summary>
+    /// <summary>
+    /// City-wide is a question about the town the request named, and reports itself as such. With
+    /// only a point there is no town to name — the catalogue no longer supplies one (14 Oct 2026) —
+    /// so it is answered as a generous circle rather than as everywhere.
+    /// </summary>
     [Fact]
     public async Task The_city_wide_sentinel_resolves_to_a_city_scope()
     {
         var (_, auth) = await RegisterAndVerifyAsync();
         Api.Authenticate(auth.Tokens.AccessToken);
 
-        var response = await HttpClient.GetAsync(
-            "/api/v1/location/nearby?latitude=51.4742&longitude=-0.0691&radiusKm=-1");
+        var named = await ReadDataAsync<NearbyDto>(await HttpClient.GetAsync(
+            "/api/v1/location/nearby?latitude=51.4742&longitude=-0.0691&radiusKm=-1&cityName=London"));
 
-        var nearby = await ReadDataAsync<NearbyDto>(response);
+        named.Scope.Should().Be("City");
+        named.RadiusKm.Should().Be(0d);
 
-        nearby.Scope.Should().Be("City");
-        nearby.RadiusKm.Should().Be(0d);
+        var pointOnly = await ReadDataAsync<NearbyDto>(await HttpClient.GetAsync(
+            "/api/v1/location/nearby?latitude=51.4742&longitude=-0.0691&radiusKm=-1"));
+
+        pointOnly.Scope.Should().Be("Radius");
+        pointOnly.RadiusKm.Should().Be(25d);
     }
 
     [Fact]
@@ -806,7 +824,7 @@ public sealed class LocationModuleTests : IdentityTestBase
         int VerifiedCountryCount);
 
     private sealed record NearbyDto(
-        LocationReferenceDto Center,
+        LocationReferenceDto? Center,
         double RadiusKm,
         string Scope,
         Dictionary<string, List<object>> Groups,

@@ -98,7 +98,18 @@ public sealed record ProviderQueryFilter
     /// </summary>
     public IReadOnlyCollection<string>? AncestorHierarchyPaths { get; init; }
 
+    /// <summary>A town, matched case-insensitively against the town the owner typed.</summary>
     public string? CityName { get; init; }
+
+    /// <summary>
+    /// With a rectangle: a town whose providers are kept although they have no coordinates.
+    /// <para>
+    /// A circle search is answered by coordinates, and a provider registered before pins were
+    /// asked for has none. When the request also named a town, a provider with no position that
+    /// names the same town (either letter case) is still found. Ignored without a rectangle.
+    /// </para>
+    /// </summary>
+    public string? UnpinnedCityName { get; init; }
 
     /// <summary>The prefilter rectangle. Never the answer — only a way to narrow the candidates.</summary>
     public double? MinLatitude { get; init; }

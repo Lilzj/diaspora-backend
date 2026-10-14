@@ -30,6 +30,35 @@ public sealed record GuideQueryFilter
     /// <summary>Upper-case ISO 3166-1 alpha-2.</summary>
     public string? CountryCode { get; init; }
 
+    /// <summary>A town, matched case-insensitively against the town the author typed.</summary>
+    public string? CityName { get; init; }
+
+    /// <summary>
+    /// A rectangle over the guide's own coordinates — the rectangle around a circle search
+    /// (14 Oct 2026). A guide with no coordinates is outside it unless it names
+    /// <see cref="UnpinnedCityName"/>.
+    /// </summary>
+    public double? MinLatitude { get; init; }
+
+    public double? MaxLatitude { get; init; }
+
+    public double? MinLongitude { get; init; }
+
+    public double? MaxLongitude { get; init; }
+
+    /// <summary>
+    /// With a rectangle: a town whose unpinned guides are kept, compared case-insensitively.
+    /// </summary>
+    public string? UnpinnedCityName { get; init; }
+
+    /// <summary>Whether all four edges of the rectangle are set.</summary>
+    public bool HasBoundingBox =>
+        MinLatitude is not null && MaxLatitude is not null
+        && MinLongitude is not null && MaxLongitude is not null;
+
+    /// <summary>Whether the rectangle wraps across ±180°.</summary>
+    public bool BoundingBoxCrossesAntimeridian => HasBoundingBox && MinLongitude > MaxLongitude;
+
     public string? CategoryKey { get; init; }
 
     /// <summary>

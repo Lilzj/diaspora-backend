@@ -2,6 +2,7 @@ using System.Globalization;
 using Diaspora.Modules.Housing.Domain.Enums;
 using Diaspora.Modules.Housing.Domain.Listings;
 using Diaspora.Modules.Housing.Domain.Policies;
+using Diaspora.Modules.Housing.Domain.ValueObjects;
 using Diaspora.Modules.Location.Extensibility;
 
 namespace Diaspora.Modules.Housing.Infrastructure.Location;
@@ -40,9 +41,22 @@ public sealed class HousingNearbyResourceProvider : INearbyResourceProvider
     {
         ArgumentNullException.ThrowIfNull(request);
 
+        // No catalogue node (14 Oct 2026). A circle is its rectangle over the listing's own
+        // coordinates — snapped outward to the published precision, so the rectangle cannot be
+        // shrunk around one home — with unpinned homes kept when they name the requested town; a
+        // town- or country-wide search is the town's name and the country.
+        var circle = request.IsCircle ? request.Search.Bounds : null;
+        var scale = Math.Pow(10d, PropertyAddress.FuzzedPrecision);
+
         var filter = new HousingListingQueryFilter
         {
-            CountryCode = request.CountryCode.Value,
+            CountryCode = request.CountryCode?.Value,
+            CityName = circle is null ? request.CityName : null,
+            UnpinnedCityName = circle is null ? null : request.CityName,
+            BoundsSouth = circle is null ? null : Math.Floor(circle.South * scale) / scale,
+            BoundsNorth = circle is null ? null : Math.Ceiling(circle.North * scale) / scale,
+            BoundsWest = circle is null ? null : Math.Floor(circle.West * scale) / scale,
+            BoundsEast = circle is null ? null : Math.Ceiling(circle.East * scale) / scale,
             Statuses =
             [
                 HousingListingStatus.Available,

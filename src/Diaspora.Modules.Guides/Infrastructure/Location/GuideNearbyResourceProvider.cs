@@ -39,10 +39,21 @@ public sealed class GuideNearbyResourceProvider : INearbyResourceProvider
     {
         ArgumentNullException.ThrowIfNull(request);
 
+        // No catalogue node (14 Oct 2026). A circle is the rectangle around it over guides'
+        // pins, with unpinned guides kept when they name the requested town; a town- or
+        // country-wide search is the town's name and the country.
+        var circle = request.IsCircle ? request.Search.Bounds : null;
+
         var filter = new GuideQueryFilter
         {
             Statuses = [GuideStatus.Published],
-            CountryCode = request.CountryCode.Value,
+            CountryCode = request.CountryCode?.Value,
+            CityName = circle is null ? request.CityName : null,
+            UnpinnedCityName = circle is null ? null : request.CityName,
+            MinLatitude = circle?.South,
+            MaxLatitude = circle?.North,
+            MinLongitude = circle?.West,
+            MaxLongitude = circle?.East,
 
             // Nearby is a public surface with no viewer audience of its own, so no viewer is
             // supplied and no draft, unlisted or hidden guide can reach it. B8 must not assume a

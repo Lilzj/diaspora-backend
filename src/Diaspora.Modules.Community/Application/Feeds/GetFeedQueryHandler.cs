@@ -27,6 +27,9 @@ namespace Diaspora.Modules.Community.Application.Feeds;
 /// </summary>
 public sealed class GetFeedQueryHandler : IQueryHandler<GetFeedQuery, FeedResponse>
 {
+    /// <summary>The nearby feed's radius when a request names none. See <c>NearbyFeedProvider</c>.</summary>
+    private const double NearbyFeedDefaultRadiusKm = 25d;
+
     private readonly FeedComposer _composer;
     private readonly ViewerContextResolver _viewers;
     private readonly IGeographicScopeResolver _scopes;
@@ -54,17 +57,22 @@ public sealed class GetFeedQueryHandler : IQueryHandler<GetFeedQuery, FeedRespon
 
         var viewer = await _viewers.ResolveAsync(cancellationToken);
 
-        var scope = await _scopes.ResolveAsync(
+        // ── Without the catalogue — 14 Oct 2026 ─────────────────────────────────────────────
+        //
+        // This resolved through the catalogue and handed the provider the node the point snapped
+        // to, and the nearby feed narrowed to exactly that node's area id: "posts near me" meant
+        // "posts filed against the nearest catalogued neighbourhood", and a post pinned in the next
+        // street, filed against another node or none, was not near anybody. A point is now the
+        // rectangle around its circle, a town is its name, and an area id from an old app build is
+        // accepted and ignored. The nearby feed's own default radius stands when none was sent.
+        var scope = await _scopes.ResolveForDiscoveryAsync(
             new GeographicScopeRequest
             {
                 CityName = request.CityName,
                 Latitude = request.Latitude,
                 Longitude = request.Longitude,
-                RadiusKm = request.RadiusKm,
+                RadiusKm = request.RadiusKm ?? NearbyFeedDefaultRadiusKm,
                 CountryCode = request.CountryCode,
-                AreaId = request.AreaId is { } areaId
-                    ? SharedKernel.Identity.AreaId.From(areaId)
-                    : null,
                 UserId = viewer.UserId
             },
             cancellationToken);
@@ -78,12 +86,15 @@ public sealed class GetFeedQueryHandler : IQueryHandler<GetFeedQuery, FeedRespon
             AllowedVisibility = ViewerContextResolver.AllowedLevels(viewer),
             ExcludedAuthorIds = viewer.BlockedMemberIds,
             CountryCode = resolved.CountryCode?.Value ?? request.CountryCode,
-            AreaId = resolved.AreaId?.Value ?? request.AreaId,
-            HierarchyPathPrefix = resolved.Path?.Value,
+            AreaId = null,
+            HierarchyPathPrefix = null,
             CityName = resolved.CityName ?? request.CityName,
             Latitude = resolved.Center?.Latitude ?? request.Latitude,
             Longitude = resolved.Center?.Longitude ?? request.Longitude,
             RadiusKm = request.RadiusKm,
+            BoundingBox = resolved.IsAroundPoint && resolved.Bounds is { } box
+                ? (box.South, box.West, box.North, box.East)
+                : null,
             Category = string.IsNullOrWhiteSpace(request.Category)
                 ? null
                 : CommunityWireNames.ParseOr(request.Category, PostCategory.Other),

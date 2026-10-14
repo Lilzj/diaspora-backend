@@ -26,4 +26,32 @@ public interface IGeographicScopeResolver
     /// <summary>Resolves the request. Fails only on input that is actually invalid.</summary>
     Task<Result<GeographicScope>> ResolveAsync(
         GeographicScopeRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Resolves the request for a member's discovery query <b>without consulting the place
+    /// catalogue</b>.
+    /// <para>
+    /// <b>14 Oct 2026, Phase 1 of retiring the catalogue.</b> <see cref="ResolveAsync"/> snaps a
+    /// point to the nearest catalogued node and resolves a typed town through the catalogue, so a
+    /// town the catalogue does not hold (Mombasa, Grand Baie) was missing from every town search.
+    /// This answer never carries an <see cref="GeographicScope.AreaId"/>, a
+    /// <see cref="GeographicScope.Path"/> or a <see cref="GeographicScope.ViewportPath"/>:
+    /// </para>
+    /// <list type="bullet">
+    /// <item>a viewport is its box;</item>
+    /// <item>a point is a box around it plus the radius (a city-wide sentinel with no typed town
+    /// becomes a fixed radius; a country-wide sentinel is the request's country);</item>
+    /// <item>a typed town is the request's country plus the name, matched case-insensitively by
+    /// the vertical against the town its owner typed;</item>
+    /// <item>a country is the country;</item>
+    /// <item>nothing, for a member, is their saved location — its point, town and country, never
+    /// a node.</item>
+    /// </list>
+    /// <para>
+    /// The request's <see cref="GeographicScopeRequest.AreaId"/> is ignored: old app builds still
+    /// send one, and it must not narrow anything.
+    /// </para>
+    /// </summary>
+    Task<Result<GeographicScope>> ResolveForDiscoveryAsync(
+        GeographicScopeRequest request, CancellationToken cancellationToken = default);
 }

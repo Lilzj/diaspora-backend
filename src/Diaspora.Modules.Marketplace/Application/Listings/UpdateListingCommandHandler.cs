@@ -29,7 +29,6 @@ public sealed class UpdateListingCommandHandler
     private readonly IUnitOfWork _unitOfWork;
     private readonly MarketplaceAuthorizationService _authorization;
     private readonly ListingCategoryResolver _categories;
-    private readonly ListingAreaFiling _filing;
     private readonly IClock _clock;
 
     public UpdateListingCommandHandler(
@@ -37,14 +36,12 @@ public sealed class UpdateListingCommandHandler
         IUnitOfWork unitOfWork,
         MarketplaceAuthorizationService authorization,
         ListingCategoryResolver categories,
-        ListingAreaFiling filing,
         IClock clock)
     {
         _listings = listings;
         _unitOfWork = unitOfWork;
         _authorization = authorization;
         _categories = categories;
-        _filing = filing;
         _clock = clock;
     }
 
@@ -97,7 +94,9 @@ public sealed class UpdateListingCommandHandler
             request.RegionName,
             request.CityName,
             request.Neighbourhood,
-            request.AreaId,
+
+            // The area id old app builds still send is accepted and not written (14 Oct 2026).
+            listing.Location.AreaId,
 
             // The resolved path is kept from what Location already told the listing, while the
             // listing is still where it was. Re-resolving on every edit would make a text change
@@ -109,22 +108,14 @@ public sealed class UpdateListingCommandHandler
             return Result.Failure<ListingResponse>(location.Error);
         }
 
-        // A listing that moved town is no longer where its path says, and one written before
-        // 16 Sep 2026 was never filed at all. Either is filed afresh here.
+        // Not filed under a catalogue area (14 Oct 2026). A filing the listing already carries is
+        // kept while it stays in its town and dropped when it moves; nothing new is written.
         var placed = location.Value;
 
         if (MovedFrom(listing.Location, placed))
         {
-            placed = placed.WithArea(request.AreaId, areaPath: null);
+            placed = placed.WithArea(areaId: null, areaPath: null);
         }
-        else if (placed.AreaId is null && listing.Location.AreaId is not null)
-        {
-            // An edit form that does not send the area back has not moved the listing. Dropping the
-            // id here, as this handler used to, left a row with a path and no area to explain it.
-            placed = placed.WithArea(listing.Location.AreaId, placed.AreaPath);
-        }
-
-        placed = await _filing.FileAsync(placed, cancellationToken);
 
         var fulfillment = FulfillmentOptions.Create(
             request.OffersPickup,

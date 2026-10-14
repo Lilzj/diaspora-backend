@@ -79,13 +79,20 @@ public sealed class SearchOrganizationsQueryHandler
         };
 
         // A viewport supersedes the city and neighbourhood narrowing rather than adding to it.
-        if (!string.IsNullOrWhiteSpace(query.Bounds))
+        //
+        // Since 14 Oct 2026 a point and a typed town are narrowed here too, without the place
+        // catalogue: a circle by coordinates, a town by its name in either letter case.
+        if (!string.IsNullOrWhiteSpace(query.Bounds)
+            || (query.Latitude is not null && query.Longitude is not null)
+            || !string.IsNullOrWhiteSpace(query.CityName))
         {
             var narrowed = await _geography.NarrowAsync(
                 filter,
                 query.CityName,
                 query.CountryCode,
-                query.NeighborhoodAreaId,
+                query.Latitude,
+                query.Longitude,
+                query.RadiusKm,
                 query.Bounds,
                 _authorization.CallerId,
                 cancellationToken);

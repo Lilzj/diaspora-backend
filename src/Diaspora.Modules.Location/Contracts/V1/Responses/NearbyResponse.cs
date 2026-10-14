@@ -12,8 +12,14 @@ namespace Diaspora.Modules.Location.Contracts.V1.Responses;
 /// </summary>
 public sealed record NearbyResponse
 {
-    /// <summary>Where the search was centred, resolved to a catalogue node where possible.</summary>
-    public required LocationReferenceResponse Center { get; init; }
+    /// <summary>
+    /// Where the search was centred: the point, the typed town and the country.
+    /// <para>
+    /// Null when the request named no country and the member has none saved. Since 14 Oct 2026 a
+    /// point is no longer snapped to a catalogue node, so nothing infers a country from it.
+    /// </para>
+    /// </summary>
+    public LocationReferenceResponse? Center { get; init; }
 
     /// <summary>The radius applied, in kilometres. Zero for a city- or country-wide scope.</summary>
     public required double RadiusKm { get; init; }

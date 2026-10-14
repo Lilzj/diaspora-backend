@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Diaspora.Modules.Jobs.Domain.Employers;
 using Diaspora.Modules.Jobs.Domain.Enums;
 using Diaspora.Modules.Jobs.Domain.Identifiers;
@@ -236,6 +237,21 @@ public sealed class JobPostingRepository : IJobPostingRepository
     // Filtering
     // ════════════════════════════════════════════════════════════════════════════════════════
 
+    [SuppressMessage(
+        "Globalization", "CA1304:Specify CultureInfo",
+        Justification =
+            "The ToLower calls are inside an expression tree. They are never executed in .NET: EF "
+            + "translates them to SQL lower(), which runs under the database collation. There is no "
+            + "CultureInfo to specify, and passing one would fail to translate.")]
+    [SuppressMessage(
+        "Globalization", "CA1311:Specify a culture or use an invariant version",
+        Justification = "See CA1304. ToLowerInvariant translates identically; neither is executed.")]
+    [SuppressMessage(
+        "Globalization", "CA1862:Use the StringComparison method overloads",
+        Justification =
+            "The StringComparison overloads have no translation on either provider, so they would "
+            + "move the search into memory. Lowering both sides is what makes the match "
+            + "case-insensitive on Postgres, where = is not.")]
     private IQueryable<JobPosting> Apply(
         IQueryable<JobPosting> query, JobQueryFilter filter)
     {
@@ -274,8 +290,50 @@ public sealed class JobPostingRepository : IJobPostingRepository
 
         if (!string.IsNullOrWhiteSpace(filter.CityName))
         {
-            var city = filter.CityName.Trim();
-            query = query.Where(posting => posting.Location.CityName == city);
+            // Lowered on both sides (14 Oct 2026): Postgres compares text case-sensitively and the
+            // SQLite tests do not, so "mombasa" missing "Mombasa" could only fail in production.
+            var city = filter.CityName.Trim().ToLowerInvariant();
+            query = query.Where(posting =>
+                posting.Location.CityName != null && posting.Location.CityName.ToLower() == city);
+        }
+
+        if (filter.HasBoundingBox)
+        {
+            var south = filter.MinLatitude!.Value;
+            var north = filter.MaxLatitude!.Value;
+            var west = filter.MinLongitude!.Value;
+            var east = filter.MaxLongitude!.Value;
+
+            // A posting nobody pinned, in the town a circle search named.
+            var unpinned = string.IsNullOrWhiteSpace(filter.UnpinnedCityName)
+                ? null
+                : filter.UnpinnedCityName.Trim().ToLowerInvariant();
+            var keepUnpinned = unpinned is not null;
+
+            // Two shapes rather than one predicate, so each stays a plain pair of ranges over the
+            // indexed columns; the wrapped one is the ±180° split.
+            query = filter.BoundingBoxCrossesAntimeridian
+                ? query.Where(posting =>
+                    (posting.Latitude != null
+                        && posting.Longitude != null
+                        && posting.Latitude >= south
+                        && posting.Latitude <= north
+                        && (posting.Longitude >= west || posting.Longitude <= east))
+                    || (keepUnpinned
+                        && posting.Latitude == null
+                        && posting.Location.CityName != null
+                        && posting.Location.CityName.ToLower() == unpinned))
+                : query.Where(posting =>
+                    (posting.Latitude != null
+                        && posting.Longitude != null
+                        && posting.Latitude >= south
+                        && posting.Latitude <= north
+                        && posting.Longitude >= west
+                        && posting.Longitude <= east)
+                    || (keepUnpinned
+                        && posting.Latitude == null
+                        && posting.Location.CityName != null
+                        && posting.Location.CityName.ToLower() == unpinned));
         }
 
         if (!string.IsNullOrWhiteSpace(filter.AreaPathPrefix))

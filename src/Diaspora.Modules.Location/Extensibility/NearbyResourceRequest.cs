@@ -23,24 +23,36 @@ public sealed record NearbyResourceRequest
     public UserId? UserId { get; init; }
 
     /// <summary>
-    /// The catalogue node the centre resolved to, when it resolved to one. A provider that
-    /// indexes by area rather than by coordinate answers from this without doing geometry.
+    /// The catalogue node the centre resolved to.
+    /// <para>
+    /// <b>Never set by the nearby endpoint since 14 Oct 2026</b> (Phase 1 of retiring the place
+    /// catalogue): a member's discovery query is answered from coordinates, the country and the
+    /// typed town, and no provider may narrow by a node. Kept so the contract compiles until
+    /// Phase 3 removes it.
+    /// </para>
     /// </summary>
     public AreaId? AreaId { get; init; }
 
-    /// <summary>The path of that node, for providers that filter by hierarchy prefix.</summary>
+    /// <summary>The path of that node. Never set since 14 Oct 2026; see <see cref="AreaId"/>.</summary>
     public HierarchyPath? WithinPath { get; init; }
 
-    /// <summary>The country the centre falls in.</summary>
-    public required CountryCode CountryCode { get; init; }
+    /// <summary>
+    /// The country the request named, or the member's saved one. Null when the request was only a
+    /// point: nothing infers a country from a coordinate any more, and a circle needs none.
+    /// </summary>
+    public CountryCode? CountryCode { get; init; }
 
     /// <summary>
-    /// The city the centre falls in, by name.
-    /// <para>
-    /// Present because every vertical filter the platform has today is a <c>cityName</c>
-    /// string, and a provider backed by existing data should not have to acquire a spatial
-    /// index before it can answer. It is a migration aid with a long life, not a shortcut.
-    /// </para>
+    /// Whether <see cref="Search"/> is a circle — answered by its rectangle over a provider's
+    /// stored coordinates, with the corners trimmed by distance — rather than a town- or
+    /// country-wide question answered by <see cref="CityName"/> and <see cref="CountryCode"/>.
+    /// </summary>
+    public bool IsCircle => Search.Radius.Scope == Domain.Enums.RadiusScope.Radius;
+
+    /// <summary>
+    /// The town the request named, by name, matched case-insensitively against the town an owner
+    /// typed. For a town-wide search it is the question; for a circle it only keeps rows that have
+    /// no coordinates but name that town.
     /// </summary>
     public string? CityName { get; init; }
 

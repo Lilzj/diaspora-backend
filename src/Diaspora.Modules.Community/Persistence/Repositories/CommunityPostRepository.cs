@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Diaspora.Modules.Community.Domain.Enums;
 using Diaspora.Modules.Community.Domain.Identifiers;
 using Diaspora.Modules.Community.Domain.Policies;
@@ -234,6 +235,21 @@ public sealed class CommunityPostRepository : ICommunityPostRepository
     /// and then fails at run time because EF cannot see through the conversion.
     /// </para>
     /// </summary>
+    [SuppressMessage(
+        "Globalization", "CA1304:Specify CultureInfo",
+        Justification =
+            "The ToLower calls are inside an expression tree. They are never executed in .NET: EF "
+            + "translates them to SQL lower(), which runs under the database collation. There is no "
+            + "CultureInfo to specify, and passing one would fail to translate.")]
+    [SuppressMessage(
+        "Globalization", "CA1311:Specify a culture or use an invariant version",
+        Justification = "See CA1304. ToLowerInvariant translates identically; neither is executed.")]
+    [SuppressMessage(
+        "Globalization", "CA1862:Use the StringComparison method overloads",
+        Justification =
+            "The StringComparison overloads have no translation on either provider, so they would "
+            + "move the search into memory. Lowering both sides is what makes the match "
+            + "case-insensitive on Postgres, where = is not.")]
     private static IQueryable<CommunityPost> Apply(
         IQueryable<CommunityPost> query, PostQueryFilter filter)
     {
@@ -315,7 +331,11 @@ public sealed class CommunityPostRepository : ICommunityPostRepository
 
         if (!string.IsNullOrWhiteSpace(filter.CityName))
         {
-            query = query.Where(post => post.Location.CityName == filter.CityName);
+            // Lowered on both sides (14 Oct 2026): Postgres compares text case-sensitively and the
+            // SQLite tests do not.
+            var city = filter.CityName.Trim().ToLowerInvariant();
+            query = query.Where(post =>
+                post.Location.CityName != null && post.Location.CityName.ToLower() == city);
         }
 
         if (!string.IsNullOrWhiteSpace(filter.HashtagSlug))
@@ -341,13 +361,23 @@ public sealed class CommunityPostRepository : ICommunityPostRepository
 
         if (filter.BoundingBox is { } box)
         {
+            // A post with no pin, in the town a circle search named (14 Oct 2026).
+            var unpinned = string.IsNullOrWhiteSpace(filter.UnpinnedCityName)
+                ? null
+                : filter.UnpinnedCityName.Trim().ToLowerInvariant();
+            var keepUnpinned = unpinned is not null;
+
             query = query.Where(post =>
-                post.Location.Latitude != null &&
-                post.Location.Longitude != null &&
-                post.Location.Latitude >= box.MinLatitude &&
-                post.Location.Latitude <= box.MaxLatitude &&
-                post.Location.Longitude >= box.MinLongitude &&
-                post.Location.Longitude <= box.MaxLongitude);
+                (post.Location.Latitude != null &&
+                    post.Location.Longitude != null &&
+                    post.Location.Latitude >= box.MinLatitude &&
+                    post.Location.Latitude <= box.MaxLatitude &&
+                    post.Location.Longitude >= box.MinLongitude &&
+                    post.Location.Longitude <= box.MaxLongitude)
+                || (keepUnpinned &&
+                    post.Location.Latitude == null &&
+                    post.Location.CityName != null &&
+                    post.Location.CityName.ToLower() == unpinned));
         }
 
         if (filter.Cursor is { } cursor)

@@ -294,9 +294,8 @@ public sealed class CreateHousingListingCommandHandler
     /// <summary>
     /// Resolves the geography through B4 and builds the address.
     /// <para>
-    /// The neighbourhood, when one is named, is resolved against Location's catalogue rather than
-    /// taken from the request — so a property is placed in a real neighbourhood and inherits B4's
-    /// name, path and country rather than whatever the client typed.
+    /// Since 14 Oct 2026 no catalogue node is resolved or written: the property is placed at its
+    /// own coordinates, its country and the town the landlord typed.
     /// </para>
     /// </summary>
     private async Task<Result<ListingPlace>> BuildLocationAsync(
@@ -310,30 +309,18 @@ public sealed class CreateHousingListingCommandHandler
             return Result.Failure<ListingPlace>(context.Error);
         }
 
-        var resolved = await _neighborhoods.ResolveAsync(
-            context.Value, request.NeighborhoodAreaId, cancellationToken);
-
-        if (resolved.IsFailure)
-        {
-            return Result.Failure<ListingPlace>(resolved.Error);
-        }
-
-        // ── And where the client named none, the property's own geography decides — 16 Sep 2026 ──
+        // ── No catalogue filing — 14 Oct 2026 ────────────────────────────────────────────────
         //
-        // No create screen sends `neighborhoodAreaId`, so until now every listing on the platform
-        // was filed under no area at all: a town search by path matched nothing, every
-        // neighbourhood's resource count read zero, and the map's cluster endpoint aggregated a
-        // catalogue of noughts. Coordinates decide when the property has them, the town the
-        // landlord typed when it does not, and nothing is guessed when neither places it.
-        var placed = await _neighborhoods.FileUnderAreaAsync(
-            resolved.Value, request.Latitude, request.Longitude, cancellationToken);
-
-        // Where no neighbourhood was named, the country still has to be one B4 knows about.
-        if (request.NeighborhoodAreaId is null
-            && !await _neighborhoods.CountryExistsAsync(request.CountryCode, cancellationToken))
+        // A property is stored at its own coordinates, its country and the town the landlord
+        // typed, and is found by them. A neighbourhood area id from an old app build is accepted
+        // and not written, and the property is no longer filed under the node its pin is nearest:
+        // the place catalogue is being retired, and nothing in discovery reads either.
+        if (!await _neighborhoods.CountryExistsAsync(request.CountryCode, cancellationToken))
         {
             return Result.Failure<ListingPlace>(HousingErrors.CountryInvalid);
         }
+
+        var placed = context.Value;
 
         var visibility = Enum.TryParse<AddressVisibility>(
             request.AddressVisibility, ignoreCase: true, out var parsed)

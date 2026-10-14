@@ -50,45 +50,29 @@ public sealed class CommunityLifeNeighborhoodResolver
     }
 
     /// <summary>
-    /// Resolves a client-supplied area into the location context an aggregate stores.
+    /// The location context an aggregate stores, from a client-supplied area.
     /// <para>
-    /// A null or empty identifier is not an error: an event may legitimately be placed at city level
-    /// while its organizer works out which neighbourhood the hall is in, and refusing that would make
-    /// the neighbourhood a required field on a form nobody can always answer.
+    /// <b>Since 14 Oct 2026 the area is accepted and not written.</b> The owner retired the place
+    /// catalogue for filing and discovery: an event, a series or an organization is stored at its
+    /// coordinates, its country and the town its organizer typed, and is found by them. Old app
+    /// builds still send a neighbourhood area id; it neither narrows nor files anything, and the
+    /// context comes back exactly as the caller built it. Kept as a method so every write path
+    /// passes through one place that says so, until Phase 3 removes the catalogue.
     /// </para>
     /// </summary>
-    public async Task<Result<CommunityLifeLocationContext>> ResolveAsync(
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Performance", "CA1822:Mark members as static",
+        Justification = "The seam every write path calls; Phase 3 deletes it with the catalogue.")]
+    public Task<Result<CommunityLifeLocationContext>> ResolveAsync(
         CommunityLifeLocationContext context,
         Guid? areaId,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(context);
+        _ = areaId;
+        _ = cancellationToken;
 
-        if (areaId is not { } id || id == Guid.Empty)
-        {
-            return Result.Success(context);
-        }
-
-        var area = await _areas.GetByIdAsync(AreaId.From(id), cancellationToken);
-
-        if (area is null)
-        {
-            return Result.Failure<CommunityLifeLocationContext>(
-                CommunityLifeErrors.NeighborhoodNotFound);
-        }
-
-        if (area.Level != AdministrativeLevel.Neighborhood)
-        {
-            return Result.Failure<CommunityLifeLocationContext>(
-                CommunityLifeErrors.NeighborhoodNotFound);
-        }
-
-        // The country comes from B4's node rather than from what the client typed. An event whose
-        // stated country disagrees with the neighbourhood it names is in the wrong place, and B4 is
-        // the authority on which.
-        return Result.Success(
-            context.WithNeighborhood(
-                area.Id.Value, area.Path.Value, area.Name.Value, area.CountryCode.Value));
+        return Task.FromResult(Result.Success(context));
     }
 
     /// <summary>

@@ -151,25 +151,21 @@ public sealed class GeospatialViewportTests : PooledIdentityTestBase
             [$"east-of-the-line {run}", $"west-of-the-line {run}"]);
     }
 
-    // ── The subtree, for verticals that store no coordinate ─────────────────────────────────
+    // ── Verticals that took a pin on 14 Oct 2026 ────────────────────────────────────────────
 
     /// <summary>
-    /// <b>Containment runs in two directions and only one of them is a prefix.</b> Marketplace
-    /// files a listing against an area rather than a point, so a viewport becomes the smallest
-    /// catalogue subtree containing it. A listing filed against London itself must survive a
-    /// member zooming into one street of Peckham — otherwise the most common filing in the module
-    /// disappears at exactly the zoom where somebody is looking hardest.
+    /// A marketplace viewport is the rectangle over the pins sellers gave (14 Oct 2026). It used to
+    /// be the smallest catalogue subtree containing the box, so a listing filed against London
+    /// matched a view of one street of Peckham; the catalogue no longer decides, and a listing with
+    /// no pin is in no rectangle at all.
     /// </summary>
     [Fact]
-    public async Task A_marketplace_viewport_keeps_a_city_filed_listing_and_drops_another_city()
+    public async Task A_marketplace_viewport_returns_only_the_listings_pinned_inside_it()
     {
-        var (london, manchester) = await CityPathsAsync();
-        var peckham = await NeighborhoodPathAsync("Peckham");
-
-        var run = await SeedMarketplaceListingsAsync(
-            ("in-the-neighbourhood", peckham),
-            ("filed-against-the-city", london),
-            ("another-city", manchester));
+        var run = await SeedPinnedMarketplaceListingsAsync(
+            ("inside", 51.4742d, -0.0691d),
+            ("across-town", 51.4933d, 0.0632d),
+            ("unpinned", null, null));
 
         var response = await HttpClient.PostAsJsonAsync(
             "/api/v1/marketplace/search",
@@ -177,8 +173,7 @@ public sealed class GeospatialViewportTests : PooledIdentityTestBase
 
         var page = await ReadDataAsync<ListingPageDto>(response);
 
-        page.Items.Select(item => item.Title).Should().BeEquivalentTo(
-            [$"in-the-neighbourhood {run}", $"filed-against-the-city {run}"]);
+        page.Items.Select(item => item.Title).Should().BeEquivalentTo([$"inside {run}"]);
     }
 
     /// <summary>
@@ -202,29 +197,22 @@ public sealed class GeospatialViewportTests : PooledIdentityTestBase
     }
 
     /// <summary>
-    /// <b>Jobs could not answer a geographic question at all before this phase.</b>
-    /// <c>JobGeographicScopeAdapter</c> was registered in DI and called from nowhere, and
-    /// <c>SearchJobsRequest</c> carried no coordinate, no radius and no viewport — the browse
-    /// filtered on whatever country and city string the client happened to send. This is the first
-    /// test that resolves a job search through B4.
+    /// A jobs viewport is the rectangle over the postings' pins (14 Oct 2026), no longer the
+    /// catalogue subtree containing it.
     /// </summary>
     [Fact]
-    public async Task A_jobs_viewport_narrows_to_the_catalogue_subtree()
+    public async Task A_jobs_viewport_returns_only_the_postings_pinned_inside_it()
     {
-        var (london, manchester) = await CityPathsAsync();
-        var peckham = await NeighborhoodPathAsync("Peckham");
-
-        var run = await SeedJobsAsync(
-            ("in-the-neighbourhood", peckham),
-            ("filed-against-the-city", london),
-            ("another-city", manchester));
+        var run = await SeedPinnedJobsAsync(
+            ("inside", 51.4742d, -0.0691d),
+            ("across-town", 51.4933d, 0.0632d),
+            ("unpinned", null, null));
 
         var page = await ReadDataAsync<JobPageDto>(
             await HttpClient.GetAsync(
                 $"/api/v1/jobs?limit=50&q={run}&bounds={PeckhamViewport}"));
 
-        page.Items.Select(item => item.Title).Should().BeEquivalentTo(
-            [$"in-the-neighbourhood {run}", $"filed-against-the-city {run}"]);
+        page.Items.Select(item => item.Title).Should().BeEquivalentTo([$"inside {run}"]);
     }
 
     // ── Clusters ────────────────────────────────────────────────────────────────────────────
@@ -578,7 +566,50 @@ public sealed class GeospatialViewportTests : PooledIdentityTestBase
         return run;
     }
 
-    private async Task<string> SeedJobsAsync(params (string Label, string AreaPath)[] postings)
+    private async Task<string> SeedPinnedMarketplaceListingsAsync(
+        params (string Label, double? Latitude, double? Longitude)[] listings)
+    {
+        Factory.EnsureDatabaseCreated();
+
+        using var scope = Factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<DiasporaDbContext>();
+
+        var run = Guid.NewGuid().ToString("N")[..8];
+        var sellerId = SellerProfileId.New();
+        var ownerId = UserId.New();
+        var now = DateTimeOffset.UtcNow;
+
+        foreach (var (label, latitude, longitude) in listings)
+        {
+            var listing = MarketplaceListing.Create(
+                MarketplaceListingId.New(),
+                sellerId,
+                ownerId,
+                ListingTitle.Create($"{label} {run}").Value,
+                ListingSlug.Create($"viewport-pin-{run}-{label}").Value,
+                ListingDescription
+                    .Create($"A seeded listing for the viewport suite: {label}.").Value,
+                "electronics",
+                ListingType.Negotiable,
+                ProductCondition.Good,
+                ListingPrice.Create(50m, "GBP", isNegotiable: true, minimumOffer: null).Value,
+                ListingLocationContext.Create("GB", "Greater London", "London").Value,
+                now).Value;
+
+            listing.SetCoordinates(latitude, longitude).IsSuccess.Should().BeTrue();
+            listing.AttachMedia(Guid.NewGuid(), ListingMediaRole.Cover);
+            listing.Publish(now).IsSuccess.Should().BeTrue();
+
+            dbContext.Set<MarketplaceListing>().Add(listing);
+        }
+
+        await dbContext.SaveChangesAsync();
+
+        return run;
+    }
+
+    private async Task<string> SeedPinnedJobsAsync(
+        params (string Label, double? Latitude, double? Longitude)[] postings)
     {
         Factory.EnsureDatabaseCreated();
 
@@ -590,7 +621,7 @@ public sealed class GeospatialViewportTests : PooledIdentityTestBase
         var ownerId = UserId.New();
         var now = DateTimeOffset.UtcNow;
 
-        foreach (var (label, areaPath) in postings)
+        foreach (var (label, latitude, longitude) in postings)
         {
             var posting = global::Diaspora.Modules.Jobs.Domain.Postings.JobPosting.Create(
                 global::Diaspora.Modules.Jobs.Domain.Identifiers.JobPostingId.New(),
@@ -598,18 +629,19 @@ public sealed class GeospatialViewportTests : PooledIdentityTestBase
                 ownerId,
                 global::Diaspora.Modules.Jobs.Domain.ValueObjects.JobTitle.Create($"{label} {run}").Value,
                 global::Diaspora.Modules.Jobs.Domain.ValueObjects.JobSlug
-                    .Create($"viewport-{run}-{label}").Value,
+                    .Create($"viewport-pin-{run}-{label}").Value,
                 global::Diaspora.Modules.Jobs.Domain.ValueObjects.JobDescription
                     .Create($"A seeded posting for the viewport suite: {label}.").Value,
                 "technology",
                 global::Diaspora.Modules.Jobs.Domain.Enums.JobType.FullTime,
                 global::Diaspora.Modules.Jobs.Domain.Enums.ExperienceLevel.Mid,
                 global::Diaspora.Modules.Jobs.Domain.ValueObjects.JobLocationContext.Create(
-                    "GB", "Greater London", "London", Guid.NewGuid(), areaPath).Value,
+                    "GB", "Greater London", "London").Value,
                 global::Diaspora.Modules.Jobs.Domain.ValueObjects.WorkArrangement.Create(
                     global::Diaspora.Modules.Jobs.Domain.Enums.WorkplaceType.OnSite, false).Value,
                 now).Value;
 
+            posting.SetCoordinates(latitude, longitude).IsSuccess.Should().BeTrue();
             posting.Publish(now, openImmediately: true).IsSuccess.Should().BeTrue();
 
             dbContext.Set<global::Diaspora.Modules.Jobs.Domain.Postings.JobPosting>().Add(posting);
@@ -663,23 +695,6 @@ public sealed class GeospatialViewportTests : PooledIdentityTestBase
                 && node.Name.Value == name);
 
         return area.Path.Value;
-    }
-
-    private async Task<(string London, string Manchester)> CityPathsAsync()
-    {
-        Factory.EnsureDatabaseCreated();
-
-        using var scope = Factory.Services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<DiasporaDbContext>();
-
-        var cities = await dbContext.Set<AdministrativeArea>()
-            .AsNoTracking()
-            .Where(node => node.Level == AdministrativeLevel.City)
-            .ToListAsync();
-
-        return (
-            cities.First(city => city.Name.Value == "London").Path.Value,
-            cities.First(city => city.Name.Value == "Manchester").Path.Value);
     }
 
     private Task<List<string>> CounterResourceTypesAsync()

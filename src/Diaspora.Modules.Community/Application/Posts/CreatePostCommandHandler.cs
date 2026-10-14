@@ -37,7 +37,6 @@ public sealed class CreatePostCommandHandler
     private readonly PostComposer _composer;
     private readonly ViewerContextResolver _viewers;
     private readonly IGeographicScopeResolver _scopes;
-    private readonly ILocationDirectory _location;
     private readonly ICurrentUser _currentUser;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
@@ -48,7 +47,6 @@ public sealed class CreatePostCommandHandler
         PostComposer composer,
         ViewerContextResolver viewers,
         IGeographicScopeResolver scopes,
-        ILocationDirectory location,
         ICurrentUser currentUser,
         IUnitOfWork unitOfWork,
         IClock clock,
@@ -58,7 +56,6 @@ public sealed class CreatePostCommandHandler
         _composer = composer;
         _viewers = viewers;
         _scopes = scopes;
-        _location = location;
         _currentUser = currentUser;
         _unitOfWork = unitOfWork;
         _clock = clock;
@@ -204,66 +201,45 @@ public sealed class CreatePostCommandHandler
     }
 
     /// <summary>
-    /// Turns whatever the composer sent into a stored location context, by asking Location.
+    /// Turns whatever the composer sent into a stored location context.
     /// <para>
-    /// A resolution failure is not an error. A post whose city name Location does not recognise
-    /// is still a post, and refusing it because a gazetteer is incomplete would make posting
-    /// impossible in exactly the underserved places this platform exists for.
+    /// <b>No catalogue node — 14 Oct 2026.</b> This resolved the post through the catalogue and
+    /// stored the node its point snapped to (area id and path), and a post with no pin was placed
+    /// at that node's centre. A post is now stored with the author's own pin, the country and the
+    /// town the author named; an area id from an old app build is accepted and not written. Where
+    /// the composer sent no place at all, the author's saved location supplies the country and the
+    /// town — never their point, which is where they live, not where the post is.
+    /// </para>
+    /// <para>
+    /// A resolution failure is not an error. A post Location cannot place is still a post.
     /// </para>
     /// </summary>
     private async Task<PostLocationContext> ResolveLocationAsync(
         Contracts.V1.Requests.CreatePostRequest payload, CancellationToken cancellationToken)
     {
-        var scope = await _scopes.ResolveAsync(
+        var pinned = payload.Latitude is not null && payload.Longitude is not null;
+
+        var scope = await _scopes.ResolveForDiscoveryAsync(
             new GeographicScopeRequest
             {
                 CityName = payload.CityName,
                 Latitude = payload.Latitude,
                 Longitude = payload.Longitude,
                 CountryCode = payload.CountryCode,
-                AreaId = payload.AreaId is { } areaId
-                    ? SharedKernel.Identity.AreaId.From(areaId)
-                    : null,
                 UserId = _currentUser.UserId
             },
             cancellationToken);
 
-        var pinned = payload.Latitude is not null && payload.Longitude is not null;
-
-        if (scope.IsFailure)
-        {
-            return PostLocationContext.Create(
-                payload.CountryCode,
-                payload.AreaId,
-                payload.AreaName,
-                payload.CityName,
-                payload.Latitude,
-                payload.Longitude,
-                pointIsExact: pinned);
-        }
-
-        var resolved = scope.Value;
-        string? areaName = payload.AreaName;
-        string? path = resolved.Path?.Value;
-
-        if (resolved.AreaId is { } id)
-        {
-            var area = await _location.FindAreaAsync(id, cancellationToken);
-            areaName ??= area?.Name?.Value;
-            path ??= area?.PathValue;
-        }
+        var resolved = scope.IsSuccess ? scope.Value : GeographicScope.Unbounded;
 
         return PostLocationContext.Create(
-            resolved.CountryCode?.Value ?? payload.CountryCode,
-            resolved.AreaId?.Value ?? payload.AreaId,
-            areaName,
-            resolved.CityName ?? payload.CityName,
-
-            // The author's own pin wins over the centre of whatever it resolved to. Only a post with
-            // no pin is placed at a centre, and it is recorded as placed there.
-            pinned ? payload.Latitude : resolved.Center?.Latitude,
-            pinned ? payload.Longitude : resolved.Center?.Longitude,
-            path,
+            payload.CountryCode ?? resolved.CountryCode?.Value,
+            areaId: null,
+            payload.AreaName,
+            payload.CityName ?? (pinned ? null : resolved.CityName),
+            pinned ? payload.Latitude : null,
+            pinned ? payload.Longitude : null,
+            hierarchyPath: null,
             pointIsExact: pinned);
     }
 }

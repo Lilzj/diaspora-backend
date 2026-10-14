@@ -90,12 +90,15 @@ public sealed class SearchListingsQueryHandler
         var page = await _listings.QueryAsync(
             filter, request.Cursor, filter.EffectiveLimit, cancellationToken);
 
+        // A circle's rectangle has corners outside the circle; Location measures them away.
+        var inside = scope is null ? page.Items : _geography.WithinCircle(scope, page.Items);
+
         var sellers = await _sellers.GetManyAsync(
-            [.. page.Items.Select(listing => listing.SellerId).Distinct()], cancellationToken);
+            [.. inside.Select(listing => listing.SellerId).Distinct()], cancellationToken);
 
-        var savedIds = await ResolveSavedAsync(page.Items, cancellationToken);
+        var savedIds = await ResolveSavedAsync(inside, cancellationToken);
 
-        var ordered = ApplyRanking(page.Items, sellers, request.Ranking);
+        var ordered = ApplyRanking(inside, sellers, request.Ranking);
 
         var cards = ordered
             .Select(listing => ListingMapper.ToCard(

@@ -1,9 +1,7 @@
 using System.Diagnostics;
 using Diaspora.Application.Abstractions;
-using Diaspora.Modules.Location.Application.Mapping;
 using Diaspora.Modules.Location.Application.Services;
 using Diaspora.Modules.Location.Contracts.V1.Responses;
-using Diaspora.Modules.Location.Domain.Areas;
 using Diaspora.Modules.Location.Domain.Countries;
 using Diaspora.Modules.Location.Domain.Enums;
 using Diaspora.Modules.Location.Domain.Errors;
@@ -12,7 +10,6 @@ using Diaspora.Modules.Location.Extensibility;
 using Diaspora.Modules.Location.Integration;
 using Diaspora.Modules.Location.Observability;
 using Diaspora.Platform.Services.Abstractions;
-using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Results;
 
 namespace Diaspora.Modules.Location.Application.Nearby;
@@ -31,20 +28,17 @@ public sealed class GetNearbyQueryHandler : IQueryHandler<GetNearbyQuery, Nearby
 {
     private readonly IGeographicScopeResolver _scopes;
     private readonly NearbyAggregator _aggregator;
-    private readonly IAdministrativeAreaRepository _areas;
     private readonly ICountryRepository _countries;
     private readonly ICurrentUser _currentUser;
 
     public GetNearbyQueryHandler(
         IGeographicScopeResolver scopes,
         NearbyAggregator aggregator,
-        IAdministrativeAreaRepository areas,
         ICountryRepository countries,
         ICurrentUser currentUser)
     {
         _scopes = scopes;
         _aggregator = aggregator;
-        _areas = areas;
         _countries = countries;
         _currentUser = currentUser;
     }
@@ -57,10 +51,11 @@ public sealed class GetNearbyQueryHandler : IQueryHandler<GetNearbyQuery, Nearby
         using var activity = LocationTelemetry.Activity.StartActivity("location.nearby");
         var stopwatch = Stopwatch.StartNew();
 
-        var scope = await _scopes.ResolveAsync(
+        // Resolved without the catalogue (14 Oct 2026): a point is a circle, a town is its name,
+        // and an area id from an old app build narrows nothing.
+        var scope = await _scopes.ResolveForDiscoveryAsync(
             new GeographicScopeRequest
             {
-                AreaId = request.AreaId is null ? null : AreaId.From(request.AreaId.Value),
                 Latitude = request.Latitude,
                 Longitude = request.Longitude,
                 RadiusKm = request.RadiusKm,
@@ -78,7 +73,7 @@ public sealed class GetNearbyQueryHandler : IQueryHandler<GetNearbyQuery, Nearby
         // A proximity question with no point of reference is not a proximity question. Failing
         // is better than returning everything: a client that sent no location has a bug, and
         // an unbounded fan-out across every vertical is the most expensive way to hide it.
-        if (scope.Value.Search is null || scope.Value.Center is null || scope.Value.CountryCode is null)
+        if (scope.Value.Search is null || scope.Value.Center is null)
         {
             return Result.Failure<NearbyResponse>(LocationErrors.AreaNotFound);
         }
@@ -88,8 +83,6 @@ public sealed class GetNearbyQueryHandler : IQueryHandler<GetNearbyQuery, Nearby
             {
                 Search = scope.Value.Search,
                 UserId = _currentUser.UserId,
-                AreaId = scope.Value.AreaId,
-                WithinPath = scope.Value.Path,
                 CountryCode = scope.Value.CountryCode,
                 CityName = scope.Value.CityName,
 
@@ -101,11 +94,6 @@ public sealed class GetNearbyQueryHandler : IQueryHandler<GetNearbyQuery, Nearby
             cancellationToken);
 
         var center = await BuildCenterAsync(scope.Value, cancellationToken);
-
-        if (center is null)
-        {
-            return Result.Failure<NearbyResponse>(LocationErrors.AreaNotFound);
-        }
 
         LocationTelemetry.SpatialQueries.Add(
             1, new KeyValuePair<string, object?>("kind", "nearby"));
@@ -164,44 +152,35 @@ public sealed class GetNearbyQueryHandler : IQueryHandler<GetNearbyQuery, Nearby
         };
 
     /// <summary>
-    /// Describes the search centre as a location reference, resolving it to a catalogue node
-    /// when the scope found one. A client renders this above the results as "showing results
-    /// near Peckham", which needs a name rather than a coordinate.
+    /// Describes the search centre as a location reference: the point, the town the request or the
+    /// member's saved location named, and the country. Null when no country is known — a point is
+    /// no longer resolved to a catalogue node, so there is nothing to infer one from.
     /// </summary>
     private async Task<LocationReferenceResponse?> BuildCenterAsync(
         GeographicScope scope, CancellationToken cancellationToken)
     {
-        var country = await _countries.GetByCodeAsync(scope.CountryCode!, cancellationToken);
+        if (scope.CountryCode is null)
+        {
+            return null;
+        }
+
+        var country = await _countries.GetByCodeAsync(scope.CountryCode, cancellationToken);
 
         if (country is null)
         {
             return null;
         }
 
-        if (scope.AreaId is null)
+        return new LocationReferenceResponse
         {
-            return new LocationReferenceResponse
-            {
-                CountryCode = country.Code.Value,
-                CountryName = country.Name.Value,
-                Flag = country.Flag,
-                CityName = scope.CityName,
-                Latitude = scope.Center?.Latitude,
-                Longitude = scope.Center?.Longitude,
-                DisplayName = scope.CityName ?? country.Name.Value,
-                CountryId = country.Id.Value
-            };
-        }
-
-        var area = await _areas.GetByIdAsync(scope.AreaId, cancellationToken);
-
-        if (area is null)
-        {
-            return null;
-        }
-
-        var ancestors = await _areas.GetAncestorsAsync(area, cancellationToken);
-
-        return LocationMapper.ToReference(area, ancestors, country);
+            CountryCode = country.Code.Value,
+            CountryName = country.Name.Value,
+            Flag = country.Flag,
+            CityName = scope.CityName,
+            Latitude = scope.Center?.Latitude,
+            Longitude = scope.Center?.Longitude,
+            DisplayName = scope.CityName ?? country.Name.Value,
+            CountryId = country.Id.Value
+        };
     }
 }

@@ -142,7 +142,7 @@ public sealed class DuplicateGuideCommandHandler
 
         var location = GuideLocationContext.Create(
             source.Location.CountryCode, source.Location.RegionName, source.Location.CityName,
-            source.Location.AreaId, source.Location.AreaPath);
+            areaId: null, areaPath: null);
 
         if (location.IsFailure)
         {

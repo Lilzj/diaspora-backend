@@ -1,3 +1,5 @@
+using Diaspora.Modules.Location.Domain.Enums;
+using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Modules.Location.Integration;
 using Diaspora.Modules.Marketplace.Domain.Listings;
 using Diaspora.SharedKernel.Identity;
@@ -14,11 +16,10 @@ namespace Diaspora.Modules.Marketplace.Application.Services;
 /// B4's contract freeze promises verticals, and this class is B10 taking it up.
 /// </para>
 /// <para>
-/// <b>A listing is jurisdiction-and-area scoped rather than point-scoped, and that is a privacy
-/// decision as much as a modelling one.</b> A second-hand item is at somebody's home; storing a
-/// coordinate would mean the platform holds where a member lives, and rendering one would publish
-/// it. Narrowing therefore happens by country and by B4's materialised area path, which is as
-/// precise as "Peckham" and no more.
+/// <b>14 Oct 2026: no catalogue.</b> A listing has a country, the town its seller typed and,
+/// since the same day, an optional pin the seller chose to give. A circle is answered by the pin
+/// (and by unpinned listings in the town the request named), a viewport by the pin, a town by its
+/// name in either letter case, a country by the country. No area id or path narrows anything.
 /// </para>
 /// <para>
 /// <b>A shipping listing is deliberately not excluded by a geographic scope.</b> Narrowing to
@@ -30,9 +31,14 @@ namespace Diaspora.Modules.Marketplace.Application.Services;
 public sealed class MarketplaceGeographicScopeAdapter
 {
     private readonly IGeographicScopeResolver _resolver;
+    private readonly ILocationDirectory _directory;
 
-    public MarketplaceGeographicScopeAdapter(IGeographicScopeResolver resolver) =>
+    public MarketplaceGeographicScopeAdapter(
+        IGeographicScopeResolver resolver, ILocationDirectory directory)
+    {
         _resolver = resolver;
+        _directory = directory;
+    }
 
     /// <summary>Resolves whatever geography a request carried.</summary>
     public async Task<Result<GeographicScope>> ResolveAsync(
@@ -48,7 +54,10 @@ public sealed class MarketplaceGeographicScopeAdapter
             cityName, countryCode, areaId, latitude, longitude, radiusKm, bounds: null,
             viewerId, cancellationToken);
 
-    /// <summary>Resolves whatever geography a request carried, including a map viewport.</summary>
+    /// <summary>
+    /// Resolves whatever geography a request carried, including a map viewport, without the place
+    /// catalogue (14 Oct 2026). The area id old app builds still send is accepted and ignored.
+    /// </summary>
     public async Task<Result<GeographicScope>> ResolveAsync(
         string? cityName,
         string? countryCode,
@@ -58,32 +67,35 @@ public sealed class MarketplaceGeographicScopeAdapter
         double? radiusKm,
         string? bounds,
         UserId? viewerId,
-        CancellationToken cancellationToken = default) =>
-        await _resolver.ResolveAsync(
+        CancellationToken cancellationToken = default)
+    {
+        _ = areaId;
+
+        return await _resolver.ResolveForDiscoveryAsync(
             new GeographicScopeRequest
             {
                 CityName = cityName,
                 CountryCode = countryCode,
-                AreaId = areaId is { } id && id != Guid.Empty ? AreaId.From(id) : null,
                 Latitude = latitude,
                 Longitude = longitude,
                 RadiusKm = radiusKm,
                 Bounds = bounds,
-                UserId = viewerId,
-
-                // Lenient: a city name the catalogue does not know should narrow nothing rather
-                // than fail the browse. A marketplace that errors because somebody typed
-                // "Manchestor" is worse than one that shows the country's listings.
-                StrictCityResolution = false
+                UserId = viewerId
             },
             cancellationToken);
+    }
 
     /// <summary>
     /// Turns a resolved scope into the geographic half of a listing filter.
-    /// <para>
-    /// Country and area path, because that is what the listing table indexes. An unbounded scope
-    /// narrows nothing, which is "everywhere" rather than "nowhere", per B4's own flag.
-    /// </para>
+    /// <list type="bullet">
+    /// <item><b>A viewport</b>: the listings pinned inside it.</item>
+    /// <item><b>A circle</b>: the listings pinned inside the rectangle around it (corners trimmed
+    /// by <see cref="WithinCircle"/>), unpinned listings in the town the request named, and
+    /// listings that ship.</item>
+    /// <item><b>A town</b>: the country and the town's name, either letter case.</item>
+    /// <item><b>A country</b>: the country.</item>
+    /// </list>
+    /// An unbounded scope narrows nothing, which is "everywhere" rather than "nowhere".
     /// </summary>
     public static ListingQueryFilter Apply(ListingQueryFilter filter, GeographicScope scope)
     {
@@ -95,39 +107,75 @@ public sealed class MarketplaceGeographicScopeAdapter
             return filter;
         }
 
-        var narrowed = filter;
-
-        if (scope.CountryCode is { } country)
+        var narrowed = filter with
         {
-            narrowed = narrowed with { CountryCode = country.Value };
-        }
+            CountryCode = scope.CountryCode?.Value ?? filter.CountryCode,
+            AreaPathPrefix = null,
+            AreaPathAncestors = null
+        };
 
-        // A viewport. This module deliberately stores no coordinate — a second-hand item is at
-        // somebody's home, not at a published point — so a rectangle becomes the smallest
-        // catalogue subtree containing it, plus that subtree's ancestors.
-        if (scope is { IsViewport: true, ViewportPath: { } viewport })
+        if (scope is { IsViewport: true, Bounds: { } viewport })
         {
             return narrowed with
             {
-                AreaPathPrefix = viewport.Value,
-                AreaPathAncestors = scope.ViewportAncestorPaths
-                    .Select(ancestor => ancestor.Value)
-                    .ToList()
+                CityName = null,
+                MinLatitude = viewport.South,
+                MaxLatitude = viewport.North,
+                MinLongitude = viewport.West,
+                MaxLongitude = viewport.East,
+                IncludeShippingOutsideBox = false
             };
         }
 
-        // B4's materialised path, matched as a prefix. The listing stores the same string precisely
-        // so this is an indexed LIKE rather than a hierarchy walk.
-        if (scope.Path is { } path)
+        if (scope.IsAroundPoint && scope.Bounds is { } circle)
         {
-            narrowed = narrowed with { AreaPathPrefix = path.Value };
-        }
-        else if (scope.CityName is { Length: > 0 } city)
-        {
-            narrowed = narrowed with { CityName = city };
+            return narrowed with
+            {
+                CityName = null,
+                UnpinnedCityName = scope.CityName,
+                MinLatitude = circle.South,
+                MaxLatitude = circle.North,
+                MinLongitude = circle.West,
+                MaxLongitude = circle.East,
+                IncludeShippingOutsideBox = true
+            };
         }
 
-        return narrowed;
+        return narrowed with
+        {
+            CityName = scope.Radius.Scope == RadiusScope.Country
+                ? null
+                : scope.CityName ?? filter.CityName
+        };
+    }
+
+    /// <summary>
+    /// The listings inside a circle search's circle: the repository answered the rectangle around
+    /// it, and this drops the corners with Location's own distance. A listing with no pin passed
+    /// by naming the town or by shipping, and is kept.
+    /// </summary>
+    public IReadOnlyList<MarketplaceListing> WithinCircle(
+        GeographicScope scope, IReadOnlyList<MarketplaceListing> listings)
+    {
+        ArgumentNullException.ThrowIfNull(scope);
+        ArgumentNullException.ThrowIfNull(listings);
+
+        if (!scope.IsAroundPoint || scope.Center is not { } origin)
+        {
+            return listings;
+        }
+
+        var edge = scope.Radius.Distance.Kilometers;
+
+        return
+        [
+            .. listings.Where(listing =>
+                listing.Fulfillment.OffersShipping
+                || listing.Latitude is not { } lat
+                || listing.Longitude is not { } lng
+                || GeoCoordinate.TryCreate(lat, lng) is not { IsSuccess: true } point
+                || _directory.DistanceBetween(origin, point.Value).Kilometers <= edge)
+        ];
     }
 
     /// <summary>

@@ -77,7 +77,7 @@ public sealed class SearchJobsQueryHandler
             new KeyValuePair<string, object?>(
                 "has_term", !string.IsNullOrWhiteSpace(request.Query)));
 
-        var searchRequest = await ApplyGeographyAsync(
+        var (searchRequest, circle) = await ApplyGeographyAsync(
             ToSearchRequest(request), request, cancellationToken);
 
         var outcome = await _engine.SearchAsync(searchRequest, cancellationToken);
@@ -100,9 +100,8 @@ public sealed class SearchJobsQueryHandler
 
         var postings = await _postings.GetManyAsync(ids, cancellationToken);
 
-        var visible = postings
-            .Where(posting => posting.IsDiscoverable)
-            .ToList();
+        var visible = _geography.WithinCircle(
+            [.. postings.Where(posting => posting.IsDiscoverable)], circle);
 
         // The engine's order, preserved. It knows why it ranked as it did; this does not.
         var order = outcome.Hits
@@ -130,14 +129,12 @@ public sealed class SearchJobsQueryHandler
     }
 
     /// <summary>
-    /// Narrows the search request to whatever geography the client sent, through B4.
+    /// Narrows the search request to whatever geography the client sent, through B4, without the
+    /// place catalogue (14 Oct 2026).
     /// <para>
-    /// <b>Only when the client asked something the raw strings cannot answer.</b> A browse by
-    /// country or by city name is already served by the columns the posting table indexes, and
-    /// sending it through the resolver would add a catalogue round trip to the most common
-    /// request on the module for no change in the result. A viewport or an area id is the case
-    /// that genuinely needs resolving, and until this phase there was no route by which one could
-    /// arrive: <c>JobGeographicScopeAdapter</c> was registered in DI and called from nowhere.
+    /// <b>Only when the client sent a point, a viewport or a town</b> — a town is matched in either
+    /// letter case. A browse by country alone is already served by the column the posting table
+    /// indexes. The area id old app builds still send narrows nothing.
     /// </para>
     /// <para>
     /// No B4 type appears in this method, and that is enforced —
@@ -145,14 +142,16 @@ public sealed class SearchJobsQueryHandler
     /// nothing else, so the adapter takes raw values and hands back a narrowed request.
     /// </para>
     /// </summary>
-    private async Task<JobSearchRequest> ApplyGeographyAsync(
+    private async Task<(JobSearchRequest Search, JobSearchCircle? Circle)> ApplyGeographyAsync(
         JobSearchRequest searchRequest,
         Contracts.V1.Requests.SearchJobsRequest request,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request.Bounds) && request.AreaId is null)
+        if (string.IsNullOrWhiteSpace(request.Bounds)
+            && (request.Latitude is null || request.Longitude is null)
+            && string.IsNullOrWhiteSpace(request.CityName))
         {
-            return searchRequest;
+            return (searchRequest, null);
         }
 
         return await _geography.NarrowAsync(
@@ -160,6 +159,9 @@ public sealed class SearchJobsQueryHandler
             request.CityName,
             request.CountryCode,
             request.AreaId,
+            request.Latitude,
+            request.Longitude,
+            request.RadiusKm,
             request.Bounds,
             _authorization.CallerId,
             cancellationToken);

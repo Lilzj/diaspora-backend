@@ -176,10 +176,16 @@ public sealed class LocationModule : IPlatformModule
         services.AddScoped<IResidencyDirectory, ResidencyDirectory>();
         services.AddScoped<IGeographicScopeResolver, GeographicScopeResolver>();
 
-        // Filing a row under the area it is in. The seam four verticals call on create and update,
-        // and the sweep that files what was written before they did.
+        // Filing a row under the area it is in. Kept registered for the catalogue's own remaining
+        // uses until Phase 3 removes it.
+        //
+        // ── 14 Oct 2026: AreaFilingSweep is no longer hosted ─────────────────────────────────
+        //
+        // The owner retired the place catalogue for discovery: every vertical is filed and found
+        // by its coordinates, its country and the town its owner typed. Nothing writes an area id
+        // or path on create or update any more, and the sweep that back-filed them would only
+        // keep writing data nothing reads. The class stays until Phase 3 deletes it.
         services.AddScoped<IAreaLocator, AreaLocator>();
-        services.AddHostedService<Infrastructure.Hosting.AreaFilingSweep>();
     }
 
     private static void RegisterSeeding(IServiceCollection services)

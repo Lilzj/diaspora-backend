@@ -64,12 +64,12 @@ public sealed class CommunityNearbyResourceProvider : INearbyResourceProvider
             // Nearby is a public surface. Only public content is contributed, because Location's
             // nearby endpoint has no notion of a viewer's audience and B6 must not assume one.
             AllowedVisibility = [VisibilityLevel.Public],
-            CountryCode = request.CountryCode.Value,
+            CountryCode = request.CountryCode?.Value,
 
-            // A city- or country-wide search is a hierarchy question and keeps the node narrowing.
-            AreaId = circle ? null : request.AreaId?.Value,
-            HierarchyPathPrefix = circle ? null : request.WithinPath?.Value,
+            // A town- or country-wide search is the town's name and the country — never a
+            // catalogue node (14 Oct 2026). A circle keeps unpinned posts in the town it named.
             CityName = circle ? null : request.CityName,
+            UnpinnedCityName = circle ? request.CityName : null,
             BoundingBox = circle
                 ? (request.Search.Bounds.South, request.Search.Bounds.West,
                     request.Search.Bounds.North, request.Search.Bounds.East)

@@ -47,6 +47,14 @@ public sealed record FeedRequest
 
     public double? RadiusKm { get; init; }
 
+    /// <summary>
+    /// The rectangle around a circle search, as Location resolved it (14 Oct 2026): south-west
+    /// and north-east corners. Null when the request was not a circle; a provider that needs one
+    /// and finds none derives it from the point.
+    /// </summary>
+    public (double MinLatitude, double MinLongitude, double MaxLatitude, double MaxLongitude)?
+        BoundingBox { get; init; }
+
     public PostCategory? Category { get; init; }
 
     public UrgencyLevel? MinimumUrgency { get; init; }

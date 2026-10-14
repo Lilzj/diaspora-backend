@@ -30,7 +30,6 @@ public sealed class UpdateProviderDetailsCommandHandler
     private readonly IUnitOfWork _unitOfWork;
     private readonly ProviderAuthorizationService _authorization;
     private readonly GeographicScopeAdapter _geography;
-    private readonly ProviderAreaFiling _filing;
     private readonly ProviderReadContextBuilder _contexts;
     private readonly ProviderMapper _mapper;
     private readonly IGuidGenerator _guids;
@@ -41,7 +40,6 @@ public sealed class UpdateProviderDetailsCommandHandler
         IUnitOfWork unitOfWork,
         ProviderAuthorizationService authorization,
         GeographicScopeAdapter geography,
-        ProviderAreaFiling filing,
         ProviderReadContextBuilder contexts,
         ProviderMapper mapper,
         IGuidGenerator guids,
@@ -51,7 +49,6 @@ public sealed class UpdateProviderDetailsCommandHandler
         _unitOfWork = unitOfWork;
         _authorization = authorization;
         _geography = geography;
-        _filing = filing;
         _contexts = contexts;
         _mapper = mapper;
         _guids = guids;
@@ -230,7 +227,8 @@ public sealed class UpdateProviderDetailsCommandHandler
         var resolved = ProviderPlacement.FromScope(
             scope.Value, cityName, latitude, longitude, addressLine, postalCode);
 
-        return Result.Success(await _filing.FileAsync(resolved, cityName, cancellationToken));
+        // Not filed under a catalogue area (14 Oct 2026); see RegisterProviderCommandHandler.
+        return Result.Success(resolved);
     }
 }
 

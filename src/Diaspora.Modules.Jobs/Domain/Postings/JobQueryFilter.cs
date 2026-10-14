@@ -46,6 +46,33 @@ public sealed record JobQueryFilter
     /// </summary>
     public IReadOnlyCollection<string>? AreaPathAncestors { get; init; }
 
+    /// <summary>
+    /// A rectangle over the posting's own coordinates: a map viewport, or the rectangle around a
+    /// circle search (14 Oct 2026). A posting with no coordinates is outside it unless it names
+    /// <see cref="UnpinnedCityName"/>.
+    /// </summary>
+    public double? MinLatitude { get; init; }
+
+    public double? MaxLatitude { get; init; }
+
+    public double? MinLongitude { get; init; }
+
+    public double? MaxLongitude { get; init; }
+
+    /// <summary>
+    /// With a rectangle: a town whose unpinned postings are kept, compared case-insensitively.
+    /// Postings predate the pin, and a circle search that also named a town still finds them.
+    /// </summary>
+    public string? UnpinnedCityName { get; init; }
+
+    /// <summary>Whether all four edges of the rectangle are set.</summary>
+    public bool HasBoundingBox =>
+        MinLatitude is not null && MaxLatitude is not null
+        && MinLongitude is not null && MaxLongitude is not null;
+
+    /// <summary>Whether the rectangle wraps across ±180°.</summary>
+    public bool BoundingBoxCrossesAntimeridian => HasBoundingBox && MinLongitude > MaxLongitude;
+
     public string? CategoryKey { get; init; }
 
     /// <summary>A normalised tag slug.</summary>

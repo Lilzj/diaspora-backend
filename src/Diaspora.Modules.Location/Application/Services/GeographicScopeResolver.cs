@@ -146,6 +146,174 @@ public sealed class GeographicScopeResolver : IGeographicScopeResolver
     }
 
     /// <summary>
+    /// The radius a city-wide search around a point uses when the request named no town to match.
+    /// <para>
+    /// Without the catalogue there is no "the town this point is in", and a city-wide search with
+    /// only a point is answered as a generous circle rather than as everywhere.
+    /// </para>
+    /// </summary>
+    public const double CityWideFallbackKilometers = 25d;
+
+    /// <inheritdoc />
+    public async Task<Result<GeographicScope>> ResolveForDiscoveryAsync(
+        GeographicScopeRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var radius = SearchRadius.FromClientValue(request.RadiusKm);
+
+        if (radius.IsFailure)
+        {
+            return Result.Failure<GeographicScope>(radius.Error);
+        }
+
+        var countryCode = ParseCountry(request.CountryCode);
+        var cityName = string.IsNullOrWhiteSpace(request.CityName) ? null : request.CityName.Trim();
+
+        // 0. A viewport is its box. The country, when the request named one, still narrows.
+        if (!string.IsNullOrWhiteSpace(request.Bounds))
+        {
+            var box = BoundingBox.TryParse(request.Bounds);
+
+            if (box.IsFailure)
+            {
+                return Result.Failure<GeographicScope>(box.Error);
+            }
+
+            return Result.Success(new GeographicScope
+            {
+                CountryCode = countryCode,
+                Center = box.Value.Center,
+                Radius = radius.Value,
+                Bounds = box.Value,
+                IsViewport = true
+            });
+        }
+
+        // 1. A point. The request's AreaId is deliberately not consulted — see the interface.
+        if (request.Latitude is not null && request.Longitude is not null)
+        {
+            var coordinate = GeoCoordinate.TryCreate(request.Latitude.Value, request.Longitude.Value);
+
+            if (coordinate.IsFailure)
+            {
+                return Result.Failure<GeographicScope>(coordinate.Error);
+            }
+
+            return Result.Success(AroundPoint(coordinate.Value, radius.Value, countryCode, cityName));
+        }
+
+        // 2. A typed town: the country and the name, nothing the catalogue knows.
+        if (cityName is not null)
+        {
+            return Result.Success(new GeographicScope
+            {
+                CountryCode = countryCode,
+                CityName = cityName,
+                Radius = radius.Value
+            });
+        }
+
+        // 3. The member's own saved location — its point, town and country as stored.
+        if (request.UserId is not null)
+        {
+            var profile = await _profiles.GetByUserAsync(request.UserId, cancellationToken);
+
+            if (profile?.ActiveLocation is { } active)
+            {
+                var effectiveRadius = radius.Value == SearchRadius.Default
+                    ? profile.Preferences.SearchRadius
+                    : radius.Value;
+
+                var savedCity = string.IsNullOrWhiteSpace(active.CityName) ? null : active.CityName.Trim();
+
+                return Result.Success(active.Coordinate is not null
+                    ? AroundPoint(active.Coordinate, effectiveRadius, active.CountryCode, savedCity)
+                    : new GeographicScope
+                    {
+                        CountryCode = active.CountryCode,
+                        CityName = savedCity,
+                        Radius = effectiveRadius
+                    });
+            }
+        }
+
+        // 4. A country, if that is all there was.
+        if (countryCode is not null)
+        {
+            return Result.Success(new GeographicScope
+            {
+                CountryCode = countryCode,
+                Radius = radius.Value
+            });
+        }
+
+        return Result.Success(GeographicScope.Unbounded);
+    }
+
+    /// <summary>
+    /// A point, as a discovery scope: a box and a radius around it, never a node.
+    /// </summary>
+    private GeographicScope AroundPoint(
+        GeoCoordinate coordinate, SearchRadius radius, CountryCode? countryCode, string? cityName)
+    {
+        switch (radius.Scope)
+        {
+            case RadiusScope.City when cityName is not null:
+            {
+                // "This town": the typed name answers it. The centre is kept for distances only.
+                var search = NearbySearch.Create(coordinate, radius, _calculator, countryCode: countryCode);
+
+                return new GeographicScope
+                {
+                    CountryCode = countryCode,
+                    CityName = cityName,
+                    Center = coordinate,
+                    Radius = radius,
+                    Search = search.IsSuccess ? search.Value : null
+                };
+            }
+
+            case RadiusScope.City:
+                radius = SearchRadius.FromKilometers(CityWideFallbackKilometers).Value;
+                break;
+
+            case RadiusScope.Country when countryCode is not null:
+            {
+                var search = NearbySearch.Create(coordinate, radius, _calculator, countryCode: countryCode);
+
+                return new GeographicScope
+                {
+                    CountryCode = countryCode,
+                    Center = coordinate,
+                    Radius = radius,
+                    Search = search.IsSuccess ? search.Value : null
+                };
+            }
+
+            case RadiusScope.Country:
+                // No country named and none to infer: the widest circle the platform answers.
+                radius = SearchRadius.FromKilometers(SearchRadius.MaxKilometers).Value;
+                break;
+        }
+
+        var circle = NearbySearch.Create(coordinate, radius, _calculator, countryCode: countryCode);
+
+        return new GeographicScope
+        {
+            CountryCode = countryCode,
+
+            // Carried, not applied by a circle search: a vertical uses it only to keep rows that
+            // have no coordinates but name the same town.
+            CityName = cityName,
+            Center = coordinate,
+            Radius = radius,
+            Bounds = circle.IsSuccess ? circle.Value.Bounds : null,
+            Search = circle.IsSuccess ? circle.Value : null
+        };
+    }
+
+    /// <summary>
     /// Resolves a map viewport.
     /// <para>
     /// <b>The box is the answer, and the catalogue nodes are a translation of it.</b> A vertical

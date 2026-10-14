@@ -1,5 +1,6 @@
 using Diaspora.Modules.Guides.Contracts.V1.Requests;
 using Diaspora.Modules.Guides.Domain.Guides;
+using Diaspora.Modules.Location.Domain.Enums;
 using Diaspora.Modules.Location.Integration;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Results;
@@ -15,11 +16,9 @@ namespace Diaspora.Modules.Guides.Application.Services;
 /// precisely what B4's contract freeze promises verticals, and this class is B8 taking it up.
 /// </para>
 /// <para>
-/// A guide is jurisdiction-scoped rather than point-scoped — it has a country and optionally
-/// an area, never a coordinate — so applying a scope to a guide query narrows by country, and
-/// finer narrowing (city, area path) happens where the rows are read. The scope's own
-/// resolution is still B4's: "near me" means whatever B4 says it means, identically to every
-/// other vertical.
+/// <b>14 Oct 2026: no catalogue.</b> A guide has a country, the town its author typed and, since
+/// the same day, an optional pin. A circle is answered by the pin and by unpinned guides in the town
+/// the request named; a town by its name in either letter case; a country by the country.
 /// </para>
 /// </summary>
 public sealed class GuideGeographicScopeAdapter
@@ -36,43 +35,59 @@ public sealed class GuideGeographicScopeAdapter
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        return await _resolver.ResolveAsync(
+        // Without the catalogue (14 Oct 2026). The area id old app builds still send is ignored.
+        return await _resolver.ResolveForDiscoveryAsync(
             new GeographicScopeRequest
             {
                 CityName = request.CityName,
                 CountryCode = request.CountryCode,
-                AreaId = request.AreaId is { } areaId ? AreaId.From(areaId) : null,
                 Latitude = request.Latitude,
                 Longitude = request.Longitude,
                 RadiusKm = request.RadiusKm,
-                UserId = viewerId,
-
-                // Lenient: a city name the catalogue does not know should narrow nothing
-                // rather than fail the browse. A guides screen that errors because somebody
-                // typed "Londn" is worse than one that shows the country's guides.
-                StrictCityResolution = false
+                UserId = viewerId
             },
             cancellationToken);
     }
 
     /// <summary>
-    /// Turns a resolved scope into the geographic half of a guide query filter.
-    /// <para>
-    /// Country only, because that is what the filter can translate — the guide table indexes
-    /// jurisdiction, not geometry. An unbounded scope narrows nothing, which is "everywhere"
-    /// rather than "nowhere", per B4's own flag.
-    /// </para>
+    /// Turns a resolved scope into the geographic half of a guide query filter, without the place
+    /// catalogue (14 Oct 2026).
+    /// <list type="bullet">
+    /// <item><b>A circle</b>: guides pinned inside the rectangle around it, and unpinned guides in
+    /// the town the request named.</item>
+    /// <item><b>A town</b>: the country and the town's name, either letter case.</item>
+    /// <item><b>A country</b>: the country.</item>
+    /// </list>
+    /// An unbounded scope narrows nothing, which is "everywhere" rather than "nowhere".
     /// </summary>
     public static GuideQueryFilter Apply(GuideQueryFilter filter, GeographicScope scope)
     {
         ArgumentNullException.ThrowIfNull(filter);
         ArgumentNullException.ThrowIfNull(scope);
 
-        if (scope.IsUnbounded || scope.CountryCode is null)
+        if (scope.IsUnbounded)
         {
             return filter;
         }
 
-        return filter with { CountryCode = scope.CountryCode.Value };
+        var narrowed = filter with { CountryCode = scope.CountryCode?.Value ?? filter.CountryCode };
+
+        if (scope.Bounds is { } box && (scope.IsAroundPoint || scope.IsViewport))
+        {
+            return narrowed with
+            {
+                CityName = null,
+                UnpinnedCityName = scope.IsViewport ? null : scope.CityName,
+                MinLatitude = box.South,
+                MaxLatitude = box.North,
+                MinLongitude = box.West,
+                MaxLongitude = box.East
+            };
+        }
+
+        return narrowed with
+        {
+            CityName = scope.Radius.Scope == RadiusScope.Country ? null : scope.CityName
+        };
     }
 }

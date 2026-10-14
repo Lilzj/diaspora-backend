@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Diaspora.Modules.Providers.Domain.Enums;
 using Diaspora.Modules.Providers.Domain.Identifiers;
 using Diaspora.Modules.Providers.Domain.Providers;
@@ -491,6 +492,21 @@ public sealed class ProviderRepository : IProviderRepository
     /// plain equality.
     /// </para>
     /// </summary>
+    [SuppressMessage(
+        "Globalization", "CA1304:Specify CultureInfo",
+        Justification =
+            "The ToLower calls are inside an expression tree. They are never executed in .NET: EF "
+            + "translates them to SQL lower(), which runs under the database collation. There is no "
+            + "CultureInfo to specify, and passing one would fail to translate.")]
+    [SuppressMessage(
+        "Globalization", "CA1311:Specify a culture or use an invariant version",
+        Justification = "See CA1304. ToLowerInvariant translates identically; neither is executed.")]
+    [SuppressMessage(
+        "Globalization", "CA1862:Use the StringComparison method overloads",
+        Justification =
+            "The StringComparison overloads have no translation on either provider, so they would "
+            + "move the search into memory. Lowering both sides is what makes the match "
+            + "case-insensitive on Postgres, where = is not.")]
     private static IQueryable<Provider> ApplyGeography(
         IQueryable<Provider> query, ProviderQueryFilter filter)
     {
@@ -540,10 +556,12 @@ public sealed class ProviderRepository : IProviderRepository
         }
         else if (!string.IsNullOrWhiteSpace(filter.CityName))
         {
-            var city = filter.CityName.Trim();
+            // Lowered on both sides: Postgres compares text case-sensitively and SQLite does not,
+            // so "mombasa" found "Mombasa" in every test and nothing in production.
+            var city = filter.CityName.Trim().ToLowerInvariant();
 
             query = query.Where(provider =>
-                provider.Location.CityName == city
+                (provider.Location.CityName != null && provider.Location.CityName.ToLower() == city)
                 || (includeRemote && provider.DeliveryMode == ServiceDeliveryMode.Remote));
         }
 
@@ -553,6 +571,13 @@ public sealed class ProviderRepository : IProviderRepository
             var maxLatitude = filter.MaxLatitude!.Value;
             var minLongitude = filter.MinLongitude!.Value;
             var maxLongitude = filter.MaxLongitude!.Value;
+
+            // A provider with no coordinates that names the town the request named (14 Oct 2026):
+            // a circle is answered by coordinates, and most providers predate the pin.
+            var unpinned = string.IsNullOrWhiteSpace(filter.UnpinnedCityName)
+                ? null
+                : filter.UnpinnedCityName.Trim().ToLowerInvariant();
+            var keepUnpinned = unpinned is not null;
 
             // Two branches rather than one predicate carrying a captured bool, so each query
             // shape is a plain pair of range comparisons the planner can still use an index for.
@@ -566,6 +591,10 @@ public sealed class ProviderRepository : IProviderRepository
                         && provider.Location.Latitude <= maxLatitude
                         && (provider.Location.Longitude >= minLongitude
                             || provider.Location.Longitude <= maxLongitude))
+                    || (keepUnpinned
+                        && provider.Location.Latitude == null
+                        && provider.Location.CityName != null
+                        && provider.Location.CityName.ToLower() == unpinned)
                     || (includeRemote && provider.DeliveryMode == ServiceDeliveryMode.Remote))
                 : query.Where(provider =>
                     (provider.Location.Latitude != null
@@ -574,6 +603,10 @@ public sealed class ProviderRepository : IProviderRepository
                         && provider.Location.Latitude <= maxLatitude
                         && provider.Location.Longitude >= minLongitude
                         && provider.Location.Longitude <= maxLongitude)
+                    || (keepUnpinned
+                        && provider.Location.Latitude == null
+                        && provider.Location.CityName != null
+                        && provider.Location.CityName.ToLower() == unpinned)
                     || (includeRemote && provider.DeliveryMode == ServiceDeliveryMode.Remote));
         }
 

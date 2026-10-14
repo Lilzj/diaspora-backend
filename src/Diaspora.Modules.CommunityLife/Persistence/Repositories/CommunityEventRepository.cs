@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Diaspora.Modules.CommunityLife.Domain.CommunityEvents;
 using Diaspora.Modules.CommunityLife.Domain.Enums;
 using Diaspora.Modules.CommunityLife.Domain.Identifiers;
@@ -541,6 +542,21 @@ public sealed class CommunityEventRepository : ICommunityEventRepository
 
     // ── Query composition ───────────────────────────────────────────────────────────────────
 
+    [SuppressMessage(
+        "Globalization", "CA1304:Specify CultureInfo",
+        Justification =
+            "The ToLower calls are inside an expression tree. They are never executed in .NET: EF "
+            + "translates them to SQL lower(), which runs under the database collation. There is no "
+            + "CultureInfo to specify, and passing one would fail to translate.")]
+    [SuppressMessage(
+        "Globalization", "CA1311:Specify a culture or use an invariant version",
+        Justification = "See CA1304. ToLowerInvariant translates identically; neither is executed.")]
+    [SuppressMessage(
+        "Globalization", "CA1862:Use the StringComparison method overloads",
+        Justification =
+            "The StringComparison overloads have no translation on either provider, so they would "
+            + "move the search into memory. Lowering both sides is what makes the match "
+            + "case-insensitive on Postgres, where = is not.")]
     private static IQueryable<CommunityEvent> Apply(
         IQueryable<CommunityEvent> query, EventQueryFilter filter)
     {
@@ -621,8 +637,12 @@ public sealed class CommunityEventRepository : ICommunityEventRepository
 
         if (!string.IsNullOrWhiteSpace(filter.CityName))
         {
-            var city = filter.CityName.Trim();
-            query = query.Where(communityEvent => communityEvent.Location.CityName == city);
+            // Lowered on both sides (14 Oct 2026): Postgres compares text case-sensitively and the
+            // SQLite tests do not.
+            var city = filter.CityName.Trim().ToLowerInvariant();
+            query = query.Where(communityEvent =>
+                communityEvent.Location.CityName != null
+                && communityEvent.Location.CityName.ToLower() == city);
         }
 
         if (filter.NeighborhoodAreaId is { } areaId && areaId != Guid.Empty)
@@ -647,6 +667,12 @@ public sealed class CommunityEventRepository : ICommunityEventRepository
             var west = filter.BoundsWest!.Value;
             var east = filter.BoundsEast!.Value;
 
+            // An event with no venue coordinate in the town a circle search named (14 Oct 2026).
+            var unpinned = string.IsNullOrWhiteSpace(filter.UnpinnedCityName)
+                ? null
+                : filter.UnpinnedCityName.Trim().ToLowerInvariant();
+            var keepUnpinned = unpinned is not null;
+
             // An online-only event has no venue coordinate and is excluded: a map viewport asks
             // what is happening in a rectangle, and a video call is not happening in one.
             //
@@ -654,19 +680,27 @@ public sealed class CommunityEventRepository : ICommunityEventRepository
             // comparisons over the indexed columns.
             query = filter.BoundsCrossAntimeridian
                 ? query.Where(communityEvent =>
-                    communityEvent.Venue.Latitude != null
-                    && communityEvent.Venue.Longitude != null
-                    && communityEvent.Venue.Latitude >= south
-                    && communityEvent.Venue.Latitude <= north
-                    && (communityEvent.Venue.Longitude >= west
-                        || communityEvent.Venue.Longitude <= east))
+                    (communityEvent.Venue.Latitude != null
+                        && communityEvent.Venue.Longitude != null
+                        && communityEvent.Venue.Latitude >= south
+                        && communityEvent.Venue.Latitude <= north
+                        && (communityEvent.Venue.Longitude >= west
+                            || communityEvent.Venue.Longitude <= east))
+                    || (keepUnpinned
+                        && communityEvent.Venue.Latitude == null
+                        && communityEvent.Location.CityName != null
+                        && communityEvent.Location.CityName.ToLower() == unpinned))
                 : query.Where(communityEvent =>
-                    communityEvent.Venue.Latitude != null
-                    && communityEvent.Venue.Longitude != null
-                    && communityEvent.Venue.Latitude >= south
-                    && communityEvent.Venue.Latitude <= north
-                    && communityEvent.Venue.Longitude >= west
-                    && communityEvent.Venue.Longitude <= east);
+                    (communityEvent.Venue.Latitude != null
+                        && communityEvent.Venue.Longitude != null
+                        && communityEvent.Venue.Latitude >= south
+                        && communityEvent.Venue.Latitude <= north
+                        && communityEvent.Venue.Longitude >= west
+                        && communityEvent.Venue.Longitude <= east)
+                    || (keepUnpinned
+                        && communityEvent.Venue.Latitude == null
+                        && communityEvent.Location.CityName != null
+                        && communityEvent.Location.CityName.ToLower() == unpinned));
         }
 
         if (filter.StartsAfter is { } after)

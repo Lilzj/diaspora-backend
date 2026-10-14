@@ -32,7 +32,6 @@ public sealed class UpdateHousingListingCommandHandler
     private readonly IUnitOfWork _unitOfWork;
     private readonly HousingAuthorizationService _authorization;
     private readonly HousingCatalogResolver _catalog;
-    private readonly HousingNeighborhoodResolver _neighborhoods;
     private readonly HousingListingReadContext _read;
 
     public UpdateHousingListingCommandHandler(
@@ -40,14 +39,12 @@ public sealed class UpdateHousingListingCommandHandler
         IUnitOfWork unitOfWork,
         HousingAuthorizationService authorization,
         HousingCatalogResolver catalog,
-        HousingNeighborhoodResolver neighborhoods,
         HousingListingReadContext read)
     {
         _listings = listings;
         _unitOfWork = unitOfWork;
         _authorization = authorization;
         _catalog = catalog;
-        _neighborhoods = neighborhoods;
         _read = read;
     }
 
@@ -117,7 +114,7 @@ public sealed class UpdateHousingListingCommandHandler
             }
         }
 
-        var relocated = await ApplyLocationAsync(listing, request, cancellationToken);
+        var relocated = ApplyLocation(listing, request);
 
         if (relocated.IsFailure)
         {
@@ -253,14 +250,13 @@ public sealed class UpdateHousingListingCommandHandler
             : Result.Success<HousingPrice?>(built.Value);
     }
 
-    private async Task<Result> ApplyLocationAsync(
+    private static Result ApplyLocation(
         HousingListing listing,
-        UpdateHousingListingRequest request,
-        CancellationToken cancellationToken)
+        UpdateHousingListingRequest request)
     {
+        // A neighbourhood area id from an old app build is accepted and ignored (14 Oct 2026).
         var touchedPlace = request.RegionName is not null
-            || request.CityName is not null
-            || request.NeighborhoodAreaId is not null;
+            || request.CityName is not null;
 
         var touchedAddress = request.AddressLine1 is not null
             || request.AddressLine2 is not null
@@ -280,7 +276,7 @@ public sealed class UpdateHousingListingCommandHandler
         var renamedPlace = Changed(request.CityName, listing.Location.CityName)
             || Changed(request.RegionName, listing.Location.RegionName);
 
-        var keepFiling = request.NeighborhoodAreaId is null && !renamedPlace;
+        var keepFiling = !renamedPlace;
 
         var context = HousingLocationContext.Create(
             listing.Location.CountryCode,
@@ -295,23 +291,10 @@ public sealed class UpdateHousingListingCommandHandler
             return Result.Failure(context.Error);
         }
 
-        var resolved = request.NeighborhoodAreaId is { } areaId
-            ? await _neighborhoods.ResolveAsync(context.Value, areaId, cancellationToken)
-            : Result.Success(context.Value);
-
-        if (resolved.IsFailure)
-        {
-            return Result.Failure(resolved.Error);
-        }
-
-        // A listing that predates area filing, or one whose town changed, is filed on this edit —
-        // and one already filed is left where it is, because an owner who chose a neighbourhood
-        // outranks the nearest centre.
-        var placed = await _neighborhoods.FileUnderAreaAsync(
-            resolved.Value,
-            request.Latitude ?? listing.Address.Latitude,
-            request.Longitude ?? listing.Address.Longitude,
-            cancellationToken);
+        // Not filed under a catalogue area (14 Oct 2026): a property is found by its coordinates,
+        // its country and its town. A filing it already carries is kept until the town changes,
+        // and nothing new is written.
+        var placed = context.Value;
 
         PropertyAddress? address = null;
 

@@ -354,6 +354,17 @@ internal sealed record OrganizationSearchParameters
     [FromQuery(Name = "bounds")]
     public string? Bounds { get; init; }
 
+    /// <summary>A point to search around, with <c>longitude</c> and <c>radiusKm</c> (14 Oct 2026).</summary>
+    [FromQuery(Name = "latitude")]
+    public double? Latitude { get; init; }
+
+    [FromQuery(Name = "longitude")]
+    public double? Longitude { get; init; }
+
+    /// <summary>Kilometres, or Location's sentinels: <c>-1</c> this town, <c>-2</c> this country.</summary>
+    [FromQuery(Name = "radiusKm")]
+    public double? RadiusKm { get; init; }
+
     [FromQuery(Name = "verified")]
     public bool? VerifiedOnly { get; init; }
 
@@ -382,8 +393,14 @@ internal sealed record OrganizationSearchParameters
             TypeKeys = TypeKeys,
             CountryCode = CountryCode,
             CityName = CityName,
-            NeighborhoodAreaId = NeighborhoodAreaId,
+
+            // Accepted from old app builds and ignored (14 Oct 2026): a catalogue node narrows no
+            // member's browse. The neighbourhood pages keep their own route until Phase 2.
+            NeighborhoodAreaId = null,
             Bounds = Bounds,
+            Latitude = Latitude,
+            Longitude = Longitude,
+            RadiusKm = RadiusKm,
             VerifiedOnly = VerifiedOnly,
             FeaturedOnly = FeaturedOnly,
             AcceptingMembers = AcceptingMembers,

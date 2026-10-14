@@ -183,10 +183,11 @@ public sealed class DuplicateHousingListingCommandHandler
             return Result.Failure<HousingListingResponse>(availability.Error);
         }
 
+        // The copy carries the place as the landlord wrote it, and no catalogue filing
+        // (14 Oct 2026): nothing new writes an area id or path.
         var location = HousingLocationContext.Create(
             source.Location.CountryCode, source.Location.RegionName, source.Location.CityName,
-            source.Location.NeighborhoodName, source.Location.NeighborhoodAreaId,
-            source.Location.AreaPath);
+            source.Location.NeighborhoodName, neighborhoodAreaId: null, areaPath: null);
 
         if (location.IsFailure)
         {
@@ -262,7 +263,7 @@ public sealed class DuplicateHousingListingCommandHandler
                 landlord.Value.Id,
                 source.Location.CountryCode,
                 type.Value.Key,
-                source.Location.NeighborhoodAreaId,
+                null,
                 now),
             cancellationToken);
 

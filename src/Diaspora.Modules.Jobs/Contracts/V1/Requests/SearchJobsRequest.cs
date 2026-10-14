@@ -21,17 +21,25 @@ public sealed record SearchJobsRequest
 
     public string? CityName { get; init; }
 
-    /// <summary>Location's area identifier, for a scoped browse.</summary>
+    /// <summary>
+    /// Location's area identifier. Accepted from old app builds and ignored since 14 Oct 2026: a
+    /// catalogue node narrows no search.
+    /// </summary>
     public Guid? AreaId { get; init; }
 
     /// <summary>
-    /// A map viewport: <c>north,south,east,west</c>.
-    /// <para>
-    /// A posting is filed against a jurisdiction rather than a point, so B4 resolves the
-    /// rectangle to the smallest catalogue subtree containing it and this module narrows by that.
-    /// A job in London stays visible when the member zooms into one street of it, which is the
-    /// answer a job board has to give.
-    /// </para>
+    /// A point to search around, with <see cref="Longitude"/> and <see cref="RadiusKm"/>: postings
+    /// pinned inside the circle, plus unpinned postings in <see cref="CityName"/> when one is given.
+    /// </summary>
+    public double? Latitude { get; init; }
+
+    public double? Longitude { get; init; }
+
+    /// <summary>Kilometres, or Location's sentinels: <c>-1</c> this town, <c>-2</c> this country.</summary>
+    public double? RadiusKm { get; init; }
+
+    /// <summary>
+    /// A map viewport: <c>north,south,east,west</c>. Answered by the postings pinned inside it.
     /// </summary>
     public string? Bounds { get; init; }
 

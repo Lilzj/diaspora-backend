@@ -176,7 +176,9 @@ public sealed class SearchHousingQueryHandler
         Text = request.Query,
         CountryCode = request.CountryCode,
         CityName = request.City,
-        NeighborhoodAreaId = request.NeighborhoodAreaId,
+        // Accepted from old app builds and ignored (14 Oct 2026): a catalogue node narrows no
+        // member's search. The neighbourhood pages keep their own routes until Phase 2.
+        NeighborhoodAreaId = null,
 
         AccommodationTypeKeys = request.AccommodationTypes,
         LeaseTypes = ParseMany<LeaseType>(request.LeaseTypes),

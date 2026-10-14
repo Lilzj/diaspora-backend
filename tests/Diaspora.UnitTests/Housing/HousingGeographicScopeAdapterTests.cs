@@ -60,11 +60,12 @@ public class HousingGeographicScopeAdapterTests
     }
 
     /// <summary>
-    /// The other direction. A path below the root is a real narrowing and must survive, or the fix
-    /// would have turned "housing in Peckham" into "housing in the United Kingdom".
+    /// A catalogue path below the root narrows nothing either — 14 Oct 2026. The owner retired the
+    /// place catalogue for discovery; a home is found by its coordinates, its country and its
+    /// town's name, and a scope that still carries a path (from an old caller) must not filter by it.
     /// </summary>
     [Fact]
-    public void A_path_below_the_root_still_narrows_by_area_path()
+    public void A_path_below_the_root_no_longer_narrows_anything()
     {
         var path = HierarchyPath.ForRoot("GB").Append("GB-LND").Value.Append("peckham").Value;
 
@@ -76,22 +77,9 @@ public class HousingGeographicScopeAdapterTests
 
         var filter = HousingGeographicScopeAdapter.Apply(Empty, scope);
 
-        filter.AreaPathPrefix.Should().Be(path.Value);
-    }
-
-    /// <summary>A single level below the root is still below it. The boundary is one separator.</summary>
-    [Fact]
-    public void One_level_below_the_root_is_not_treated_as_a_root()
-    {
-        var path = HierarchyPath.ForRoot("GB").Append("GB-LND").Value;
-
-        var scope = new GeographicScope
-        {
-            CountryCode = CountryCode.TryCreate("GB").Value,
-            Path = path
-        };
-
-        HousingGeographicScopeAdapter.Apply(Empty, scope).AreaPathPrefix.Should().Be(path.Value);
+        filter.AreaPathPrefix.Should().BeNull();
+        filter.AreaPathCityFallback.Should().BeNull();
+        filter.CountryCode.Should().Be("GB");
     }
 
     /// <summary>

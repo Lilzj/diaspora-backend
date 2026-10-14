@@ -54,10 +54,17 @@ public sealed class ProviderNearbyResourceProvider : INearbyResourceProvider
             // Location's nearby endpoint has no notion of a viewer's audience and B7 must not
             // assume one on its behalf.
             AllowedVisibility = [ProviderVisibilityLevel.Public],
-            CountryCode = request.CountryCode.Value,
-            AreaId = request.AreaId?.Value,
-            HierarchyPathPrefix = request.WithinPath?.Value,
-            CityName = request.CityName,
+            CountryCode = request.CountryCode?.Value,
+
+            // No catalogue node (14 Oct 2026). A circle is its rectangle over the provider's own
+            // coordinates, with providers that have none kept when they name the requested town;
+            // a town- or country-wide search is the town's name and the country.
+            CityName = request.IsCircle ? null : request.CityName,
+            UnpinnedCityName = request.IsCircle ? request.CityName : null,
+            MinLatitude = request.IsCircle ? request.Search.Bounds.South : null,
+            MaxLatitude = request.IsCircle ? request.Search.Bounds.North : null,
+            MinLongitude = request.IsCircle ? request.Search.Bounds.West : null,
+            MaxLongitude = request.IsCircle ? request.Search.Bounds.East : null,
             Sort = ProviderSortOrder.Rating,
             Limit = Math.Min(request.Limit, ProviderLimits.MaxNearbyResults)
         };
@@ -65,8 +72,18 @@ public sealed class ProviderNearbyResourceProvider : INearbyResourceProvider
         var page = await _providers.QueryAsync(filter, cancellationToken);
 
         var origin = request.Search.Center;
+        var edge = request.Search.Radius.Distance.Kilometers;
 
         var items = page.Items
+            // The rectangle's corners are not in the circle. A provider with no position is kept:
+            // it matched by serving remotely or by naming the town.
+            .Where(provider => !request.IsCircle
+                || !provider.Location.HasCoordinates
+                || _location.DistanceBetween(
+                    origin,
+                    Modules.Location.Domain.ValueObjects.GeoCoordinate.Create(
+                        provider.Location.Latitude!.Value,
+                        provider.Location.Longitude!.Value)).Kilometers <= edge)
             .Select(provider => new NearbyResourceItem
             {
                 Id = provider.Id.Value.ToString(),

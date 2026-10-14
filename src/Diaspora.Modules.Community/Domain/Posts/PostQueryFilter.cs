@@ -66,6 +66,12 @@ public sealed record PostQueryFilter
     public (double MinLatitude, double MinLongitude, double MaxLatitude, double MaxLongitude)?
         BoundingBox { get; init; }
 
+    /// <summary>
+    /// With <see cref="BoundingBox"/>: a town whose posts with no coordinates are kept, compared
+    /// case-insensitively. A circle search that also named a town still finds them (14 Oct 2026).
+    /// </summary>
+    public string? UnpinnedCityName { get; init; }
+
     /// <summary>True narrows to posts that declared an affected area. The nearby query's second look.</summary>
     public bool? HasAffectedArea { get; init; }
 

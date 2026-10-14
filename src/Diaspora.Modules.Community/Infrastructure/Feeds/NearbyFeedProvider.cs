@@ -35,21 +35,37 @@ public sealed class NearbyFeedProvider : PostFeedProvider
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        return request.HasCoordinates || request.AreaId is not null || request.CityName is not null;
+        // No catalogue area (14 Oct 2026): a point or a typed town.
+        return request.HasCoordinates || !string.IsNullOrWhiteSpace(request.CityName);
     }
 
+    /// <summary>
+    /// A circle is the rectangle around it over the posts' own coordinates, with unpinned posts in
+    /// the town the request named; a town- or country-wide search (a negative radius sentinel) is
+    /// the town's name and the country. Never the catalogue node the point is nearest — until
+    /// 14 Oct 2026 a feed with coordinates was narrowed to exactly that node's area id, so a post
+    /// pinned in the next street, filed against a different node or none, was not "nearby".
+    /// </summary>
     protected override PostQueryFilter Narrow(PostQueryFilter filter, FeedRequest request)
     {
+        var aroundPoint = request.HasCoordinates && request.RadiusKm is not < 0;
+
         var narrowed = filter with
         {
             CountryCode = request.CountryCode,
-            AreaId = request.AreaId,
-            CityName = request.CityName
+            AreaId = null,
+            HierarchyPathPrefix = null,
+            CityName = aroundPoint ? null : request.CityName
         };
 
-        if (!request.HasCoordinates)
+        if (!aroundPoint)
         {
             return narrowed;
+        }
+
+        if (request.BoundingBox is { } resolved)
+        {
+            return narrowed with { BoundingBox = resolved, UnpinnedCityName = request.CityName };
         }
 
         var radiusKm = request.RadiusKm is > 0 ? request.RadiusKm.Value : DefaultRadiusKm;
@@ -65,6 +81,7 @@ public sealed class NearbyFeedProvider : PostFeedProvider
 
         return narrowed with
         {
+            UnpinnedCityName = request.CityName,
             BoundingBox = (
                 latitude - latitudeDelta,
                 longitude - longitudeDelta,
@@ -72,4 +89,5 @@ public sealed class NearbyFeedProvider : PostFeedProvider
                 longitude + longitudeDelta)
         };
     }
+
 }

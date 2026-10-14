@@ -24,11 +24,9 @@ namespace Diaspora.Modules.Providers.Application.Services;
 /// comes from <c>ILocationDirectory</c>.
 /// </para>
 /// <para>
-/// The ancestor-path list is the other thing that happens here, and it exists because
-/// containment runs in two directions: "provider inside London" is a prefix match on the
-/// provider's own path, while "service area covers Peckham" needs every ancestor of the request
-/// enumerated so the query can be an indexed <c>IN</c>. See
-/// <c>ProviderQueryFilter.AncestorHierarchyPaths</c>.
+/// <b>14 Oct 2026: no catalogue.</b> Discovery is answered from the provider's coordinates, its
+/// country and the town its owner typed; no area id or path narrows a search, and none is written
+/// when a provider is placed. See <see cref="Apply"/>.
 /// </para>
 /// </summary>
 public sealed class GeographicScopeAdapter
@@ -48,22 +46,18 @@ public sealed class GeographicScopeAdapter
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        return await _resolver.ResolveAsync(
+        // Without the catalogue (14 Oct 2026). The request's area id, which old app builds still
+        // send, is not passed: it must narrow nothing.
+        return await _resolver.ResolveForDiscoveryAsync(
             new GeographicScopeRequest
             {
                 CityName = request.CityName,
                 CountryCode = request.CountryCode,
-                AreaId = request.AreaId is { } areaId ? AreaId.From(areaId) : null,
                 Latitude = request.Latitude,
                 Longitude = request.Longitude,
                 RadiusKm = request.RadiusKm,
                 Bounds = request.Bounds,
-                UserId = viewerId,
-
-                // Lenient: a city name the catalogue does not know should narrow nothing rather
-                // than fail the browse. A discovery screen that errors because somebody typed
-                // "Londn" is worse than one that shows everything.
-                StrictCityResolution = false
+                UserId = viewerId
             },
             cancellationToken);
     }
@@ -74,48 +68,35 @@ public sealed class GeographicScopeAdapter
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        return await _resolver.ResolveAsync(
+        // Without the catalogue (14 Oct 2026). A provider is stored at the owner's pin, country
+        // and typed town; a town the catalogue does not hold is no longer refused, because nothing
+        // finds a provider through the catalogue any more.
+        return await _resolver.ResolveForDiscoveryAsync(
             new GeographicScopeRequest
             {
                 CityName = request.CityName,
                 CountryCode = request.CountryCode,
-                AreaId = request.AreaId is { } areaId ? AreaId.From(areaId) : null,
                 Latitude = request.Latitude,
                 Longitude = request.Longitude,
-                UserId = ownerId,
-
-                // Strict here, and lenient above, on purpose. A search that silently ignores a
-                // bad city shows too much; a provider stored against a city that does not exist
-                // is invisible forever and nobody finds out why.
-                StrictCityResolution = true
+                UserId = ownerId
             },
             cancellationToken);
     }
 
     /// <summary>
-    /// Turns a resolved scope into the geographic half of a query filter.
-    /// <para>
-    /// The bounding box is taken from B4's own <c>Bounds</c> when it computed one. B7 never
-    /// derives a rectangle from a radius itself — that calculation has an antimeridian case and a
-    /// latitude-convergence case, and B4 has both and a test suite for them.
-    /// </para>
+    /// The geographic half of a provider filter, from a discovery scope — no catalogue node, no
+    /// path (14 Oct 2026).
+    /// <list type="bullet">
+    /// <item><b>A circle</b>: the rectangle around it over the provider's coordinates (corners
+    /// trimmed by <see cref="WithinRadius"/>), plus providers with no coordinates in the town the
+    /// request named.</item>
+    /// <item><b>A viewport</b>: the rectangle, and no remote providers.</item>
+    /// <item><b>A town</b>: the country and the town's name, either letter case.</item>
+    /// <item><b>A country</b>: the country.</item>
+    /// </list>
     /// </summary>
-    public Task<ProviderQueryFilter> ApplyAsync(
-        ProviderQueryFilter filter, GeographicScope scope, CancellationToken cancellationToken = default) =>
-        ApplyAsync(filter, scope, aroundPoint: false, cancellationToken);
-
-    /// <param name="filter">The filter so far.</param>
-    /// <param name="scope">What the resolver made of the request's geography.</param>
-    /// <param name="aroundPoint">
-    /// Whether the request itself carried coordinates. The resolver gives a town search a centre
-    /// and a default radius of its own, and a town search must stay a town search.
-    /// </param>
-    /// <param name="cancellationToken">Cancels the area lookup.</param>
-    public async Task<ProviderQueryFilter> ApplyAsync(
-        ProviderQueryFilter filter,
-        GeographicScope scope,
-        bool aroundPoint,
-        CancellationToken cancellationToken = default)
+    public static ProviderQueryFilter Apply(
+        ProviderQueryFilter filter, GeographicScope scope, bool aroundPoint)
     {
         ArgumentNullException.ThrowIfNull(filter);
         ArgumentNullException.ThrowIfNull(scope);
@@ -125,18 +106,38 @@ public sealed class GeographicScopeAdapter
             return filter;
         }
 
-        // ── A radius around the member — 15 Sep 2026 ─────────────────────────────────────────
-        //
-        // The resolver snaps a point to the nearest catalogued town and hands back that town's
-        // path, and the path used to be applied on top of the circle's rectangle — so "within
-        // 25 km" meant "inside the nearest town, and within 25 km". A radius is answered by the
-        // rectangle alone here, and the corners are trimmed by WithinRadius with Location's own
-        // distance.
-        if (aroundPoint && scope is { IsViewport: false, Center: not null, Radius.Scope: RadiusScope.Radius, Bounds: { } circle })
+        var narrowed = filter with
         {
-            return filter with
+            CountryCode = scope.CountryCode?.Value ?? filter.CountryCode,
+            AreaId = null,
+            HierarchyPathPrefix = null,
+            AncestorHierarchyPaths = null
+        };
+
+        if (scope is { IsViewport: true, Bounds: { } viewport })
+        {
+            return narrowed with
             {
-                CountryCode = scope.CountryCode?.Value,
+                CityName = null,
+                MinLatitude = viewport.South,
+                MaxLatitude = viewport.North,
+                MinLongitude = viewport.West,
+                MaxLongitude = viewport.East,
+
+                // A viewport asks what is inside a rectangle, and a remote provider is not inside
+                // anything. Including them — which is right for a radius search, where "I'll do it
+                // over video" is a real answer to "who is near me" — would put every remote
+                // provider on the platform behind a map the member panned to one street of.
+                IncludeRemoteProviders = false
+            };
+        }
+
+        if (aroundPoint && scope.IsAroundPoint && scope.Bounds is { } circle)
+        {
+            return narrowed with
+            {
+                CityName = null,
+                UnpinnedCityName = scope.CityName,
                 MinLatitude = circle.South,
                 MaxLatitude = circle.North,
                 MinLongitude = circle.West,
@@ -144,38 +145,15 @@ public sealed class GeographicScopeAdapter
             };
         }
 
-        // B4 supplies the path whenever the scope resolved through the catalogue, but a scope
-        // built from an explicit area id the client already held arrives with the id and no path.
-        // Fetching it here rather than leaving it null is the difference between a subtree
-        // filter and a single-node one — and a member searching "London" who only sees providers
-        // filed against London itself, and none in Peckham, would have no way to tell why.
-        var path = scope.Path?.Value;
-
-        if (path is null && scope.AreaId is { } areaId)
+        // A town or a country. Not the town for a country-wide search: a point's own town is not
+        // part of "the whole country".
+        return narrowed with
         {
-            var area = await _directory.FindAreaAsync(areaId, cancellationToken);
-            path = area?.Path.Value;
-        }
-
-        var ancestors = path is null ? null : AncestorPaths(path);
-
-        return filter with
-        {
-            CountryCode = scope.CountryCode?.Value,
-            AreaId = scope.AreaId?.Value,
-            HierarchyPathPrefix = path,
-            AncestorHierarchyPaths = ancestors,
-            CityName = scope.CityName,
-            MinLatitude = scope.Bounds?.South,
-            MaxLatitude = scope.Bounds?.North,
-            MinLongitude = scope.Bounds?.West,
-            MaxLongitude = scope.Bounds?.East,
-
-            // A viewport asks what is inside a rectangle, and a remote provider is not inside
-            // anything. Including them — which is right for a radius search, where "I'll do it
-            // over video" is a real answer to "who is near me" — would put every remote provider
-            // on the platform behind a map the member panned to one street of.
-            IncludeRemoteProviders = !scope.IsViewport && filter.IncludeRemoteProviders
+            CityName = scope.Radius.Scope == RadiusScope.Country ? null : scope.CityName,
+            MinLatitude = null,
+            MaxLatitude = null,
+            MinLongitude = null,
+            MaxLongitude = null
         };
     }
 
@@ -236,18 +214,9 @@ public sealed class GeographicScopeAdapter
     }
 
     /// <summary>
-    /// Every ancestor path of a node, itself included.
-    /// <para>
-    /// Derived from the path string rather than by walking the catalogue, because that is the
-    /// whole point of a materialised path: <c>/gb/london/southwark/peckham/</c> already contains
-    /// <c>/gb/</c>, <c>/gb/london/</c> and <c>/gb/london/southwark/</c>, and asking Location for
-    /// them would be four round trips to recover information already in hand.
-    /// </para>
-    /// </summary>
-    /// <summary>
     /// The providers inside a radius search's circle: the repository answered the rectangle around
     /// it, and this drops the corners. A provider with no position passed the rectangle only
-    /// because it serves remotely, and is kept.
+    /// because it serves remotely or names the requested town, and is kept.
     /// </summary>
     public static IReadOnlyList<Provider> WithinRadius(
         GeographicScope scope,
@@ -272,20 +241,5 @@ public sealed class GeographicScopeAdapter
             .. providers.Where(provider =>
                 !distances.TryGetValue(provider.Id.Value, out var kilometres) || kilometres <= limit)
         ];
-    }
-
-    private static List<string> AncestorPaths(string path)
-    {
-        var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        var ancestors = new List<string>(segments.Length + 1);
-        var builder = new System.Text.StringBuilder("/");
-
-        foreach (var segment in segments)
-        {
-            builder.Append(segment).Append('/');
-            ancestors.Add(builder.ToString());
-        }
-
-        return ancestors;
     }
 }

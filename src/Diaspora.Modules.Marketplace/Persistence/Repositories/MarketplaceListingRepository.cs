@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Diaspora.Modules.Marketplace.Domain.Enums;
 using Diaspora.Modules.Marketplace.Domain.Identifiers;
 using Diaspora.Modules.Marketplace.Domain.Listings;
@@ -542,6 +543,21 @@ public sealed class MarketplaceListingRepository : IMarketplaceListingRepository
         return query;
     }
 
+    [SuppressMessage(
+        "Globalization", "CA1304:Specify CultureInfo",
+        Justification =
+            "The ToLower calls are inside an expression tree. They are never executed in .NET: EF "
+            + "translates them to SQL lower(), which runs under the database collation. There is no "
+            + "CultureInfo to specify, and passing one would fail to translate.")]
+    [SuppressMessage(
+        "Globalization", "CA1311:Specify a culture or use an invariant version",
+        Justification = "See CA1304. ToLowerInvariant translates identically; neither is executed.")]
+    [SuppressMessage(
+        "Globalization", "CA1862:Use the StringComparison method overloads",
+        Justification =
+            "The StringComparison overloads have no translation on either provider, so they would "
+            + "move the search into memory. Lowering both sides is what makes the match "
+            + "case-insensitive on Postgres, where = is not.")]
     private static IQueryable<MarketplaceListing> ApplyGeography(
         IQueryable<MarketplaceListing> query, ListingQueryFilter filter)
     {
@@ -553,8 +569,51 @@ public sealed class MarketplaceListingRepository : IMarketplaceListingRepository
 
         if (!string.IsNullOrWhiteSpace(filter.CityName))
         {
-            var city = filter.CityName.Trim();
-            query = query.Where(listing => listing.Location.CityName == city);
+            // Lowered on both sides (14 Oct 2026): Postgres compares text case-sensitively and the
+            // SQLite tests do not, so "mombasa" missing "Mombasa" could only fail in production.
+            var city = filter.CityName.Trim().ToLowerInvariant();
+            query = query.Where(listing =>
+                listing.Location.CityName != null && listing.Location.CityName.ToLower() == city);
+        }
+
+        if (filter.HasBoundingBox)
+        {
+            var south = filter.MinLatitude!.Value;
+            var north = filter.MaxLatitude!.Value;
+            var west = filter.MinLongitude!.Value;
+            var east = filter.MaxLongitude!.Value;
+
+            // A listing nobody pinned, in the town a circle search named.
+            var unpinned = string.IsNullOrWhiteSpace(filter.UnpinnedCityName)
+                ? null
+                : filter.UnpinnedCityName.Trim().ToLowerInvariant();
+            var keepUnpinned = unpinned is not null;
+            var keepShipping = filter.IncludeShippingOutsideBox;
+
+            query = filter.BoundingBoxCrossesAntimeridian
+                ? query.Where(listing =>
+                    (listing.Latitude != null
+                        && listing.Longitude != null
+                        && listing.Latitude >= south
+                        && listing.Latitude <= north
+                        && (listing.Longitude >= west || listing.Longitude <= east))
+                    || (keepUnpinned
+                        && listing.Latitude == null
+                        && listing.Location.CityName != null
+                        && listing.Location.CityName.ToLower() == unpinned)
+                    || (keepShipping && listing.Fulfillment.OffersShipping))
+                : query.Where(listing =>
+                    (listing.Latitude != null
+                        && listing.Longitude != null
+                        && listing.Latitude >= south
+                        && listing.Latitude <= north
+                        && listing.Longitude >= west
+                        && listing.Longitude <= east)
+                    || (keepUnpinned
+                        && listing.Latitude == null
+                        && listing.Location.CityName != null
+                        && listing.Location.CityName.ToLower() == unpinned)
+                    || (keepShipping && listing.Fulfillment.OffersShipping));
         }
 
         if (!string.IsNullOrWhiteSpace(filter.AreaPathPrefix))

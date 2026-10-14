@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Diaspora.Modules.Guides.Domain.Enums;
 using Diaspora.Modules.Guides.Domain.Guides;
 using Diaspora.Modules.Guides.Domain.Policies;
@@ -313,6 +314,21 @@ public sealed class GuideRepository : IGuideRepository
         return query;
     }
 
+    [SuppressMessage(
+        "Globalization", "CA1304:Specify CultureInfo",
+        Justification =
+            "The ToLower calls are inside an expression tree. They are never executed in .NET: EF "
+            + "translates them to SQL lower(), which runs under the database collation. There is no "
+            + "CultureInfo to specify, and passing one would fail to translate.")]
+    [SuppressMessage(
+        "Globalization", "CA1311:Specify a culture or use an invariant version",
+        Justification = "See CA1304. ToLowerInvariant translates identically; neither is executed.")]
+    [SuppressMessage(
+        "Globalization", "CA1862:Use the StringComparison method overloads",
+        Justification =
+            "The StringComparison overloads have no translation on either provider, so they would "
+            + "move the search into memory. Lowering both sides is what makes the match "
+            + "case-insensitive on Postgres, where = is not.")]
     private static IQueryable<Guide> ApplyClassification(
         IQueryable<Guide> query, GuideQueryFilter filter)
     {
@@ -333,6 +349,51 @@ public sealed class GuideRepository : IGuideRepository
         {
             var country = filter.CountryCode.Trim().ToUpperInvariant();
             query = query.Where(guide => guide.Location.CountryCode == country);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.CityName))
+        {
+            // Lowered on both sides (14 Oct 2026): Postgres compares text case-sensitively and the
+            // SQLite tests do not.
+            var city = filter.CityName.Trim().ToLowerInvariant();
+            query = query.Where(guide =>
+                guide.Location.CityName != null && guide.Location.CityName.ToLower() == city);
+        }
+
+        if (filter.HasBoundingBox)
+        {
+            var south = filter.MinLatitude!.Value;
+            var north = filter.MaxLatitude!.Value;
+            var west = filter.MinLongitude!.Value;
+            var east = filter.MaxLongitude!.Value;
+
+            var unpinned = string.IsNullOrWhiteSpace(filter.UnpinnedCityName)
+                ? null
+                : filter.UnpinnedCityName.Trim().ToLowerInvariant();
+            var keepUnpinned = unpinned is not null;
+
+            query = filter.BoundingBoxCrossesAntimeridian
+                ? query.Where(guide =>
+                    (guide.Latitude != null
+                        && guide.Longitude != null
+                        && guide.Latitude >= south
+                        && guide.Latitude <= north
+                        && (guide.Longitude >= west || guide.Longitude <= east))
+                    || (keepUnpinned
+                        && guide.Latitude == null
+                        && guide.Location.CityName != null
+                        && guide.Location.CityName.ToLower() == unpinned))
+                : query.Where(guide =>
+                    (guide.Latitude != null
+                        && guide.Longitude != null
+                        && guide.Latitude >= south
+                        && guide.Latitude <= north
+                        && guide.Longitude >= west
+                        && guide.Longitude <= east)
+                    || (keepUnpinned
+                        && guide.Latitude == null
+                        && guide.Location.CityName != null
+                        && guide.Location.CityName.ToLower() == unpinned));
         }
 
         if (!string.IsNullOrWhiteSpace(filter.CategoryKey))

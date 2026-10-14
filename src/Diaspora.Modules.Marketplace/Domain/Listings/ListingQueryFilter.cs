@@ -83,7 +83,42 @@ public sealed record ListingQueryFilter
 
     public string? CountryCode { get; init; }
 
+    /// <summary>A town, matched case-insensitively against the town the seller typed.</summary>
     public string? CityName { get; init; }
+
+    /// <summary>
+    /// A rectangle over the listing's own coordinates: a map viewport, or the rectangle around a
+    /// circle search (14 Oct 2026). A listing with no coordinates is outside it unless it names
+    /// <see cref="UnpinnedCityName"/>.
+    /// </summary>
+    public double? MinLatitude { get; init; }
+
+    public double? MaxLatitude { get; init; }
+
+    public double? MinLongitude { get; init; }
+
+    public double? MaxLongitude { get; init; }
+
+    /// <summary>
+    /// With a rectangle: a town whose unpinned listings are kept, compared case-insensitively.
+    /// Listings predate the pin, and a circle search that also named a town still finds them.
+    /// </summary>
+    public string? UnpinnedCityName { get; init; }
+
+    /// <summary>
+    /// With a rectangle: whether a listing that ships is kept wherever it is. True for a circle —
+    /// a buyer near Manchester can be posted to — and false for a map viewport, which asks only
+    /// what is inside it.
+    /// </summary>
+    public bool IncludeShippingOutsideBox { get; init; }
+
+    /// <summary>Whether all four edges of the rectangle are set.</summary>
+    public bool HasBoundingBox =>
+        MinLatitude is not null && MaxLatitude is not null
+        && MinLongitude is not null && MaxLongitude is not null;
+
+    /// <summary>Whether the rectangle wraps across ±180°.</summary>
+    public bool BoundingBoxCrossesAntimeridian => HasBoundingBox && MinLongitude > MaxLongitude;
 
     /// <summary>Location's materialised area path, matched as a prefix.</summary>
     public string? AreaPathPrefix { get; init; }

@@ -41,8 +41,6 @@ public sealed class CreateListingCommandHandler
     private readonly ListingCategoryResolver _categories;
     private readonly ListingAttributeValidator _attributes;
     private readonly ListingSlugAllocator _slugs;
-    private readonly MarketplaceGeographicScopeAdapter _geography;
-    private readonly ListingAreaFiling _filing;
     private readonly IOptions<MarketplaceOptions> _options;
     private readonly IGuidGenerator _guids;
     private readonly IClock _clock;
@@ -55,8 +53,6 @@ public sealed class CreateListingCommandHandler
         ListingCategoryResolver categories,
         ListingAttributeValidator attributes,
         ListingSlugAllocator slugs,
-        MarketplaceGeographicScopeAdapter geography,
-        ListingAreaFiling filing,
         IOptions<MarketplaceOptions> options,
         IGuidGenerator guids,
         IClock clock)
@@ -68,8 +64,6 @@ public sealed class CreateListingCommandHandler
         _categories = categories;
         _attributes = attributes;
         _slugs = slugs;
-        _geography = geography;
-        _filing = filing;
         _options = options;
         _guids = guids;
         _clock = clock;
@@ -148,22 +142,18 @@ public sealed class CreateListingCommandHandler
             request.RegionName,
             request.CityName,
             request.Neighbourhood,
-            request.AreaId);
+
+            // The area id old app builds still send is accepted and not written (14 Oct 2026).
+            areaId: null);
 
         if (location.IsFailure)
         {
             return Result.Failure<ListingResponse>(location.Error);
         }
 
-        // B4 resolves the area and hands back its materialised path. The listing stores what
-        // Location said rather than what the client claimed, which is what makes the prefix filter
-        // trustworthy.
-        var resolved = await ResolveAreaAsync(location.Value, request.AreaId, cancellationToken);
-
-        // And where that found no path — a town the search resolver could not match, or a listing
-        // naming only its neighbourhood — the catalogue is asked directly. Until 16 Sep 2026 such a
-        // listing was filed nowhere, and the map's cluster counts could not see it.
-        resolved = await _filing.FileAsync(resolved, cancellationToken);
+        // Not filed under a catalogue area (14 Oct 2026, Phase 1 of retiring the place
+        // catalogue): a listing is found by its pin, its country and the town its seller typed.
+        var resolved = location.Value;
 
         var slug = await _slugs.AllocateListingSlugAsync(
             request.Slug, title.Value.Value, resolved.CityName, cancellationToken);
@@ -361,39 +351,5 @@ public sealed class CreateListingCommandHandler
         }
 
         return Result.Success();
-    }
-
-    /// <summary>
-    /// Asks Location to resolve the area the seller picked, and stamps its path onto the listing.
-    /// <para>
-    /// Fails soft: a listing whose area cannot be resolved keeps the names the seller typed and
-    /// simply does not participate in area-scoped narrowing. Refusing the listing because the
-    /// geography service was briefly unavailable would be a dependency inverted.
-    /// </para>
-    /// </summary>
-    private async Task<ListingLocationContext> ResolveAreaAsync(
-        ListingLocationContext location, Guid? areaId, CancellationToken cancellationToken)
-    {
-        if (areaId is null && string.IsNullOrWhiteSpace(location.CityName))
-        {
-            return location;
-        }
-
-        var scope = await _geography.ResolveAsync(
-            location.CityName,
-            location.CountryCode,
-            areaId,
-            latitude: null,
-            longitude: null,
-            radiusKm: null,
-            _authorization.CallerId,
-            cancellationToken);
-
-        if (scope.IsFailure || scope.Value.Path is not { } path)
-        {
-            return location;
-        }
-
-        return location.WithArea(scope.Value.AreaId?.Value ?? areaId, path.Value);
     }
 }

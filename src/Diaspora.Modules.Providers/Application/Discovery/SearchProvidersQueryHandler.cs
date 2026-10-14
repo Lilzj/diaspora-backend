@@ -105,8 +105,7 @@ public sealed class SearchProvidersQueryHandler
             && request.Longitude is not null
             && string.IsNullOrWhiteSpace(request.Bounds);
 
-        var scoped = await _geography.ApplyAsync(
-            filter.Value, scope.Value, aroundPoint, cancellationToken);
+        var scoped = GeographicScopeAdapter.Apply(filter.Value, scope.Value, aroundPoint);
 
         var nearest = sort.Value == ProviderSortOrder.Distance && aroundPoint
             ? await NearestPageAsync(scoped, scope.Value, cancellationToken)

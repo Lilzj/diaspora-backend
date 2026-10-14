@@ -19,6 +19,14 @@ public sealed record SearchOrganizationsQuery : IQuery<OrganizationSearchResultR
     /// <summary>A map viewport: <c>north,south,east,west</c>. Resolved and validated by B4.</summary>
     public string? Bounds { get; init; }
 
+    /// <summary>A point to search around (14 Oct 2026), with <see cref="Longitude"/> and <see cref="RadiusKm"/>.</summary>
+    public double? Latitude { get; init; }
+
+    public double? Longitude { get; init; }
+
+    /// <summary>Kilometres, or Location's sentinels.</summary>
+    public double? RadiusKm { get; init; }
+
     public bool? VerifiedOnly { get; init; }
 
     public bool? FeaturedOnly { get; init; }
