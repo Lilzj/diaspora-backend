@@ -216,6 +216,10 @@ internal sealed class GooglePlaceSearchProvider : IPlaceSearchProvider
         {
             body["includedPrimaryTypes"] = new JsonArray(JsonValue.Create("(cities)"));
         }
+        else if (request.RegionsOnly)
+        {
+            body["includedPrimaryTypes"] = new JsonArray(JsonValue.Create("(regions)"));
+        }
 
         if (!string.IsNullOrWhiteSpace(request.Language))
         {

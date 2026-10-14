@@ -30,6 +30,9 @@ public sealed record AutocompletePlacesQuery : IQuery<PlaceAutocompleteResponse>
 
     /// <summary>Towns and cities only, not streets or businesses (14 Oct 2026, the town picker).</summary>
     public bool TownsOnly { get; init; }
+
+    /// <summary>Countries, regions, towns and districts: the location sheet (14 Oct 2026).</summary>
+    public bool RegionsOnly { get; init; }
 }
 
 /// <summary>The suggestion a member picked.</summary>
@@ -223,7 +226,8 @@ public sealed class AutocompletePlacesQueryHandler
                             : null,
                         CountryCodes = [.. request.CountryCodes.Select(code => code.ToUpperInvariant()).Distinct()],
                         Language = request.Language,
-                        TownsOnly = request.TownsOnly
+                        TownsOnly = request.TownsOnly,
+                        RegionsOnly = request.RegionsOnly
                     },
                     token),
                 settings.TimeoutMilliseconds,

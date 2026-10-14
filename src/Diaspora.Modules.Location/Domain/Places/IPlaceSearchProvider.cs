@@ -73,6 +73,12 @@ public sealed record PlaceAutocompleteRequest
     /// member in any country finds their town, not a street or a shop of the same name.
     /// </summary>
     public bool TownsOnly { get; init; }
+
+    /// <summary>
+    /// Countries, regions, towns and districts, not streets or businesses: "where am I looking",
+    /// the location sheet's question (14 Oct 2026). Ignored when <see cref="TownsOnly"/> is set.
+    /// </summary>
+    public bool RegionsOnly { get; init; }
 }
 
 public sealed record PlaceDetailsRequest

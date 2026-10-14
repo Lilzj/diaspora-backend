@@ -271,6 +271,21 @@ public sealed class GoogleMapsAdapterTests
     }
 
     [Fact]
+    public void The_location_sheet_asks_google_for_places_not_streets_anywhere_in_the_world()
+    {
+        var body = GooglePlaceSearchProvider.BuildAutocompleteBody(new PlaceAutocompleteRequest
+        {
+            Input = "Nairo",
+            SessionToken = "0f8fad5b-d9cb-469f-a165-70867728950e",
+            RegionsOnly = true
+        });
+
+        body["includedPrimaryTypes"]!.AsArray().Select(type => type!.GetValue<string>())
+            .Should().Equal("(regions)");
+        body.ContainsKey("includedRegionCodes").Should().BeFalse("the sheet searches every country");
+    }
+
+    [Fact]
     public async Task Suggestions_skip_query_predictions_and_keep_the_structured_text()
     {
         var provider = Places(new FakeTransport(_ => (HttpStatusCode.OK, SuggestionBody)), new FakeMeter());
