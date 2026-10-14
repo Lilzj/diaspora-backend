@@ -2,6 +2,7 @@ using Diaspora.Modules.Media.Contracts.V1.Requests;
 using Diaspora.Modules.Media.Domain.Enums;
 using Diaspora.Modules.Providers.Observability;
 using Diaspora.SharedKernel.Identity;
+using Diaspora.SharedKernel.Results;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -38,6 +39,38 @@ public sealed class ProviderMediaClaimer
     {
         _sender = sender;
         _logger = logger;
+    }
+
+    /// <summary>
+    /// Attaches an asset the caller is putting on a provider, and says whether Media agreed.
+    /// <para>
+    /// Unlike <see cref="ClaimAsync"/>, a refusal is returned, not logged: this is the member's
+    /// own request, and Media's access check is what stops one member putting another's upload on
+    /// their business (14 Oct 2026, <c>POST /providers/{id}/photos</c>).
+    /// </para>
+    /// </summary>
+    public async Task<Result> AttachAsync(
+        Guid providerId,
+        Guid mediaId,
+        string role,
+        int position,
+        CancellationToken cancellationToken = default)
+    {
+        var attached = await _sender.Send(
+            new Modules.Media.Application.Assets.AttachMediaCommand
+            {
+                Request = new AttachMediaRequest
+                {
+                    MediaId = mediaId,
+                    OwnerType = nameof(MediaOwnerType.Provider),
+                    OwnerId = providerId,
+                    Role = role,
+                    Position = position
+                }
+            },
+            cancellationToken);
+
+        return attached.IsFailure ? Result.Failure(attached.Error) : Result.Success();
     }
 
     public async Task ClaimAsync(

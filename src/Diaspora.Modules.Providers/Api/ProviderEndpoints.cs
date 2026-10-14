@@ -234,6 +234,25 @@ internal static class ProviderEndpoints
     /// </summary>
     private static void MapServices(RouteGroupBuilder group)
     {
+        group.MapPost("/{providerId:guid}/photos", async (
+                Guid providerId,
+                ProviderGalleryItemRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new AddProviderPhotoCommand
+                        {
+                            ProviderId = providerId,
+                            Request = request
+                        },
+                        cancellationToken)))
+            .RequireAuthorization(ProviderPolicies.ManageMedia)
+            .WithName("AddProviderPhoto")
+            .WithSummary("Put an uploaded photograph on a provider, as its cover or in its gallery.");
+
         group.MapPost("/{providerId:guid}/services", async (
                 Guid providerId,
                 ProviderServiceRequest request,

@@ -61,6 +61,22 @@ public sealed class HousingIntegrationEventRelay
     // ════════════════════════════════════════════════════════════════════════════════════════
 
     public Task PublishAsync(
+        HousingListingDeletedDomainEvent domainEvent,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(domainEvent);
+
+        return PublishSafelyAsync(
+            new HousingDeletedIntegrationEvent
+            {
+                ListingId = domainEvent.ListingId.Value,
+                LandlordId = domainEvent.LandlordId.Value,
+                DeletedAt = domainEvent.DeletedAt
+            },
+            cancellationToken);
+    }
+
+    public Task PublishAsync(
         HousingListingCreatedDomainEvent domainEvent,
         CancellationToken cancellationToken = default)
     {

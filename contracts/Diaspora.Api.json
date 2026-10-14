@@ -32159,6 +32159,41 @@
         }
       }
     },
+    "/api/v1/providers/{providerId}/photos": {
+      "post": {
+        "tags": [
+          "Providers"
+        ],
+        "summary": "Put an uploaded photograph on a provider, as its cover or in its gallery.",
+        "operationId": "AddProviderPhoto",
+        "parameters": [
+          {
+            "name": "providerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderGalleryItemRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/providers/{providerId}/services": {
       "post": {
         "tags": [
@@ -44539,6 +44574,30 @@
             ]
           },
           "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ProviderGalleryItemRequest": {
+        "required": [
+          "mediaId"
+        ],
+        "type": "object",
+        "properties": {
+          "mediaId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "role": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "caption": {
             "type": [
               "null",
               "string"
