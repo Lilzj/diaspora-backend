@@ -1,4 +1,3 @@
-using Diaspora.Modules.Guides.Application.Mapping;
 using Diaspora.Modules.Guides.Application.Services;
 using Diaspora.Modules.Guides.Contracts.V1.Responses;
 using Diaspora.Modules.Guides.Domain.Enums;
@@ -31,11 +30,16 @@ public sealed class KnowledgeCardResolver
 {
     private readonly IGuideRepository _guides;
     private readonly GuideAuthorizationService _authorization;
+    private readonly GuideAuthorNames _authorNames;
 
-    public KnowledgeCardResolver(IGuideRepository guides, GuideAuthorizationService authorization)
+    public KnowledgeCardResolver(
+        IGuideRepository guides,
+        GuideAuthorizationService authorization,
+        GuideAuthorNames authorNames)
     {
         _guides = guides;
         _authorization = authorization;
+        _authorNames = authorNames;
     }
 
     /// <summary>
@@ -57,7 +61,7 @@ public sealed class KnowledgeCardResolver
             return new Dictionary<Guid, GuideCardResponse>();
         }
 
-        var cards = new Dictionary<Guid, GuideCardResponse>(distinct.Count);
+        var guides = new List<Guide>(distinct.Count);
 
         // The repository clamps a page to MaxPageSize, so a set larger than one page is resolved in
         // chunks. Chunking here rather than raising the clamp keeps one ceiling for every caller —
@@ -78,13 +82,13 @@ public sealed class KnowledgeCardResolver
                 limit: chunk.Length,
                 cancellationToken);
 
-            foreach (var guide in page.Items)
-            {
-                cards[guide.Id.Value] = GuideCardMapper.ToCard(guide);
-            }
+            guides.AddRange(page.Items);
         }
 
-        return cards;
+        // Every author across every chunk in one lookup.
+        var cards = await _authorNames.ToCardsAsync(guides, cancellationToken);
+
+        return cards.ToDictionary(card => card.GuideId);
     }
 
     /// <summary>

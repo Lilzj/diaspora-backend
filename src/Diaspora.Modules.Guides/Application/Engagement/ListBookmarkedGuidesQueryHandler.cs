@@ -1,5 +1,4 @@
 using Diaspora.Application.Abstractions;
-using Diaspora.Modules.Guides.Application.Mapping;
 using Diaspora.Modules.Guides.Application.Services;
 using Diaspora.Modules.Guides.Contracts.V1.Responses;
 using Diaspora.Modules.Guides.Domain.Enums;
@@ -37,15 +36,18 @@ public sealed class ListBookmarkedGuidesQueryHandler
     private readonly IGuideRepository _guides;
     private readonly GuideBookmarkService _bookmarks;
     private readonly GuideAuthorizationService _authorization;
+    private readonly GuideAuthorNames _authorNames;
 
     public ListBookmarkedGuidesQueryHandler(
         IGuideRepository guides,
         GuideBookmarkService bookmarks,
-        GuideAuthorizationService authorization)
+        GuideAuthorizationService authorization,
+        GuideAuthorNames authorNames)
     {
         _guides = guides;
         _bookmarks = bookmarks;
         _authorization = authorization;
+        _authorNames = authorNames;
     }
 
     public async Task<Result<CursorPagedResult<GuideCardResponse>>> Handle(
@@ -103,7 +105,7 @@ public sealed class ListBookmarkedGuidesQueryHandler
         }
 
         return Result.Success(CursorPagedResult<GuideCardResponse>.Create(
-            saved.Select(GuideCardMapper.ToCard).ToList(),
+            await _authorNames.ToCardsAsync(saved, cancellationToken),
             hasMore ? cursor : null,
             hasMore));
     }

@@ -12,7 +12,13 @@ namespace Diaspora.Modules.Guides.Application.Mapping;
 /// </summary>
 public static class GuideCardMapper
 {
-    public static GuideCardResponse ToCard(Guide guide)
+    public static GuideCardResponse ToCard(Guide guide) => ToCard(guide, null);
+
+    /// <summary>
+    /// The card, with the author's display name taken from a dictionary resolved once for the
+    /// whole page through <c>GuideAuthorNames</c>.
+    /// </summary>
+    public static GuideCardResponse ToCard(Guide guide, IReadOnlyDictionary<Guid, string>? names)
     {
         ArgumentNullException.ThrowIfNull(guide);
 
@@ -32,6 +38,9 @@ public static class GuideCardMapper
             IsVerified = guide.TrustMark.State == GuideVerificationState.Verified,
             IsFeatured = guide.IsFeatured,
             AuthorId = guide.AuthorId.Value,
+            AuthorName = names is not null && names.TryGetValue(guide.AuthorId.Value, out var name)
+                ? name
+                : null,
             PublishedAt = guide.PublishedAt,
             UpdatedAt = guide.ModifiedAt,
             HeroMediaId = HeroOf(guide),

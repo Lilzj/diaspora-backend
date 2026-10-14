@@ -34,6 +34,7 @@ public sealed class AddCommentCommandHandler : ICommandHandler<AddCommentCommand
     private readonly ICurrentUser _currentUser;
     private readonly IClock _clock;
     private readonly MediaAttachmentClaimer _media;
+    private readonly CommunityAuthorNames _authorNames;
 
     public AddCommentCommandHandler(
         CommentService commentService,
@@ -44,7 +45,8 @@ public sealed class AddCommentCommandHandler : ICommandHandler<AddCommentCommand
         ViewerContextResolver viewers,
         ICurrentUser currentUser,
         IClock clock,
-        MediaAttachmentClaimer media)
+        MediaAttachmentClaimer media,
+        CommunityAuthorNames authorNames)
     {
         _commentService = commentService;
         _comments = comments;
@@ -55,6 +57,7 @@ public sealed class AddCommentCommandHandler : ICommandHandler<AddCommentCommand
         _currentUser = currentUser;
         _clock = clock;
         _media = media;
+        _authorNames = authorNames;
     }
 
     public async Task<Result<CommentResponse>> Handle(
@@ -143,9 +146,12 @@ public sealed class AddCommentCommandHandler : ICommandHandler<AddCommentCommand
 
         var viewer = await _viewers.ResolveAsync(cancellationToken);
 
+        var names = await _authorNames.ResolveAsync([comment.AuthorId], cancellationToken);
+
         return Result.Success(CommentMapper.ToResponse(
             CommentThread.Assemble(reference.Value, [comment]).Roots[0],
             viewer,
-            new Dictionary<string, Integration.SocialSummary>(StringComparer.Ordinal)));
+            new Dictionary<string, Integration.SocialSummary>(StringComparer.Ordinal),
+            names));
     }
 }

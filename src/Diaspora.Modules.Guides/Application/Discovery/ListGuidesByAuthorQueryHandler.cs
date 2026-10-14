@@ -1,5 +1,4 @@
 using Diaspora.Application.Abstractions;
-using Diaspora.Modules.Guides.Application.Mapping;
 using Diaspora.Modules.Guides.Application.Services;
 using Diaspora.Modules.Guides.Contracts.V1.Responses;
 using Diaspora.Modules.Guides.Domain.Enums;
@@ -25,12 +24,15 @@ public sealed class ListGuidesByAuthorQueryHandler
 {
     private readonly IGuideRepository _guides;
     private readonly GuideAuthorizationService _authorization;
+    private readonly GuideAuthorNames _authorNames;
 
     public ListGuidesByAuthorQueryHandler(
-        IGuideRepository guides, GuideAuthorizationService authorization)
+        IGuideRepository guides, GuideAuthorizationService authorization,
+        GuideAuthorNames authorNames)
     {
         _guides = guides;
         _authorization = authorization;
+        _authorNames = authorNames;
     }
 
     public async Task<Result<CursorPagedResult<GuideCardResponse>>> Handle(
@@ -54,7 +56,7 @@ public sealed class ListGuidesByAuthorQueryHandler
         var page = await _guides.QueryAsync(filter, query.Cursor, limit, cancellationToken);
 
         return Result.Success(CursorPagedResult<GuideCardResponse>.Create(
-            page.Items.Select(GuideCardMapper.ToCard).ToList(),
+            await _authorNames.ToCardsAsync(page.Items, cancellationToken),
             page.NextCursor,
             page.HasMore));
     }

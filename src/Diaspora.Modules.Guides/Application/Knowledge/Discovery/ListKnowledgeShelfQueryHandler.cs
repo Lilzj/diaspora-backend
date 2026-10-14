@@ -1,6 +1,6 @@
 using Diaspora.Application.Abstractions;
 using Diaspora.Modules.Guides.Application.Knowledge.Services;
-using Diaspora.Modules.Guides.Application.Mapping;
+using Diaspora.Modules.Guides.Application.Services;
 using Diaspora.Modules.Guides.Contracts.V1.Responses;
 using Diaspora.Modules.Guides.Domain.Directories;
 using Diaspora.Modules.Guides.Domain.Enums;
@@ -33,17 +33,20 @@ public sealed class ListKnowledgeShelfQueryHandler
     private readonly KnowledgeCardResolver _cards;
     private readonly IKnowledgeCategoryRepository _categories;
     private readonly ICountryKnowledgeDirectoryRepository _directories;
+    private readonly GuideAuthorNames _authorNames;
 
     public ListKnowledgeShelfQueryHandler(
         KnowledgeGuideFinder finder,
         KnowledgeCardResolver cards,
         IKnowledgeCategoryRepository categories,
-        ICountryKnowledgeDirectoryRepository directories)
+        ICountryKnowledgeDirectoryRepository directories,
+        GuideAuthorNames authorNames)
     {
         _finder = finder;
         _cards = cards;
         _categories = categories;
         _directories = directories;
+        _authorNames = authorNames;
     }
 
     public async Task<Result<CursorPagedResult<GuideCardResponse>>> Handle(
@@ -71,7 +74,7 @@ public sealed class ListKnowledgeShelfQueryHandler
         var page = await _finder.PageAsync(filter, request.Cursor, cancellationToken);
 
         return Result.Success(CursorPagedResult<GuideCardResponse>.Create(
-            [.. page.Items.Select(GuideCardMapper.ToCard)],
+            await _authorNames.ToCardsAsync(page.Items, cancellationToken),
             page.NextCursor,
             page.HasMore));
     }

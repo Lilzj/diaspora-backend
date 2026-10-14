@@ -23,6 +23,7 @@ public sealed class UpdatePostCommandHandler
     private readonly ICurrentUser _currentUser;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
+    private readonly CommunityAuthorNames _authorNames;
 
     public UpdatePostCommandHandler(
         ICommunityPostRepository posts,
@@ -30,7 +31,8 @@ public sealed class UpdatePostCommandHandler
         ViewerContextResolver viewers,
         ICurrentUser currentUser,
         IUnitOfWork unitOfWork,
-        IClock clock)
+        IClock clock,
+        CommunityAuthorNames authorNames)
     {
         _posts = posts;
         _composer = composer;
@@ -38,6 +40,7 @@ public sealed class UpdatePostCommandHandler
         _currentUser = currentUser;
         _unitOfWork = unitOfWork;
         _clock = clock;
+        _authorNames = authorNames;
     }
 
     public async Task<Result<CommunityPostResponse>> Handle(
@@ -134,6 +137,8 @@ public sealed class UpdatePostCommandHandler
 
         var viewer = await _viewers.ResolveAsync(cancellationToken);
 
-        return Result.Success(PostMapper.ToResponse(post, null, viewer));
+        var names = await _authorNames.ResolveAsync([post.AuthorId], cancellationToken);
+
+        return Result.Success(PostMapper.ToResponse(post, null, viewer, names: names));
     }
 }

@@ -40,19 +40,22 @@ public sealed class GetGuideQueryHandler : IQueryHandler<GetGuideQuery, GuideRes
     private readonly GuideAuthorizationService _authorization;
     private readonly GuideProviderResolver _providers;
     private readonly GuideDiscussionService _discussion;
+    private readonly GuideAuthorNames _authorNames;
 
     public GetGuideQueryHandler(
         IGuideRepository guides,
         IGuideAuthorStandingRepository standings,
         GuideAuthorizationService authorization,
         GuideProviderResolver providers,
-        GuideDiscussionService discussion)
+        GuideDiscussionService discussion,
+        GuideAuthorNames authorNames)
     {
         _guides = guides;
         _standings = standings;
         _authorization = authorization;
         _providers = providers;
         _discussion = discussion;
+        _authorNames = authorNames;
     }
 
     public async Task<Result<GuideResponse>> Handle(
@@ -73,6 +76,7 @@ public sealed class GetGuideQueryHandler : IQueryHandler<GetGuideQuery, GuideRes
 
         var summaries = await _providers.ResolveAsync(providerIds, cancellationToken);
         var standing = await _standings.GetByUserAsync(guide.AuthorId, cancellationToken);
+        var authorName = await _authorNames.NameOfAsync(guide.AuthorId, cancellationToken);
         var comments = await _discussion.CountAsync(guide.Id, cancellationToken);
 
         // Community owns the count; the rollup on the aggregate is a cached copy of it. Applied
@@ -88,19 +92,31 @@ public sealed class GetGuideQueryHandler : IQueryHandler<GetGuideQuery, GuideRes
             || (_authorization.CallerId is { } caller && guide.AuthorId == caller);
 
         return Result.Success(
-            GuideMapper.ToResponse(guide, summaries, ToAuthor(standing), isAuthor));
+            GuideMapper.ToResponse(
+                guide, summaries, ToAuthor(guide.AuthorId, standing, authorName), isAuthor));
     }
 
     /// <summary>
-    /// Trust's standing for the author, or null when the projection has never heard of them —
-    /// which is the ordinary case for a new member, not an error.
+    /// Trust's standing for the author and their name from Identity. Null only when neither is
+    /// known: Trust having never heard of a new member is ordinary, and their name still shows.
     /// </summary>
-    private static GuideAuthorResponse? ToAuthor(GuideAuthorStanding? standing) =>
+    private static GuideAuthorResponse? ToAuthor(
+        Diaspora.SharedKernel.Identity.UserId authorId, GuideAuthorStanding? standing, string? name) =>
         standing is null
-            ? null
+            // A new member has no standing yet, but still has a name: the byline needs it.
+            ? name is null
+                ? null
+                : new GuideAuthorResponse
+                {
+                    UserId = authorId.Value,
+                    Name = name,
+                    IsApprovedContributor = false,
+                    IsCommunityGuide = false
+                }
             : new GuideAuthorResponse
             {
                 UserId = standing.UserId.Value,
+                Name = name,
                 IsApprovedContributor = standing.IsApprovedContributor,
                 IsCommunityGuide = standing.IsCommunityGuide,
                 TrustLevel = standing.TrustLevel,

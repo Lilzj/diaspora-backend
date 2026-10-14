@@ -21,19 +21,22 @@ public sealed class UpdateCommentCommandHandler
     private readonly ICurrentUser _currentUser;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
+    private readonly CommunityAuthorNames _authorNames;
 
     public UpdateCommentCommandHandler(
         ICommentRepository comments,
         ViewerContextResolver viewers,
         ICurrentUser currentUser,
         IUnitOfWork unitOfWork,
-        IClock clock)
+        IClock clock,
+        CommunityAuthorNames authorNames)
     {
         _comments = comments;
         _viewers = viewers;
         _currentUser = currentUser;
         _unitOfWork = unitOfWork;
         _clock = clock;
+        _authorNames = authorNames;
     }
 
     public async Task<Result<CommentResponse>> Handle(
@@ -79,9 +82,12 @@ public sealed class UpdateCommentCommandHandler
 
         var viewer = await _viewers.ResolveAsync(cancellationToken);
 
+        var names = await _authorNames.ResolveAsync([comment.AuthorId], cancellationToken);
+
         return Result.Success(CommentMapper.ToResponse(
             CommentThread.Assemble(comment.Content, [comment]).Roots[0],
             viewer,
-            new Dictionary<string, Integration.SocialSummary>(StringComparer.Ordinal)));
+            new Dictionary<string, Integration.SocialSummary>(StringComparer.Ordinal),
+            names));
     }
 }

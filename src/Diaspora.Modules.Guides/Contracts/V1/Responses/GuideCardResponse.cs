@@ -38,6 +38,12 @@ public sealed record GuideCardResponse
 
     public required Guid AuthorId { get; init; }
 
+    /// <summary>
+    /// The author's display name, resolved from Identity when the card is built. Null when it
+    /// could not be resolved.
+    /// </summary>
+    public string? AuthorName { get; init; }
+
     public DateTimeOffset? PublishedAt { get; init; }
 
     public DateTimeOffset? UpdatedAt { get; init; }

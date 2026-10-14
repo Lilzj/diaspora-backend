@@ -118,6 +118,7 @@ public sealed class CommunityModule : IPlatformModule
     {
         services.AddScoped<ContentReferenceResolver>();
         services.AddScoped<ViewerContextResolver>();
+        services.AddScoped<CommunityAuthorNames>();
         services.AddScoped<VisibilityService>();
         services.AddScoped<ReactionCatalogLoader>();
         services.AddScoped<ReactionService>();

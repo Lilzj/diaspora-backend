@@ -35,17 +35,20 @@ public sealed class PreviewGuideQueryHandler : IQueryHandler<PreviewGuideQuery, 
     private readonly IGuideAuthorStandingRepository _standings;
     private readonly GuideAuthorizationService _authorization;
     private readonly GuideProviderResolver _providers;
+    private readonly GuideAuthorNames _authorNames;
 
     public PreviewGuideQueryHandler(
         IGuideRepository guides,
         IGuideAuthorStandingRepository standings,
         GuideAuthorizationService authorization,
-        GuideProviderResolver providers)
+        GuideProviderResolver providers,
+        GuideAuthorNames authorNames)
     {
         _guides = guides;
         _standings = standings;
         _authorization = authorization;
         _providers = providers;
+        _authorNames = authorNames;
     }
 
     public async Task<Result<GuideResponse>> Handle(
@@ -78,20 +81,36 @@ public sealed class PreviewGuideQueryHandler : IQueryHandler<PreviewGuideQuery, 
 
         var summaries = await _providers.ResolveAsync(providerIds, cancellationToken);
         var standing = await _standings.GetByUserAsync(guide.AuthorId, cancellationToken);
+        var authorName = await _authorNames.NameOfAsync(guide.AuthorId, cancellationToken);
 
         // No comment count is fetched: an unpublished guide has no discussion, and asking
         // Community about content it has never seen is a round trip for a guaranteed zero.
         return Result.Success(
-            GuideMapper.ToResponse(guide, summaries, ToAuthor(standing), forAuthor: true));
+            GuideMapper.ToResponse(
+                guide, summaries, ToAuthor(guide.AuthorId, standing, authorName), forAuthor: true));
     }
 
-    /// <summary>Trust's standing for the author, or null when the projection holds none.</summary>
-    private static GuideAuthorResponse? ToAuthor(GuideAuthorStanding? standing) =>
+    /// <summary>
+    /// Trust's standing for the author and their name from Identity. Null only when neither is
+    /// known; a member Trust has not projected yet still gets a byline with their name.
+    /// </summary>
+    private static GuideAuthorResponse? ToAuthor(
+        Diaspora.SharedKernel.Identity.UserId authorId, GuideAuthorStanding? standing, string? name) =>
         standing is null
-            ? null
+            // A new member has no standing yet, but still has a name: the byline needs it.
+            ? name is null
+                ? null
+                : new GuideAuthorResponse
+                {
+                    UserId = authorId.Value,
+                    Name = name,
+                    IsApprovedContributor = false,
+                    IsCommunityGuide = false
+                }
             : new GuideAuthorResponse
             {
                 UserId = standing.UserId.Value,
+                Name = name,
                 IsApprovedContributor = standing.IsApprovedContributor,
                 IsCommunityGuide = standing.IsCommunityGuide,
                 TrustLevel = standing.TrustLevel,

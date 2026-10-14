@@ -8,6 +8,11 @@ public sealed record GuideAuthorResponse
 {
     public required Guid UserId { get; init; }
 
+    /// <summary>
+    /// The author's display name, resolved from Identity. Null when it could not be resolved.
+    /// </summary>
+    public string? Name { get; init; }
+
     public required bool IsApprovedContributor { get; init; }
 
     public required bool IsCommunityGuide { get; init; }

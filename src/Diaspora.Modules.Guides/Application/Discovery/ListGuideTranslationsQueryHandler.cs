@@ -1,5 +1,4 @@
 using Diaspora.Application.Abstractions;
-using Diaspora.Modules.Guides.Application.Mapping;
 using Diaspora.Modules.Guides.Application.Services;
 using Diaspora.Modules.Guides.Contracts.V1.Responses;
 using Diaspora.Modules.Guides.Domain.Enums;
@@ -37,12 +36,15 @@ public sealed class ListGuideTranslationsQueryHandler
 {
     private readonly IGuideRepository _guides;
     private readonly GuideAuthorizationService _authorization;
+    private readonly GuideAuthorNames _authorNames;
 
     public ListGuideTranslationsQueryHandler(
-        IGuideRepository guides, GuideAuthorizationService authorization)
+        IGuideRepository guides, GuideAuthorizationService authorization,
+        GuideAuthorNames authorNames)
     {
         _guides = guides;
         _authorization = authorization;
+        _authorNames = authorNames;
     }
 
     public async Task<Result<IReadOnlyList<GuideCardResponse>>> Handle(
@@ -77,9 +79,8 @@ public sealed class ListGuideTranslationsQueryHandler
                 candidate.TranslationGroupId == source.TranslationGroupId
                 && candidate.Id != source.Id)
             .OrderBy(candidate => candidate.Language.Code, StringComparer.Ordinal)
-            .Select(GuideCardMapper.ToCard)
             .ToList();
 
-        return Result.Success<IReadOnlyList<GuideCardResponse>>(translations);
+        return Result.Success(await _authorNames.ToCardsAsync(translations, cancellationToken));
     }
 }

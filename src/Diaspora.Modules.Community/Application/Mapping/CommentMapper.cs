@@ -20,7 +20,8 @@ public static class CommentMapper
     public static CommentResponse ToResponse(
         CommentNode node,
         ViewerContext viewer,
-        IReadOnlyDictionary<string, SocialSummary> social)
+        IReadOnlyDictionary<string, SocialSummary> social,
+        IReadOnlyDictionary<Guid, string>? names = null)
     {
         ArgumentNullException.ThrowIfNull(node);
         ArgumentNullException.ThrowIfNull(social);
@@ -34,9 +35,9 @@ public static class CommentMapper
             CommentId = comment.Id.Value,
             ContentType = CommunityWireNames.ToWire(comment.Content.Type),
             ContentId = comment.Content.Id,
-            Author = AuthorMapper.ToSummary(comment, viewer),
+            Author = AuthorMapper.ToSummary(comment, viewer, names),
             AuthorId = comment.AuthorId.Value,
-            AuthorName = null,
+            AuthorName = AuthorMapper.NameOf(comment.AuthorId.Value, names),
             AuthorReputationLevel = null,
             ParentCommentId = comment.ParentCommentId?.Value,
             QuotedCommentId = comment.QuotedCommentId?.Value,
@@ -56,7 +57,7 @@ public static class CommentMapper
             Status = CommunityWireNames.ToWire(comment.Status),
             Depth = comment.Depth,
             RenderedDepth = node.RenderedDepth,
-            Replies = node.Replies.Select(reply => ToResponse(reply, viewer, social)).ToList(),
+            Replies = node.Replies.Select(reply => ToResponse(reply, viewer, social, names)).ToList(),
             ReplyCount = comment.ReplyCount,
             CanEdit = isOwner && !comment.IsTombstoned,
             CreatedAt = comment.CreatedAt,

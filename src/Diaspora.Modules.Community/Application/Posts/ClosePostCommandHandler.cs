@@ -26,19 +26,22 @@ public sealed class ClosePostCommandHandler : ICommandHandler<ClosePostCommand, 
     private readonly ICurrentUser _currentUser;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
+    private readonly CommunityAuthorNames _authorNames;
 
     public ClosePostCommandHandler(
         ICommunityPostRepository posts,
         ViewerContextResolver viewers,
         ICurrentUser currentUser,
         IUnitOfWork unitOfWork,
-        IClock clock)
+        IClock clock,
+        CommunityAuthorNames authorNames)
     {
         _posts = posts;
         _viewers = viewers;
         _currentUser = currentUser;
         _unitOfWork = unitOfWork;
         _clock = clock;
+        _authorNames = authorNames;
     }
 
     public async Task<Result<CommunityPostResponse>> Handle(
@@ -71,6 +74,8 @@ public sealed class ClosePostCommandHandler : ICommandHandler<ClosePostCommand, 
 
         var viewer = await _viewers.ResolveAsync(cancellationToken);
 
-        return Result.Success(PostMapper.ToResponse(post, null, viewer));
+        var names = await _authorNames.ResolveAsync([post.AuthorId], cancellationToken);
+
+        return Result.Success(PostMapper.ToResponse(post, null, viewer, names: names));
     }
 }

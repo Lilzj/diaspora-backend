@@ -1,5 +1,4 @@
 using Diaspora.Application.Abstractions;
-using Diaspora.Modules.Guides.Application.Mapping;
 using Diaspora.Modules.Guides.Application.Services;
 using Diaspora.Modules.Guides.Contracts.V1.Responses;
 using Diaspora.Modules.Guides.Domain.Enums;
@@ -34,17 +33,20 @@ public sealed class ListTrendingGuidesQueryHandler
     private readonly GuideAuthorizationService _authorization;
     private readonly GuideRankingStrategyRegistry _rankings;
     private readonly IClock _clock;
+    private readonly GuideAuthorNames _authorNames;
 
     public ListTrendingGuidesQueryHandler(
         IGuideRepository guides,
         GuideAuthorizationService authorization,
         GuideRankingStrategyRegistry rankings,
-        IClock clock)
+        IClock clock,
+        GuideAuthorNames authorNames)
     {
         _guides = guides;
         _authorization = authorization;
         _rankings = rankings;
         _clock = clock;
+        _authorNames = authorNames;
     }
 
     public async Task<Result<CursorPagedResult<GuideCardResponse>>> Handle(
@@ -82,7 +84,7 @@ public sealed class ListTrendingGuidesQueryHandler
             });
 
         return Result.Success(CursorPagedResult<GuideCardResponse>.Create(
-            ranked.Select(GuideCardMapper.ToCard).ToList(),
+            await _authorNames.ToCardsAsync(ranked, cancellationToken),
             page.NextCursor,
             page.HasMore));
     }

@@ -41,6 +41,7 @@ public sealed class CreatePostCommandHandler
     private readonly ICurrentUser _currentUser;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
+    private readonly CommunityAuthorNames _authorNames;
 
     public CreatePostCommandHandler(
         ICommunityPostRepository posts,
@@ -50,7 +51,8 @@ public sealed class CreatePostCommandHandler
         ILocationDirectory location,
         ICurrentUser currentUser,
         IUnitOfWork unitOfWork,
-        IClock clock)
+        IClock clock,
+        CommunityAuthorNames authorNames)
     {
         _posts = posts;
         _composer = composer;
@@ -60,6 +62,7 @@ public sealed class CreatePostCommandHandler
         _currentUser = currentUser;
         _unitOfWork = unitOfWork;
         _clock = clock;
+        _authorNames = authorNames;
     }
 
     public async Task<Result<CommunityPostResponse>> Handle(
@@ -177,11 +180,14 @@ public sealed class CreatePostCommandHandler
 
         var viewer = await _viewers.ResolveAsync(cancellationToken);
 
+        var names = await _authorNames.ResolveAsync([post.AuthorId], cancellationToken);
+
         return Result.Success(PostMapper.ToResponse(
             post,
             null,
             viewer,
-            post.Poll is null ? null : PollMapper.ToResponse(post.Poll, [], _clock.UtcNow)));
+            post.Poll is null ? null : PollMapper.ToResponse(post.Poll, [], _clock.UtcNow),
+            names: names));
     }
 
     private static ContentAudience BuildAudience(Contracts.V1.Requests.CreatePostRequest payload)

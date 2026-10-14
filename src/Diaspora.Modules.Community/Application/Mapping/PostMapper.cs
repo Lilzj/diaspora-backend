@@ -25,7 +25,8 @@ public static class PostMapper
         SocialSummary? social,
         ViewerContext viewer,
         PollResponse? poll = null,
-        double? distanceKm = null)
+        double? distanceKm = null,
+        IReadOnlyDictionary<Guid, string>? names = null)
     {
         ArgumentNullException.ThrowIfNull(post);
         ArgumentNullException.ThrowIfNull(viewer);
@@ -37,7 +38,7 @@ public static class PostMapper
         {
             PostId = post.Id.Value,
             UpdateId = post.Id.Value,
-            Author = AuthorMapper.ToSummary(post, viewer),
+            Author = AuthorMapper.ToSummary(post, viewer, names),
             Title = post.Title,
             Body = post.Body.Value,
             Description = post.Body.Value,
@@ -92,7 +93,11 @@ public static class PostMapper
     }
 
     public static CommunityPostSummaryResponse ToSummary(
-        CommunityPost post, SocialSummary? social, ViewerContext viewer, double? distanceKm = null)
+        CommunityPost post,
+        SocialSummary? social,
+        ViewerContext viewer,
+        double? distanceKm = null,
+        IReadOnlyDictionary<Guid, string>? names = null)
     {
         ArgumentNullException.ThrowIfNull(post);
 
@@ -102,7 +107,7 @@ public static class PostMapper
         {
             PostId = post.Id.Value,
             UpdateId = post.Id.Value,
-            Author = AuthorMapper.ToSummary(post, viewer),
+            Author = AuthorMapper.ToSummary(post, viewer, names),
             Title = post.Title,
             Body = post.Body.Value,
             Description = post.Body.Value,

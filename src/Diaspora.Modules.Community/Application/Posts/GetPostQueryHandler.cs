@@ -28,6 +28,7 @@ public sealed class GetPostQueryHandler : IQueryHandler<GetPostQuery, CommunityP
     private readonly VisibilityService _visibility;
     private readonly ViewerContextResolver _viewers;
     private readonly IClock _clock;
+    private readonly CommunityAuthorNames _authorNames;
 
     public GetPostQueryHandler(
         ICommunityPostRepository posts,
@@ -35,7 +36,8 @@ public sealed class GetPostQueryHandler : IQueryHandler<GetPostQuery, CommunityP
         ICommunitySocialService social,
         VisibilityService visibility,
         ViewerContextResolver viewers,
-        IClock clock)
+        IClock clock,
+        CommunityAuthorNames authorNames)
     {
         _posts = posts;
         _votes = votes;
@@ -43,6 +45,7 @@ public sealed class GetPostQueryHandler : IQueryHandler<GetPostQuery, CommunityP
         _visibility = visibility;
         _viewers = viewers;
         _clock = clock;
+        _authorNames = authorNames;
     }
 
     public async Task<Result<CommunityPostResponse>> Handle(
@@ -91,7 +94,9 @@ public sealed class GetPostQueryHandler : IQueryHandler<GetPostQuery, CommunityP
             poll = PollMapper.ToResponse(postPoll, votes, _clock.UtcNow);
         }
 
+        var names = await _authorNames.ResolveAsync([post.AuthorId], cancellationToken);
+
         return Result.Success(PostMapper.ToResponse(
-            post, social.GetValueOrDefault(post.Reference.Key), viewer, poll));
+            post, social.GetValueOrDefault(post.Reference.Key), viewer, poll, names: names));
     }
 }

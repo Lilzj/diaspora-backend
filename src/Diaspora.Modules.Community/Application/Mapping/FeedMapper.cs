@@ -13,7 +13,8 @@ public static class FeedMapper
         string rankingKey,
         FeedPage page,
         ViewerContext viewer,
-        IReadOnlyDictionary<string, SocialSummary> social)
+        IReadOnlyDictionary<string, SocialSummary> social,
+        IReadOnlyDictionary<Guid, string>? names = null)
     {
         ArgumentNullException.ThrowIfNull(page);
         ArgumentNullException.ThrowIfNull(social);
@@ -33,7 +34,8 @@ public static class FeedMapper
                             item.Post,
                             social.GetValueOrDefault(item.Reference.Key),
                             viewer,
-                            item.DistanceKm),
+                            item.DistanceKm,
+                            names),
                     DistanceKm = item.DistanceKm,
                     Reason = item.Reason
                 })

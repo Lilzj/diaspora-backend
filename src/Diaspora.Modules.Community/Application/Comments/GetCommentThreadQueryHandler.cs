@@ -25,17 +25,20 @@ public sealed class GetCommentThreadQueryHandler
     private readonly ContentReferenceResolver _references;
     private readonly ICommunitySocialService _social;
     private readonly ViewerContextResolver _viewers;
+    private readonly CommunityAuthorNames _authorNames;
 
     public GetCommentThreadQueryHandler(
         ICommentRepository comments,
         ContentReferenceResolver references,
         ICommunitySocialService social,
-        ViewerContextResolver viewers)
+        ViewerContextResolver viewers,
+        CommunityAuthorNames authorNames)
     {
         _comments = comments;
         _references = references;
         _social = social;
         _viewers = viewers;
+        _authorNames = authorNames;
     }
 
     public async Task<Result<CommentThreadResponse>> Handle(
@@ -76,12 +79,16 @@ public sealed class GetCommentThreadQueryHandler
 
         var descriptor = await _references.DescribeAsync(reference.Value, cancellationToken);
 
+        // Every author on the page, replies included, in one lookup.
+        var names = await _authorNames.ResolveAsync(
+            all.Select(comment => comment.AuthorId), cancellationToken);
+
         return Result.Success(new CommentThreadResponse
         {
             ContentType = CommunityWireNames.ToWire(reference.Value.Type),
             ContentId = reference.Value.Id,
             Comments = thread.Roots
-                .Select(node => CommentMapper.ToResponse(node, viewer, social))
+                .Select(node => CommentMapper.ToResponse(node, viewer, social, names))
                 .ToList(),
             TotalCount = await _comments.CountAsync(reference.Value, cancellationToken),
             NextCursor = roots.NextCursor,

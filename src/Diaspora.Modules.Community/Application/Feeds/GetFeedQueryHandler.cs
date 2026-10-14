@@ -31,17 +31,20 @@ public sealed class GetFeedQueryHandler : IQueryHandler<GetFeedQuery, FeedRespon
     private readonly ViewerContextResolver _viewers;
     private readonly IGeographicScopeResolver _scopes;
     private readonly ICommunitySocialService _social;
+    private readonly CommunityAuthorNames _authorNames;
 
     public GetFeedQueryHandler(
         FeedComposer composer,
         ViewerContextResolver viewers,
         IGeographicScopeResolver scopes,
-        ICommunitySocialService social)
+        ICommunitySocialService social,
+        CommunityAuthorNames authorNames)
     {
         _composer = composer;
         _viewers = viewers;
         _scopes = scopes;
         _social = social;
+        _authorNames = authorNames;
     }
 
     public async Task<Result<FeedResponse>> Handle(
@@ -109,7 +112,12 @@ public sealed class GetFeedQueryHandler : IQueryHandler<GetFeedQuery, FeedRespon
         var social = await _social.GetSummariesAsync(
             page.Items.Select(item => item.Reference).ToList(), viewer.UserId, cancellationToken);
 
+        // Every author on the page in one lookup.
+        var names = await _authorNames.ResolveAsync(
+            page.Items.Where(item => item.Post is not null).Select(item => item.Post!.AuthorId),
+            cancellationToken);
+
         return Result.Success(
-            FeedMapper.ToResponse(request.FeedKey, rankingKey, page, viewer, social));
+            FeedMapper.ToResponse(request.FeedKey, rankingKey, page, viewer, social, names));
     }
 }
