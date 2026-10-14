@@ -30,6 +30,14 @@ public sealed record CreateOrganizationRequest
     /// <summary>B4's area. Must be at neighbourhood level, and is resolved against B4.</summary>
     public Guid? NeighborhoodAreaId { get; init; }
 
+    /// <summary>
+    /// The pin, in WGS84 degrees (-90..90). Optional; send both or neither.
+    /// </summary>
+    public double? Latitude { get; init; }
+
+    /// <summary>The pin, in WGS84 degrees (-180..180). Optional; send both or neither.</summary>
+    public double? Longitude { get; init; }
+
     public string? Mission { get; init; }
 
     public string? Vision { get; init; }

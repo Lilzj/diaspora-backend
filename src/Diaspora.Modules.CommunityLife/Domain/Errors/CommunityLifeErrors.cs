@@ -66,6 +66,10 @@ public static class CommunityLifeErrors
         CommunityLifeErrorCodes.CountryInvalid,
         "We do not operate in that country yet.");
 
+    public static readonly Error CoordinatesInvalid = Error.Validation(
+        CommunityLifeErrorCodes.CoordinatesInvalid,
+        "Those coordinates are not on the Earth. Send both a latitude and a longitude, or neither.");
+
     // ── Authorization & ownership ───────────────────────────────────────────────────────────
 
     public static readonly Error NotAuthenticated = Error.Unauthorized(

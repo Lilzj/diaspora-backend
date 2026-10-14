@@ -361,6 +361,12 @@ public sealed class HousingListingConfiguration : IEntityTypeConfiguration<Housi
                 .IsRequired();
 
             address.Ignore(value => value.HasCoordinate);
+
+            // The bounding-box prefilter's index, as on providers. A composite on both axes,
+            // because a query that narrows latitude and then filters longitude in memory reads a
+            // band around the whole planet.
+            address.HasIndex(value => new { value.Latitude, value.Longitude })
+                .HasDatabaseName("ix_housing_listings_coordinates");
         });
 
         builder.Navigation(listing => listing.Address).IsRequired();

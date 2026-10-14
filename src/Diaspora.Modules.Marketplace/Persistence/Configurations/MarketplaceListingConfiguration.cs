@@ -67,6 +67,9 @@ public sealed class MarketplaceListingConfiguration : IEntityTypeConfiguration<M
         ConfigureEnum(builder, listing => listing.Condition);
         ConfigureEnum(builder, listing => listing.ContactPreference);
 
+        builder.Property(listing => listing.Latitude).HasColumnName("latitude");
+        builder.Property(listing => listing.Longitude).HasColumnName("longitude");
+
         builder.Property(listing => listing.ClosureReason)
             .HasMaxLength(MarketplaceLimits.MaxNoteLength);
 
@@ -565,5 +568,11 @@ public sealed class MarketplaceListingConfiguration : IEntityTypeConfiguration<M
         // The moderation queue reads by state and sorts by report count.
         builder.HasIndex(listing => new { listing.ModerationState, listing.ReportCount })
             .HasDatabaseName("ix_marketplace_listings_moderation");
+
+        // The bounding-box prefilter's index, as on providers. A composite on both axes, because a
+        // query that narrows latitude and then filters longitude in memory reads a band around
+        // the whole planet.
+        builder.HasIndex(listing => new { listing.Latitude, listing.Longitude })
+            .HasDatabaseName("ix_marketplace_listings_coordinates");
     }
 }

@@ -23,6 +23,7 @@ public static class CommunityLifeErrorCodes
     public const string EventCategoryNotFound = Prefix + ".event-category.not-found";
     public const string NeighborhoodNotFound = Prefix + ".neighborhood.not-found";
     public const string CountryInvalid = Prefix + ".country.invalid";
+    public const string CoordinatesInvalid = Prefix + ".coordinates.invalid";
 
     // ── Authorization & ownership ───────────────────────────────────────────────────────────
 

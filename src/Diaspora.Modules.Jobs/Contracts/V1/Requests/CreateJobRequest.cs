@@ -47,6 +47,14 @@ public sealed record CreateJobRequest
     /// <summary>Location's area identifier, when the posting is scoped below country level.</summary>
     public Guid? AreaId { get; init; }
 
+    /// <summary>
+    /// The posting's pin, in WGS84 degrees (-90..90). Optional; send both or neither.
+    /// </summary>
+    public double? Latitude { get; init; }
+
+    /// <summary>The posting's pin, in WGS84 degrees (-180..180). Optional; send both or neither.</summary>
+    public double? Longitude { get; init; }
+
     /// <summary><c>OnSite</c>, <c>Hybrid</c> or <c>Remote</c>. Defaults to on site.</summary>
     public string? WorkplaceType { get; init; }
 

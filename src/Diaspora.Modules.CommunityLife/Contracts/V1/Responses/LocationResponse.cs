@@ -20,6 +20,11 @@ public sealed record LocationResponse
     /// <summary>B4's area. The identifier every module on this platform already shares.</summary>
     public Guid? NeighborhoodAreaId { get; init; }
 
+    /// <summary>The owner's pin, in WGS84 degrees. Null when none was given.</summary>
+    public double? Latitude { get; init; }
+
+    public double? Longitude { get; init; }
+
     /// <summary>The most specific place name available, for a one-line rendering.</summary>
     public required string DisplayName { get; init; }
 }

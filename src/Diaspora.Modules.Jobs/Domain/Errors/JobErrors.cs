@@ -266,6 +266,10 @@ public static class JobErrors
         JobErrorCodes.LocationInvalid,
         "The location on this job is not valid.");
 
+    public static readonly Error CoordinatesInvalid = Error.Validation(
+        JobErrorCodes.CoordinatesInvalid,
+        "Those coordinates are not on the Earth. Send both a latitude and a longitude, or neither.");
+
     public static readonly Error CurrencyInvalid = Error.Validation(
         JobErrorCodes.CurrencyInvalid,
         "That is not a valid three-letter currency code.");

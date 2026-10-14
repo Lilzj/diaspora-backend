@@ -3223,6 +3223,14 @@ namespace Diaspora.Persistence.Migrations
                     b.Property<DateTimeOffset?>("LastActivityAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("latitude");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("longitude");
+
                     b.Property<string>("Mission")
                         .HasMaxLength(4000)
                         .HasColumnType("character varying(4000)");
@@ -3289,6 +3297,9 @@ namespace Diaspora.Persistence.Migrations
 
                     b.HasIndex("CreatedByUserId", "Status")
                         .HasDatabaseName("ix_community_life_organizations_creator_status");
+
+                    b.HasIndex("Latitude", "Longitude")
+                        .HasDatabaseName("ix_community_life_organizations_coordinates");
 
                     b.HasIndex("Status", "Visibility", "ModerationState")
                         .HasDatabaseName("ix_community_life_organizations_discovery");
@@ -9856,6 +9867,14 @@ namespace Diaspora.Persistence.Migrations
                     b.Property<bool>("IsFeatured")
                         .HasColumnType("boolean");
 
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("latitude");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("longitude");
+
                     b.Property<string>("ModerationState")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -9903,6 +9922,9 @@ namespace Diaspora.Persistence.Migrations
 
                     b.HasIndex("TranslationGroupId")
                         .HasDatabaseName("ix_guides_translation_group");
+
+                    b.HasIndex("Latitude", "Longitude")
+                        .HasDatabaseName("ix_guides_coordinates");
 
                     b.HasIndex("Status", "PublishedAt")
                         .HasDatabaseName("ix_guides_status_published_at");
@@ -13037,6 +13059,14 @@ namespace Diaspora.Persistence.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("latitude");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("longitude");
+
                     b.Property<string>("ModerationState")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -13090,6 +13120,9 @@ namespace Diaspora.Persistence.Migrations
 
                     b.HasIndex("EmployerId", "Status")
                         .HasDatabaseName("ix_job_postings_employer_status");
+
+                    b.HasIndex("Latitude", "Longitude")
+                        .HasDatabaseName("ix_job_postings_coordinates");
 
                     b.HasIndex("Status", "PublishedAt")
                         .HasDatabaseName("ix_job_postings_status_published");
@@ -13927,10 +13960,18 @@ namespace Diaspora.Persistence.Migrations
                     b.Property<bool>("IsFeatured")
                         .HasColumnType("boolean");
 
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("latitude");
+
                     b.Property<string>("ListingType")
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("longitude");
 
                     b.Property<string>("ModerationState")
                         .IsRequired()
@@ -13982,6 +14023,9 @@ namespace Diaspora.Persistence.Migrations
 
                     b.HasIndex("PublishedAt")
                         .HasDatabaseName("ix_marketplace_listings_published_at");
+
+                    b.HasIndex("Latitude", "Longitude")
+                        .HasDatabaseName("ix_marketplace_listings_coordinates");
 
                     b.HasIndex("ModerationState", "ReportCount")
                         .HasDatabaseName("ix_marketplace_listings_moderation");
@@ -18362,6 +18406,9 @@ namespace Diaspora.Persistence.Migrations
 
                             b1.HasIndex("HierarchyPath")
                                 .HasDatabaseName("ix_community_posts_path");
+
+                            b1.HasIndex("Latitude", "Longitude")
+                                .HasDatabaseName("ix_community_posts_coordinates");
 
                             b1.ToTable("community_posts", "community");
 
@@ -25158,6 +25205,9 @@ namespace Diaspora.Persistence.Migrations
                                 .HasColumnName("address_visibility");
 
                             b1.HasKey("HousingListingId");
+
+                            b1.HasIndex("Latitude", "Longitude")
+                                .HasDatabaseName("ix_housing_listings_coordinates");
 
                             b1.ToTable("housing_listings", "housing");
 

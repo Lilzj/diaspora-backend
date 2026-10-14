@@ -87,6 +87,7 @@ public static class MarketplaceErrorCodes
     public const string CoverImageRequired = "marketplace.media.cover-required";
     public const string CountryInvalid = "marketplace.country.invalid";
     public const string LocationInvalid = "marketplace.location.invalid";
+    public const string CoordinatesInvalid = "marketplace.coordinates.invalid";
     public const string FulfillmentInvalid = "marketplace.fulfillment.invalid";
     public const string FulfillmentRequired = "marketplace.fulfillment.required";
     public const string ProductIdentityInvalid = "marketplace.product-identity.invalid";

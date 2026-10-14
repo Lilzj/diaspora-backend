@@ -32,5 +32,13 @@ public sealed record CreateGuideRequest
     /// <summary>Location's area identifier, when the guide is scoped below country level.</summary>
     public Guid? AreaId { get; init; }
 
+    /// <summary>
+    /// The pin, in WGS84 degrees (-90..90). Optional; send both or neither.
+    /// </summary>
+    public double? Latitude { get; init; }
+
+    /// <summary>The pin, in WGS84 degrees (-180..180). Optional; send both or neither.</summary>
+    public double? Longitude { get; init; }
+
     public string? Summary { get; init; }
 }

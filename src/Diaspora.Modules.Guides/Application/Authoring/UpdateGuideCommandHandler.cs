@@ -139,6 +139,18 @@ public sealed class UpdateGuideCommandHandler : ICommandHandler<UpdateGuideComma
             return Result.Failure<GuideResponse>(metadata.Error);
         }
 
+        // Omitted coordinates leave the pin alone, so a client that has never sent one cannot
+        // clear a pin a newer client set.
+        if (request.Latitude is not null || request.Longitude is not null)
+        {
+            var pinned = guide.SetCoordinates(request.Latitude, request.Longitude);
+
+            if (pinned.IsFailure)
+            {
+                return Result.Failure<GuideResponse>(pinned.Error);
+            }
+        }
+
         if (structure is not null)
         {
             var replaced = guide.ReplaceStructure(structure, baseRevision: null, caller.Value);

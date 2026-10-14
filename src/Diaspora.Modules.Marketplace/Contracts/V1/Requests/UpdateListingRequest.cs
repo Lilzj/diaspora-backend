@@ -42,6 +42,14 @@ public sealed record UpdateListingRequest
 
     public Guid? AreaId { get; init; }
 
+    /// <summary>
+    /// The pin, in WGS84 degrees (-90..90). Optional; send both or neither.
+    /// </summary>
+    public double? Latitude { get; init; }
+
+    /// <summary>The pin, in WGS84 degrees (-180..180). Optional; send both or neither.</summary>
+    public double? Longitude { get; init; }
+
     public bool OffersPickup { get; init; }
 
     public bool OffersDelivery { get; init; }

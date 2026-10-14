@@ -43,6 +43,7 @@ public static class GuideErrorCodes
     public const string SummaryTooLong = "guides.summary.too-long";
     public const string LanguageInvalid = "guides.language.invalid";
     public const string CountryInvalid = "guides.country.invalid";
+    public const string CoordinatesInvalid = "guides.coordinates.invalid";
     public const string SeoInvalid = "guides.seo.invalid";
     public const string SectionLimit = "guides.sections.limit";
     public const string SectionInvalid = "guides.section.invalid";

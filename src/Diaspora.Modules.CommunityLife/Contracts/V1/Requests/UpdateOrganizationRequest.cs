@@ -49,6 +49,14 @@ public sealed record UpdateOrganizationRequest
 
     public Guid? NeighborhoodAreaId { get; init; }
 
+    /// <summary>
+    /// The pin, in WGS84 degrees (-90..90). Optional; send both or neither.
+    /// </summary>
+    public double? Latitude { get; init; }
+
+    /// <summary>The pin, in WGS84 degrees (-180..180). Optional; send both or neither.</summary>
+    public double? Longitude { get; init; }
+
     public Guid? ProviderId { get; init; }
 
     public IReadOnlyList<string>? Languages { get; init; }

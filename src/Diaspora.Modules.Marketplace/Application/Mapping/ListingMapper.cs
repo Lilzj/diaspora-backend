@@ -52,7 +52,7 @@ internal static class ListingMapper
             Status = listing.Status.ToString(),
             Price = ToPrice(listing.Price, includeMinimum: false),
             Available = listing.Inventory.Available,
-            Location = ToLocation(listing.Location),
+            Location = ToLocation(listing.Location) with { Latitude = listing.Latitude, Longitude = listing.Longitude },
             CoverMediaId = listing.CoverImage?.MediaId,
             Tags = [.. listing.Tags.Select(tag => tag.Slug)],
             Seller = seller is null
@@ -106,7 +106,7 @@ internal static class ListingMapper
             Visibility = listing.Visibility.ToString(),
             Price = ToPrice(listing.Price, includeMinimum: canManage),
             Inventory = ToInventory(listing.Inventory),
-            Location = ToLocation(listing.Location),
+            Location = ToLocation(listing.Location) with { Latitude = listing.Latitude, Longitude = listing.Longitude },
             Fulfillment = ToFulfillment(listing.Fulfillment),
             Product = ToProduct(listing.Product, canManage),
             Attributes = ToAttributes(listing.Attributes, definitions),

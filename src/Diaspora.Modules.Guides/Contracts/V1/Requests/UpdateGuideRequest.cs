@@ -34,6 +34,14 @@ public sealed record UpdateGuideRequest
 
     public Guid? AreaId { get; init; }
 
+    /// <summary>
+    /// The pin, in WGS84 degrees (-90..90). Optional; send both or neither.
+    /// </summary>
+    public double? Latitude { get; init; }
+
+    /// <summary>The pin, in WGS84 degrees (-180..180). Optional; send both or neither.</summary>
+    public double? Longitude { get; init; }
+
     // ── SEO, all optional in spirit ─────────────────────────────────────────────────────────
 
     public string? MetaTitle { get; init; }

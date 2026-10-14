@@ -121,6 +121,18 @@ public sealed class UpdateOrganizationCommandHandler
             return location;
         }
 
+        // Omitted coordinates leave the pin alone, so a client that has never sent one cannot
+        // clear a pin a newer client set.
+        if (request.Latitude is not null || request.Longitude is not null)
+        {
+            var pinned = organization.SetCoordinates(request.Latitude, request.Longitude);
+
+            if (pinned.IsFailure)
+            {
+                return pinned;
+            }
+        }
+
         var provider = await ApplyProviderAsync(organization, request, caller, cancellationToken);
 
         if (provider.IsFailure)

@@ -194,6 +194,13 @@ public sealed class CreateListingCommandHandler
             return Result.Failure<ListingResponse>(listing.Error);
         }
 
+        var pinned = listing.Value.SetCoordinates(request.Latitude, request.Longitude);
+
+        if (pinned.IsFailure)
+        {
+            return Result.Failure<ListingResponse>(pinned.Error);
+        }
+
         var configured = await ConfigureAsync(
             listing.Value, command, category.Value.Path, cancellationToken);
 

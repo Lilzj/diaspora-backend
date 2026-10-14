@@ -132,6 +132,10 @@ public static class GuideErrors
         GuideErrorCodes.CountryInvalid,
         "That is not a country code we recognise.");
 
+    public static readonly Error CoordinatesInvalid = Error.Validation(
+        GuideErrorCodes.CoordinatesInvalid,
+        "Those coordinates are not on the Earth. Send both a latitude and a longitude, or neither.");
+
     public static readonly Error SeoInvalid = Error.Validation(
         GuideErrorCodes.SeoInvalid,
         "Those SEO settings are not valid.");

@@ -147,6 +147,12 @@ public sealed class CommunityPostConfiguration : IEntityTypeConfiguration<Commun
 
             location.HasIndex(value => value.HierarchyPath)
                 .HasDatabaseName("ix_community_posts_path");
+
+            // The bounding-box prefilter's index, as on providers. A composite on both axes,
+            // because a query that narrows latitude and then filters longitude in memory reads a
+            // band around the whole planet.
+            location.HasIndex(value => new { value.Latitude, value.Longitude })
+                .HasDatabaseName("ix_community_posts_coordinates");
         });
 
         builder.Navigation(post => post.Location).IsRequired();

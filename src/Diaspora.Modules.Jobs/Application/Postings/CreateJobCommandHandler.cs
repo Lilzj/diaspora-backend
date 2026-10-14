@@ -187,6 +187,13 @@ public sealed class CreateJobCommandHandler : ICommandHandler<CreateJobCommand, 
             return Result.Failure<JobResponse>(posting.Error);
         }
 
+        var pinned = posting.Value.SetCoordinates(request.Latitude, request.Longitude);
+
+        if (pinned.IsFailure)
+        {
+            return Result.Failure<JobResponse>(pinned.Error);
+        }
+
         await _postings.AddAsync(posting.Value, cancellationToken);
 
         // Created eagerly rather than on first use: "create it if missing" is a race two

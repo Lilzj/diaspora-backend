@@ -147,6 +147,13 @@ public sealed class CreateOrganizationCommandHandler
             return Result.Failure<OrganizationResponse>(organization.Error);
         }
 
+        var pinned = organization.Value.SetCoordinates(request.Latitude, request.Longitude);
+
+        if (pinned.IsFailure)
+        {
+            return Result.Failure<OrganizationResponse>(pinned.Error);
+        }
+
         var applied = await ApplyDetailAsync(
             organization.Value, request, content.Value, caller.Value, cancellationToken);
 

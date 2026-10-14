@@ -137,6 +137,13 @@ public sealed class CreateGuideCommandHandler : ICommandHandler<CreateGuideComma
             return Result.Failure<GuideResponse>(summarized.Error);
         }
 
+        var pinned = guide.Value.SetCoordinates(request.Latitude, request.Longitude);
+
+        if (pinned.IsFailure)
+        {
+            return Result.Failure<GuideResponse>(pinned.Error);
+        }
+
         await _guides.AddAsync(guide.Value, cancellationToken);
 
         // The transaction behaviour opens and commits; it does not save. A handler that forgets

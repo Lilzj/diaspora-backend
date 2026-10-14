@@ -65,6 +65,11 @@ public sealed record GuideResponse
 
     public Guid? AreaId { get; init; }
 
+    /// <summary>The owner's pin, in WGS84 degrees. Null when none was given.</summary>
+    public double? Latitude { get; init; }
+
+    public double? Longitude { get; init; }
+
     // ── Reading ─────────────────────────────────────────────────────────────────────────────
 
     /// <summary>A <c>GuideDifficulty</c> name.</summary>

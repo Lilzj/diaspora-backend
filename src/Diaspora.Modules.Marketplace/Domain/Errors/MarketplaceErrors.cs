@@ -330,6 +330,10 @@ public static class MarketplaceErrors
         MarketplaceErrorCodes.LocationInvalid,
         "That location is not valid.");
 
+    public static readonly Error CoordinatesInvalid = Error.Validation(
+        MarketplaceErrorCodes.CoordinatesInvalid,
+        "Those coordinates are not on the Earth. Send both a latitude and a longitude, or neither.");
+
     public static readonly Error FulfillmentInvalid = Error.Validation(
         MarketplaceErrorCodes.FulfillmentInvalid,
         "Those delivery options are not valid.");

@@ -36,6 +36,14 @@ public sealed record UpdateJobRequest
 
     public Guid? AreaId { get; init; }
 
+    /// <summary>
+    /// The posting's pin, in WGS84 degrees (-90..90). Optional; send both or neither.
+    /// </summary>
+    public double? Latitude { get; init; }
+
+    /// <summary>The posting's pin, in WGS84 degrees (-180..180). Optional; send both or neither.</summary>
+    public double? Longitude { get; init; }
+
     public string? WorkplaceType { get; init; }
 
     public bool OffersVisaSponsorship { get; init; }

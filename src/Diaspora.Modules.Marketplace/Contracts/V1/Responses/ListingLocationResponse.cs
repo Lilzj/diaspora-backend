@@ -24,6 +24,11 @@ public sealed record ListingLocationResponse
     /// <summary>Location's area identifier, when the seller picked one.</summary>
     public Guid? AreaId { get; init; }
 
+    /// <summary>The owner's pin, in WGS84 degrees. Null when none was given.</summary>
+    public double? Latitude { get; init; }
+
+    public double? Longitude { get; init; }
+
     /// <summary>The one-line place a card renders, as specific as the seller made it.</summary>
     public required string DisplayName { get; init; }
 }

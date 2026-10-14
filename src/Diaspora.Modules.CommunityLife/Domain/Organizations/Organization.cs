@@ -119,6 +119,15 @@ public sealed class Organization
 
     public CommunityLifeLocationContext Location { get; private set; } = default!;
 
+    /// <summary>
+    /// The pin the owner dropped, in WGS84 degrees. Both or neither. Stored since 14 Oct 2026 so
+    /// this can be found by coordinates once the place catalogue is retired; nothing reads it yet.
+    /// </summary>
+    public double? Latitude { get; private set; }
+
+    /// <inheritdoc cref="Latitude"/>
+    public double? Longitude { get; private set; }
+
     public ContactDetails Contact { get; private set; } = default!;
 
     public SocialLinks SocialLinks { get; private set; } = default!;
@@ -326,6 +335,25 @@ public sealed class Organization
     // ════════════════════════════════════════════════════════════════════════════════════════
     // Content
     // ════════════════════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Pins this to a point. Both or neither: half a coordinate is a point on the equator or the
+    /// prime meridian, not a missing value. Passing neither clears the pin.
+    /// </summary>
+    public Result SetCoordinates(double? latitude, double? longitude)
+    {
+        if ((latitude is null) != (longitude is null)
+            || (latitude is { } lat && (double.IsNaN(lat) || lat is < -90d or > 90d))
+            || (longitude is { } lon && (double.IsNaN(lon) || lon is < -180d or > 180d)))
+        {
+            return Result.Failure(CommunityLifeErrors.CoordinatesInvalid);
+        }
+
+        Latitude = latitude;
+        Longitude = longitude;
+
+        return Result.Success();
+    }
 
     /// <summary>
     /// Replaces the organization's descriptive content.

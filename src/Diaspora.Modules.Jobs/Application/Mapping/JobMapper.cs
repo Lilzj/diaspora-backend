@@ -191,6 +191,8 @@ public static class JobMapper
             RegionName = posting.Location.RegionName,
             CityName = posting.Location.CityName,
             AreaId = posting.Location.AreaId,
+            Latitude = posting.Latitude,
+            Longitude = posting.Longitude,
             DisplayName = posting.Location.DisplayName
         };
 

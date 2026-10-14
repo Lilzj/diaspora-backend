@@ -133,6 +133,16 @@ public sealed class JobPosting
 
     public JobLocationContext Location { get; private set; } = default!;
 
+    /// <summary>
+    /// The pin the employer dropped, in WGS84 degrees. Both or neither. Stored since 14 Oct 2026
+    /// so a posting can be found by coordinates once the place catalogue is retired; nothing reads
+    /// it yet.
+    /// </summary>
+    public double? Latitude { get; private set; }
+
+    /// <inheritdoc cref="Latitude"/>
+    public double? Longitude { get; private set; }
+
     public WorkArrangement WorkArrangement { get; private set; } = default!;
 
     public SalaryRange Salary { get; private set; } = default!;
@@ -364,6 +374,25 @@ public sealed class JobPosting
     // ════════════════════════════════════════════════════════════════════════════════════════
     // Content
     // ════════════════════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Pins the posting to a point. Both or neither: half a coordinate is a point on the equator
+    /// or the prime meridian, not a missing value. Passing neither clears the pin.
+    /// </summary>
+    public Result SetCoordinates(double? latitude, double? longitude)
+    {
+        if ((latitude is null) != (longitude is null)
+            || (latitude is { } lat && (double.IsNaN(lat) || lat is < -90d or > 90d))
+            || (longitude is { } lon && (double.IsNaN(lon) || lon is < -180d or > 180d)))
+        {
+            return Result.Failure(JobErrors.CoordinatesInvalid);
+        }
+
+        Latitude = latitude;
+        Longitude = longitude;
+
+        return Result.Success();
+    }
 
     /// <summary>
     /// Files an unfiled posting under the area its own geography lands in, without editing it.

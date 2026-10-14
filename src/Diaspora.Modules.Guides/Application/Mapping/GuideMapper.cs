@@ -62,6 +62,8 @@ public static class GuideMapper
             RegionName = guide.Location.RegionName,
             CityName = guide.Location.CityName,
             AreaId = guide.Location.AreaId,
+            Latitude = guide.Latitude,
+            Longitude = guide.Longitude,
             Difficulty = GuideWireNames.ToWire(guide.Reading.Difficulty),
             ReadingTimeMinutes = guide.Reading.ReadingTimeMinutes,
             EstimatedCompletionMinutes = guide.Reading.EstimatedCompletionMinutes,

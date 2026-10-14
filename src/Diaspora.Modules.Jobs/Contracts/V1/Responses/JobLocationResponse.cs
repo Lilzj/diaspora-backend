@@ -12,6 +12,11 @@ public sealed record JobLocationResponse
 
     public Guid? AreaId { get; init; }
 
+    /// <summary>The employer's pin, in WGS84 degrees. Null when none was given.</summary>
+    public double? Latitude { get; init; }
+
+    public double? Longitude { get; init; }
+
     /// <summary>The most specific place named. What a card prints.</summary>
     public required string DisplayName { get; init; }
 }

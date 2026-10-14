@@ -166,6 +166,18 @@ public sealed class UpdateListingCommandHandler
             return Result.Failure<ListingResponse>(updated.Error);
         }
 
+        // Omitted coordinates leave the pin alone, so a client that has never sent one cannot
+        // clear a pin a newer client set.
+        if (request.Latitude is not null || request.Longitude is not null)
+        {
+            var pinned = listing.SetCoordinates(request.Latitude, request.Longitude);
+
+            if (pinned.IsFailure)
+            {
+                return Result.Failure<ListingResponse>(pinned.Error);
+            }
+        }
+
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var category = await _categories.FindAsync(listing.CategoryKey, cancellationToken);

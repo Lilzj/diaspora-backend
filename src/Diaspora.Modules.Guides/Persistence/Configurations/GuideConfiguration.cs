@@ -56,6 +56,9 @@ public sealed class GuideConfiguration : IEntityTypeConfiguration<Guide>
             .HasMaxLength(GuideLimits.MaxCategoryKey)
             .IsRequired();
 
+        builder.Property(guide => guide.Latitude).HasColumnName("latitude");
+        builder.Property(guide => guide.Longitude).HasColumnName("longitude");
+
         builder.Property(guide => guide.Status)
             .HasConversion<string>()
             .HasMaxLength(GuidePersistenceConstants.EnumLength)
@@ -468,5 +471,11 @@ public sealed class GuideConfiguration : IEntityTypeConfiguration<Guide>
         // The scheduled publisher's poll: drafts whose instant has passed.
         builder.HasIndex(guide => guide.ScheduledPublishAt)
             .HasDatabaseName("ix_guides_scheduled");
+
+        // The bounding-box prefilter's index, as on providers. A composite on both axes, because a
+        // query that narrows latitude and then filters longitude in memory reads a band around
+        // the whole planet.
+        builder.HasIndex(guide => new { guide.Latitude, guide.Longitude })
+            .HasDatabaseName("ix_guides_coordinates");
     }
 }

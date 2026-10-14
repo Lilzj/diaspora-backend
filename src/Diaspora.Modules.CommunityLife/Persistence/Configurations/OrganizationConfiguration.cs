@@ -57,6 +57,9 @@ public sealed class OrganizationConfiguration : IEntityTypeConfiguration<Organiz
             .HasMaxLength(CommunityLifeLimits.MaxCategoryKey)
             .IsRequired();
 
+        builder.Property(organization => organization.Latitude).HasColumnName("latitude");
+        builder.Property(organization => organization.Longitude).HasColumnName("longitude");
+
         builder.Property(organization => organization.Mission)
             .HasMaxLength(CommunityLifeLimits.MaxMission);
 
@@ -518,5 +521,11 @@ public sealed class OrganizationConfiguration : IEntityTypeConfiguration<Organiz
 
         builder.HasIndex(organization => organization.ReportCount)
             .HasDatabaseName("ix_community_life_organizations_report_count");
+
+        // The bounding-box prefilter's index, as on providers. A composite on both axes, because a
+        // query that narrows latitude and then filters longitude in memory reads a band around
+        // the whole planet.
+        builder.HasIndex(organization => new { organization.Latitude, organization.Longitude })
+            .HasDatabaseName("ix_community_life_organizations_coordinates");
     }
 }

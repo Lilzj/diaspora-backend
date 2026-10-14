@@ -81,6 +81,7 @@ public static class JobErrorCodes
     public const string MediaLimit = "jobs.media.limit";
     public const string CountryInvalid = "jobs.country.invalid";
     public const string LocationInvalid = "jobs.location.invalid";
+    public const string CoordinatesInvalid = "jobs.coordinates.invalid";
     public const string CurrencyInvalid = "jobs.currency.invalid";
     public const string SalaryInvalid = "jobs.salary.invalid";
     public const string SalaryRangeInverted = "jobs.salary.range-inverted";

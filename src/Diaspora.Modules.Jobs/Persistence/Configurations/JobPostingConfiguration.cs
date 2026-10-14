@@ -89,6 +89,9 @@ public sealed class JobPostingConfiguration : IEntityTypeConfiguration<JobPostin
             .HasMaxLength(JobPersistenceConstants.EnumLength)
             .IsRequired();
 
+        builder.Property(posting => posting.Latitude).HasColumnName("latitude");
+        builder.Property(posting => posting.Longitude).HasColumnName("longitude");
+
         builder.Property(posting => posting.ClosureReason)
             .HasMaxLength(JobLimits.MaxBulletLength);
 
@@ -549,5 +552,11 @@ public sealed class JobPostingConfiguration : IEntityTypeConfiguration<JobPostin
 
         builder.HasIndex(posting => posting.ModerationState)
             .HasDatabaseName("ix_job_postings_moderation_state");
+
+        // The bounding-box prefilter's index, as on providers. A composite on both axes, because a
+        // query that narrows latitude and then filters longitude in memory reads a band around
+        // the whole planet.
+        builder.HasIndex(posting => new { posting.Latitude, posting.Longitude })
+            .HasDatabaseName("ix_job_postings_coordinates");
     }
 }
