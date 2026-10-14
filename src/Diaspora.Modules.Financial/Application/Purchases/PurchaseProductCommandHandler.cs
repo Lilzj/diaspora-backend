@@ -48,6 +48,7 @@ public sealed class PurchaseProductCommandHandler
     private readonly IFinancialPolicyEngine _pricing;
     private readonly IProductEligibilityEvaluator _eligibility;
     private readonly FinancialIdentityService _identities;
+    private readonly MemberCurrency _memberCurrency;
     private readonly FinancialAuthorizationService _authorization;
     private readonly CurrencyCatalog _currencies;
     private readonly IGuidGenerator _guids;
@@ -65,6 +66,7 @@ public sealed class PurchaseProductCommandHandler
         IFinancialPolicyEngine pricing,
         IProductEligibilityEvaluator eligibility,
         FinancialIdentityService identities,
+        MemberCurrency memberCurrency,
         FinancialAuthorizationService authorization,
         CurrencyCatalog currencies,
         IGuidGenerator guids,
@@ -81,6 +83,7 @@ public sealed class PurchaseProductCommandHandler
         _pricing = pricing;
         _eligibility = eligibility;
         _identities = identities;
+        _memberCurrency = memberCurrency;
         _authorization = authorization;
         _currencies = currencies;
         _guids = guids;
@@ -270,7 +273,10 @@ public sealed class PurchaseProductCommandHandler
             return Result.Success(PricingDecision.Of(listed, null, "The catalogue price."));
         }
 
-        var basis = product.Price ?? Money.Zero(_identities.DefaultCurrency);
+        // A product priced only by policy starts from zero in the buyer's currency — the money they
+        // hold, else where they live — so a policy that prices per currency sees the right one.
+        var basis = product.Price
+            ?? Money.Zero(await _memberCurrency.ForMemberAsync(buyerUserId, cancellationToken));
 
         return await _pricing.PriceAsync(
             new PricingContext

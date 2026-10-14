@@ -121,6 +121,7 @@ public sealed class GetWithdrawalLimitsQueryHandler
     private readonly FinancialAuthorizationService _authorization;
     private readonly FinancialLimitsResolver _limits;
     private readonly FinancialIdentityService _identities;
+    private readonly MemberCurrency _memberCurrency;
     private readonly CurrencyCatalog _currencies;
     private readonly IEnumerable<ISettlementProvider> _settlement;
     private readonly IClock _clock;
@@ -130,6 +131,7 @@ public sealed class GetWithdrawalLimitsQueryHandler
         FinancialAuthorizationService authorization,
         FinancialLimitsResolver limits,
         FinancialIdentityService identities,
+        MemberCurrency memberCurrency,
         CurrencyCatalog currencies,
         IEnumerable<ISettlementProvider> settlement,
         IClock clock)
@@ -138,6 +140,7 @@ public sealed class GetWithdrawalLimitsQueryHandler
         _authorization = authorization;
         _limits = limits;
         _identities = identities;
+        _memberCurrency = memberCurrency;
         _currencies = currencies;
         _settlement = settlement;
         _clock = clock;
@@ -155,7 +158,10 @@ public sealed class GetWithdrawalLimitsQueryHandler
             return Result.Failure<MovementLimitsResponse>(caller.Error);
         }
 
-        var currency = query.Currency ?? _identities.DefaultCurrency;
+        // The caller's currency — the money they hold, else where they live — unless they asked
+        // about another. The platform default is only the last resort.
+        var currency = query.Currency
+            ?? await _memberCurrency.ForMemberAsync(caller.Value, cancellationToken);
         var facts = await _currencies.FactsAsync(currency, cancellationToken);
 
         var limits = await _limits.ResolveAsync(

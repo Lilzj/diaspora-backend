@@ -77,4 +77,15 @@ public sealed record MemberProfile
     /// </para>
     /// </summary>
     public bool IsVerified { get; init; }
+
+    /// <summary>
+    /// The ISO 3166-1 alpha-2 country they live in, as they registered or last updated it.
+    /// <para>
+    /// Added 14 Oct 2026 because a member's currency comes from where they live, never from a
+    /// platform default: Financial and Creator answered GBP to a member resident in Mauritius
+    /// whenever they had no money yet to take a currency from. Null when the identity store has no
+    /// country for them, which a caller must treat as "unknown", not as any particular country.
+    /// </para>
+    /// </summary>
+    public string? CountryOfResidence { get; init; }
 }

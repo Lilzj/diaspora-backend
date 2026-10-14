@@ -22,7 +22,7 @@ public sealed class RewardQueryHandlers
     private readonly IRewardConversionRepository _conversions;
     private readonly RewardConversionPricer _pricer;
     private readonly FinancialAuthorizationService _authorization;
-    private readonly FinancialIdentityService _identities;
+    private readonly MemberCurrency _memberCurrency;
     private readonly IClock _clock;
 
     public RewardQueryHandlers(
@@ -30,14 +30,14 @@ public sealed class RewardQueryHandlers
         IRewardConversionRepository conversions,
         RewardConversionPricer pricer,
         FinancialAuthorizationService authorization,
-        FinancialIdentityService identities,
+        MemberCurrency memberCurrency,
         IClock clock)
     {
         _accounts = accounts;
         _conversions = conversions;
         _pricer = pricer;
         _authorization = authorization;
-        _identities = identities;
+        _memberCurrency = memberCurrency;
         _clock = clock;
     }
 
@@ -115,7 +115,7 @@ public sealed class RewardQueryHandlers
 
         var terms = await _pricer.TermsAsync(
             caller.Value,
-            query.Currency ?? _identities.DefaultCurrency,
+            query.Currency ?? await _memberCurrency.ForMemberAsync(caller.Value, cancellationToken),
             query.CountryCode,
             cancellationToken);
 

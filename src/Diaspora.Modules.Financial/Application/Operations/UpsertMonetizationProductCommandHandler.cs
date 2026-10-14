@@ -7,8 +7,10 @@ using Diaspora.Modules.Financial.Domain.Catalog;
 using Diaspora.Modules.Financial.Domain.Enums;
 using Diaspora.Modules.Financial.Domain.Identifiers;
 using Diaspora.Modules.Financial.Domain.ValueObjects;
+using Diaspora.Modules.Financial.Options;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Results;
+using Microsoft.Extensions.Options;
 
 namespace Diaspora.Modules.Financial.Application.Operations;
 
@@ -21,19 +23,24 @@ public sealed class UpsertMonetizationProductCommandHandler
     private readonly IGuidGenerator _guids;
     private readonly IClock _clock;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly FinancialOptions _options;
 
     public UpsertMonetizationProductCommandHandler(
         IMonetizationProductRepository products,
         CurrencyCatalog currencies,
         IGuidGenerator guids,
         IClock clock,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IOptions<FinancialOptions> options)
     {
+        ArgumentNullException.ThrowIfNull(options);
+
         _products = products;
         _currencies = currencies;
         _guids = guids;
         _clock = clock;
         _unitOfWork = unitOfWork;
+        _options = options.Value;
     }
 
     public async Task<Result<MonetizationProductResponse>> Handle(
@@ -68,8 +75,10 @@ public sealed class UpsertMonetizationProductCommandHandler
 
         if (command.PriceAmount is { } amount)
         {
+            // Staff defining a catalogue price with no currency get the deployment's configured
+            // default, not a literal: a deployment that is not sterling-first says so in config.
             var facts = await _currencies.FactsAsync(
-                command.Currency ?? "GBP", cancellationToken);
+                command.Currency ?? _options.DefaultCurrency, cancellationToken);
 
             price = Money.FromAmount(amount, facts.Code, facts.Exponent);
         }

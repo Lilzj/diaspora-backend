@@ -28,7 +28,7 @@ public sealed class RedeemPromotionCommandHandler
     private readonly IMonetizationProductRepository _products;
     private readonly FinancialAuthorizationService _authorization;
     private readonly CurrencyCatalog _currencies;
-    private readonly FinancialIdentityService _identities;
+    private readonly MemberCurrency _memberCurrency;
     private readonly IClock _clock;
     private readonly IUnitOfWork _unitOfWork;
 
@@ -38,7 +38,7 @@ public sealed class RedeemPromotionCommandHandler
         IMonetizationProductRepository products,
         FinancialAuthorizationService authorization,
         CurrencyCatalog currencies,
-        FinancialIdentityService identities,
+        MemberCurrency memberCurrency,
         IClock clock,
         IUnitOfWork unitOfWork)
     {
@@ -47,7 +47,7 @@ public sealed class RedeemPromotionCommandHandler
         _products = products;
         _authorization = authorization;
         _currencies = currencies;
-        _identities = identities;
+        _memberCurrency = memberCurrency;
         _clock = clock;
         _unitOfWork = unitOfWork;
     }
@@ -78,8 +78,12 @@ public sealed class RedeemPromotionCommandHandler
 
         // With no product the quote is against the code's own minimum spend, or against nothing —
         // which still answers every refusal but the product one.
+        //
+        // A code with no currency of its own is quoted in the caller's — the money they hold, else
+        // where they live — not in the platform default, which quoted Mauritians in sterling.
         var listPrice = product?.Price
-            ?? Money.Zero(promotion.Currency ?? _identities.DefaultCurrency);
+            ?? Money.Zero(promotion.Currency
+                ?? await _memberCurrency.ForMemberAsync(caller.Value, cancellationToken));
 
         var used = await _redemptions.CountForSubjectAsync(
             promotion.Id, caller.Value, cancellationToken);

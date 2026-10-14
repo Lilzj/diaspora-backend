@@ -1058,8 +1058,11 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
 
         await PostWithdrawalAsync(30m, destinationId);
 
+        // Names the currency it funded. Unnamed, the limits are quoted in the member's own currency —
+        // CAD for this suite's Canadian residents — and this used to pass only because every unnamed
+        // read fell back to GBP, the defect fixed on 14 Oct 2026.
         var response = await HttpClient.GetAsync(
-            new Uri("/api/v1/financial/wallets/me/withdrawals/limits", UriKind.Relative));
+            new Uri($"/api/v1/financial/wallets/me/withdrawals/limits?currency={DepositCurrency}", UriKind.Relative));
 
         var limits = await ReadDataAsync<LimitsShape>(response);
 

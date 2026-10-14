@@ -185,6 +185,12 @@ public sealed class FinancialModule : IPlatformModule
         // a different set of wallets and nobody would notice until a balance was missing.
         services.AddScoped<FinancialIdentityService>();
 
+        // A member's currency: the money they hold, then where they live, then the default. One
+        // answer for every handler and for Creator, which reads it through the extensibility seam.
+        services.AddScoped<MemberCurrency>();
+        services.AddScoped<Extensibility.Currency.IMemberCurrency>(
+            provider => provider.GetRequiredService<MemberCurrency>());
+
         // Drives a payment through a gateway and writes what happened into the ledger.
         services.AddScoped<PaymentProcessor>();
 

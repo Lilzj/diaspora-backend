@@ -13,13 +13,16 @@ public sealed class ProvisionWalletCommandHandler
     : ICommandHandler<ProvisionWalletCommand, IReadOnlyList<WalletResponse>>
 {
     private readonly FinancialIdentityService _identities;
+    private readonly MemberCurrency _memberCurrency;
     private readonly CurrencyCatalog _currencies;
     private readonly IUnitOfWork _unitOfWork;
 
     public ProvisionWalletCommandHandler(
-        FinancialIdentityService identities, CurrencyCatalog currencies, IUnitOfWork unitOfWork)
+        FinancialIdentityService identities,
+        MemberCurrency memberCurrency, CurrencyCatalog currencies, IUnitOfWork unitOfWork)
     {
         _identities = identities;
+        _memberCurrency = memberCurrency;
         _currencies = currencies;
         _unitOfWork = unitOfWork;
     }
@@ -38,7 +41,13 @@ public sealed class ProvisionWalletCommandHandler
                 + "opened by the seeder and by nothing else."));
         }
 
-        var currency = command.Currency ?? _identities.DefaultCurrency;
+        // An explicit currency wins. Otherwise the owner's existing account keeps its currency —
+        // money already held is never restated — then the named country, then a member's country
+        // of residence, and only then the configured default. This read the default directly and
+        // opened every unnamed wallet in GBP.
+        var currency = command.Currency
+            ?? await _memberCurrency.ForOwnerAsync(
+                command.OwnerId, accountType, command.CountryCode, cancellationToken);
 
         if (!await _currencies.IsSupportedAsync(currency, cancellationToken))
         {

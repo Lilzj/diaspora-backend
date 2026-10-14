@@ -3,6 +3,7 @@ using Diaspora.Modules.Financial.Application.Services;
 using Diaspora.Modules.Financial.Contracts.V1.Responses;
 using Diaspora.Modules.Financial.Domain.Advertising;
 using Diaspora.Modules.Financial.Domain.Identifiers;
+using Diaspora.Modules.Financial.Extensibility.Currency;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Results;
 
@@ -77,7 +78,7 @@ public sealed class GetAdCampaignPerformanceQueryHandler
         var rows = await _performance.ListForCampaignAsync(
             campaign.Id, from, to, cancellationToken);
 
-        return Result.Success(AdPerformanceMapper.ToResponse(rows, from, to, campaign));
+        return Result.Success(AdPerformanceMapper.ToResponse(rows, from, to, campaign, campaign.Currency));
     }
 }
 
@@ -87,17 +88,20 @@ public sealed class GetPlacementPerformanceQueryHandler
     private readonly IPlacementRepositoryAccessor _placements;
     private readonly IAdPerformanceRepository _performance;
     private readonly FinancialAuthorizationService _authorization;
+    private readonly IMemberCurrency _memberCurrency;
     private readonly IClock _clock;
 
     public GetPlacementPerformanceQueryHandler(
         IPlacementRepositoryAccessor placements,
         IAdPerformanceRepository performance,
         FinancialAuthorizationService authorization,
+        IMemberCurrency memberCurrency,
         IClock clock)
     {
         _placements = placements;
         _performance = performance;
         _authorization = authorization;
+        _memberCurrency = memberCurrency;
         _clock = clock;
     }
 
@@ -128,7 +132,12 @@ public sealed class GetPlacementPerformanceQueryHandler
         var rows = await _performance.ListForPlacementAsync(
             placement.Id, from, to, cancellationToken);
 
-        return Result.Success(AdPerformanceMapper.ToResponse(rows, from, to, campaign: null));
+        // Only asked when nothing was served: rows carry their own currency otherwise.
+        var fallback = rows.Count > 0
+            ? rows[0].Currency
+            : await _memberCurrency.ForMemberAsync(caller.Value, cancellationToken);
+
+        return Result.Success(AdPerformanceMapper.ToResponse(rows, from, to, campaign: null, fallback));
     }
 }
 
@@ -138,17 +147,20 @@ public sealed class GetMyAdPerformanceSummaryQueryHandler
     private readonly IAdCampaignRepository _campaigns;
     private readonly IAdPerformanceRepository _performance;
     private readonly FinancialAuthorizationService _authorization;
+    private readonly IMemberCurrency _memberCurrency;
     private readonly IClock _clock;
 
     public GetMyAdPerformanceSummaryQueryHandler(
         IAdCampaignRepository campaigns,
         IAdPerformanceRepository performance,
         FinancialAuthorizationService authorization,
+        IMemberCurrency memberCurrency,
         IClock clock)
     {
         _campaigns = campaigns;
         _performance = performance;
         _authorization = authorization;
+        _memberCurrency = memberCurrency;
         _clock = clock;
     }
 
@@ -175,7 +187,12 @@ public sealed class GetMyAdPerformanceSummaryQueryHandler
         var rows = await _performance.ListForCampaignsAsync(
             [.. mine.Select(campaign => campaign.Id)], from, to, cancellationToken);
 
-        return Result.Success(AdPerformanceMapper.ToResponse(rows, from, to, campaign: null));
+        // Only asked when nothing was served: rows carry their own currency otherwise.
+        var fallback = rows.Count > 0
+            ? rows[0].Currency
+            : await _memberCurrency.ForMemberAsync(caller.Value, cancellationToken);
+
+        return Result.Success(AdPerformanceMapper.ToResponse(rows, from, to, campaign: null, fallback));
     }
 }
 

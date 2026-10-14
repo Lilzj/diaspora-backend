@@ -52,7 +52,9 @@ public sealed class MemberProfileService : IMemberProfileService
 
                 // Through the one function that projects Identity's states onto tiers, so a
                 // suspended or locked member — Limited there — is never reported verified.
-                IsVerified = AccessTierMap.ToTier(user.AccessState) == AccessTier.Verified
+                IsVerified = AccessTierMap.ToTier(user.AccessState) == AccessTier.Verified,
+
+                CountryOfResidence = user.CountryOfResidence?.Value
             });
     }
 }

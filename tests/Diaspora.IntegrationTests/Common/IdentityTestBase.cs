@@ -127,11 +127,23 @@ public abstract class IdentityTestCore<TFactory> : IDisposable
         };
 
     /// <summary>Registers an account and leaves it awaiting phone verification.</summary>
-    protected async Task<string> RegisterAsync(string? phoneNumber = null, string password = ValidPassword)
+    /// <remarks>
+    /// <paramref name="countryOfResidence"/> overrides the suite's default (CA) for a test about
+    /// what residence decides — a member's currency, for one.
+    /// </remarks>
+    protected async Task<string> RegisterAsync(
+        string? phoneNumber = null, string password = ValidPassword, string? countryOfResidence = null)
     {
         var phone = phoneNumber ?? NextPhoneNumber();
 
-        var response = await Api.RegisterAsync(RegistrationFor(phone, password));
+        var registration = RegistrationFor(phone, password);
+
+        if (countryOfResidence is not null)
+        {
+            registration = registration with { CountryOfResidence = countryOfResidence };
+        }
+
+        var response = await Api.RegisterAsync(registration);
         await IdentityApiClient.ReadDataAsync<RegistrationResponse>(response);
 
         return phone;
@@ -145,9 +157,10 @@ public abstract class IdentityTestCore<TFactory> : IDisposable
         string? phoneNumber = null,
         string password = ValidPassword,
         string? deviceIdentifier = null,
-        string? deviceName = null)
+        string? deviceName = null,
+        string? countryOfResidence = null)
     {
-        var phone = await RegisterAsync(phoneNumber, password);
+        var phone = await RegisterAsync(phoneNumber, password, countryOfResidence);
         var code = Factory.OtpCodes.LatestFor(phone, OtpPurpose.PhoneVerification);
 
         var response = await Api.VerifyPhoneAsync(new VerifyPhoneRequest
@@ -169,9 +182,10 @@ public abstract class IdentityTestCore<TFactory> : IDisposable
     /// the only legitimate route to a verified member.
     /// </summary>
     protected async Task<(string PhoneNumber, AuthenticationResponse Auth)> RegisterVerifiedMemberAsync(
-        string? phoneNumber = null)
+        string? phoneNumber = null, string? countryOfResidence = null)
     {
-        var (phone, auth) = await RegisterAndVerifyAsync(phoneNumber);
+        var (phone, auth) = await RegisterAndVerifyAsync(
+            phoneNumber, countryOfResidence: countryOfResidence);
 
         Api.Authenticate(auth.Tokens.AccessToken);
         await Api.SubmitVerificationAsync();

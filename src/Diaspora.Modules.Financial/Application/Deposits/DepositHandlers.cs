@@ -289,7 +289,7 @@ public sealed class GetDepositLimitsQueryHandler
     private readonly FinancialAuthorizationService _authorization;
     private readonly FinancialLimitsResolver _limits;
     private readonly CurrencyCatalog _currencies;
-    private readonly FinancialIdentityService _identities;
+    private readonly MemberCurrency _memberCurrency;
     private readonly IClock _clock;
     private readonly FinancialOptions _options;
 
@@ -298,7 +298,7 @@ public sealed class GetDepositLimitsQueryHandler
         FinancialAuthorizationService authorization,
         FinancialLimitsResolver limits,
         CurrencyCatalog currencies,
-        FinancialIdentityService identities,
+        MemberCurrency memberCurrency,
         IClock clock,
         IOptions<FinancialOptions> options)
     {
@@ -308,7 +308,7 @@ public sealed class GetDepositLimitsQueryHandler
         _authorization = authorization;
         _limits = limits;
         _currencies = currencies;
-        _identities = identities;
+        _memberCurrency = memberCurrency;
         _clock = clock;
         _options = options.Value;
     }
@@ -325,7 +325,10 @@ public sealed class GetDepositLimitsQueryHandler
             return Result.Failure<MovementLimitsResponse>(caller.Error);
         }
 
-        var currency = query.Currency ?? _identities.DefaultCurrency;
+        // Limits are quoted in the caller's currency — the money they hold, else where they live —
+        // unless they asked about another. The platform default is only the last resort.
+        var currency = query.Currency
+            ?? await _memberCurrency.ForMemberAsync(caller.Value, cancellationToken);
         var facts = await _currencies.FactsAsync(currency, cancellationToken);
 
         var limits = await _limits.ResolveAsync(

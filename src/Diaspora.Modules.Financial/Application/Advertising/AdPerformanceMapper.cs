@@ -23,7 +23,8 @@ internal static class AdPerformanceMapper
         IReadOnlyList<AdPerformanceDay> rows,
         DateOnly from,
         DateOnly to,
-        AdCampaign? campaign)
+        AdCampaign? campaign,
+        string fallbackCurrency)
     {
         ArgumentNullException.ThrowIfNull(rows);
 
@@ -33,10 +34,12 @@ internal static class AdPerformanceMapper
         var spend = rows.Sum(row => row.SpendMinorUnits);
 
         // The campaign is the authority on currency. Without one — a placement or a rollup — take
-        // it from the rows, and fall back to the platform's own default only when there are none.
+        // it from the rows, and when there are none, the advertiser's own currency — the money they
+        // hold, else where they live — which the handler resolves. This was a literal "GBP", so an
+        // advertiser in Mauritius with nothing served yet saw an empty dashboard in sterling.
         var first = rows.Count > 0 ? rows[0] : null;
 
-        var currency = campaign?.Currency ?? first?.Currency ?? "GBP";
+        var currency = campaign?.Currency ?? first?.Currency ?? fallbackCurrency;
         var exponent = campaign?.Exponent ?? first?.Exponent ?? 2;
 
         // What the objective counts as a result. Awareness is paid for by being seen; everything

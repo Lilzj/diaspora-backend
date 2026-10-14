@@ -6,6 +6,7 @@ using Diaspora.Modules.Creator.Domain.Enums;
 using Diaspora.Modules.Creator.Domain.Repositories;
 using Diaspora.Modules.Creator.Options;
 using Diaspora.Modules.Creator.Persistence;
+using Diaspora.Modules.Financial.Extensibility.Currency;
 using Diaspora.SharedKernel.Results;
 using Microsoft.Extensions.Options;
 
@@ -155,17 +156,20 @@ public sealed class GetMyRevenueSummaryQueryHandler
     private readonly CreatorContext _context;
     private readonly ICreatorEarningRepository _earnings;
     private readonly CreatorRevenueShareOptions _shares;
+    private readonly IMemberCurrency _memberCurrency;
 
     public GetMyRevenueSummaryQueryHandler(
         CreatorContext context,
         ICreatorEarningRepository earnings,
-        IOptions<CreatorRevenueShareOptions> shares)
+        IOptions<CreatorRevenueShareOptions> shares,
+        IMemberCurrency memberCurrency)
     {
         ArgumentNullException.ThrowIfNull(shares);
 
         _context = context;
         _earnings = earnings;
         _shares = shares.Value;
+        _memberCurrency = memberCurrency;
     }
 
     public async Task<Result<CreatorRevenueSummaryResponse>> Handle(
@@ -203,13 +207,16 @@ public sealed class GetMyRevenueSummaryQueryHandler
         var bySource = await _earnings.SumBySourceAsync(creator.Value.Id, since, cancellationToken);
 
         // The currency with the most rows behind it. Deterministic, and the flag below says whether
-        // choosing was necessary at all.
+        // choosing was necessary at all. With no rows yet, the creator's own currency — the money
+        // they hold, else where they live. This was a literal "GBP", so a creator resident in
+        // Mauritius opened an empty dashboard in sterling.
         var currency = allTimeByState
             .GroupBy(row => row.Currency)
             .OrderByDescending(group => group.Sum(row => row.Count))
             .ThenBy(group => group.Key, StringComparer.Ordinal)
             .Select(group => group.Key)
-            .FirstOrDefault() ?? "GBP";
+            .FirstOrDefault()
+            ?? await _memberCurrency.ForMemberAsync(creator.Value.UserId, cancellationToken);
 
         var currencyCount = allTimeByState.Select(row => row.Currency).Distinct().Count();
 
