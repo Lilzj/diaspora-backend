@@ -95,6 +95,37 @@ public sealed class ProviderPhotoTests : PooledIdentityTestBase
     }
 
     [Fact]
+    public async Task A_business_pinned_in_a_town_the_catalogue_lacks_keeps_its_owners_town()
+    {
+        // "Zoe hair saloon", 14 Oct 2026: Grand Baie typed and pinned, stored as Rose Hill (28 km).
+        var (_, auth) = await RegisterVerifiedMemberAsync();
+        Api.Authenticate(auth.Tokens.AccessToken);
+
+        var response = await HttpClient.PostAsJsonAsync(Root, new Dictionary<string, object?>
+        {
+            ["name"] = "Zoe hair saloon",
+            ["providerType"] = "Business",
+            ["category"] = "hair-beauty",
+            ["countryCode"] = "MU",
+            ["cityName"] = "Grand Baie",
+            ["addressLine"] = "Twenty-Foot Rd, Grand Baie, Mauritius",
+            ["latitude"] = -20.0117863,
+            ["longitude"] = 57.5935099,
+            ["phone"] = "+23057000000"
+        }, JsonOptions);
+
+        response.IsSuccessStatusCode.Should().BeTrue(await response.Content.ReadAsStringAsync());
+
+        using var page = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var location = page.RootElement.GetProperty("data").GetProperty("location");
+
+        location.GetProperty("cityName").GetString().Should().Be("Grand Baie");
+        location.GetProperty("latitude").GetDouble().Should().BeApproximately(-20.0117863, 1e-6);
+        (location.TryGetProperty("displayName", out var display) ? display.GetString() : null)
+            .Should().NotContain("Rose Hill");
+    }
+
+    [Fact]
     public async Task An_owner_removes_a_photo_and_the_next_one_becomes_the_cover()
     {
         var (providerId, _) = await RegisterProviderAsync("Two Photo Grill");

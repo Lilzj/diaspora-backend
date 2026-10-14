@@ -227,16 +227,8 @@ public sealed class UpdateProviderDetailsCommandHandler
             return Result.Failure<ProviderLocationContext>(scope.Error);
         }
 
-        var resolved = ProviderLocationContext.Create(
-            scope.Value.CountryCode?.Value,
-            scope.Value.AreaId?.Value,
-            areaName: null,
-            scope.Value.CityName,
-            scope.Value.Center?.Latitude ?? latitude,
-            scope.Value.Center?.Longitude ?? longitude,
-            scope.Value.Path?.Value,
-            addressLine,
-            postalCode);
+        var resolved = ProviderPlacement.FromScope(
+            scope.Value, cityName, latitude, longitude, addressLine, postalCode);
 
         return Result.Success(await _filing.FileAsync(resolved, cityName, cancellationToken));
     }

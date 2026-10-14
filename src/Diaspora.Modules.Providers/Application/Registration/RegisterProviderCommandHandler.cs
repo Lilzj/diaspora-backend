@@ -280,16 +280,8 @@ public sealed class RegisterProviderCommandHandler
             return Result.Failure<ProviderLocationContext>(scope.Error);
         }
 
-        var resolved = ProviderLocationContext.Create(
-            scope.Value.CountryCode?.Value,
-            scope.Value.AreaId?.Value,
-            areaName: null,
-            scope.Value.CityName,
-            scope.Value.Center?.Latitude ?? request.Latitude,
-            scope.Value.Center?.Longitude ?? request.Longitude,
-            scope.Value.Path?.Value,
-            request.AddressLine,
-            request.PostalCode);
+        var resolved = ProviderPlacement.FromScope(
+            scope.Value, request.CityName, request.Latitude, request.Longitude, request.AddressLine, request.PostalCode);
 
         // A scope that resolved no path — a town the search resolver could not match — used to
         // leave the provider filed nowhere, and uncounted on the map. The catalogue is asked
