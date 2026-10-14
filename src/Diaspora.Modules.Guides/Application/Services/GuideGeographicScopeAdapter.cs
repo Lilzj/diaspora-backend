@@ -36,7 +36,7 @@ public sealed class GuideGeographicScopeAdapter
         ArgumentNullException.ThrowIfNull(request);
 
         // Without the catalogue (14 Oct 2026). The area id old app builds still send is ignored.
-        return await _resolver.ResolveForDiscoveryAsync(
+        var scope = await _resolver.ResolveForDiscoveryAsync(
             new GeographicScopeRequest
             {
                 CityName = request.CityName,
@@ -47,13 +47,37 @@ public sealed class GuideGeographicScopeAdapter
                 UserId = viewerId
             },
             cancellationToken);
+
+        // ── A guide is national content ─────────────────────────────────────────────────────
+        //
+        // Most guides have no pin and are about the whole country, so a point is answered by the
+        // country it is in. Nothing infers a country from a coordinate any more, so it is the
+        // request's, or — when the request named none — the signed-in member's saved one, from
+        // the same fallback a request with no geography at all uses.
+        if (scope.IsSuccess
+            && scope.Value is { CountryCode: null, Bounds: not null } spatial
+            && (spatial.IsAroundPoint || spatial.IsViewport)
+            && viewerId is not null)
+        {
+            var saved = await _resolver.ResolveForDiscoveryAsync(
+                new GeographicScopeRequest { UserId = viewerId }, cancellationToken);
+
+            if (saved.IsSuccess && saved.Value.CountryCode is { } country)
+            {
+                return Result.Success(spatial with { CountryCode = country });
+            }
+        }
+
+        return scope;
     }
 
     /// <summary>
     /// Turns a resolved scope into the geographic half of a guide query filter, without the place
     /// catalogue (14 Oct 2026).
     /// <list type="bullet">
-    /// <item><b>A circle</b>: guides pinned inside the rectangle around it, and unpinned guides in
+    /// <item><b>A circle or a viewport</b>: guides pinned inside the rectangle, and every unpinned
+    /// guide of the country the point is in (the request's, else the member's saved one) — a
+    /// guide is national content, and most have no pin. Without a country, unpinned guides in
     /// the town the request named.</item>
     /// <item><b>A town</b>: the country and the town's name, either letter case.</item>
     /// <item><b>A country</b>: the country.</item>
@@ -78,6 +102,7 @@ public sealed class GuideGeographicScopeAdapter
             {
                 CityName = null,
                 UnpinnedCityName = scope.IsViewport ? null : scope.CityName,
+                UnpinnedCountryCode = scope.CountryCode?.Value,
                 MinLatitude = box.South,
                 MaxLatitude = box.North,
                 MinLongitude = box.West,

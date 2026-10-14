@@ -50,6 +50,9 @@ public sealed class GuideNearbyResourceProvider : INearbyResourceProvider
             CountryCode = request.CountryCode?.Value,
             CityName = circle is null ? request.CityName : null,
             UnpinnedCityName = circle is null ? null : request.CityName,
+
+            // A guide is national content: a circle keeps every unpinned guide of its country.
+            UnpinnedCountryCode = circle is null ? null : request.CountryCode?.Value,
             MinLatitude = circle?.South,
             MaxLatitude = circle?.North,
             MinLongitude = circle?.West,

@@ -372,6 +372,12 @@ public sealed class GuideRepository : IGuideRepository
                 : filter.UnpinnedCityName.Trim().ToLowerInvariant();
             var keepUnpinned = unpinned is not null;
 
+            // Every unpinned guide of the point's country: national content has no pin.
+            var unpinnedCountry = string.IsNullOrWhiteSpace(filter.UnpinnedCountryCode)
+                ? null
+                : filter.UnpinnedCountryCode.Trim().ToUpperInvariant();
+            var keepCountry = unpinnedCountry is not null;
+
             query = filter.BoundingBoxCrossesAntimeridian
                 ? query.Where(guide =>
                     (guide.Latitude != null
@@ -382,7 +388,10 @@ public sealed class GuideRepository : IGuideRepository
                     || (keepUnpinned
                         && guide.Latitude == null
                         && guide.Location.CityName != null
-                        && guide.Location.CityName.ToLower() == unpinned))
+                        && guide.Location.CityName.ToLower() == unpinned)
+                    || (keepCountry
+                        && guide.Latitude == null
+                        && guide.Location.CountryCode == unpinnedCountry))
                 : query.Where(guide =>
                     (guide.Latitude != null
                         && guide.Longitude != null
@@ -393,7 +402,10 @@ public sealed class GuideRepository : IGuideRepository
                     || (keepUnpinned
                         && guide.Latitude == null
                         && guide.Location.CityName != null
-                        && guide.Location.CityName.ToLower() == unpinned));
+                        && guide.Location.CityName.ToLower() == unpinned)
+                    || (keepCountry
+                        && guide.Latitude == null
+                        && guide.Location.CountryCode == unpinnedCountry));
         }
 
         if (!string.IsNullOrWhiteSpace(filter.CategoryKey))

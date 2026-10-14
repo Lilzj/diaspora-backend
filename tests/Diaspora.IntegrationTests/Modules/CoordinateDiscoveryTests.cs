@@ -139,6 +139,78 @@ public sealed class CoordinateDiscoveryTests : PooledIdentityTestBase
             circleWithTownQuery: $"{AroundNyali}&cityName=mombasa");
     }
 
+    /// <summary>
+    /// A guide is national content: most have no pin and no town, and are about the whole
+    /// country. A point search is answered by the country the point is in, so such a guide is
+    /// returned around Mombasa when the request says Kenya — and not when it says Ghana.
+    /// </summary>
+    [Fact]
+    public async Task A_country_level_guide_is_returned_by_a_point_search_in_its_country()
+    {
+        Factory.EnsureDatabaseCreated();
+
+        var tag = Guid.NewGuid().ToString("N")[..8];
+        var title = $"Renewing a Kenyan work permit {tag}";
+        var author = UserId.New();
+        var now = DateTimeOffset.UtcNow;
+
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<DiasporaDbContext>();
+
+            var guide = GuideDomain.Guides.Guide.Create(
+                GuideDomain.Identifiers.GuideId.New(),
+                author,
+                GuideDomain.ValueObjects.GuideTitle.Create(title).Value,
+                GuideDomain.ValueObjects.GuideSlug.Create($"country-level-{tag}").Value,
+                "immigration",
+                GuideDomain.ValueObjects.GuideLanguage.Create("en").Value,
+                GuideDomain.ValueObjects.GuideLocationContext.Create("KE").Value,
+                now).Value;
+
+            guide.ReplaceStructure(
+                [
+                    new GuideDomain.ValueObjects.GuideSectionDraft
+                    {
+                        SectionId = Guid.NewGuid(),
+                        Title = "What to do",
+                        Order = 0,
+                        Blocks =
+                        [
+                            new GuideDomain.ValueObjects.GuideBlockDraft
+                            {
+                                BlockId = Guid.NewGuid(),
+                                Kind = GuideDomain.Enums.GuideBlockKind.Markdown,
+                                Order = 0,
+                                Content = "Apply before the permit lapses."
+                            }
+                        ]
+                    }
+                ],
+                baseRevision: null,
+                author);
+
+            guide.Publish(now, author).IsSuccess.Should().BeTrue();
+
+            dbContext.Set<GuideDomain.Guides.Guide>().Add(guide);
+            await dbContext.SaveChangesAsync();
+        }
+
+        Api.ClearAuthentication();
+
+        var kenya = await TitlesAsync(
+            await HttpClient.GetAsync($"/api/v1/guides/nearby?limit=50&{AroundNyali}&countryCode=KE"),
+            "title");
+
+        kenya.Should().Contain(title, "an unpinned national guide belongs to every point in its country");
+
+        var ghana = await TitlesAsync(
+            await HttpClient.GetAsync($"/api/v1/guides/nearby?limit=50&{AroundNyali}&countryCode=GH"),
+            "title");
+
+        ghana.Should().NotContain(title);
+    }
+
     [Fact]
     public async Task Events_are_found_by_their_venue_and_by_their_town_in_any_case()
     {

@@ -51,6 +51,12 @@ public sealed record GuideQueryFilter
     /// </summary>
     public string? UnpinnedCityName { get; init; }
 
+    /// <summary>
+    /// With a rectangle: a country whose unpinned guides are all kept. A guide is national
+    /// content and most have no pin, so a point search is answered by the country it is in.
+    /// </summary>
+    public string? UnpinnedCountryCode { get; init; }
+
     /// <summary>Whether all four edges of the rectangle are set.</summary>
     public bool HasBoundingBox =>
         MinLatitude is not null && MaxLatitude is not null
