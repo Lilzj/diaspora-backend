@@ -78,6 +78,12 @@ public sealed record JobCardResponse
 
     public bool? IsSaved { get; init; }
 
+    /// <summary>
+    /// Whether this viewer belongs to the posting's employer, so the card offers to manage the
+    /// job rather than apply to it. Null when anonymous or not worked out on this surface.
+    /// </summary>
+    public bool? CanManage { get; init; }
+
     /// <summary>Why this was recommended, on a recommendations surface. Null elsewhere.</summary>
     public string? RecommendationReason { get; init; }
 }

@@ -41,6 +41,10 @@ internal static class SellerMapper
             CancellationRate = seller.Statistics.CancellationRate,
             AverageResponseMinutes = seller.Statistics.AverageResponseMinutes,
             MemberSince = seller.CreatedAt,
+            Phone = seller.Contact.Preference
+                is Domain.Enums.ContactPreference.Phone or Domain.Enums.ContactPreference.Any
+                ? seller.Contact.Phone
+                : null,
 
             // Null, not a zeroed rollup, when nobody has reviewed them. See the field's note.
             Rating = seller.ReviewSummary.HasReviews

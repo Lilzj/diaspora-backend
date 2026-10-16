@@ -48,15 +48,18 @@ public sealed class ListMyProviderReviewsQueryHandler
     private readonly IProviderRepository _providers;
     private readonly IProviderReviewRepository _reviews;
     private readonly ProviderAuthorizationService _authorization;
+    private readonly ProviderReviewerNames _names;
 
     public ListMyProviderReviewsQueryHandler(
         IProviderRepository providers,
         IProviderReviewRepository reviews,
-        ProviderAuthorizationService authorization)
+        ProviderAuthorizationService authorization,
+        ProviderReviewerNames names)
     {
         _providers = providers;
         _reviews = reviews;
         _authorization = authorization;
+        _names = names;
     }
 
     public async Task<Result<ProviderReviewPageResponse>> Handle(
@@ -105,9 +108,15 @@ public sealed class ListMyProviderReviewsQueryHandler
             includeHidden,
             cancellationToken);
 
+        var names = await _names.ResolveAsync(
+            page.Items.Select(review => review.ReviewerId), cancellationToken);
+
         return Result.Success(new ProviderReviewPageResponse
         {
-            Items = page.Items.Select(review => ProviderReviewMapper.ToResponse(review)).ToList(),
+            Items = page.Items
+                .Select(review => ProviderReviewMapper.ToResponse(
+                    review, names.GetValueOrDefault(review.ReviewerId.Value)))
+                .ToList(),
             NextCursor = page.NextCursor,
             HasMore = page.HasMore,
             Summary = query.Cursor is null

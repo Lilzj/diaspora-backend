@@ -98,6 +98,7 @@ public sealed class ProvidersModule : IPlatformModule
         services.AddScoped<ProviderAreaFiling>();
         services.AddScoped<AvailabilityCalculator>();
         services.AddScoped<ReviewSummaryService>();
+        services.AddScoped<ProviderReviewerNames>();
         services.AddScoped<ProviderMediaClaimer>();
         services.AddScoped<ProviderBookmarkService>();
         services.AddScoped<ProviderReadContextBuilder>();

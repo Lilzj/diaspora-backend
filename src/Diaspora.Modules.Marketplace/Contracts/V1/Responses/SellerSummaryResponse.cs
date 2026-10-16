@@ -59,6 +59,13 @@ public sealed record SellerSummaryResponse
     public required DateTimeOffset MemberSince { get; init; }
 
     /// <summary>
+    /// The seller's phone, when they asked to be called as well as messaged (contact preference
+    /// <c>Phone</c> or <c>Any</c>); null otherwise. Added 16 Oct 2026: a listing's seller carried no
+    /// number at all, so the buyer's Call button could never appear whatever the seller chose.
+    /// </summary>
+    public string? Phone { get; init; }
+
+    /// <summary>
     /// The star rating, or <b>null when nobody has reviewed this seller</b>.
     /// <para>
     /// Null rather than a zeroed rollup, and the distinction is the point. Until this field

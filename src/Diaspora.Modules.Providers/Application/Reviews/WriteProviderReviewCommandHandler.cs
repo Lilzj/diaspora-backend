@@ -43,6 +43,7 @@ public sealed class WriteProviderReviewCommandHandler
     private readonly ProviderAuthorizationService _authorization;
     private readonly IGuidGenerator _guids;
     private readonly IClock _clock;
+    private readonly ProviderReviewerNames _names;
 
     public WriteProviderReviewCommandHandler(
         IProviderRepository providers,
@@ -51,7 +52,8 @@ public sealed class WriteProviderReviewCommandHandler
         ReviewSummaryService summaries,
         ProviderAuthorizationService authorization,
         IGuidGenerator guids,
-        IClock clock)
+        IClock clock,
+        ProviderReviewerNames names)
     {
         _providers = providers;
         _unitOfWork = unitOfWork;
@@ -60,6 +62,7 @@ public sealed class WriteProviderReviewCommandHandler
         _authorization = authorization;
         _guids = guids;
         _clock = clock;
+        _names = names;
     }
 
     public async Task<Result<ProviderReviewResponse>> Handle(
@@ -122,7 +125,8 @@ public sealed class WriteProviderReviewCommandHandler
             new KeyValuePair<string, object?>(
                 "rating", request.Rating.ToString(CultureInfo.InvariantCulture)));
 
-        return Result.Success(ProviderReviewMapper.ToResponse(review.Value));
+        return Result.Success(ProviderReviewMapper.ToResponse(
+            review.Value, await _names.NameOfAsync(review.Value.ReviewerId, cancellationToken)));
     }
 
     private async Task<Result<ProviderReview>> CreateAsync(

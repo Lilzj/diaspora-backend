@@ -4,6 +4,7 @@ using Diaspora.Modules.Jobs.Domain.Employers;
 using Diaspora.Modules.Jobs.Domain.Postings;
 using Diaspora.Modules.Guides.Integration;
 using Diaspora.Modules.Providers.Integration;
+using Diaspora.SharedKernel.Identity;
 
 namespace Diaspora.Modules.Jobs.Application.Mapping;
 
@@ -116,7 +117,8 @@ public static class JobMapper
         EmployerProfile? employer,
         IReadOnlySet<Guid>? appliedPostingIds = null,
         IReadOnlySet<Guid>? savedPostingIds = null,
-        string? recommendationReason = null)
+        string? recommendationReason = null,
+        UserId? viewer = null)
     {
         ArgumentNullException.ThrowIfNull(posting);
 
@@ -164,6 +166,8 @@ public static class JobMapper
 
             HasApplied = appliedPostingIds?.Contains(posting.Id.Value),
             IsSaved = savedPostingIds?.Contains(posting.Id.Value),
+            // The employer is already loaded for the card, so this costs no query.
+            CanManage = viewer is null ? null : employer?.RoleOf(viewer) is not null,
             RecommendationReason = recommendationReason
         };
     }

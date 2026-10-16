@@ -249,7 +249,8 @@ public sealed class SearchJobsQueryHandler
             posting,
             employers.GetValueOrDefault(posting.EmployerId.Value),
             applied,
-            saved))];
+            saved,
+            viewer: _authorization.CallerId))];
     }
 
     private static JobSearchFacetsResponse ToFacets(JobSearchFacets facets) =>
