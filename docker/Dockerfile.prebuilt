@@ -1,0 +1,26 @@
+# Packages an API that was already compiled, for when the remote builder cannot compile it.
+#
+# Since 16 Oct 2026 `csc` is killed (exit 137, out of memory) compiling Diaspora.Persistence on
+# Fly's Depot builder even with `-maxcpucount:1`: the migrations and model snapshot have outgrown
+# its memory, and Depot's machine size is not ours to set. The publish runs on a workstation
+# instead, from the clean deploy worktree, with the same Release settings and analyzers:
+#
+#   dotnet publish src/Diaspora.Api/Diaspora.Api.csproj -c Release -o prebuilt
+#   flyctl deploy -a diaspora-api --remote-only --dockerfile docker/Dockerfile.prebuilt
+#
+# The runtime stage is the one in `docker/Dockerfile`, line for line; keep them the same.
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+WORKDIR /app
+
+COPY --chown=app:app prebuilt/ .
+USER app
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD ["dotnet", "Diaspora.Api.dll", "--health-check"]
+
+EXPOSE 8080
+ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_ENVIRONMENT=Production
+
+ENTRYPOINT ["dotnet", "Diaspora.Api.dll"]

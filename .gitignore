@@ -108,3 +108,6 @@ docs/
 .neon
 .env.local
 node_modules/
+
+# Output of a workstation publish for docker/Dockerfile.prebuilt; never committed.
+prebuilt/
