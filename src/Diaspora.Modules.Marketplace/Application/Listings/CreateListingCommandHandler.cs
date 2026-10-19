@@ -40,6 +40,7 @@ public sealed class CreateListingCommandHandler
     private readonly MarketplaceAuthorizationService _authorization;
     private readonly ListingCategoryResolver _categories;
     private readonly ListingAttributeValidator _attributes;
+    private readonly DonationCauseLink _donations;
     private readonly ListingSlugAllocator _slugs;
     private readonly IOptions<MarketplaceOptions> _options;
     private readonly IGuidGenerator _guids;
@@ -52,6 +53,7 @@ public sealed class CreateListingCommandHandler
         MarketplaceAuthorizationService authorization,
         ListingCategoryResolver categories,
         ListingAttributeValidator attributes,
+        DonationCauseLink donations,
         ListingSlugAllocator slugs,
         IOptions<MarketplaceOptions> options,
         IGuidGenerator guids,
@@ -63,6 +65,7 @@ public sealed class CreateListingCommandHandler
         _authorization = authorization;
         _categories = categories;
         _attributes = attributes;
+        _donations = donations;
         _slugs = slugs;
         _options = options;
         _guids = guids;
@@ -295,14 +298,21 @@ public sealed class CreateListingCommandHandler
                 })
                 .ToList();
 
-            var valid = await _attributes.ValidateAsync(categoryPath, drafts, cancellationToken);
+            var linked = await _donations.ApplyAsync(drafts, listing.ListingType, cancellationToken);
+
+            if (linked.IsFailure)
+            {
+                return Result.Failure(linked.Error);
+            }
+
+            var valid = await _attributes.ValidateAsync(categoryPath, linked.Value, cancellationToken);
 
             if (valid.IsFailure)
             {
                 return valid;
             }
 
-            var applied = listing.SetAttributes(drafts, baseRevision: null);
+            var applied = listing.SetAttributes(linked.Value, baseRevision: null);
 
             if (applied.IsFailure)
             {

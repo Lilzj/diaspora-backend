@@ -4,6 +4,7 @@ using System.Text.Json;
 using Diaspora.Contracts.Identity.V1.Responses;
 using Diaspora.IntegrationTests.Common;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Diaspora.IntegrationTests.Modules;
@@ -336,6 +337,122 @@ public sealed class MarketplaceModuleTests : PooledIdentityTestBase
         results.Items.Should().OnlyContain(item => item.ListingType == "Swap");
     }
 
+    // ── Buying requests and donations — 16 Oct 2026 ─────────────────────────────────────────
+
+    /// <summary>
+    /// A buying request has no item to photograph yet, so it goes live without a photo; every
+    /// listing that offers an item still needs one.
+    /// </summary>
+    [Fact]
+    public async Task A_buying_request_goes_live_without_a_photo()
+    {
+        await BecomeSellerAsync("Request Tester");
+
+        var created = await HttpClient.PostAsJsonAsync(
+            $"{Root}/listings",
+            new
+            {
+                title = $"Looking for a pram {Guid.NewGuid():N}",
+                description = "Folding, good condition.",
+                categoryKey = "bicycles",
+                countryCode = "MU",
+                listingType = "Wanted",
+                condition = "Good",
+                price = 1000,
+                currency = "MUR",
+                offersPickup = true
+            },
+            JsonOptions);
+
+        created.StatusCode.Should().Be(HttpStatusCode.Created, await created.Content.ReadAsStringAsync());
+        var draft = await IdentityApiClient.ReadDataAsync<DonationListingShape>(created);
+
+        var published = await HttpClient.PostAsJsonAsync(
+            $"{Root}/listings/{draft.ListingId}/publish", new { activateImmediately = true }, JsonOptions);
+
+        published.StatusCode.Should().Be(HttpStatusCode.OK, await published.Content.ReadAsStringAsync());
+    }
+
+    /// <summary>
+    /// A donated item names an open cause that accepts items; the server records the cause's own
+    /// title and refuses a cause it does not have.
+    /// </summary>
+    [Fact]
+    public async Task A_donated_item_names_its_cause_and_an_unknown_cause_is_refused()
+    {
+        var causeId = await OpenItemCauseAsync("School uniforms for Port Louis");
+        await BecomeSellerAsync("Donation Tester");
+
+        object Body(Guid cause, string listingType) => new
+        {
+            title = $"Children's shoes {Guid.NewGuid():N}",
+            description = "Three pairs, size 30.",
+            categoryKey = "bicycles",
+            countryCode = "MU",
+            listingType,
+            condition = "Good",
+            price = 0,
+            currency = "MUR",
+            offersPickup = true,
+            mediaIds = new[] { Guid.NewGuid() },
+            attributes = new[] { new { key = "donation-cause", value = cause.ToString(), displayName = "Anything" } }
+        };
+
+        var unknown = await HttpClient.PostAsJsonAsync($"{Root}/listings", Body(Guid.NewGuid(), "Giveaway"), JsonOptions);
+        unknown.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await unknown.Content.ReadAsStringAsync()).Should().Contain("marketplace.donation.cause-invalid");
+
+        var priced = await HttpClient.PostAsJsonAsync($"{Root}/listings", Body(causeId, "FixedPrice"), JsonOptions);
+        priced.StatusCode.Should().Be(HttpStatusCode.BadRequest, "a donation is given, not sold");
+
+        var created = await HttpClient.PostAsJsonAsync($"{Root}/listings", Body(causeId, "Giveaway"), JsonOptions);
+        created.StatusCode.Should().Be(HttpStatusCode.Created, await created.Content.ReadAsStringAsync());
+
+        var listing = await IdentityApiClient.ReadDataAsync<DonationListingShape>(created);
+        listing.DonationCauseId.Should().Be(causeId);
+        listing.DonationCauseTitle.Should().Be(
+            "School uniforms for Port Louis", "the title is the cause's, not what the client sent");
+    }
+
+    private async Task BecomeSellerAsync(string displayName)
+    {
+        var (_, auth) = await RegisterVerifiedMemberAsync();
+        Api.Authenticate(auth.Tokens.AccessToken);
+
+        var seller = await HttpClient.PostAsJsonAsync(
+            $"{Root}/sellers", new { displayName, countryCode = "MU", kind = "Individual" }, JsonOptions);
+
+        seller.StatusCode.Should().Be(HttpStatusCode.Created, await seller.Content.ReadAsStringAsync());
+    }
+
+    /// <summary>A cause that takes goods, opened directly: in production a published campaign opens it.</summary>
+    private async Task<Guid> OpenItemCauseAsync(string title)
+    {
+        Factory.EnsureDatabaseCreated();
+
+        using var scope = Factory.Services.CreateScope();
+        var causes = scope.ServiceProvider
+            .GetRequiredService<Diaspora.Modules.Financial.Domain.Giving.IDonationCauseRepository>();
+
+        var cause = Diaspora.Modules.Financial.Domain.Giving.DonationCause.Open(
+            new Diaspora.Modules.Financial.Domain.Identifiers.DonationCauseId(Guid.NewGuid()),
+            $"cause-{Guid.NewGuid():N}",
+            title,
+            "Collecting uniforms for families starting school.",
+            Diaspora.Modules.Financial.Domain.Enums.BeneficiaryType.Community,
+            "Test organiser",
+            "MUR",
+            DateTimeOffset.UtcNow);
+        cause.SetAcceptedKinds([Diaspora.Modules.Financial.Domain.Enums.ContributionKind.Goods]);
+
+        causes.Add(cause);
+        await scope.ServiceProvider
+            .GetRequiredService<Diaspora.Domain.Abstractions.IUnitOfWork>()
+            .SaveChangesAsync();
+
+        return cause.Id.Value;
+    }
+
     // ── Wire shapes, re-declared by hand ────────────────────────────────────────────────────
 
     private sealed record CategoryShape
@@ -380,6 +497,15 @@ public sealed class MarketplaceModuleTests : PooledIdentityTestBase
         public int SavedListings { get; init; }
 
         public List<CategoryShape> TopCategories { get; init; } = [];
+    }
+
+    private sealed record DonationListingShape
+    {
+        public Guid ListingId { get; init; }
+
+        public Guid? DonationCauseId { get; init; }
+
+        public string? DonationCauseTitle { get; init; }
     }
 
     private sealed record SwapListingShape

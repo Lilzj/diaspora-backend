@@ -291,7 +291,10 @@ public sealed class MarketplaceListing
             if (Location.CountryCode.Length == 0) unmet.Add(ListingPublishRequirement.Country);
             if (!HasRequiredPrice) unmet.Add(ListingPublishRequirement.Price);
             if (!Fulfillment.IsSpecified) unmet.Add(ListingPublishRequirement.Fulfillment);
-            if (!_mediaReferences.Exists(reference =>
+            // A buying request has no item to photograph yet (16 Oct 2026): the photo is
+            // optional there and required for everything that offers an item.
+            if (ListingType != ListingType.Wanted
+                && !_mediaReferences.Exists(reference =>
                     reference.Role is ListingMediaRole.Cover or ListingMediaRole.Gallery))
             {
                 unmet.Add(ListingPublishRequirement.Photograph);
@@ -344,6 +347,14 @@ public sealed class MarketplaceListing
     /// <summary>For a swap, what the seller would take in exchange. Null for every other type.</summary>
     public string? SwapWants =>
         ListingType == ListingType.Swap ? SwapTerms.WantsOf(_attributes) : null;
+
+    /// <summary>For a donated item, the cause it goes to. Null for anything else.</summary>
+    public Guid? DonationCauseId =>
+        ListingType == ListingType.Giveaway ? DonationTerms.CauseIdOf(_attributes) : null;
+
+    /// <summary>The donated item's cause title, as recorded when it was linked.</summary>
+    public string? DonationCauseTitle =>
+        DonationCauseId is null ? null : DonationTerms.CauseTitleOf(_attributes);
 
     /// <summary>For a swap, who adds money, if anybody. Null for every other type.</summary>
     public SwapTopUpDirection? SwapTopUp =>

@@ -73,7 +73,7 @@ public sealed class DefaultFeedSectionContributor : IFeedSectionContributor
             // Nothing to continue. See the class summary.
             ShowOnColdStart = false,
             MinimumItems = 1,
-            SeeAllRoute = "/knowledge/learning-paths"
+            SeeAllRoute = "/knowledge"
         };
 
         yield return new FeedSectionDefinition
@@ -86,7 +86,7 @@ public sealed class DefaultFeedSectionContributor : IFeedSectionContributor
             Order = 40,
             Limit = 6,
             MinimumItems = 2,
-            SeeAllRoute = "/housing"
+            SeeAllRoute = "/discover?tab=Housing"
         };
 
         yield return new FeedSectionDefinition
@@ -99,7 +99,7 @@ public sealed class DefaultFeedSectionContributor : IFeedSectionContributor
             Order = 50,
             Limit = 6,
             MinimumItems = 2,
-            SeeAllRoute = "/job"
+            SeeAllRoute = "/discover?tab=Jobs"
         };
 
         yield return new FeedSectionDefinition
@@ -125,7 +125,7 @@ public sealed class DefaultFeedSectionContributor : IFeedSectionContributor
             Order = 70,
             Limit = 6,
             MinimumItems = 2,
-            SeeAllRoute = "/provider"
+            SeeAllRoute = "/discover?tab=Providers"
         };
 
         yield return new FeedSectionDefinition
@@ -138,7 +138,7 @@ public sealed class DefaultFeedSectionContributor : IFeedSectionContributor
             Order = 80,
             Limit = 6,
             MinimumItems = 2,
-            SeeAllRoute = "/marketplace"
+            SeeAllRoute = "/discover?tab=Marketplace"
         };
 
         yield return new FeedSectionDefinition
@@ -151,7 +151,7 @@ public sealed class DefaultFeedSectionContributor : IFeedSectionContributor
             Order = 90,
             Limit = 4,
             MinimumItems = 1,
-            SeeAllRoute = "/community-life/org"
+            SeeAllRoute = "/community-life"
         };
     }
 }

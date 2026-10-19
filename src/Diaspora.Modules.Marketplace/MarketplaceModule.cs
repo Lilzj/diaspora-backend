@@ -121,6 +121,7 @@ public sealed class MarketplaceModule : IPlatformModule
         services.AddScoped<SellerReviewSummaryService>();
         services.AddScoped<ListingCategoryResolver>();
         services.AddScoped<ListingAttributeValidator>();
+        services.AddScoped<DonationCauseLink>();
         services.AddScoped<ListingSlugAllocator>();
         services.AddScoped<ListingFraudAssessor>();
         services.AddScoped<ConversationBroker>();

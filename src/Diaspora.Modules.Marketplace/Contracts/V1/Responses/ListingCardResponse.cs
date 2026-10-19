@@ -29,6 +29,12 @@ public sealed record ListingCardResponse
     /// </summary>
     public string? SwapWants { get; init; }
 
+    /// <summary>For a donated item, the cause it goes to (16 Oct 2026). Null for anything else.</summary>
+    public Guid? DonationCauseId { get; init; }
+
+    /// <summary>The donated item's cause, by name.</summary>
+    public string? DonationCauseTitle { get; init; }
+
     /// <summary>
     /// For a swap, <c>None</c>, <c>SellerAdds</c> or <c>BuyerAdds</c>; the amount is the price.
     /// Null for every other listing type.

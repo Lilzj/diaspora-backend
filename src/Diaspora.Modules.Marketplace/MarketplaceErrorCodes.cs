@@ -80,6 +80,8 @@ public static class MarketplaceErrorCodes
     public const string AttributeLimit = "marketplace.attributes.limit";
     public const string AttributeRequired = "marketplace.attribute.required";
     public const string AttributeValueInvalid = "marketplace.attribute.value-invalid";
+
+    public const string DonationCauseInvalid = "marketplace.donation.cause-invalid";
     public const string TagInvalid = "marketplace.tag.invalid";
     public const string TagLimit = "marketplace.tags.limit";
     public const string MediaInvalid = "marketplace.media.invalid";

@@ -302,6 +302,10 @@ public static class MarketplaceErrors
         MarketplaceErrorCodes.AttributeValueInvalid,
         "That attribute value is not one this category accepts.");
 
+    public static readonly Error DonationCauseInvalid = Error.Validation(
+        MarketplaceErrorCodes.DonationCauseInvalid,
+        "A donated item must go to an open cause that accepts items, and be listed as free.");
+
     public static readonly Error TagInvalid = Error.Validation(
         MarketplaceErrorCodes.TagInvalid,
         "A tag is empty or not valid.");

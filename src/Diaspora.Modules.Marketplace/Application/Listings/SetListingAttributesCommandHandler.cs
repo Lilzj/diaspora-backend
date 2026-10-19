@@ -25,19 +25,22 @@ public sealed class SetListingAttributesCommandHandler
     private readonly MarketplaceAuthorizationService _authorization;
     private readonly ListingCategoryResolver _categories;
     private readonly ListingAttributeValidator _attributes;
+    private readonly DonationCauseLink _donations;
 
     public SetListingAttributesCommandHandler(
         IMarketplaceListingRepository listings,
         IUnitOfWork unitOfWork,
         MarketplaceAuthorizationService authorization,
         ListingCategoryResolver categories,
-        ListingAttributeValidator attributes)
+        ListingAttributeValidator attributes,
+        DonationCauseLink donations)
     {
         _listings = listings;
         _unitOfWork = unitOfWork;
         _authorization = authorization;
         _categories = categories;
         _attributes = attributes;
+        _donations = donations;
     }
 
     public async Task<Result> Handle(
@@ -68,6 +71,15 @@ public sealed class SetListingAttributesCommandHandler
                 DisplayName = attribute.DisplayName
             })
             .ToList();
+
+        var linked = await _donations.ApplyAsync(drafts, listing.ListingType, cancellationToken);
+
+        if (linked.IsFailure)
+        {
+            return Result.Failure(linked.Error);
+        }
+
+        drafts = [.. linked.Value];
 
         var category = await _categories.FindAsync(listing.CategoryKey, cancellationToken);
 
