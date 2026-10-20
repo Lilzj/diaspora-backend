@@ -378,12 +378,12 @@ public sealed class CommunityDirectoryTests : PooledIdentityTestBase
     [Fact]
     public async Task The_directory_is_seeded_at_startup()
     {
-        var page = await ReadDataAsync<DirectoryPageDto>(
-            await HttpClient.GetAsync($"{Root}?limit=50"));
+        // Every page, for the same reason as the test below: the shared database grows.
+        var page = await ReadWholeDirectoryAsync();
 
-        page.Items.Should().NotBeEmpty("the founding set is seeded by CommunityDirectorySeeder");
+        page.Should().NotBeEmpty("the founding set is seeded by CommunityDirectorySeeder");
 
-        page.Items.Should().Contain(
+        page.Should().Contain(
             item => item.Community.Slug == "nigerian-diaspora");
     }
 
