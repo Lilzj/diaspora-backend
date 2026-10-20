@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Trust.Application.Consumers;
 /// <para>
 /// <b>The checklist lied to everybody.</b> <c>VerificationType.Phone</c> is documented as "phone
 /// possession, owned by Identity; mirrored here for the checklist" — and nothing mirrored it.
-/// Trust seeds <c>verifications.Phone</c> to <c>Pending</c> for every member and changes it only
+/// Trust seeded <c>verifications.Phone</c> to <c>Pending</c> (<c>NotStarted</c> since 20 Oct 2026) for every member and changed it only
 /// when a Trust verification request of that type is approved, and no caller anywhere created
 /// one: the app submits diaspora, identity and country, and nothing else. So the trust centre
 /// showed a "Phone Linked — Verify" row to a member who had verified their phone during

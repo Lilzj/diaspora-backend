@@ -29,8 +29,10 @@ public sealed record TrustProfileResponse
     /// <summary>
     /// Status per verification type, keyed by type name — the
     /// <c>Record&lt;VerificationType, VerificationStatus&gt;</c> shape the checklist renders
-    /// from. Every supported type appears; types never attempted read <c>"Pending"</c>, which
-    /// is what the client's seeded store already assumes.
+    /// from, plus one value of its own. Every supported type appears; a type the member has
+    /// never attempted reads <c>"NotStarted"</c>, and <c>"Pending"</c> means a submitted case
+    /// that is awaiting a decision. Otherwise the newest case's status (<c>Approved</c>,
+    /// <c>Rejected</c>, …).
     /// </summary>
     public required IReadOnlyDictionary<string, string> Verifications { get; init; }
 

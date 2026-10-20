@@ -80,10 +80,18 @@ public sealed class GetMyTrustProfileQueryHandler
     /// <para>
     /// Every supported type appears, whether or not the member has attempted it — the client
     /// indexes this map by type name and renders a row per entry, so a missing key is a
-    /// missing row rather than an empty one. Types never attempted read <c>Pending</c>, which
-    /// is what the client's own seeded store assumes.
+    /// missing row rather than an empty one.
+    /// </para>
+    /// <para>
+    /// <b>Types never attempted read <see cref="NotStarted"/>, not <c>Pending</c>.</b> Until
+    /// 20 Oct 2026 they read <c>Pending</c>, which is also what a submitted case awaiting review
+    /// reads, so the trust centre could not tell "you have not done this" from "we are looking at
+    /// it" and showed the second to every member for every type. <c>Pending</c> now means a real
+    /// open case. <c>NotStarted</c> is a value of this map only, never a stored status.
     /// </para>
     /// </summary>
+    internal const string NotStarted = "NotStarted";
+
     private async Task<IReadOnlyDictionary<string, string>> BuildVerificationMapAsync(
         UserId userId, CancellationToken cancellationToken)
     {
@@ -91,7 +99,7 @@ public sealed class GetMyTrustProfileQueryHandler
 
         foreach (var type in _handlers.SupportedTypes)
         {
-            map[type.ToString()] = VerificationStatus.Pending.ToString();
+            map[type.ToString()] = NotStarted;
         }
 
         var page = await _verifications.ListForUserAsync(
