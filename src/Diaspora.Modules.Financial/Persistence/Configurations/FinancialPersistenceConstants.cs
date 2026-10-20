@@ -47,6 +47,7 @@ internal static class FinancialPersistenceConstants
     public const string PayoutDestinationsTable = "financial_payout_destinations";
     public const string WithdrawalsTable = "financial_withdrawals";
     public const string RefundRequestsTable = "financial_refund_requests";
+    public const string InvoicesTable = "financial_invoices";
     public const string RewardAccountsTable = "financial_reward_accounts";
     public const string RewardEntriesTable = "financial_reward_entries";
     public const string RewardConversionsTable = "financial_reward_conversions";

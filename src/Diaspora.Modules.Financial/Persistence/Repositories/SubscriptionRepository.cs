@@ -39,6 +39,15 @@ public sealed class SubscriptionRepository : ISubscriptionRepository
             subscription => subscription.Id == subscriptionId, cancellationToken);
     }
 
+    public async Task<Subscription?> FindByLastPaymentIntentAsync(
+        PaymentIntentId paymentIntentId, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(paymentIntentId);
+
+        return await Subscriptions.FirstOrDefaultAsync(
+            subscription => subscription.LastPaymentIntentId == paymentIntentId, cancellationToken);
+    }
+
     public async Task<Subscription?> FindActiveForSubscriberAsync(
         Guid subscriberUserId, CancellationToken cancellationToken = default) =>
         await Subscriptions

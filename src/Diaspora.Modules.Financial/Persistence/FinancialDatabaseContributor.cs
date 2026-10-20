@@ -85,6 +85,9 @@ public sealed class FinancialDatabaseContributor : IDatabaseContributor
         modelBuilder.ApplyConfiguration(new WithdrawalConfiguration());
         modelBuilder.ApplyConfiguration(new RefundRequestConfiguration());
 
+        // Invoices: one per captured payment the platform kept, numbered DSP-yyyy-nnnnnn.
+        modelBuilder.ApplyConfiguration(new InvoiceConfiguration());
+
         // Points, which are not money, and the one place they become it.
         modelBuilder.ApplyConfiguration(new RewardAccountConfiguration());
         modelBuilder.ApplyConfiguration(new RewardConversionConfiguration());
