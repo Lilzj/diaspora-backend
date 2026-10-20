@@ -86,6 +86,9 @@ public sealed class CommunityProgrammeModule : IPlatformModule
         services.AddScoped<ICommunityMemberPreferencesRepository, CommunityMemberPreferencesRepository>();
         services.AddScoped<ICommunityMembershipStatistics, CommunityMembershipStatistics>();
 
+        // 21 Oct 2026. Initiatives, their participants and their progress updates.
+        services.AddScoped<ICommunityInitiativeRepository, CommunityInitiativeRepository>();
+
         services.AddScoped<IMembershipProgrammeRepository, MembershipProgrammeRepository>();
         services.AddScoped<IProgrammeMembershipRepository, ProgrammeMembershipRepository>();
         services.AddScoped<IVolunteerOpportunityRepository, VolunteerOpportunityRepository>();

@@ -41,6 +41,9 @@ public sealed class CommunityProgrammeEndpointContributor : IEndpointContributor
         // 21 Oct 2026: figures, rules, notices, office holders and a member's preferences.
         CommunityGovernanceEndpoints.Map(group);
 
+        // 21 Oct 2026: initiatives — projects a community runs, joined by its members.
+        CommunityInitiativeEndpoints.Map(group);
+
         OrganizationEndpoints.Map(group);
         MembershipEndpoints.Map(group);
         VolunteerEndpoints.Map(group);

@@ -23,6 +23,9 @@ internal static class CommunityProgrammePersistenceConstants
     public const string CommunityRulesTable = "community_rules";
     public const string CommunityNoticesTable = "community_notices";
     public const string CommunityMemberPreferencesTable = "community_member_preferences";
+    public const string CommunityInitiativesTable = "community_initiatives";
+    public const string CommunityInitiativeParticipantsTable = "community_initiative_participants";
+    public const string CommunityInitiativeUpdatesTable = "community_initiative_updates";
 
     public const string ProgrammesTable = "membership_programmes";
     public const string ProgrammeTiersTable = "membership_tiers";

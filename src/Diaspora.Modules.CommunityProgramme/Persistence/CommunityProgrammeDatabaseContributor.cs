@@ -56,6 +56,12 @@ public sealed class CommunityProgrammeDatabaseContributor : IDatabaseContributor
         modelBuilder.ApplyConfiguration(new CommunityNoticeConfiguration());
         modelBuilder.ApplyConfiguration(new CommunityMemberPreferencesConfiguration());
 
+        // 21 Oct 2026. Projects a community runs, who takes part, and what their organisers report.
+        // See CommunityInitiativeConfigurations.
+        modelBuilder.ApplyConfiguration(new CommunityInitiativeConfiguration());
+        modelBuilder.ApplyConfiguration(new CommunityInitiativeParticipantConfiguration());
+        modelBuilder.ApplyConfiguration(new CommunityInitiativeUpdateConfiguration());
+
         modelBuilder.ApplyConfiguration(new MembershipProgrammeConfiguration());
 
         // Who bought one, and where that is in its fourteen-state life. Its own aggregate for the
