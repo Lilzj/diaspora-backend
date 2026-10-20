@@ -28,7 +28,12 @@ public sealed record EmailIdentityResponse
     /// </summary>
     public required string DeliveryState { get; init; }
 
-    /// <summary>Always null. Changing the address is not served yet; the old one stays until it is.</summary>
+    /// <summary>
+    /// The address a change was just requested to, in the response to <c>PUT /auth/email</c> only.
+    /// Null on a plain read: a pending change is a signed link in the new mailbox, not a row, so the
+    /// server does not remember it. The address on the account stays <see cref="Address"/> until
+    /// the link is confirmed.
+    /// </summary>
     public string? PendingAddress { get; init; }
 }
 
@@ -36,5 +41,16 @@ public sealed record EmailIdentityResponse
 public sealed record EmailVerificationOutcomeResponse
 {
     /// <summary><c>Verified</c>, <c>AlreadyVerified</c>, <c>AddressChanged</c> or <c>Invalid</c>.</summary>
+    public required string Outcome { get; init; }
+}
+
+/// <summary>What opening an email change link did.</summary>
+public sealed record EmailChangeOutcomeResponse
+{
+    /// <summary>
+    /// <c>Changed</c>; <c>AlreadyChanged</c> (this link was used); <c>AddressTaken</c> (another
+    /// account signs in with the new address); or <c>Invalid</c> (forged, expired, superseded by
+    /// another change, or cancelled by a password change).
+    /// </summary>
     public required string Outcome { get; init; }
 }

@@ -81,6 +81,36 @@ public static class IdentityMessageKeys
     /// <summary>Why the member received it, and what to do if they did not ask.</summary>
     public const string EmailVerificationFooter = "identity.emailVerification.footer";
 
+    /// <summary>Subject of the link sent to the NEW address when a member asks to move their sign-in address.</summary>
+    public const string EmailChangeSubject = "identity.emailChange.subject";
+
+    /// <summary>Body; <c>{0}</c> is how many hours the link stays valid.</summary>
+    public const string EmailChangeBody = "identity.emailChange.body";
+
+    /// <summary>The label on the link.</summary>
+    public const string EmailChangeButton = "identity.emailChange.button";
+
+    /// <summary>Why the new address received it, and what to do if nobody there asked.</summary>
+    public const string EmailChangeFooter = "identity.emailChange.footer";
+
+    /// <summary>Sent to the new address instead of a link when another account already signs in with it.</summary>
+    public const string EmailChangeUnavailableSubject = "identity.emailChange.unavailableSubject";
+
+    /// <summary>Body of the address-unavailable email.</summary>
+    public const string EmailChangeUnavailableBody = "identity.emailChange.unavailableBody";
+
+    /// <summary>Sent to the OLD address when a change is requested.</summary>
+    public const string EmailChangeRequestedSubject = "identity.emailChange.requestedSubject";
+
+    /// <summary>Body; <c>{0}</c> is the masked new address, <c>{1}</c> the hours the link stays valid.</summary>
+    public const string EmailChangeRequestedBody = "identity.emailChange.requestedBody";
+
+    /// <summary>Sent to the OLD address when a change completes.</summary>
+    public const string EmailChangeCompletedSubject = "identity.emailChange.completedSubject";
+
+    /// <summary>Body; <c>{0}</c> is the masked new address.</summary>
+    public const string EmailChangeCompletedBody = "identity.emailChange.completedBody";
+
     public const string RefreshTokenRequired = "identity.validation.refreshToken.required";
     public const string CurrentPasswordRequired = "identity.validation.currentPassword.required";
 

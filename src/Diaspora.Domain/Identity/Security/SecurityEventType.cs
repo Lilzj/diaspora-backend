@@ -43,5 +43,14 @@ public enum SecurityEventType
     /// descriptions.
     /// </para>
     /// </summary>
-    RoleAssigned = 26
+    RoleAssigned = 26,
+
+    /// <summary>
+    /// A member asked to move their sign-in address. The address has not changed yet: that waits
+    /// for the link sent to the new one.
+    /// </summary>
+    EmailChangeRequested = 27,
+
+    /// <summary>The sign-in address was replaced after the new one was proved.</summary>
+    EmailChanged = 28
 }

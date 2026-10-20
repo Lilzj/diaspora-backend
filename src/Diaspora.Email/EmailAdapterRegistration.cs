@@ -98,6 +98,10 @@ public static class EmailAdapterRegistration
         // because only a deployment that can send email can prove a member receives it.
         services.AddScoped<IEmailVerificationSender, GatewayEmailVerificationSender>();
 
+        // The same reasoning for moving the sign-in address: the link, the "address in use" notice
+        // and the notices to the old address.
+        services.AddScoped<IEmailChangeMailer, GatewayEmailChangeMailer>();
+
         DecorateOtpDelivery(services);
 
         // ── The other half of an email provider ───────────────────────────────────────────

@@ -31,5 +31,8 @@ public enum SessionRevocationReason
     AccountStateChanged = 7,
 
     /// <summary>The absolute session lifetime elapsed.</summary>
-    Expired = 8
+    Expired = 8,
+
+    /// <summary>The sign-in address changed, so every session but the one that asked was cut.</summary>
+    EmailChanged = 9
 }

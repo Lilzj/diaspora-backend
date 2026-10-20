@@ -1,3 +1,4 @@
+using Diaspora.Application.Identity.Commands.EmailChange;
 using Diaspora.Application.Identity.Commands.EmailVerification;
 using Asp.Versioning;
 using Diaspora.Api.Common;
@@ -329,6 +330,69 @@ public sealed class AuthController : ApiController
 
         var result = await _sender.Send(
             new ConfirmEmailVerificationCommand { Token = request.Token ?? string.Empty }, cancellationToken);
+
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Asks to change the sign-in address. Needs the current password. Nothing changes until the
+    /// link sent to the new address is confirmed; until then the current address is still the login.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The answer is the same whether or not another account already uses the new address: the
+    /// email that goes there differs, the response does not. <c>pendingAddress</c> echoes the
+    /// address asked for; a later <c>GET /auth/email</c> does not remember it.
+    /// </para>
+    /// <para>
+    /// The current address is told a change was asked for, with the new one masked. Shares the
+    /// verification route's allowance of one email a minute and six a day; five password attempts
+    /// per fifteen minutes. A wrong password is a 400 <c>Identity.User.IncorrectCurrentPassword</c>.
+    /// </para>
+    /// </remarks>
+    [HttpPut("email")]
+    [Authorize(Policy = DiasporaPolicies.UpdateOwnProfile)]
+    [EnableRateLimiting(RateLimitingRegistration.SignInPolicy)]
+    [ProducesResponseType<ApiResponse<EmailIdentityResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<IActionResult> ChangeEmailAsync(
+        [FromBody] ChangeEmailRequest request,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var result = await _sender.Send(new RequestEmailChangeCommand
+        {
+            Address = request.Address ?? string.Empty,
+            CurrentPassword = request.CurrentPassword ?? string.Empty
+        }, cancellationToken);
+
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Confirms an email change link from inside the app, when an App Link opened the app instead
+    /// of the browser. Anonymous: the signed token is the credential, as on the web page.
+    /// </summary>
+    /// <remarks>
+    /// <c>outcome</c> is <c>Changed</c>, <c>AlreadyChanged</c>, <c>AddressTaken</c> or <c>Invalid</c>.
+    /// A change signs out every session except the one that asked for it.
+    /// </remarks>
+    [HttpPost("email/change/confirm")]
+    [AllowAnonymous]
+    [EnableRateLimiting(RateLimitingRegistration.RecoveryPolicy)]
+    [ProducesResponseType<ApiResponse<EmailChangeOutcomeResponse>>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> ConfirmEmailChangeAsync(
+        [FromBody] ConfirmEmailChangeRequest request,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var result = await _sender.Send(
+            new ConfirmEmailChangeCommand { Token = request.Token ?? string.Empty }, cancellationToken);
 
         return HandleResult(result);
     }

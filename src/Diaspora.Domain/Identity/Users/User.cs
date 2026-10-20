@@ -412,6 +412,34 @@ public sealed class User : AggregateRoot<UserId>, IAuditableEntity, ISoftDeletab
         return Result.Success();
     }
 
+    /// <summary>
+    /// Replaces the sign-in address with one the member has just proved they receive mail at.
+    /// <para>
+    /// Only the email-change confirmation calls this, after the signed link sent to
+    /// <paramref name="newEmail"/> was opened, so the new address arrives already verified: the
+    /// link is the proof. It is announced as a verification as well as a profile change, so
+    /// Trust's mirror and every other consumer of <see cref="UserEmailVerifiedDomainEvent"/> hear
+    /// about the address that is now on the account.
+    /// </para>
+    /// </summary>
+    public Result ChangeEmail(EmailAddress newEmail, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(newEmail);
+
+        if (Email == newEmail)
+        {
+            return Result.Failure(UserErrors.EmailChangeSameAddress);
+        }
+
+        Email = newEmail;
+        Security = Security.WithEmailVerified(now);
+
+        RaiseDomainEvent(new UserProfileUpdatedDomainEvent(Id, [nameof(Email), "EmailVerified"], now));
+        RaiseDomainEvent(new UserEmailVerifiedDomainEvent(Id, newEmail.Value, now));
+
+        return Result.Success();
+    }
+
     public Result SetEmail(EmailAddress? email, DateTimeOffset now)
     {
         if (Email == email) return Result.Success();

@@ -38,6 +38,9 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Api.Program>
     /// <summary>The one-time codes delivered during a test run.</summary>
     public CapturedOtpCodes OtpCodes { get; } = new();
 
+    /// <summary>The email-change mail sent during a test run.</summary>
+    public CapturedEmailChangeMail EmailChangeMail { get; } = new();
+
     private readonly Lock _schemaLock = new();
 
     private DbConnection? _connection;
@@ -248,6 +251,12 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Api.Program>
             // real provider for the development logger.
             services.AddSingleton(OtpCodes);
             services.Replace(ServiceDescriptor.Scoped<IOtpDeliveryService, CapturingOtpDeliveryService>());
+
+            // The same substitution for the email-change mail, so the flow can be followed from the
+            // request to the link without an email transport. Verification keeps none: its tests
+            // assert the unconfigured answer.
+            services.AddSingleton(EmailChangeMail);
+            services.Replace(ServiceDescriptor.Scoped<IEmailChangeMailer, CapturingEmailChangeMailer>());
 
             _connection = new SqliteConnection("DataSource=:memory:");
             _connection.Open();

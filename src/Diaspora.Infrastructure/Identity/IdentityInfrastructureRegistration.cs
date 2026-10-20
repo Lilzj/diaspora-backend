@@ -68,6 +68,11 @@ public static class IdentityInfrastructureRegistration
         // to configure. The sender is a placeholder the email adapter replaces when Resend is set.
         services.AddSingleton<IEmailVerificationLinks, EmailVerificationLinks>();
         services.AddScoped<IEmailVerificationSender, UnconfiguredEmailVerificationSender>();
+
+        // Moving the sign-in address: its own signer and its own sender port, unconfigured until the
+        // email adapter replaces it.
+        services.AddSingleton<IEmailChangeLinks, EmailChangeLinks>();
+        services.AddScoped<IEmailChangeMailer, UnconfiguredEmailChangeMailer>();
         services.AddScoped<ILocalizedMessageProvider, LocalizedMessageProvider>();
         services.AddScoped<ISecurityEventWriter, SecurityEventWriter>();
         services.AddScoped<IIdentityAuditWriter, IdentityAuditWriter>();

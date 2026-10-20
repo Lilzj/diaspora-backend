@@ -1,5 +1,6 @@
 using System.Net;
 using Diaspora.Api.RateLimiting;
+using Diaspora.Application.Identity.Commands.EmailChange;
 using Diaspora.Application.Identity.Commands.EmailVerification;
 using MediatR;
 
@@ -23,6 +24,9 @@ internal static class EmailConfirmationPages
 {
     public const string Path = "/email/confirm";
 
+    /// <summary>The page an email change link opens. The same rule: the button changes, the link does not.</summary>
+    public const string ChangePath = "/email/change";
+
     private const string AppLink = "diaspora://settings/integrations/email";
 
     public static void Map(IEndpointRouteBuilder app)
@@ -33,7 +37,7 @@ internal static class EmailConfirmationPages
                     form: null)
                 : Page("Confirm your email address",
                     "Press the button to confirm this is your email address for Diaspora.",
-                    form: token))
+                    form: token, formAction: Path, buttonLabel: "Confirm my email"))
             .AllowAnonymous()
             .ExcludeFromDescription()
             .RequireRateLimiting(RateLimitingRegistration.RecoveryPolicy);
@@ -67,9 +71,62 @@ internal static class EmailConfirmationPages
             .AllowAnonymous()
             .ExcludeFromDescription()
             .RequireRateLimiting(RateLimitingRegistration.RecoveryPolicy);
+
+        MapChange(app);
     }
 
-    private static IResult Page(string heading, string message, string? form, string? appLink = null)
+    private static void MapChange(IEndpointRouteBuilder app)
+    {
+        app.MapGet(ChangePath, (string? token) => string.IsNullOrWhiteSpace(token)
+                ? Page("This link is incomplete",
+                    "Open the most recent email from Diaspora about changing your email address and use its button.",
+                    form: null)
+                : Page("Confirm your new email address",
+                    "Press the button to make this the email address you sign in to Diaspora with. Other devices signed in to your account will be signed out.",
+                    form: token, formAction: ChangePath, buttonLabel: "Confirm my new email"))
+            .AllowAnonymous()
+            .ExcludeFromDescription()
+            .RequireRateLimiting(RateLimitingRegistration.RecoveryPolicy);
+
+        app.MapPost(ChangePath, async (HttpRequest request, ISender sender, CancellationToken cancellationToken) =>
+            {
+                var form = await request.ReadFormAsync(cancellationToken);
+                var token = form["token"].ToString();
+
+                var result = await sender.Send(new ConfirmEmailChangeCommand { Token = token }, cancellationToken);
+
+                var outcome = result.IsSuccess ? result.Value.Outcome : EmailChangeOutcomes.Invalid;
+
+                return outcome switch
+                {
+                    EmailChangeOutcomes.Changed => Page("Email address changed",
+                        "This is now the email address you sign in to Diaspora with. Other devices were signed out.",
+                        null, AppLink),
+                    EmailChangeOutcomes.AlreadyChanged => Page("Already changed",
+                        "This email address is already the one on your account. Nothing else is needed.", null, AppLink),
+                    EmailChangeOutcomes.AddressTaken => Page("This address is already in use",
+                        "Another Diaspora account signs in with this email address, so it cannot be moved to yours. Nothing was changed.",
+                        null, AppLink),
+                    _ => Page("This link has expired or is not valid",
+                        "Email change links work for 2 hours, and stop working if the account's password or email address changes. Ask for a new one from Diaspora.",
+                        null, AppLink)
+                };
+            })
+            // The signed token is the credential, and it was only ever sent to the new mailbox. A
+            // forged cross-site post would have to carry one.
+            .DisableAntiforgery()
+            .AllowAnonymous()
+            .ExcludeFromDescription()
+            .RequireRateLimiting(RateLimitingRegistration.RecoveryPolicy);
+    }
+
+    private static IResult Page(
+        string heading,
+        string message,
+        string? form,
+        string? appLink = null,
+        string formAction = Path,
+        string buttonLabel = "Confirm my email")
     {
         var h = WebUtility.HtmlEncode(heading);
         var m = WebUtility.HtmlEncode(message);
@@ -77,9 +134,9 @@ internal static class EmailConfirmationPages
         var action = form is null
             ? appLink is null ? string.Empty : $"""<a class="button" href="{appLink}">Open Diaspora</a>"""
             : $"""
-               <form method="post" action="{Path}">
+               <form method="post" action="{formAction}">
                  <input type="hidden" name="token" value="{WebUtility.HtmlEncode(form)}">
-                 <button class="button" type="submit">Confirm my email</button>
+                 <button class="button" type="submit">{WebUtility.HtmlEncode(buttonLabel)}</button>
                </form>
                """;
 

@@ -48,6 +48,9 @@ public static class UserErrors
     public static readonly Error EmailVerificationAddressChanged =
         Error.Conflict("Identity.User.EmailVerificationAddressChanged", "This link was sent to an email address that is no longer on the account.");
 
+    public static readonly Error EmailChangeSameAddress =
+        Error.Validation("Identity.User.EmailChangeSameAddress", "That is already the email address on your account.");
+
     public static readonly Error NoEmailOnAccount =
         Error.Validation("Identity.User.NoEmailOnAccount", "There is no email address on this account to verify.");
 
