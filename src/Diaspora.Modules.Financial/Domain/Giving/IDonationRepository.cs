@@ -25,6 +25,21 @@ public interface IDonationRepository
     Task<IReadOnlyList<Donation>> ListByDonorAsync(
         Guid donorUserId, int take, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// One donor's own donations to one cause, newest first.
+    /// <para>
+    /// <b>Keyed on the donor, so anonymous donations are absent by construction</b> — the same rule
+    /// as <see cref="ListByDonorAsync"/>. An anonymous donation stores no donor, and finding it again
+    /// through the payment's payer would undo the anonymity the donor asked for; its receipt
+    /// reference stays the only key to it.
+    /// </para>
+    /// </summary>
+    Task<IReadOnlyList<Donation>> ListByDonorForCauseAsync(
+        Guid donorUserId,
+        DonationCauseId causeId,
+        int take,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<Donation>> ListByCauseAsync(
         DonationCauseId causeId,
         GivingStatus? status,

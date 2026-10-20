@@ -13568,6 +13568,43 @@
         }
       }
     },
+    "/api/v1/communities/campaigns/{campaignId}/donations/me": {
+      "get": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "The caller's own donations to one campaign, newest first. Anonymous donations are absent: they store no donor.",
+        "operationId": "GetMyCampaignDonations",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "take",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/communities/campaigns/{campaignId}/fund-usage": {
       "get": {
         "tags": [
@@ -35735,7 +35772,7 @@
         "tags": [
           "Recommendations"
         ],
-        "summary": "Recommended communities for the caller.",
+        "summary": "Communities the caller could join that are present in a country — `country`, else the caller's own — never one they belong to or dismissed.",
         "operationId": "GetCommunitiesRecommendations",
         "parameters": [
           {
@@ -35772,6 +35809,128 @@
             "in": "query",
             "schema": {
               "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/recommendations/surface/communities": {
+      "get": {
+        "tags": [
+          "Recommendations"
+        ],
+        "summary": "Communities the caller could join that are present in a country — `country`, else the caller's own — never one they belong to or dismissed.",
+        "operationId": "GetCommunitiesRecommendationsForSurface",
+        "parameters": [
+          {
+            "name": "country",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "refresh",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/recommendations/monetization": {
+      "get": {
+        "tags": [
+          "Recommendations"
+        ],
+        "summary": "Plans and promotions the caller could buy, ranked from their own listings, plan and purchases. Never one they hold; dismissed through POST /recommendations/dismiss.",
+        "operationId": "GetMonetizationRecommendations",
+        "parameters": [
+          {
+            "name": "country",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/recommendations/surface/monetization": {
+      "get": {
+        "tags": [
+          "Recommendations"
+        ],
+        "summary": "Plans and promotions the caller could buy, ranked from their own listings, plan and purchases. Never one they hold; dismissed through POST /recommendations/dismiss.",
+        "operationId": "GetMonetizationRecommendationsForSurface",
+        "parameters": [
+          {
+            "name": "country",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
             }
           }
         ],

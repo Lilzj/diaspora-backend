@@ -241,6 +241,30 @@ public sealed class RecommendationCandidateRepository : IRecommendationCandidate
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<RecommendationCandidate>> ListOwnedLiveAsync(
+        UserId ownerUserId,
+        IReadOnlyCollection<RecommendationTargetType> targetTypes,
+        DateTimeOffset asOf,
+        int limit,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ownerUserId);
+        ArgumentNullException.ThrowIfNull(targetTypes);
+
+        var types = targetTypes.ToList();
+
+        return await Candidates
+            .AsNoTracking()
+            .Where(candidate => candidate.OwnerUserId == ownerUserId
+                                && types.Contains(candidate.Target.TargetType)
+                                && candidate.IsActive
+                                && !candidate.IsDeleted
+                                && (candidate.ExpiresAt == null || candidate.ExpiresAt > asOf))
+            .OrderByDescending(candidate => candidate.PublishedAt)
+            .Take(Math.Max(1, limit))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<Guid>> ListOwnedTargetIdsAsync(
         UserId ownerUserId,
         RecommendationTargetType targetType,

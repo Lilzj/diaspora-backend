@@ -69,6 +69,22 @@ public sealed class DonationRepository : IDonationRepository
             .Take(Math.Clamp(take, 1, Domain.Policies.FinancialLimits.MaxLedgerPageSize))
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<Donation>> ListByDonorForCauseAsync(
+        Guid donorUserId,
+        DonationCauseId causeId,
+        int take,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(causeId);
+
+        return await Donations
+            .Where(donation => donation.DonorUserId == donorUserId && donation.CauseId == causeId)
+            .OrderByDescending(donation => donation.CreatedAt)
+            .ThenByDescending(donation => donation.Id)
+            .Take(Math.Clamp(take, 1, Domain.Policies.FinancialLimits.MaxLedgerPageSize))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<Donation>> ListByCauseAsync(
         DonationCauseId causeId,
         GivingStatus? status,

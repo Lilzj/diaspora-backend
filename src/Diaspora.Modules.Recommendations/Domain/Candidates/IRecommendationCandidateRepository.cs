@@ -55,6 +55,17 @@ public interface IRecommendationCandidateRepository
         DateTimeOffset asOf,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// The live candidates a member owns, of the given types — the monetization surface's "what is
+    /// yours to promote". Withdrawn, deleted and expired rows are excluded; newest first, bounded.
+    /// </summary>
+    Task<IReadOnlyList<RecommendationCandidate>> ListOwnedLiveAsync(
+        UserId ownerUserId,
+        IReadOnlyCollection<RecommendationTargetType> targetTypes,
+        DateTimeOffset asOf,
+        int limit,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Candidates a member owns. The self-authored policy's input.</summary>
     Task<IReadOnlyList<Guid>> ListOwnedTargetIdsAsync(
         UserId ownerUserId,

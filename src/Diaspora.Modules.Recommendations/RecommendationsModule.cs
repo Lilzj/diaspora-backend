@@ -120,6 +120,7 @@ public sealed class RecommendationsModule : IPlatformModule
     private static void RegisterServices(IServiceCollection services)
     {
         services.AddScoped<RecommendationAuthorizationService>();
+        services.AddScoped<Application.Services.ServedSetRecorder>();
         services.AddScoped<PersonalizationContextFactory>();
 
         // The one door a published contract goes through to become a candidate row. Registered

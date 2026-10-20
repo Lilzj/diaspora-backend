@@ -61,8 +61,15 @@ public sealed class ListingPublishedConsumer
                 RegionName = integrationEvent.RegionName,
                 CityName = integrationEvent.CityName,
 
-                // See the class summary. The self-authored policy's only input for this vertical.
-                OwnerUserId = UserId.From(integrationEvent.SellerId),
+                // See the class summary. The self-authored policy's only input for this vertical, and
+                // the monetization surface's "your listing". The *member* behind the seller profile:
+                // `SellerId` is the profile, and a profile id compared with a user id never matches,
+                // so until this read the member's user id the policy never excluded anybody's own
+                // listing. Null on an event published before the field existed — unknown, which the
+                // projector treats as "leave the owner as it was".
+                OwnerUserId = integrationEvent.SellerUserId is { } sellerUserId
+                    ? UserId.From(sellerUserId)
+                    : null,
                 IsVerified = integrationEvent.IsSellerVerified,
                 PopularityScore = Jobs.JobPublishedConsumer.InitialPopularity,
                 QualityScore = integrationEvent.IsSellerVerified ? 0.7m : 0.35m,

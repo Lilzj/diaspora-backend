@@ -160,6 +160,7 @@ public sealed class FinancialModule : IPlatformModule
         // composes after this one and references no module. Read-only.
         services.AddScoped<Diaspora.Contracts.Financial.V1.Giving.ICampaignAnalyticsSource, Application.Campaigns.CampaignAnalyticsSource>();
         services.AddScoped<Diaspora.Contracts.Financial.V1.Entitlements.IMemberEntitlementReader, Application.Services.MemberEntitlementReader>();
+        services.AddScoped<Diaspora.Contracts.Financial.V1.Monetization.IMonetizationOfferSource, Application.Services.MonetizationOfferSource>();
         services.AddScoped<IDonationRepository, DonationRepository>();
         services.AddScoped<IContributionFundRepository, ContributionFundRepository>();
         services.AddScoped<ICommunityContributionRepository, CommunityContributionRepository>();

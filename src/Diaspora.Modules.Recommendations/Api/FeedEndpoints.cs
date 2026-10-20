@@ -1,4 +1,6 @@
+using Diaspora.Modules.Recommendations.Application.Communities;
 using Diaspora.Modules.Recommendations.Application.Feed;
+using Diaspora.Modules.Recommendations.Application.Monetization;
 using Diaspora.Platform.Http;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
@@ -51,7 +53,14 @@ internal static class FeedEndpoints
         MapSurface(group, "events", "Events", "Event");
         MapSurface(group, "organizations", "Organizations", "Organization");
         MapSurface(group, "neighborhoods", "Neighborhoods", "Neighborhood");
-        MapSurface(group, "communities", "Communities", "Community");
+
+        // Communities and monetization rank from facts other modules own, not from the engine's
+        // pool. Each is also mapped under `/surface/{name}` as a literal, which outranks the generic
+        // route below, so the escape hatch cannot answer them with the engine's empty page.
+        MapCommunities(group, "/communities", "GetCommunitiesRecommendations");
+        MapCommunities(group, "/surface/communities", "GetCommunitiesRecommendationsForSurface");
+        MapMonetization(group, "/monetization", "GetMonetizationRecommendations");
+        MapMonetization(group, "/surface/monetization", "GetMonetizationRecommendationsForSurface");
 
         group.MapGet("/trending", async (
                 [FromQuery] string? type,
@@ -133,6 +142,62 @@ internal static class FeedEndpoints
             .WithName("GetRecommendationsForSurface")
             .WithSummary("Recommendations for any configured surface.");
     }
+
+    /// <summary>
+    /// Communities to suggest, filtered by presence country.
+    /// <para>
+    /// Binds the same parameters the engine-backed route bound — <c>country</c>, <c>category</c>,
+    /// <c>limit</c>, <c>refresh</c> — so no client changes. <c>refresh</c> is accepted and has
+    /// nothing to do: every request ranks afresh.
+    /// </para>
+    /// </summary>
+    private static void MapCommunities(RouteGroupBuilder group, string route, string name) =>
+        group.MapGet(route, async (
+                [FromQuery] string? country,
+                [FromQuery(Name = "category")] string[]? categories,
+                [FromQuery] int? limit,
+                [FromQuery] bool? refresh,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new GetCommunityRecommendationsQuery
+                        {
+                            CountryCode = country,
+                            Categories = categories ?? [],
+                            Limit = limit
+                        },
+                        cancellationToken)))
+            .WithName(name)
+            .WithSummary(
+                "Communities the caller could join that are present in a country — `country`, else "
+                + "the caller's own — never one they belong to or dismissed.");
+
+    /// <summary>
+    /// MON-GAP-011: plans and promotions the caller could buy.
+    /// <para>
+    /// The client also sends <c>surface</c> (where the rail is drawn); it keys the client's cache
+    /// and does not narrow the answer, so it is not bound.
+    /// </para>
+    /// </summary>
+    private static void MapMonetization(RouteGroupBuilder group, string route, string name) =>
+        group.MapGet(route, async (
+                [FromQuery] string? country,
+                [FromQuery] int? limit,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new GetMonetizationRecommendationsQuery { CountryCode = country, Limit = limit },
+                        cancellationToken)))
+            .WithName(name)
+            .WithSummary(
+                "Plans and promotions the caller could buy, ranked from their own listings, plan "
+                + "and purchases. Never one they hold; dismissed through POST /recommendations/dismiss.");
 
     /// <summary>
     /// Maps one named surface.
