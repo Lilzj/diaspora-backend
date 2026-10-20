@@ -88,9 +88,19 @@ public sealed class UpdateProfileCommandHandler : ICommandHandler<UpdateProfileC
                     nameof(request.Email), "Enter a valid email address."));
             }
 
-            // Uniqueness matters even though email is not yet a sign-in credential: it
-            // will be, and letting duplicates accumulate now would make that migration
-            // a data-cleanup exercise.
+            // The sign-in address does not move here. This route needs no password and no proof
+            // the member receives mail at the new address, and until 20 Oct 2026 it moved the
+            // address anyway — a stolen session was a stolen account — and answered 409 for an
+            // address another account used, which made it an enumeration oracle. The change is
+            // `PUT /auth/email` now. Refused before the uniqueness check, so the refusal says
+            // nothing about the address. An account with no address may still add one here.
+            if (user.Email is not null && user.Email != email)
+            {
+                return Result.Failure<UserProfileResponse>(Error.Validation(
+                    "Identity.Profile.EmailChangeNeedsConfirmation",
+                    "Change your email address from its own screen: it needs your password and a link sent to the new address."));
+            }
+
             if (user.Email != email && await _users.ExistsByEmailAsync(email, cancellationToken))
             {
                 return Result.Failure<UserProfileResponse>(UserErrors.EmailAlreadyRegistered);
