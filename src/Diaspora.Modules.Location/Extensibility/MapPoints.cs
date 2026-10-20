@@ -32,7 +32,34 @@ public sealed record MapPointQuery
     /// </summary>
     public required int Limit { get; init; }
 
+    /// <summary>
+    /// Added 21 Oct 2026, for the heat layer's time range. When set, only rows whose own time — the
+    /// one the vertical names for the map: when a listing or post was published, when an event
+    /// starts — falls on or after this instant are returned.
+    /// <para>
+    /// <b>A row with no time is outside every window.</b> A filter that let undated rows through
+    /// would answer "the last 24 hours" with everything nobody dated.
+    /// </para>
+    /// </summary>
+    public DateTimeOffset? From { get; init; }
+
+    /// <summary>The window's other end, inclusive. See <see cref="From"/>.</summary>
+    public DateTimeOffset? To { get; init; }
+
+    /// <summary>Whether the caller asked for a time window at all.</summary>
+    public bool HasWindow => From is not null || To is not null;
+
     public bool CrossesAntimeridian => West > East;
+
+    /// <summary>
+    /// Whether a row's time is inside the window. Always true when there is no window; false for an
+    /// undated row when there is one.
+    /// </summary>
+    public bool IsWithinWindow(DateTimeOffset? at) =>
+        !HasWindow
+        || (at is { } time
+            && (From is null || time >= From.Value)
+            && (To is null || time <= To.Value));
 
     /// <summary>Whether a point lies inside the box, honouring the ±180° wrap.</summary>
     public bool Contains(double latitude, double longitude) =>
@@ -43,7 +70,13 @@ public sealed record MapPointQuery
 }
 
 /// <summary>One row's position, as a stranger would be shown it.</summary>
-public readonly record struct MapPoint(double Latitude, double Longitude);
+/// <param name="Latitude">The published latitude.</param>
+/// <param name="Longitude">The published longitude.</param>
+/// <param name="At">
+/// Added 21 Oct 2026. The row's own time for the map's time window — published, or for an event its
+/// start — when the vertical supplies one. Null otherwise.
+/// </param>
+public readonly record struct MapPoint(double Latitude, double Longitude, DateTimeOffset? At = null);
 
 /// <summary>A vertical's points inside a viewport, and whether it stopped reading at its cap.</summary>
 public sealed record MapPointPage(IReadOnlyList<MapPoint> Points, bool IsTruncated)
@@ -73,14 +106,34 @@ public static class MapPointReader
     /// <param name="position">A row's published coordinates; either half null means unpinned.</param>
     /// <param name="pageSize">The vertical's own maximum page size.</param>
     /// <param name="cancellationToken">Cancellation.</param>
-    public static async Task<MapPointPage> ReadAsync<T>(
+    public static Task<MapPointPage> ReadAsync<T>(
         MapPointQuery query,
         Func<string?, int, CancellationToken, Task<(IReadOnlyList<T> Items, string? NextCursor)>> fetch,
         Func<T, (double? Latitude, double? Longitude)> position,
         int pageSize,
+        CancellationToken cancellationToken = default) =>
+        ReadAsync(query, fetch, position, static _ => null, pageSize, cancellationToken);
+
+    /// <summary>
+    /// Reads cursor pages until the cap or the last page, keeping only rows whose time is inside the
+    /// query's window (21 Oct 2026).
+    /// </summary>
+    /// <param name="query">The viewport, and optionally a time window.</param>
+    /// <param name="fetch">One page: (cursor, page size) to (rows, next cursor or null).</param>
+    /// <param name="position">A row's published coordinates; either half null means unpinned.</param>
+    /// <param name="time">The row's own time for the map's window: published, or an event's start.</param>
+    /// <param name="pageSize">The vertical's own maximum page size.</param>
+    /// <param name="cancellationToken">Cancellation.</param>
+    public static async Task<MapPointPage> ReadAsync<T>(
+        MapPointQuery query,
+        Func<string?, int, CancellationToken, Task<(IReadOnlyList<T> Items, string? NextCursor)>> fetch,
+        Func<T, (double? Latitude, double? Longitude)> position,
+        Func<T, DateTimeOffset?> time,
+        int pageSize,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(query);
+        ArgumentNullException.ThrowIfNull(time);
         ArgumentNullException.ThrowIfNull(fetch);
         ArgumentNullException.ThrowIfNull(position);
 
@@ -98,7 +151,7 @@ public static class MapPointReader
             foreach (var item in items)
             {
                 read++;
-                Collect(points, query, position(item));
+                Collect(points, query, position(item), time(item));
             }
 
             if (next is null || items.Count == 0)
@@ -125,32 +178,48 @@ public static class MapPointReader
     public static MapPointPage FromList<T>(
         MapPointQuery query,
         IReadOnlyList<T> rows,
-        Func<T, (double? Latitude, double? Longitude)> position)
+        Func<T, (double? Latitude, double? Longitude)> position) =>
+        FromList(query, rows, position, static _ => null);
+
+    /// <summary>
+    /// <see cref="FromList{T}(MapPointQuery, IReadOnlyList{T}, Func{T, ValueTuple{double?, double?}})"/>
+    /// with each row's time, so the query's window applies (21 Oct 2026).
+    /// </summary>
+    public static MapPointPage FromList<T>(
+        MapPointQuery query,
+        IReadOnlyList<T> rows,
+        Func<T, (double? Latitude, double? Longitude)> position,
+        Func<T, DateTimeOffset?> time)
     {
         ArgumentNullException.ThrowIfNull(query);
         ArgumentNullException.ThrowIfNull(rows);
         ArgumentNullException.ThrowIfNull(position);
+        ArgumentNullException.ThrowIfNull(time);
 
         var limit = Math.Clamp(query.Limit, 1, MaximumRowsRead);
         var points = new List<MapPoint>();
 
         foreach (var row in rows.Take(limit))
         {
-            Collect(points, query, position(row));
+            Collect(points, query, position(row), time(row));
         }
 
         return new MapPointPage(points, rows.Count > limit);
     }
 
     private static void Collect(
-        List<MapPoint> points, MapPointQuery query, (double? Latitude, double? Longitude) position)
+        List<MapPoint> points,
+        MapPointQuery query,
+        (double? Latitude, double? Longitude) position,
+        DateTimeOffset? at)
     {
         if (position is { Latitude: { } latitude, Longitude: { } longitude }
             && double.IsFinite(latitude)
             && double.IsFinite(longitude)
-            && query.Contains(latitude, longitude))
+            && query.Contains(latitude, longitude)
+            && query.IsWithinWindow(at))
         {
-            points.Add(new MapPoint(latitude, longitude));
+            points.Add(new MapPoint(latitude, longitude, at));
         }
     }
 }

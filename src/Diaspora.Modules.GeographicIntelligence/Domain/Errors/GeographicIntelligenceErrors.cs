@@ -63,6 +63,29 @@ public static class GeographicIntelligenceErrors
             GeographicIntelligenceErrorCodes.LayerUnsupported,
             $"'{layer}' is not a density layer this platform can compute. Supported: {supported}.");
 
+    public static Error HeatTimeRangeInvalid(string given, string supported) =>
+        Error.Validation(
+            GeographicIntelligenceErrorCodes.HeatTimeRangeInvalid,
+            $"'{given}' is not a time range a heat layer can be narrowed to. Supported: {supported}.");
+
+    public static Error HeatSourceUnsupported(string layer, string given, string supported) =>
+        Error.Validation(
+            GeographicIntelligenceErrorCodes.HeatSourceUnsupported,
+            string.IsNullOrEmpty(supported)
+                ? $"The '{layer}' layer has one source and takes no source parameter; '{given}' was given."
+                : $"'{given}' is not a source of the '{layer}' layer. Supported: {supported}.");
+
+    /// <summary>
+    /// A rent layer compares rents in one country's currency against that country's median, and the
+    /// police source covers some countries and not others; neither can be answered for a viewport
+    /// whose country nobody named.
+    /// </summary>
+    public static Error HeatCountryRequired(string layer) =>
+        Error.Validation(
+            GeographicIntelligenceErrorCodes.HeatCountryRequired,
+            $"countryCode is required for the '{layer}' layer from this source: the two-letter code of "
+            + "the country the viewport is in.");
+
     public static Error TravelModeUnsupported(string mode) =>
         Error.Validation(
             GeographicIntelligenceErrorCodes.TravelModeUnsupported,

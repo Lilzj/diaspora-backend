@@ -85,6 +85,7 @@ public sealed class JobResourceCounter : ILocationResourceCounter
                 return (page.Items, page.HasMore ? page.NextCursor : null);
             },
             posting => (posting.Latitude, posting.Longitude),
+            posting => posting.PublishedAt,
             JobLimits.MaxPageSize,
             cancellationToken);
     }

@@ -30,6 +30,48 @@ public sealed record HeatPointResponse
 
     /// <summary>Added 14 Oct 2026. The cell's edges.</summary>
     public BoundsResponse? CellBounds { get; init; }
+
+    /// <summary>
+    /// Added 21 Oct 2026. How many rows the cell's value was computed from: the homes behind a rent
+    /// median, the reports or crimes behind a safety count. Equal to <see cref="RawValue"/> on a
+    /// count layer.
+    /// </summary>
+    public int? SampleSize { get; init; }
+
+    /// <summary>
+    /// Added 21 Oct 2026. A safety cell's count per the source's own categories (community
+    /// <c>Police</c> / <c>Emergency</c>, or data.police.uk's category ids). Null on every other layer.
+    /// </summary>
+    public IReadOnlyDictionary<string, int>? Categories { get; init; }
+}
+
+/// <summary>
+/// A cell that holds something and was not drawn, with why (21 Oct 2026).
+/// <para>
+/// <b>Withheld is not zero.</b> A cell under its layer's minimum sample is left off the map and
+/// listed here — its place on the grid and a reason, never its count or value, because publishing
+/// the figure would defeat the minimum.
+/// </para>
+/// </summary>
+public sealed record WithheldHeatCellResponse
+{
+    public required string CellKey { get; init; }
+
+    public required Guid AreaId { get; init; }
+
+    public required string AreaName { get; init; }
+
+    public required BoundsResponse CellBounds { get; init; }
+
+    /// <summary>
+    /// <c>BelowMinimumCount</c> (fewer rows than the map's floor), <c>TooFewHomes</c> (a rent median
+    /// needs more homes), or <c>CountrySampleTooSmall</c> (an index needs a baseline the country
+    /// does not have yet).
+    /// </summary>
+    public required string Reason { get; init; }
+
+    /// <summary>The reason as a sentence, naming the minimum.</summary>
+    public required string Detail { get; init; }
 }
 
 /// <summary>The rectangle a layer covers, echoed so a client can confirm what the server read.</summary>
@@ -63,6 +105,23 @@ public sealed record HeatLayerResponse
 {
     /// <summary>The client's layer id, echoed: <c>housing-availability</c>, <c>jobs</c>, …</summary>
     public required string Layer { get; init; }
+
+    /// <summary>
+    /// Added 21 Oct 2026. Which source the values come from: <c>platform-content</c>,
+    /// <c>listings</c>, <c>community-reports</c> or <c>police-recorded-crime</c>. A safety layer is
+    /// always one source, never a blend.
+    /// </summary>
+    public string Source { get; init; } = "platform-content";
+
+    /// <summary>
+    /// Added 21 Oct 2026. False when the source could not answer for this viewport at all — not
+    /// read in this deployment, not published for the country, not yet published for the time
+    /// range, or a cost-of-living baseline the country does not have. The points are then empty and
+    /// mean nothing; <see cref="UnavailableReason"/> says which.
+    /// </summary>
+    public bool IsAvailable { get; init; } = true;
+
+    public string? UnavailableReason { get; init; }
 
     /// <summary>What the intensity counts. "listings", "events", "providers".</summary>
     public required string Unit { get; init; }
@@ -98,6 +157,42 @@ public sealed record HeatLayerResponse
 
     /// <summary>How many cells were withheld by that floor. Published so suppression is visible.</summary>
     public required int SuppressedCells { get; init; }
+
+    /// <summary>Added 21 Oct 2026. Which cells were withheld, and why. Never their values.</summary>
+    public IReadOnlyList<WithheldHeatCellResponse> WithheldCells { get; init; } = [];
+
+    /// <summary>
+    /// Added 21 Oct 2026. The fewest homes a country needs before the cost-of-living index is computed
+    /// against it. Null on every other layer.
+    /// </summary>
+    public int? MinimumCountrySample { get; init; }
+
+    /// <summary>Added 21 Oct 2026. The currency of a rent layer's values. Null on every other layer.</summary>
+    public string? Currency { get; init; }
+
+    /// <summary>
+    /// Added 21 Oct 2026. The time range asked for — <c>24h</c>, <c>7d</c>, <c>30d</c>, <c>90d</c> —
+    /// or null when none was.
+    /// </summary>
+    public string? TimeRange { get; init; }
+
+    /// <summary>
+    /// Added 21 Oct 2026. Which time the range filters on: <c>published</c>, <c>starts</c> (an event:
+    /// starting before the range ends, those under way included) or <c>month</c> (police data, by
+    /// whole published months).
+    /// </summary>
+    public string? TimeBasis { get; init; }
+
+    /// <summary>Added 21 Oct 2026. The period the values cover, where the layer has one.</summary>
+    public DateTimeOffset? From { get; init; }
+
+    public DateTimeOffset? To { get; init; }
+
+    /// <summary>Added 21 Oct 2026. The licence the source's data is republished under, when it has one.</summary>
+    public string? Licence { get; init; }
+
+    /// <summary>Added 21 Oct 2026. The credit the source requires wherever its data is shown.</summary>
+    public string? Attribution { get; init; }
 
     /// <summary>Whether a vertical had more rows in the viewport than one request reads.</summary>
     public required bool Truncated { get; init; }

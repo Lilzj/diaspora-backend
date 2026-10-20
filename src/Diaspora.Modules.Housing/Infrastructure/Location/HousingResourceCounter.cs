@@ -94,6 +94,7 @@ public sealed class HousingResourceCounter : ILocationResourceCounter
             query,
             candidates,
             candidate => PropertyAddress.PublicCoordinates(
-                candidate.Latitude, candidate.Longitude, candidate.Visibility));
+                candidate.Latitude, candidate.Longitude, candidate.Visibility),
+            candidate => candidate.PublishedAt);
     }
 }

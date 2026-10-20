@@ -169,7 +169,8 @@ public sealed class HousingListingRepository : IHousingListingRepository
                 listing.Slug.Value,
                 listing.Address.Latitude,
                 listing.Address.Longitude,
-                listing.Address.Visibility))
+                listing.Address.Visibility,
+                listing.PublishedAt))
             .ToListAsync(cancellationToken);
     }
 

@@ -35,6 +35,40 @@ public interface ICommunitySafetyReports
         DateTimeOffset asOf,
         TimeSpan window,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Where corroborated Police and Emergency reports were pinned inside a map viewport, published
+    /// between <paramref name="from"/> and <paramref name="to"/> (21 Oct 2026, the safety heat
+    /// layer). The same population as both counts above; a report with no pin is not on a map.
+    /// <para>
+    /// <b>West greater than East means the box wraps ±180°.</b>
+    /// </para>
+    /// </summary>
+    Task<CommunitySafetyReportPoints> ListCorroboratedPointsAsync(
+        double south,
+        double west,
+        double north,
+        double east,
+        DateTimeOffset from,
+        DateTimeOffset to,
+        CancellationToken cancellationToken = default);
+}
+
+/// <summary>One corroborated safety report's pin, category and time.</summary>
+public readonly record struct CommunitySafetyReportPoint(
+    double Latitude, double Longitude, string Category, DateTimeOffset PublishedAt);
+
+/// <summary>Corroborated safety reports inside a viewport over a period.</summary>
+public sealed record CommunitySafetyReportPoints
+{
+    public required DateTimeOffset From { get; init; }
+
+    public required DateTimeOffset To { get; init; }
+
+    public required IReadOnlyList<CommunitySafetyReportPoint> Points { get; init; }
+
+    /// <summary>True when a read stopped at its cap, so there are at least this many.</summary>
+    public bool IsLowerBound { get; init; }
 }
 
 /// <summary>Corroborated safety reports in a place over a period, per category.</summary>

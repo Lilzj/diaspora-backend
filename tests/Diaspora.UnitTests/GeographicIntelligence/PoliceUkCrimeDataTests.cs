@@ -135,6 +135,101 @@ public sealed class PoliceUkCrimeDataTests
         reader.Covers("NG").Should().BeFalse();
     }
 
+    // ── The heat layer's viewport read (21 Oct 2026) ─────────────────────────────────────────────
+
+    [Fact]
+    public async Task A_viewport_is_read_by_polygon_for_the_months_that_overlap_the_window()
+    {
+        var transport = new FakeTransport(path => path switch
+        {
+            "crimes-street-dates" => Dates,
+            _ when path.StartsWith("crime-categories", StringComparison.Ordinal) => Categories,
+            _ when path.Contains("date=2026-07", StringComparison.Ordinal) => Crimes("burglary", "anti-social-behaviour"),
+            _ when path.Contains("date=2026-06", StringComparison.Ordinal) => Crimes("burglary"),
+            _ => "[]"
+        });
+
+        var answer = await Reader(transport, months: 12).ListInBoxAsync(
+            51.46, -0.10, 51.49, -0.04,
+            new DateTimeOffset(2026, 6, 15, 0, 0, 0, TimeSpan.Zero),
+            new DateTimeOffset(2026, 9, 1, 0, 0, 0, TimeSpan.Zero));
+
+        answer.UnavailableReason.Should().BeNull();
+        answer.FirstMonth.Should().Be("2026-06");
+        answer.LastMonth.Should().Be("2026-07");
+        answer.Months.Should().Be(2);
+        answer.Points.Should().HaveCount(3);
+        answer.Points.Should().AllSatisfy(point =>
+        {
+            point.Latitude.Should().Be(51.474, "the source sends coordinates as strings");
+            point.Longitude.Should().Be(-0.069);
+        });
+
+        transport.Requests.Should().Contain(path =>
+            path.StartsWith("crimes-street/all-crime?poly=51.49000,-0.10000:51.49000,-0.04000:51.46000,-0.04000:51.46000,-0.10000", StringComparison.Ordinal));
+        transport.Requests.Should().NotContain(path => path.Contains("date=2026-05", StringComparison.Ordinal),
+            "May ends before the window starts");
+    }
+
+    [Fact]
+    public async Task A_window_after_the_newest_published_month_is_not_yet_published_rather_than_zero()
+    {
+        var transport = new FakeTransport(path => path == "crimes-street-dates" ? Dates : "[]");
+
+        var answer = await Reader(transport, months: 12).ListInBoxAsync(
+            51.46, -0.10, 51.49, -0.04,
+            new DateTimeOffset(2026, 10, 14, 0, 0, 0, TimeSpan.Zero),
+            new DateTimeOffset(2026, 10, 21, 0, 0, 0, TimeSpan.Zero));
+
+        answer.UnavailableReason.Should().Be(PoliceCrimeUnavailable.NotYetPublished);
+        answer.NewestPublishedMonth.Should().Be("2026-07");
+        transport.Requests.Should().NotContain(path => path.StartsWith("crimes-street/", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Without_a_window_only_the_newest_month_is_read()
+    {
+        var transport = new FakeTransport(path => path switch
+        {
+            "crimes-street-dates" => Dates,
+            _ when path.StartsWith("crime-categories", StringComparison.Ordinal) => Categories,
+            _ => Crimes("burglary")
+        });
+
+        var answer = await Reader(transport, months: 12).ListInBoxAsync(51.46, -0.10, 51.49, -0.04, null, null);
+
+        answer.Months.Should().Be(1);
+        answer.LastMonth.Should().Be("2026-07");
+        transport.Requests.Count(path => path.StartsWith("crimes-street/", StringComparison.Ordinal)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task An_area_the_source_refuses_as_too_large_is_said_so()
+    {
+        var transport = new FakeTransport(path => path switch
+        {
+            "crimes-street-dates" => Dates,
+            _ when path.StartsWith("crime-categories", StringComparison.Ordinal) => Categories,
+            _ => null
+        });
+
+        var answer = await Reader(transport, months: 12).ListInBoxAsync(51.0, -0.5, 52.0, 0.5, null, null);
+
+        answer.UnavailableReason.Should().Be(PoliceCrimeUnavailable.TooManyToRead);
+        answer.Points.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task A_disabled_source_lists_nothing_and_calls_nobody()
+    {
+        var transport = new FakeTransport(_ => "[]");
+
+        var answer = await Reader(transport, months: 12, enabled: false).ListInBoxAsync(51.46, -0.10, 51.49, -0.04, null, null);
+
+        answer.UnavailableReason.Should().Be(PoliceCrimeUnavailable.Disabled);
+        transport.Requests.Should().BeEmpty();
+    }
+
     private static PoliceUkCrimeData Reader(FakeTransport transport, int months, bool enabled = true) =>
         new(
             new FakeClients(transport),

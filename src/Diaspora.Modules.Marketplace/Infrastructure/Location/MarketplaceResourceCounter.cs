@@ -86,6 +86,7 @@ public sealed class MarketplaceResourceCounter : ILocationResourceCounter
                 return (page.Items, page.HasMore ? page.NextCursor : null);
             },
             listing => (listing.Latitude, listing.Longitude),
+            listing => listing.PublishedAt,
             MarketplaceLimits.MaxPageSize,
             cancellationToken);
     }

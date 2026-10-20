@@ -244,6 +244,8 @@ public sealed class GeographicIntelligenceEndpointContributor : IEndpointContrib
                 string? level,
                 double? zoom,
                 string? countryCode,
+                string? timeRange,
+                string? source,
                 ISender sender,
                 HttpContext context,
                 CancellationToken cancellationToken) =>
@@ -268,7 +270,13 @@ public sealed class GeographicIntelligenceEndpointContributor : IEndpointContrib
                         // The client's `fetchHeatLayer` already sends this. Taking it is contract
                         // fidelity rather than a new parameter to negotiate.
                         Zoom = zoom,
-                        CountryCode = countryCode
+                        CountryCode = countryCode,
+
+                        // 21 Oct 2026. The client's `HeatMapTimeRange` (24h, 7d, 30d, 90d), filtering on
+                        // each row's own time; anything else is a 400. And the safety layer's source,
+                        // one at a time: `community-reports` (default) or `police-recorded-crime`.
+                        TimeRange = timeRange,
+                        Source = source
                     },
                     cancellationToken);
 
@@ -276,7 +284,7 @@ public sealed class GeographicIntelligenceEndpointContributor : IEndpointContrib
             })
             .RequireAuthorization(GeographicIntelligencePolicies.IntelligenceRead)
             .WithName("GetHeatLayer")
-            .WithSummary("A density layer for a viewport, aggregated by place and suppressed.");
+            .WithSummary("A density layer for a viewport, aggregated by grid cell, withheld below a minimum sample, optionally narrowed to a time range.");
 
     /// <summary>
     /// The routing route.

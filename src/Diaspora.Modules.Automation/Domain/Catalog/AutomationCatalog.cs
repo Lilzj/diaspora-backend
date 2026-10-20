@@ -216,6 +216,36 @@ public static class AutomationCatalog
     private const string NoContract =
         "The owning module does not publish a contract for this yet, so the platform cannot observe it.";
 
+    /// <summary>
+    /// Why <c>community.memberJoined</c> cannot be wired, as of 21 Oct 2026.
+    /// <para>
+    /// CommunityProgramme records a join (<c>Community.RecordMemberJoined</c>, from
+    /// <c>ChangeCommunityMembership.JoinAsync</c> and <c>CommunityAdministration</c>) and publishes only
+    /// the milestone it sometimes crosses. No per-join integration event exists; the nearest contracts
+    /// are <c>CommunityMilestoneReachedIntegrationEvent</c> (thresholds only),
+    /// <c>OrganizationMemberJoinedIntegrationEvent</c> (organisations, already
+    /// <c>organization.memberJoined</c>) and <c>CommunityFollowCreatedIntegrationEvent</c> (follows of a
+    /// member, organisation or hashtag, never a community).
+    /// </para>
+    /// </summary>
+    public const string CommunityMemberJoinedReason =
+        "CommunityProgramme publishes no per-join contract: a join moves the member count and only a "
+        + "milestone it crosses is published (community.milestoneReached). The owner half is answered.";
+
+    /// <summary>
+    /// Why <c>community.eventCreated</c> cannot be wired, as of 21 Oct 2026.
+    /// <para>
+    /// Events belong to CommunityLife and are published with an organisation, an organiser and a
+    /// neighbourhood (<c>EventCreatedIntegrationEvent</c>, <c>EventPublishedIntegrationEvent</c>) and
+    /// no community. A CommunityProgramme community holds no events and no organisation link, so no
+    /// published event can say which community it was created in.
+    /// </para>
+    /// </summary>
+    public const string CommunityEventCreatedReason =
+        "No event belongs to a community: CommunityLife publishes events with an organisation and a "
+        + "neighbourhood and no community, and a community has no organisation to join them through. "
+        + "The owner half is answered.";
+
     // ── Triggers ────────────────────────────────────────────────────────────────────────────────
 
     public static readonly FrozenDictionary<string, TriggerCatalogEntry> Triggers =
@@ -361,15 +391,18 @@ public static class AutomationCatalog
             // `Community.RecordMemberJoined`, and is the last of the four events the Backend Gap
             // Build Order called genuinely missing. `memberJoined` and `eventCreated` are left with
             // the contract alone, and their reason says only that — the owner half is answered.
+            //
+            // Re-audited 21 Oct 2026 against every integration event in Diaspora.Contracts, and still
+            // unwireable — each reason names exactly what is missing so nobody has to repeat the search.
             new("community.memberJoined", "community", AutomationTriggerDelivery.DomainEvent,
-                null, false, NoContract, AutomationCapabilities.Community,
+                null, false, CommunityMemberJoinedReason, AutomationCapabilities.Community,
                 [AutomationOwnerKind.Community], false),
             new("community.milestoneReached", "community", AutomationTriggerDelivery.DomainEvent,
                 "Diaspora.Contracts.CommunityProgramme.V1.Events.CommunityMilestoneReachedIntegrationEvent",
                 true, null, AutomationCapabilities.Community,
                 [AutomationOwnerKind.Community], false),
             new("community.eventCreated", "community", AutomationTriggerDelivery.DomainEvent,
-                null, false, NoContract, AutomationCapabilities.Community,
+                null, false, CommunityEventCreatedReason, AutomationCapabilities.Community,
                 [AutomationOwnerKind.Community], false),
 
             new("organization.memberJoined", "organizations", AutomationTriggerDelivery.DomainEvent,
@@ -524,10 +557,19 @@ public static class AutomationCatalog
                 "Background location is not implemented and automations.location is granted to "
                 + "nobody. The client refuses this trigger for the same reason.",
                 AutomationCapabilities.Location, UserOnly, true),
+            //
+            // Re-audited 21 Oct 2026. Location does publish one residence fact,
+            // `CountryResidenceEndedIntegrationEvent`, and it is not this trigger: it names the
+            // country the member LEFT, while this trigger's `country` condition is about the country
+            // they are in now, and the declaration of a new residence
+            // (`CountryExperienceDeclaredDomainEvent`) is not published at all. Wiring the departure
+            // here would fire beside the device's own observation with the opposite country.
             new("location.countryChanged", "location", AutomationTriggerDelivery.DeviceLocal,
                 null, false,
                 "The device observes this while the app is in the foreground. The server never "
-                + "claims to.", null, UserOnly, true)
+                + "claims to: Location publishes only CountryResidenceEnded, which names the country "
+                + "left rather than the one entered, and does not publish a new residence.",
+                null, UserOnly, true)
         }.ToFrozenDictionary(trigger => trigger.Key, StringComparer.Ordinal);
 
     // ── Conditions ──────────────────────────────────────────────────────────────────────────────

@@ -40,12 +40,20 @@ public sealed class PoliceUkCrimeData : IPoliceCrimeData
 
     private static readonly TimeSpan PublishedMonthsLifetime = TimeSpan.FromHours(12);
 
+    /// <summary>
+    /// Viewport reads kept at once. Small and separate from the per-point cache, because one viewport
+    /// month can hold thousands of crimes and a heat map asks again on every pan.
+    /// </summary>
+    private const int MaximumCachedViewports = 64;
+
     private readonly IHttpClientFactory _clients;
     private readonly IOptions<PoliceUkOptions> _options;
     private readonly TimeProvider _clock;
     private readonly ILogger<PoliceUkCrimeData> _logger;
 
     private readonly ConcurrentDictionary<string, CacheEntry> _cache = new(StringComparer.Ordinal);
+
+    private readonly ConcurrentDictionary<string, CacheEntry> _viewports = new(StringComparer.Ordinal);
 
     public PoliceUkCrimeData(
         IHttpClientFactory clients,
@@ -135,6 +143,188 @@ public sealed class PoliceUkCrimeData : IPoliceCrimeData
             _logger.LogWarning(exception, "data.police.uk could not be read for a safety count.");
             return PoliceCrimeAnswer.Unavailable(PoliceCrimeUnavailable.SourceUnavailable);
         }
+    }
+
+    public async Task<PoliceCrimePointsAnswer> ListInBoxAsync(
+        double south,
+        double west,
+        double north,
+        double east,
+        DateTimeOffset? from,
+        DateTimeOffset? to,
+        CancellationToken cancellationToken = default)
+    {
+        var options = _options.Value;
+
+        if (!options.Enabled)
+        {
+            return PoliceCrimePointsAnswer.Unavailable(PoliceCrimeUnavailable.Disabled);
+        }
+
+        try
+        {
+            var published = await PublishedMonthsAsync(cancellationToken);
+
+            if (published.Count == 0)
+            {
+                return PoliceCrimePointsAnswer.Unavailable(PoliceCrimeUnavailable.SourceUnavailable);
+            }
+
+            List<string> months = from is null && to is null
+                ? [published[0]]
+                : published.Where(month => Overlaps(month, from, to)).ToList();
+
+            if (months.Count == 0)
+            {
+                return PoliceCrimePointsAnswer.Unavailable(PoliceCrimeUnavailable.NotYetPublished, published[0]);
+            }
+
+            var names = await CategoryNamesAsync(months[0], cancellationToken);
+            var points = new List<PoliceCrimePoint>();
+
+            // One month at a time: a viewport month is the heaviest read this source serves.
+            foreach (var month in months)
+            {
+                var read = await ViewportMonthAsync(south, west, north, east, month, cancellationToken);
+
+                if (read.TooMany)
+                {
+                    return PoliceCrimePointsAnswer.Unavailable(PoliceCrimeUnavailable.TooManyToRead, published[0]);
+                }
+
+                if (read.Points is null)
+                {
+                    return PoliceCrimePointsAnswer.Unavailable(PoliceCrimeUnavailable.SourceUnavailable, published[0]);
+                }
+
+                points.AddRange(read.Points);
+            }
+
+            return new PoliceCrimePointsAnswer
+            {
+                Points = points,
+                FirstMonth = months[^1],
+                LastMonth = months[0],
+                Months = months.Count,
+                CategoryNames = names,
+                NewestPublishedMonth = published[0]
+            };
+        }
+        catch (Exception exception) when (
+            exception is HttpRequestException or TaskCanceledException or JsonException or InvalidOperationException
+            && !cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(exception, "data.police.uk could not be read for a safety heat layer.");
+            return PoliceCrimePointsAnswer.Unavailable(PoliceCrimeUnavailable.SourceUnavailable);
+        }
+    }
+
+    /// <summary>Whether a published month overlaps [from, to]. Either end may be open.</summary>
+    private static bool Overlaps(string month, DateTimeOffset? from, DateTimeOffset? to)
+    {
+        if (!DateTimeOffset.TryParseExact(
+                month + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var start))
+        {
+            return false;
+        }
+
+        var end = start.AddMonths(1);
+
+        return (from is null || end > from.Value) && (to is null || start <= to.Value);
+    }
+
+    /// <summary>
+    /// One month's crimes inside the viewport, by the source's polygon search. <c>TooMany</c> when the
+    /// source refuses the area as too large (it answers 503 above 10,000 crimes); null points when
+    /// it could not be read.
+    /// </summary>
+    private async Task<(IReadOnlyList<PoliceCrimePoint>? Points, bool TooMany)> ViewportMonthAsync(
+        double south, double west, double north, double east, string month, CancellationToken cancellationToken)
+    {
+        static string At(double latitude, double longitude) =>
+            string.Create(CultureInfo.InvariantCulture, $"{latitude:F5},{longitude:F5}");
+
+        var poly = string.Join(':', At(north, west), At(north, east), At(south, east), At(south, west));
+        var key = $"viewport:{poly}:{month}";
+
+        if (_viewports.TryGetValue(key, out var cached)
+            && cached.Expires > _clock.GetUtcNow()
+            && cached.Value is IReadOnlyList<PoliceCrimePoint> hit)
+        {
+            return (hit, false);
+        }
+
+        var client = _clients.CreateClient(HttpClientName);
+        var options = _options.Value;
+
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(options.RequestTimeoutSeconds));
+
+        var uri = new Uri(
+            new Uri(options.BaseAddress, UriKind.Absolute),
+            $"crimes-street/all-crime?poly={poly}&date={month}");
+
+        using var response = await client.GetAsync(uri, timeout.Token);
+
+        if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+        {
+            return (null, true);
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return (null, false);
+        }
+
+        await using var body = await response.Content.ReadAsStreamAsync(timeout.Token);
+        using var document = await JsonDocument.ParseAsync(body, cancellationToken: timeout.Token);
+
+        if (document.RootElement.ValueKind != JsonValueKind.Array)
+        {
+            return (null, false);
+        }
+
+        var points = new List<PoliceCrimePoint>();
+
+        foreach (var crime in document.RootElement.EnumerateArray())
+        {
+            // The source sends coordinates as strings. A crime it could not place is not on a map.
+            if (crime.TryGetProperty("category", out var category) && category.GetString() is { Length: > 0 } id
+                && crime.TryGetProperty("location", out var location) && location.ValueKind == JsonValueKind.Object
+                && Coordinate(location, "latitude") is { } latitude
+                && Coordinate(location, "longitude") is { } longitude)
+            {
+                points.Add(new PoliceCrimePoint(latitude, longitude, id, month));
+            }
+        }
+
+        if (_viewports.Count >= MaximumCachedViewports)
+        {
+            _viewports.Clear();
+        }
+
+        _viewports[key] = new CacheEntry(_clock.GetUtcNow() + TimeSpan.FromHours(options.CacheHours), points);
+
+        return (points, false);
+    }
+
+    private static double? Coordinate(JsonElement location, string name)
+    {
+        if (!location.TryGetProperty(name, out var value))
+        {
+            return null;
+        }
+
+        var parsed = value.ValueKind switch
+        {
+            JsonValueKind.String when double.TryParse(
+                value.GetString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var text) => text,
+            JsonValueKind.Number => value.GetDouble(),
+            _ => (double?)null
+        };
+
+        return parsed is { } number && double.IsFinite(number) ? number : null;
     }
 
     /// <summary>The published months, newest first: <c>2026-06</c>, <c>2026-05</c>, …</summary>

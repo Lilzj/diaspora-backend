@@ -27,6 +27,54 @@ public interface IPoliceCrimeData
     /// holds nothing for this point.
     /// </returns>
     Task<PoliceCrimeAnswer> CountAsync(double latitude, double longitude, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Every crime the source places inside a map viewport, over whole published months (21 Oct 2026,
+    /// the safety heat layer).
+    /// <para>
+    /// <b>Which months.</b> With a window, every published month that overlaps it — and none, said
+    /// as <see cref="PoliceCrimeUnavailable.NotYetPublished"/>, when the newest published month ends
+    /// before the window starts, which for a short window is the usual case: the source publishes a
+    /// month some weeks after it ends. Without a window, the newest published month.
+    /// </para>
+    /// </summary>
+    Task<PoliceCrimePointsAnswer> ListInBoxAsync(
+        double south,
+        double west,
+        double north,
+        double east,
+        DateTimeOffset? from,
+        DateTimeOffset? to,
+        CancellationToken cancellationToken = default);
+}
+
+/// <summary>One crime as the source places it: an anonymised point, a category and its month.</summary>
+public readonly record struct PoliceCrimePoint(double Latitude, double Longitude, string Category, string Month);
+
+/// <summary>The crimes inside a viewport, or why there are none to show.</summary>
+public sealed record PoliceCrimePointsAnswer
+{
+    public IReadOnlyList<PoliceCrimePoint> Points { get; init; } = [];
+
+    /// <summary>The first month read: <c>2026-06</c>. Null when nothing was read.</summary>
+    public string? FirstMonth { get; init; }
+
+    public string? LastMonth { get; init; }
+
+    public int Months { get; init; }
+
+    /// <summary>The source's own name for each category identifier.</summary>
+    public IReadOnlyDictionary<string, string> CategoryNames { get; init; } =
+        new Dictionary<string, string>(StringComparer.Ordinal);
+
+    /// <summary>Why <see cref="Points"/> should not be read: <see cref="PoliceCrimeUnavailable"/>. Null when they can.</summary>
+    public string? UnavailableReason { get; init; }
+
+    /// <summary>The newest month the source has published, said when a window falls after it.</summary>
+    public string? NewestPublishedMonth { get; init; }
+
+    public static PoliceCrimePointsAnswer Unavailable(string reason, string? newestPublishedMonth = null) =>
+        new() { UnavailableReason = reason, NewestPublishedMonth = newestPublishedMonth };
 }
 
 /// <summary>What the police source said about a point.</summary>
@@ -63,6 +111,19 @@ public static class PoliceCrimeUnavailable
     /// a section left out reads as "Diaspora did not look".
     /// </summary>
     public const string NotPublished = "NotPublished";
+
+    /// <summary>
+    /// The source has not yet published any month inside the time asked about. It publishes each
+    /// month some weeks after it ends, so a short recent window usually has no police data at all —
+    /// which is a fact about the source, not a quiet month (21 Oct 2026).
+    /// </summary>
+    public const string NotYetPublished = "NotYetPublished";
+
+    /// <summary>
+    /// The source refuses an area holding more than 10,000 crimes in a month, so a viewport that wide
+    /// cannot be read in one piece. Zooming in reads it (21 Oct 2026).
+    /// </summary>
+    public const string TooManyToRead = "TooManyToRead";
 }
 
 /// <summary>Crimes the police recorded near a point, per category, over whole months.</summary>

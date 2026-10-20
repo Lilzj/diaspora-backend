@@ -642,11 +642,14 @@ public sealed class GeographicIntelligenceTests : IdentityTestBase
     /// <b>A layer with no source is refused, not answered empty.</b> An empty heat layer renders as
     /// a quiet neighbourhood, which is a claim about the world; a named error is a claim about the
     /// platform, and it is the true one.
+    /// <para>
+    /// <c>safety</c>, <c>cost-of-living</c> and <c>housing-price</c> stood here until 21 Oct 2026, when
+    /// each got a real source (<c>HeatLayerSourcesTests</c>). A layer nobody computes still gets this.
+    /// </para>
     /// </summary>
     [Theory]
-    [InlineData("safety")]
-    [InlineData("cost-of-living")]
-    [InlineData("housing-price")]
+    [InlineData("crime-score")]
+    [InlineData("unicorns")]
     public async Task A_layer_with_no_real_source_is_refused_rather_than_answered_empty(string layer)
     {
         await AuthenticateMemberAsync();

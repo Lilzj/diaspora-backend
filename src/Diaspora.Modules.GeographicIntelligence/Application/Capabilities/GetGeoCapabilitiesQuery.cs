@@ -107,8 +107,12 @@ public sealed class GetGeoCapabilitiesQueryHandler
                 Available = true,
                 Provider = "platform",
                 Detail =
-                    "Live counts of published content per catalogue place, suppressed below a "
-                    + "configured floor."
+                    "Live counts of published content per square grid cell; median asking rent and a "
+                    + "rent-only cost-of-living index from Diaspora's own listings (5 homes a cell, 20 a "
+                    + "country); and safety as counts from one named source at a time — corroborated "
+                    + "community reports, or data.police.uk where it publishes — never a score. A cell "
+                    + "below its minimum is withheld and listed, not drawn as zero. Every layer takes a "
+                    + "timeRange of 24h, 7d, 30d or 90d."
             },
             new()
             {

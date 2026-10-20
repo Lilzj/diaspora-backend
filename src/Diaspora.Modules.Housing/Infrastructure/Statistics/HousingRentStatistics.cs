@@ -47,19 +47,78 @@ public sealed class HousingRentStatistics : IRentStatistics
             cancellationToken);
     }
 
-    private async Task<RentComparison> CompareAsync(
-        string countryCode, Func<HousingRentPrice, bool> inArea, CancellationToken cancellationToken)
+    public async Task<RentPointSample> SampleMonthlyRentsAsync(
+        string countryCode,
+        DateTimeOffset? publishedFrom = null,
+        DateTimeOffset? publishedTo = null,
+        CancellationToken cancellationToken = default)
     {
         var prices = await _listings.GetRentPricesAsync(countryCode, MaximumListingsRead, cancellationToken);
+        var currency = CurrencyOf(prices);
 
-        // The country's own currency, by what its listings use. Ties go to the alphabetically first
-        // code so the same data always compares in the same currency.
-        var currency = prices
+        if (currency is null)
+        {
+            return new RentPointSample
+            {
+                CountrySampleSize = 0,
+                OtherCurrencyListings = 0,
+                Points = []
+            };
+        }
+
+        var comparable = prices
+            .Where(price => string.Equals(price.CurrencyCode.Trim(), currency, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        var windowed = comparable
+            .Where(price => (publishedFrom is null && publishedTo is null)
+                || (price.PublishedAt is { } published
+                    && (publishedFrom is null || published >= publishedFrom.Value)
+                    && (publishedTo is null || published <= publishedTo.Value)))
+            .ToList();
+
+        var points = new List<RentPoint>();
+
+        foreach (var price in windowed)
+        {
+            var (latitude, longitude) = PropertyAddress.PublicCoordinates(
+                price.Latitude, price.Longitude, price.Visibility);
+
+            if (latitude is { } lat && longitude is { } lng && double.IsFinite(lat) && double.IsFinite(lng))
+            {
+                points.Add(new RentPoint(lat, lng, Monthly(price), price.PublishedAt));
+            }
+        }
+
+        return new RentPointSample
+        {
+            Currency = currency,
+            CountrySampleSize = windowed.Count,
+            CountryMedianMonthlyRent = Median([.. windowed.Select(Monthly)]),
+            OtherCurrencyListings = prices.Count - comparable.Count,
+            Points = points,
+            IsTruncated = prices.Count >= MaximumListingsRead
+        };
+    }
+
+    /// <summary>
+    /// The country's own currency, by what its listings use. Ties go to the alphabetically first
+    /// code so the same data always compares in the same currency.
+    /// </summary>
+    private static string? CurrencyOf(IReadOnlyList<HousingRentPrice> prices) =>
+        prices
             .GroupBy(price => price.CurrencyCode.Trim().ToUpperInvariant(), StringComparer.Ordinal)
             .OrderByDescending(group => group.Count())
             .ThenBy(group => group.Key, StringComparer.Ordinal)
             .Select(group => group.Key)
             .FirstOrDefault();
+
+    private async Task<RentComparison> CompareAsync(
+        string countryCode, Func<HousingRentPrice, bool> inArea, CancellationToken cancellationToken)
+    {
+        var prices = await _listings.GetRentPricesAsync(countryCode, MaximumListingsRead, cancellationToken);
+
+        var currency = CurrencyOf(prices);
 
         if (currency is null)
         {
@@ -109,22 +168,7 @@ public sealed class HousingRentStatistics : IRentStatistics
     }
 
     /// <summary>The middle value, or the mean of the middle two. Null for no values.</summary>
-    public static decimal? Median(IReadOnlyList<decimal> values)
-    {
-        ArgumentNullException.ThrowIfNull(values);
-
-        if (values.Count == 0)
-        {
-            return null;
-        }
-
-        var sorted = values.OrderBy(value => value).ToList();
-        var middle = sorted.Count / 2;
-
-        return sorted.Count % 2 == 1
-            ? sorted[middle]
-            : (sorted[middle - 1] + sorted[middle]) / 2m;
-    }
+    public static decimal? Median(IReadOnlyList<decimal> values) => RentArithmetic.Median(values);
 
     /// <summary>
     /// Whether a home filed at <paramref name="path"/> is in the area at <paramref name="areaPath"/>:

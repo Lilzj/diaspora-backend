@@ -85,6 +85,10 @@ public sealed class CommunityLifeResourceCounter : ILocationResourceCounter
                 return (page.Items, page.HasMore ? page.NextCursor : null);
             },
             communityEvent => (communityEvent.Venue.Latitude, communityEvent.Venue.Longitude),
+
+            // An event's time on the map is when it starts, not when it was announced: "events in
+            // the next seven days" is the question a time range asks of this layer (21 Oct 2026).
+            communityEvent => communityEvent.Schedule.StartsAt,
             CommunityLifeLimits.MaxPageSize,
             cancellationToken);
     }
