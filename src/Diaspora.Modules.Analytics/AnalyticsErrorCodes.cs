@@ -95,4 +95,17 @@ public static class AnalyticsErrorCodes
 
     /// <summary>A backfill is already running. One at a time, by design.</summary>
     public const string BackfillInFlight = Prefix + "backfill.in-flight";
+
+    // ── Saved reports, exports and funnels — FRONTEND-PHASE15-GAP-027, -026 and -016 ────────
+
+    public const string ReportNotFound = Prefix + "report.not-found";
+    public const string ReportInvalid = Prefix + "report.invalid";
+    public const string ReportSharingUnsupported = Prefix + "report.sharing-unsupported";
+    public const string ReportLimitReached = Prefix + "report.limit-reached";
+    public const string ExportNotFound = Prefix + "export.not-found";
+    public const string ExportInvalid = Prefix + "export.invalid";
+    public const string ExportFormatUnsupported = Prefix + "export.format-unsupported";
+    public const string ExportExpired = Prefix + "export.expired";
+    public const string FunnelUnknown = Prefix + "funnel.unknown";
+    public const string FunnelSubjectMismatch = Prefix + "funnel.subject-mismatch";
 }

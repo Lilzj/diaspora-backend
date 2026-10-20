@@ -1,6 +1,8 @@
+using Diaspora.Modules.Analytics.Application.Exports;
 using Diaspora.Modules.Analytics.Application.Ingestion;
 using Diaspora.Modules.Analytics.Application.Operations;
 using Diaspora.Modules.Analytics.Application.Queries;
+using Diaspora.Modules.Analytics.Application.Reports;
 using Diaspora.Modules.Analytics.Contracts.V1.Requests;
 using Diaspora.Platform.Http;
 using Diaspora.Platform.Modules.Contributors;
@@ -310,6 +312,181 @@ public sealed class AnalyticsEndpointContributor : IEndpointContributor
                     cancellationToken)))
             .RequireAuthorization(AnalyticsPolicies.ContentRead)
             .WithName("GetContentAnalytics");
+
+        // ── Community — FRONTEND-PHASE15-GAP-003 ───────────────────────────────────────────
+        //
+        // Membership figures counted by the module that owns communities, for the people who run
+        // the community. Anybody else receives the same 404 as for a community that does not exist.
+        group.MapGet("/communities/{communityId}", async (
+                string communityId,
+                string? period,
+                string? from,
+                string? to,
+                string? timezone,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            PlatformResults.Ok(
+                context,
+                await sender.Send(
+                    new GetCommunityAnalyticsDatasetQuery
+                    {
+                        CommunityId = communityId,
+                        Period = period,
+                        From = from,
+                        To = to,
+                        Timezone = timezone
+                    },
+                    cancellationToken)))
+            .RequireAuthorization(AnalyticsPolicies.CreatorRead)
+            .WithName("GetCommunityAnalyticsDataset")
+            .WithSummary("A community's members, joins and net change over a period, for its moderators and administrators.");
+
+        // ── Funnels — FRONTEND-PHASE15-GAP-016 ─────────────────────────────────────────────
+
+        group.MapGet("/funnels/{funnelKey}", async (
+                string funnelKey,
+                string? subjectType,
+                string? subjectId,
+                string? period,
+                string? from,
+                string? to,
+                string? timezone,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            PlatformResults.Ok(
+                context,
+                await sender.Send(
+                    new GetAnalyticsFunnelQuery
+                    {
+                        FunnelKey = funnelKey,
+                        SubjectType = subjectType,
+                        SubjectId = subjectId,
+                        Period = period,
+                        From = from,
+                        To = to,
+                        Timezone = timezone
+                    },
+                    cancellationToken)))
+            .RequireAuthorization(AnalyticsPolicies.CreatorRead)
+            .WithName("GetAnalyticsFunnel")
+            .WithSummary("One journey (job, marketplace, housing, provider or monetization) counted step by step, with the steps nothing records named.");
+
+        // ── Saved reports — FRONTEND-PHASE15-GAP-027 ───────────────────────────────────────
+        //
+        // The caller's own report definitions. Somebody else's report answers 404, exactly as one
+        // that does not exist.
+
+        group.MapGet("/reports", async (
+                string? scope,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            PlatformResults.Ok(
+                context,
+                await sender.Send(new ListAnalyticsReportsQuery { Scope = scope }, cancellationToken)))
+            .RequireAuthorization(AnalyticsPolicies.CreatorRead)
+            .WithName("ListAnalyticsReports");
+
+        group.MapPost("/reports", async (
+                CreateAnalyticsReportRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            PlatformResults.Created(
+                context,
+                await sender.Send(new CreateAnalyticsReportCommand { Request = request }, cancellationToken)))
+            .RequireAuthorization(AnalyticsPolicies.CreatorRead)
+            .WithName("CreateAnalyticsReport");
+
+        group.MapGet("/reports/{reportId}", async (
+                string reportId,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            PlatformResults.Ok(
+                context,
+                await sender.Send(new GetAnalyticsReportQuery { ReportId = reportId }, cancellationToken)))
+            .RequireAuthorization(AnalyticsPolicies.CreatorRead)
+            .WithName("GetAnalyticsReport");
+
+        group.MapPut("/reports/{reportId}", async (
+                string reportId,
+                UpdateAnalyticsReportRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            PlatformResults.Ok(
+                context,
+                await sender.Send(
+                    new UpdateAnalyticsReportCommand { ReportId = reportId, Request = request },
+                    cancellationToken)))
+            .RequireAuthorization(AnalyticsPolicies.CreatorRead)
+            .WithName("UpdateAnalyticsReport");
+
+        group.MapDelete("/reports/{reportId}", async (
+                string reportId,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            PlatformResults.Ok(
+                context,
+                await sender.Send(new DeleteAnalyticsReportCommand { ReportId = reportId }, cancellationToken)))
+            .RequireAuthorization(AnalyticsPolicies.CreatorRead)
+            .WithName("DeleteAnalyticsReport");
+
+        // ── Exports — FRONTEND-PHASE15-GAP-026 ─────────────────────────────────────────────
+
+        group.MapPost("/exports", async (
+                RequestAnalyticsExportRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            PlatformResults.Created(
+                context,
+                await sender.Send(new RequestAnalyticsExportCommand { Request = request }, cancellationToken)))
+            .RequireAuthorization(AnalyticsPolicies.CreatorRead)
+            .WithName("RequestAnalyticsExport")
+            .WithSummary("Exports one subject's dataset as CSV. The job is ready when it is returned; its link lasts twelve hours.");
+
+        group.MapGet("/exports/{exportId}", async (
+                string exportId,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            PlatformResults.Ok(
+                context,
+                await sender.Send(new GetAnalyticsExportQuery { ExportId = exportId }, cancellationToken)))
+            .RequireAuthorization(AnalyticsPolicies.CreatorRead)
+            .WithName("GetAnalyticsExport");
+
+        // The file. Anonymous at the gateway because the link's token is the credential: a browser
+        // or share sheet opening it holds no session. The handler answers only to that token or to
+        // the owner's own session, and never without one.
+        group.MapGet("/exports/{exportId}/download", async (
+                string exportId,
+                string? token,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+        {
+            var result = await sender.Send(
+                new GetAnalyticsExportFileQuery { ExportId = exportId, Token = token },
+                cancellationToken);
+
+            if (result.IsFailure)
+            {
+                return PlatformResults.Ok(context, result);
+            }
+
+            context.Response.Headers.CacheControl = "no-store";
+
+            return Results.File(result.Value.Bytes, result.Value.ContentType, result.Value.FileName);
+        })
+            .AllowAnonymous()
+            .WithName("DownloadAnalyticsExport")
+            .WithSummary("The exported CSV, for the export's link token or its owner.");
 
         // ── Operations ─────────────────────────────────────────────────────────────────────
 

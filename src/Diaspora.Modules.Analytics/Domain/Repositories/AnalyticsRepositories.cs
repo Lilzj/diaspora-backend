@@ -1,8 +1,10 @@
 using Diaspora.Modules.Analytics.Domain.Dimensions;
 using Diaspora.Modules.Analytics.Domain.Enums;
 using Diaspora.Modules.Analytics.Domain.Events;
+using Diaspora.Modules.Analytics.Domain.Exports;
 using Diaspora.Modules.Analytics.Domain.Identifiers;
 using Diaspora.Modules.Analytics.Domain.Projection;
+using Diaspora.Modules.Analytics.Domain.Reports;
 using Diaspora.Modules.Analytics.Domain.Rollups;
 using Diaspora.Modules.Analytics.Domain.Schema;
 
@@ -196,7 +198,31 @@ public interface IAnalyticsEventRepository
     /// </para>
     /// </summary>
     Task<int> DeleteForActorAsync(string actorKey, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// How many journeys reached <paramref name="reached"/> having also reached every one of
+    /// <paramref name="required"/>, inside the window — FRONTEND-PHASE15-GAP-016.
+    /// <para>
+    /// A journey is one actor key and one piece of content, so a person who opened one listing and
+    /// bought another is not counted as having bought what they opened. Rows with no actor key cannot
+    /// be followed and are not counted. Counted by the database, never in memory.
+    /// </para>
+    /// </summary>
+    Task<long> CountFunnelJourneysAsync(
+        AnalyticsFunnelScope scope,
+        string reached,
+        IReadOnlyList<string> required,
+        DateTimeOffset from,
+        DateTimeOffset to,
+        CancellationToken cancellationToken = default);
 }
+
+/// <summary>
+/// Which rows a funnel reads: one kind of content, narrowed to one item or to one owner's items, or
+/// neither for the platform-wide funnel.
+/// </summary>
+public sealed record AnalyticsFunnelScope(
+    AnalyticsContentType ContentType, Guid? ContentId, Guid? OwnerUserId);
 
 /// <summary>The content dimension every attribution and every authorization decision joins through.</summary>
 public interface IAnalyticsContentDimensionRepository
@@ -330,4 +356,36 @@ public interface IAnalyticsEventSchemaRepository
 
     /// <summary>Whether the registry knows the name at any version. Distinguishes the two refusals.</summary>
     Task<bool> ExistsAsync(string eventType, CancellationToken cancellationToken = default);
+}
+
+/// <summary>A member's saved report definitions — FRONTEND-PHASE15-GAP-027. Every read names the owner.</summary>
+public interface IAnalyticsSavedReportRepository
+{
+    void Add(AnalyticsSavedReport report);
+
+    void Remove(AnalyticsSavedReport report);
+
+    /// <summary>One report, tracked, only when <paramref name="ownerUserId"/> owns it.</summary>
+    Task<AnalyticsSavedReport?> FindOwnedAsync(
+        AnalyticsSavedReportId id, Guid ownerUserId, CancellationToken cancellationToken = default);
+
+    /// <summary>The owner's reports, most recently changed first, bounded by <paramref name="limit"/>.</summary>
+    Task<IReadOnlyList<AnalyticsSavedReport>> ListOwnedAsync(
+        Guid ownerUserId, bool favoritesOnly, int limit, CancellationToken cancellationToken = default);
+
+    Task<int> CountOwnedAsync(Guid ownerUserId, CancellationToken cancellationToken = default);
+}
+
+/// <summary>Requested exports — FRONTEND-PHASE15-GAP-026. Every read names the owner or the link's token.</summary>
+public interface IAnalyticsExportRepository
+{
+    void Add(AnalyticsExport export);
+
+    /// <summary>One export, untracked, only when <paramref name="ownerUserId"/> requested it.</summary>
+    Task<AnalyticsExport?> FindOwnedAsync(
+        AnalyticsExportId id, Guid ownerUserId, CancellationToken cancellationToken = default);
+
+    /// <summary>One export, untracked, by its identifier and its download token together.</summary>
+    Task<AnalyticsExport?> FindByTokenAsync(
+        AnalyticsExportId id, string downloadToken, CancellationToken cancellationToken = default);
 }

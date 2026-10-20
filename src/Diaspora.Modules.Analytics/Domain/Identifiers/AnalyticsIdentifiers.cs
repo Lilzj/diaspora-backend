@@ -72,3 +72,19 @@ public sealed record AnalyticsBackfillRunId(Guid Value) : StronglyTypedId(Value)
 
     public static AnalyticsBackfillRunId From(Guid value) => new(value);
 }
+
+/// <summary>A member's saved report definition — FRONTEND-PHASE15-GAP-027.</summary>
+public sealed record AnalyticsSavedReportId(Guid Value) : StronglyTypedId(Value)
+{
+    public static AnalyticsSavedReportId New() => new(Guid.NewGuid());
+
+    public static AnalyticsSavedReportId From(Guid value) => new(value);
+}
+
+/// <summary>One requested export and its file — FRONTEND-PHASE15-GAP-026.</summary>
+public sealed record AnalyticsExportId(Guid Value) : StronglyTypedId(Value)
+{
+    public static AnalyticsExportId New() => new(Guid.NewGuid());
+
+    public static AnalyticsExportId From(Guid value) => new(value);
+}

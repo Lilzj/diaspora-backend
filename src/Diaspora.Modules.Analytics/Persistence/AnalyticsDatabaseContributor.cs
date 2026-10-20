@@ -56,5 +56,9 @@ public sealed class AnalyticsDatabaseContributor : IDatabaseContributor
         // The projection's position, and the administrative rebuilds that rewind it.
         modelBuilder.ApplyConfiguration(new AnalyticsProjectionCheckpointConfiguration());
         modelBuilder.ApplyConfiguration(new AnalyticsBackfillRunConfiguration());
+
+        // What members keep: saved report definitions, and the exports they asked for.
+        modelBuilder.ApplyConfiguration(new AnalyticsSavedReportConfiguration());
+        modelBuilder.ApplyConfiguration(new AnalyticsExportConfiguration());
     }
 }

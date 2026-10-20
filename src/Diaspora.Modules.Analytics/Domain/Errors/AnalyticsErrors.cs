@@ -75,4 +75,50 @@ public static class AnalyticsErrors
     public static readonly Error BackfillInFlight = Error.Conflict(
         AnalyticsErrorCodes.BackfillInFlight,
         "A backfill is already running. Wait for it to finish.");
+
+    // ── Saved reports ───────────────────────────────────────────────────────────────────────
+
+    public static readonly Error ReportNotFound = Error.NotFound(
+        AnalyticsErrorCodes.ReportNotFound,
+        "There is no saved report here.");
+
+    public static Error ReportInvalid(string reason) => Error.Validation(
+        AnalyticsErrorCodes.ReportInvalid, reason);
+
+    public static readonly Error ReportSharingUnsupported = Error.Validation(
+        AnalyticsErrorCodes.ReportSharingUnsupported,
+        "Saved reports can only be kept private for now.");
+
+    public static Error ReportLimitReached(int limit) => Error.Conflict(
+        AnalyticsErrorCodes.ReportLimitReached,
+        string.Create(
+            CultureInfo.InvariantCulture,
+            $"You can keep at most {limit} saved reports. Delete one to save another."));
+
+    // ── Exports ─────────────────────────────────────────────────────────────────────────────
+
+    public static readonly Error ExportNotFound = Error.NotFound(
+        AnalyticsErrorCodes.ExportNotFound,
+        "There is no export here.");
+
+    public static Error ExportInvalid(string reason) => Error.Validation(
+        AnalyticsErrorCodes.ExportInvalid, reason);
+
+    public static readonly Error ExportFormatUnsupported = Error.Validation(
+        AnalyticsErrorCodes.ExportFormatUnsupported,
+        "Exports are produced as CSV. PDF and JSON are not available yet.");
+
+    public static readonly Error ExportExpired = Error.NotFound(
+        AnalyticsErrorCodes.ExportExpired,
+        "This export has expired. Request a new one.");
+
+    // ── Funnels ─────────────────────────────────────────────────────────────────────────────
+
+    public static Error FunnelUnknown(string key) => Error.NotFound(
+        AnalyticsErrorCodes.FunnelUnknown,
+        $"There is no journey called \"{key}\".");
+
+    public static readonly Error FunnelSubjectMismatch = Error.Validation(
+        AnalyticsErrorCodes.FunnelSubjectMismatch,
+        "That journey does not apply to this subject.");
 }
