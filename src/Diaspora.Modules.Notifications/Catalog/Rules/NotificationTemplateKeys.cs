@@ -139,6 +139,9 @@ public static class NotificationTemplateKeys
     public const string CommunityModeration = "moderation.decision";
 
     public const string GuideFeatured = "guides.featured";
+
+    /// <summary>A member you follow published a guide. 20 Oct 2026.</summary>
+    public const string FollowedAuthorGuidePublished = "following.guide.published";
     public const string KnowledgeGuideFeatured = "learning.guide.featured";
     public const string LearningPathUpdated = "learning.path.updated";
 

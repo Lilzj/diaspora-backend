@@ -174,6 +174,12 @@ public sealed record PublicCreatorResponse
 {
     public required Guid CreatorId { get; init; }
 
+    /// <summary>
+    /// The member behind the creator record. Public by design: it is the identifier every byline
+    /// and follow button already carries, and the one <c>/creators/by-user/{userId}</c> answers to.
+    /// </summary>
+    public required Guid UserId { get; init; }
+
     public required string DisplayName { get; init; }
 
     public string? Handle { get; init; }

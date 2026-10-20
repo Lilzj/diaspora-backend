@@ -43,6 +43,12 @@ public static class NotificationCategoryKeys
     /// <summary>The client's existing key.</summary>
     public const string Guides = "guides";
 
+    /// <summary>
+    /// Something a member you follow did — today, publishing a guide. Its own key so following a
+    /// contributor can be switched off without silencing every guide notification. 20 Oct 2026.
+    /// </summary>
+    public const string Following = "following";
+
     /// <summary>Learning paths and the country knowledge directory.</summary>
     public const string Learning = "learning";
 

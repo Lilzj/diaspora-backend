@@ -263,6 +263,21 @@ internal static class CreatorDiscoveryEndpoints
                 "The public creator directory, with facets. A creator who opted out is absent, not "
                 + "filtered.");
 
+        // Literal segment, so it cannot be read as a creator id.
+        group.MapGet("/by-user/{userId:guid}", async (
+                Guid userId,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new GetPublicCreatorByUserQuery { UserId = userId }, cancellationToken)))
+            .WithName("GetPublicCreatorByUser")
+            .WithSummary(
+                "A creator's public projection, by the member behind it. Reached from a byline, so "
+                + "directory opt-out does not hide it.");
+
         group.MapGet("/{creatorId:guid}", async (
                 Guid creatorId,
                 ISender sender,

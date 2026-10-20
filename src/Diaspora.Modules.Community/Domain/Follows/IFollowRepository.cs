@@ -50,6 +50,17 @@ public interface IFollowRepository
         int take,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// <see cref="ListFollowerPageAsync"/> without the muted edges. For telling a target's followers
+    /// something: a member who muted the target asked not to hear from it.
+    /// </summary>
+    Task<IReadOnlyList<Guid>> ListUnmutedFollowerPageAsync(
+        FollowTargetType targetType,
+        Guid targetId,
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default);
+
     Task<int> CountFollowersAsync(
         FollowTargetType targetType, Guid targetId, CancellationToken cancellationToken = default);
 

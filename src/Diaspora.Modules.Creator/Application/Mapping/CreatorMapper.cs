@@ -134,6 +134,7 @@ public static class CreatorMapper
         return new PublicCreatorResponse
         {
             CreatorId = creator.Id.Value,
+            UserId = creator.UserId,
             DisplayName = creator.DisplayName,
             Handle = creator.Handle,
             AvatarUrl = creator.AvatarUrl,

@@ -188,8 +188,12 @@ public sealed class CreatorPlatformTests : IdentityTestBase
             await HttpClient.GetAsync($"{Creators}/{mine.CreatorId}"));
 
         body.Should().NotContainAny(
-            ["completeness", "audience", "isDiscoverable", "standingReason", "userId"],
+            ["completeness", "audience", "isDiscoverable", "standingReason"],
             "the public projection is a strict subset, and the fields are absent rather than nulled");
+
+        // 20 Oct 2026: userId left the forbidden list. It is the identifier every byline and follow
+        // button already carries, and the client needs it to follow the creator it is looking at.
+        body.Should().Contain("\"userId\"");
 
         var publicProfile = await ReadDataAsync<PublicCreatorDto>(
             await HttpClient.GetAsync($"{Creators}/{mine.CreatorId}"));

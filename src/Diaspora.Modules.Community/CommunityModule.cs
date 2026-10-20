@@ -112,6 +112,11 @@ public sealed class CommunityModule : IPlatformModule
         // BG-05a. Community's own record of who exists, so a member can be a moderation subject
         // without this module reaching into Identity. See CommunityMember.
         services.AddScoped<ICommunityMemberDirectory, CommunityMemberDirectory>();
+
+        // 20 Oct 2026. Who follows a member, for Notifications, which cannot reference this module.
+        services.AddScoped<
+            Diaspora.Contracts.Community.V1.Follows.IMemberFollowerDirectory,
+            Application.Services.MemberFollowerDirectory>();
     }
 
     private static void RegisterServices(IServiceCollection services)

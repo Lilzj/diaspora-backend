@@ -81,6 +81,22 @@ public sealed class FollowRepository : IFollowRepository
             .Select(follow => follow.FollowerId.Value)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<Guid>> ListUnmutedFollowerPageAsync(
+        FollowTargetType targetType,
+        Guid targetId,
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default) =>
+        await Follows
+            .Where(follow =>
+                follow.TargetType == targetType && follow.TargetId == targetId && !follow.IsMuted)
+            .OrderBy(follow => follow.FollowedAt)
+            .ThenBy(follow => follow.Id)
+            .Skip(skip)
+            .Take(take)
+            .Select(follow => follow.FollowerId.Value)
+            .ToListAsync(cancellationToken);
+
     public async Task<int> CountFollowersAsync(
         FollowTargetType targetType, Guid targetId, CancellationToken cancellationToken = default) =>
         await Follows.CountAsync(
