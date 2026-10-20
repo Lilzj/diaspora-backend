@@ -1,3 +1,4 @@
+using Diaspora.Api.Identity.Avatars;
 using Diaspora.Api.Identity.Context;
 using Diaspora.Application.Identity;
 using Diaspora.Application.Identity.Abstractions;
@@ -64,6 +65,9 @@ public sealed class IdentityModule : IPlatformModule
 
         // The members row of the platform overview. See the type's own summary.
         services.AddScoped<Diaspora.Contracts.Content.V1.IPlatformInventorySource, Audiences.MemberInventorySource>();
+
+        // Avatar keys are Media asset ids; Media (order 400) registers the URL factory this uses.
+        services.AddScoped<IAvatarUrlResolver, MediaAvatarUrlResolver>();
 
         // ─── Module layers ──────────────────────────────────────────────
         services.AddIdentityPersistence();

@@ -35,6 +35,7 @@ public sealed class RefreshTokenCommandHandler : ICommandHandler<RefreshTokenCom
     private readonly IIdentityPolicyProvider _policies;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
+    private readonly IAvatarUrlResolver _avatars;
     private readonly ILogger<RefreshTokenCommandHandler> _logger;
 
     public RefreshTokenCommandHandler(
@@ -45,6 +46,7 @@ public sealed class RefreshTokenCommandHandler : ICommandHandler<RefreshTokenCom
         ISecurityEventWriter securityEvents,
         IIdentityPolicyProvider policies,
         IUnitOfWork unitOfWork,
+        IAvatarUrlResolver avatars,
         IClock clock,
         ILogger<RefreshTokenCommandHandler> logger)
     {
@@ -56,6 +58,7 @@ public sealed class RefreshTokenCommandHandler : ICommandHandler<RefreshTokenCom
         _policies = policies;
         _unitOfWork = unitOfWork;
         _clock = clock;
+        _avatars = avatars;
         _logger = logger;
     }
 
@@ -163,7 +166,7 @@ public sealed class RefreshTokenCommandHandler : ICommandHandler<RefreshTokenCom
             return Result.Failure<AuthenticationResponse>(SessionErrors.RefreshTokenReuseDetected);
         }
 
-        return Result.Success(TokenMapper.ToAuthenticationResponse(issuance.Value, user));
+        return Result.Success(TokenMapper.ToAuthenticationResponse(issuance.Value, user, _avatars));
     }
 
     private async Task HandleReuseAsync(UserSession session, CancellationToken cancellationToken)

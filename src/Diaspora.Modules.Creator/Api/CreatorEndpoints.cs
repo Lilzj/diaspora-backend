@@ -70,6 +70,29 @@ internal static class CreatorProfileEndpoints
             .WithSummary(
                 "The caller's sponsored placements and campaigns over their own content, with what "
                 + "was paid and how each delivered.");
+
+        // 20 Oct 2026. The cover from an upload: Media confirms the upload is the caller's own
+        // image and makes it public, and its public address becomes `coverImageUrl`.
+        group.MapPut("/me/cover", async (
+                SetCreatorCoverRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new SetCreatorCoverCommand { Request = request }, cancellationToken)))
+            .WithName("SetMyCreatorCover")
+            .WithSummary(
+                "Makes one of the caller's own image uploads their cover. Answers the profile, whose "
+                + "coverImageUrl is absolute and readable without a token.");
+
+        group.MapDelete("/me/cover", async (
+                ISender sender, HttpContext context, CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context, await sender.Send(new RemoveCreatorCoverCommand(), cancellationToken)))
+            .WithName("RemoveMyCreatorCover")
+            .WithSummary("Clears the cover and makes the uploaded image private again.");
     }
 }
 

@@ -434,6 +434,7 @@ public sealed class User : AggregateRoot<UserId>, IAuditableEntity, ISoftDeletab
 
         Avatar = avatar;
         RaiseDomainEvent(new UserProfileUpdatedDomainEvent(Id, [nameof(Avatar)], now));
+        RaiseDomainEvent(new UserAvatarChangedDomainEvent(Id, avatar?.StorageKey, now));
 
         return Result.Success();
     }

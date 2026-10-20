@@ -31,14 +31,15 @@ public static class TokenMapper
 
     public static AuthenticationResponse ToAuthenticationResponse(
         AuthenticationOutcome outcome,
-        Domain.Identity.Users.User user)
+        Domain.Identity.Users.User user,
+        Abstractions.IAvatarUrlResolver? avatars = null)
     {
         ArgumentNullException.ThrowIfNull(outcome);
 
         return new AuthenticationResponse
         {
             Tokens = ToResponse(outcome.AccessToken, outcome.RefreshToken),
-            User = UserMapper.ToProfileResponse(user),
+            User = UserMapper.ToProfileResponse(user, avatars),
             Access = AccessDecisionMapper.ToResponse(outcome.Access),
             SessionId = outcome.Session.Id.Value
         };

@@ -1,3 +1,4 @@
+using Diaspora.Application.Identity.Abstractions;
 using Diaspora.Contracts.Identity.V1.Responses;
 using Diaspora.Domain.Identity.Users;
 
@@ -14,7 +15,12 @@ namespace Diaspora.Application.Identity.Mapping;
 /// </summary>
 public static class UserMapper
 {
-    public static UserProfileResponse ToProfileResponse(User user)
+    /// <param name="user">The member.</param>
+    /// <param name="avatars">
+    /// Supplies <c>avatarUrl</c>. Optional so the Mapster projection keeps working; a response built
+    /// without it carries the key and no address.
+    /// </param>
+    public static UserProfileResponse ToProfileResponse(User user, IAvatarUrlResolver? avatars = null)
     {
         ArgumentNullException.ThrowIfNull(user);
 
@@ -29,6 +35,7 @@ public static class UserMapper
             PreferredLanguage = user.PreferredLanguage.Value,
             PreferredTimeZone = user.PreferredTimeZone.Value,
             AvatarStorageKey = user.Avatar?.StorageKey,
+            AvatarUrl = avatars?.Resolve(user.Avatar?.StorageKey),
             Role = user.Role.Name,
             AccessState = user.AccessState.Name,
             AccountStatus = user.AccountStatus.ToString(),

@@ -223,6 +223,42 @@ public sealed class CreatorProfile : AggregateRoot<CreatorId>, IAuditableEntity
     }
 
     /// <summary>
+    /// Replaces the member's photo with what Identity now shows, including nothing.
+    /// <para>
+    /// Separate from <see cref="RefreshIdentity"/>, which never clears a field: a registration
+    /// replayed with no photo must not wipe one, but a member who removed their photo has.
+    /// </para>
+    /// </summary>
+    public void ChangeAvatar(string? avatarUrl, DateTimeOffset now)
+    {
+        var normalised = Normalise(avatarUrl);
+
+        if (normalised == AvatarUrl)
+        {
+            return;
+        }
+
+        AvatarUrl = normalised;
+        Touch(now);
+    }
+
+    /// <summary>
+    /// Sets or clears the cover image, by the public address Media serves it at.
+    /// </summary>
+    public void ChangeCoverImage(string? coverImageUrl, DateTimeOffset now)
+    {
+        var normalised = Normalise(coverImageUrl);
+
+        if (normalised == CoverImageUrl)
+        {
+            return;
+        }
+
+        CoverImageUrl = normalised;
+        Touch(now);
+    }
+
+    /// <summary>
     /// The member's own edit.
     /// <para>
     /// <b>Every collection is replaced rather than merged, and each is bounded and de-duplicated

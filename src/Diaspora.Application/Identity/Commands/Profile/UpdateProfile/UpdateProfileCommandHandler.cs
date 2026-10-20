@@ -21,12 +21,14 @@ public sealed class UpdateProfileCommandHandler : ICommandHandler<UpdateProfileC
     private readonly ISecurityEventWriter _securityEvents;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
+    private readonly IAvatarUrlResolver _avatars;
 
     public UpdateProfileCommandHandler(
         IUserRepository users,
         ICurrentIdentityContext currentIdentity,
         ISecurityEventWriter securityEvents,
         IUnitOfWork unitOfWork,
+        IAvatarUrlResolver avatars,
         IClock clock)
     {
         _users = users;
@@ -34,6 +36,7 @@ public sealed class UpdateProfileCommandHandler : ICommandHandler<UpdateProfileC
         _securityEvents = securityEvents;
         _unitOfWork = unitOfWork;
         _clock = clock;
+        _avatars = avatars;
     }
 
     public async Task<Result<UserProfileResponse>> Handle(
@@ -114,6 +117,6 @@ public sealed class UpdateProfileCommandHandler : ICommandHandler<UpdateProfileC
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return Result.Success(UserMapper.ToProfileResponse(user));
+        return Result.Success(UserMapper.ToProfileResponse(user, _avatars));
     }
 }

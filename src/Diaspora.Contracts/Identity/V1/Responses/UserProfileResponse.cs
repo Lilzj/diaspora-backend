@@ -24,6 +24,12 @@ public sealed record UserProfileResponse
 
     public string? AvatarStorageKey { get; init; }
 
+    /// <summary>
+    /// The profile photo, absolute and unsigned, ready for an image tag; null when there is none
+    /// or the stored key is not a Media asset (set by the older free-text profile field).
+    /// </summary>
+    public string? AvatarUrl { get; init; }
+
     public required string Role { get; init; }
 
     public required string AccessState { get; init; }

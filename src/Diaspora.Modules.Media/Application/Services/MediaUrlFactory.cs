@@ -91,10 +91,24 @@ public sealed class MediaUrlFactory
         return ForSignedVariant(asset, purpose, audience, asset.SignedUrlLifetime).Url;
     }
 
+    /// <summary>
+    /// The bare, unsigned URL of one rendition, for a caller that holds only the identifier.
+    /// <para>
+    /// For an asset already made public — a member's avatar, a creator's cover — whose owner keeps
+    /// the identifier rather than the asset. The URL is only useful if the asset really is public;
+    /// for anything else the content route refuses an anonymous fetch, which is the right failure.
+    /// </para>
+    /// </summary>
+    public string ForPublicVariant(Guid mediaId, MediaVariantPurpose purpose) =>
+        Absolute(PathFor(mediaId, purpose));
+
     private static string PathFor(MediaAsset asset, MediaVariantPurpose purpose) =>
+        PathFor(asset.Id.Value, purpose);
+
+    private static string PathFor(Guid mediaId, MediaVariantPurpose purpose) =>
         purpose is MediaVariantPurpose.Original
-            ? $"/api/v1/media/{asset.Id.Value}/content"
-            : $"/api/v1/media/{asset.Id.Value}/variants/{purpose.ToString().ToLowerInvariant()}";
+            ? $"/api/v1/media/{mediaId}/content"
+            : $"/api/v1/media/{mediaId}/variants/{purpose.ToString().ToLowerInvariant()}";
 
     /// <summary>
     /// A signed link to one rendition, minted for a named audience.

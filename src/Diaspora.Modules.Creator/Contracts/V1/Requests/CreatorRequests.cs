@@ -201,3 +201,12 @@ public sealed record RedeemRewardRequest
 
     public string? IdempotencyKey { get; init; }
 }
+
+/// <summary>
+/// Makes one of the member's own image uploads their creator cover. Upload first through
+/// <c>POST /api/v1/media/uploads/direct</c>, then name the upload here.
+/// </summary>
+public sealed record SetCreatorCoverRequest
+{
+    public required Guid MediaId { get; init; }
+}
