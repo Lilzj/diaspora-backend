@@ -43,6 +43,7 @@ public sealed class LoginCommandHandler : ICommandHandler<LoginCommand, Authenti
     private readonly IRequestContext _requestContext;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
+    private readonly IAvatarUrlResolver _avatars;
     private readonly ILogger<LoginCommandHandler> _logger;
 
     public LoginCommandHandler(
@@ -54,6 +55,7 @@ public sealed class LoginCommandHandler : ICommandHandler<LoginCommand, Authenti
         IIdentityPolicyProvider policies,
         IRequestContext requestContext,
         IUnitOfWork unitOfWork,
+        IAvatarUrlResolver avatars,
         IClock clock,
         ILogger<LoginCommandHandler> logger)
     {
@@ -66,6 +68,7 @@ public sealed class LoginCommandHandler : ICommandHandler<LoginCommand, Authenti
         _requestContext = requestContext;
         _unitOfWork = unitOfWork;
         _clock = clock;
+        _avatars = avatars;
         _logger = logger;
     }
 
@@ -190,7 +193,7 @@ public sealed class LoginCommandHandler : ICommandHandler<LoginCommand, Authenti
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return Result.Success(TokenMapper.ToAuthenticationResponse(outcome, user));
+        return Result.Success(TokenMapper.ToAuthenticationResponse(outcome, user, _avatars));
     }
 
     private Task RecordFailureAsync(

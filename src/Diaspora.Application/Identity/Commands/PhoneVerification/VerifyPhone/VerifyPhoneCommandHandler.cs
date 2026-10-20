@@ -25,6 +25,7 @@ public sealed class VerifyPhoneCommandHandler : ICommandHandler<VerifyPhoneComma
     private readonly IRequestContext _requestContext;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
+    private readonly IAvatarUrlResolver _avatars;
 
     public VerifyPhoneCommandHandler(
         IUserRepository users,
@@ -34,6 +35,7 @@ public sealed class VerifyPhoneCommandHandler : ICommandHandler<VerifyPhoneComma
         ISecurityEventWriter securityEvents,
         IRequestContext requestContext,
         IUnitOfWork unitOfWork,
+        IAvatarUrlResolver avatars,
         IClock clock)
     {
         _users = users;
@@ -44,6 +46,7 @@ public sealed class VerifyPhoneCommandHandler : ICommandHandler<VerifyPhoneComma
         _requestContext = requestContext;
         _unitOfWork = unitOfWork;
         _clock = clock;
+        _avatars = avatars;
     }
 
     public async Task<Result<AuthenticationResponse>> Handle(
@@ -142,6 +145,6 @@ public sealed class VerifyPhoneCommandHandler : ICommandHandler<VerifyPhoneComma
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return Result.Success(TokenMapper.ToAuthenticationResponse(outcome, user));
+        return Result.Success(TokenMapper.ToAuthenticationResponse(outcome, user, _avatars));
     }
 }

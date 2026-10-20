@@ -44,6 +44,9 @@ public static class MediaErrors
     public static readonly Error OwnershipRequired = Error.Forbidden(
         MediaErrorCodes.AssetOwnershipRequired, "Only the owner of a file can do that.");
 
+    public static readonly Error ProfileImageNotAnImage = Error.Validation(
+        MediaErrorCodes.ProfileImageNotAnImage, "A profile photo or cover must be an image.");
+
     // ── Upload sessions ──────────────────────────────────────────────────
 
     public static readonly Error UploadSessionNotFound = Error.NotFound(

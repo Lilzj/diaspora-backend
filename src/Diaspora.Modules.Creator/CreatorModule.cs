@@ -1,6 +1,7 @@
 using Diaspora.Modules.Creator.Application.Academy;
 using Diaspora.Modules.Creator.Application.Challenges;
 using Diaspora.Modules.Creator.Application.Consumers;
+using Diaspora.Modules.Creator.Application.Creators;
 using Diaspora.Modules.Creator.Application.EventHandlers;
 using Diaspora.Modules.Creator.Application.Milestones;
 using Diaspora.Modules.Creator.Application.Referrals;
@@ -115,6 +116,7 @@ public sealed class CreatorModule : IPlatformModule
         // The one door to "who is calling, and what may they do to their own creator record". Every
         // write in the module goes through it, so the answer is one answer rather than eleven.
         services.AddScoped<CreatorContext>();
+        services.AddScoped<CreatorCoverWriter>();
 
         // The only caller of CreatorStatusPolicy.Resolve outside its own tests. A handler that set a
         // status directly would be a second place the ladder is decided.

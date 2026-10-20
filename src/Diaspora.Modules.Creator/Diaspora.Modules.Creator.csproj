@@ -99,6 +99,14 @@
       follower count behind `notify.followers`, and an architecture test would report any other use.
     -->
     <ProjectReference Include="..\Diaspora.Modules.Community\Diaspora.Modules.Community.csproj" />
+
+    <!--
+      20 Oct 2026. A creator's cover is one of the member's own image uploads, and only Media can
+      confirm it is theirs and make it public (`PublishProfileImageCommand`, sent in-process as
+      Providers sends `AttachMediaCommand`). Media composes at 400, so the edge runs in the
+      permitted direction. Used by the cover handlers and nothing else.
+    -->
+    <ProjectReference Include="..\Diaspora.Modules.Media\Diaspora.Modules.Media.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,3 +1,4 @@
+using Diaspora.Api.Identity.Avatars;
 using Diaspora.Api.Identity.Context;
 using Diaspora.Application.Identity;
 using Diaspora.Application.Identity.Abstractions;
@@ -61,6 +62,9 @@ public sealed class IdentityModule : IPlatformModule
         services.Replace(
             ServiceDescriptor.Scoped<IAuthorizationSubjectAccessor, ClaimsAuthorizationSubjectAccessor>());
         services.AddScoped<ICurrentIdentityContext, HttpContextCurrentIdentity>();
+
+        // Avatar keys are Media asset ids; Media (order 400) registers the URL factory this uses.
+        services.AddScoped<IAvatarUrlResolver, MediaAvatarUrlResolver>();
 
         // ─── Module layers ──────────────────────────────────────────────
         services.AddIdentityPersistence();

@@ -12,11 +12,14 @@ public sealed class GetCurrentUserQueryHandler : IQueryHandler<GetCurrentUserQue
 {
     private readonly IUserRepository _users;
     private readonly ICurrentIdentityContext _currentIdentity;
+    private readonly IAvatarUrlResolver _avatars;
 
-    public GetCurrentUserQueryHandler(IUserRepository users, ICurrentIdentityContext currentIdentity)
+    public GetCurrentUserQueryHandler(
+        IUserRepository users, ICurrentIdentityContext currentIdentity, IAvatarUrlResolver avatars)
     {
         _users = users;
         _currentIdentity = currentIdentity;
+        _avatars = avatars;
     }
 
     public async Task<Result<UserProfileResponse>> Handle(
@@ -33,6 +36,6 @@ public sealed class GetCurrentUserQueryHandler : IQueryHandler<GetCurrentUserQue
 
         return user is null
             ? Result.Failure<UserProfileResponse>(UserErrors.NotFound)
-            : Result.Success(UserMapper.ToProfileResponse(user));
+            : Result.Success(UserMapper.ToProfileResponse(user, _avatars));
     }
 }

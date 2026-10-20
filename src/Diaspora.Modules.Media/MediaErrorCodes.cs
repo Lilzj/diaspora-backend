@@ -25,6 +25,7 @@ public static class MediaErrorCodes
     public const string AssetDeleted = "media.asset.deleted";
     public const string AssetAccessDenied = "media.asset.access-denied";
     public const string AssetOwnershipRequired = "media.asset.ownership-required";
+    public const string ProfileImageNotAnImage = "media.profile-image.not-an-image";
 
     // Upload lifecycle
     public const string UploadSessionNotFound = "media.upload.not-found";
