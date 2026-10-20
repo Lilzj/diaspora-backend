@@ -3944,6 +3944,150 @@ namespace Diaspora.Persistence.Migrations
                     b.ToTable("community_deletion_requests", "community_programme");
                 });
 
+            modelBuilder.Entity("Diaspora.Modules.CommunityProgramme.Domain.Communities.CommunityInitiative", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CommunityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("text");
+
+                    b.PrimitiveCollection<Guid[]>("OrganiserIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]");
+
+                    b.Property<Guid>("ProposedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateOnly?>("TargetDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CommunityId", "CreatedAt")
+                        .HasDatabaseName("ix_community_initiatives_community_created");
+
+                    b.ToTable("community_initiatives", "community_programme");
+                });
+
+            modelBuilder.Entity("Diaspora.Modules.CommunityProgramme.Domain.Communities.CommunityInitiativeParticipant", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CommunityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("InitiativeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("JoinedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InitiativeId", "MemberId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_community_initiative_participants_initiative_member");
+
+                    b.ToTable("community_initiative_participants", "community_programme");
+                });
+
+            modelBuilder.Entity("Diaspora.Modules.CommunityProgramme.Domain.Communities.CommunityInitiativeUpdate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AuthorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<Guid>("CommunityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("InitiativeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("PostedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InitiativeId", "PostedAt")
+                        .HasDatabaseName("ix_community_initiative_updates_initiative_posted");
+
+                    b.ToTable("community_initiative_updates", "community_programme");
+                });
+
             modelBuilder.Entity("Diaspora.Modules.CommunityProgramme.Domain.Communities.CommunityMemberPreferences", b =>
                 {
                     b.Property<Guid>("Id")
@@ -21077,6 +21221,33 @@ namespace Diaspora.Persistence.Migrations
                     b.HasOne("Diaspora.Modules.CommunityProgramme.Domain.Communities.Community", null)
                         .WithMany()
                         .HasForeignKey("CommunityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Diaspora.Modules.CommunityProgramme.Domain.Communities.CommunityInitiative", b =>
+                {
+                    b.HasOne("Diaspora.Modules.CommunityProgramme.Domain.Communities.Community", null)
+                        .WithMany()
+                        .HasForeignKey("CommunityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Diaspora.Modules.CommunityProgramme.Domain.Communities.CommunityInitiativeParticipant", b =>
+                {
+                    b.HasOne("Diaspora.Modules.CommunityProgramme.Domain.Communities.CommunityInitiative", null)
+                        .WithMany()
+                        .HasForeignKey("InitiativeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Diaspora.Modules.CommunityProgramme.Domain.Communities.CommunityInitiativeUpdate", b =>
+                {
+                    b.HasOne("Diaspora.Modules.CommunityProgramme.Domain.Communities.CommunityInitiative", null)
+                        .WithMany()
+                        .HasForeignKey("InitiativeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

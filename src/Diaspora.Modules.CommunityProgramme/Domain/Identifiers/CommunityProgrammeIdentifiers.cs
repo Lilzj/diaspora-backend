@@ -202,3 +202,27 @@ public sealed record CommunityMemberPreferencesId(Guid Value) : StronglyTypedId(
 
     public static CommunityMemberPreferencesId From(Guid value) => new(value);
 }
+
+/// <summary>A project a community runs over time — 21 Oct 2026.</summary>
+public sealed record CommunityInitiativeId(Guid Value) : StronglyTypedId(Value)
+{
+    public static CommunityInitiativeId New() => new(Guid.NewGuid());
+
+    public static CommunityInitiativeId From(Guid value) => new(value);
+}
+
+/// <summary>One member taking part in an initiative — 21 Oct 2026.</summary>
+public sealed record CommunityInitiativeParticipantId(Guid Value) : StronglyTypedId(Value)
+{
+    public static CommunityInitiativeParticipantId New() => new(Guid.NewGuid());
+
+    public static CommunityInitiativeParticipantId From(Guid value) => new(value);
+}
+
+/// <summary>A progress report an organiser posts on an initiative — 21 Oct 2026.</summary>
+public sealed record CommunityInitiativeUpdateId(Guid Value) : StronglyTypedId(Value)
+{
+    public static CommunityInitiativeUpdateId New() => new(Guid.NewGuid());
+
+    public static CommunityInitiativeUpdateId From(Guid value) => new(value);
+}

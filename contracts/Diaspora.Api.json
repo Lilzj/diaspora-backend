@@ -11103,6 +11103,314 @@
         }
       }
     },
+    "/api/v1/communities/{idOrSlug}/initiatives": {
+      "get": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "A community's initiatives, newest first, with organisers, participant and update counts. ?status= narrows it. As public as the community's notices.",
+        "operationId": "ListCommunityInitiatives",
+        "parameters": [
+          {
+            "name": "idOrSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "Start an initiative. Needs canManageInitiatives: the owner, an administrator or an ambassador. No money: fundraising is a campaign's.",
+        "operationId": "CreateCommunityInitiative",
+        "parameters": [
+          {
+            "name": "idOrSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCommunityInitiativeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/communities/{idOrSlug}/initiatives/{initiativeId}": {
+      "get": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "One initiative, with what this caller may do with it.",
+        "operationId": "GetCommunityInitiative",
+        "parameters": [
+          {
+            "name": "idOrSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "initiativeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "Change an initiative; omitted fields are kept. Its organisers, or canManageInitiatives; only canManageInitiatives changes the organisers.",
+        "operationId": "UpdateCommunityInitiative",
+        "parameters": [
+          {
+            "name": "idOrSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "initiativeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCommunityInitiativeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/communities/{idOrSlug}/initiatives/{initiativeId}/participation": {
+      "post": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "Take part. Any current member, while it is Planned or Active. Joining twice is joining once.",
+        "operationId": "JoinCommunityInitiative",
+        "parameters": [
+          {
+            "name": "idOrSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "initiativeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "Stop taking part. Answers the initiative as it now stands.",
+        "operationId": "LeaveCommunityInitiative",
+        "parameters": [
+          {
+            "name": "idOrSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "initiativeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/communities/{idOrSlug}/initiatives/{initiativeId}/participants": {
+      "get": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "Who is taking part, as each chose to be seen: Public to anybody, CommunityOnly to members.",
+        "operationId": "ListCommunityInitiativeParticipants",
+        "parameters": [
+          {
+            "name": "idOrSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "initiativeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/communities/{idOrSlug}/initiatives/{initiativeId}/updates": {
+      "get": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "An initiative's progress updates, newest first.",
+        "operationId": "ListCommunityInitiativeUpdates",
+        "parameters": [
+          {
+            "name": "idOrSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "initiativeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "Post a progress update. Its organisers, or canManageInitiatives; not once cancelled.",
+        "operationId": "PostCommunityInitiativeUpdate",
+        "parameters": [
+          {
+            "name": "idOrSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "initiativeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostCommunityInitiativeUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/communities/organizations/me": {
       "get": {
         "tags": [
@@ -41144,6 +41452,46 @@
           }
         }
       },
+      "CreateCommunityInitiativeRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "targetDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "status": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "organiserIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
       "CreateContributionRequest": {
         "required": [
           "fundCode",
@@ -47188,6 +47536,23 @@
           }
         }
       },
+      "PostCommunityInitiativeUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "body": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "PricingRequest": {
         "type": "object",
         "properties": {
@@ -53033,6 +53398,52 @@
         "properties": {
           "body": {
             "type": "string"
+          }
+        }
+      },
+      "UpdateCommunityInitiativeRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "targetDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "clearTargetDate": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "status": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "organiserIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         }
       },
