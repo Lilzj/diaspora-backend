@@ -166,6 +166,7 @@ public sealed class FinancialModule : IPlatformModule
         services.AddScoped<IPayoutDestinationRepository, PayoutDestinationRepository>();
         services.AddScoped<IWithdrawalRepository, WithdrawalRepository>();
         services.AddScoped<IRefundRequestRepository, RefundRequestRepository>();
+        services.AddScoped<Domain.Invoices.IInvoiceRepository, InvoiceRepository>();
         services.AddScoped<IRewardAccountRepository, RewardAccountRepository>();
         services.AddScoped<IRewardConversionRepository, RewardConversionRepository>();
 

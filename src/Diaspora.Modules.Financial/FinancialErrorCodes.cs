@@ -102,6 +102,16 @@ public static class FinancialErrorCodes
     public const string RefundRequestNotDecidable = "financial.refund_request.not_decidable";
     public const string RefundWindowClosed = "financial.refund_request.window_closed";
 
+    // ── Invoices and saved payment methods ───────────────────────────────────────────────────
+
+    public const string InvoiceNotFound = "financial.invoice.not_found";
+    public const string InvoiceCursorInvalid = "financial.invoice.cursor_invalid";
+
+    /// <summary>
+    /// Every forget request answers this today: the platform stores no reusable payment method.
+    /// </summary>
+    public const string PaymentMethodNotFound = "financial.payment_method.not_found";
+
     // ── Reward points ────────────────────────────────────────────────────────────────────────
 
     public const string RewardAccountNotFound = "financial.rewards.account_not_found";

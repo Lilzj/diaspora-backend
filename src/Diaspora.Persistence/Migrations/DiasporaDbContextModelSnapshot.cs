@@ -8122,6 +8122,117 @@ namespace Diaspora.Persistence.Migrations
                     b.ToTable("financial_recurring_donations", "financial");
                 });
 
+            modelBuilder.Entity("Diaspora.Modules.Financial.Domain.Invoices.Invoice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)");
+
+                    b.Property<long>("DiscountMinorUnits")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Exponent")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("IssuedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("ListMinorUnits")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("OwnerUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("PaidAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("PaymentIntentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("PeriodEnd")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("PeriodStart")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PromotionCode")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.Property<long>("Sequence")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid?>("SourceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SourceKind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<Guid?>("SubjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SubjectType")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<long>("TotalMinorUnits")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Number")
+                        .IsUnique()
+                        .HasDatabaseName("ux_financial_invoices_number");
+
+                    b.HasIndex("PaymentIntentId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_financial_invoices_payment");
+
+                    b.HasIndex("Year", "Sequence")
+                        .IsUnique()
+                        .HasDatabaseName("ux_financial_invoices_sequence");
+
+                    b.HasIndex("OwnerUserId", "Year", "Sequence")
+                        .HasDatabaseName("ix_financial_invoices_owner");
+
+                    b.ToTable("financial_invoices", "financial");
+                });
+
             modelBuilder.Entity("Diaspora.Modules.Financial.Domain.Ledgers.LedgerEntry", b =>
                 {
                     b.Property<Guid>("Id")

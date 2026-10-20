@@ -47,5 +47,9 @@ public sealed class FinancialEndpointContributor : IEndpointContributor
         // B16. `/campaigns` here is *advertising*; B15.1's fundraising campaigns are at
         // /api/v1/communities/campaigns. Two entities, one noun, two prefixes.
         AdCampaignEndpoints.Map(group);
+
+        // Invoices for money the platform kept, and the register of saved payment methods —
+        // empty, because nothing reusable is stored. See SavedPaymentMethods.cs.
+        InvoiceEndpoints.Map(group);
     }
 }

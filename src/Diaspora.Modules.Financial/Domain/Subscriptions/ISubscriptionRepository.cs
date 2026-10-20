@@ -13,6 +13,13 @@ public interface ISubscriptionRepository
     Task<Subscription?> FindAsync(
         SubscriptionId subscriptionId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// The subscription whose most recent charge was this payment. Null once a later charge has
+    /// replaced it, which is why an invoice reads it at issue time rather than at read time.
+    /// </summary>
+    Task<Subscription?> FindByLastPaymentIntentAsync(
+        PaymentIntentId paymentIntentId, CancellationToken cancellationToken = default);
+
     /// <summary>The subscription currently granting access to a member, if any.</summary>
     Task<Subscription?> FindActiveForSubscriberAsync(
         Guid subscriberUserId, CancellationToken cancellationToken = default);
