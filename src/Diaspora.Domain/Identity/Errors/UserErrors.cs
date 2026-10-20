@@ -51,6 +51,9 @@ public static class UserErrors
     public static readonly Error NoEmailOnAccount =
         Error.Validation("Identity.User.NoEmailOnAccount", "There is no email address on this account to verify.");
 
+    public static readonly Error EmailNotVerified =
+        Error.Forbidden("Identity.User.EmailNotVerified", "The email address on this account has not been verified.");
+
     public static readonly Error EmailAlreadyVerified =
         Error.Conflict("Identity.User.EmailAlreadyVerified", "The email address on this account is already verified.");
 

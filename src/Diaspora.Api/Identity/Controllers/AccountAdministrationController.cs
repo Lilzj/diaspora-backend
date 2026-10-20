@@ -3,6 +3,7 @@ using Diaspora.Api.Common;
 using Diaspora.Platform.Http;
 using Diaspora.Application.Identity.Authorization;
 using Diaspora.Application.Identity.Commands.Administration.AssignRole;
+using Diaspora.Application.Identity.Commands.Administration.RepublishEmailVerification;
 using Diaspora.Application.Identity.Commands.Administration.RepublishPhoneVerification;
 using Diaspora.Application.Identity.Commands.Administration.RevokeMemberSessions;
 using Diaspora.Application.Identity.Commands.Lifecycle.DisableAccount;
@@ -229,6 +230,27 @@ public sealed class AccountAdministrationController : ApiController
     {
         var result = await _sender.Send(
             new RepublishPhoneVerificationCommand { UserId = userId }, cancellationToken);
+
+        return HandleResult(result);
+    }
+
+    /// <summary>Re-announces a member's verified email address to the rest of the platform.</summary>
+    /// <remarks>
+    /// For accounts whose email was verified between 5 and 20 Oct 2026, before anything published
+    /// the fact: Trust's checklist does not show their Email row as done. Same contract as the
+    /// phone's route: changes nothing here, safe to repeat, and a member whose email is not
+    /// verified is refused rather than announced.
+    /// </remarks>
+    [HttpPost("{userId:guid}/republish-email-verification")]
+    [Authorize(Policy = DiasporaPolicies.RepublishMemberFacts)]
+    [ProducesResponseType<ApiResponse<OperationAcknowledgedResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RepublishEmailVerificationAsync(
+        Guid userId, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(
+            new RepublishEmailVerificationCommand { UserId = userId }, cancellationToken);
 
         return HandleResult(result);
     }

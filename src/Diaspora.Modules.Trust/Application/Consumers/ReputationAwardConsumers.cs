@@ -39,9 +39,10 @@ namespace Diaspora.Modules.Trust.Application.Consumers;
 //
 // WHAT IS STILL NOT PAID, AND WHY
 //
-//   * `EmailVerified` — there is no email verification anywhere on this platform. Three OTP
-//     purposes exist and none is email, so `email_verified_at` is a column that is never set.
-//     The rule is worth ten points and can never fire until that flow exists.
+//   * `EmailVerified` — no longer unpaid. Email verification shipped on 5 Oct 2026 and, since
+//     20 Oct 2026, `EmailVerificationMirrorConsumer` submits an Email verification that
+//     auto-approves, so the award is `EmailVerificationHandler.ApprovalAward`, paid once by the
+//     approval. A consumer here that also scored it would be the fourth duplicate producer.
 //   * `ProfileCompleted`, `ProfilePhotoAdded` — Identity publishes three integration events and
 //     none of them is a profile change.
 //   * `UpdateVerified` — `CommunityPostVerificationChangedIntegrationEvent` carries the post and

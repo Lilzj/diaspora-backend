@@ -203,6 +203,10 @@ public sealed class User : AggregateRoot<UserId>, IAuditableEntity, ISoftDeletab
         Security = Security.WithEmailVerified(now);
         RaiseDomainEvent(new UserProfileUpdatedDomainEvent(Id, ["EmailVerified"], now));
 
+        // The fact as itself, for Trust's checklist. Raised only on the first confirmation; an
+        // account verified before this existed is re-announced by an operator instead.
+        RaiseDomainEvent(new UserEmailVerifiedDomainEvent(Id, Email.Value, now));
+
         return Result.Success();
     }
 
