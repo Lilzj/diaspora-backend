@@ -3844,6 +3844,320 @@
         }
       }
     },
+    "/api/v1/analytics/communities/{communityId}": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "A community's members, joins and net change over a period, for its moderators and administrators.",
+        "operationId": "GetCommunityAnalyticsDataset",
+        "parameters": [
+          {
+            "name": "communityId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "timezone",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/funnels/{funnelKey}": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "One journey (job, marketplace, housing, provider or monetization) counted step by step, with the steps nothing records named.",
+        "operationId": "GetAnalyticsFunnel",
+        "parameters": [
+          {
+            "name": "funnelKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subjectType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subjectId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "timezone",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/reports": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "operationId": "ListAnalyticsReports",
+        "parameters": [
+          {
+            "name": "scope",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Analytics"
+        ],
+        "operationId": "CreateAnalyticsReport",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAnalyticsReportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/reports/{reportId}": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "operationId": "GetAnalyticsReport",
+        "parameters": [
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Analytics"
+        ],
+        "operationId": "UpdateAnalyticsReport",
+        "parameters": [
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAnalyticsReportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Analytics"
+        ],
+        "operationId": "DeleteAnalyticsReport",
+        "parameters": [
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/exports": {
+      "post": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Exports one subject's dataset as CSV. The job is ready when it is returned; its link lasts twelve hours.",
+        "operationId": "RequestAnalyticsExport",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestAnalyticsExportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/exports/{exportId}": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "operationId": "GetAnalyticsExport",
+        "parameters": [
+          {
+            "name": "exportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/exports/{exportId}/download": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "The exported CSV, for the export's link token or its owner.",
+        "operationId": "DownloadAnalyticsExport",
+        "parameters": [
+          {
+            "name": "exportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/analytics/operations/backfill": {
       "post": {
         "tags": [
@@ -36065,6 +36379,160 @@
           }
         }
       },
+      "AnalyticsFilterPayload": {
+        "type": "object",
+        "properties": {
+          "dimension": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "values": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AnalyticsQueryPayload": {
+        "type": "object",
+        "properties": {
+          "subject": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AnalyticsSubjectPayload"
+              }
+            ]
+          },
+          "metrics": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "range": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AnalyticsRangePayload"
+              }
+            ]
+          },
+          "granularity": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "comparison": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "filters": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/AnalyticsFilterPayload"
+            }
+          },
+          "breakdowns": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "includeSeries": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "communityScopeToken": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AnalyticsRangePayload": {
+        "type": "object",
+        "properties": {
+          "preset": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "from": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "to": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "timezone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isDeviceTimezone": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        }
+      },
+      "AnalyticsSubjectPayload": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "label": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "AnonymousTypeOfstringAndstringAndIReadOnlyListOfModuleInfoAndstring": {
         "required": [
           "platform",
@@ -39023,6 +39491,45 @@
             "format": "uuid"
           },
           "productCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CreateAnalyticsReportRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "query": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AnalyticsQueryPayload"
+              }
+            ]
+          },
+          "visualization": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sharing": {
             "type": [
               "null",
               "string"
@@ -47219,6 +47726,27 @@
           }
         }
       },
+      "RequestAnalyticsExportRequest": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AnalyticsQueryPayload"
+              }
+            ]
+          },
+          "format": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "RequestCommunityDeletionRequest": {
         "type": "object",
         "properties": {
@@ -50774,6 +51302,51 @@
             "type": [
               "null",
               "string"
+            ]
+          }
+        }
+      },
+      "UpdateAnalyticsReportRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "query": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AnalyticsQueryPayload"
+              }
+            ]
+          },
+          "visualization": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sharing": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isFavorite": {
+            "type": [
+              "null",
+              "boolean"
             ]
           }
         }

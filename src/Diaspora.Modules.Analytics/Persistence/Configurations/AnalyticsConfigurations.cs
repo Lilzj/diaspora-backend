@@ -1,7 +1,9 @@
 using Diaspora.Modules.Analytics.Domain.Dimensions;
 using Diaspora.Modules.Analytics.Domain.Events;
+using Diaspora.Modules.Analytics.Domain.Exports;
 using Diaspora.Modules.Analytics.Domain.Identifiers;
 using Diaspora.Modules.Analytics.Domain.Projection;
+using Diaspora.Modules.Analytics.Domain.Reports;
 using Diaspora.Modules.Analytics.Domain.Rollups;
 using Diaspora.Modules.Analytics.Domain.Schema;
 using Diaspora.Persistence;
@@ -22,6 +24,8 @@ internal static class AnalyticsPersistenceConstants
     public const string SchemasTable = "analytics_event_schemas";
     public const string CheckpointTable = "analytics_projection_checkpoint";
     public const string BackfillRunsTable = "analytics_backfill_runs";
+    public const string SavedReportsTable = "analytics_saved_reports";
+    public const string ExportsTable = "analytics_exports";
 
     /// <summary>Enum names are stored as strings, so a member added later reads correctly on old rows.</summary>
     public const int EnumLength = 32;
@@ -411,6 +415,93 @@ public sealed class AnalyticsBackfillRunConfiguration : IEntityTypeConfiguration
         // the status column is what makes that check a seek rather than a scan.
         builder.HasIndex(row => row.Status)
             .HasDatabaseName("ix_analytics_backfill_runs_status");
+
+        builder.Ignore(row => row.DomainEvents);
+    }
+}
+
+/// <summary>Maps saved report definitions — FRONTEND-PHASE15-GAP-027.</summary>
+public sealed class AnalyticsSavedReportConfiguration : IEntityTypeConfiguration<AnalyticsSavedReport>
+{
+    public void Configure(EntityTypeBuilder<AnalyticsSavedReport> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.ToTable(AnalyticsPersistenceConstants.SavedReportsTable, AnalyticsModuleMetadata.Schema);
+
+        builder.HasKey(row => row.Id);
+
+        builder.Property(row => row.Id)
+            .HasConversion(AnalyticsValueConverters.Id<AnalyticsSavedReportId>())
+            .ValueGeneratedNever();
+
+        builder.Property(row => row.Revision).IsConcurrencyToken();
+
+        builder.Property(row => row.Name)
+            .HasMaxLength(AnalyticsSavedReport.NameMaximumLength)
+            .IsRequired();
+
+        builder.Property(row => row.Description)
+            .HasMaxLength(AnalyticsSavedReport.DescriptionMaximumLength);
+
+        builder.Property(row => row.DefinitionJson)
+            .HasMaxLength(AnalyticsSavedReport.DefinitionMaximumLength)
+            .IsRequired();
+
+        builder.Property(row => row.Visualization)
+            .HasMaxLength(AnalyticsPersistenceConstants.EnumLength)
+            .IsRequired();
+
+        builder.Property(row => row.Sharing)
+            .HasMaxLength(AnalyticsPersistenceConstants.EnumLength)
+            .IsRequired();
+
+        // Every read is one owner's list, newest change first.
+        builder.HasIndex(row => new { row.OwnerUserId, row.UpdatedAt })
+            .HasDatabaseName("ix_analytics_saved_reports_owner");
+
+        builder.Ignore(row => row.DomainEvents);
+    }
+}
+
+/// <summary>Maps requested exports and their files — FRONTEND-PHASE15-GAP-026.</summary>
+public sealed class AnalyticsExportConfiguration : IEntityTypeConfiguration<AnalyticsExport>
+{
+    public void Configure(EntityTypeBuilder<AnalyticsExport> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.ToTable(AnalyticsPersistenceConstants.ExportsTable, AnalyticsModuleMetadata.Schema);
+
+        builder.HasKey(row => row.Id);
+
+        builder.Property(row => row.Id)
+            .HasConversion(AnalyticsValueConverters.Id<AnalyticsExportId>())
+            .ValueGeneratedNever();
+
+        builder.Property(row => row.Revision).IsConcurrencyToken();
+
+        builder.Property(row => row.Format)
+            .HasMaxLength(AnalyticsPersistenceConstants.ShortLabelLength)
+            .IsRequired();
+
+        builder.Property(row => row.DefinitionJson)
+            .HasMaxLength(AnalyticsSavedReport.DefinitionMaximumLength)
+            .IsRequired();
+
+        builder.Property(row => row.Status)
+            .HasConversion<string>()
+            .HasMaxLength(AnalyticsPersistenceConstants.EnumLength)
+            .IsRequired();
+
+        builder.Property(row => row.DownloadToken)
+            .HasMaxLength(AnalyticsExport.DownloadTokenLength);
+
+        builder.Property(row => row.FailureReason)
+            .HasMaxLength(AnalyticsPersistenceConstants.DescriptionLength);
+
+        builder.HasIndex(row => row.OwnerUserId)
+            .HasDatabaseName("ix_analytics_exports_owner");
 
         builder.Ignore(row => row.DomainEvents);
     }

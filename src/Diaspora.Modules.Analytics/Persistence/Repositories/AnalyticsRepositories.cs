@@ -1,9 +1,11 @@
 using Diaspora.Modules.Analytics.Domain.Dimensions;
 using Diaspora.Modules.Analytics.Domain.Enums;
 using Diaspora.Modules.Analytics.Domain.Events;
+using Diaspora.Modules.Analytics.Domain.Exports;
 using Diaspora.Modules.Analytics.Domain.Identifiers;
 using Diaspora.Modules.Analytics.Domain.Policies;
 using Diaspora.Modules.Analytics.Domain.Projection;
+using Diaspora.Modules.Analytics.Domain.Reports;
 using Diaspora.Modules.Analytics.Domain.Repositories;
 using Diaspora.Modules.Analytics.Domain.Rollups;
 using Diaspora.Modules.Analytics.Domain.Schema;
@@ -363,6 +365,70 @@ public sealed class AnalyticsEventRepository : IAnalyticsEventRepository
 
         return doomed.Count;
     }
+
+    public async Task<long> CountFunnelJourneysAsync(
+        AnalyticsFunnelScope scope,
+        string reached,
+        IReadOnlyList<string> required,
+        DateTimeOffset from,
+        DateTimeOffset to,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(scope);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reached);
+        ArgumentNullException.ThrowIfNull(required);
+
+        var contentType = scope.ContentType;
+
+        var journeys = InFunnelScope(scope, from, to)
+            .Where(row => row.EventType == reached);
+
+        // Every required step must have been reached by the same person on the same item inside the
+        // same window. One correlated EXISTS per step, so the database narrows and nothing is loaded.
+        foreach (var step in required)
+        {
+            var earlier = step;
+
+            journeys = journeys.Where(row => Events.Any(prior =>
+                prior.EventType == earlier
+                && prior.ContentType == contentType
+                && prior.ContentId == row.ContentId
+                && prior.ActorKey == row.ActorKey
+                && prior.OccurredAt >= from
+                && prior.OccurredAt < to));
+        }
+
+        return await journeys
+            .Select(row => new { row.ActorKey, row.ContentId })
+            .Distinct()
+            .LongCountAsync(cancellationToken);
+    }
+
+    private IQueryable<AnalyticsEvent> InFunnelScope(
+        AnalyticsFunnelScope scope, DateTimeOffset from, DateTimeOffset to)
+    {
+        var contentType = scope.ContentType;
+
+        var rows = Events
+            .AsNoTracking()
+            .Where(row => row.ContentType == contentType
+                && row.ContentId != null
+                && row.ActorKey != null
+                && row.OccurredAt >= from
+                && row.OccurredAt < to);
+
+        if (scope.ContentId is { } contentId)
+        {
+            rows = rows.Where(row => row.ContentId == contentId);
+        }
+
+        if (scope.OwnerUserId is { } ownerUserId)
+        {
+            rows = rows.Where(row => row.OwnerUserId == ownerUserId);
+        }
+
+        return rows;
+    }
 }
 
 /// <summary>Reads and writes the content dimension.</summary>
@@ -667,4 +733,68 @@ public sealed class AnalyticsEventSchemaRepository : IAnalyticsEventSchemaReposi
 
     public async Task<bool> ExistsAsync(string eventType, CancellationToken cancellationToken = default) =>
         await Schemas.AsNoTracking().AnyAsync(row => row.EventType == eventType, cancellationToken);
+}
+
+/// <summary>Reads and writes saved report definitions. Every read is filtered to the owner.</summary>
+public sealed class AnalyticsSavedReportRepository : IAnalyticsSavedReportRepository
+{
+    private readonly DiasporaDbContext _dbContext;
+
+    public AnalyticsSavedReportRepository(DiasporaDbContext dbContext) => _dbContext = dbContext;
+
+    private DbSet<AnalyticsSavedReport> Reports => _dbContext.Set<AnalyticsSavedReport>();
+
+    public void Add(AnalyticsSavedReport report) => Reports.Add(report);
+
+    public void Remove(AnalyticsSavedReport report) => Reports.Remove(report);
+
+    public Task<AnalyticsSavedReport?> FindOwnedAsync(
+        AnalyticsSavedReportId id, Guid ownerUserId, CancellationToken cancellationToken = default) =>
+        Reports.FirstOrDefaultAsync(
+            report => report.Id == id && report.OwnerUserId == ownerUserId, cancellationToken);
+
+    public async Task<IReadOnlyList<AnalyticsSavedReport>> ListOwnedAsync(
+        Guid ownerUserId, bool favoritesOnly, int limit, CancellationToken cancellationToken = default)
+    {
+        var rows = Reports.AsNoTracking().Where(report => report.OwnerUserId == ownerUserId);
+
+        if (favoritesOnly)
+        {
+            rows = rows.Where(report => report.IsFavorite);
+        }
+
+        return await rows
+            .OrderByDescending(report => report.UpdatedAt)
+            .Take(Math.Max(1, limit))
+            .ToListAsync(cancellationToken);
+    }
+
+    public Task<int> CountOwnedAsync(Guid ownerUserId, CancellationToken cancellationToken = default) =>
+        Reports.CountAsync(report => report.OwnerUserId == ownerUserId, cancellationToken);
+}
+
+/// <summary>Reads and writes requested exports. Every read names the owner or the link's token.</summary>
+public sealed class AnalyticsExportRepository : IAnalyticsExportRepository
+{
+    private readonly DiasporaDbContext _dbContext;
+
+    public AnalyticsExportRepository(DiasporaDbContext dbContext) => _dbContext = dbContext;
+
+    private DbSet<AnalyticsExport> Exports => _dbContext.Set<AnalyticsExport>();
+
+    public void Add(AnalyticsExport export) => Exports.Add(export);
+
+    public Task<AnalyticsExport?> FindOwnedAsync(
+        AnalyticsExportId id, Guid ownerUserId, CancellationToken cancellationToken = default) =>
+        Exports
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                export => export.Id == id && export.OwnerUserId == ownerUserId, cancellationToken);
+
+    public Task<AnalyticsExport?> FindByTokenAsync(
+        AnalyticsExportId id, string downloadToken, CancellationToken cancellationToken = default) =>
+        Exports
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                export => export.Id == id && export.DownloadToken == downloadToken, cancellationToken);
 }

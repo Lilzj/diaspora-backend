@@ -1,5 +1,6 @@
 using System.Globalization;
 using Diaspora.Application.Abstractions;
+using Diaspora.Contracts.CommunityProgramme.V1.Analytics;
 using Diaspora.Modules.Analytics.Application.Services;
 using Diaspora.Modules.Analytics.Contracts.V1.Responses;
 using Diaspora.Modules.Analytics.Domain.Enums;
@@ -62,8 +63,14 @@ public sealed class GetAnalyticsAccessQueryHandler
         new(StringComparer.Ordinal) { "seller", "landlord", "employer", "provider" };
 
     private readonly AnalyticsQueryContext _context;
+    private readonly IEnumerable<ICommunityAnalyticsSource> _communities;
 
-    public GetAnalyticsAccessQueryHandler(AnalyticsQueryContext context) => _context = context;
+    public GetAnalyticsAccessQueryHandler(
+        AnalyticsQueryContext context, IEnumerable<ICommunityAnalyticsSource> communities)
+    {
+        _context = context;
+        _communities = communities;
+    }
 
     public async Task<Result<AnalyticsAccessResponse>> Handle(
         GetAnalyticsAccessQuery query, CancellationToken cancellationToken)
@@ -111,6 +118,21 @@ public sealed class GetAnalyticsAccessQueryHandler
                     && roleSubjectId == caller.Value);
         }
 
+        // A community is read by the people who run it, and the module that owns communities says
+        // who that is — the same answer GET /analytics/communities/{id} acts on.
+        if (!canView
+            && subjectType == "community"
+            && !string.IsNullOrWhiteSpace(query.SubjectId)
+            && _communities.FirstOrDefault() is { } communities)
+        {
+            var now = _context.Calendar.UtcNow;
+            var reading = await communities
+                .ReadAsync(query.SubjectId, caller.Value, isPlatformReader, now, now, cancellationToken)
+                .ConfigureAwait(false);
+
+            canView = reading is { ViewerMayRead: true };
+        }
+
         if (!canView && Guid.TryParse(query.SubjectId, out var contentId))
         {
             var contentType = AnalyticsContentTypes.FromRouteSegment(subjectType);
@@ -143,10 +165,14 @@ public sealed class GetAnalyticsAccessQueryHandler
             // Comparison across subjects is FRONTEND-PHASE15-GAP-006's contract and is not built.
             CanCompare = false,
 
-            // Export is FRONTEND-PHASE15-GAP-026 and report building is -027. Both are named in the
-            // register as later phases; reporting them as available would render an action that 404s.
-            CanExport = false,
-            CanBuildReports = false,
+            // FRONTEND-PHASE15-GAP-026 and -027. An export is the dataset the caller can already
+            // open, produced by the same read, so it is offered exactly where viewing is — except a
+            // role subject naming somebody else, whose dataset is served to its own member only.
+            // A saved report is a definition of something the caller can view.
+            CanExport = canView
+                && Application.Exports.AnalyticsSubjectDatasets.IsExportable(
+                    subjectType, subjectType == "creator" ? null : query.SubjectId, caller.Value),
+            CanBuildReports = canView,
             SupportedRanges = SupportedRanges(),
             SupportedComparisons = ["previousPeriod"],
             RestrictedMetrics = RestrictedMetrics(canView),

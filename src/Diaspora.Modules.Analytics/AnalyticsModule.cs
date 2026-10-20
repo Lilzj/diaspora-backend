@@ -77,6 +77,8 @@ public sealed class AnalyticsModule : IPlatformModule
         services.AddScoped<IAnalyticsRollupRepository, AnalyticsRollupRepository>();
         services.AddScoped<IAnalyticsProjectionRepository, AnalyticsProjectionRepository>();
         services.AddScoped<IAnalyticsEventSchemaRepository, AnalyticsEventSchemaRepository>();
+        services.AddScoped<IAnalyticsSavedReportRepository, AnalyticsSavedReportRepository>();
+        services.AddScoped<IAnalyticsExportRepository, AnalyticsExportRepository>();
     }
 
     private static void RegisterServices(IServiceCollection services)
@@ -98,6 +100,14 @@ public sealed class AnalyticsModule : IPlatformModule
         services.AddScoped<AnalyticsQueryContext>();
         services.AddScoped<AnalyticsReadService>();
         services.AddScoped<AnalyticsDatasetBuilder>();
+
+        // Exports read a subject's dataset through the dashboard's own query, so its checks run.
+        services.AddScoped<Application.Exports.AnalyticsSubjectDatasets>();
+
+        // A member's saved reports and exports are theirs, and leave with them.
+        services.AddScoped<
+            Diaspora.Platform.Operations.Privacy.IDataErasureProvider,
+            Infrastructure.Privacy.AnalyticsDataErasureProvider>();
 
         // The seller, landlord and employer dashboards — one question asked of three content types,
         // answered once.

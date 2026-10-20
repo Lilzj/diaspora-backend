@@ -157,5 +157,11 @@ public sealed class CommunityProgrammeModule : IPlatformModule
         // this one. See IAdTargetingOptionProvider.
         services.AddScoped<IAdTargetingOptionProvider, CommunityTargetingOptionProvider>();
         services.AddScoped<IAdAudienceSizer, CommunityAudienceSizer>();
+
+        // Analytics asks for a community's membership figures; this module owns the table and the
+        // rule for who may read them. Read-only. See ICommunityAnalyticsSource.
+        services.AddScoped<
+            Diaspora.Contracts.CommunityProgramme.V1.Analytics.ICommunityAnalyticsSource,
+            Infrastructure.Analytics.CommunityAnalyticsSource>();
     }
 }
