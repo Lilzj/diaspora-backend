@@ -18456,7 +18456,7 @@
         "tags": [
           "Geographic Intelligence"
         ],
-        "summary": "A density layer for a viewport, aggregated by place and suppressed.",
+        "summary": "A density layer for a viewport, aggregated by grid cell, withheld below a minimum sample, optionally narrowed to a time range.",
         "operationId": "GetHeatLayer",
         "parameters": [
           {
@@ -18540,6 +18540,20 @@
           },
           {
             "name": "countryCode",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "timeRange",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "source",
             "in": "query",
             "schema": {
               "type": "string"
