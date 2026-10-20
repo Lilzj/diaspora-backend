@@ -474,3 +474,18 @@ public sealed record DecideCommunityOwnershipRequest
     /// <summary>Why not, if they want to say. The owner reads it.</summary>
     public string? Reason { get; init; }
 }
+
+/// <summary>
+/// A community moderator's decision about a report — 21 Oct 2026.
+/// <para>
+/// <c>decision</c> is the client's word: <c>dismiss</c>, <c>remove-content</c>, <c>warn</c> or
+/// <c>escalate</c>. <c>warn</c> is refused for now; the platform cannot deliver a warning.
+/// </para>
+/// </summary>
+public sealed record DecideCommunityReportRequest
+{
+    public string? Decision { get; init; }
+
+    /// <summary>Why. Recorded with the decision and shown back on the report.</summary>
+    public string? Note { get; init; }
+}

@@ -87,6 +87,12 @@ public static class CommunityErrorCodes
     public const string ModerationDecisionInvalid = "community.moderation.invalid-decision";
     public const string ModerationNotPermitted = "community.moderation.not-permitted";
 
+    // The per-community queue, 21 Oct 2026. See PublisherReportQueue.
+    public const string ReportEscalated = "community.report.escalated";
+    public const string ReportStatusUnknown = "community.report.status-unknown";
+    public const string ModerationDecisionUnknown = "community.moderation.decision-unknown";
+    public const string ModerationWarnUnavailable = "community.moderation.warn-unavailable";
+
     public const string VisibilityDenied = "community.visibility.denied";
     public const string VisibilityRuleNotFound = "community.visibility.rule-not-found";
     public const string VisibilityWidened = "community.visibility.widened";

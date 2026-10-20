@@ -9827,6 +9827,105 @@
         }
       }
     },
+    "/api/v1/communities/{idOrSlug}/reports": {
+      "get": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "Reports about this community's content, oldest first, one row per piece of content. Moderators and administrators of the community. No reporter identity. The next page's cursor is in the X-Next-Cursor header.",
+        "operationId": "ListCommunityReports",
+        "parameters": [
+          {
+            "name": "idOrSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/communities/{idOrSlug}/reports/{reportId}/decision": {
+      "post": {
+        "tags": [
+          "Community Programme"
+        ],
+        "summary": "Decide a report about this community's content: dismiss, remove-content or escalate. Answers every open report about the same content. A report about anything else is not found.",
+        "operationId": "DecideCommunityReport",
+        "parameters": [
+          {
+            "name": "idOrSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DecideCommunityReportRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/communities/organizations/me": {
       "get": {
         "tags": [
@@ -42183,6 +42282,23 @@
             "type": "boolean"
           },
           "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "DecideCommunityReportRequest": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "note": {
             "type": [
               "null",
               "string"

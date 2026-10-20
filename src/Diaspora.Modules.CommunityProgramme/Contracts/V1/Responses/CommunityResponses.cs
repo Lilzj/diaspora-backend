@@ -407,3 +407,43 @@ public sealed record CommunityOwnershipOfferResponse
 
     public string? DeclineReason { get; init; }
 }
+
+/// <summary>
+/// One row of a community's moderation queue — 21 Oct 2026. The client's <c>CommunityReport</c>.
+/// <para>
+/// <b>No reporter identity, by design.</b> Community moderators are members, and the person who
+/// reported harassment must never be shown to somebody who can see who reported them.
+/// <see cref="ReporterCount"/> is what the queue needs.
+/// </para>
+/// </summary>
+public sealed record CommunityReportResponse
+{
+    /// <summary>The report a decision names: the oldest in this row.</summary>
+    public required Guid Id { get; init; }
+
+    public required Guid CommunityId { get; init; }
+
+    /// <summary><c>Open</c>, <c>Actioned</c>, <c>Dismissed</c> or <c>Escalated</c>.</summary>
+    public required string Status { get; init; }
+
+    /// <summary>Spam, Harassment, Misinformation, OffTopic, Scam, HateSpeech or Other.</summary>
+    public required string Reason { get; init; }
+
+    /// <summary>What was reported, in Community's vocabulary (<c>post</c>, <c>comment</c>).</summary>
+    public required string ContentType { get; init; }
+
+    public required Guid ContentId { get; init; }
+
+    /// <summary>The start of what was reported, never more than a line.</summary>
+    public string? ContentExcerpt { get; init; }
+
+    /// <summary>How many reports share this content and status.</summary>
+    public required int ReporterCount { get; init; }
+
+    public required DateTimeOffset CreatedAt { get; init; }
+
+    public DateTimeOffset? UpdatedAt { get; init; }
+
+    /// <summary>The deciding moderator's note, once decided.</summary>
+    public string? Note { get; init; }
+}

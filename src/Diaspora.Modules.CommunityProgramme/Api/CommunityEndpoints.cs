@@ -481,5 +481,72 @@ internal static class CommunityEndpoints
             .WithSummary(
                 "Accept or refuse a community somebody offered you. Only the person it was offered "
                 + "to may answer. Accepting makes you its owner.");
+
+        // ── The community's own moderation queue — GAP-017, 21 Oct 2026 ─────────────────────
+        //
+        // Reports about what was published as this community, for its moderators and
+        // administrators. The platform-wide queue stays at /community/moderation/queue for staff.
+        //
+        // The body is a bare array because that is what the client reads. The next page's cursor
+        // rides in a header rather than wrapping the array, so the client's shape holds and a
+        // client that pages can still find where to start.
+        group.MapGet("/{idOrSlug}/reports", async (
+                string idOrSlug,
+                string? status,
+                string? cursor,
+                int? limit,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            {
+                var page = await sender.Send(
+                    new GetCommunityReportsQuery
+                    {
+                        IdOrSlug = idOrSlug,
+                        Status = status,
+                        Cursor = cursor,
+                        Limit = limit ?? CommunityModerationAccess.DefaultLimit
+                    },
+                    cancellationToken);
+
+                if (page.IsSuccess && page.Value.NextCursor is { } next)
+                {
+                    context.Response.Headers[NextCursorHeader] = next;
+                }
+
+                return PlatformResults.Ok(context, page.Map(value => value.Items));
+            })
+            .WithName("ListCommunityReports")
+            .WithSummary(
+                "Reports about this community's content, oldest first, one row per piece of "
+                + "content. Moderators and administrators of the community. No reporter identity. "
+                + "The next page's cursor is in the X-Next-Cursor header.");
+
+        group.MapPost("/{idOrSlug}/reports/{reportId:guid}/decision", async (
+                string idOrSlug,
+                Guid reportId,
+                DecideCommunityReportRequest? request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new DecideCommunityReportCommand
+                        {
+                            IdOrSlug = idOrSlug,
+                            ReportId = reportId,
+                            Decision = request?.Decision,
+                            Note = request?.Note
+                        },
+                        cancellationToken)))
+            .WithName("DecideCommunityReport")
+            .WithSummary(
+                "Decide a report about this community's content: dismiss, remove-content or "
+                + "escalate. Answers every open report about the same content. A report about "
+                + "anything else is not found.");
     }
+
+    /// <summary>Where the next page of a community's report queue starts. Absent on the last page.</summary>
+    public const string NextCursorHeader = "X-Next-Cursor";
 }

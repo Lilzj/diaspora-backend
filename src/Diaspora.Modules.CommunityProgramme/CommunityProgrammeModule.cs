@@ -94,6 +94,7 @@ public sealed class CommunityProgrammeModule : IPlatformModule
         // The one door to an organization-scoped act. Every write in the module goes through it, so
         // "may this caller do this here" has one answer rather than nine.
         services.AddScoped<CommunityProgrammeAccessService>();
+        services.AddScoped<Application.Communities.CommunityModerationAccess>();
 
         services.AddScoped<MembershipEligibilityEvaluator>();
         services.AddScoped<VolunteerEligibilityService>();
