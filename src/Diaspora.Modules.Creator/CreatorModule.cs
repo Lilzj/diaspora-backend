@@ -104,6 +104,8 @@ public sealed class CreatorModule : IPlatformModule
         services.AddScoped<ICreatorRewardRepository, CreatorRewardRepository>();
         services.AddScoped<ICreatorActivityRepository, CreatorActivityRepository>();
         services.AddScoped<ICreatorEarningRepository, CreatorEarningRepository>();
+        services.AddScoped<
+            ICreatorRecommendationDismissalRepository, CreatorRecommendationDismissalRepository>();
 
         // A narrow read across the ledger rather than a repository operation on an aggregate — see
         // the type's own summary for why it is not a method on ICreatorActivityRepository.
@@ -150,6 +152,12 @@ public sealed class CreatorModule : IPlatformModule
         // Resolves a guide's author from this module's own ledger rather than referencing B8 for a
         // Guid. Registered by hand so a second implementation cannot appear by accident.
         services.AddScoped<IGuidesAuthorLookup, ActivityLedgerAuthorLookup>();
+
+        // CREATOR-GAP-013. The composition behind GET /recommendations/creator, which the
+        // Recommendations module maps because it owns that prefix. Registered by hand: one provider.
+        services.AddScoped<
+            Diaspora.Contracts.Recommendations.V1.Creator.ICreatorRecommendationProvider,
+            Application.Recommendations.CreatorRecommendationProvider>();
 
         // The single translation point where a domain fact becomes a published contract.
         services.AddScoped<CreatorIntegrationEventRelay>();

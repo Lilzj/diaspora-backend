@@ -84,5 +84,8 @@ public sealed class CreatorDatabaseContributor : IDatabaseContributor
         // What a creator earned and what it was for. B15 records that money moved; this is the only
         // place on the platform that records what a movement meant.
         modelBuilder.ApplyConfiguration(new CreatorEarningConfiguration());
+
+        // What a member has said they do not want suggested. Keyed by member, not creator record.
+        modelBuilder.ApplyConfiguration(new CreatorRecommendationDismissalConfiguration());
     }
 }

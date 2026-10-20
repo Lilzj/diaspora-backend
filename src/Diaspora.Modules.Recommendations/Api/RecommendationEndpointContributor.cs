@@ -28,5 +28,8 @@ public sealed class RecommendationEndpointContributor : IEndpointContributor
         SignalEndpoints.Map(group);
         PersonalizationEndpoints.Map(group);
         RecommendationOperationsEndpoints.Map(group);
+
+        // CREATOR-GAP-013. Composed by the Creator Platform behind a Diaspora.Contracts seam.
+        CreatorRecommendationEndpoints.Map(group);
     }
 }

@@ -17,7 +17,7 @@ namespace Diaspora.Persistence.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.10")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -6051,6 +6051,31 @@ namespace Diaspora.Persistence.Migrations
                         .HasDatabaseName("ix_creator_milestone_progress_state");
 
                     b.ToTable("creator_milestone_progress", "creator");
+                });
+
+            modelBuilder.Entity("Diaspora.Modules.Creator.Domain.Recommendations.CreatorRecommendationDismissal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("DismissedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RecommendationId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "RecommendationId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_creator_recommendation_dismissal");
+
+                    b.ToTable("creator_recommendation_dismissals", "creator");
                 });
 
             modelBuilder.Entity("Diaspora.Modules.Creator.Domain.Referrals.CreatorReferral", b =>

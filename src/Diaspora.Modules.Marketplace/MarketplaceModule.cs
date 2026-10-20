@@ -118,6 +118,11 @@ public sealed class MarketplaceModule : IPlatformModule
     private static void RegisterServices(IServiceCollection services)
     {
         services.AddScoped<MarketplaceAuthorizationService>();
+
+        // Cross-module content seams in Diaspora.Contracts: the platform overview's counts and
+        // a sponsored item's title. Resolved as collections by Analytics and Creator.
+        services.AddScoped<Diaspora.Contracts.Content.V1.IPlatformInventorySource, Persistence.ListingPublishedContentSource>();
+        services.AddScoped<Diaspora.Contracts.Content.V1.IContentTitleSource, Persistence.ListingPublishedContentSource>();
         services.AddScoped<SellerReviewSummaryService>();
         services.AddScoped<ListingCategoryResolver>();
         services.AddScoped<ListingAttributeValidator>();

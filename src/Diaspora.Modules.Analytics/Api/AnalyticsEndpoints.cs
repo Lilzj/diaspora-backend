@@ -61,6 +61,35 @@ public sealed class AnalyticsEndpointContributor : IEndpointContributor
             .RequireAuthorization(AnalyticsPolicies.CreatorRead)
             .WithName("GetAnalyticsDefinitions");
 
+        // ── Platform — FRONTEND-PHASE15-GAP-001 ────────────────────────────────────────────
+        //
+        // Platform-wide totals and daily additions, counted by the owning modules. Aggregate
+        // counts only, so the member-scoped read gates it — see the query's own summary.
+        group.MapGet("/platform", async (
+                string? period,
+                string? from,
+                string? to,
+                string? timezone,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            PlatformResults.Ok(
+                context,
+                await sender.Send(
+                    new GetPlatformAnalyticsDatasetQuery
+                    {
+                        Period = period,
+                        From = from,
+                        To = to,
+                        Timezone = timezone
+                    },
+                    cancellationToken)))
+            .RequireAuthorization(AnalyticsPolicies.CreatorRead)
+            .WithName("GetPlatformAnalyticsDataset")
+            .WithSummary(
+                "What exists across Diaspora now, and what was added each day: guides, jobs, "
+                + "listings, homes, providers and members.");
+
         // ── Creator — CREATOR-GAP-007 and FRONTEND-PHASE15-GAP-009 ─────────────────────────
         //
         // Two shapes over one set of figures. The dataset is the Phase 15 contract every analytics

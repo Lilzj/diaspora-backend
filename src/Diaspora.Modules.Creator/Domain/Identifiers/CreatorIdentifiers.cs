@@ -228,3 +228,11 @@ public sealed record CreatorActivityEntryId(Guid Value) : StronglyTypedId(Value)
 
     public static CreatorActivityEntryId From(Guid value) => new(value);
 }
+
+/// <summary>One member's dismissal of one creator recommendation.</summary>
+public sealed record CreatorRecommendationDismissalId(Guid Value) : StronglyTypedId(Value)
+{
+    public static CreatorRecommendationDismissalId New() => new(Guid.NewGuid());
+
+    public static CreatorRecommendationDismissalId From(Guid value) => new(value);
+}

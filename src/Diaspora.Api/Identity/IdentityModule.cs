@@ -62,6 +62,9 @@ public sealed class IdentityModule : IPlatformModule
             ServiceDescriptor.Scoped<IAuthorizationSubjectAccessor, ClaimsAuthorizationSubjectAccessor>());
         services.AddScoped<ICurrentIdentityContext, HttpContextCurrentIdentity>();
 
+        // The members row of the platform overview. See the type's own summary.
+        services.AddScoped<Diaspora.Contracts.Content.V1.IPlatformInventorySource, Audiences.MemberInventorySource>();
+
         // ─── Module layers ──────────────────────────────────────────────
         services.AddIdentityPersistence();
         services.AddIdentityInfrastructure(configuration);

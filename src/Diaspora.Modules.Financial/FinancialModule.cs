@@ -210,6 +210,12 @@ public sealed class FinancialModule : IPlatformModule
             Extensibility.Rewards.IRewardPointsAccount,
             Application.Rewards.RewardPointsAccount>();
 
+        // What a member paid to promote, for the Creator Platform sponsored list. Read-only,
+        // and registered by hand for the points seam reason.
+        services.AddScoped<
+            Extensibility.Sponsorship.ISponsoredContentDirectory,
+            Application.Sponsorship.SponsoredContentDirectory>();
+
         // Resolves what a member may move, from policy rather than from a constant in a handler.
         // Registered explicitly: a second implementation appearing by accident would be a second set
         // of deposit and withdrawal limits, and whichever one a handler happened to resolve would win.
