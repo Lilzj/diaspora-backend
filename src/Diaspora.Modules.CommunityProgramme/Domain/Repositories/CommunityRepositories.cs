@@ -155,6 +155,7 @@ public interface ICommunityMembershipRepository
         UserId viewer,
         string? cursor,
         int limit,
+        string? role = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>The current member holding the Owner role, if the community has one.</summary>

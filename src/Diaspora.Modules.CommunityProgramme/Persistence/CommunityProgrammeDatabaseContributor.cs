@@ -50,6 +50,12 @@ public sealed class CommunityProgrammeDatabaseContributor : IDatabaseContributor
         modelBuilder.ApplyConfiguration(new CommunityDeletionRequestConfiguration());
         modelBuilder.ApplyConfiguration(new CommunityOwnershipTransferConfiguration());
 
+        // 21 Oct 2026. What a community publishes to itself — its rules and its notices — and what a
+        // member prefers across every community. See CommunityGovernanceConfigurations.
+        modelBuilder.ApplyConfiguration(new CommunityRuleConfiguration());
+        modelBuilder.ApplyConfiguration(new CommunityNoticeConfiguration());
+        modelBuilder.ApplyConfiguration(new CommunityMemberPreferencesConfiguration());
+
         modelBuilder.ApplyConfiguration(new MembershipProgrammeConfiguration());
 
         // Who bought one, and where that is in its fourteen-state life. Its own aggregate for the

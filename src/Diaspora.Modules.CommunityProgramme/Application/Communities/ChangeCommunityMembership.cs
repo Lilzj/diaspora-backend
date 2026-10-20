@@ -41,17 +41,20 @@ public sealed class ChangeCommunityMembershipCommandHandler
 {
     private readonly ICommunityRepository _communities;
     private readonly ICommunityMembershipRepository _memberships;
+    private readonly ICommunityMemberPreferencesRepository _preferences;
     private readonly CommunityProgrammeAccessService _access;
     private readonly IUnitOfWork _unitOfWork;
 
     public ChangeCommunityMembershipCommandHandler(
         ICommunityRepository communities,
         ICommunityMembershipRepository memberships,
+        ICommunityMemberPreferencesRepository preferences,
         CommunityProgrammeAccessService access,
         IUnitOfWork unitOfWork)
     {
         _communities = communities;
         _memberships = memberships;
+        _preferences = preferences;
         _access = access;
         _unitOfWork = unitOfWork;
     }
@@ -80,12 +83,24 @@ public sealed class ChangeCommunityMembershipCommandHandler
         var membership = await _memberships.FindAsync(
             community.Id, caller.Value, cancellationToken);
 
+        // 21 Oct 2026. Where a brand-new relationship starts: the member's own default, or Private
+        // when they never chose one. Read only when there is no row yet, because an existing row
+        // already carries the member's choice for this community and must not be overwritten.
+        var startingVisibility = membership is null
+            ? (await _preferences.FindAsync(caller.Value, cancellationToken))?.DefaultMembershipVisibility
+                ?? CommunityMembershipVisibility.Private
+            : CommunityMembershipVisibility.Private;
+
         var applied = command.Action?.Trim().ToLowerInvariant() switch
         {
-            "join" or null or "" => await JoinAsync(community, membership, caller.Value),
-            "follow" => Relate(community, membership, caller.Value, CommunityMembershipState.Following),
+            "join" or null or "" => await JoinAsync(
+                community, membership, caller.Value, startingVisibility),
+            "follow" => Relate(
+                community, membership, caller.Value, CommunityMembershipState.Following,
+                startingVisibility),
             "express-interest" => Relate(
-                community, membership, caller.Value, CommunityMembershipState.Interested),
+                community, membership, caller.Value, CommunityMembershipState.Interested,
+                startingVisibility),
             _ => Result.Failure<CommunityMembership>(CommunityErrors.UnknownMembershipAction)
         };
 
@@ -109,9 +124,13 @@ public sealed class ChangeCommunityMembershipCommandHandler
     /// </para>
     /// </summary>
     private async Task<Result<CommunityMembership>> JoinAsync(
-        CommunityAggregate community, CommunityMembership? existing, UserId caller)
+        CommunityAggregate community,
+        CommunityMembership? existing,
+        UserId caller,
+        CommunityMembershipVisibility startingVisibility)
     {
-        var membership = existing ?? Start(community, caller, CommunityMembershipState.Discovering);
+        var membership = existing
+            ?? Start(community, caller, CommunityMembershipState.Discovering, startingVisibility);
 
         var wasMember = membership.IsCurrentMember;
 
@@ -154,11 +173,12 @@ public sealed class ChangeCommunityMembershipCommandHandler
         CommunityAggregate community,
         CommunityMembership? existing,
         UserId caller,
-        CommunityMembershipState state)
+        CommunityMembershipState state,
+        CommunityMembershipVisibility startingVisibility)
     {
         if (existing is null)
         {
-            var started = Start(community, caller, state);
+            var started = Start(community, caller, state, startingVisibility);
             _memberships.Add(started);
             return Result.Success(started);
         }
@@ -183,9 +203,17 @@ public sealed class ChangeCommunityMembershipCommandHandler
     }
 
     private static CommunityMembership Start(
-        CommunityAggregate community, UserId caller, CommunityMembershipState state) =>
-        CommunityMembership.Start(
+        CommunityAggregate community,
+        UserId caller,
+        CommunityMembershipState state,
+        CommunityMembershipVisibility visibility)
+    {
+        var membership = CommunityMembership.Start(
             CommunityMembershipId.New(), community.Id, caller, state).Value;
+
+        membership.SetVisibility(visibility);
+        return membership;
+    }
 
     /// <summary>The read rule, applied to a write. See <see cref="GetCommunityQueryHandler"/>.</summary>
     private async Task<bool> CanSeeAsync(

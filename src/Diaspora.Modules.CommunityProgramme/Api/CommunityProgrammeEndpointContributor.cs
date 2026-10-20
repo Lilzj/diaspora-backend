@@ -38,6 +38,9 @@ public sealed class CommunityProgrammeEndpointContributor : IEndpointContributor
         // handles, and a guardrail over the composed route table is what keeps that list honest.
         CommunityEndpoints.Map(group);
 
+        // 21 Oct 2026: figures, rules, notices, office holders and a member's preferences.
+        CommunityGovernanceEndpoints.Map(group);
+
         OrganizationEndpoints.Map(group);
         MembershipEndpoints.Map(group);
         VolunteerEndpoints.Map(group);

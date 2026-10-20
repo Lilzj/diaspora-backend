@@ -181,6 +181,12 @@ public sealed class CommunityLifeModule : IPlatformModule
         // by dispatching B12's own command — see IOrganizationRoleAdministrator for why this is a
         // port rather than a method on the directory.
         services.AddScoped<IOrganizationRoleAdministrator, OrganizationRoleAdministrator>();
+
+        // 21 Oct 2026. What a community's members organised, counted, for its statistics in
+        // Community Programme. See IMemberEventActivityReader.
+        services.AddScoped<
+            Diaspora.Contracts.CommunityLife.V1.Activity.IMemberEventActivityReader,
+            MemberEventActivityReader>();
     }
 
     private static void RegisterHostedServices(IServiceCollection services)

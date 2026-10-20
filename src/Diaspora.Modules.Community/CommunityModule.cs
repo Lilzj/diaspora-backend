@@ -117,6 +117,12 @@ public sealed class CommunityModule : IPlatformModule
         services.AddScoped<
             Diaspora.Contracts.Community.V1.Follows.IMemberFollowerDirectory,
             Application.Services.MemberFollowerDirectory>();
+
+        // 21 Oct 2026. What a community's members published, counted, for its statistics in
+        // Community Programme — which may not read this module's tables.
+        services.AddScoped<
+            Diaspora.Contracts.Community.V1.Activity.IMemberPostActivityReader,
+            Application.Services.MemberPostActivityReader>();
     }
 
     private static void RegisterServices(IServiceCollection services)

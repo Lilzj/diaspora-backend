@@ -286,6 +286,7 @@ public sealed class CommunityMembershipRepository : ICommunityMembershipReposito
         UserId viewer,
         string? cursor,
         int limit,
+        string? role = null,
         CancellationToken cancellationToken = default)
     {
         // States spelled out: `IsCurrentMember` is a computed property and does not translate.
@@ -297,6 +298,13 @@ public sealed class CommunityMembershipRepository : ICommunityMembershipReposito
                     || membership.State == CommunityMembershipState.VerifiedMember)
                 && (membership.Visibility != CommunityMembershipVisibility.Private
                     || membership.MemberId == viewer));
+
+        // 21 Oct 2026, the role-holder filter. Member is implied by belonging and never stored, so
+        // the caller passes null for it and every member is one.
+        if (role is not null)
+        {
+            query = query.Where(membership => membership.Roles.Contains(role));
+        }
 
         var page = CommunityProgrammeCursor.Parse(cursor);
 

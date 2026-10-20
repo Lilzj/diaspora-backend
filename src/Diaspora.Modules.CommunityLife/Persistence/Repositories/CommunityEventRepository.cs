@@ -534,6 +534,33 @@ public sealed class CommunityEventRepository : ICommunityEventRepository
             .CountAsync(communityEvent => communityEvent.SeriesId == seriesId, cancellationToken);
     }
 
+    public async Task<(int EventCount, int OrganizerCount)> CountFirstPublishedByOrganizersAsync(
+        IReadOnlyCollection<Guid> organizerUserIds,
+        DateTimeOffset from,
+        DateTimeOffset until,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(organizerUserIds);
+
+        if (organizerUserIds.Count == 0)
+        {
+            return (0, 0);
+        }
+
+        var organizers = organizerUserIds.Distinct().Select(UserId.From).ToList();
+
+        var published = await Events
+            .AsNoTracking()
+            .Where(communityEvent => organizers.Contains(communityEvent.OrganizerUserId)
+                && communityEvent.FirstPublishedAt != null
+                && communityEvent.FirstPublishedAt >= from
+                && communityEvent.FirstPublishedAt < until)
+            .Select(communityEvent => communityEvent.OrganizerUserId)
+            .ToListAsync(cancellationToken);
+
+        return (published.Count, published.Distinct().Count());
+    }
+
     public async Task AddAsync(
         CommunityEvent communityEvent, CancellationToken cancellationToken = default) =>
         await Events.AddAsync(communityEvent, cancellationToken);

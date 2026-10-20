@@ -254,6 +254,7 @@ internal static class CommunityEndpoints
                 string idOrSlug,
                 string? cursor,
                 int? limit,
+                [FromQuery] string? role,
                 ISender sender,
                 HttpContext context,
                 CancellationToken cancellationToken) =>
@@ -264,13 +265,14 @@ internal static class CommunityEndpoints
                         {
                             IdOrSlug = idOrSlug,
                             Cursor = cursor,
-                            Limit = limit ?? 25
+                            Limit = limit ?? 25,
+                            Role = role
                         },
                         cancellationToken)))
             .WithName("ListCommunityMembers")
             .WithSummary(
                 "Members the caller may see: those who made their membership visible, and the caller. "
-                + "For members only.");
+                + "For members only. ?role= narrows it to one role's holders.");
 
         group.MapPut("/{idOrSlug}/members/{userId:guid}/roles", async (
                 string idOrSlug,

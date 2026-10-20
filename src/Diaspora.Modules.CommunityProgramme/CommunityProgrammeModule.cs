@@ -80,6 +80,12 @@ public sealed class CommunityProgrammeModule : IPlatformModule
         services.AddScoped<ICommunityDeletionRequestRepository, CommunityDeletionRequestRepository>();
         services.AddScoped<ICommunityOwnershipTransferRepository, CommunityOwnershipTransferRepository>();
 
+        // 21 Oct 2026. Rules, notices, a member's preferences, and the counts statistics read.
+        services.AddScoped<ICommunityRuleRepository, CommunityRuleRepository>();
+        services.AddScoped<ICommunityNoticeRepository, CommunityNoticeRepository>();
+        services.AddScoped<ICommunityMemberPreferencesRepository, CommunityMemberPreferencesRepository>();
+        services.AddScoped<ICommunityMembershipStatistics, CommunityMembershipStatistics>();
+
         services.AddScoped<IMembershipProgrammeRepository, MembershipProgrammeRepository>();
         services.AddScoped<IProgrammeMembershipRepository, ProgrammeMembershipRepository>();
         services.AddScoped<IVolunteerOpportunityRepository, VolunteerOpportunityRepository>();
@@ -104,6 +110,10 @@ public sealed class CommunityProgrammeModule : IPlatformModule
         // exists: a handler that can reach any other handler can reach one whose authorization it has
         // not performed.
         services.AddScoped<PollResultReader>();
+
+        // 21 Oct 2026. A community's figures, shared by the statistics and comparison queries for the
+        // same DSP1001 reason as the tally above.
+        services.AddScoped<CommunityStatisticsComposer>();
 
         // B15's idempotency primitive, plus the concurrent-duplicate resolution B15's own handlers
         // leave to a 500. Not a second mechanism — see the class's own documentation.

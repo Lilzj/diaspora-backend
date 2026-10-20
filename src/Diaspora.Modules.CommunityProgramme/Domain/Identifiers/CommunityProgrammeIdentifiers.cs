@@ -178,3 +178,27 @@ public sealed record CommunityOwnershipTransferId(Guid Value) : StronglyTypedId(
 
     public static CommunityOwnershipTransferId From(Guid value) => new(value);
 }
+
+/// <summary>A rule a community publishes for its members — 21 Oct 2026.</summary>
+public sealed record CommunityRuleId(Guid Value) : StronglyTypedId(Value)
+{
+    public static CommunityRuleId New() => new(Guid.NewGuid());
+
+    public static CommunityRuleId From(Guid value) => new(value);
+}
+
+/// <summary>A notice the people who run a community publish to it — 21 Oct 2026.</summary>
+public sealed record CommunityNoticeId(Guid Value) : StronglyTypedId(Value)
+{
+    public static CommunityNoticeId New() => new(Guid.NewGuid());
+
+    public static CommunityNoticeId From(Guid value) => new(value);
+}
+
+/// <summary>One member's community preferences — 21 Oct 2026. One row per member.</summary>
+public sealed record CommunityMemberPreferencesId(Guid Value) : StronglyTypedId(Value)
+{
+    public static CommunityMemberPreferencesId New() => new(Guid.NewGuid());
+
+    public static CommunityMemberPreferencesId From(Guid value) => new(value);
+}

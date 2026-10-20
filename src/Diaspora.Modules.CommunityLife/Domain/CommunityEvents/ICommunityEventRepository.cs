@@ -153,6 +153,17 @@ public interface ICommunityEventRepository
     Task<int> CountOccurrencesAsync(
         EventSeriesId seriesId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Events these organisers first published in <c>[from, until)</c>, and how many of them
+    /// organised one — 21 Oct 2026, for a community's statistics. A cancelled event was still
+    /// published, so it counts; a deleted one does not.
+    /// </summary>
+    Task<(int EventCount, int OrganizerCount)> CountFirstPublishedByOrganizersAsync(
+        IReadOnlyCollection<Guid> organizerUserIds,
+        DateTimeOffset from,
+        DateTimeOffset until,
+        CancellationToken cancellationToken = default);
+
     Task AddAsync(CommunityEvent communityEvent, CancellationToken cancellationToken = default);
 
     void Update(CommunityEvent communityEvent);

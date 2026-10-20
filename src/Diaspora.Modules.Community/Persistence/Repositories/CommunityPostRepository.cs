@@ -221,6 +221,39 @@ public sealed class CommunityPostRepository : ICommunityPostRepository
         return rows.ToDictionary(row => row.Id.Value, row => row.AuthorId.Value);
     }
 
+    public async Task<(int PostCount, int AuthorCount)> CountPublishedByAuthorsAsync(
+        IReadOnlyCollection<Guid> authorIds,
+        DateTimeOffset from,
+        DateTimeOffset until,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(authorIds);
+
+        if (authorIds.Count == 0)
+        {
+            return (0, 0);
+        }
+
+        var authors = authorIds.Distinct().Select(UserId.From).ToList();
+
+        // The authors, not the rows: the post count and the author count come from one read, and a
+        // list of identifiers this size never leaves the server.
+        var written = await Posts
+            .AsNoTracking()
+            .Where(post => authors.Contains(post.AuthorId)
+                && post.PublishedAt != null
+                && post.PublishedAt >= from
+                && post.PublishedAt < until
+                && post.Status != PostStatus.Draft
+                && post.Status != PostStatus.Hidden
+                && post.Status != PostStatus.Removed
+                && post.Status != PostStatus.Deleted)
+            .Select(post => post.AuthorId)
+            .ToListAsync(cancellationToken);
+
+        return (written.Count, written.Distinct().Count());
+    }
+
     public async Task AddAsync(
         CommunityPost post, CancellationToken cancellationToken = default) =>
         await Posts.AddAsync(post, cancellationToken);

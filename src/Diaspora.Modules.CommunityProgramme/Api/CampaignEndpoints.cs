@@ -1,6 +1,8 @@
 using Diaspora.Modules.Financial.Application.Campaigns;
 using Diaspora.Modules.Financial.Contracts.V1.Requests;
+using Diaspora.Modules.Financial.Contracts.V1.Responses;
 using Diaspora.Platform.Http;
+using Diaspora.SharedKernel.Results;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -51,6 +53,9 @@ internal static class CampaignEndpoints
         ("close", "Closed"),
         ("cancel", "Cancelled")
     ];
+
+    /// <summary>Pages of a hundred read for <c>/campaigns/me</c> before it stops.</summary>
+    private const int MyCampaignPages = 5;
 
     public static void Map(RouteGroupBuilder group)
     {
@@ -105,6 +110,55 @@ internal static class CampaignEndpoints
             .WithName("SearchCampaigns")
             .WithSummary(
                 "Campaigns a member can browse. A draft is visible only to the person who wrote it.");
+
+        // 21 Oct 2026. The campaigns the caller organises, drafts included, as one list — the path
+        // the app's development adapter called. It is the search above with mine=true, read to the
+        // end: no second query, no second rule about whose campaign is whose. `me` cannot collide
+        // with /campaigns/{campaignId:guid}, which only matches a Guid.
+        group.MapGet("/campaigns/me", async (
+                [FromQuery] Guid? organizationId,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            {
+                var campaigns = new List<CampaignResponse>();
+                string? cursor = null;
+
+                // Bounded: an organiser with more than this is paging, and should use the search.
+                for (var page = 0; page < MyCampaignPages; page++)
+                {
+                    var result = await sender.Send(
+                        new SearchCampaignsQuery
+                        {
+                            MineOnly = true,
+                            OrganizationId = organizationId,
+                            Cursor = cursor,
+                            Take = 100
+                        },
+                        cancellationToken);
+
+                    if (result.IsFailure)
+                    {
+                        return PlatformResults.Ok(context, result);
+                    }
+
+                    campaigns.AddRange(result.Value.Items);
+
+                    if (!result.Value.HasMore || string.IsNullOrEmpty(result.Value.NextCursor))
+                    {
+                        break;
+                    }
+
+                    cursor = result.Value.NextCursor;
+                }
+
+                return PlatformResults.Ok(
+                    context, Result.Success<IReadOnlyList<CampaignResponse>>(campaigns));
+            })
+            .WithName("ListMyCampaigns")
+            .WithSummary(
+                "The campaigns the caller organises, drafts included, as one list (at most 500). "
+                + "The same rule as /campaigns?mine=true.");
 
         group.MapGet("/campaigns/{campaignId:guid}", async (
                 Guid campaignId,

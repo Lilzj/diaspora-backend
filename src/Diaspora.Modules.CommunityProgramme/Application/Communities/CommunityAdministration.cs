@@ -302,6 +302,12 @@ public sealed record ListCommunityMembersQuery : IQuery<CommunityPageResponse<Co
     public string? Cursor { get; init; }
 
     public int Limit { get; init; } = 25;
+
+    /// <summary>
+    /// 21 Oct 2026: only members holding this role — Moderator, Ambassador, Administrator or Owner.
+    /// Member, or none, is everybody.
+    /// </summary>
+    public string? Role { get; init; }
 }
 
 public sealed class ListCommunityMembersQueryHandler
@@ -336,6 +342,13 @@ public sealed class ListCommunityMembersQueryHandler
             return Result.Failure<CommunityPageResponse<CommunityMemberResponse>>(caller.Error);
         }
 
+        var role = CommunityRoleFilter.Parse(query.Role);
+
+        if (role.IsFailure)
+        {
+            return Result.Failure<CommunityPageResponse<CommunityMemberResponse>>(role.Error);
+        }
+
         var community = await _communities.FindByIdOrSlugAsync(query.IdOrSlug, cancellationToken);
 
         if (community is null)
@@ -356,7 +369,7 @@ public sealed class ListCommunityMembersQueryHandler
         }
 
         var page = await _memberships.ListVisibleMembersAsync(
-            community.Id, caller.Value, query.Cursor, query.Limit, cancellationToken);
+            community.Id, caller.Value, query.Cursor, query.Limit, role.Value, cancellationToken);
 
         // One call for the whole page, never one per row.
         var names = await _profiles.ResolveAsync(

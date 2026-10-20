@@ -79,6 +79,18 @@ public interface ICommunityPostRepository
     Task<IReadOnlyDictionary<Guid, Guid>> GetAuthorsAsync(
         IReadOnlyCollection<Guid> postIds, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Posts these authors first published in <c>[from, until)</c>, and how many of the authors wrote
+    /// one — 21 Oct 2026, for a community's statistics. Drafts and anything hidden, removed or
+    /// deleted are not counted; expired, archived, withdrawn and cancelled posts were published, so
+    /// they are.
+    /// </summary>
+    Task<(int PostCount, int AuthorCount)> CountPublishedByAuthorsAsync(
+        IReadOnlyCollection<Guid> authorIds,
+        DateTimeOffset from,
+        DateTimeOffset until,
+        CancellationToken cancellationToken = default);
+
     Task AddAsync(CommunityPost post, CancellationToken cancellationToken = default);
 
     void Remove(CommunityPost post);

@@ -58,8 +58,11 @@ public sealed partial class CommunitySlug : ValueObject
         "announcements", "campaigns", "deletion-requests", "impact", "memberships", "organizations",
         "ownership-offers", "polls", "search", "volunteer",
 
+        // Mapped 21 Oct 2026 with a community's figures and a member's preferences.
+        "compare", "preferences",
+
         // Declared by the register, not yet mapped. See the summary.
-        "compare", "suggestions", "directory", "primary",
+        "suggestions", "directory", "primary",
 
         // Never a community, whatever the route table says.
         "me", "new", "all", "none", "admin", "api", "settings",
