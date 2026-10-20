@@ -113,6 +113,11 @@ public sealed class AnalyticsModule : IPlatformModule
         // answered once.
         services.AddScoped<AnalyticsOwnerDatasetComposer>();
 
+        // Retention, boards and insights resolve their subject one way, with the owner and item rules
+        // every dataset already applies, and read per-item totals from the same rollups.
+        services.AddScoped<AnalyticsActivitySubjects>();
+        services.AddScoped<AnalyticsItemReads>();
+
         // Registered explicitly rather than scanned: it is a collaborator of three workers and of the
         // backfill, not a seam anything plugs into.
         services.AddScoped<AnalyticsProjectionService>();

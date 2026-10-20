@@ -215,6 +215,56 @@ public interface IAnalyticsEventRepository
         DateTimeOffset from,
         DateTimeOffset to,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The distinct (actor, reporting day) pairs with any recorded activity in the scope, inclusive
+    /// of both days — the cohort table's only input.
+    /// <para>
+    /// Distinct in the database, so a person active fifty times on one day is one row. Rows without an
+    /// actor key cannot be followed from one day to the next and are not read.
+    /// </para>
+    /// </summary>
+    Task<IReadOnlyList<(string ActorKey, DateOnly Day)>> ListActorDaysAsync(
+        AnalyticsActivityScope scope,
+        DateOnly fromDay,
+        DateOnly toDay,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// One owner's recorded views in a window, grouped by the surface the app said they happened on.
+    /// A null surface is a view the app reported without one.
+    /// </summary>
+    Task<IReadOnlyList<(string? Surface, long Views)>> CountOwnerViewsBySurfaceAsync(
+        Guid ownerUserId,
+        DateTimeOffset from,
+        DateTimeOffset to,
+        CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// Which rows an activity read covers: everything (the platform), one owner's items — optionally of
+/// one type — or one item.
+/// </summary>
+public sealed record AnalyticsActivityScope(
+    Guid? OwnerUserId, AnalyticsContentType? ContentType, Guid? ContentId)
+{
+    public static AnalyticsActivityScope Platform { get; } = new(null, null, null);
+}
+
+/// <summary>One item's additive counts summed over a window, as the database computed them.</summary>
+public sealed record AnalyticsItemTotals(
+    AnalyticsContentType ContentType,
+    Guid ContentId,
+    long Views,
+    long Saves,
+    long Shares,
+    long Comments,
+    long Reactions,
+    long HelpfulVotes,
+    long Conversions,
+    long Enquiries)
+{
+    public long Engagements => Saves + Shares + Comments + Reactions;
 }
 
 /// <summary>
@@ -322,6 +372,13 @@ public interface IAnalyticsRollupRepository
     /// </summary>
     Task<IReadOnlyList<(AnalyticsContentType ContentType, Guid ContentId)>> ListContentRecordedBeforeAsync(
         Guid ownerUserId, DateOnly day, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Every item's counts summed across a window, platform-wide, grouped in the database. The
+    /// platform board and the platform insights read it; nothing owner-scoped does.
+    /// </summary>
+    Task<IReadOnlyList<AnalyticsItemTotals>> SumAllContentAsync(
+        DateOnly fromDay, DateOnly toDay, CancellationToken cancellationToken = default);
 
     /// <summary>Retention. Rollups outlive raw events by design — see the retention policy.</summary>
     Task<int> DeleteExpiredAsync(

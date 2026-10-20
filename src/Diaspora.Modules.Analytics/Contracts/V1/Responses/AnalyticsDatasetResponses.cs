@@ -60,6 +60,9 @@ public sealed record DataFreshnessResponse
 
     /// <summary>What the figure cannot tell you. Rendered verbatim beside it.</summary>
     public IReadOnlyList<string>? Limitations { get; init; }
+
+    /// <summary>How many people or records the figure rests on, where that is known.</summary>
+    public long? SampleSize { get; init; }
 }
 
 /// <summary>A change against a baseline. Null percentages always carry a reason.</summary>
@@ -132,6 +135,40 @@ public sealed record AnalyticsMetricResponse
     /// </para>
     /// </summary>
     public bool IsSuppressed { get; init; }
+
+    /// <summary>
+    /// The amount, where <see cref="Format"/> is <c>currency</c>: minor units and the currency they
+    /// are in, never a bare number. Absent on every other format.
+    /// </summary>
+    public AnalyticsMoneyResponse? Money { get; init; }
+}
+
+/// <summary>
+/// An amount of money in the client's <c>Money</c> shape. The currency is the authority; nothing on
+/// this platform converts one into another.
+/// </summary>
+public sealed record AnalyticsMoneyResponse
+{
+    /// <summary>The figure a card renders, derived from <see cref="MinorUnits"/> by the server.</summary>
+    public required decimal Amount { get; init; }
+
+    /// <summary>ISO 4217, upper case.</summary>
+    public required string Currency { get; init; }
+
+    public required long MinorUnits { get; init; }
+
+    public required int Exponent { get; init; }
+
+    public string? Symbol { get; init; }
+
+    public static AnalyticsMoneyResponse From(long minorUnits, string currency, int exponent, string? symbol) => new()
+    {
+        Amount = minorUnits / (decimal)Math.Pow(10, exponent),
+        Currency = currency,
+        MinorUnits = minorUnits,
+        Exponent = exponent,
+        Symbol = symbol
+    };
 }
 
 public sealed record AnalyticsPointResponse
@@ -158,6 +195,9 @@ public sealed record AnalyticsSeriesResponse
     public required IReadOnlyList<AnalyticsPointResponse> Points { get; init; }
 
     public required string Source { get; init; }
+
+    /// <summary>The currency the values are in, where <see cref="Format"/> is <c>currency</c>.</summary>
+    public string? Currency { get; init; }
 }
 
 /// <summary>A thing a leaderboard row points at. Names things, never people.</summary>
@@ -188,6 +228,9 @@ public sealed record AnalyticsLeaderboardRowResponse
     public string? SecondaryFormat { get; init; }
 
     public string? SecondaryLabel { get; init; }
+
+    /// <summary>The same item's figure in the preceding period of equal length, where asked for.</summary>
+    public AnalyticsComparisonResponse? Comparison { get; init; }
 }
 
 public sealed record AnalyticsLeaderboardResponse

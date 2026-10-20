@@ -342,6 +342,153 @@ public sealed class AnalyticsEndpointContributor : IEndpointContributor
             .WithName("GetCommunityAnalyticsDataset")
             .WithSummary("A community's members, joins and net change over a period, for its moderators and administrators.");
 
+        // ── Campaign — fundraising campaign giving ─────────────────────────────────────────
+        //
+        // Counted by the module that owns campaigns and donations, for the people who run the
+        // campaign. Anybody else receives the same 404 as for a campaign that does not exist.
+        group.MapGet("/campaigns/{campaignId}", async (
+                string campaignId,
+                string? period,
+                string? from,
+                string? to,
+                string? timezone,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            PlatformResults.Ok(
+                context,
+                await sender.Send(
+                    new GetCampaignAnalyticsDatasetQuery
+                    {
+                        CampaignId = campaignId,
+                        Period = period,
+                        From = from,
+                        To = to,
+                        Timezone = timezone
+                    },
+                    cancellationToken)))
+            .RequireAuthorization(AnalyticsPolicies.CreatorRead)
+            .WithName("GetCampaignAnalyticsDataset")
+            .WithSummary("A fundraising campaign's giving over a period (raised, gifts, supporters, refunds) for whoever runs it.");
+
+        // ── Retention — FRONTEND-PHASE15-GAP-004 ───────────────────────────────────────────
+
+        group.MapGet("/retention", async (
+                string? subjectType,
+                string? subjectId,
+                string? cohortGranularity,
+                int? cohortCount,
+                string? to,
+                string? timezone,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            PlatformResults.Ok(
+                context,
+                await sender.Send(
+                    new GetAnalyticsRetentionQuery
+                    {
+                        SubjectType = subjectType,
+                        SubjectId = subjectId,
+                        CohortGranularity = cohortGranularity,
+                        CohortCount = cohortCount,
+                        To = to,
+                        Timezone = timezone
+                    },
+                    cancellationToken)))
+            .RequireAuthorization(AnalyticsPolicies.CreatorRead)
+            .WithName("GetAnalyticsRetention")
+            .WithSummary("Cohort retention counted from recorded activity, with the cohorts too old to count listed and not estimated.");
+
+        // ── Leaderboards and insights ──────────────────────────────────────────────────────
+
+        group.MapGet("/leaderboards/{leaderboardKey}", async (
+                string leaderboardKey,
+                string? subjectType,
+                string? subjectId,
+                string? metric,
+                string? period,
+                string? from,
+                string? to,
+                string? timezone,
+                int? take,
+                string? cursor,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            PlatformResults.Ok(
+                context,
+                await sender.Send(
+                    new GetAnalyticsLeaderboardQuery
+                    {
+                        LeaderboardKey = leaderboardKey,
+                        SubjectType = subjectType,
+                        SubjectId = subjectId,
+                        Metric = metric,
+                        Period = period,
+                        From = from,
+                        To = to,
+                        Timezone = timezone,
+                        Take = take,
+                        Cursor = cursor
+                    },
+                    cancellationToken)))
+            .RequireAuthorization(AnalyticsPolicies.CreatorRead)
+            .WithName("GetAnalyticsLeaderboard")
+            .WithSummary("A subject's items ranked by one counted figure over a period. Items, never people.");
+
+        group.MapGet("/insights", async (
+                string? subjectType,
+                string? subjectId,
+                string? period,
+                string? from,
+                string? to,
+                string? timezone,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            PlatformResults.Ok(
+                context,
+                await sender.Send(
+                    new GetAnalyticsInsightsQuery
+                    {
+                        SubjectType = subjectType,
+                        SubjectId = subjectId,
+                        Period = period,
+                        From = from,
+                        To = to,
+                        Timezone = timezone
+                    },
+                    cancellationToken)))
+            .RequireAuthorization(AnalyticsPolicies.CreatorRead)
+            .WithName("GetAnalyticsInsights")
+            .WithSummary("Statements computed from a subject's counted figures, each with the figures it rests on.");
+
+        // ── Premium — MON-GAP-010 ──────────────────────────────────────────────────────────
+
+        group.MapGet("/premium/summary", async (
+                string? period,
+                string? from,
+                string? to,
+                string? timezone,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            PlatformResults.Ok(
+                context,
+                await sender.Send(
+                    new GetPremiumAnalyticsSummaryQuery
+                    {
+                        Period = period,
+                        From = from,
+                        To = to,
+                        Timezone = timezone
+                    },
+                    cancellationToken)))
+            .RequireAuthorization(AnalyticsPolicies.CreatorRead)
+            .WithName("GetPremiumAnalyticsSummary")
+            .WithSummary("The caller's own advanced summary. Requires the analytics.advanced entitlement; 403 without it.");
+
         // ── Funnels — FRONTEND-PHASE15-GAP-016 ─────────────────────────────────────────────
 
         group.MapGet("/funnels/{funnelKey}", async (

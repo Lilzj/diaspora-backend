@@ -155,6 +155,11 @@ public sealed class FinancialModule : IPlatformModule
         services.AddScoped<ICreditGrantRepository, CreditGrantRepository>();
         services.AddScoped<IDonationCauseRepository, DonationCauseRepository>();
         services.AddScoped<Diaspora.Contracts.Financial.V1.Giving.IDonationCauseDirectory, Application.Services.DonationCauseDirectory>();
+
+        // A campaign's giving and a member's entitlement keys, for the Analytics module, which
+        // composes after this one and references no module. Read-only.
+        services.AddScoped<Diaspora.Contracts.Financial.V1.Giving.ICampaignAnalyticsSource, Application.Campaigns.CampaignAnalyticsSource>();
+        services.AddScoped<Diaspora.Contracts.Financial.V1.Entitlements.IMemberEntitlementReader, Application.Services.MemberEntitlementReader>();
         services.AddScoped<IDonationRepository, DonationRepository>();
         services.AddScoped<IContributionFundRepository, ContributionFundRepository>();
         services.AddScoped<ICommunityContributionRepository, CommunityContributionRepository>();

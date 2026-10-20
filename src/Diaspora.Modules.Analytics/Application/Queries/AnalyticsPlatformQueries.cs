@@ -1,6 +1,7 @@
 using System.Globalization;
 using Diaspora.Application.Abstractions;
 using Diaspora.Contracts.CommunityProgramme.V1.Analytics;
+using Diaspora.Contracts.Financial.V1.Giving;
 using Diaspora.Modules.Analytics.Application.Services;
 using Diaspora.Modules.Analytics.Contracts.V1.Responses;
 using Diaspora.Modules.Analytics.Domain.Enums;
@@ -64,12 +65,16 @@ public sealed class GetAnalyticsAccessQueryHandler
 
     private readonly AnalyticsQueryContext _context;
     private readonly IEnumerable<ICommunityAnalyticsSource> _communities;
+    private readonly IEnumerable<ICampaignAnalyticsSource> _campaigns;
 
     public GetAnalyticsAccessQueryHandler(
-        AnalyticsQueryContext context, IEnumerable<ICommunityAnalyticsSource> communities)
+        AnalyticsQueryContext context,
+        IEnumerable<ICommunityAnalyticsSource> communities,
+        IEnumerable<ICampaignAnalyticsSource> campaigns)
     {
         _context = context;
         _communities = communities;
+        _campaigns = campaigns;
     }
 
     public async Task<Result<AnalyticsAccessResponse>> Handle(
@@ -133,6 +138,23 @@ public sealed class GetAnalyticsAccessQueryHandler
             canView = reading is { ViewerMayRead: true };
         }
 
+        // A fundraising campaign is read by whoever may run it, and the module that owns campaigns
+        // says who that is — the same answer GET /analytics/campaigns/{id} acts on.
+        var isCampaign = subjectType == "campaign";
+
+        if (!canView
+            && isCampaign
+            && Guid.TryParse(query.SubjectId, out var campaignId)
+            && _campaigns.FirstOrDefault() is { } campaigns)
+        {
+            var now = _context.Calendar.UtcNow;
+            var reading = await campaigns
+                .ReadAsync(campaignId, caller.Value, isPlatformReader, now, now, now, cancellationToken)
+                .ConfigureAwait(false);
+
+            canView = reading is { ViewerMayRead: true };
+        }
+
         if (!canView && Guid.TryParse(query.SubjectId, out var contentId))
         {
             var contentType = AnalyticsContentTypes.FromRouteSegment(subjectType);
@@ -159,7 +181,9 @@ public sealed class GetAnalyticsAccessQueryHandler
 
             // Money is B15's and CREATOR-GAP-008's. Reporting this as true would tell a client to
             // ask for a revenue figure this platform has no authority to produce.
-            CanViewFinancial = false,
+            // The one exception is a fundraising campaign, whose dataset is its giving: money the
+            // caller runs the campaign for, counted by B15 itself.
+            CanViewFinancial = isCampaign && canView,
             CanViewAdministrative = isPlatformReader,
 
             // Comparison across subjects is FRONTEND-PHASE15-GAP-006's contract and is not built.

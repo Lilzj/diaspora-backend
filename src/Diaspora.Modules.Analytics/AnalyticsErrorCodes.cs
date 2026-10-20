@@ -108,4 +108,14 @@ public static class AnalyticsErrorCodes
     public const string ExportExpired = Prefix + "export.expired";
     public const string FunnelUnknown = Prefix + "funnel.unknown";
     public const string FunnelSubjectMismatch = Prefix + "funnel.subject-mismatch";
+
+    // ── Retention, leaderboards, insights, campaigns and premium ────────────────────────────
+
+    public const string PlatformReadRequired = Prefix + "platform.forbidden";
+    public const string RetentionGranularityUnsupported = Prefix + "retention.granularity-unsupported";
+    public const string RetentionCohortCountInvalid = Prefix + "retention.cohort-count-invalid";
+    public const string LeaderboardUnknown = Prefix + "leaderboard.unknown";
+    public const string LeaderboardSubjectMismatch = Prefix + "leaderboard.subject-mismatch";
+    public const string LeaderboardMetricUnsupported = Prefix + "leaderboard.metric-unsupported";
+    public const string PremiumNotEntitled = Prefix + "premium.not-entitled";
 }
