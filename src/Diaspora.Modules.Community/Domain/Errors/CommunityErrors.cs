@@ -107,6 +107,15 @@ public static class CommunityErrors
         CommunityErrorCodes.EmergencyNotPermitted,
         "Only verified members can publish an Emergency alert. Post it as Urgent, or verify your account.");
 
+    /// <summary>
+    /// Refused because the caller asked to publish as an organisation or community they do not
+    /// speak for. One answer for "not yours" and "does not exist", so it cannot be used to probe
+    /// which bodies exist. Never a silent fallback to a personal post: the author chose a byline.
+    /// </summary>
+    public static readonly Error PostPublisherForbidden = Error.Forbidden(
+        CommunityErrorCodes.PostPublisherForbidden,
+        "You cannot publish as that organisation or community. Only the people who run it can.");
+
     // ── Comments ─────────────────────────────────────────────────────────────────────────
 
     public static readonly Error CommentNotFound = Error.NotFound(
@@ -252,6 +261,27 @@ public static class CommunityErrors
 
     public static readonly Error ModerationNotPermitted = Error.Forbidden(
         CommunityErrorCodes.ModerationNotPermitted, "You cannot moderate that.");
+
+    public static readonly Error ReportEscalated = Error.Conflict(
+        CommunityErrorCodes.ReportEscalated,
+        "That report has been escalated to the platform's moderators, who will decide it.");
+
+    public static readonly Error ReportStatusUnknown = Error.Validation(
+        CommunityErrorCodes.ReportStatusUnknown,
+        "Choose Open, UnderReview, Actioned, Dismissed or Escalated.");
+
+    public static readonly Error ModerationDecisionUnknown = Error.Validation(
+        CommunityErrorCodes.ModerationDecisionUnknown,
+        "Choose dismiss, remove-content, warn or escalate.");
+
+    /// <summary>
+    /// Refused rather than recorded. The platform has no way to deliver a warning to an author, and a
+    /// queue that marked a report "warned" when nobody was told anything would be a decision that
+    /// only looks taken.
+    /// </summary>
+    public static readonly Error ModerationWarnUnavailable = Error.Validation(
+        CommunityErrorCodes.ModerationWarnUnavailable,
+        "Warnings cannot be sent yet. Remove the content, dismiss the report, or escalate it.");
 
     // ── Visibility and feeds ─────────────────────────────────────────────────────────────
 

@@ -75,6 +75,9 @@ public static class CommunityErrorCodes
     public const string OwnershipOfferStale = Prefix + ".ownership.stale";
     public const string NotTheOwner = Prefix + ".owner.not-the-owner";
     public const string CannotManageRoles = Prefix + ".role.cannot-manage";
+
+    // The per-community moderation queue — 21 Oct 2026.
+    public const string CannotModerate = Prefix + ".moderation.forbidden";
     public const string TargetNotAMember = Prefix + ".role.target-not-a-member";
     public const string UnknownRole = Prefix + ".role.unknown";
     public const string PlatformAdministratorsOnly = Prefix + ".platform-administrators-only";

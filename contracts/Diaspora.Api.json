@@ -3844,320 +3844,6 @@
         }
       }
     },
-    "/api/v1/analytics/communities/{communityId}": {
-      "get": {
-        "tags": [
-          "Analytics"
-        ],
-        "summary": "A community's members, joins and net change over a period, for its moderators and administrators.",
-        "operationId": "GetCommunityAnalyticsDataset",
-        "parameters": [
-          {
-            "name": "communityId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "period",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "from",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "to",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "timezone",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/analytics/funnels/{funnelKey}": {
-      "get": {
-        "tags": [
-          "Analytics"
-        ],
-        "summary": "One journey (job, marketplace, housing, provider or monetization) counted step by step, with the steps nothing records named.",
-        "operationId": "GetAnalyticsFunnel",
-        "parameters": [
-          {
-            "name": "funnelKey",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "subjectType",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "subjectId",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "period",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "from",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "to",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "timezone",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/analytics/reports": {
-      "get": {
-        "tags": [
-          "Analytics"
-        ],
-        "operationId": "ListAnalyticsReports",
-        "parameters": [
-          {
-            "name": "scope",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "Analytics"
-        ],
-        "operationId": "CreateAnalyticsReport",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateAnalyticsReportRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/analytics/reports/{reportId}": {
-      "get": {
-        "tags": [
-          "Analytics"
-        ],
-        "operationId": "GetAnalyticsReport",
-        "parameters": [
-          {
-            "name": "reportId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "Analytics"
-        ],
-        "operationId": "UpdateAnalyticsReport",
-        "parameters": [
-          {
-            "name": "reportId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateAnalyticsReportRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Analytics"
-        ],
-        "operationId": "DeleteAnalyticsReport",
-        "parameters": [
-          {
-            "name": "reportId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/analytics/exports": {
-      "post": {
-        "tags": [
-          "Analytics"
-        ],
-        "summary": "Exports one subject's dataset as CSV. The job is ready when it is returned; its link lasts twelve hours.",
-        "operationId": "RequestAnalyticsExport",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RequestAnalyticsExportRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/analytics/exports/{exportId}": {
-      "get": {
-        "tags": [
-          "Analytics"
-        ],
-        "operationId": "GetAnalyticsExport",
-        "parameters": [
-          {
-            "name": "exportId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/analytics/exports/{exportId}/download": {
-      "get": {
-        "tags": [
-          "Analytics"
-        ],
-        "summary": "The exported CSV, for the export's link token or its owner.",
-        "operationId": "DownloadAnalyticsExport",
-        "parameters": [
-          {
-            "name": "exportId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "token",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
     "/api/v1/analytics/operations/backfill": {
       "post": {
         "tags": [
@@ -9742,7 +9428,7 @@
         "tags": [
           "Community Programme"
         ],
-        "summary": "Members the caller may see: those who made their membership visible, and the caller. For members only. ?role= narrows it to one role's holders.",
+        "summary": "Members the caller may see: those who made their membership visible, and the caller. For members only.",
         "operationId": "ListCommunityMembers",
         "parameters": [
           {
@@ -9770,13 +9456,6 @@
                 "string"
               ],
               "format": "int32"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "schema": {
-              "type": "string"
             }
           }
         ],
@@ -10148,43 +9827,13 @@
         }
       }
     },
-    "/api/v1/communities/compare": {
+    "/api/v1/communities/{idOrSlug}/reports": {
       "get": {
         "tags": [
           "Community Programme"
         ],
-        "summary": "Two to four communities' figures side by side, aligned by metric. No winner, ranking or score, and no restricted figure.",
-        "operationId": "CompareCommunities",
-        "parameters": [
-          {
-            "name": "ids",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "period",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/communities/{idOrSlug}/statistics": {
-      "get": {
-        "tags": [
-          "Community Programme"
-        ],
-        "summary": "A community's figures for 7d, 30d, 90d, 12m or all: members, joins, notices and rules, plus departures and members' activity for those who run it. Counted, never estimated.",
-        "operationId": "GetCommunityStatistics",
+        "summary": "Reports about this community's content, oldest first, one row per piece of content. Moderators and administrators of the community. No reporter identity. The next page's cursor is in the X-Next-Cursor header.",
+        "operationId": "ListCommunityReports",
         "parameters": [
           {
             "name": "idOrSlug",
@@ -10195,10 +9844,29 @@
             }
           },
           {
-            "name": "period",
+            "name": "status",
             "in": "query",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
             }
           }
         ],
@@ -10209,69 +9877,13 @@
         }
       }
     },
-    "/api/v1/communities/{idOrSlug}/rules": {
-      "get": {
-        "tags": [
-          "Community Programme"
-        ],
-        "summary": "A community's rules, in order. As public as the community.",
-        "operationId": "ListCommunityRules",
-        "parameters": [
-          {
-            "name": "idOrSlug",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      },
+    "/api/v1/communities/{idOrSlug}/reports/{reportId}/decision": {
       "post": {
         "tags": [
           "Community Programme"
         ],
-        "summary": "Add a rule. Needs canManageRules: the owner or an administrator.",
-        "operationId": "CreateCommunityRule",
-        "parameters": [
-          {
-            "name": "idOrSlug",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SaveCommunityRuleRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/communities/{idOrSlug}/rules/{ruleId}": {
-      "put": {
-        "tags": [
-          "Community Programme"
-        ],
-        "summary": "Replace a rule's text, and optionally move it. Needs canManageRules.",
-        "operationId": "UpdateCommunityRule",
+        "summary": "Decide a report about this community's content: dismiss, remove-content or escalate. Answers every open report about the same content. A report about anything else is not found.",
+        "operationId": "DecideCommunityReport",
         "parameters": [
           {
             "name": "idOrSlug",
@@ -10282,7 +9894,7 @@
             }
           },
           {
-            "name": "ruleId",
+            "name": "reportId",
             "in": "path",
             "required": true,
             "schema": {
@@ -10295,282 +9907,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SaveCommunityRuleRequest"
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DecideCommunityReportRequest"
+                  }
+                ]
               }
             }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
           }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Community Programme"
-        ],
-        "summary": "Remove a rule. Answers the rules that remain, renumbered. Needs canManageRules.",
-        "operationId": "DeleteCommunityRule",
-        "parameters": [
-          {
-            "name": "idOrSlug",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "ruleId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/communities/{idOrSlug}/notices": {
-      "get": {
-        "tags": [
-          "Community Programme"
-        ],
-        "summary": "A community's notices, pinned first then newest. Open communities to anybody; private ones to their current members.",
-        "operationId": "ListCommunityNotices",
-        "parameters": [
-          {
-            "name": "idOrSlug",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "includeExpired",
-            "in": "query",
-            "schema": {
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "Community Programme"
-        ],
-        "summary": "Publish a notice to the community. Needs canPublishNotice.",
-        "operationId": "PublishCommunityNotice",
-        "parameters": [
-          {
-            "name": "idOrSlug",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SaveCommunityNoticeRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/communities/{idOrSlug}/notices/{noticeId}": {
-      "put": {
-        "tags": [
-          "Community Programme"
-        ],
-        "summary": "Revise a notice. Its author while they belong, or anybody with canPublishNotice.",
-        "operationId": "UpdateCommunityNotice",
-        "parameters": [
-          {
-            "name": "idOrSlug",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "noticeId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SaveCommunityNoticeRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Community Programme"
-        ],
-        "summary": "Remove a notice. Its author while they belong, or anybody with canPublishNotice.",
-        "operationId": "DeleteCommunityNotice",
-        "parameters": [
-          {
-            "name": "idOrSlug",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "noticeId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/communities/{idOrSlug}/roles": {
-      "get": {
-        "tags": [
-          "Community Programme"
-        ],
-        "summary": "Who holds an office — owner, administrators, moderators, ambassadors — as each chose to be seen: Public to anybody, CommunityOnly to members. ?role= narrows it.",
-        "operationId": "ListCommunityRoleHolders",
-        "parameters": [
-          {
-            "name": "idOrSlug",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/communities/preferences/me": {
-      "get": {
-        "tags": [
-          "Community Programme"
-        ],
-        "summary": "The caller's community preferences, or the privacy-safe defaults with isSaved false.",
-        "operationId": "GetMyCommunityPreferences",
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "Community Programme"
-        ],
-        "summary": "Save the caller's community preferences. Omitted fields keep their stored value.",
-        "operationId": "SaveMyCommunityPreferences",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SaveCommunityPreferencesRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/communities/me/preferences": {
-      "get": {
-        "tags": [
-          "Community Programme"
-        ],
-        "summary": "The caller's community preferences, or the privacy-safe defaults with isSaved false.",
-        "operationId": "GetMyCommunityPreferencesAtMe",
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "Community Programme"
-        ],
-        "summary": "Save the caller's community preferences. Omitted fields keep their stored value.",
-        "operationId": "SaveMyCommunityPreferencesAtMe",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SaveCommunityPreferencesRequest"
-              }
-            }
-          },
-          "required": true
         },
         "responses": {
           "200": {
@@ -12219,30 +11566,6 @@
                 "string"
               ],
               "format": "int32"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/communities/campaigns/me": {
-      "get": {
-        "tags": [
-          "Community Programme"
-        ],
-        "summary": "The campaigns the caller organises, drafts included, as one list (at most 500). The same rule as /campaigns?mine=true.",
-        "operationId": "ListMyCampaigns",
-        "parameters": [
-          {
-            "name": "organizationId",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
             }
           }
         ],
@@ -36841,160 +36164,6 @@
           }
         }
       },
-      "AnalyticsFilterPayload": {
-        "type": "object",
-        "properties": {
-          "dimension": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "values": {
-            "type": [
-              "null",
-              "array"
-            ],
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      "AnalyticsQueryPayload": {
-        "type": "object",
-        "properties": {
-          "subject": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/AnalyticsSubjectPayload"
-              }
-            ]
-          },
-          "metrics": {
-            "type": [
-              "null",
-              "array"
-            ],
-            "items": {
-              "type": "string"
-            }
-          },
-          "range": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/AnalyticsRangePayload"
-              }
-            ]
-          },
-          "granularity": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "comparison": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "filters": {
-            "type": [
-              "null",
-              "array"
-            ],
-            "items": {
-              "$ref": "#/components/schemas/AnalyticsFilterPayload"
-            }
-          },
-          "breakdowns": {
-            "type": [
-              "null",
-              "array"
-            ],
-            "items": {
-              "type": "string"
-            }
-          },
-          "includeSeries": {
-            "type": [
-              "null",
-              "boolean"
-            ]
-          },
-          "communityScopeToken": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
-      "AnalyticsRangePayload": {
-        "type": "object",
-        "properties": {
-          "preset": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "from": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "to": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "timezone": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "isDeviceTimezone": {
-            "type": [
-              "null",
-              "boolean"
-            ]
-          }
-        }
-      },
-      "AnalyticsSubjectPayload": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "id": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "label": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
       "AnonymousTypeOfstringAndstringAndIReadOnlyListOfModuleInfoAndstring": {
         "required": [
           "platform",
@@ -39488,33 +38657,6 @@
           }
         }
       },
-      "CommunityNotificationPreferenceRequest": {
-        "type": "object",
-        "properties": {
-          "categoryKey": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "scope": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "communityIds": {
-            "type": [
-              "null",
-              "array"
-            ],
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        }
-      },
       "CompleteLessonRequest": {
         "type": "object",
         "properties": {
@@ -39980,45 +39122,6 @@
             "format": "uuid"
           },
           "productCode": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
-      "CreateAnalyticsReportRequest": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "description": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "query": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/AnalyticsQueryPayload"
-              }
-            ]
-          },
-          "visualization": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "sharing": {
             "type": [
               "null",
               "string"
@@ -43179,6 +42282,23 @@
             "type": "boolean"
           },
           "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "DecideCommunityReportRequest": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "note": {
             "type": [
               "null",
               "string"
@@ -48215,27 +47335,6 @@
           }
         }
       },
-      "RequestAnalyticsExportRequest": {
-        "type": "object",
-        "properties": {
-          "query": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/AnalyticsQueryPayload"
-              }
-            ]
-          },
-          "format": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
       "RequestCommunityDeletionRequest": {
         "type": "object",
         "properties": {
@@ -48678,118 +47777,6 @@
               "null",
               "string"
             ]
-          }
-        }
-      },
-      "SaveCommunityNoticeRequest": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "body": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "expiresAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          },
-          "isPinned": {
-            "type": [
-              "null",
-              "boolean"
-            ]
-          }
-        }
-      },
-      "SaveCommunityPreferencesRequest": {
-        "type": "object",
-        "properties": {
-          "crossCommunityDiscoveryEnabled": {
-            "type": [
-              "null",
-              "boolean"
-            ]
-          },
-          "showPrimaryCommunityOnProfile": {
-            "type": [
-              "null",
-              "boolean"
-            ]
-          },
-          "showInterestedCommunitiesOnProfile": {
-            "type": [
-              "null",
-              "boolean"
-            ]
-          },
-          "showCommunityRolesOnProfile": {
-            "type": [
-              "null",
-              "boolean"
-            ]
-          },
-          "notifications": {
-            "type": [
-              "null",
-              "array"
-            ],
-            "items": {
-              "$ref": "#/components/schemas/CommunityNotificationPreferenceRequest"
-            }
-          },
-          "preferredContentLanguage": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "defaultMembershipVisibility": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
-      "SaveCommunityRuleRequest": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "body": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "consequence": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "position": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "null",
-              "integer",
-              "string"
-            ],
-            "format": "int32"
           }
         }
       },
@@ -51903,51 +50890,6 @@
             "type": [
               "null",
               "string"
-            ]
-          }
-        }
-      },
-      "UpdateAnalyticsReportRequest": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "description": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "query": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/AnalyticsQueryPayload"
-              }
-            ]
-          },
-          "visualization": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "sharing": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "isFavorite": {
-            "type": [
-              "null",
-              "boolean"
             ]
           }
         }

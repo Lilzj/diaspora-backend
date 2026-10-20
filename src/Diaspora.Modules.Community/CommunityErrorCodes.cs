@@ -38,6 +38,7 @@ public static class CommunityErrorCodes
     public const string AffectedAreaNeedsPoint = "community.post.affected-area.needs-point";
     public const string AffectedRadiusOutOfRange = "community.post.affected-area.out-of-range";
     public const string EmergencyNotPermitted = "community.post.emergency.not-permitted";
+    public const string PostPublisherForbidden = "community.post.publisher-forbidden";
 
     public const string CommentNotFound = "community.comment.not-found";
     public const string CommentBodyEmpty = "community.comment.body-empty";
@@ -86,6 +87,12 @@ public static class CommunityErrorCodes
 
     public const string ModerationDecisionInvalid = "community.moderation.invalid-decision";
     public const string ModerationNotPermitted = "community.moderation.not-permitted";
+
+    // The per-community queue, 21 Oct 2026. See PublisherReportQueue.
+    public const string ReportEscalated = "community.report.escalated";
+    public const string ReportStatusUnknown = "community.report.status-unknown";
+    public const string ModerationDecisionUnknown = "community.moderation.decision-unknown";
+    public const string ModerationWarnUnavailable = "community.moderation.warn-unavailable";
 
     public const string VisibilityDenied = "community.visibility.denied";
     public const string VisibilityRuleNotFound = "community.visibility.rule-not-found";

@@ -177,6 +177,15 @@ public static class CommunityErrors
         CommunityErrorCodes.CannotManageRoles,
         "Only this community's owner and administrators can change roles.");
 
+    /// <summary>
+    /// The per-community moderation queue: reading it and deciding from it. Forbidden rather than
+    /// not-found, because the community itself is one the caller may see — what they may not do
+    /// is moderate it.
+    /// </summary>
+    public static readonly Error CannotModerate = Error.Forbidden(
+        CommunityErrorCodes.CannotModerate,
+        "Only this community's moderators and administrators can see or decide its reports.");
+
     public static readonly Error TargetNotAMember = Error.Conflict(
         CommunityErrorCodes.TargetNotAMember,
         "That person is not a member of this community.");

@@ -41,6 +41,7 @@ public sealed class CreatePostCommandHandler
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
     private readonly CommunityAuthorNames _authorNames;
+    private readonly PublisherAuthorization _publishers;
 
     public CreatePostCommandHandler(
         ICommunityPostRepository posts,
@@ -50,7 +51,8 @@ public sealed class CreatePostCommandHandler
         ICurrentUser currentUser,
         IUnitOfWork unitOfWork,
         IClock clock,
-        CommunityAuthorNames authorNames)
+        CommunityAuthorNames authorNames,
+        PublisherAuthorization publishers)
     {
         _posts = posts;
         _composer = composer;
@@ -60,6 +62,7 @@ public sealed class CreatePostCommandHandler
         _unitOfWork = unitOfWork;
         _clock = clock;
         _authorNames = authorNames;
+        _publishers = publishers;
     }
 
     public async Task<Result<CommunityPostResponse>> Handle(
@@ -101,17 +104,24 @@ public sealed class CreatePostCommandHandler
             return Result.Failure<CommunityPostResponse>(CommunityErrors.EmergencyNotPermitted);
         }
 
+        // Publishing as an organisation or community needs its say-so (20 Oct 2026). It was stored
+        // unchecked, so anybody could post as any community, and that community's moderation queue
+        // reads such a post as its own. Refused outright, never quietly turned into a personal post:
+        // the author chose the byline, and a post under a different one is not what they wrote.
+        var publisher = await _publishers.ResolveAsync(
+            userId, payload.PublishAsOrganizationId, cancellationToken);
+
+        if (publisher.IsFailure)
+        {
+            return Result.Failure<CommunityPostResponse>(publisher.Error);
+        }
+
         var audience = BuildAudience(payload);
         var location = await ResolveLocationAsync(payload, cancellationToken);
 
-        var publisher = payload.PublishAsOrganizationId is { } organizationId
-            ? PublishingIdentity.ForOrganization(
-                PublishingIdentityType.Organization, organizationId, null)
-            : PublishingIdentity.Personal();
-
         var draft = CommunityPost.Draft(
             userId,
-            publisher,
+            publisher.Value,
             body.Value,
             title.Value,
             category,

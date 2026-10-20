@@ -1,6 +1,8 @@
+using Diaspora.Modules.Community.Domain.Comments;
 using Diaspora.Modules.Community.Domain.Enums;
 using Diaspora.Modules.Community.Domain.Identifiers;
 using Diaspora.Modules.Community.Domain.Moderation;
+using Diaspora.Modules.Community.Domain.Posts;
 using Diaspora.Modules.Community.Domain.ValueObjects;
 using Diaspora.Persistence;
 using Diaspora.Persistence.Paging;
@@ -64,6 +66,110 @@ public sealed class ReportRepository : IReportRepository
             query = query.Where(report => report.Reason == code);
         }
 
+        return await PageAsync(query, cursor, limit, cancellationToken);
+    }
+
+    public async Task<CursorPagedResult<ContentReport>> ListAboutPublisherAsync(
+        Guid publisherId,
+        IReadOnlyCollection<ReportStatus> statuses,
+        FeedCursor? cursor,
+        int limit,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(statuses);
+
+        // Two reads for the identifiers, then the reports. The post identifier is a converted
+        // strongly-typed key and the report's content identifier a plain Guid, so a join would have
+        // to go through EF.Property — which compiles and then fails on the first cursor here (see
+        // the cursor-paging note). The lists are one community's posts and their comments.
+        var postIds = await PostIdsPublishedAsAsync(publisherId, cancellationToken);
+
+        if (postIds.Count == 0)
+        {
+            return CursorPagedResult<ContentReport>.Create([], null, false);
+        }
+
+        var commentIds = await CommentIdsUnderAsync(postIds, cancellationToken);
+
+        var query = Reports.Where(report =>
+            (report.Content.Type == CommunityContentType.Post && postIds.Contains(report.Content.Id))
+            || (report.Content.Type == CommunityContentType.Comment
+                && commentIds.Contains(report.Content.Id)));
+
+        if (statuses.Count > 0)
+        {
+            var wanted = statuses.Distinct().ToList();
+            query = query.Where(report => wanted.Contains(report.Status));
+        }
+
+        return await PageAsync(query, cursor, limit, cancellationToken);
+    }
+
+    public async Task<bool> IsAboutPublisherAsync(
+        ContentReference content, Guid publisherId, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(content);
+
+        var postId = content.Type switch
+        {
+            CommunityContentType.Post => content.Id,
+            CommunityContentType.Comment => await PostUnderCommentAsync(content.Id, cancellationToken),
+            _ => (Guid?)null
+        };
+
+        if (postId is not { } id)
+        {
+            return false;
+        }
+
+        var typed = CommunityPostId.From(id);
+
+        return await _dbContext.Set<CommunityPost>().AnyAsync(
+            post => post.Id == typed && post.Publisher.OrganizationId == publisherId,
+            cancellationToken);
+    }
+
+    private async Task<List<Guid>> PostIdsPublishedAsAsync(
+        Guid publisherId, CancellationToken cancellationToken)
+    {
+        var ids = await _dbContext.Set<CommunityPost>()
+            .Where(post => post.Publisher.OrganizationId == publisherId)
+            .Select(post => post.Id)
+            .ToListAsync(cancellationToken);
+
+        return [.. ids.Select(id => id.Value)];
+    }
+
+    private async Task<List<Guid>> CommentIdsUnderAsync(
+        List<Guid> postIds, CancellationToken cancellationToken)
+    {
+        var ids = await _dbContext.Set<Comment>()
+            .Where(comment => comment.Content.Type == CommunityContentType.Post
+                && postIds.Contains(comment.Content.Id))
+            .Select(comment => comment.Id)
+            .ToListAsync(cancellationToken);
+
+        return [.. ids.Select(id => id.Value)];
+    }
+
+    private async Task<Guid?> PostUnderCommentAsync(Guid commentId, CancellationToken cancellationToken)
+    {
+        var typed = CommentId.From(commentId);
+
+        var target = await _dbContext.Set<Comment>()
+            .Where(comment => comment.Id == typed)
+            .Select(comment => new { comment.Content.Type, comment.Content.Id })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return target is { Type: CommunityContentType.Post } ? target.Id : null;
+    }
+
+    private static async Task<CursorPagedResult<ContentReport>> PageAsync(
+        IQueryable<ContentReport> query,
+        FeedCursor? cursor,
+        int limit,
+        CancellationToken cancellationToken)
+    {
         if (cursor is not null)
         {
             // Oldest-first, so the window is mirrored: everything after the boundary

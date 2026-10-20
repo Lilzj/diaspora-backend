@@ -123,6 +123,13 @@ public sealed class CommunityModule : IPlatformModule
         services.AddScoped<
             Diaspora.Contracts.Community.V1.Activity.IMemberPostActivityReader,
             Application.Services.MemberPostActivityReader>();
+
+        // 21 Oct 2026. The reports about one community's content, for Community Programme's
+        // per-community moderation queue. Community Programme decides who may moderate; this
+        // module decides what the reports are and applies the decision.
+        services.AddScoped<
+            Diaspora.Contracts.Community.V1.Moderation.IPublisherReportQueue,
+            Application.Services.PublisherReportQueue>();
     }
 
     private static void RegisterServices(IServiceCollection services)
@@ -130,6 +137,7 @@ public sealed class CommunityModule : IPlatformModule
         services.AddScoped<ContentReferenceResolver>();
         services.AddScoped<ViewerContextResolver>();
         services.AddScoped<CommunityAuthorNames>();
+        services.AddScoped<PublisherAuthorization>();
         services.AddScoped<VisibilityService>();
         services.AddScoped<ReactionCatalogLoader>();
         services.AddScoped<ReactionService>();

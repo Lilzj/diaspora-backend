@@ -118,6 +118,13 @@ public sealed class CommunityLifeModule : IPlatformModule
             Diaspora.Contracts.Automation.V1.Extensibility.IAutomationScopeAuthority,
             Extensibility.Automation.OrganizationAutomationAuthority>();
 
+        // 20 Oct 2026. Who may publish a Community post as an organisation: an Organizer or above.
+        // Community composes at 500 and cannot reference this module, so it asks every registered
+        // IPublisherAuthority; Community Programme registers the other one, for communities.
+        services.AddScoped<
+            Diaspora.Contracts.Community.V1.Publishing.IPublisherAuthority,
+            Extensibility.Publishing.OrganizationPublisherAuthority>();
+
         // Phase 5. What an event answers when a member is building or testing a rule about it. The
         // automation platform had no way to describe a subject, so `POST /automations/simulate` took
         // a sample event's identifier, carried it into an otherwise empty trigger context, and told
