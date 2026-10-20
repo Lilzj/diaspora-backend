@@ -53,6 +53,21 @@ internal static class SocialEndpoints
             .WithName("ShareCommunityPost")
             .WithSummary("Record a share of a post.");
 
+        group.MapGet("/follows/{targetId:guid}", async (
+                Guid targetId,
+                string? targetType,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new GetFollowStateQuery { TargetId = targetId, TargetType = targetType },
+                        cancellationToken)))
+            .RequireAuthorization(CommunityPolicies.Follow)
+            .WithName("GetCommunityFollowState")
+            .WithSummary("Whether the caller follows a target, and how many people do.");
+
         group.MapPost("/follows/{targetId:guid}", async (
                 Guid targetId,
                 FollowRequest? request,

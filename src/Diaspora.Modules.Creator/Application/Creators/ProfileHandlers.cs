@@ -242,3 +242,68 @@ public sealed class GetPublicCreatorQueryHandler
         return Result.Success(creator.ToPublicResponse(badges));
     }
 }
+
+/// <summary>
+/// A creator's public projection, found by the member behind it.
+/// <para>
+/// <b>Reached from an author byline, which carries a user identifier and never a creator one.</b>
+/// Added 20 Oct 2026 so a guide's author can be opened as a contributor and followed.
+/// </para>
+/// <para>
+/// <b>Discoverability is not applied, deliberately.</b> Opting out of the directory keeps a creator
+/// out of search and leaderboards; it does not hide the author of something they published under
+/// their own name, which the reader already knows. Suspension and restriction still answer 404 to
+/// everybody but the creator, exactly as <see cref="GetPublicCreatorQuery"/> does.
+/// </para>
+/// </summary>
+[Authorize(Permission = CreatorPermissions.ProfileRead)]
+public sealed record GetPublicCreatorByUserQuery : IQuery<PublicCreatorResponse>
+{
+    public required Guid UserId { get; init; }
+}
+
+public sealed class GetPublicCreatorByUserQueryHandler
+    : IQueryHandler<GetPublicCreatorByUserQuery, PublicCreatorResponse>
+{
+    private readonly ICreatorProfileRepository _creators;
+    private readonly CreatorBadgeReader _badges;
+    private readonly CreatorContext _context;
+
+    public GetPublicCreatorByUserQueryHandler(
+        ICreatorProfileRepository creators, CreatorBadgeReader badges, CreatorContext context)
+    {
+        _creators = creators;
+        _badges = badges;
+        _context = context;
+    }
+
+    public async Task<Result<PublicCreatorResponse>> Handle(
+        GetPublicCreatorByUserQuery query, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        if (query.UserId == Guid.Empty)
+        {
+            return Result.Failure<PublicCreatorResponse>(CreatorErrors.CreatorNotFound);
+        }
+
+        var creator = await _creators.FindByUserAsync(query.UserId, cancellationToken);
+
+        if (creator is null)
+        {
+            return Result.Failure<PublicCreatorResponse>(CreatorErrors.CreatorNotFound);
+        }
+
+        var caller = _context.RequireUser();
+        var isSelf = caller.IsSuccess && caller.Value == creator.UserId;
+
+        if (!isSelf && (creator.IsSuspended || creator.IsRestricted))
+        {
+            return Result.Failure<PublicCreatorResponse>(CreatorErrors.CreatorNotFound);
+        }
+
+        var badges = await _badges.ForAsync(creator.Id, cancellationToken);
+
+        return Result.Success(creator.ToPublicResponse(badges));
+    }
+}

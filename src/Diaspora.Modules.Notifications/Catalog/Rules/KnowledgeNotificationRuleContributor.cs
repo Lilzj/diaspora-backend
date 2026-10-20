@@ -41,6 +41,19 @@ public sealed class KnowledgeNotificationRuleContributor : INotificationRuleCont
             Channels = [NotificationChannelKind.InApp, NotificationChannelKind.Push]
         };
 
+        // 20 Oct 2026. The author's followers, told once per guide — the consumer only raises it
+        // on a first publication, so an edited guide republished does not announce itself again.
+        yield return new NotificationRuleSeed
+        {
+            Key = "following.guide.published",
+            EventName = typeof(GuidePublishedIntegrationEvent).FullName!,
+            Audience = "follower",
+            TemplateKey = NotificationTemplateKeys.FollowedAuthorGuidePublished,
+            CategoryKey = NotificationCategoryKeys.Following,
+            Priority = NotificationPriority.Normal,
+            Channels = [NotificationChannelKind.InApp, NotificationChannelKind.Push]
+        };
+
         yield return new NotificationRuleSeed
         {
             Key = "learning.guide.featured",

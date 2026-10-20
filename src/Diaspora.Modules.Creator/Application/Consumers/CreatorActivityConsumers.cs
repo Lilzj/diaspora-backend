@@ -519,7 +519,10 @@ public sealed class FollowCreatedCreatorConsumer
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
 
-        if (!string.Equals(integrationEvent.TargetType, "User", StringComparison.OrdinalIgnoreCase))
+        // Community publishes "member". This compared against "User" from the start, so no follow
+        // ever reached a creator's count until 20 Oct 2026. "User" is still accepted for any event
+        // written in the old vocabulary.
+        if (!FollowTargets.IsMember(integrationEvent.TargetType))
         {
             return;
         }
@@ -550,6 +553,77 @@ public sealed class FollowCreatedCreatorConsumer
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
+}
+
+/// <summary>
+/// The other half of <see cref="FollowCreatedCreatorConsumer"/>: an unfollow takes one away.
+/// <para>
+/// Never below zero — <c>AdjustAudience</c> clamps — so an unfollow of a follow that was counted
+/// before this consumer existed (or never counted, under the old "User" comparison) cannot drive a
+/// tally negative.
+/// </para>
+/// </summary>
+public sealed class FollowRemovedCreatorConsumer
+    : IntegrationEventHandler<CommunityFollowRemovedIntegrationEvent>
+{
+    private readonly ICreatorProfileRepository _creators;
+    private readonly CreatorStatusService _status;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IClock _clock;
+
+    public FollowRemovedCreatorConsumer(
+        ICreatorProfileRepository creators,
+        CreatorStatusService status,
+        IUnitOfWork unitOfWork,
+        IClock clock)
+    {
+        _creators = creators;
+        _status = status;
+        _unitOfWork = unitOfWork;
+        _clock = clock;
+    }
+
+    protected override async Task HandleAsync(
+        CommunityFollowRemovedIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+
+        if (!FollowTargets.IsMember(integrationEvent.TargetType))
+        {
+            return;
+        }
+
+        var followed = await _creators.FindByUserAsync(integrationEvent.TargetId, cancellationToken);
+
+        if (followed is null)
+        {
+            return;
+        }
+
+        followed.AdjustAudience(-1, 0, 0, _clock.UtcNow);
+        _creators.Update(followed);
+
+        var follower = await _creators.FindByUserAsync(
+            integrationEvent.FollowerId, cancellationToken);
+
+        if (follower is not null)
+        {
+            follower.AdjustAudience(0, -1, 0, _clock.UtcNow);
+            _creators.Update(follower);
+        }
+
+        await _status.RefreshAsync(followed, cancellationToken);
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+}
+
+/// <summary>Which follow events concern a member, in either vocabulary Community has used.</summary>
+internal static class FollowTargets
+{
+    public static bool IsMember(string? targetType) =>
+        string.Equals(targetType, "member", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(targetType, "User", StringComparison.OrdinalIgnoreCase);
 }
 
 /// <summary>

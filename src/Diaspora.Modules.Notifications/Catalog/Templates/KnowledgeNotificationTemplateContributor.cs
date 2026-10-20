@@ -46,6 +46,31 @@ public sealed class KnowledgeNotificationTemplateContributor : INotificationTemp
 
         yield return new NotificationTemplateSeed
         {
+            Key = NotificationTemplateKeys.FollowedAuthorGuidePublished,
+            CategoryKey = NotificationCategoryKeys.Following,
+            Priority = NotificationPriority.Normal,
+            RouteTemplate = "/guide/{guideid}",
+            Description = "A member you follow published a new guide.",
+            Variables =
+            [
+                new TemplateVariableSeed { Name = "authorname", Sample = "Amara Kone" },
+                new TemplateVariableSeed { Name = "title", Sample = "Opening a bank account in Lyon" },
+                new TemplateVariableSeed { Name = "guideid", Sample = "8f2c" }
+            ],
+            Localizations =
+            [
+                new TemplateLocalizationSeed
+                {
+                    Language = "en",
+                    Title = "New guide from {authorname}",
+                    Body = "{authorname} published a new guide: {title}",
+                    ShortBody = "{authorname} published a new guide."
+                }
+            ]
+        };
+
+        yield return new NotificationTemplateSeed
+        {
             Key = NotificationTemplateKeys.KnowledgeGuideFeatured,
             CategoryKey = NotificationCategoryKeys.Learning,
             Priority = NotificationPriority.Low,

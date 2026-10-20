@@ -95,6 +95,15 @@ public sealed class PlatformNotificationCategoryContributor : INotificationCateg
 
         yield return new NotificationCategorySeed
         {
+            Key = NotificationCategoryKeys.Following,
+            DisplayName = "People You Follow",
+            Description = "When a contributor you follow publishes something new.",
+            DefaultPriority = NotificationPriority.Normal,
+            Position = 75
+        };
+
+        yield return new NotificationCategorySeed
+        {
             Key = NotificationCategoryKeys.Organizations,
             DisplayName = "Organizations",
             Description = "Invitations and membership decisions.",
