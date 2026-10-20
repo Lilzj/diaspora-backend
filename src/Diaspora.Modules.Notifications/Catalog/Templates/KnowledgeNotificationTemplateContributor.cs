@@ -26,7 +26,8 @@ public sealed class KnowledgeNotificationTemplateContributor : INotificationTemp
             Key = NotificationTemplateKeys.GuideFeatured,
             CategoryKey = NotificationCategoryKeys.Guides,
             Priority = NotificationPriority.Low,
-            RouteTemplate = "/guides/{guideid}",
+            // The app's screen is /guide/[id] (20 Oct 2026); /guides/{id} opened nothing.
+            RouteTemplate = "/guide/{guideid}",
             Description = "An editor featured a guide.",
             Variables =
             [

@@ -3021,6 +3021,92 @@
         }
       }
     },
+    "/api/v1/auth/profile/avatar": {
+      "put": {
+        "tags": [
+          "Profile"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetAvatarRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetAvatarRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetAvatarRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseOfAvatarResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Profile"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseOfAvatarResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/sessions": {
       "get": {
         "tags": [
@@ -13009,6 +13095,42 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/creators/me/cover": {
+      "put": {
+        "tags": [
+          "Creator"
+        ],
+        "summary": "Makes one of the caller's own image uploads their cover. Answers the profile, whose coverImageUrl is absolute and readable without a token.",
+        "operationId": "SetMyCreatorCover",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetCreatorCoverRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Creator"
+        ],
+        "summary": "Clears the cover and makes the uploaded image private again.",
+        "operationId": "RemoveMyCreatorCover",
         "responses": {
           "200": {
             "description": "OK"
@@ -36088,6 +36210,28 @@
           }
         }
       },
+      "ApiResponseOfAvatarResponse": {
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AvatarResponse"
+              }
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        }
+      },
       "ApiResponseOfCacheStatistics": {
         "required": [
           "data",
@@ -37597,6 +37741,24 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "AvatarResponse": {
+        "type": "object",
+        "properties": {
+          "avatarUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "mediaId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -48740,6 +48902,18 @@
           }
         }
       },
+      "SetAvatarRequest": {
+        "required": [
+          "mediaId"
+        ],
+        "type": "object",
+        "properties": {
+          "mediaId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
       "SetCampaignFundUsageRequest": {
         "required": [
           "lines"
@@ -48765,6 +48939,18 @@
             "items": {
               "$ref": "#/components/schemas/CampaignMilestoneInput"
             }
+          }
+        }
+      },
+      "SetCreatorCoverRequest": {
+        "required": [
+          "mediaId"
+        ],
+        "type": "object",
+        "properties": {
+          "mediaId": {
+            "type": "string",
+            "format": "uuid"
           }
         }
       },
@@ -54424,6 +54610,12 @@
             "type": "string"
           },
           "avatarStorageKey": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "avatarUrl": {
             "type": [
               "null",
               "string"

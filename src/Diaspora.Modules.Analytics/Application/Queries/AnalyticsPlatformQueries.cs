@@ -100,7 +100,9 @@ public sealed class GetAnalyticsAccessQueryHandler
         // client sends the caller's user id as its identifier — the same
         // protection the creator subject gets from carrying no id at all. So the
         // rule is ownership: you may read a role subject when it is you.
-        var canView = subjectType == "creator";
+        // The platform overview is aggregate counts any signed-in member may read, matching
+        // GET /analytics/platform (20 Oct 2026); the administrative views stay staff-only.
+        var canView = subjectType is "creator" or "platform";
 
         if (!canView && RoleSubjects.Contains(subjectType))
         {
