@@ -192,23 +192,15 @@ public sealed class GatewayEmailSender : IEmailSender
     /// <remarks>
     /// <para>
     /// A notification's <c>Route</c> is an in-app path such as <c>/housing/123</c>. On its own that
-    /// is useless in an inbox, so it is joined to the deployment's public base to make something a
-    /// mail client can follow.
+    /// is useless in an inbox, so it is wrapped as <c>{AppBaseUrl}/open/housing/123</c>: a page the
+    /// API actually serves, which hands off to the app. Joining the route straight onto the base
+    /// (as this did until 20 Oct 2026) produced a 404 on the API host. See <see cref="AppOpenLink"/>.
     /// </para>
     /// <para>
     /// Null when no base is configured, which is honest: a button that goes nowhere is worse than
     /// no button, and the message still carries everything it needs to say.
     /// </para>
     /// </remarks>
-    private string? BuildActionUrl(string? route)
-    {
-        var baseUrl = _options.CurrentValue.AppBaseUrl;
-
-        if (string.IsNullOrWhiteSpace(route) || string.IsNullOrWhiteSpace(baseUrl))
-        {
-            return null;
-        }
-
-        return $"{baseUrl.TrimEnd('/')}/{route.TrimStart('/')}";
-    }
+    private string? BuildActionUrl(string? route) =>
+        AppOpenLink.Build(_options.CurrentValue.AppBaseUrl, route);
 }

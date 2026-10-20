@@ -448,6 +448,10 @@ app.MapGet("/payments/checkout/cancelled", () => CheckoutReturn(
 // scanners open every link in a message. See EmailConfirmationPages.
 EmailConfirmationPages.Map(app);
 
+// The page behind every email's "Open in Diaspora" button: /open/{in-app route}, handed off to
+// diaspora://{route}. Only routes on the client's route table are served. See AppOpenPages.
+AppOpenPages.Map(app);
+
 // Android App Links: which app may open this host's links directly. Release keys only; see
 // AppLinkOptions for why the debug key never belongs here.
 AppLinkAssociation.Map(app);
