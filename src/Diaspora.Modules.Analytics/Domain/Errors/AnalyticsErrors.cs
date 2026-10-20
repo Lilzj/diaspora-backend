@@ -121,4 +121,41 @@ public static class AnalyticsErrors
     public static readonly Error FunnelSubjectMismatch = Error.Validation(
         AnalyticsErrorCodes.FunnelSubjectMismatch,
         "That journey does not apply to this subject.");
+
+    // ── Retention, leaderboards, insights, campaigns and premium ────────────────────────────
+
+    /// <summary>
+    /// A platform-wide figure asked for by somebody without platform analytics standing. Forbidden
+    /// rather than absent: the platform's existence is not a secret, and the refusal names why.
+    /// </summary>
+    public static readonly Error PlatformReadRequired = Error.Forbidden(
+        AnalyticsErrorCodes.PlatformReadRequired,
+        "Platform-wide figures are for platform administrators.");
+
+    /// <summary>A subject this route cannot answer for, with the reason in the message.</summary>
+    public static Error SubjectUnsupportedBecause(string reason) => Error.Validation(
+        AnalyticsErrorCodes.SubjectTypeUnsupported, reason);
+
+    public static readonly Error RetentionGranularityUnsupported = Error.Validation(
+        AnalyticsErrorCodes.RetentionGranularityUnsupported,
+        "Cohorts are cut by day, week or month.");
+
+    public static Error RetentionCohortCountInvalid(int maximum) => Error.Validation(
+        AnalyticsErrorCodes.RetentionCohortCountInvalid,
+        string.Create(CultureInfo.InvariantCulture, $"Ask for between 1 and {maximum} cohorts."));
+
+    public static Error LeaderboardUnknown(string key) => Error.NotFound(
+        AnalyticsErrorCodes.LeaderboardUnknown,
+        $"There is no board called \"{key}\".");
+
+    public static readonly Error LeaderboardSubjectMismatch = Error.Validation(
+        AnalyticsErrorCodes.LeaderboardSubjectMismatch,
+        "That board does not rank this subject's items.");
+
+    public static Error LeaderboardMetricUnsupported(string reason) => Error.Validation(
+        AnalyticsErrorCodes.LeaderboardMetricUnsupported, reason);
+
+    public static readonly Error PremiumNotEntitled = Error.Forbidden(
+        AnalyticsErrorCodes.PremiumNotEntitled,
+        "Advanced analytics come with a plan that includes them.");
 }

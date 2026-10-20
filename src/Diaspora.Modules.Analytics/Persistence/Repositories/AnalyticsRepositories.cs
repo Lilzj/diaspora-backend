@@ -429,6 +429,60 @@ public sealed class AnalyticsEventRepository : IAnalyticsEventRepository
 
         return rows;
     }
+
+    public async Task<IReadOnlyList<(string ActorKey, DateOnly Day)>> ListActorDaysAsync(
+        AnalyticsActivityScope scope,
+        DateOnly fromDay,
+        DateOnly toDay,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(scope);
+
+        var rows = Events
+            .AsNoTracking()
+            .Where(row => row.ActorKey != null && row.OccurredOn >= fromDay && row.OccurredOn <= toDay);
+
+        if (scope.OwnerUserId is { } ownerUserId)
+        {
+            rows = rows.Where(row => row.OwnerUserId == ownerUserId);
+        }
+
+        if (scope.ContentType is { } contentType)
+        {
+            rows = rows.Where(row => row.ContentType == contentType);
+        }
+
+        if (scope.ContentId is { } contentId)
+        {
+            rows = rows.Where(row => row.ContentId == contentId);
+        }
+
+        var pairs = await rows
+            .Select(row => new { ActorKey = row.ActorKey!, row.OccurredOn })
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        return pairs.Select(pair => (pair.ActorKey, pair.OccurredOn)).ToList();
+    }
+
+    public async Task<IReadOnlyList<(string? Surface, long Views)>> CountOwnerViewsBySurfaceAsync(
+        Guid ownerUserId,
+        DateTimeOffset from,
+        DateTimeOffset to,
+        CancellationToken cancellationToken = default)
+    {
+        var groups = await Events
+            .AsNoTracking()
+            .Where(row => row.OwnerUserId == ownerUserId
+                && row.EventType == AnalyticsEventTypes.ContentViewed
+                && row.OccurredAt >= from
+                && row.OccurredAt < to)
+            .GroupBy(row => row.Surface)
+            .Select(group => new { Surface = group.Key, Views = group.LongCount() })
+            .ToListAsync(cancellationToken);
+
+        return groups.Select(group => (group.Surface, group.Views)).ToList();
+    }
 }
 
 /// <summary>Reads and writes the content dimension.</summary>
@@ -640,6 +694,43 @@ public sealed class AnalyticsRollupRepository : IAnalyticsRollupRepository
             .ToListAsync(cancellationToken);
 
         return keys.Select(key => (key.ContentType, key.ContentId)).ToList();
+    }
+
+    public async Task<IReadOnlyList<AnalyticsItemTotals>> SumAllContentAsync(
+        DateOnly fromDay, DateOnly toDay, CancellationToken cancellationToken = default)
+    {
+        var groups = await ContentRollups
+            .AsNoTracking()
+            .Where(row => row.Day >= fromDay && row.Day <= toDay)
+            .GroupBy(row => new { row.ContentType, row.ContentId })
+            .Select(group => new
+            {
+                group.Key.ContentType,
+                group.Key.ContentId,
+                Views = group.Sum(row => row.Counts.Views),
+                Saves = group.Sum(row => row.Counts.Saves),
+                Shares = group.Sum(row => row.Counts.Shares),
+                Comments = group.Sum(row => row.Counts.Comments),
+                Reactions = group.Sum(row => row.Counts.Reactions),
+                HelpfulVotes = group.Sum(row => row.Counts.HelpfulVotes),
+                Conversions = group.Sum(row => row.Counts.Conversions),
+                Enquiries = group.Sum(row => row.Counts.Enquiries)
+            })
+            .ToListAsync(cancellationToken);
+
+        return groups
+            .Select(group => new AnalyticsItemTotals(
+                group.ContentType,
+                group.ContentId,
+                group.Views,
+                group.Saves,
+                group.Shares,
+                group.Comments,
+                group.Reactions,
+                group.HelpfulVotes,
+                group.Conversions,
+                group.Enquiries))
+            .ToList();
     }
 
     public async Task<int> DeleteExpiredAsync(
