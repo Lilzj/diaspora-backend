@@ -258,6 +258,40 @@ public sealed class CommunityInitiative : AggregateRoot<CommunityInitiativeId>, 
         return Result.Success();
     }
 
+    /// <summary>
+    /// Account erasure: takes the member off the initiative without taking the initiative away from
+    /// the community — 21 Oct 2026.
+    /// <para>
+    /// <b>The one place the organiser list may become empty, and deliberately.</b>
+    /// <see cref="ReplaceOrganisers"/> refuses an empty list because a person editing an initiative
+    /// must name somebody to lead it. Erasure is not an edit and has nobody to ask, and refusing it
+    /// would mean keeping a person's identifier because of a rule about forms. An initiative left
+    /// with no organiser stays readable exactly as before — its title, description, status and
+    /// updates are the community's — and stays manageable by whoever holds
+    /// <see cref="CommunityCapabilitySet.CanManageInitiatives"/> (owner, administrators,
+    /// ambassadors), who may name new organisers with the ordinary edit.
+    /// </para>
+    /// <para>
+    /// A proposer is attribution only, so it is replaced by <see cref="UserId.Empty"/>, which no
+    /// membership and no profile resolves, and which every reader already renders as "nobody named".
+    /// </para>
+    /// </summary>
+    /// <returns>Whether anything changed.</returns>
+    public bool ForgetMember(UserId member)
+    {
+        ArgumentNullException.ThrowIfNull(member);
+
+        var removed = _organiserIds.RemoveAll(id => id == member.Value) > 0;
+
+        if (ProposedBy == member)
+        {
+            ProposedBy = UserId.Empty;
+            removed = true;
+        }
+
+        return removed;
+    }
+
     public void SetCreated(DateTimeOffset timestamp, string? userId)
     {
         CreatedAt = timestamp;
@@ -476,6 +510,12 @@ public sealed class CommunityInitiativeUpdate : AggregateRoot<CommunityInitiativ
             Body = trimmedBody
         });
     }
+
+    /// <summary>
+    /// Account erasure: the update is the community's account of its own project and stays; its
+    /// author becomes <see cref="UserId.Empty"/>, which every reader renders as nobody named.
+    /// </summary>
+    public void ForgetAuthor() => AuthorId = UserId.Empty;
 
     public void SetCreated(DateTimeOffset timestamp, string? userId)
     {

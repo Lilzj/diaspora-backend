@@ -135,6 +135,13 @@ public sealed class CommunityNotice : AggregateRoot<CommunityNoticeId>, IAuditab
         return Result.Success();
     }
 
+    /// <summary>
+    /// Account erasure: the notice is the community's record and stays; who published it does not.
+    /// <see cref="UserId.Empty"/> resolves to no membership and no profile, which every reader
+    /// renders as nobody named. <see cref="PublishedByRole"/> is kept — a role names nobody.
+    /// </summary>
+    public void ForgetPublisher() => PublishedBy = UserId.Empty;
+
     public void SetCreated(DateTimeOffset timestamp, string? userId)
     {
         CreatedAt = timestamp;

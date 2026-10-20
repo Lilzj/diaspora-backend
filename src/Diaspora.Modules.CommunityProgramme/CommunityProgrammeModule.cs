@@ -89,6 +89,14 @@ public sealed class CommunityProgrammeModule : IPlatformModule
         // 21 Oct 2026. Initiatives, their participants and their progress updates.
         services.AddScoped<ICommunityInitiativeRepository, CommunityInitiativeRepository>();
 
+        // Privacy. Preferences and participations leave with the member; notices, updates and
+        // initiatives stay with the community without them in it. Older data sets are reported as
+        // retained rather than silently left out.
+        services.AddScoped<Platform.Operations.Privacy.IDataErasureProvider,
+            Infrastructure.Privacy.CommunityProgrammeDataErasureProvider>();
+        services.AddScoped<Platform.Operations.Privacy.IDataExportProvider,
+            Infrastructure.Privacy.CommunityProgrammeDataExportProvider>();
+
         services.AddScoped<IMembershipProgrammeRepository, MembershipProgrammeRepository>();
         services.AddScoped<IProgrammeMembershipRepository, ProgrammeMembershipRepository>();
         services.AddScoped<IVolunteerOpportunityRepository, VolunteerOpportunityRepository>();
