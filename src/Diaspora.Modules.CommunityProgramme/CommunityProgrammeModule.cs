@@ -139,6 +139,13 @@ public sealed class CommunityProgrammeModule : IPlatformModule
         services.AddScoped<
             Diaspora.Contracts.Automation.V1.Extensibility.IAutomationScopeAuthority,
             Extensibility.Automation.CommunityAutomationAuthority>();
+
+        // 20 Oct 2026. Who may publish a Community post as a community: its Owner or an
+        // Administrator, in an Active community. The moderation queue reads such a post as the
+        // community's content, so the publisher has to be one the community chose.
+        services.AddScoped<
+            Diaspora.Contracts.Community.V1.Publishing.IPublisherAuthority,
+            Extensibility.Publishing.CommunityPublisherAuthority>();
     }
 
     private static void RegisterHostedServices(IServiceCollection services)

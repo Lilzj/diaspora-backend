@@ -48,7 +48,7 @@ public sealed class CommunityModerationQueueTests : PooledIdentityTestBase
         var theirs = await SeedAsync("Queue theirs");
 
         var (moderator, _) = await ModeratorOfAsync(mine);
-        var (author, _) = await MemberClientAsync();
+        var (author, _) = await PublisherOfAsync(mine, theirs);
         var (reporter, _) = await MemberClientAsync();
 
         var minePost = await PostAsync(author, "Published as my community.", mine.Id);
@@ -88,7 +88,7 @@ public sealed class CommunityModerationQueueTests : PooledIdentityTestBase
     {
         var community = await SeedAsync("Queue remove");
         var (moderator, _) = await ModeratorOfAsync(community);
-        var (author, _) = await MemberClientAsync();
+        var (author, _) = await PublisherOfAsync(community);
         var (reporter, _) = await MemberClientAsync();
         var (second, _) = await MemberClientAsync();
 
@@ -135,7 +135,7 @@ public sealed class CommunityModerationQueueTests : PooledIdentityTestBase
     {
         var community = await SeedAsync("Queue dismiss");
         var (moderator, _) = await ModeratorOfAsync(community);
-        var (author, _) = await MemberClientAsync();
+        var (author, _) = await PublisherOfAsync(community);
         var (reporter, _) = await MemberClientAsync();
 
         var post = await PostAsync(author, "A perfectly fine notice.", community.Id);
@@ -158,7 +158,7 @@ public sealed class CommunityModerationQueueTests : PooledIdentityTestBase
     {
         var community = await SeedAsync("Queue escalate");
         var (moderator, _) = await ModeratorOfAsync(community);
-        var (author, _) = await MemberClientAsync();
+        var (author, _) = await PublisherOfAsync(community);
         var (reporter, _) = await MemberClientAsync();
 
         var post = await PostAsync(author, "Needs a staff decision.", community.Id);
@@ -187,7 +187,7 @@ public sealed class CommunityModerationQueueTests : PooledIdentityTestBase
     {
         var community = await SeedAsync("Queue warn");
         var (moderator, _) = await ModeratorOfAsync(community);
-        var (author, _) = await MemberClientAsync();
+        var (author, _) = await PublisherOfAsync(community);
         var (reporter, _) = await MemberClientAsync();
 
         var post = await PostAsync(author, "Borderline.", community.Id);
@@ -209,7 +209,7 @@ public sealed class CommunityModerationQueueTests : PooledIdentityTestBase
     public async Task A_member_who_does_not_moderate_is_forbidden()
     {
         var community = await SeedAsync("Queue forbidden");
-        var (author, _) = await MemberClientAsync();
+        var (author, _) = await PublisherOfAsync(community);
         var (reporter, _) = await MemberClientAsync();
         var (member, _) = await MemberClientAsync();
 
@@ -242,7 +242,7 @@ public sealed class CommunityModerationQueueTests : PooledIdentityTestBase
 
         var (moderator, _) = await ModeratorOfAsync(mine);
         var (theirModerator, _) = await ModeratorOfAsync(theirs);
-        var (author, _) = await MemberClientAsync();
+        var (author, _) = await PublisherOfAsync(theirs);
         var (reporter, _) = await MemberClientAsync();
 
         var theirPost = await PostAsync(author, "Belongs to the other community.", theirs.Id);
@@ -297,8 +297,39 @@ public sealed class CommunityModerationQueueTests : PooledIdentityTestBase
     {
         var (client, userId) = await MemberClientAsync();
 
+        await GrantAsync(client, userId, community, CommunityMembershipRole.Moderator);
+
+        return (client, userId);
+    }
+
+    /// <summary>
+    /// A member made an Administrator of each community — somebody who may publish as it. Since
+    /// 20 Oct 2026 nobody else may, so a post "as the community" needs one of these as its author.
+    /// </summary>
+    private async Task<(HttpClient Client, Guid UserId)> PublisherOfAsync(
+        params SeededCommunity[] communities)
+    {
+        var (client, userId) = await MemberClientAsync();
+
+        foreach (var community in communities)
+        {
+            await GrantAsync(client, userId, community, CommunityMembershipRole.Administrator);
+        }
+
+        return (client, userId);
+    }
+
+    /// <summary>Joins over HTTP, then is granted a role the way an owner would grant it.</summary>
+    private async Task GrantAsync(
+        HttpClient client, Guid userId, SeededCommunity community, CommunityMembershipRole? role)
+    {
         (await client.PostAsJsonAsync($"{Root}/{community.Slug}/membership", new { action = "join" }))
             .EnsureSuccessStatusCode();
+
+        if (role is null)
+        {
+            return;
+        }
 
         using var scope = Factory.Services.CreateScope();
         var memberships = scope.ServiceProvider.GetRequiredService<ICommunityMembershipRepository>();
@@ -308,11 +339,9 @@ public sealed class CommunityModerationQueueTests : PooledIdentityTestBase
             CommunityId.From(community.Id), UserId.From(userId));
 
         membership!.SetVisibility(CommunityMembershipVisibility.CommunityOnly);
-        membership.Grant(CommunityMembershipRole.Moderator).IsSuccess.Should().BeTrue();
+        membership.Grant(role.Value).IsSuccess.Should().BeTrue();
 
         await unitOfWork.SaveChangesAsync();
-
-        return (client, userId);
     }
 
     private async Task<SeededCommunity> SeedAsync(string name)

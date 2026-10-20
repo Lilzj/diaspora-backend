@@ -38,6 +38,7 @@ public static class CommunityErrorCodes
     public const string AffectedAreaNeedsPoint = "community.post.affected-area.needs-point";
     public const string AffectedRadiusOutOfRange = "community.post.affected-area.out-of-range";
     public const string EmergencyNotPermitted = "community.post.emergency.not-permitted";
+    public const string PostPublisherForbidden = "community.post.publisher-forbidden";
 
     public const string CommentNotFound = "community.comment.not-found";
     public const string CommentBodyEmpty = "community.comment.body-empty";

@@ -107,6 +107,15 @@ public static class CommunityErrors
         CommunityErrorCodes.EmergencyNotPermitted,
         "Only verified members can publish an Emergency alert. Post it as Urgent, or verify your account.");
 
+    /// <summary>
+    /// Refused because the caller asked to publish as an organisation or community they do not
+    /// speak for. One answer for "not yours" and "does not exist", so it cannot be used to probe
+    /// which bodies exist. Never a silent fallback to a personal post: the author chose a byline.
+    /// </summary>
+    public static readonly Error PostPublisherForbidden = Error.Forbidden(
+        CommunityErrorCodes.PostPublisherForbidden,
+        "You cannot publish as that organisation or community. Only the people who run it can.");
+
     // ── Comments ─────────────────────────────────────────────────────────────────────────
 
     public static readonly Error CommentNotFound = Error.NotFound(
