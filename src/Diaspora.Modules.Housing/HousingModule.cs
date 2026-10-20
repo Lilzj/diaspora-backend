@@ -111,6 +111,11 @@ public sealed class HousingModule : IPlatformModule
     private static void RegisterRepositories(IServiceCollection services)
     {
         services.AddScoped<IHousingListingRepository, HousingListingRepository>();
+
+        // Cross-module content seams in Diaspora.Contracts: the platform overview's counts and
+        // a sponsored item's title. Resolved as collections by Analytics and Creator.
+        services.AddScoped<Diaspora.Contracts.Content.V1.IPlatformInventorySource, Persistence.HousingPublishedContentSource>();
+        services.AddScoped<Diaspora.Contracts.Content.V1.IContentTitleSource, Persistence.HousingPublishedContentSource>();
         services.AddScoped<ILandlordProfileRepository, LandlordProfileRepository>();
         services.AddScoped<IHousingViewingRepository, HousingViewingRepository>();
         services.AddScoped<IHousingReservationRepository, HousingReservationRepository>();

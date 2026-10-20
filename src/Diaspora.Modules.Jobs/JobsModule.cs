@@ -112,6 +112,11 @@ public sealed class JobsModule : IPlatformModule
     private static void RegisterServices(IServiceCollection services)
     {
         services.AddScoped<JobAuthorizationService>();
+
+        // Cross-module content seams in Diaspora.Contracts: the platform overview's counts and
+        // a sponsored item's title. Resolved as collections by Analytics and Creator.
+        services.AddScoped<Diaspora.Contracts.Content.V1.IPlatformInventorySource, Persistence.JobPublishedContentSource>();
+        services.AddScoped<Diaspora.Contracts.Content.V1.IContentTitleSource, Persistence.JobPublishedContentSource>();
         services.AddScoped<JobCategoryResolver>();
         services.AddScoped<JobSlugAllocator>();
 

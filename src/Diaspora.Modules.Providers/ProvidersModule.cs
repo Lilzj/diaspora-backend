@@ -84,6 +84,11 @@ public sealed class ProvidersModule : IPlatformModule
     private static void RegisterRepositories(IServiceCollection services)
     {
         services.AddScoped<IProviderRepository, ProviderRepository>();
+
+        // Cross-module content seams in Diaspora.Contracts: the platform overview's counts and
+        // a sponsored item's title. Resolved as collections by Analytics and Creator.
+        services.AddScoped<Diaspora.Contracts.Content.V1.IPlatformInventorySource, Persistence.ProviderPublishedContentSource>();
+        services.AddScoped<Diaspora.Contracts.Content.V1.IContentTitleSource, Persistence.ProviderPublishedContentSource>();
         services.AddScoped<IServiceCategoryRepository, ServiceCategoryRepository>();
         services.AddScoped<IProviderReviewRepository, ProviderReviewRepository>();
         services.AddScoped<IProviderRecommendationRepository, ProviderRecommendationRepository>();

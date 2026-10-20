@@ -121,6 +121,11 @@ public sealed class GuidesModule : IPlatformModule
     private static void RegisterRepositories(IServiceCollection services)
     {
         services.AddScoped<IGuideRepository, GuideRepository>();
+
+        // Cross-module content seams in Diaspora.Contracts: the platform overview's counts and
+        // a sponsored item's title. Resolved as collections by Analytics and Creator.
+        services.AddScoped<Diaspora.Contracts.Content.V1.IPlatformInventorySource, Persistence.GuidePublishedContentSource>();
+        services.AddScoped<Diaspora.Contracts.Content.V1.IContentTitleSource, Persistence.GuidePublishedContentSource>();
         services.AddScoped<IGuideVersionRepository, GuideVersionRepository>();
         services.AddScoped<IGuideCategoryRepository, GuideCategoryRepository>();
         services.AddScoped<IGuideSuggestionRepository, GuideSuggestionRepository>();

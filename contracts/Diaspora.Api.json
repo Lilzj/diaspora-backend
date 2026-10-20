@@ -3243,6 +3243,50 @@
         }
       }
     },
+    "/api/v1/analytics/platform": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "What exists across Diaspora now, and what was added each day: guides, jobs, listings, homes, providers and members.",
+        "operationId": "GetPlatformAnalyticsDataset",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "timezone",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/analytics/creators/me": {
       "get": {
         "tags": [
@@ -12862,6 +12906,29 @@
         ],
         "summary": "What content health means: the criteria, their weights and the thresholds. The client applies this to the items it already holds.",
         "operationId": "GetContentHealthRubric",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/creators/me/sponsored": {
+      "get": {
+        "tags": [
+          "Creator"
+        ],
+        "summary": "The caller's sponsored placements and campaigns over their own content, with what was paid and how each delivered.",
+        "operationId": "GetMySponsoredContent",
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -34128,6 +34195,82 @@
           {
             "name": "type",
             "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/recommendations/creator": {
+      "get": {
+        "tags": [
+          "Recommendations"
+        ],
+        "summary": "Ranked suggestions from the caller's own creator state: claimable milestones, nearly finished challenges, grants they qualify for, courses in progress, profile gaps and verification.",
+        "operationId": "GetCreatorRecommendations",
+        "parameters": [
+          {
+            "name": "take",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/recommendations/creator/{recommendationId}/dismiss": {
+      "post": {
+        "tags": [
+          "Recommendations"
+        ],
+        "summary": "Stops one creator suggestion appearing for the caller, on every device.",
+        "operationId": "DismissCreatorRecommendation",
+        "parameters": [
+          {
+            "name": "recommendationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/recommendations/{recommendationId}/dismiss": {
+      "post": {
+        "tags": [
+          "Recommendations"
+        ],
+        "summary": "The client's path for the same dismissal. See the creator route.",
+        "operationId": "DismissRecommendationById",
+        "parameters": [
+          {
+            "name": "recommendationId",
+            "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }

@@ -7,6 +7,7 @@ using Diaspora.Modules.Creator.Domain.Enums;
 using Diaspora.Modules.Creator.Domain.Grants;
 using Diaspora.Modules.Creator.Domain.Identifiers;
 using Diaspora.Modules.Creator.Domain.Milestones;
+using Diaspora.Modules.Creator.Domain.Recommendations;
 using Diaspora.Modules.Creator.Domain.Referrals;
 using Diaspora.Modules.Creator.Domain.Rewards;
 using Diaspora.Modules.Creator.Domain.Verification;
@@ -546,3 +547,13 @@ public sealed record LeaderboardQuery
 
 /// <summary>One row of a ranking, before the creator is hydrated onto it.</summary>
 public sealed record LeaderboardRow(CreatorId CreatorId, long Score, int Rank);
+
+/// <summary>The recommendations a member has dismissed. Read whole: a member dismisses a handful.</summary>
+public interface ICreatorRecommendationDismissalRepository
+{
+    void Add(CreatorRecommendationDismissal dismissal);
+
+    Task<bool> ExistsAsync(Guid userId, string recommendationId, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyCollection<string>> ListIdsForUserAsync(Guid userId, CancellationToken cancellationToken = default);
+}

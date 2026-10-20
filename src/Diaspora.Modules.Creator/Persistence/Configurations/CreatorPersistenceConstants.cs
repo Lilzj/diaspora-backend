@@ -91,6 +91,10 @@ internal static class CreatorPersistenceConstants
     /// <summary>One recorded earning and what it was for. See <c>CreatorEarning</c>.</summary>
     public const string EarningsTable = "creator_earnings";
 
+    // ── Recommendations ─────────────────────────────────────────────────────────────────────
+
+    public const string RecommendationDismissalsTable = "creator_recommendation_dismissals";
+
     // ── Widths ──────────────────────────────────────────────────────────────────────────────
 
     /// <summary>Enum names are stored as strings, so a value added later reads correctly on old rows.</summary>

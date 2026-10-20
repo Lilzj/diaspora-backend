@@ -2,6 +2,7 @@ using Diaspora.Modules.Creator.Application.Activity;
 using Diaspora.Modules.Creator.Application.Creators;
 using Diaspora.Modules.Creator.Application.Discovery;
 using Diaspora.Modules.Creator.Application.Milestones;
+using Diaspora.Modules.Creator.Application.Sponsorship;
 using Diaspora.Modules.Creator.Application.Verification;
 using Diaspora.Modules.Creator.Contracts.V1.Requests;
 using Diaspora.Modules.Creator.Contracts.V1.Responses;
@@ -53,6 +54,22 @@ internal static class CreatorProfileEndpoints
                         new UpdateCreatorProfileCommand { Request = request }, cancellationToken)))
             .WithName("UpdateMyCreatorProfile")
             .WithSummary("Edits the creator-facing fields. Refused for a restricted creator.");
+
+        // The creator's paid promotions over their own content: a view over B15's placements and
+        // advertising campaigns, titled by the content's own module.
+        group.MapGet("/me/sponsored", async (
+                [FromQuery] string? state,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new GetMySponsoredContentQuery { State = state }, cancellationToken)))
+            .WithName("GetMySponsoredContent")
+            .WithSummary(
+                "The caller's sponsored placements and campaigns over their own content, with what "
+                + "was paid and how each delivered.");
     }
 }
 
