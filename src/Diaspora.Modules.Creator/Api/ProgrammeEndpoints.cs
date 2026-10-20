@@ -159,6 +159,22 @@ internal static class GrantEndpoints
             .WithName("ListGrantApplicationsForReview")
             .WithSummary("The reviewer's queue. Reviewer only.");
 
+        // Guid-constrained, so neither "me" nor "review" above can be read as an identifier.
+        group.MapGet("/applications/{applicationId:guid}", async (
+                Guid applicationId,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new GetGrantApplicationQuery { ApplicationId = applicationId },
+                        cancellationToken)))
+            .WithName("GetGrantApplication")
+            .WithSummary(
+                "One application: its applicant's, or a reviewer's once it has been submitted. "
+                + "Anybody else is answered 404, exactly as a missing application is.");
+
         group.MapPost("/applications/{applicationId:guid}/withdraw", async (
                 Guid applicationId,
                 ISender sender,
@@ -296,6 +312,33 @@ internal static class AcademyEndpoints
                         cancellationToken)))
             .WithName("ListAcademyCourses")
             .WithSummary("The course catalogue, with this member's progress and content version.");
+
+        group.MapGet("/courses/{courseId:guid}", async (
+                Guid courseId,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new GetAcademyCourseQuery { CourseId = courseId }, cancellationToken)))
+            .WithName("GetAcademyCourse")
+            .WithSummary(
+                "One published course, with this member's progress. An unpublished course is a 404.");
+
+        group.MapGet("/lessons/{lessonId:guid}", async (
+                Guid lessonId,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new GetAcademyLessonQuery { LessonId = lessonId }, cancellationToken)))
+            .WithName("GetAcademyLesson")
+            .WithSummary(
+                "One lesson by id, as the course's lesson list serves it: a quiz without its "
+                + "answers, and a 404 unless both the lesson and its course are published.");
 
         group.MapGet("/courses/{courseId:guid}/lessons", async (
                 Guid courseId,

@@ -171,6 +171,30 @@ public sealed class CreatorMilestoneDefinition : AggregateRoot<CreatorMilestoneI
 
     public void Deactivate() => IsActive = false;
 
+    /// <summary>
+    /// Names the badge that claiming this milestone earns. Returns whether anything changed.
+    /// <para>
+    /// Added 21 Oct 2026: two reward labels had promised a badge since B18 and no definition named
+    /// one, so <c>CreatorBadgeReader</c> — which derives a badge from exactly this field — had
+    /// served an empty list to every creator.
+    /// </para>
+    /// </summary>
+    public bool AwardBadge(string badgeKey)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(badgeKey);
+
+        var key = badgeKey.Trim();
+
+        if (string.Equals(RewardBadgeKey, key, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        RewardBadgeKey = key;
+
+        return true;
+    }
+
     public void SetCreated(DateTimeOffset timestamp, string? userId)
     {
         CreatedAt = timestamp;

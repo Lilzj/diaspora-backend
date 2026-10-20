@@ -13575,6 +13575,56 @@
         }
       }
     },
+    "/api/v1/academy/courses/{courseId}": {
+      "get": {
+        "tags": [
+          "Creator Academy"
+        ],
+        "summary": "One published course, with this member's progress. An unpublished course is a 404.",
+        "operationId": "GetAcademyCourse",
+        "parameters": [
+          {
+            "name": "courseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/academy/lessons/{lessonId}": {
+      "get": {
+        "tags": [
+          "Creator Academy"
+        ],
+        "summary": "One lesson by id, as the course's lesson list serves it: a quiz without its answers, and a 404 unless both the lesson and its course are published.",
+        "operationId": "GetAcademyLesson",
+        "parameters": [
+          {
+            "name": "lessonId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/academy/courses/{courseId}/lessons": {
       "get": {
         "tags": [
@@ -13933,6 +13983,20 @@
           },
           "required": true
         },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/creators/me/reputation": {
+      "get": {
+        "tags": [
+          "Creator"
+        ],
+        "summary": "The caller's reputation: Trust's level, score and dimensions, Trust's badges and the milestone badges with progress, the counts behind them, and what is unavailable.",
+        "operationId": "GetMyCreatorReputation",
         "responses": {
           "200": {
             "description": "OK"
@@ -14420,6 +14484,31 @@
         }
       }
     },
+    "/api/v1/creators/{creatorId}/reputation": {
+      "get": {
+        "tags": [
+          "Creator"
+        ],
+        "summary": "A creator's public reputation: level, contribution and verification, earned badges and counts. The trust dimension and combined score are the creator's own.",
+        "operationId": "GetCreatorReputation",
+        "parameters": [
+          {
+            "name": "creatorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/creators/me/earnings": {
       "get": {
         "tags": [
@@ -14593,6 +14682,31 @@
                 "string"
               ],
               "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/grants/applications/{applicationId}": {
+      "get": {
+        "tags": [
+          "Community Grants"
+        ],
+        "summary": "One application: its applicant's, or a reviewer's once it has been submitted. Anybody else is answered 404, exactly as a missing application is.",
+        "operationId": "GetGrantApplication",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],

@@ -208,6 +208,149 @@ public sealed class ListCourseLessonsQueryHandler
 }
 
 /// <summary>
+/// One course, by id.
+/// <para>
+/// <b>Added 21 Oct 2026 for the app's course screen, which deep-links by id.</b> The access rule is
+/// the catalogue's: any member who may read the Academy, and only a published course. An
+/// unpublished course is the same 404 a missing one is, as <see cref="ListCourseLessonsQuery"/>
+/// already answers. The Academy has no paid or entitlement-gated course; if one is ever added, this
+/// read and the catalogue must gain the gate together.
+/// </para>
+/// </summary>
+[Authorize(Permission = CreatorPermissions.ProfileRead)]
+public sealed record GetAcademyCourseQuery : IQuery<CreatorCourseResponse>
+{
+    public required Guid CourseId { get; init; }
+}
+
+public sealed class GetAcademyCourseQueryHandler
+    : IQueryHandler<GetAcademyCourseQuery, CreatorCourseResponse>
+{
+    private readonly CreatorContext _context;
+    private readonly IAcademyRepository _academy;
+    private readonly ICreatorLearningProgressRepository _progress;
+
+    public GetAcademyCourseQueryHandler(
+        CreatorContext context,
+        IAcademyRepository academy,
+        ICreatorLearningProgressRepository progress)
+    {
+        _context = context;
+        _academy = academy;
+        _progress = progress;
+    }
+
+    public async Task<Result<CreatorCourseResponse>> Handle(
+        GetAcademyCourseQuery query, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var caller = _context.RequireUser();
+
+        if (caller.IsFailure)
+        {
+            return Result.Failure<CreatorCourseResponse>(caller.Error);
+        }
+
+        var course = await _academy.GetCourseAsync(
+            AcademyCourseId.From(query.CourseId), cancellationToken);
+
+        if (course is null || !course.IsPublished)
+        {
+            return Result.Failure<CreatorCourseResponse>(CreatorErrors.CourseNotFound);
+        }
+
+        var lessons = (await _academy.ListLessonsAsync(course.Id, cancellationToken))
+            .Select(lesson => lesson.Id)
+            .ToList();
+
+        var creator = await _context.FindCreatorAsync(cancellationToken);
+
+        var row = creator is null
+            ? null
+            : await _progress.FindAsync(creator.Id, course.Id, cancellationToken);
+
+        return Result.Success(course.ToResponse(row, lessons));
+    }
+}
+
+/// <summary>
+/// One lesson, by id — the app's legacy lesson deep links.
+/// <para>
+/// <b>Served exactly as the course's lesson list serves it</b>: the same projection, so a quiz comes
+/// without its answers (<c>CreatorMapper</c> has no overload that could include them), and the same
+/// visibility — the lesson <em>and</em> its course must both be published. Checking only the lesson
+/// would let a published lesson inside a withdrawn course be read by id after the course had gone
+/// from the catalogue.
+/// </para>
+/// </summary>
+[Authorize(Permission = CreatorPermissions.ProfileRead)]
+public sealed record GetAcademyLessonQuery : IQuery<CreatorLessonResponse>
+{
+    public required Guid LessonId { get; init; }
+}
+
+public sealed class GetAcademyLessonQueryHandler
+    : IQueryHandler<GetAcademyLessonQuery, CreatorLessonResponse>
+{
+    private readonly CreatorContext _context;
+    private readonly IAcademyRepository _academy;
+    private readonly ICreatorLearningProgressRepository _progress;
+
+    public GetAcademyLessonQueryHandler(
+        CreatorContext context,
+        IAcademyRepository academy,
+        ICreatorLearningProgressRepository progress)
+    {
+        _context = context;
+        _academy = academy;
+        _progress = progress;
+    }
+
+    public async Task<Result<CreatorLessonResponse>> Handle(
+        GetAcademyLessonQuery query, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var caller = _context.RequireUser();
+
+        if (caller.IsFailure)
+        {
+            return Result.Failure<CreatorLessonResponse>(caller.Error);
+        }
+
+        var lesson = await _academy.GetLessonAsync(
+            AcademyLessonId.From(query.LessonId), cancellationToken);
+
+        if (lesson is null || !lesson.IsPublished)
+        {
+            return Result.Failure<CreatorLessonResponse>(CreatorErrors.LessonNotFound);
+        }
+
+        var course = await _academy.GetCourseAsync(lesson.CourseId, cancellationToken);
+
+        if (course is null || !course.IsPublished)
+        {
+            // The lesson's own error, not the course's: the caller asked for a lesson, and naming
+            // the course would confirm that an unpublished one exists.
+            return Result.Failure<CreatorLessonResponse>(CreatorErrors.LessonNotFound);
+        }
+
+        var quiz = lesson.QuizId is { } quizId
+            ? await _academy.GetQuizAsync(quizId, cancellationToken)
+            : null;
+
+        var creator = await _context.FindCreatorAsync(cancellationToken);
+
+        var row = creator is null
+            ? null
+            : await _progress.FindAsync(creator.Id, course.Id, cancellationToken);
+
+        return Result.Success(lesson.ToResponse(quiz, row));
+    }
+}
+
+/// <summary>
 /// Marks a lesson read.
 /// <para>
 /// <b>Refused for a quiz lesson with the client's own error code.</b> The register: "<c>POST

@@ -402,11 +402,30 @@ public sealed class CreatorCatalogueSeeder : BackgroundService, IReferenceDataSe
             added = true;
         }
 
+        // 21 Oct 2026. The badges these two reward labels have always promised. Applied to new and
+        // existing definitions alike — the repository finds a staged one first — so a database seeded
+        // before today gains the badge on the next start rather than never.
+        foreach (var (key, badge) in MilestoneBadges)
+        {
+            if (await repository.FindByKeyAsync(key, cancellationToken) is { } definition
+                && definition.AwardBadge(badge))
+            {
+                added = true;
+            }
+        }
+
         if (added)
         {
             await unitOfWork.SaveChangesAsync(cancellationToken);
         }
     }
+
+    /// <summary>Milestones whose reward is a badge, by milestone key.</summary>
+    private static readonly (string MilestoneKey, string BadgeKey)[] MilestoneBadges =
+    [
+        ("ten-guides", "knowledge"),
+        ("trusted-voice", "trusted-voice")
+    ];
 
     // ── Challenges ──────────────────────────────────────────────────────────────────────────
 
