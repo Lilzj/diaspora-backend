@@ -32,4 +32,11 @@ public sealed class MemberFollowerDirectory : IMemberFollowerDirectory
             Math.Min(take, MaximumPage),
             cancellationToken);
     }
+
+    public async Task<int> CountFollowersAsync(
+        Guid memberUserId, CancellationToken cancellationToken = default) =>
+        memberUserId == Guid.Empty
+            ? 0
+            : await _follows.CountFollowersAsync(
+                FollowTargetType.Member, memberUserId, cancellationToken);
 }

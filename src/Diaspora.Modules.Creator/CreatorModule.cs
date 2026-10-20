@@ -129,6 +129,10 @@ public sealed class CreatorModule : IPlatformModule
         services.AddScoped<CreatorIdempotency>();
 
         services.AddScoped<CreatorBadgeReader>();
+
+        // 21 Oct 2026. The reputation projection over Trust's ledger, Community's follow graph and
+        // this module's milestones, read through Diaspora.Contracts seams.
+        services.AddScoped<Application.Creators.CreatorReputationComposer>();
         services.AddScoped<CreatorVerificationRequirements>();
         services.AddScoped<SignupBonusEligibility>();
 

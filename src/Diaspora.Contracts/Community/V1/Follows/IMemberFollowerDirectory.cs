@@ -16,4 +16,11 @@ public interface IMemberFollowerDirectory
     /// </summary>
     Task<IReadOnlyList<Guid>> ListFollowerPageAsync(
         Guid memberUserId, int skip, int take, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// How many members follow this member, muted follows included — a mute silences the follower's
+    /// feed, it does not unfollow. Added 21 Oct 2026 for the creator reputation read, which needs the
+    /// follow graph's own figure rather than a tally kept from events.
+    /// </summary>
+    Task<int> CountFollowersAsync(Guid memberUserId, CancellationToken cancellationToken = default);
 }

@@ -32,6 +32,16 @@ internal static class CreatorProfileEndpoints
                 "The caller's creator projection, with the status the platform decided and what the "
                 + "next rung needs.");
 
+        group.MapGet("/me/reputation", async (
+                ISender sender, HttpContext context, CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(new GetMyCreatorReputationQuery(), cancellationToken)))
+            .WithName("GetMyCreatorReputation")
+            .WithSummary(
+                "The caller's reputation: Trust's level, score and dimensions, Trust's badges and the "
+                + "milestone badges with progress, the counts behind them, and what is unavailable.");
+
         // BG-08. The rubric, not a score — see ContentHealthRubric for why the evaluation cannot
         // live here without giving Creator a dependency on four content modules. Anonymous-safe:
         // it is the platform's definition of the word, not anybody's data.
@@ -329,5 +339,19 @@ internal static class CreatorDiscoveryEndpoints
                         new GetPublicCreatorQuery { CreatorId = creatorId }, cancellationToken)))
             .WithName("GetPublicCreator")
             .WithSummary("A creator's public projection. Private fields are absent rather than null.");
+
+        group.MapGet("/{creatorId:guid}/reputation", async (
+                Guid creatorId,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new GetCreatorReputationQuery { CreatorId = creatorId }, cancellationToken)))
+            .WithName("GetCreatorReputation")
+            .WithSummary(
+                "A creator's public reputation: level, contribution and verification, earned badges "
+                + "and counts. The trust dimension and combined score are the creator's own.");
     }
 }

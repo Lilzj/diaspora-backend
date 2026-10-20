@@ -167,6 +167,26 @@ public sealed class CreatorProgressTests
         grants[0].Points.Should().Be(definition.RewardPoints);
     }
 
+    /// <summary>
+    /// <b>Naming a badge is idempotent and reports whether it changed anything</b>, which is what lets
+    /// the seeder backfill an existing catalogue on every start and save only when it did.
+    /// </summary>
+    [Fact]
+    public void A_milestone_names_its_badge_once()
+    {
+        var definition = Simple(10);
+
+        definition.RewardBadgeKey.Should().BeNull();
+
+        definition.AwardBadge(" knowledge ").Should().BeTrue();
+        definition.RewardBadgeKey.Should().Be("knowledge");
+
+        definition.AwardBadge("knowledge").Should().BeFalse("nothing changed the second time");
+
+        var blank = () => definition.AwardBadge(" ");
+        blank.Should().Throw<ArgumentException>();
+    }
+
     private static CreatorMilestoneDefinition Simple(long target) =>
         CreatorMilestoneDefinition
             .Define(CreatorMilestoneId.New(), "simple", "Simple", "…", target, "points", 100, 1)

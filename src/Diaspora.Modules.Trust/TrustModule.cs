@@ -74,8 +74,16 @@ public sealed class TrustModule : IPlatformModule
     /// it would be the captive dependency the host's provider validation refuses to start on.
     /// </para>
     /// </summary>
-    private static void RegisterConsumerContracts(IServiceCollection services) =>
+    private static void RegisterConsumerContracts(IServiceCollection services)
+    {
         services.AddScoped<ITrustVerificationSubmission, TrustVerificationSubmissionService>();
+
+        // 21 Oct 2026. The reputation record and badge awards, read-only, for the creator reputation
+        // read in Creator, which composes after this module and may not read its tables.
+        services.AddScoped<
+            Diaspora.Contracts.Trust.V1.Reputation.IMemberReputationReader,
+            Application.Services.MemberReputationReader>();
+    }
 
     private static void RegisterRepositories(IServiceCollection services)
     {

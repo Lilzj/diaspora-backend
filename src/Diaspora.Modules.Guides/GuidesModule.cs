@@ -126,6 +126,9 @@ public sealed class GuidesModule : IPlatformModule
         // a sponsored item's title. Resolved as collections by Analytics and Creator.
         services.AddScoped<Diaspora.Contracts.Content.V1.IPlatformInventorySource, Persistence.GuidePublishedContentSource>();
         services.AddScoped<Diaspora.Contracts.Content.V1.IContentTitleSource, Persistence.GuidePublishedContentSource>();
+
+        // 21 Oct 2026. An author's published-guide totals, for the creator reputation read.
+        services.AddScoped<Diaspora.Contracts.Guides.V1.Authors.IAuthorGuideStatsReader, Persistence.AuthorGuideStatsReader>();
         services.AddScoped<IGuideVersionRepository, GuideVersionRepository>();
         services.AddScoped<IGuideCategoryRepository, GuideCategoryRepository>();
         services.AddScoped<IGuideSuggestionRepository, GuideSuggestionRepository>();

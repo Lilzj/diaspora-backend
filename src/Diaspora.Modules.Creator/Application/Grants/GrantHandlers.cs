@@ -319,6 +319,90 @@ public sealed class ListMyGrantApplicationsQueryHandler
 }
 
 /// <summary>
+/// One grant application, by id.
+/// <para>
+/// <b>The applicant's, and the review panel's, and nobody else's.</b> Added 21 Oct 2026 for the
+/// app's application screen. Anybody else is answered exactly as a missing application is — the
+/// reason <see cref="WithdrawGrantApplicationCommand"/> already records: a 403 would confirm to
+/// somebody probing for other people's applications that the identifier is real.
+/// </para>
+/// <para>
+/// <b>A reviewer sees what has been filed, never a draft.</b> A draft is the applicant's unfinished
+/// work; the panel's interest begins at submission, which is where its default queue begins too.
+/// A reviewer reading their own application is answered as its applicant.
+/// </para>
+/// </summary>
+[Authorize(Permission = CreatorPermissions.ProfileRead)]
+public sealed record GetGrantApplicationQuery : IQuery<GrantApplicationResponse>
+{
+    public required Guid ApplicationId { get; init; }
+}
+
+public sealed class GetGrantApplicationQueryHandler
+    : IQueryHandler<GetGrantApplicationQuery, GrantApplicationResponse>
+{
+    private readonly CreatorContext _context;
+    private readonly IGrantApplicationRepository _applications;
+    private readonly ICommunityGrantRepository _grants;
+    private readonly IClock _clock;
+
+    public GetGrantApplicationQueryHandler(
+        CreatorContext context,
+        IGrantApplicationRepository applications,
+        ICommunityGrantRepository grants,
+        IClock clock)
+    {
+        _context = context;
+        _applications = applications;
+        _grants = grants;
+        _clock = clock;
+    }
+
+    public async Task<Result<GrantApplicationResponse>> Handle(
+        GetGrantApplicationQuery query, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var caller = _context.RequireUser();
+
+        if (caller.IsFailure)
+        {
+            return Result.Failure<GrantApplicationResponse>(caller.Error);
+        }
+
+        if (query.ApplicationId == Guid.Empty)
+        {
+            return Result.Failure<GrantApplicationResponse>(CreatorErrors.GrantApplicationNotFound);
+        }
+
+        var application = await _applications.GetAsync(
+            GrantApplicationId.From(query.ApplicationId), cancellationToken);
+
+        if (application is null)
+        {
+            return Result.Failure<GrantApplicationResponse>(CreatorErrors.GrantApplicationNotFound);
+        }
+
+        var isApplicant = application.ApplicantUserId == caller.Value;
+
+        var isPanel = !isApplicant
+            && _context.IsGrantReviewer()
+            && application.State != GrantApplicationState.Draft;
+
+        if (!isApplicant && !isPanel)
+        {
+            return Result.Failure<GrantApplicationResponse>(CreatorErrors.GrantApplicationNotFound);
+        }
+
+        var grant = await _grants.GetAsync(application.GrantId, cancellationToken);
+
+        return grant is null
+            ? Result.Failure<GrantApplicationResponse>(CreatorErrors.GrantNotFound)
+            : Result.Success(application.ToResponse(grant, _clock.UtcNow));
+    }
+}
+
+/// <summary>
 /// Starts or updates a draft application.
 /// <para>
 /// One live application per creator per grant, which the unique index enforces and this handler

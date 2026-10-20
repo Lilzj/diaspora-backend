@@ -182,6 +182,13 @@ public sealed class CreatorContext
         _currentUser.Permissions.Contains(CreatorPermissions.Participate, StringComparer.Ordinal);
 
     /// <summary>
+    /// Whether the caller holds a grant reviewer's permission. For a read that answers the
+    /// applicant and the panel and nobody else, where the permission cannot be the route's gate.
+    /// </summary>
+    public bool IsGrantReviewer() =>
+        _currentUser.Permissions.Contains(CreatorPermissions.GrantReview, StringComparer.Ordinal);
+
+    /// <summary>
     /// A creator projection for a member who has no record yet, for a read that must not write.
     /// <para>
     /// <b>Transient and never staged.</b> Several reads have to answer "what would this member's
