@@ -396,17 +396,18 @@ public sealed class CommunityDirectoryTests : PooledIdentityTestBase
     [Fact]
     public async Task The_directory_holds_communities_that_are_not_countries()
     {
-        var page = await ReadDataAsync<DirectoryPageDto>(
-            await HttpClient.GetAsync($"{Root}?limit=50"));
+        // The whole directory, not its first page: the suite's database is shared, and every
+        // test that creates a community pushes the seeded ones further down (21 Oct 2026).
+        var page = await ReadWholeDirectoryAsync();
 
-        var regional = page.Items
+        var regional = page
             .Should().ContainSingle(item => item.Community.Slug == "west-african-community")
             .Subject.Community;
 
         regional.Origin.CountryCode.Should().BeNull();
         regional.Origin.RegionName.Should().Be("West Africa");
 
-        var interest = page.Items
+        var interest = page
             .Should().ContainSingle(item => item.Community.Slug == "diaspora-founders")
             .Subject.Community;
 
@@ -424,8 +425,9 @@ public sealed class CommunityDirectoryTests : PooledIdentityTestBase
     [Fact]
     public async Task Seeding_again_adds_no_duplicates()
     {
-        var before = await ReadDataAsync<DirectoryPageDto>(
-            await HttpClient.GetAsync($"{Root}?limit=50"));
+        // Every page. Comparing first pages passed whatever the seeder did once the shared
+        // database held more than one page of communities: both sides read exactly fifty.
+        var before = await ReadWholeDirectoryAsync();
 
         using (var scope = Factory.Services.CreateScope())
         {
@@ -434,10 +436,35 @@ public sealed class CommunityDirectoryTests : PooledIdentityTestBase
                 .SeedAsync();
         }
 
-        var after = await ReadDataAsync<DirectoryPageDto>(
-            await HttpClient.GetAsync($"{Root}?limit=50"));
+        var after = await ReadWholeDirectoryAsync();
 
-        after.Items.Should().HaveCount(before.Items.Count);
+        after.Should().HaveCount(before.Count);
+        after.Select(item => item.Community.Slug).Should().OnlyHaveUniqueItems();
+    }
+
+    private async Task<List<DirectoryEntryDto>> ReadWholeDirectoryAsync()
+    {
+        var items = new List<DirectoryEntryDto>();
+        string? cursor = null;
+
+        for (var pages = 0; pages < 100; pages++)
+        {
+            var url = cursor is null
+                ? $"{Root}?limit=50"
+                : $"{Root}?limit=50&cursor={Uri.EscapeDataString(cursor)}";
+            var page = await ReadDataAsync<DirectoryPageDto>(await HttpClient.GetAsync(url));
+
+            items.AddRange(page.Items);
+
+            if (!page.HasMore || page.NextCursor is null)
+            {
+                return items;
+            }
+
+            cursor = page.NextCursor;
+        }
+
+        throw new InvalidOperationException("The directory did not stop paging after 100 pages.");
     }
 
     // ── Seeding ─────────────────────────────────────────────────────────────────────────────
