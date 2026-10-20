@@ -155,6 +155,7 @@ public sealed class FinancialModule : IPlatformModule
         services.AddScoped<ICreditGrantRepository, CreditGrantRepository>();
         services.AddScoped<IDonationCauseRepository, DonationCauseRepository>();
         services.AddScoped<Diaspora.Contracts.Financial.V1.Giving.IDonationCauseDirectory, Application.Services.DonationCauseDirectory>();
+        services.AddScoped<Diaspora.Contracts.Financial.V1.Monetization.IMonetizationOfferSource, Application.Services.MonetizationOfferSource>();
         services.AddScoped<IDonationRepository, DonationRepository>();
         services.AddScoped<IContributionFundRepository, ContributionFundRepository>();
         services.AddScoped<ICommunityContributionRepository, CommunityContributionRepository>();

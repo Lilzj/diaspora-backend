@@ -40,5 +40,11 @@ public enum RecommendationSurface
     Trending = 13,
 
     /// <summary>Where the member left off. Learning only, and ordered by their progress rather than by score.</summary>
-    ContinueLearning = 14
+    ContinueLearning = 14,
+
+    /// <summary>
+    /// Plans and promotions the member could buy (MON-GAP-011). Ranked from the member's own subjects
+    /// and holdings, never from the engine's candidate pool.
+    /// </summary>
+    Monetization = 15
 }

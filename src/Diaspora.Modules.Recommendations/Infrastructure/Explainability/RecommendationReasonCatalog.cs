@@ -36,6 +36,7 @@ public static class RecommendationReasonCatalog
         [RecommendationReasonCode.LivesInNeighborhood] = ("lives_in_neighborhood", "In your neighbourhood, {0}."),
         [RecommendationReasonCode.NearYou] = ("near_you", "Near you."),
         [RecommendationReasonCode.MovingToCountry] = ("moving_to_country", "Because you're interested in {0}."),
+        [RecommendationReasonCode.PresentInCountry] = ("present_in_country", "Active in {0}."),
 
         [RecommendationReasonCode.SpeaksLanguage] = ("speaks_language", "In a language you read."),
         [RecommendationReasonCode.MatchesInterests] = ("matches_interests", "Matches your interests."),
@@ -68,7 +69,15 @@ public static class RecommendationReasonCatalog
         [RecommendationReasonCode.RecentlyUpdated] = ("recently_updated", "Recently updated."),
 
         [RecommendationReasonCode.PopularWithNewArrivals] = ("popular_with_new_arrivals", "Popular with people who've just arrived."),
-        [RecommendationReasonCode.StartHere] = ("start_here", "A good place to start.")
+        [RecommendationReasonCode.StartHere] = ("start_here", "A good place to start."),
+
+        // The monetization surface writes its own sentence for each item — it names the listing and
+        // the numbers — and these are the generic fallbacks a client without that text would show.
+        [RecommendationReasonCode.OwnsUnpromotedItem] = ("owns_unpromoted_item", "Nothing is promoting {0} right now."),
+        [RecommendationReasonCode.BoughtBefore] = ("bought_before", "You have bought this before."),
+        [RecommendationReasonCode.NearPlanLimit] = ("near_plan_limit", "You are close to your plan's listing limit."),
+        [RecommendationReasonCode.BuysPromotionsOften] = ("buys_promotions_often", "This plan includes promotions you have been buying."),
+        [RecommendationReasonCode.MatchesRole] = ("matches_role", "Made for {0}.")
     };
 
     /// <summary>The translation key for a code. Always resolvable.</summary>

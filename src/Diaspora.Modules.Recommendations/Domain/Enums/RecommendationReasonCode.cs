@@ -29,6 +29,9 @@ public enum RecommendationReasonCode
     NearYou = 4,
     MovingToCountry = 5,
 
+    /// <summary>The item declares a presence in the country the member is looking at.</summary>
+    PresentInCountry = 6,
+
     // ── Who the member is ───────────────────────────────────────────────────────────────────
 
     SpeaksLanguage = 10,
@@ -81,5 +84,22 @@ public enum RecommendationReasonCode
     /// explained itself as "highly rated" would answer it wrongly, in writing, to the member.
     /// </para>
     /// </summary>
-    Promoted = 62
+    Promoted = 62,
+
+    // ── What the member could buy (the monetization surface) ────────────────────────────────
+
+    /// <summary>The member owns a live item that nothing is promoting.</summary>
+    OwnsUnpromotedItem = 70,
+
+    /// <summary>The member has bought this promotion before.</summary>
+    BoughtBefore = 71,
+
+    /// <summary>The member is at or near their plan's limit on concurrent listings.</summary>
+    NearPlanLimit = 72,
+
+    /// <summary>The member keeps buying promotions a plan would include.</summary>
+    BuysPromotionsOften = 73,
+
+    /// <summary>The member runs the kind of profile a plan is made for.</summary>
+    MatchesRole = 74
 }

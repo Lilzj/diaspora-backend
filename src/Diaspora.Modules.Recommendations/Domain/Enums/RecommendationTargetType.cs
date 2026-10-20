@@ -33,5 +33,16 @@ public enum RecommendationTargetType
     Country = 10,
 
     /// <summary>Declared, not yet produced. See the class summary.</summary>
-    Announcement = 11
+    Announcement = 11,
+
+    /// <summary>
+    /// A plan or promotion the member could buy — the monetization surface's only target type.
+    /// <para>
+    /// <b>The identifier is the offer, not the catalogue row.</b> "Boost this listing" and "boost that
+    /// listing" are one product and two suggestions, and dismissing one must not dismiss the other, so
+    /// the target identifier is derived from the product code and the subject it is for (a plan's from
+    /// its code alone). See <c>MonetizationOfferKey</c>.
+    /// </para>
+    /// </summary>
+    MonetizationOffer = 12
 }

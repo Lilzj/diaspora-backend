@@ -81,6 +81,11 @@ public sealed class JobPublishedConsumer : RecommendationEventConsumer<JobPublis
                 CountryCode = integrationEvent.CountryCode,
                 RegionName = integrationEvent.RegionName,
                 CityName = integrationEvent.CityName,
+                // The member behind the employer profile. Jobs never recorded an owner, so a member's
+                // own vacancy could be recommended back to them; see ListingPublishedConsumer.
+                OwnerUserId = integrationEvent.EmployerUserId is { } employerUserId
+                    ? UserId.From(employerUserId)
+                    : null,
                 IsVerified = integrationEvent.IsEmployerVerified,
                 PopularityScore = InitialPopularity,
                 QualityScore = integrationEvent.IsEmployerVerified ? 0.7m : 0.4m,

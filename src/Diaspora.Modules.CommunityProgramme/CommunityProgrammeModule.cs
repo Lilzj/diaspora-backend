@@ -181,5 +181,11 @@ public sealed class CommunityProgrammeModule : IPlatformModule
         services.AddScoped<
             Diaspora.Contracts.CommunityProgramme.V1.Analytics.ICommunityAnalyticsSource,
             Infrastructure.Analytics.CommunityAnalyticsSource>();
+
+        // Recommendations asks which communities a member could join; this module owns the
+        // aggregate, its presence and the member's standing. Read-only. See ICommunitySuggestionSource.
+        services.AddScoped<
+            Diaspora.Contracts.CommunityProgramme.V1.Directory.ICommunitySuggestionSource,
+            Infrastructure.Directory.CommunitySuggestionSource>();
     }
 }

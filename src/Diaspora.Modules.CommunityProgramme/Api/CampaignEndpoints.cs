@@ -313,6 +313,25 @@ internal static class CampaignEndpoints
                 "A campaign's supporters, anonymised at the source. An anonymous supporter carries "
                 + "no identifier at all.");
 
+        // The caller's own donations to this campaign. `/donations/me` is a literal under the
+        // constrained id, so it cannot collide with any other campaign route; the donor is the
+        // caller, so the path carries no user.
+        group.MapGet("/campaigns/{campaignId:guid}/donations/me", async (
+                Guid campaignId,
+                [FromQuery] int? take,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new GetMyCampaignDonationsQuery { CampaignId = campaignId, Take = take },
+                        cancellationToken)))
+            .WithName("GetMyCampaignDonations")
+            .WithSummary(
+                "The caller's own donations to one campaign, newest first. Anonymous donations are "
+                + "absent: they store no donor.");
+
         group.MapGet("/campaigns/{campaignId:guid}/fund-usage", async (
                 Guid campaignId,
                 ISender sender,

@@ -68,7 +68,10 @@ public sealed class HousingPublishedConsumer
 
                 // The finest location grain any vertical publishes. See the class summary.
                 NeighborhoodName = integrationEvent.NeighborhoodName,
-                OwnerUserId = UserId.From(integrationEvent.LandlordId),
+                // The member behind the landlord profile, not the profile — see ListingPublishedConsumer.
+                OwnerUserId = integrationEvent.LandlordUserId is { } landlordUserId
+                    ? UserId.From(landlordUserId)
+                    : null,
                 IsVerified = integrationEvent.IsLandlordVerified,
                 PopularityScore = Jobs.JobPublishedConsumer.InitialPopularity,
                 QualityScore = integrationEvent.IsLandlordVerified ? 0.8m : 0.3m,
