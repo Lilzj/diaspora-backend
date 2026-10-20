@@ -54,6 +54,12 @@ public interface ICommunityInitiativeRepository
     void RemoveParticipant(CommunityInitiativeParticipant participant);
 
     /// <summary>
+    /// Stops tracking a participant whose write the database refused — the losing side of two
+    /// simultaneous joins or leaves — so nothing later in the scope tries to write it again.
+    /// </summary>
+    void ForgetParticipant(CommunityInitiativeParticipant participant);
+
+    /// <summary>
     /// Participants the viewer may see, earliest first: those whose membership is Public, plus
     /// CommunityOnly ones when <paramref name="includeCommunityOnly"/>, plus the viewer themself.
     /// Never a Private membership belonging to somebody else.

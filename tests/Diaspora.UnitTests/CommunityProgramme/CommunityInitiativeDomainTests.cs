@@ -178,6 +178,30 @@ public class CommunityInitiativeDomainTests
         posted.Error.Code.Should().EndWith(code);
     }
 
+    /// <summary>
+    /// Account erasure takes the member off the initiative and leaves the initiative: the proposer
+    /// becomes nobody, and the organiser list may end up empty — which an edit could never make it.
+    /// </summary>
+    [Fact]
+    public void Forgetting_a_member_removes_them_and_may_leave_no_organiser()
+    {
+        var other = UserId.New();
+        var shared = Create(organisers: [Organiser, other]).Value;
+
+        shared.ForgetMember(Organiser).Should().BeTrue();
+        shared.OrganiserIds.Should().Equal(other.Value);
+        shared.ProposedBy.Should().Be(UserId.Empty);
+
+        var alone = Create().Value;
+
+        alone.ForgetMember(Organiser).Should().BeTrue();
+        alone.OrganiserIds.Should().BeEmpty();
+        alone.Title.Should().Be("Winter coats", "the initiative is the community's and stays");
+
+        alone.ForgetMember(Organiser).Should().BeFalse("there is nothing left to forget");
+        alone.ForgetMember(UserId.New()).Should().BeFalse();
+    }
+
     private static Diaspora.SharedKernel.Results.Result<CommunityInitiative> Create(
         string? title = "Winter coats",
         string? description = "Collect coats and hand them out before December.",

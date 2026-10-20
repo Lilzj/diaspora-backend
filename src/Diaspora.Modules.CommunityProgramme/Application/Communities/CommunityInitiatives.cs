@@ -470,7 +470,19 @@ public sealed class JoinCommunityInitiativeCommandHandler
             }
 
             _initiatives.AddParticipant(joined.Value);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            try
+            {
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+            catch (Exception exception) when (ProgrammeIdempotency.IsUniqueViolation(exception))
+            {
+                // Two joins raced: both found no row, and the unique index refused the second
+                // insert. The other request's row is the member's participation, so this is a
+                // repeat join and answers as one. The refused row is let go so nothing later in
+                // this scope tries to write it again; the response below reads the stored state.
+                _initiatives.ForgetParticipant(joined.Value);
+            }
         }
 
         return Result.Success(await CommunityInitiativeAccess.ComposeOneAsync(
@@ -541,7 +553,17 @@ public sealed class LeaveCommunityInitiativeCommandHandler
         if (existing is not null)
         {
             _initiatives.RemoveParticipant(existing);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            try
+            {
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+            catch (ConcurrencyConflictException)
+            {
+                // Two leaves raced: both found the row, and the second delete matched nothing.
+                // The member is out either way, which is what a repeat leave answers.
+                _initiatives.ForgetParticipant(existing);
+            }
         }
 
         return Result.Success(await CommunityInitiativeAccess.ComposeOneAsync(

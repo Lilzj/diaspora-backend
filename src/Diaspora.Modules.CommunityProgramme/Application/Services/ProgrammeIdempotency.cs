@@ -141,8 +141,13 @@ public sealed class ProgrammeIdempotency
     /// rather than a wrong success.
     /// </para>
     /// </summary>
-    private static bool IsUniqueViolation(DbUpdateException exception)
+    internal static bool IsUniqueViolation(Exception exception)
     {
+        if (exception is not DbUpdateException)
+        {
+            return false;
+        }
+
         for (Exception? current = exception; current is not null; current = current.InnerException)
         {
             var message = current.Message;

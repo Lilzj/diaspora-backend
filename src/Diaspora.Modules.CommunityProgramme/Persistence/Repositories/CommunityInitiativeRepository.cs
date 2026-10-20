@@ -156,6 +156,12 @@ public sealed class CommunityInitiativeRepository : ICommunityInitiativeReposito
         Participants.Remove(participant);
     }
 
+    public void ForgetParticipant(CommunityInitiativeParticipant participant)
+    {
+        ArgumentNullException.ThrowIfNull(participant);
+        _dbContext.Entry(participant).State = EntityState.Detached;
+    }
+
     public async Task<IReadOnlyList<CommunityInitiativeParticipant>> ListVisibleParticipantsAsync(
         CommunityId communityId,
         CommunityInitiativeId initiativeId,
