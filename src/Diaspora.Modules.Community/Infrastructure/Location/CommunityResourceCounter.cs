@@ -88,6 +88,9 @@ public sealed class CommunityResourceCounter : ILocationResourceCounter
                 return (page.Items, page.HasMore ? page.NextCursor : null);
             },
             post => (post.Location.Latitude, post.Location.Longitude),
+
+            // The heat layer's time range reads when an update went out (21 Oct 2026).
+            post => post.PublishedAt,
             CommunityLimits.MaxFeedPageSize,
             cancellationToken);
     }

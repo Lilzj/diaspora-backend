@@ -17,4 +17,5 @@ public sealed record HousingNearestCandidate(
     string Slug,
     double? Latitude,
     double? Longitude,
-    AddressVisibility Visibility);
+    AddressVisibility Visibility,
+    DateTimeOffset? PublishedAt = null);

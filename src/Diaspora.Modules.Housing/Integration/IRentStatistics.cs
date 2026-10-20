@@ -38,6 +38,84 @@ public interface IRentStatistics
         double longitude,
         double radiusKm,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Every monthly asking rent in a country that a map can place, in the country's most-listed
+    /// currency, with the country's own median beside them (21 Oct 2026, the rent heat layers).
+    /// <para>
+    /// <b>The same population and arithmetic as <see cref="CompareMonthlyRentAsync"/></b>: live,
+    /// publicly visible homes with a disclosed rent; weekly, quarterly and yearly rents per month;
+    /// nightly and per-stay prices left out; the currency chosen by what the country's live listings
+    /// use, and other currencies counted and left out rather than converted. A caller buckets the
+    /// points and takes medians with <see cref="RentArithmetic.Median"/>.
+    /// </para>
+    /// <para>
+    /// Each point is the coordinate a stranger is shown, so a small cell cannot reveal more about
+    /// where a home is than its card does. A home with no coordinate is in the country's sample and
+    /// is not a point.
+    /// </para>
+    /// <para>
+    /// When <paramref name="publishedFrom"/> or <paramref name="publishedTo"/> is given, both the
+    /// points and the country's sample are the homes published inside that window, so an area and
+    /// its baseline always describe the same period. The currency is still chosen from every live
+    /// listing, so it does not change with the window.
+    /// </para>
+    /// </summary>
+    Task<RentPointSample> SampleMonthlyRentsAsync(
+        string countryCode,
+        DateTimeOffset? publishedFrom = null,
+        DateTimeOffset? publishedTo = null,
+        CancellationToken cancellationToken = default);
+}
+
+/// <summary>One home's monthly asking rent, where a stranger is shown it.</summary>
+public readonly record struct RentPoint(
+    double Latitude, double Longitude, decimal MonthlyRent, DateTimeOffset? PublishedAt);
+
+/// <summary>A country's placeable monthly rents, and the sample its baseline is taken over.</summary>
+public sealed record RentPointSample
+{
+    /// <summary>The ISO currency every rent here is in. Null when the country has no disclosed rents.</summary>
+    public string? Currency { get; init; }
+
+    /// <summary>Homes in the country's sample (inside the window, when there is one), pinned or not.</summary>
+    public required int CountrySampleSize { get; init; }
+
+    public decimal? CountryMedianMonthlyRent { get; init; }
+
+    /// <summary>Live listings in the country left out because their rent is in another currency.</summary>
+    public required int OtherCurrencyListings { get; init; }
+
+    /// <summary>The homes in the sample that have a coordinate.</summary>
+    public required IReadOnlyList<RentPoint> Points { get; init; }
+
+    /// <summary>True when the read stopped at its cap, so the sample is the newest homes rather than all.</summary>
+    public bool IsTruncated { get; init; }
+}
+
+/// <summary>
+/// The rent arithmetic every rent figure on the platform uses, in one place, so a map cell and a
+/// neighbourhood page cannot take a median two ways.
+/// </summary>
+public static class RentArithmetic
+{
+    /// <summary>The middle value, or the mean of the middle two. Null for no values.</summary>
+    public static decimal? Median(IReadOnlyList<decimal> values)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+
+        if (values.Count == 0)
+        {
+            return null;
+        }
+
+        var sorted = values.OrderBy(value => value).ToList();
+        var middle = sorted.Count / 2;
+
+        return sorted.Count % 2 == 1
+            ? sorted[middle]
+            : (sorted[middle - 1] + sorted[middle]) / 2m;
+    }
 }
 
 /// <summary>A place's median monthly asking rent against its country's, with the samples behind both.</summary>

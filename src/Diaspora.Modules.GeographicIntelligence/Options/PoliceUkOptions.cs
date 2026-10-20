@@ -41,4 +41,12 @@ public sealed class PoliceUkOptions
     /// </summary>
     [Range(1, 2160)]
     public int CacheHours { get; set; } = 168;
+
+    /// <summary>
+    /// The widest viewport, in degrees of latitude, the safety heat layer reads from this source
+    /// (21 Oct 2026). The source refuses an area holding more than 10,000 crimes in a month, and a
+    /// city viewport much wider than this does; a narrower cap also keeps one pan to a few requests.
+    /// </summary>
+    [Range(0.01, 2)]
+    public double MaximumHeatSpanDegrees { get; set; } = 0.25d;
 }

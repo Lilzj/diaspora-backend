@@ -19,6 +19,15 @@ public static class GeographicIntelligenceErrorCodes
 
     public const string LayerUnsupported = Prefix + "layer.unsupported";
 
+    /// <summary>A heat layer was asked for over a time range the client's union does not hold.</summary>
+    public const string HeatTimeRangeInvalid = Prefix + "heat.time_range_invalid";
+
+    /// <summary>A heat layer was asked for from a source it does not have.</summary>
+    public const string HeatSourceUnsupported = Prefix + "heat.source_unsupported";
+
+    /// <summary>A rent or police heat layer was asked for without the country it compares within.</summary>
+    public const string HeatCountryRequired = Prefix + "heat.country_required";
+
     public const string TravelModeUnsupported = Prefix + "travel_mode.unsupported";
 
     public const string TooManyWaypoints = Prefix + "route.too_many_waypoints";

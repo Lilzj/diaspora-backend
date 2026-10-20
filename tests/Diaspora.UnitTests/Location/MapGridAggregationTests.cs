@@ -92,6 +92,86 @@ public sealed class MapGridAggregationTests
         page.Cells.Should().ContainSingle().Which.Total.Should().Be(2);
         page.SuppressedCells.Should().Be(1);
         page.MinimumCellCount.Should().Be(2);
+
+        // 21 Oct 2026: the withheld cell is named by its place on the grid, never by its count, so a
+        // client can draw "withheld" rather than nothing.
+        var withheld = page.WithheldCells.Should().ContainSingle().Subject;
+        withheld.Key.Should().NotBe(page.Cells[0].Key);
+        withheld.South.Should().BeLessThanOrEqualTo(Nairobi.Latitude);
+        withheld.North.Should().BeGreaterThan(Nairobi.Latitude);
+        withheld.Label.Should().StartWith("Area around");
+    }
+
+    [Fact]
+    public async Task A_time_window_reaches_every_vertical_as_part_of_its_query()
+    {
+        var counter = new PointCounter("housing", MombasaOldTown);
+        var aggregator = Aggregator(counter);
+        var from = new DateTimeOffset(2026, 10, 14, 0, 0, 0, TimeSpan.Zero);
+        var to = from.AddDays(7);
+
+        await aggregator.AggregateAsync(KenyaSouth, null, null, null, null, from, to, CancellationToken.None);
+
+        counter.LastQuery!.From.Should().Be(from);
+        counter.LastQuery.To.Should().Be(to);
+    }
+
+    [Fact]
+    public void The_point_reader_keeps_only_rows_whose_own_time_is_inside_the_window()
+    {
+        var now = new DateTimeOffset(2026, 10, 21, 12, 0, 0, TimeSpan.Zero);
+        var query = new MapPointQuery
+        {
+            South = -5, West = 36, North = 0, East = 41, Limit = 10,
+            From = now.AddDays(-7),
+            To = now
+        };
+
+        var page = MapPointReader.FromList<(double Lat, double Lng, DateTimeOffset? At)>(
+            query,
+            [
+                (-4.06, 39.67, now.AddDays(-2)),
+                (-4.07, 39.68, now.AddDays(-30)),
+                (-4.08, 39.69, null),
+                (-4.09, 39.70, now.AddDays(1))
+            ],
+            row => (row.Lat, row.Lng),
+            row => row.At);
+
+        page.Points.Should().ContainSingle()
+            .Which.Should().Be(new MapPoint(-4.06, 39.67, now.AddDays(-2)),
+                "an undated row is outside every window, and so is one after it ends");
+    }
+
+    [Fact]
+    public void Without_a_window_the_point_reader_keeps_undated_rows_as_before()
+    {
+        var query = new MapPointQuery { South = -5, West = 36, North = 0, East = 41, Limit = 10 };
+
+        var page = MapPointReader.FromList<(double Lat, double Lng, DateTimeOffset? At)>(
+            query,
+            [(-4.06, 39.67, null), (-4.07, 39.68, DateTimeOffset.UnixEpoch)],
+            row => (row.Lat, row.Lng),
+            row => row.At);
+
+        page.Points.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void A_grid_frame_is_the_same_cell_the_aggregator_draws()
+    {
+        var plan = MapCellAggregator.Plan(KenyaSouth, "City").Value;
+        var (row, column) = MapCellAggregator.CellOf(plan.CellSizeDegrees, MombasaOldTown.Latitude, MombasaOldTown.Longitude);
+        var frame = MapCellAggregator.Frame(plan.Exponent, row, column);
+
+        frame.Key.Should().Be($"{plan.Exponent}:{row}:{column}");
+        frame.Id.Should().Be(MapCellAggregator.CellId(plan.Exponent, row, column));
+        MombasaOldTown.Latitude.Should().BeInRange(frame.South, frame.North);
+        MombasaOldTown.Longitude.Should().BeInRange(frame.West, frame.East);
+
+        // Two rows is not enough for a mean that hides them, so the marker goes to the cell's centre.
+        MapCellAggregator.Marker(frame, 2, -8.1, 79.3)
+            .Should().Be((Math.Round(frame.CentreLatitude, 6), Math.Round(frame.CentreLongitude, 6)));
     }
 
     [Fact]
@@ -194,6 +274,8 @@ public sealed class MapGridAggregationTests
 
         public string ResourceType { get; }
 
+        public MapPointQuery? LastQuery { get; private set; }
+
         public Task<int> CountInAreaAsync(
             AreaId areaId, HierarchyPath path, CancellationToken cancellationToken = default) =>
             Task.FromResult(0);
@@ -203,10 +285,14 @@ public sealed class MapGridAggregationTests
             Task.FromResult(0);
 
         public Task<MapPointPage> ListPointsAsync(
-            MapPointQuery query, CancellationToken cancellationToken = default) =>
-            Task.FromResult(new MapPointPage(
+            MapPointQuery query, CancellationToken cancellationToken = default)
+        {
+            LastQuery = query;
+
+            return Task.FromResult(new MapPointPage(
                 [.. _points.Where(point => query.Contains(point.Latitude, point.Longitude))],
                 _truncated));
+        }
     }
 
     private sealed class FailingCounter : ILocationResourceCounter

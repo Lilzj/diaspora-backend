@@ -156,19 +156,60 @@ public sealed class ScoreEncodingTests
         var definition = HeatLayerCatalog.Find(layer);
 
         definition.Should().NotBeNull();
-        definition!.ResourceType.Should().Be(resourceType);
+        definition!.Kind.Should().Be(HeatLayerKind.Count);
+        definition.ResourceType.Should().Be(resourceType);
         definition.Unit.Should().NotBeNullOrWhiteSpace("a legend that cannot name its unit is decoration");
     }
 
     /// <summary>
-    /// The three the platform genuinely cannot compute are refused rather than answered empty.
-    /// Price and cost need a value per cell and the counter registry answers only "how many";
-    /// safety has no source anywhere.
+    /// The three layers that were refused until 21 Oct 2026 are served from a real source each:
+    /// Housing's rent sample for price and the rent-only cost-of-living index, and named safety
+    /// sources counted — never scored. None of them pretends to be a counter.
     /// </summary>
     [Theory]
-    [InlineData("housing-price")]
-    [InlineData("cost-of-living")]
-    [InlineData("safety")]
+    [InlineData("housing-price", HeatLayerKind.RentMedian)]
+    [InlineData("cost-of-living", HeatLayerKind.RentIndex)]
+    [InlineData("safety", HeatLayerKind.SafetyCount)]
+    public void The_value_and_safety_layers_are_served_from_their_own_sources(string layer, HeatLayerKind kind)
+    {
+        var definition = HeatLayerCatalog.Find(layer)!;
+
+        definition.Kind.Should().Be(kind);
+        definition.ResourceType.Should().BeNull("a count of listings is not a price, and a count is not a score");
+        definition.Unit.Should().NotContain("score");
+    }
+
+    /// <summary>The safety layer reads one named source at a time, and has exactly two.</summary>
+    [Fact]
+    public void The_safety_layer_has_two_sources_and_no_blend() =>
+        HeatLayerCatalog.SafetySources.Should().Equal("community-reports", "police-recorded-crime");
+
+    /// <summary>The time ranges are the client's union, exactly; anything else is not a range.</summary>
+    [Theory]
+    [InlineData("24h", "24h", 24)]
+    [InlineData("7d", "7d", 168)]
+    [InlineData(" 30D ", "30d", 720)]
+    [InlineData("90d", "90d", 2160)]
+    public void A_client_time_range_parses_to_its_span(string given, string name, int hours)
+    {
+        var range = HeatTimeRange.Parse(given);
+
+        range.Should().NotBeNull();
+        range!.Value.Name.Should().Be(name);
+        range.Value.Span.Should().Be(TimeSpan.FromHours(hours));
+    }
+
+    [Theory]
+    [InlineData("1y")]
+    [InlineData("48h")]
+    [InlineData("30")]
+    [InlineData("")]
+    [InlineData(null)]
+    public void Anything_else_is_not_a_time_range(string? given) =>
+        HeatTimeRange.Parse(given).Should().BeNull();
+
+    /// <summary>A layer nobody computes is still refused rather than answered empty.</summary>
+    [Theory]
     [InlineData("unicorns")]
     [InlineData("")]
     [InlineData(null)]
