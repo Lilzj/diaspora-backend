@@ -305,7 +305,7 @@ public interface IAutomationConditionSource
 // That sentence is false. Verified against the deployed platform on 10 Sep 2026: an event whose
 // country is MU, a condition reading `country equals MU`, that event's own identifier passed as the
 // sample subject — and the run came back SKIPPED with those words. The trigger carries `country`;
-// `EventCreatedAutomationConsumer` puts it there, and the `event.startingSoon` horizon carries it
+// the `event.created` consumer puts it there, and the `event.startingSoon` horizon carries it
 // too. The *simulation* carried nothing, and told the member it was the trigger's fault.
 //
 // **Why a seam rather than a read.** The Automation module cannot open Community Life's tables to

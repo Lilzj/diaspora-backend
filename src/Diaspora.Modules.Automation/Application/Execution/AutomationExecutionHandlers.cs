@@ -532,7 +532,7 @@ public sealed class SimulateAutomationCommandHandler
         // Confirmed against the deployed platform, 10 Sep 2026: an event whose country is MU, a rule
         // reading `country equals MU`, that event's identifier as the sample subject — SKIPPED, with
         // "This trigger does not carry the information the 'country' check needs". It carries it.
-        // `EventCreatedAutomationConsumer` writes it, and so does the `event.startingSoon` horizon.
+        // The `event.created` consumer writes it, and so does the `event.startingSoon` horizon.
         //
         // Null when nothing can describe the subject, and the run then says so in those words rather
         // than blaming the trigger. See `AutomationConditionEvaluator`.

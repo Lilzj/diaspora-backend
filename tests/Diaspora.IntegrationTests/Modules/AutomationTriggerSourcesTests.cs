@@ -462,6 +462,133 @@ public sealed class AutomationTriggerSourcesTests : PooledIdentityTestBase
         (await PresenceRowAsync(memberId)).Should().BeNull();
     }
 
+    // ════════════════════════════════════════════════════════════════════════════════════════
+    // event.* — who may hear about somebody else's event (21 Oct 2026)
+    //
+    // `event.created` used to fire on the draft for every member's automation, so a private draft's
+    // title reached strangers. Every run list below is narrowed to this test's own event by its
+    // unique title: these rules watch for anybody's events, and the collection's other tests
+    // publish public ones into the same database.
+    // ════════════════════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// A draft runs nobody's <c>event.created</c> rule, the host's included; publishing it as a
+    /// public event runs both the stranger's rule and the host's, once.
+    /// </summary>
+    [Fact]
+    public async Task A_draft_runs_nothing_and_a_public_publication_runs_everybodys_rule()
+    {
+        var (host, _) = await MemberClientAsync();
+        var (stranger, _) = await MemberClientAsync();
+
+        var hostRule = await CreateAutomationAsync(host, "My new events", "event.created", null);
+        var strangerRule = await CreateAutomationAsync(stranger, "Any new event", "event.created", null);
+
+        var created = await ReadDataAsync<EventDetailDto>(
+            await host.PostAsJsonAsync(Events, EventBody("Draft leak probe", null)));
+
+        created.Status.Should().Be("Draft");
+
+        await DrainAsync();
+
+        (await RunsAbout(stranger, strangerRule, created.Title))
+            .Should().BeEmpty("a draft is visible to its organiser alone");
+        (await RunsAbout(host, hostRule, created.Title))
+            .Should().BeEmpty("a new event is posted when it is published, not drafted");
+
+        (await host.PostAsJsonAsync($"{Events}/{created.EventId}/publish", new { }))
+            .EnsureSuccessStatusCode();
+
+        await DrainAsync();
+
+        (await RunsAbout(stranger, strangerRule, created.Title))
+            .Should().ContainSingle().Which.Status.Should().Be("COMPLETED");
+        (await RunsAbout(host, hostRule, created.Title))
+            .Should().ContainSingle().Which.Status.Should().Be("COMPLETED");
+    }
+
+    /// <summary>
+    /// An event published unlisted — reachable by its link, absent from search — runs its host's
+    /// own rule and nobody else's.
+    /// </summary>
+    [Fact]
+    public async Task An_unlisted_event_reaches_its_host_and_nobody_else()
+    {
+        var (host, _) = await MemberClientAsync();
+        var (stranger, _) = await MemberClientAsync();
+
+        var hostRule = await CreateAutomationAsync(host, "My new events", "event.created", null);
+        var strangerRule = await CreateAutomationAsync(stranger, "Any new event", "event.created", null);
+
+        var created = await ReadDataAsync<EventDetailDto>(
+            await host.PostAsJsonAsync(Events, EventBody("Unlisted leak probe", null)));
+
+        var published = await ReadDataAsync<EventDetailDto>(
+            await host.PostAsJsonAsync(
+                $"{Events}/{created.EventId}/publish", new { visibility = "Unlisted" }));
+
+        published.Visibility.Should().Be("Unlisted");
+
+        await DrainAsync();
+
+        (await RunsAbout(stranger, strangerRule, created.Title))
+            .Should().BeEmpty("a stranger could not have found an unlisted event");
+        (await RunsAbout(host, hostRule, created.Title))
+            .Should().ContainSingle().Which.Status.Should().Be("COMPLETED");
+    }
+
+    /// <summary>
+    /// A public event made private stops reaching strangers: its later edit runs the host's
+    /// <c>event.updated</c> rule only. And a cancelled draft announces itself to nobody but its host.
+    /// </summary>
+    [Fact]
+    public async Task Updates_and_cancellations_of_a_private_event_reach_its_host_alone()
+    {
+        var (host, _) = await MemberClientAsync();
+        var (stranger, _) = await MemberClientAsync();
+
+        var hostUpdated = await CreateAutomationAsync(host, "Mine changed", "event.updated", null);
+        var strangerUpdated = await CreateAutomationAsync(stranger, "Any changed", "event.updated", null);
+        var hostCancelled = await CreateAutomationAsync(host, "Mine off", "event.cancelled", null);
+        var strangerCancelled = await CreateAutomationAsync(stranger, "Any off", "event.cancelled", null);
+
+        // Public, then made private: the edit that does it, and every edit after, is the host's.
+        var live = await ReadDataAsync<EventDetailDto>(
+            await host.PostAsJsonAsync(Events, EventBody("Made private probe", null)));
+
+        (await host.PostAsJsonAsync($"{Events}/{live.EventId}/publish", new { }))
+            .EnsureSuccessStatusCode();
+        await DrainAsync();
+
+        (await ReadDataAsync<EventDetailDto>(
+                await host.PatchAsJsonAsync($"{Events}/{live.EventId}", new { visibility = "Private" })))
+            .Visibility.Should().Be("Private");
+
+        await DrainAsync();
+
+        (await RunsAbout(stranger, strangerUpdated, live.Title))
+            .Should().BeEmpty("the event is no longer anybody's but its host's");
+        (await RunsAbout(host, hostUpdated, live.Title)).Should().ContainSingle();
+
+        // A draft called off: its title was only ever its organiser's.
+        var draft = await ReadDataAsync<EventDetailDto>(
+            await host.PostAsJsonAsync(Events, EventBody("Cancelled draft probe", null)));
+
+        (await host.PostAsJsonAsync($"{Events}/{draft.EventId}/cancel", new { reason = "Probe" }))
+            .EnsureSuccessStatusCode();
+
+        await DrainAsync();
+
+        (await RunsAbout(stranger, strangerCancelled, draft.Title))
+            .Should().BeEmpty("a cancelled draft was never anybody else's to hear about");
+        (await RunsAbout(host, hostCancelled, draft.Title)).Should().ContainSingle();
+    }
+
+    private static async Task<IReadOnlyList<RunDto>> RunsAbout(
+        HttpClient client, string automationId, string title) =>
+        [.. (await RunsAsync(client, automationId))
+            .Where(run => run.TriggerSummary.Contains(title, StringComparison.Ordinal))];
+
     // ── Helpers ─────────────────────────────────────────────────────────────────────────────
 
     private async Task<(HttpClient Client, Guid UserId)> MemberClientAsync()
@@ -669,6 +796,8 @@ public sealed class AutomationTriggerSourcesTests : PooledIdentityTestBase
     private sealed record ActionOutcomeDto(string ActionKey, string Status);
 
     private sealed record EventDto(Guid EventId, string Status, Guid? CommunityId);
+
+    private sealed record EventDetailDto(Guid EventId, string Status, string Title, string Visibility);
 
     private sealed record EventSummaryDto(Guid EventId, Guid? CommunityId);
 

@@ -57,4 +57,10 @@ public sealed record EventUpdatedIntegrationEvent : IntegrationEvent
     public Guid? OrganizerUserId { get; init; }
 
     public required DateTimeOffset UpdatedAt { get; init; }
+
+    /// <summary>
+    /// Whether a stranger could find the event by searching as it now stands — 21 Oct 2026. Appended,
+    /// never inserted; see the publication contract's note. False when unknown.
+    /// </summary>
+    public bool IsListedPublicly { get; init; }
 }

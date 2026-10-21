@@ -213,6 +213,19 @@ public sealed class EventContractEnrichmentTests
         (typeof(RsvpSubmittedIntegrationEvent), "EventTitle")
     ];
 
+    /// <summary>
+    /// What 21 Oct 2026 appended to the event contracts an automation reads: whether a stranger could
+    /// have found the event, which decides whether anybody but its host is told about it. Recorded for
+    /// the same reason B12.1's are.
+    /// </summary>
+    public static readonly (Type Contract, string Property)[] AudienceEnrichments =
+    [
+        (typeof(EventPublishedIntegrationEvent), "IsListedPublicly"),
+        (typeof(EventUpdatedIntegrationEvent), "IsListedPublicly"),
+        (typeof(EventCancelledIntegrationEvent), "IsListedPublicly"),
+        (typeof(EventOccurrenceRescheduledIntegrationEvent), "IsListedPublicly")
+    ];
+
     public static TheoryData<Type, string> Cases()
     {
         var data = new TheoryData<Type, string>();
@@ -429,6 +442,7 @@ public sealed class EventContractEnrichmentTests
             .Concat(AttributeEnrichmentTests.Enrichments)
             .Concat(SeriesEnrichments)
             .Concat(ReminderEnrichments)
+            .Concat(AudienceEnrichments)
             .Where(entry => entry.Contract == contract)
             .Select(entry => entry.Property)
             .ToHashSet(StringComparer.Ordinal);

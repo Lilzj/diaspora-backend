@@ -32,4 +32,10 @@ public sealed record CommunityEventCancelledDomainEvent : DomainEvent
     public string? Reason { get; init; }
 
     public required DateTimeOffset CancelledAt { get; init; }
+
+    /// <summary>
+    /// Whether strangers could find the event by searching just before it was called off —
+    /// <c>CommunityEvent.IsListedPublicly</c>, read before the move. False for a cancelled draft.
+    /// </summary>
+    public bool WasListedPublicly { get; init; }
 }

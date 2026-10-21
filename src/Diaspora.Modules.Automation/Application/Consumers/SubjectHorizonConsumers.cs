@@ -1,5 +1,6 @@
 using System.Globalization;
 using Diaspora.Application.Abstractions;
+using Diaspora.Contracts.CommunityLife.V1.Events;
 using Diaspora.Contracts.Events;
 using Diaspora.Contracts.Housing.V1.Events;
 using Diaspora.Contracts.Jobs.V1.Events;
@@ -82,6 +83,32 @@ public sealed class JobClosedHorizonConsumer
 
         return Horizons.CancelForSubjectAsync(
             integrationEvent.JobId, "The posting closed.", cancellationToken);
+    }
+}
+
+// ── Events ──────────────────────────────────────────────────────────────────────────────────────
+
+/// <summary>
+/// An event left circulation — archived, deleted, hidden or suspended by a moderator, or taken back
+/// to draft — 21 Oct 2026.
+/// <para>
+/// <b>The <c>event.startingSoon</c> horizon had no cancelling twin for any of these.</b> Cancellation
+/// and a move into the past were handled; an event hidden by a moderator, or unpublished by its
+/// organiser, kept a horizon armed for anybody watching and would have announced it on the day.
+/// </para>
+/// </summary>
+public sealed class EventArchivedHorizonConsumer
+    : SubjectHorizonConsumer<EventArchivedIntegrationEvent>
+{
+    public EventArchivedHorizonConsumer(AutomationSubjectHorizonService horizons) : base(horizons) { }
+
+    protected override Task HandleAsync(
+        EventArchivedIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+
+        return Horizons.CancelForSubjectAsync(
+            integrationEvent.CommunityEventId, "The event is no longer shown.", cancellationToken);
     }
 }
 

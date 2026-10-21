@@ -11,7 +11,10 @@ public sealed record EventArchivedIntegrationEvent : IntegrationEvent
 
     public required string Slug { get; init; }
 
-    /// <summary>The state it moved to — <c>Archived</c>, or a moderation state.</summary>
+    /// <summary>
+    /// The state it moved to — <c>Archived</c>, <c>Deleted</c>, a moderation state, or (since 21 Oct
+    /// 2026) <c>Draft</c> for a live event its organiser took back to draft.
+    /// </summary>
     public required string CurrentState { get; init; }
 
     public required bool IsModerationAction { get; init; }

@@ -67,4 +67,11 @@ public sealed record EventCancelledIntegrationEvent : IntegrationEvent
     /// alongside a <see cref="SeriesId"/>.
     /// </summary>
     public bool IsSeriesCancellation { get; init; }
+
+    /// <summary>
+    /// Whether a stranger could find the event by searching just before it was called off — 21 Oct
+    /// 2026. Appended, never inserted; see the publication contract's note. False for a cancelled
+    /// draft, whose title was only ever its organiser's, and when unknown.
+    /// </summary>
+    public bool IsListedPublicly { get; init; }
 }

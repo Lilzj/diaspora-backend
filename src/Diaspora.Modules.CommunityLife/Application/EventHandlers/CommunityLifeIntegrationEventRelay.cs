@@ -566,7 +566,10 @@ public sealed class CommunityLifeIntegrationEventRelay
                 SeriesSequence = communityEvent.SeriesSequence,
 
                 // 21 Oct 2026. Where the host posted it, for community.eventCreated.
-                CommunityId = communityEvent.CommunityId
+                CommunityId = communityEvent.CommunityId,
+
+                // 21 Oct 2026. Who may be told about it by somebody other than its host.
+                IsListedPublicly = communityEvent.IsListedPublicly
             },
             cancellationToken);
     }
@@ -620,7 +623,8 @@ public sealed class CommunityLifeIntegrationEventRelay
                 AffectedAttendeeCount = communityEvent.Capacity.GoingCount,
                 ChangedByUserId = domainEvent.ChangedBy?.Value,
                 OrganizerUserId = communityEvent.OrganizerUserId.Value,
-                UpdatedAt = domainEvent.OccurredAt
+                UpdatedAt = domainEvent.OccurredAt,
+                IsListedPublicly = communityEvent.IsListedPublicly
             },
             cancellationToken);
     }
@@ -665,7 +669,8 @@ public sealed class CommunityLifeIntegrationEventRelay
                 AffectedAttendeeCount = domainEvent.AffectedAttendeeCount,
                 ChangedByUserId = domainEvent.ChangedBy?.Value,
                 OrganizerUserId = occurrence.OrganizerUserId.Value,
-                RescheduledAt = domainEvent.ChangedAt
+                RescheduledAt = domainEvent.ChangedAt,
+                IsListedPublicly = occurrence.IsListedPublicly
             },
             cancellationToken);
     }
@@ -717,7 +722,11 @@ public sealed class CommunityLifeIntegrationEventRelay
                 // wider one, and reading it off the series' own state means no caller can mislabel
                 // it.
                 IsSeriesCancellation = communityEvent?.SeriesId is { } seriesId
-                    && await SeriesIsCancelledAsync(seriesId, cancellationToken)
+                    && await SeriesIsCancelledAsync(seriesId, cancellationToken),
+
+                // Read off the domain event rather than the aggregate: by now it is Cancelled, and
+                // what matters is whether strangers could see it a moment before.
+                IsListedPublicly = domainEvent.WasListedPublicly
             },
             cancellationToken);
     }
@@ -777,7 +786,14 @@ public sealed class CommunityLifeIntegrationEventRelay
     {
         ArgumentNullException.ThrowIfNull(domainEvent);
 
-        if (domainEvent.CurrentStatus != EventStatus.Archived)
+        // An event taken back to draft has left circulation as surely as an archived one — 21 Oct
+        // 2026. Nothing announced it, so a reminder armed for anybody watching would have gone on to
+        // announce a draft. Draft from a live state only: an archived event restored to draft was
+        // already announced as gone.
+        var unpublished = domainEvent.CurrentStatus == EventStatus.Draft
+            && domainEvent.PreviousStatus is EventStatus.Published or EventStatus.InProgress;
+
+        if (domainEvent.CurrentStatus != EventStatus.Archived && !unpublished)
         {
             return Task.CompletedTask;
         }

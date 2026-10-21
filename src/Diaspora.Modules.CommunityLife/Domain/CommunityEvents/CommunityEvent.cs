@@ -303,6 +303,21 @@ public sealed class CommunityEvent
             or CommunityLifeModerationState.Flagged;
 
     /// <summary>
+    /// Whether a stranger could find it by searching right now — the events search's own rule for an
+    /// anonymous viewer: live (published or in progress), <see cref="EventVisibility.Public"/>, and
+    /// neither hidden nor suspended.
+    /// <para>
+    /// <b>Narrower than <see cref="IsDiscoverable"/> on purpose.</b> A members-only event is
+    /// discoverable to its organization's members, and an unlisted one to whoever holds the link; a
+    /// consumer that tells people it does not know about an event — an automation fired for anybody
+    /// watching, a saved search — can honour neither audience, so for those it is the host's alone.
+    /// 21 Oct 2026.
+    /// </para>
+    /// </summary>
+    public bool IsListedPublicly =>
+        IsDiscoverable && Visibility == EventVisibility.Public;
+
+    /// <summary>
     /// Whether somebody may respond right now.
     /// <para>
     /// <b>This is the "Open for RSVP" the brief draws as a lifecycle state, and it is a predicate
@@ -1021,6 +1036,11 @@ public sealed class CommunityEvent
     /// </summary>
     public Result Cancel(DateTimeOffset now, UserId? cancelledBy, string? reason)
     {
+        // Read before the move: a cancelled event is not discoverable, and whether strangers could
+        // see it a moment ago is what decides who may be told it is off. A cancelled draft was never
+        // anybody's but its organiser's.
+        var wasListedPublicly = IsListedPublicly;
+
         var moved = MoveTo(EventStatus.Cancelled, now, cancelledBy, reason);
 
         if (moved.IsFailure)
@@ -1040,7 +1060,8 @@ public sealed class CommunityEvent
             AffectedAttendeeCount = Capacity.GoingCount,
             CancelledBy = cancelledBy,
             Reason = CancellationReason,
-            CancelledAt = now
+            CancelledAt = now,
+            WasListedPublicly = wasListedPublicly
         });
 
         return Result.Success();

@@ -12,7 +12,8 @@ namespace Diaspora.Modules.CommunityLife.Extensibility.Automation;
 /// <b>The values here must be the ones this module's own automation consumer produces, not better
 /// ones.</b> A preview derived independently would be a second definition of what a rule matches:
 /// the builder would show a member a match and the real run would skip. So this reproduces
-/// <c>EventCreatedAutomationConsumer.Translate</c> key for key, including the part of it that is
+/// the <c>event.created</c> consumer's <c>Translate</c> key for key (since 21 Oct 2026 the
+/// publication consumer's), including the part of it that is
 /// arguably wrong — <c>dayOfWeek</c> and <c>timeOfDay</c> are taken from the stored instant rather
 /// than from the event's own zone, so an event at 00:30 Monday in Lagos reads as Sunday 23:30. That
 /// is a real defect and it belongs to the consumer; correcting it only here would make the two

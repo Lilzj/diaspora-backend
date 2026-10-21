@@ -51,4 +51,10 @@ public sealed record EventOccurrenceRescheduledIntegrationEvent : IntegrationEve
     public Guid? OrganizerUserId { get; init; }
 
     public required DateTimeOffset RescheduledAt { get; init; }
+
+    /// <summary>
+    /// Whether a stranger could find this date by searching as it now stands — 21 Oct 2026. Appended,
+    /// never inserted; see the publication contract's note. False for a draft date, and when unknown.
+    /// </summary>
+    public bool IsListedPublicly { get; init; }
 }

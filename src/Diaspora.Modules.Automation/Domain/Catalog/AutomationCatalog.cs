@@ -226,8 +226,12 @@ public static class AutomationCatalog
                 null, true, null, null, EveryBusinessOwner, false),
 
             // ── Events — B12/B12.1 publish five of the six ──────────────────────────────────
+            // `event.created` is "a new event is posted": its first publication, not its draft —
+            // 21 Oct 2026. It consumed `EventCreated` until then, and ran every member's rule on
+            // somebody else's private draft. The key is unchanged so saved rules keep working. A
+            // public event concerns anybody watching; any other only its host (`EventAudience`).
             new("event.created", "events", AutomationTriggerDelivery.DomainEvent,
-                "Diaspora.Contracts.CommunityLife.V1.Events.EventCreatedIntegrationEvent",
+                "Diaspora.Contracts.CommunityLife.V1.Events.EventPublishedIntegrationEvent",
                 true, null, null, UserOnly, false),
             new("event.updated", "events", AutomationTriggerDelivery.DomainEvent,
                 "Diaspora.Contracts.CommunityLife.V1.Events.EventUpdatedIntegrationEvent",

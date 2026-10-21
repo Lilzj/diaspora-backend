@@ -25,6 +25,12 @@ namespace Diaspora.Modules.Automation.Application.Consumers;
 // that is a property of *which contracts these consume* rather than of a visibility check here. Only
 // publication contracts reach this file, so a private or unpublished item never becomes a candidate.
 // A check in this file would be a second, divergent copy of five modules' visibility rules.
+//
+// **Events are the exception, and the contract says so rather than this file deciding — 21 Oct
+// 2026.** An event is published with an audience: Public, members-only or unlisted. Only the first is
+// something a stranger could have found by searching, and CommunityLife decides which it is and sends
+// the answer as `IsListedPublicly`; the event consumer below reads that flag and keeps no rule of its
+// own.
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>
@@ -594,6 +600,23 @@ public sealed class EventPublishedAutomationConsumer
             return;
         }
 
+        var audience = EventAudience.For(
+            integrationEvent.IsListedPublicly,
+            integrationEvent.OrganizerUserId,
+            integrationEvent.OrganizationId);
+
+        if (audience is null)
+        {
+            // Nobody it may speak to. A horizon armed by an earlier, public publication must not
+            // outlive the event becoming somebody's alone.
+            await _horizons.CancelForSubjectAsync(
+                integrationEvent.CommunityEventId,
+                "Nobody watching may see the event.",
+                cancellationToken);
+
+            return;
+        }
+
         var horizonValues = Values();
         horizonValues["country"] = integrationEvent.CountryCode;
         horizonValues["category"] = integrationEvent.CategoryKey;
@@ -609,8 +632,9 @@ public sealed class EventPublishedAutomationConsumer
             // The organizer is not the audience for "this is starting soon" — anybody watching for
             // it is, narrowed by their own conditions. The job consumer above states the same
             // reasoning: reading another module's bookmarks here would be the cross-module read
-            // this arrangement exists without.
-            [],
+            // this arrangement exists without. Anybody, that is, when anybody could have found it;
+            // otherwise its host — see EventAudience.
+            audience,
             horizonValues,
             $"{integrationEvent.Title} is starting soon.",
             cancellationToken);
@@ -632,12 +656,66 @@ public sealed class EventPublishedAutomationConsumer
     /// rides in <c>community</c> for the community condition.
     /// </para>
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>event.created</c> — the same moment, since 21 Oct 2026.</b> It used to consume
+    /// <c>EventCreated</c>, the draft, and run every member's rule on it: a private draft's title went
+    /// into strangers' notifications, and events that were never published were announced. The
+    /// member-facing promise was always "a new event is posted", so first publication is the honest
+    /// moment. The key is unchanged, so saved rules keep working.
+    /// </para>
+    /// <para>
+    /// <b>Who hears it is <see cref="EventAudience"/>'s answer.</b> A public event concerns anybody
+    /// watching; a members-only or unlisted one only its host, whose own rule still runs. Both
+    /// community triggers below require a public event too: <c>notify.community</c> reaches every
+    /// member, and an unlisted or members-only event posted into a community is not one every
+    /// member may open.
+    /// </para>
+    /// </remarks>
     protected override IEnumerable<AutomationTriggerContext> Translate(
         EventPublishedIntegrationEvent integrationEvent)
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
 
-        if (!integrationEvent.IsFirstPublication || integrationEvent.CommunityId is not { } communityId
+        if (!integrationEvent.IsFirstPublication)
+        {
+            yield break;
+        }
+
+        if (EventAudience.For(
+                integrationEvent.IsListedPublicly,
+                integrationEvent.OrganizerUserId,
+                integrationEvent.OrganizationId) is { } audience)
+        {
+            var createdValues = Values();
+            createdValues["country"] = integrationEvent.CountryCode;
+            createdValues["category"] = integrationEvent.CategoryKey;
+            createdValues["eventType"] = integrationEvent.CategoryKey;
+            createdValues["neighbourhood"] = integrationEvent.NeighborhoodAreaId?.ToString("D");
+            createdValues["city"] = integrationEvent.CityName;
+            createdValues["dayOfWeek"] = ((int)integrationEvent.StartsAt.DayOfWeek)
+                .ToString(CultureInfo.InvariantCulture);
+            createdValues["timeOfDay"] = integrationEvent.StartsAt
+                .ToString("HH:mm", CultureInfo.InvariantCulture);
+
+            yield return new AutomationTriggerContext
+            {
+                TriggerKey = "event.created",
+                TriggerEventId = $"{integrationEvent.EventId:N}:event.created",
+                ConcernedOwnerIds = audience,
+                SubjectType = AutomationSubjectKinds.Event,
+                SubjectId = integrationEvent.CommunityEventId,
+                SubjectTitle = integrationEvent.Title,
+                SubjectMoment = integrationEvent.StartsAt,
+                SubjectTimeZoneId = integrationEvent.TimeZoneId,
+                Summary = $"A new event: {integrationEvent.Title}",
+                OccurredAt = integrationEvent.OccurredAt,
+                Values = createdValues
+            };
+        }
+
+        if (!integrationEvent.IsListedPublicly
+            || integrationEvent.CommunityId is not { } communityId
             || communityId == Guid.Empty)
         {
             yield break;
@@ -674,7 +752,9 @@ public sealed class EventPublishedAutomationConsumer
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
 
-        if (!integrationEvent.IsFirstPublication)
+        // A saved search must never surface an event the member could not have found by searching,
+        // and the events search shows a stranger public events only.
+        if (!integrationEvent.IsFirstPublication || !integrationEvent.IsListedPublicly)
         {
             return null;
         }

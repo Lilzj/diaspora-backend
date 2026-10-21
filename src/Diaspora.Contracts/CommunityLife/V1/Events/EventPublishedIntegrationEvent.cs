@@ -101,4 +101,17 @@ public sealed record EventPublishedIntegrationEvent : IntegrationEvent
     /// and the field <c>community.eventCreated</c>'s community condition reads.
     /// </summary>
     public Guid? CommunityId { get; init; }
+
+    /// <summary>
+    /// Whether a stranger could find this event by searching — live, <c>Public</c>, neither hidden nor
+    /// suspended — 21 Oct 2026. Appended, never inserted.
+    /// <para>
+    /// <b>What decides whether a consumer may tell people who were not invited.</b> A members-only or
+    /// unlisted event is published too, and is still not anybody's business but its audience's; a
+    /// consumer that cannot check that audience (an automation fired for anybody watching, a saved
+    /// search) treats false as "the host's alone". Defaults to false, so a message written before the
+    /// field existed fails closed.
+    /// </para>
+    /// </summary>
+    public bool IsListedPublicly { get; init; }
 }

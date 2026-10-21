@@ -17,42 +17,13 @@ namespace Diaspora.Modules.Automation.Application.Consumers;
 // Five of the six event triggers have a published contract behind them; the sixth, `startingSoon`, is
 // a projection over start times rather than anything anybody publishes, and lives in the reminder
 // store. B12.1's report records the same split.
+//
+// **`event.created` is not here any more — 21 Oct 2026.** It consumed `EventCreated`, the draft, and
+// fired it for every member's automation: a private draft's title reached strangers' notifications,
+// and announced events that were never published. It fires on first publication now, from the
+// publication consumer in `PublicationConsumers.cs` (one consumer per contract), and every event
+// trigger that speaks to anybody watching asks `EventAudience` who that may be.
 // ════════════════════════════════════════════════════════════════════════════════════════════════
-
-/// <summary>An event was drafted.</summary>
-public sealed class EventCreatedAutomationConsumer
-    : AutomationEventConsumer<EventCreatedIntegrationEvent>
-{
-    public EventCreatedAutomationConsumer(AutomationEngine engine) : base(engine) { }
-
-    protected override IEnumerable<AutomationTriggerContext> Translate(
-        EventCreatedIntegrationEvent integrationEvent)
-    {
-        var values = Values();
-        values["country"] = integrationEvent.CountryCode;
-        values["category"] = integrationEvent.CategoryKey;
-        values["eventType"] = integrationEvent.CategoryKey;
-        values["neighbourhood"] = integrationEvent.NeighborhoodAreaId?.ToString("D");
-        values["dayOfWeek"] = ((int)integrationEvent.StartsAt.DayOfWeek).ToString(CultureInfo.InvariantCulture);
-        values["timeOfDay"] = integrationEvent.StartsAt.ToString("HH:mm", CultureInfo.InvariantCulture);
-
-        yield return Context(
-            "event.created",
-            integrationEvent.EventId,
-
-            // Empty: a new event concerns anybody watching for new events, not one person. The engine
-            // narrows on the trigger key and the member's own conditions do the rest.
-            [],
-            $"A new event: {integrationEvent.Title}",
-            integrationEvent.OccurredAt,
-            "event",
-            integrationEvent.CommunityEventId,
-            integrationEvent.Title,
-            integrationEvent.StartsAt,
-            null,
-            values);
-    }
-}
 
 /// <summary>
 /// An event's content changed.
@@ -88,12 +59,24 @@ public sealed class EventUpdatedAutomationConsumer
 
         await base.HandleAsync(integrationEvent, cancellationToken);
 
-        if (!integrationEvent.IsMaterialChange)
+        var visibilityChanged = integrationEvent.ChangedFields.Contains(
+            "Visibility", StringComparer.OrdinalIgnoreCase);
+
+        if (!integrationEvent.IsMaterialChange && !visibilityChanged)
         {
             // A corrected typo does not move a reminder. Rebasing on every edit would rewrite a
             // member's reminder for a change that did not affect when they need to leave.
+            //
+            // A visibility change does not move one either, but it changes who the horizon may
+            // speak to — a public event made unlisted must stop announcing itself to strangers —
+            // so it re-arms the horizon below. Reminders are the member's own and stay put.
             return;
         }
+
+        var audience = EventAudience.For(
+            integrationEvent.IsListedPublicly,
+            integrationEvent.OrganizerUserId,
+            integrationEvent.OrganizationId);
 
         // **Before the reminder rebase, and before its early return.** An event with no reminders
         // on it still has an `event.startingSoon` horizon: a member who set that trigger up in the
@@ -102,7 +85,7 @@ public sealed class EventUpdatedAutomationConsumer
         //
         // `ArmAsync` replaces rather than duplicates — a horizon already written for an earlier
         // date is cancelled rather than left pending.
-        if (integrationEvent.StartsAt > _clock.UtcNow)
+        if (integrationEvent.StartsAt > _clock.UtcNow && audience is not null)
         {
             var horizonValues = Values();
 
@@ -113,7 +96,7 @@ public sealed class EventUpdatedAutomationConsumer
                 integrationEvent.Title,
                 integrationEvent.StartsAt,
                 null,
-                [],
+                audience,
                 horizonValues,
                 $"{integrationEvent.Title} is starting soon.",
                 cancellationToken);
@@ -122,11 +105,18 @@ public sealed class EventUpdatedAutomationConsumer
         {
             // Moved into the past. The same judgement the reminder rebase makes below: cancelled
             // rather than fired, because a "starting soon" arriving afterwards is worse than
-            // silence.
+            // silence. Or there is nobody left it may speak to.
             await _horizons.CancelForSubjectAsync(
                 integrationEvent.CommunityEventId,
-                "The event was moved to a time that has already passed.",
+                audience is null
+                    ? "Nobody watching may see the event any more."
+                    : "The event was moved to a time that has already passed.",
                 cancellationToken);
+        }
+
+        if (!integrationEvent.IsMaterialChange)
+        {
+            return;
         }
 
         var pending = await _reminders.ListPendingBySubjectAsync(
@@ -161,6 +151,15 @@ public sealed class EventUpdatedAutomationConsumer
     protected override IEnumerable<AutomationTriggerContext> Translate(
         EventUpdatedIntegrationEvent integrationEvent)
     {
+        // Somebody else's unlisted, members-only or private event is not news to anybody watching.
+        if (EventAudience.For(
+                integrationEvent.IsListedPublicly,
+                integrationEvent.OrganizerUserId,
+                integrationEvent.OrganizationId) is not { } audience)
+        {
+            yield break;
+        }
+
         var values = Values();
         values["eventType"] = "updated";
         values["dayOfWeek"] = ((int)integrationEvent.StartsAt.DayOfWeek).ToString(CultureInfo.InvariantCulture);
@@ -169,7 +168,7 @@ public sealed class EventUpdatedAutomationConsumer
         yield return Context(
             "event.updated",
             integrationEvent.EventId,
-            [],
+            audience,
             integrationEvent.IsMaterialChange
                 ? $"{integrationEvent.Title} moved."
                 : $"{integrationEvent.Title} changed.",
@@ -232,13 +231,23 @@ public sealed class EventCancelledAutomationConsumer
     protected override IEnumerable<AutomationTriggerContext> Translate(
         EventCancelledIntegrationEvent integrationEvent)
     {
+        // A cancelled draft — or an event only its own audience could see — was never anybody
+        // else's to hear about. The title is the leak: "X was cancelled" names it.
+        if (EventAudience.For(
+                integrationEvent.IsListedPublicly,
+                integrationEvent.OrganizerUserId,
+                integrationEvent.OrganizationId) is not { } audience)
+        {
+            yield break;
+        }
+
         var values = Values();
         values["eventType"] = "cancelled";
 
         yield return Context(
             "event.cancelled",
             integrationEvent.EventId,
-            [],
+            audience,
             $"{integrationEvent.Title} was cancelled.",
             integrationEvent.OccurredAt,
             "event",
@@ -383,6 +392,15 @@ public sealed class EventOccurrenceRescheduledAutomationConsumer
     protected override IEnumerable<AutomationTriggerContext> Translate(
         EventOccurrenceRescheduledIntegrationEvent integrationEvent)
     {
+        // A series' dates can be drafts. Same rule as every other event trigger.
+        if (EventAudience.For(
+                integrationEvent.IsListedPublicly,
+                integrationEvent.OrganizerUserId,
+                integrationEvent.OrganizationId) is not { } audience)
+        {
+            yield break;
+        }
+
         var values = Values();
         values["eventType"] = "rescheduled";
         values["dayOfWeek"] = ((int)integrationEvent.CurrentStartsAt.DayOfWeek).ToString(CultureInfo.InvariantCulture);
@@ -390,7 +408,7 @@ public sealed class EventOccurrenceRescheduledAutomationConsumer
         yield return Context(
             "event.occurrenceChanged",
             integrationEvent.EventId,
-            [],
+            audience,
             $"A date in {integrationEvent.Title} moved.",
             integrationEvent.OccurredAt,
             "event",

@@ -68,6 +68,29 @@ public sealed class AutomationTriggerWiringTests
         }
     }
 
+    /// <summary>
+    /// 21 Oct 2026: <c>event.created</c> fired on the draft for every member's automation. It is the
+    /// first publication now, and every contract an event trigger reads says whether a stranger could
+    /// have found the event — the flag that decides whether anybody but its host hears about it.
+    /// </summary>
+    [Fact]
+    public void Event_created_reads_the_publication_and_every_event_trigger_contract_carries_its_audience()
+    {
+        AutomationCatalog.FindTrigger("event.created")!.SourceEventName
+            .Should().Be("Diaspora.Contracts.CommunityLife.V1.Events.EventPublishedIntegrationEvent");
+
+        foreach (var name in new[]
+        {
+            "Diaspora.Contracts.CommunityLife.V1.Events.EventPublishedIntegrationEvent",
+            "Diaspora.Contracts.CommunityLife.V1.Events.EventUpdatedIntegrationEvent",
+            "Diaspora.Contracts.CommunityLife.V1.Events.EventCancelledIntegrationEvent",
+            "Diaspora.Contracts.CommunityLife.V1.Events.EventOccurrenceRescheduledIntegrationEvent"
+        })
+        {
+            Contracts[name].GetProperty("IsListedPublicly")!.PropertyType.Should().Be<bool>();
+        }
+    }
+
     [Fact]
     public void Location_contracts_carry_no_coordinate()
     {
