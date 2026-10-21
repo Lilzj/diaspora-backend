@@ -298,6 +298,7 @@ public sealed class RecordModerationDecisionCommandHandler
                 await _reputation.ScoreAsync(
                     item.AuthorId,
                     ReputationActions.ViolationRecorded,
+                    ReputationAwardKey.Moderation(ReputationActions.ViolationRecorded, item.Id.Value),
                     item.ContentType.ToString(),
                     item.ContentId,
                     cancellationToken: cancellationToken);
@@ -307,6 +308,7 @@ public sealed class RecordModerationDecisionCommandHandler
                 await _reputation.ScoreAsync(
                     item.AuthorId,
                     ReputationActions.ContentRemoved,
+                    ReputationAwardKey.Moderation(ReputationActions.ContentRemoved, item.Id.Value),
                     item.ContentType.ToString(),
                     item.ContentId,
                     cancellationToken: cancellationToken);

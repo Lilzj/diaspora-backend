@@ -229,6 +229,7 @@ public sealed class RecordConfirmationCommandHandler
         var outcome = await _reputation.ScoreAsync(
             authorId,
             ReputationActions.CommunityConfirmation,
+            ReputationAwardKey.Confirmation(request.TargetType, request.TargetId, userId.Value),
             request.TargetType,
             request.TargetId,
             request.CountryCode,

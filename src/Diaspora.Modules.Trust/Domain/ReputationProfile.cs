@@ -112,7 +112,8 @@ public sealed class ReputationProfile : AggregateRoot<ReputationProfileId>, IAud
         string? sourceType,
         string? sourceId,
         string? countryCode,
-        DateTimeOffset at)
+        DateTimeOffset at,
+        ReputationAwardKey? key = null)
     {
         ArgumentNullException.ThrowIfNull(award);
 
@@ -140,7 +141,7 @@ public sealed class ReputationProfile : AggregateRoot<ReputationProfileId>, IAud
 
         var recorded = ReputationEvent.Record(
             Id, award.ActionType, award.Dimension, award.Points,
-            sourceType, sourceId, countryCode, award.Description, at);
+            sourceType, sourceId, countryCode, award.Description, at, key);
 
         _events.Add(recorded);
 

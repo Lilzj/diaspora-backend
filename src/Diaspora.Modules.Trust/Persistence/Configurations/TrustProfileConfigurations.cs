@@ -293,6 +293,21 @@ public sealed class ReputationEventConfiguration : IEntityTypeConfiguration<Repu
 
         builder.Property(reputationEvent => reputationEvent.CreatedAt).IsRequired();
 
+        builder.Property(reputationEvent => reputationEvent.AwardKey)
+            .HasMaxLength(ReputationAwardKey.MaxLength);
+
+        // The guarantee behind ReputationAwardKey: one award per business fact per member, held
+        // by the database rather than by a read that two outbox workers can both pass. Rows from
+        // before awards were keyed are NULL, and NULLs are distinct on Postgres and SQLite alike,
+        // so history needs no rewrite for this to apply.
+        builder.HasIndex(reputationEvent => new
+        {
+            reputationEvent.ProfileId,
+            reputationEvent.AwardKey
+        })
+            .IsUnique()
+            .HasDatabaseName("ix_reputation_events_profile_award_key");
+
         // Backs the MaxOccurrences and CooldownHours caps, which read count-and-latest for
         // one (profile, action) pair on every scoring attempt.
         builder.HasIndex(reputationEvent => new

@@ -17555,6 +17555,10 @@ namespace Diaspora.Persistence.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
+                    b.Property<string>("AwardKey")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<string>("CountryCode")
                         .HasMaxLength(2)
                         .HasColumnType("character varying(2)");
@@ -17586,6 +17590,10 @@ namespace Diaspora.Persistence.Migrations
                         .HasColumnType("character varying(64)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ProfileId", "AwardKey")
+                        .IsUnique()
+                        .HasDatabaseName("ix_reputation_events_profile_award_key");
 
                     b.HasIndex("ProfileId", "ActionType", "CreatedAt")
                         .HasDatabaseName("ix_reputation_events_profile_action_created");

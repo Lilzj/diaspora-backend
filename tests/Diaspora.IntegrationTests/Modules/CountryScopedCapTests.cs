@@ -139,13 +139,18 @@ public sealed class CountryScopedCapTests : PooledIdentityTestBase
     {
         using var scope = Factory.Services.CreateScope();
 
+        // A different verification id from the approval's, so a different award key: this is the
+        // cap's job to stop, not the key's. The key test lives in ReputationAwardKeyTests.
+        var otherVerification = Guid.NewGuid();
+
         await scope.ServiceProvider
             .GetRequiredService<ReputationService>()
             .ScoreAsync(
                 UserId.From(userId),
                 ReputationActions.CountryVerified,
+                ReputationAwardKey.Verification(ReputationActions.CountryVerified, otherVerification),
                 "verification",
-                Guid.NewGuid().ToString(),
+                otherVerification.ToString(),
                 countryCode);
 
         await scope.ServiceProvider
