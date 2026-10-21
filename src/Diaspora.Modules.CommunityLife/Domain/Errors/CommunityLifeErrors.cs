@@ -139,6 +139,14 @@ public static class CommunityLifeErrors
         CommunityLifeErrorCodes.OrganizationSuspended,
         "That organization is suspended.");
 
+    /// <summary>
+    /// The same answer for a community that does not exist and one the host may not post in, so a
+    /// refusal never confirms that a private community is there.
+    /// </summary>
+    public static readonly Error CommunityPostingForbidden = Error.Forbidden(
+        CommunityLifeErrorCodes.CommunityPostingForbidden,
+        "You can only post an event in a community you are a member of, and only while it is active.");
+
     public static readonly Error DuplicateOrganization = Error.Conflict(
         CommunityLifeErrorCodes.DuplicateOrganization,
         "You already run an organization with that name.");

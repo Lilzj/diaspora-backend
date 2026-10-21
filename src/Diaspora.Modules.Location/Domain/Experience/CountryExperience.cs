@@ -108,6 +108,11 @@ public sealed class CountryExperience : AggregateRoot<CountryExperienceId>, IAud
         {
             experience.RaiseDeparture(departedOn);
         }
+        else
+        {
+            // 21 Oct 2026. An open residence is where the member lives now.
+            experience.RaiseArrival();
+        }
 
         return Result.Success(experience);
     }
@@ -131,7 +136,15 @@ public sealed class CountryExperience : AggregateRoot<CountryExperienceId>, IAud
         ArgumentNullException.ThrowIfNull(period);
 
         var previousDeparture = Period.DepartedOn;
+        var wasOpen = Period.IsOpen;
         Period = period;
+
+        // 21 Oct 2026. A residence that had ended and is open again: the member came back, and this
+        // is the country they are in now. An open residence re-saved stays quiet.
+        if (!wasOpen && period.IsOpen)
+        {
+            RaiseArrival();
+        }
 
         // The trigger is the date, not the transition. Closing an open residence and correcting
         // a departure already recorded are both facts Trust needs; re-saving the same residence
@@ -144,6 +157,15 @@ public sealed class CountryExperience : AggregateRoot<CountryExperienceId>, IAud
 
         return Result.Success();
     }
+
+    private void RaiseArrival() =>
+        RaiseDomainEvent(new CountryResidenceStartedDomainEvent
+        {
+            ExperienceId = Id,
+            UserId = UserId,
+            CountryCode = CountryCode.Value,
+            ArrivedOn = Period.ArrivedOn
+        });
 
     private void RaiseDeparture(DateOnly departedOn) =>
         RaiseDomainEvent(new CountryExperienceEndedDomainEvent

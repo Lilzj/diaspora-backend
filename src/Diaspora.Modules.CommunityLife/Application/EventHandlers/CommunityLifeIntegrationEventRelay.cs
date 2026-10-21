@@ -445,6 +445,7 @@ public sealed class CommunityLifeIntegrationEventRelay
         CommunityEventCreatedDomainEvent domainEvent,
         Guid? seriesId = null,
         int? seriesSequence = null,
+        Guid? communityId = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(domainEvent);
@@ -463,7 +464,8 @@ public sealed class CommunityLifeIntegrationEventRelay
                 CountryCode = domainEvent.CountryCode,
                 NeighborhoodAreaId = domainEvent.NeighborhoodAreaId,
                 StartsAt = domainEvent.StartsAt,
-                CreatedAt = domainEvent.OccurredAt
+                CreatedAt = domainEvent.OccurredAt,
+                CommunityId = communityId
             },
             cancellationToken);
     }
@@ -561,7 +563,10 @@ public sealed class CommunityLifeIntegrationEventRelay
                 // B12.1. A search index that groups a weekly service into one card rather than
                 // twenty-six needs this, and cannot derive it from anything else on the payload.
                 SeriesId = communityEvent.SeriesId?.Value,
-                SeriesSequence = communityEvent.SeriesSequence
+                SeriesSequence = communityEvent.SeriesSequence,
+
+                // 21 Oct 2026. Where the host posted it, for community.eventCreated.
+                CommunityId = communityEvent.CommunityId
             },
             cancellationToken);
     }

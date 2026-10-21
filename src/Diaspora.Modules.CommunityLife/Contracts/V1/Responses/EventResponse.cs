@@ -26,6 +26,9 @@ public sealed record EventResponse
 
     public string? OrganizationSlug { get; init; }
 
+    /// <summary>The community the host posted this event into, or null — 21 Oct 2026.</summary>
+    public Guid? CommunityId { get; init; }
+
     public required Guid OrganizerUserId { get; init; }
 
     public string? HostName { get; init; }

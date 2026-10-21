@@ -6982,6 +6982,14 @@
             }
           },
           {
+            "name": "communityId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
             "name": "countryCode",
             "in": "query",
             "schema": {
@@ -30380,6 +30388,66 @@
         }
       }
     },
+    "/api/v1/location/me/presence": {
+      "get": {
+        "tags": [
+          "Location"
+        ],
+        "summary": "Whether location while the app is open is on, and the last area it found.",
+        "operationId": "GetMyPresence",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Location"
+        ],
+        "summary": "Switch location while the app is open on or off. Off by default; off forgets the last area.",
+        "operationId": "SetMyPresence",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPresenceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/location/me/presence/ping": {
+      "post": {
+        "tags": [
+          "Location"
+        ],
+        "summary": "Report where the device is while the app is open. Resolved to an area and discarded; 409 location.presence.not-enabled unless switched on.",
+        "operationId": "ReportPresence",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PresencePingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/location/me/recent-locations": {
       "delete": {
         "tags": [
@@ -42083,6 +42151,13 @@
             ],
             "format": "uuid"
           },
+          "communityId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
           "hostName": {
             "type": [
               "null",
@@ -47840,6 +47915,40 @@
           }
         }
       },
+      "PresencePingRequest": {
+        "required": [
+          "latitude",
+          "longitude"
+        ],
+        "type": "object",
+        "properties": {
+          "latitude": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "longitude": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "accuracyMetres": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          }
+        }
+      },
       "PricingRequest": {
         "type": "object",
         "properties": {
@@ -51876,6 +51985,17 @@
             "items": {
               "$ref": "#/components/schemas/OrganizationLeaderRequest"
             }
+          }
+        }
+      },
+      "SetPresenceRequest": {
+        "required": [
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
           }
         }
       },

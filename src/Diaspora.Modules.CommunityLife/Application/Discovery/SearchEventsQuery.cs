@@ -14,6 +14,9 @@ public sealed record SearchEventsQuery : IQuery<EventSearchResultResponse>
 
     public Guid? OrganizationId { get; init; }
 
+    /// <summary>Only events posted into this Community Programme community — 21 Oct 2026.</summary>
+    public Guid? CommunityId { get; init; }
+
     public string? CountryCode { get; init; }
 
     public string? CityName { get; init; }

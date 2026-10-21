@@ -36,5 +36,8 @@ public sealed class LocationDatabaseContributor : IDatabaseContributor
 
         // The projection of Trust's decisions
         modelBuilder.ApplyConfiguration(new VerifiedResidencyConfiguration());
+
+        // The "when the app is open" setting and the last area it resolved to (21 Oct 2026)
+        modelBuilder.ApplyConfiguration(new MemberPresenceConfiguration());
     }
 }

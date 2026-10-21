@@ -93,6 +93,8 @@ public sealed class LocationModule : IPlatformModule
             Infrastructure.Privacy.LocationDataExportProvider>();
         services.AddScoped<ICountryExperienceRepository, CountryExperienceRepository>();
         services.AddScoped<IVerifiedResidencyRepository, VerifiedResidencyRepository>();
+        services.AddScoped<
+            Domain.Presence.IMemberPresenceRepository, MemberPresenceRepository>();
     }
 
     /// <summary>
@@ -190,6 +192,9 @@ public sealed class LocationModule : IPlatformModule
         // or path on create or update any more, and the sweep that back-filed them would only
         // keep writing data nothing reads. The class stays until Phase 3 deletes it.
         services.AddScoped<IAreaLocator, AreaLocator>();
+
+        // 21 Oct 2026. The "when the app is open" presence report's area rules.
+        services.AddScoped<Application.Presence.PresenceAreas>();
     }
 
     private static void RegisterSeeding(IServiceCollection services)

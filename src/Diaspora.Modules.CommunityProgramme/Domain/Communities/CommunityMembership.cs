@@ -1,5 +1,6 @@
 using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.CommunityProgramme.Domain.Errors;
+using Diaspora.Modules.CommunityProgramme.Domain.Events;
 using Diaspora.Modules.CommunityProgramme.Domain.Identifiers;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Primitives;
@@ -286,6 +287,7 @@ public sealed class CommunityMembership : AggregateRoot<CommunityMembershipId>, 
         }
 
         Become(CommunityMembershipState.Member, now);
+        RaiseJoined(CommunityJoinRoute.Direct, now);
         return Result.Success();
     }
 
@@ -299,6 +301,7 @@ public sealed class CommunityMembership : AggregateRoot<CommunityMembershipId>, 
 
         DecidedBy = decidedBy;
         Become(CommunityMembershipState.Member, now);
+        RaiseJoined(CommunityJoinRoute.Approved, now);
         return Result.Success();
     }
 
@@ -578,6 +581,24 @@ public sealed class CommunityMembership : AggregateRoot<CommunityMembershipId>, 
         DecisionReason = null;
         Revision++;
     }
+
+    /// <summary>
+    /// Announces a transition into membership — 21 Oct 2026, for <c>community.memberJoined</c>.
+    /// <para>
+    /// Called from the two places a request becomes membership, after the state has moved, so the
+    /// event can never describe a join that did not happen. <see cref="Found"/> does not call it.
+    /// </para>
+    /// </summary>
+    private void RaiseJoined(CommunityJoinRoute route, DateTimeOffset now) =>
+        RaiseDomainEvent(new CommunityMemberJoinedDomainEvent
+        {
+            MembershipId = Id,
+            CommunityId = CommunityId,
+            MemberId = MemberId,
+            JoinedAt = now,
+            Route = route,
+            Visibility = Visibility
+        });
 
     private void End(CommunityMembershipState state, DateTimeOffset now, string? reason, UserId? decidedBy)
     {

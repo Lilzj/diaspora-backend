@@ -208,6 +208,28 @@ public sealed class CommunityProgrammeIntegrationEventRelay
     }
 
     /// <summary>
+    /// A transition into membership, for <c>community.memberJoined</c>. The visibility travels so a
+    /// consumer can keep a Private member's belonging private.
+    /// </summary>
+    public Task PublishAsync(
+        CommunityMemberJoinedDomainEvent domainEvent,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(domainEvent);
+
+        return PublishSafelyAsync(
+            new CommunityMemberJoinedIntegrationEvent
+            {
+                CommunityId = domainEvent.CommunityId.Value,
+                MemberId = domainEvent.MemberId.Value,
+                JoinedAt = domainEvent.JoinedAt,
+                JoinedHow = domainEvent.Route == CommunityJoinRoute.Approved ? "approved" : "direct",
+                MemberVisibility = domainEvent.Visibility.ToString()
+            },
+            cancellationToken);
+    }
+
+    /// <summary>
     /// A community's owner asking for it to be closed is not published — deliberately.
     /// <para>
     /// Nobody is notified when a request is made: the members are not told (the community carries on
@@ -416,6 +438,19 @@ public sealed class CommunityAnnouncementPublishedEventHandler
 
     protected override Task HandleAsync(
         CommunityAnnouncementPublishedDomainEvent domainEvent, CancellationToken cancellationToken) =>
+        _relay.PublishAsync(domainEvent, cancellationToken);
+}
+
+public sealed class CommunityMemberJoinedEventHandler
+    : DomainEventHandler<CommunityMemberJoinedDomainEvent>
+{
+    private readonly CommunityProgrammeIntegrationEventRelay _relay;
+
+    public CommunityMemberJoinedEventHandler(
+        CommunityProgrammeIntegrationEventRelay relay) => _relay = relay;
+
+    protected override Task HandleAsync(
+        CommunityMemberJoinedDomainEvent domainEvent, CancellationToken cancellationToken) =>
         _relay.PublishAsync(domainEvent, cancellationToken);
 }
 

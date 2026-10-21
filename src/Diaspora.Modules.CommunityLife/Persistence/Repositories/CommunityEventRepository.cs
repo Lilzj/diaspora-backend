@@ -656,6 +656,11 @@ public sealed class CommunityEventRepository : ICommunityEventRepository
                 communityEvent => communityEvent.OrganizerUserId == organizerUserId);
         }
 
+        if (filter.CommunityId is { } communityId)
+        {
+            query = query.Where(communityEvent => communityEvent.CommunityId == communityId);
+        }
+
         if (!string.IsNullOrWhiteSpace(filter.CountryCode))
         {
             var country = filter.CountryCode.Trim().ToUpperInvariant();

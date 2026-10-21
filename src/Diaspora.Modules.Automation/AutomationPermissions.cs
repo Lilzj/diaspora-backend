@@ -70,10 +70,13 @@ public static class AutomationCapabilities
     public const string Financial = "automations.financial";
 
     /// <summary>
-    /// Never granted by this deployment.
+    /// A member's own area automations — granted to every member over their own scope since
+    /// 21 Oct 2026.
     /// <para>
-    /// The frontend withholds it too, and for the same reason: the app requests only foreground
-    /// location and there is no geofence backend. Present so the vocabulary can name what is absent.
+    /// Withheld until then because there was no backend: the app requests only foreground location
+    /// and nothing on the server could observe an area. Location now takes an opt-in,
+    /// foreground-only presence report and keeps only the last area, so <c>location.enteredArea</c>
+    /// can fire; the member's opt-in decides whether it ever does.
     /// </para>
     /// </summary>
     public const string Location = "automations.location";

@@ -22,6 +22,9 @@ public sealed record EventQueryFilter
 
     public OrganizationId? OrganizationId { get; init; }
 
+    /// <summary>Only events posted into this community — 21 Oct 2026.</summary>
+    public Guid? CommunityId { get; init; }
+
     public UserId? OrganizerUserId { get; init; }
 
     public string? CountryCode { get; init; }

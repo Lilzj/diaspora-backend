@@ -36,6 +36,7 @@ public sealed class CommunityEventCreatedEventHandler
             domainEvent,
             communityEvent?.SeriesId?.Value,
             communityEvent?.SeriesSequence,
+            communityEvent?.CommunityId,
             cancellationToken);
     }
 }

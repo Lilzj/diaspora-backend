@@ -203,6 +203,37 @@ public sealed record CommunityMilestoneReachedIntegrationEvent : IntegrationEven
     public required DateTimeOffset ReachedAt { get; init; }
 }
 
+/// <summary>
+/// Somebody became a member of a community — 21 Oct 2026, the contract behind
+/// <c>community.memberJoined</c>.
+/// <para>
+/// Published once per transition into membership: a direct join (<see cref="JoinedHow"/> =
+/// <c>direct</c>) or a pending request approved (<c>approved</c>). Never on a read, a re-save, a role
+/// or visibility change, and never for the founder, who did not join so much as begin it.
+/// </para>
+/// <para>
+/// <b>The member's identity is here; whether anybody may be told it is not this contract's call.</b>
+/// <see cref="MemberVisibility"/> is the member's own setting at the moment they joined —
+/// <c>Private</c>, <c>CommunityOnly</c> or <c>Public</c> — and a consumer that tells a third party
+/// about the join must honour it. A Private member's belonging is theirs alone: no administrator can
+/// see it on the members list, so no notice, automation or summary may reveal it either.
+/// </para>
+/// </summary>
+public sealed record CommunityMemberJoinedIntegrationEvent : IntegrationEvent
+{
+    public required Guid CommunityId { get; init; }
+
+    public required Guid MemberId { get; init; }
+
+    public required DateTimeOffset JoinedAt { get; init; }
+
+    /// <summary><c>direct</c> or <c>approved</c>.</summary>
+    public required string JoinedHow { get; init; }
+
+    /// <summary><c>Private</c>, <c>CommunityOnly</c> or <c>Public</c>.</summary>
+    public required string MemberVisibility { get; init; }
+}
+
 
 // ══ Closing a community, and handing one over — 11 Sep 2026 ═════════════════════════════
 //

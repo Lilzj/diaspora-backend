@@ -19,6 +19,9 @@ public static class LocationPersistenceConstants
     public const string ExpertiseTable = "country_expertise";
     public const string VerifiedResidenciesTable = "verified_residencies";
 
+    /// <summary>21 Oct 2026. The "when the app is open" setting and the last area — no history.</summary>
+    public const string MemberPresenceTable = "member_presence";
+
     public const int CountryCodeLength = 2;
     public const int CurrencyCodeLength = 3;
     public const int LanguageCodeLength = 2;

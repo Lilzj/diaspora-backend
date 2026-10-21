@@ -15,6 +15,9 @@ public sealed record EventSummaryResponse
 
     public Guid? OrganizationId { get; init; }
 
+    /// <summary>The community the host posted this event into, or null — 21 Oct 2026.</summary>
+    public Guid? CommunityId { get; init; }
+
     public string? OrganizationName { get; init; }
 
     public required DateTimeOffset StartsAt { get; init; }

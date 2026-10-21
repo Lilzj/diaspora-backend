@@ -137,6 +137,12 @@ public sealed class AutomationModule : IPlatformModule
         services.AddScoped<AutomationScopeAuthorityResolver>();
 
         services.TryAddScoped<IAutomationCalendarWriter, NotConfiguredCalendarWriter>();
+
+        // 21 Oct 2026. Which areas a member's own location.enteredArea rules watch, asked by
+        // Location (which composes first) before it publishes that the member entered one.
+        services.AddScoped<
+            Diaspora.Contracts.Automation.V1.Extensibility.IAutomationAreaWatchDirectory,
+            Extensibility.Location.AutomationAreaWatchDirectory>();
     }
 
     /// <summary>

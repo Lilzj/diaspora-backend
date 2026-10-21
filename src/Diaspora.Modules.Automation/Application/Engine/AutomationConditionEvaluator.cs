@@ -150,7 +150,9 @@ public static class AutomationConditionEvaluator
                     : $"This trigger does not carry the information the '{condition.Key}' check needs.");
         }
 
-        var matched = Compare(condition.Operator, actual, condition.Value, condition.SecondaryValue);
+        var matched = string.Equals(definition.ValueKind, "neighbourhood", StringComparison.Ordinal)
+            ? CompareAreas(condition.Operator, actual, condition.Value)
+            : Compare(condition.Operator, actual, condition.Value, condition.SecondaryValue);
 
         // The explanation names the check and never the value, for sensitive conditions and for
         // insensitive ones alike. One rule is easier to keep than two, and the insensitive case loses
@@ -194,6 +196,20 @@ public static class AutomationConditionEvaluator
         "isFalse" => Equal(actual, "false"),
         _ => false
     };
+
+    /// <summary>
+    /// An area condition, where the trigger may name several areas at once — 21 Oct 2026.
+    /// <para>
+    /// <c>location.enteredArea</c> carries every area the member newly entered — a neighbourhood and
+    /// the town that holds it — because a rule watching the town must fire on arriving in it. So the
+    /// trigger's value is read as a set: <c>equals</c> and <c>includes</c> — the only two the
+    /// catalogue offers on an area — match when any entered area is one the rule names. Every other
+    /// trigger carries one area, a set of one, and behaves exactly as before.
+    /// </para>
+    /// </summary>
+    private static bool CompareAreas(string @operator, string? actual, string? expected) =>
+        @operator is "equals" or "includes"
+        && ListOf(actual).Any(area => ListOf(expected).Any(candidate => Equal(area, candidate)));
 
     private static bool Equal(string? left, string? right) =>
         left is not null && right is not null &&

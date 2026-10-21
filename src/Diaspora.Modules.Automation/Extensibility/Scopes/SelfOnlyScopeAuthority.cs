@@ -41,8 +41,12 @@ public sealed class SelfOnlyScopeAuthority : IAutomationScopeAuthority
     /// implements the seam, nobody broadcasts.
     /// </para>
     /// <para>
-    /// <c>automations.location</c> is withheld too, and separately: the app requests only foreground
-    /// location and there is no geofence backend, so the capability is absent rather than ungranted.
+    /// <c>automations.location</c> is granted since 21 Oct 2026, and it is on the personal side of
+    /// the line: an area trigger tells the member about their own movements and reaches nobody. It
+    /// was withheld while there was no backend for it; there is now an opt-in, foreground-only
+    /// presence report that keeps no history (<c>POST /location/me/presence/ping</c>). Nothing fires
+    /// for a member who has not switched that on, and that switch — not this capability — is the
+    /// consent.
     /// </para>
     /// </summary>
     private static readonly string[] PersonalCapabilities =
@@ -51,7 +55,8 @@ public sealed class SelfOnlyScopeAuthority : IAutomationScopeAuthority
         AutomationCapabilities.Seller,
         AutomationCapabilities.Landlord,
         AutomationCapabilities.Employer,
-        AutomationCapabilities.Provider
+        AutomationCapabilities.Provider,
+        AutomationCapabilities.Location
     ];
 
     public IReadOnlyList<AutomationOwnerKind> Handles { get; } = Enum.GetValues<AutomationOwnerKind>();

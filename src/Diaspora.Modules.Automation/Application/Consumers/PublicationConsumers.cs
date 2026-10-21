@@ -616,6 +616,59 @@ public sealed class EventPublishedAutomationConsumer
             cancellationToken);
     }
 
+    /// <summary>
+    /// <c>community.eventCreated</c> — 21 Oct 2026: an event the host posted into a community went
+    /// live there for the first time.
+    /// <para>
+    /// <b>On first publication, not on the draft.</b> <c>EventCreated</c> carries the community too,
+    /// but a created event is a private draft only its organiser can open; announcing it to a
+    /// community — <c>notify.community</c> reaches every member — would put a title in front of
+    /// people who could not open the link, and would announce events that are never published at
+    /// all. The members' "an event was created in our community" is the moment they can see it.
+    /// A republication (an edit, a hide lifted) is not a second creation.
+    /// </para>
+    /// <para>
+    /// The community is the concerned owner, so a community-owned automation matches, and its id
+    /// rides in <c>community</c> for the community condition.
+    /// </para>
+    /// </summary>
+    protected override IEnumerable<AutomationTriggerContext> Translate(
+        EventPublishedIntegrationEvent integrationEvent)
+    {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+
+        if (!integrationEvent.IsFirstPublication || integrationEvent.CommunityId is not { } communityId
+            || communityId == Guid.Empty)
+        {
+            yield break;
+        }
+
+        var values = Values();
+        values["community"] = communityId.ToString("D");
+        values["country"] = integrationEvent.CountryCode;
+        values["category"] = integrationEvent.CategoryKey;
+        values["eventType"] = integrationEvent.CategoryKey;
+        values["neighbourhood"] = integrationEvent.NeighborhoodAreaId?.ToString("D");
+        values["dayOfWeek"] = ((int)integrationEvent.StartsAt.DayOfWeek)
+            .ToString(CultureInfo.InvariantCulture);
+        values["timeOfDay"] = integrationEvent.StartsAt.ToString("HH:mm", CultureInfo.InvariantCulture);
+
+        yield return new AutomationTriggerContext
+        {
+            TriggerKey = "community.eventCreated",
+            TriggerEventId = $"{integrationEvent.EventId:N}:community.eventCreated",
+            ConcernedOwnerIds = Owners(communityId),
+            SubjectType = AutomationSubjectKinds.Event,
+            SubjectId = integrationEvent.CommunityEventId,
+            SubjectTitle = integrationEvent.Title,
+            SubjectMoment = integrationEvent.StartsAt,
+            SubjectTimeZoneId = integrationEvent.TimeZoneId,
+            Summary = $"A new event in the community: {integrationEvent.Title}",
+            OccurredAt = integrationEvent.OccurredAt,
+            Values = values
+        };
+    }
+
     protected override SavedSearchCandidate? ToCandidate(
         EventPublishedIntegrationEvent integrationEvent)
     {

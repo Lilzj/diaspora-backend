@@ -30,8 +30,14 @@ public static class OutboxTestDriver
     /// Delivers everything currently queued, including anything the delivery itself produces.
     /// </summary>
     /// <returns>How many messages were published across every pass.</returns>
+    /// <remarks>
+    /// <b>The cap is a runaway guard, not a budget</b> — the loop already stops when a pass claims
+    /// nothing. It was 20 until 21 Oct 2026, when every community join began publishing a fact:
+    /// a collection whose shared database had accumulated more than twenty batches stopped short,
+    /// and the message a test had just caused arrived on some later test's drain instead.
+    /// </remarks>
     public static async Task<int> DrainOutboxAsync(
-        this WebApplicationFactory<Api.Program> factory, int maxPasses = 20)
+        this WebApplicationFactory<Api.Program> factory, int maxPasses = 500)
     {
         ArgumentNullException.ThrowIfNull(factory);
 

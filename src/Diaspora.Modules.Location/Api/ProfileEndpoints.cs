@@ -1,3 +1,4 @@
+using Diaspora.Modules.Location.Application.Presence;
 using Diaspora.Modules.Location.Application.Profile;
 using Diaspora.Modules.Location.Contracts.V1.Requests;
 using Diaspora.Platform.Http;
@@ -113,6 +114,58 @@ internal static class ProfileEndpoints
             .RequireAuthorization(LocationPolicies.ManageProfile)
             .WithName("RemoveSavedLocation")
             .WithSummary("Forget a labelled place.");
+
+        // ── 21 Oct 2026: "when the app is open" — opt-in, foreground only, no history ─────────
+        group.MapGet("/me/presence", async (
+                ISender sender, HttpContext context, CancellationToken cancellationToken) =>
+            {
+                var result = await sender.Send(new GetMyPresenceQuery(), cancellationToken);
+                return PlatformResults.Ok(context, result);
+            })
+            .RequireAuthorization(LocationPolicies.ReadProfile)
+            .WithName("GetMyPresence")
+            .WithSummary("Whether location while the app is open is on, and the last area it found.");
+
+        group.MapPut("/me/presence", async (
+                SetPresenceRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await sender.Send(
+                    new SetMyPresenceCommand { Enabled = request.Enabled }, cancellationToken);
+
+                return PlatformResults.Ok(context, result);
+            })
+            .RequireAuthorization(LocationPolicies.ManageProfile)
+            .WithName("SetMyPresence")
+            .WithSummary(
+                "Switch location while the app is open on or off. Off by default; off forgets the "
+                + "last area.");
+
+        group.MapPost("/me/presence/ping", async (
+                PresencePingRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await sender.Send(
+                    new ReportPresenceCommand
+                    {
+                        Latitude = request.Latitude,
+                        Longitude = request.Longitude,
+                        AccuracyMetres = request.AccuracyMetres
+                    },
+                    cancellationToken);
+
+                return PlatformResults.Ok(context, result);
+            })
+            .RequireAuthorization(LocationPolicies.ManageProfile)
+            .RequireRateLimiting("diaspora-authenticated")
+            .WithName("ReportPresence")
+            .WithSummary(
+                "Report where the device is while the app is open. Resolved to an area and "
+                + "discarded; 409 location.presence.not-enabled unless switched on.");
 
         group.MapDelete("/me/recent-locations", async (
                 ISender sender, HttpContext context, CancellationToken cancellationToken) =>

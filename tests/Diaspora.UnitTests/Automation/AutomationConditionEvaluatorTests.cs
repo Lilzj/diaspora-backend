@@ -293,6 +293,40 @@ public sealed class AutomationConditionEvaluatorTests
             Context(AutomationTriggerContext.NewValues()) with { ResolvedValues = answers });
     }
 
+    // ── Areas as a set — 21 Oct 2026 ─────────────────────────────────────────────────────────
+
+    private const string Peckham = "11111111-1111-1111-1111-111111111111";
+    private const string London = "22222222-2222-2222-2222-222222222222";
+    private const string Lagos = "33333333-3333-3333-3333-333333333333";
+
+    /// <summary>
+    /// location.enteredArea carries every area newly entered, so an area condition reads the trigger
+    /// as a set: a rule watching the town matches on arriving in one of its neighbourhoods.
+    /// </summary>
+    [Theory]
+    [InlineData("equals", London, true)]
+    [InlineData("equals", Peckham, true)]
+    [InlineData("equals", Lagos, false)]
+    [InlineData("includes", Lagos + "," + London, true)]
+    [InlineData("includes", Lagos, false)]
+    public void An_area_condition_reads_several_entered_areas_as_a_set(
+        string @operator, string expected, bool matched)
+    {
+        var verdict = Evaluate(
+            "neighbourhood", @operator, expected, null, ("neighbourhood", Peckham + "," + London));
+
+        verdict.Matched.Should().Be(matched);
+        verdict.Evaluable.Should().BeTrue();
+    }
+
+    /// <summary>One area, as every other trigger carries, behaves exactly as it always did.</summary>
+    [Theory]
+    [InlineData("equals", Peckham, true)]
+    [InlineData("equals", London, false)]
+    public void A_single_area_compares_as_before(string @operator, string expected, bool matched) =>
+        Evaluate("neighbourhood", @operator, expected, null, ("neighbourhood", Peckham))
+            .Matched.Should().Be(matched);
+
     // ── The two absences — Phase 5 ──────────────────────────────────────────────────────────
 
     /// <summary>

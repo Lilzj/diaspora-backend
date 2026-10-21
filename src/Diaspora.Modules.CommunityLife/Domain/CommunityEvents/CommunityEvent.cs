@@ -103,6 +103,19 @@ public sealed class CommunityEvent
     public OrganizationId? OrganizationId { get; private set; }
 
     /// <summary>
+    /// The Community Programme community the host posted this event into, when they chose one —
+    /// 21 Oct 2026, "Post in community".
+    /// <para>
+    /// A plain identifier rather than a typed one, because the community belongs to a module that
+    /// composes after this one. Set once, at creation, and only after Community Programme said the
+    /// host may post there (<c>ICommunityEventPostingAuthority</c>); nothing here re-checks it, and
+    /// nothing moves an event between communities. Distinct from <see cref="OrganizationId"/>: an
+    /// organisation runs an event, a community is where it is shown.
+    /// </para>
+    /// </summary>
+    public Guid? CommunityId { get; private set; }
+
+    /// <summary>
     /// The member who runs it. Always set, even when an organization is behind it: somebody has to
     /// answer the phone, and an audit trail that recorded only the organization could not say which
     /// of six committee members published an event that turned out to be a scam.
@@ -330,6 +343,21 @@ public sealed class CommunityEvent
     // ════════════════════════════════════════════════════════════════════════════════════════
     // Creation
     // ════════════════════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Records the community the host posted this event into. Creation only; the caller has asked
+    /// the community's own module first. Refused for an empty identifier or once already set.
+    /// </summary>
+    public Result PostInCommunity(Guid communityId)
+    {
+        if (communityId == Guid.Empty || CommunityId is not null)
+        {
+            return Result.Failure(CommunityLifeErrors.CommunityPostingForbidden);
+        }
+
+        CommunityId = communityId;
+        return Result.Success();
+    }
 
     /// <summary>
     /// Drafts an event.

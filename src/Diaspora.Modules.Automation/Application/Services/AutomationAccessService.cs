@@ -204,9 +204,11 @@ public sealed class AutomationAccessService
             CanUseFinancialTriggers =
                 capabilities.Contains(AutomationCapabilities.Financial, StringComparer.Ordinal),
 
-            // Never granted by this deployment. The app requests only foreground location and there is
-            // no geofence backend; the frontend withholds the same capability for the same reason.
-            CanUseLocationTriggers = false,
+            // 21 Oct 2026: granted with the member's own scope, now that Location takes an opt-in,
+            // foreground-only presence report. Read from the grant rather than written down, so the
+            // answer cannot drift from the capability check that actually gates the trigger.
+            CanUseLocationTriggers =
+                capabilities.Contains(AutomationCapabilities.Location, StringComparer.Ordinal),
 
             CanViewOthersRuns = grant.CanManage,
             CanManageOthersAutomations = grant.CanManage,

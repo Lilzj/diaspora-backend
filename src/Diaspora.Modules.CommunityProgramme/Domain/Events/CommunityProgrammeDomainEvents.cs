@@ -193,6 +193,45 @@ public sealed record CommunityMilestoneReachedDomainEvent : DomainEvent
     public required int MemberCount { get; init; }
 }
 
+/// <summary>How somebody came to belong to a community.</summary>
+public enum CommunityJoinRoute
+{
+    /// <summary>They asked and the community let them straight in.</summary>
+    Direct = 0,
+
+    /// <summary>They asked, waited, and somebody who runs the community approved them.</summary>
+    Approved = 1
+}
+
+/// <summary>
+/// Somebody became a member of a community — 21 Oct 2026.
+/// <para>
+/// Raised by <c>CommunityMembership</c> on the transition into membership and nowhere else: a direct
+/// join, or a pending request approved. Never on a read, a re-save, a role change or a visibility
+/// change, so one person joining is one event. Founding a community is not a join — the founder is
+/// the reason it exists, and nobody can have an automation on a community that did not exist yet.
+/// </para>
+/// <para>
+/// <b>The member's visibility rides with it</b>, as it stood at the moment they joined, because what
+/// a consumer may say about this person depends on it: a Private member's belonging is theirs alone.
+/// </para>
+/// </summary>
+public sealed record CommunityMemberJoinedDomainEvent : DomainEvent
+{
+    public required CommunityMembershipId MembershipId { get; init; }
+
+    public required CommunityId CommunityId { get; init; }
+
+    public required UserId MemberId { get; init; }
+
+    public required DateTimeOffset JoinedAt { get; init; }
+
+    public required CommunityJoinRoute Route { get; init; }
+
+    public required Diaspora.Modules.CommunityProgramme.Domain.Communities.CommunityMembershipVisibility
+        Visibility { get; init; }
+}
+
 // ── Closing a community, and handing one over — 11 Sep 2026 ─────────────────────────────────
 //
 // Until now a community's lifecycle raised nothing at all: it was opened, suspended and archived in

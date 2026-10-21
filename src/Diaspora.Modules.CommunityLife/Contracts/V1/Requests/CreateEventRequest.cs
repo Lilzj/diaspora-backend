@@ -21,6 +21,15 @@ public sealed record CreateEventRequest
     /// <summary>The organizing organization. Optional — most events have none.</summary>
     public Guid? OrganizationId { get; init; }
 
+    /// <summary>
+    /// "Post in community" — 21 Oct 2026. A Community Programme community to show this event in.
+    /// Optional. Allowed only where the host may post to that community (a current member of an
+    /// Active community, <c>canPostToCommunity</c>); otherwise 403
+    /// <c>community-life.event.community-forbidden</c>, the same for a community that does not exist.
+    /// Fixed at creation.
+    /// </summary>
+    public Guid? CommunityId { get; init; }
+
     /// <summary>Who the event is billed as being by, when that differs from the organizer.</summary>
     public string? HostName { get; init; }
 

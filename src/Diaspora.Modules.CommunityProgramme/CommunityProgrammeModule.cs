@@ -167,6 +167,12 @@ public sealed class CommunityProgrammeModule : IPlatformModule
         services.AddScoped<
             Diaspora.Contracts.Community.V1.Publishing.IPublisherAuthority,
             Extensibility.Publishing.CommunityPublisherAuthority>();
+
+        // 21 Oct 2026. Who may post a Community Life event into a community ("Post in community"):
+        // any current member of an Active community — canPostToCommunity.
+        services.AddScoped<
+            Diaspora.Contracts.CommunityProgramme.V1.Directory.ICommunityEventPostingAuthority,
+            Extensibility.Publishing.CommunityEventPostingAuthority>();
     }
 
     private static void RegisterHostedServices(IServiceCollection services)

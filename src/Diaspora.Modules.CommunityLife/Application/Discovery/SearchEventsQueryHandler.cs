@@ -72,6 +72,9 @@ public sealed class SearchEventsQueryHandler
                 && organizationId != Guid.Empty
                 ? OrganizationId.From(organizationId)
                 : null,
+            CommunityId = query.CommunityId is { } communityId && communityId != Guid.Empty
+                ? communityId
+                : null,
             CountryCode = query.CountryCode,
             CityName = query.CityName,
             NeighborhoodAreaId = query.NeighborhoodAreaId,

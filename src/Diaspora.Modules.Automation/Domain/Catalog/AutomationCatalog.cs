@@ -22,8 +22,9 @@ namespace Diaspora.Modules.Automation.Domain.Catalog;
 /// Whether this deployment can actually observe it.
 /// <para>
 /// <b>False is a first-class answer and it is not a defect.</b> Several triggers in the frontend's
-/// catalogue name a contract no module publishes — <c>ListingInquiryReceived</c>,
-/// <c>HousingApplicationStatusChanged</c>, <c>ProviderLeadReceived</c>, <c>CommunityMemberJoined</c>.
+/// catalogue once named a contract no module published — <c>ListingInquiryReceived</c>,
+/// <c>HousingApplicationStatusChanged</c>, <c>ProviderLeadReceived</c>, <c>CommunityMemberJoined</c>
+/// — until each was.
 /// They stay in the catalogue so the builder can explain them, and activation is refused with a 400
 /// naming the missing contract. The alternative — omitting them — makes a member's saved draft
 /// unopenable; the other alternative — accepting them — makes a member switch on a rule that will
@@ -216,36 +217,6 @@ public static class AutomationCatalog
     private const string NoContract =
         "The owning module does not publish a contract for this yet, so the platform cannot observe it.";
 
-    /// <summary>
-    /// Why <c>community.memberJoined</c> cannot be wired, as of 21 Oct 2026.
-    /// <para>
-    /// CommunityProgramme records a join (<c>Community.RecordMemberJoined</c>, from
-    /// <c>ChangeCommunityMembership.JoinAsync</c> and <c>CommunityAdministration</c>) and publishes only
-    /// the milestone it sometimes crosses. No per-join integration event exists; the nearest contracts
-    /// are <c>CommunityMilestoneReachedIntegrationEvent</c> (thresholds only),
-    /// <c>OrganizationMemberJoinedIntegrationEvent</c> (organisations, already
-    /// <c>organization.memberJoined</c>) and <c>CommunityFollowCreatedIntegrationEvent</c> (follows of a
-    /// member, organisation or hashtag, never a community).
-    /// </para>
-    /// </summary>
-    public const string CommunityMemberJoinedReason =
-        "CommunityProgramme publishes no per-join contract: a join moves the member count and only a "
-        + "milestone it crosses is published (community.milestoneReached). The owner half is answered.";
-
-    /// <summary>
-    /// Why <c>community.eventCreated</c> cannot be wired, as of 21 Oct 2026.
-    /// <para>
-    /// Events belong to CommunityLife and are published with an organisation, an organiser and a
-    /// neighbourhood (<c>EventCreatedIntegrationEvent</c>, <c>EventPublishedIntegrationEvent</c>) and
-    /// no community. A CommunityProgramme community holds no events and no organisation link, so no
-    /// published event can say which community it was created in.
-    /// </para>
-    /// </summary>
-    public const string CommunityEventCreatedReason =
-        "No event belongs to a community: CommunityLife publishes events with an organisation and a "
-        + "neighbourhood and no community, and a community has no organisation to join them through. "
-        + "The owner half is answered.";
-
     // ── Triggers ────────────────────────────────────────────────────────────────────────────────
 
     public static readonly FrozenDictionary<string, TriggerCatalogEntry> Triggers =
@@ -380,29 +351,30 @@ public static class AutomationCatalog
             new("community.updatePublished", "community", AutomationTriggerDelivery.DomainEvent,
                 "Diaspora.Contracts.Community.V1.Events.CommunityPostPublishedIntegrationEvent",
                 true, null, null, UserOnly, false),
-            // ── A community has an owner now, so one obstacle is left for two of these ───────
+            // ── Community-owned: a community has an Owner and Administrators ──────────────────
             //
             // These three carried two obstacles until 11 Sep 2026: no contract, and no owner — the
             // Community kind was granted by nobody, because a community had members and nobody who
             // ran it. Founding a community now makes its founder the Owner and an Administrator, and
-            // `CommunityAutomationAuthority` answers for the kind.
+            // `CommunityAutomationAuthority` answers for the kind. The milestone got its contract
+            // that day.
             //
-            // The milestone has its contract too, published once per milestone from
-            // `Community.RecordMemberJoined`, and is the last of the four events the Backend Gap
-            // Build Order called genuinely missing. `memberJoined` and `eventCreated` are left with
-            // the contract alone, and their reason says only that — the owner half is answered.
-            //
-            // Re-audited 21 Oct 2026 against every integration event in Diaspora.Contracts, and still
-            // unwireable — each reason names exactly what is missing so nobody has to repeat the search.
+            // 21 Oct 2026, the other two wired. `memberJoined` is CommunityProgramme's per-join contract,
+            // published on the transition into membership (a direct join or an approval), and its
+            // consumer names nobody — a Private member's belonging is not the owner's to learn.
+            // `eventCreated` is an event the host posted into the community ("Post in community"),
+            // fired when it first goes live there rather than while it is a private draft.
             new("community.memberJoined", "community", AutomationTriggerDelivery.DomainEvent,
-                null, false, CommunityMemberJoinedReason, AutomationCapabilities.Community,
+                "Diaspora.Contracts.CommunityProgramme.V1.Events.CommunityMemberJoinedIntegrationEvent",
+                true, null, AutomationCapabilities.Community,
                 [AutomationOwnerKind.Community], false),
             new("community.milestoneReached", "community", AutomationTriggerDelivery.DomainEvent,
                 "Diaspora.Contracts.CommunityProgramme.V1.Events.CommunityMilestoneReachedIntegrationEvent",
                 true, null, AutomationCapabilities.Community,
                 [AutomationOwnerKind.Community], false),
             new("community.eventCreated", "community", AutomationTriggerDelivery.DomainEvent,
-                null, false, CommunityEventCreatedReason, AutomationCapabilities.Community,
+                "Diaspora.Contracts.CommunityLife.V1.Events.EventPublishedIntegrationEvent",
+                true, null, AutomationCapabilities.Community,
                 [AutomationOwnerKind.Community], false),
 
             new("organization.memberJoined", "organizations", AutomationTriggerDelivery.DomainEvent,
@@ -551,25 +523,21 @@ public static class AutomationCatalog
                 "Diaspora.Contracts.Conversations.V1.Events.ConversationUnreadThresholdReachedIntegrationEvent",
                 true, null, null, UserOnly, true),
 
-            // ── Location — three modes live on the device, two refused ──────────────────────
-            new("location.enteredArea", "location", AutomationTriggerDelivery.DeviceLocal,
-                null, false,
-                "Background location is not implemented and automations.location is granted to "
-                + "nobody. The client refuses this trigger for the same reason.",
-                AutomationCapabilities.Location, UserOnly, true),
+            // ── Location — both observed by the server since 21 Oct 2026 ──────────────────────
             //
-            // Re-audited 21 Oct 2026. Location does publish one residence fact,
-            // `CountryResidenceEndedIntegrationEvent`, and it is not this trigger: it names the
-            // country the member LEFT, while this trigger's `country` condition is about the country
-            // they are in now, and the declaration of a new residence
-            // (`CountryExperienceDeclaredDomainEvent`) is not published at all. Wiring the departure
-            // here would fire beside the device's own observation with the opposite country.
-            new("location.countryChanged", "location", AutomationTriggerDelivery.DeviceLocal,
-                null, false,
-                "The device observes this while the app is in the foreground. The server never "
-                + "claims to: Location publishes only CountryResidenceEnded, which names the country "
-                + "left rather than the one entered, and does not publish a new residence.",
-                null, UserOnly, true)
+            // `enteredArea`: the member opts in to a foreground-only presence report; Location keeps
+            // only the last area, and publishes an entry when a new area is one this member's rule
+            // watches. No background location, no history, no coordinates on the bus.
+            new("location.enteredArea", "location", AutomationTriggerDelivery.DomainEvent,
+                "Diaspora.Contracts.Location.V1.Events.MemberEnteredAreaIntegrationEvent",
+                true, null, AutomationCapabilities.Location, UserOnly, true),
+
+            // `countryChanged`: a residence starting in a country — the country the member is in
+            // now, which is what the `country` condition means. The departure contract names the
+            // country left and is deliberately not this trigger.
+            new("location.countryChanged", "location", AutomationTriggerDelivery.DomainEvent,
+                "Diaspora.Contracts.Location.V1.Events.CountryResidenceStartedIntegrationEvent",
+                true, null, null, UserOnly, true)
         }.ToFrozenDictionary(trigger => trigger.Key, StringComparer.Ordinal);
 
     // ── Conditions ──────────────────────────────────────────────────────────────────────────────

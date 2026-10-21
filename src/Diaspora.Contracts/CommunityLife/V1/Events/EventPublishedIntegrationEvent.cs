@@ -94,4 +94,11 @@ public sealed record EventPublishedIntegrationEvent : IntegrationEvent
 
     /// <summary>Its ordinal in that series. Stable: cancelling one date does not renumber the rest.</summary>
     public int? SeriesSequence { get; init; }
+
+    /// <summary>
+    /// The Community Programme community the host posted this event into, or null — 21 Oct 2026.
+    /// Appended, never inserted. Set only after Community Programme agreed the host may post there,
+    /// and the field <c>community.eventCreated</c>'s community condition reads.
+    /// </summary>
+    public Guid? CommunityId { get; init; }
 }

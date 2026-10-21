@@ -56,6 +56,21 @@ public static class LocationErrors
             LocationErrorCodes.ExperienceOverlapping,
             "That period overlaps one you have already recorded for this country.");
 
+    /// <summary>
+    /// A presence report while the member has not switched "when the app is open" on. Refused rather
+    /// than quietly ignored, so an app that sends one without the member's consent finds out.
+    /// </summary>
+    public static readonly Error PresenceNotEnabled =
+        Error.Conflict(
+            LocationErrorCodes.PresenceNotEnabled,
+            "Turn on location while the app is open before sharing where you are.");
+
+    public static readonly Error PresenceCoordinatesInvalid =
+        Error.Validation(
+            LocationErrorCodes.CoordinatesInvalid,
+            "A latitude between -90 and 90, a longitude between -180 and 180 and a non-negative "
+            + "accuracy are required.");
+
     public static readonly Error GeocodingUnavailable =
         Error.ServiceUnavailable(
             LocationErrorCodes.GeocodingUnavailable,

@@ -234,10 +234,11 @@ public sealed class AutomationCatalogTests
     /// </summary>
     [Fact]
     public void Every_unavailable_trigger_states_a_reason() =>
+        // No longer `.And.NotBeEmpty()`: since 21 Oct 2026 every trigger is available, and the rule
+        // still binds the next one that is not.
         AutomationCatalog.Triggers.Values
             .Where(trigger => !trigger.IsAvailable)
-            .Should().OnlyContain(trigger => !string.IsNullOrWhiteSpace(trigger.UnavailableReason))
-            .And.NotBeEmpty();
+            .Should().OnlyContain(trigger => !string.IsNullOrWhiteSpace(trigger.UnavailableReason));
 
     [Fact]
     public void Every_unevaluable_condition_states_a_reason() =>
@@ -305,20 +306,31 @@ public sealed class AutomationCatalogTests
     }
 
     /// <summary>
-    /// Location automation is never granted, matching the client's own refusal.
+    /// Both location triggers are observed by the server since 21 Oct 2026.
     /// <para>
-    /// The app requests only foreground location and there is no geofence backend. Both triggers stay
-    /// in the catalogue so the builder can explain them, and neither is available.
+    /// <c>countryChanged</c> from a residence starting in a country; <c>enteredArea</c> from the
+    /// opt-in, foreground-only presence report. Both are the member's own, and the area trigger keeps
+    /// its capability, now granted over the member's own scope.
     /// </para>
     /// </summary>
     [Fact]
-    public void Location_triggers_are_offered_and_refused()
+    public void Location_triggers_are_observed_by_the_server()
     {
-        AutomationCatalog.FindTrigger("location.enteredArea")!.IsAvailable.Should().BeFalse();
-        AutomationCatalog.FindTrigger("location.countryChanged")!.IsAvailable.Should().BeFalse();
+        var entered = AutomationCatalog.FindTrigger("location.enteredArea")!;
+        var country = AutomationCatalog.FindTrigger("location.countryChanged")!;
 
-        AutomationCatalog.FindTrigger("location.enteredArea")!.RequiredCapability
-            .Should().Be(AutomationCapabilities.Location);
+        entered.IsAvailable.Should().BeTrue();
+        entered.Delivery.Should().Be(AutomationTriggerDelivery.DomainEvent);
+        entered.SourceEventName.Should().Be(
+            "Diaspora.Contracts.Location.V1.Events.MemberEnteredAreaIntegrationEvent");
+        entered.RequiredCapability.Should().Be(AutomationCapabilities.Location);
+        entered.AllowedOwners.Should().Equal(AutomationOwnerKind.User);
+
+        country.IsAvailable.Should().BeTrue();
+        country.Delivery.Should().Be(AutomationTriggerDelivery.DomainEvent);
+        country.SourceEventName.Should().Be(
+            "Diaspora.Contracts.Location.V1.Events.CountryResidenceStartedIntegrationEvent");
+        country.AllowedOwners.Should().Equal(AutomationOwnerKind.User);
     }
 
     /// <summary>

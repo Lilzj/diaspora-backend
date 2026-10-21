@@ -67,28 +67,29 @@ public sealed class AutomationExtensionTests
         AutomationCatalog.FindTrigger(key)!.IsAvailable.Should().BeTrue();
 
     /// <summary>
-    /// Two community triggers stay deferred, and stay explained.
+    /// The other two community triggers are served by their own contracts — 21 Oct 2026.
     /// <para>
     /// This test's first purpose was to stop a later phase "quietly marking it available without
-    /// building one". On 11 Sep 2026 one was built, not quietly: communities gained an Owner and
-    /// administrators, <c>CommunityAutomationAuthority</c> answers for the Community kind, and the
-    /// milestone got a contract. It moved to the test below. These two still have no contract, and
-    /// their reason now says only that — the owner half is answered.
+    /// building one". Both were built, not quietly: CommunityProgramme publishes a per-join contract,
+    /// and an event can be posted into a community and says so when it goes live. Asserted with the
+    /// contract each consumes, so neither can become available on a flag alone.
     /// </para>
     /// </summary>
     [Theory]
-    [InlineData("community.memberJoined")]
-    [InlineData("community.eventCreated")]
-    public void The_community_triggers_stay_deferred_and_explained(string key)
+    [InlineData(
+        "community.memberJoined",
+        "Diaspora.Contracts.CommunityProgramme.V1.Events.CommunityMemberJoinedIntegrationEvent")]
+    [InlineData(
+        "community.eventCreated",
+        "Diaspora.Contracts.CommunityLife.V1.Events.EventPublishedIntegrationEvent")]
+    public void The_community_triggers_are_served_by_their_own_contracts(string key, string contract)
     {
         var trigger = AutomationCatalog.FindTrigger(key)!;
 
-        trigger.IsAvailable.Should().BeFalse("nothing publishes this yet");
-        trigger.UnavailableReason.Should().NotBeNullOrWhiteSpace();
-        trigger.UnavailableReason.Should().NotContain(
-            "nobody administers",
-            "a community has an owner now, and a reason naming both obstacles would send somebody "
-            + "to build an owner that already exists");
+        trigger.IsAvailable.Should().BeTrue();
+        trigger.UnavailableReason.Should().BeNull();
+        trigger.SourceEventName.Should().Be(contract);
+        trigger.AllowedOwners.Should().Equal(AutomationOwnerKind.Community);
     }
 
     /// <summary>

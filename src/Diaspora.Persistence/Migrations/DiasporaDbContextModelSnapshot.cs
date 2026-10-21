@@ -3110,6 +3110,9 @@ namespace Diaspora.Persistence.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)");
 
+                    b.Property<Guid?>("CommunityId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTimeOffset?>("CompletedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -3203,6 +3206,9 @@ namespace Diaspora.Persistence.Migrations
 
                     b.HasIndex("ReportCount")
                         .HasDatabaseName("ix_community_life_events_report_count");
+
+                    b.HasIndex("CommunityId", "Status")
+                        .HasDatabaseName("ix_community_life_events_community_status");
 
                     b.HasIndex("OrganizationId", "Status")
                         .HasDatabaseName("ix_community_life_events_organization_status");
@@ -14113,6 +14119,38 @@ namespace Diaspora.Persistence.Migrations
                         .HasDatabaseName("ix_country_experiences_user_country");
 
                     b.ToTable("country_experiences", "location");
+                });
+
+            modelBuilder.Entity("Diaspora.Modules.Location.Domain.Presence.MemberPresence", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("EnabledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("LastAreaId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("LastEvaluatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_member_presence_user");
+
+                    b.ToTable("member_presence", "location");
                 });
 
             modelBuilder.Entity("Diaspora.Modules.Location.Domain.Profiles.LocationProfile", b =>

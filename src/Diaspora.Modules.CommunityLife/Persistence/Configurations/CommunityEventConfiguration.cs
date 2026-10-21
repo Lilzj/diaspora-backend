@@ -532,6 +532,11 @@ public sealed class CommunityEventConfiguration : IEntityTypeConfiguration<Commu
                 new { communityEvent.OrganizationId, communityEvent.Status })
             .HasDatabaseName("ix_community_life_events_organization_status");
 
+        // 21 Oct 2026. A community's own event list — the events search's communityId filter.
+        builder.HasIndex(communityEvent =>
+                new { communityEvent.CommunityId, communityEvent.Status })
+            .HasDatabaseName("ix_community_life_events_community_status");
+
         // The public browse predicate, in the order it narrows.
         builder.HasIndex(communityEvent =>
                 new

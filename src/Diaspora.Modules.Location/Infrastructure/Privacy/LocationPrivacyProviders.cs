@@ -1,3 +1,4 @@
+using Diaspora.Modules.Location.Domain.Presence;
 using Diaspora.Modules.Location.Domain.Profiles;
 using Diaspora.Persistence;
 using Diaspora.Platform.Operations.Privacy;
@@ -16,6 +17,9 @@ internal static class LocationPrivacy
     public const string ProfileDataSet = "location profile";
 
     public const string SavedPlacesDataSet = "saved places";
+
+    /// <summary>21 Oct 2026. The "when the app is open" setting and the last area it resolved to.</summary>
+    public const string PresenceDataSet = "location while the app is open";
 }
 
 /// <summary>
@@ -51,10 +55,15 @@ public sealed class LocationDataErasureProvider : IDataErasureProvider
         Guid userId, CancellationToken cancellationToken = default)
     {
         var profile = await FindAsync(userId, cancellationToken);
+        var presence = await FindPresenceAsync(userId, cancellationToken);
 
         if (profile is null)
         {
-            return [new ErasureResult(Module, LocationPrivacy.ProfileDataSet, ErasureOutcome.NothingHeld, 0)];
+            return
+            [
+                new ErasureResult(Module, LocationPrivacy.ProfileDataSet, ErasureOutcome.NothingHeld, 0),
+                .. PresenceResult(presence),
+            ];
         }
 
         return
@@ -65,17 +74,33 @@ public sealed class LocationDataErasureProvider : IDataErasureProvider
                 LocationPrivacy.SavedPlacesDataSet,
                 ErasureOutcome.Deleted,
                 profile.SavedLocations.Count + profile.RecentLocations.Count),
+            .. PresenceResult(presence),
         ];
     }
 
     public async Task<IReadOnlyList<ErasureResult>> EraseAsync(
         Guid userId, CancellationToken cancellationToken = default)
     {
+        // 21 Oct 2026. The presence row first and on its own: it exists for members who never saved
+        // a place, so it cannot hang off the profile's early return.
+        var presence = await FindPresenceAsync(userId, cancellationToken);
+        var presenceResult = PresenceResult(presence);
+
+        if (presence is not null)
+        {
+            _dbContext.Set<MemberPresence>().Remove(presence);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
         var profile = await FindAsync(userId, cancellationToken);
 
         if (profile is null)
         {
-            return [new ErasureResult(Module, LocationPrivacy.ProfileDataSet, ErasureOutcome.NothingHeld, 0)];
+            return
+            [
+                new ErasureResult(Module, LocationPrivacy.ProfileDataSet, ErasureOutcome.NothingHeld, 0),
+                .. presenceResult,
+            ];
         }
 
         var places = profile.SavedLocations.Count + profile.RecentLocations.Count;
@@ -90,8 +115,24 @@ public sealed class LocationDataErasureProvider : IDataErasureProvider
         [
             new ErasureResult(Module, LocationPrivacy.ProfileDataSet, ErasureOutcome.Deleted, 1),
             new ErasureResult(Module, LocationPrivacy.SavedPlacesDataSet, ErasureOutcome.Deleted, places),
+            .. presenceResult,
         ];
     }
+
+    /// <summary>
+    /// The presence setting and its last area are deleted outright — 21 Oct 2026. An area a member
+    /// was last seen in is where they were; nothing anonymised about it would be any less so.
+    /// Reported only when a row exists: most members never switch it on, and a receipt line for a
+    /// setting they never touched would read as something having been held.
+    /// </summary>
+    private static ErasureResult[] PresenceResult(MemberPresence? presence) =>
+        presence is null
+            ? []
+            : [new ErasureResult(LocationPrivacy.Module, LocationPrivacy.PresenceDataSet, ErasureOutcome.Deleted, 1)];
+
+    private Task<MemberPresence?> FindPresenceAsync(Guid userId, CancellationToken cancellationToken) =>
+        _dbContext.Set<MemberPresence>()
+            .FirstOrDefaultAsync(row => row.UserId == UserId.From(userId), cancellationToken);
 
     private Task<LocationProfile?> FindAsync(Guid userId, CancellationToken cancellationToken) =>
         _dbContext.Set<LocationProfile>()
@@ -124,6 +165,30 @@ public sealed class LocationDataExportProvider : IDataExportProvider
     public async Task<IReadOnlyList<ExportSection>> ExportAsync(
         Guid userId, CancellationToken cancellationToken = default)
     {
+        var sections = new List<ExportSection>();
+
+        // 21 Oct 2026. The presence setting, and the one area it remembers. The member's own data:
+        // they switched it on, and it was their device that put them in that area.
+        var presence = await _dbContext.Set<MemberPresence>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(row => row.UserId == UserId.From(userId), cancellationToken);
+
+        if (presence is not null)
+        {
+            sections.Add(new ExportSection(
+                Module,
+                LocationPrivacy.PresenceDataSet,
+                [
+                    new Dictionary<string, object?>(StringComparer.Ordinal)
+                    {
+                        ["enabled"] = presence.IsEnabled,
+                        ["enabledAt"] = presence.EnabledAt,
+                        ["lastAreaId"] = presence.LastAreaId,
+                        ["lastEvaluatedAt"] = presence.LastEvaluatedAt,
+                    },
+                ]));
+        }
+
         var profile = await _dbContext.Set<LocationProfile>()
             .IgnoreQueryFilters()
             .AsNoTracking()
@@ -132,7 +197,7 @@ public sealed class LocationDataExportProvider : IDataExportProvider
 
         if (profile is null)
         {
-            return [];
+            return sections;
         }
 
         var places = profile.SavedLocations
@@ -149,9 +214,8 @@ public sealed class LocationDataExportProvider : IDataExportProvider
             .Cast<IReadOnlyDictionary<string, object?>>()
             .ToList();
 
-        return
-        [
-            new ExportSection(Module, LocationPrivacy.SavedPlacesDataSet, places),
-        ];
+        sections.Add(new ExportSection(Module, LocationPrivacy.SavedPlacesDataSet, places));
+
+        return sections;
     }
 }

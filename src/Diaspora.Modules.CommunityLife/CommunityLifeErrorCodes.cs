@@ -46,6 +46,9 @@ public static class CommunityLifeErrorCodes
     public const string OrganizationNotArchived = Prefix + ".organization.not-archived";
     public const string OrganizationArchivedImmutable = Prefix + ".organization.archived-immutable";
     public const string OrganizationSuspended = Prefix + ".organization.suspended";
+
+    /// <summary>21 Oct 2026. The host may not post an event into the community they named.</summary>
+    public const string CommunityPostingForbidden = Prefix + ".event.community-forbidden";
     public const string DuplicateOrganization = Prefix + ".organization.duplicate";
     public const string TooManyOrganizations = Prefix + ".organization.too-many";
     public const string OwnerCannotLeave = Prefix + ".organization.owner-cannot-leave";

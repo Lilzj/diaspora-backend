@@ -152,6 +152,13 @@ internal sealed record EventSearchParameters
     [FromQuery(Name = "organizationId")]
     public Guid? OrganizationId { get; init; }
 
+    /// <summary>
+    /// 21 Oct 2026. Only events posted into this community ("Post in community"). The events' own
+    /// visibility still applies, exactly as for every other filter here.
+    /// </summary>
+    [FromQuery(Name = "communityId")]
+    public Guid? CommunityId { get; init; }
+
     [FromQuery(Name = "countryCode")]
     public string? CountryCode { get; init; }
 
@@ -225,6 +232,7 @@ internal sealed record EventSearchParameters
             CategoryKeys = CategoryKeys,
             Facet = Facet,
             OrganizationId = OrganizationId,
+            CommunityId = CommunityId,
             CountryCode = CountryCode,
             CityName = CityName,
 

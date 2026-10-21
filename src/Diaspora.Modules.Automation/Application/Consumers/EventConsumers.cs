@@ -532,3 +532,45 @@ public sealed class CommunityMilestoneAutomationConsumer
     }
 }
 
+/// <summary>
+/// Somebody joined a community — 21 Oct 2026, <c>community.memberJoined</c>.
+/// <para>
+/// The community is the concerned owner, so a community-owned automation — owned by its Owner or an
+/// Administrator — matches. One join is one run: the contract is published once per transition into
+/// membership, and its <c>EventId</c> is the idempotency key like every other.
+/// </para>
+/// <para>
+/// <b>Nobody's identity reaches the automation, whatever the member's visibility.</b> A Private
+/// member's belonging is hidden even from the community's administrators on its members list, so a
+/// run that named them — in its summary, its subject or a condition value — would tell the
+/// automation's owner, and every recipient of <c>notify.community</c>, what the platform refuses to
+/// tell them anywhere else. The visible members could be named, but a rule that names some joiners
+/// and not others tells the owner which ones are private, so none are: the summary says somebody
+/// joined, as <c>organization.memberJoined</c> has always done. The subject is the community.
+/// </para>
+/// </summary>
+public sealed class CommunityMemberJoinedAutomationConsumer
+    : AutomationEventConsumer<CommunityMemberJoinedIntegrationEvent>
+{
+    public CommunityMemberJoinedAutomationConsumer(AutomationEngine engine) : base(engine) { }
+
+    protected override IEnumerable<AutomationTriggerContext> Translate(
+        CommunityMemberJoinedIntegrationEvent integrationEvent)
+    {
+        var values = Values();
+        values["community"] = integrationEvent.CommunityId.ToString("D");
+
+        yield return Context(
+            "community.memberJoined",
+            integrationEvent.EventId,
+            Owners(integrationEvent.CommunityId),
+            "Somebody new joined the community.",
+            integrationEvent.OccurredAt,
+            "community",
+            integrationEvent.CommunityId,
+            null,
+            null,
+            null,
+            values);
+    }
+}

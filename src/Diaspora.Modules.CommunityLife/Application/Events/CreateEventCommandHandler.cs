@@ -1,4 +1,5 @@
 using Diaspora.Application.Abstractions;
+using Diaspora.Contracts.CommunityProgramme.V1.Directory;
 using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.CommunityLife.Application.Mapping;
 using Diaspora.Modules.CommunityLife.Application.Services;
@@ -55,6 +56,7 @@ public sealed class CreateEventCommandHandler
     private readonly IOptions<CommunityLifeOptions> _options;
     private readonly IGuidGenerator _guids;
     private readonly IClock _clock;
+    private readonly IReadOnlyList<ICommunityEventPostingAuthority> _communityAuthorities;
 
     public CreateEventCommandHandler(
         ICommunityEventRepository events,
@@ -71,7 +73,8 @@ public sealed class CreateEventCommandHandler
         CommunityEventReadContext read,
         IOptions<CommunityLifeOptions> options,
         IGuidGenerator guids,
-        IClock clock)
+        IClock clock,
+        IEnumerable<ICommunityEventPostingAuthority> communityAuthorities)
     {
         _events = events;
         _organizations = organizations;
@@ -88,6 +91,7 @@ public sealed class CreateEventCommandHandler
         _options = options;
         _guids = guids;
         _clock = clock;
+        _communityAuthorities = [.. communityAuthorities];
     }
 
     public async Task<Result<EventResponse>> Handle(
@@ -110,6 +114,13 @@ public sealed class CreateEventCommandHandler
         if (host.IsFailure)
         {
             return Result.Failure<EventResponse>(host.Error);
+        }
+
+        var community = await ResolveCommunityAsync(caller.Value, request, cancellationToken);
+
+        if (community.IsFailure)
+        {
+            return Result.Failure<EventResponse>(community.Error);
         }
 
         var guard = await GuardAsync(caller.Value, request, cancellationToken);
@@ -158,6 +169,16 @@ public sealed class CreateEventCommandHandler
         if (communityEvent.IsFailure)
         {
             return Result.Failure<EventResponse>(communityEvent.Error);
+        }
+
+        if (community.Value is { } postedIn)
+        {
+            var posted = communityEvent.Value.PostInCommunity(postedIn);
+
+            if (posted.IsFailure)
+            {
+                return Result.Failure<EventResponse>(posted.Error);
+            }
         }
 
         var applied = await ApplyDetailAsync(
@@ -228,6 +249,41 @@ public sealed class CreateEventCommandHandler
         return permitted.IsFailure
             ? Result.Failure<Organization?>(permitted.Error)
             : Result.Success<Organization?>(organization);
+    }
+
+    /// <summary>
+    /// The community the host chose to post this event into, when they chose one — 21 Oct 2026.
+    /// <para>
+    /// Asked of the module that owns communities, through <see cref="ICommunityEventPostingAuthority"/>,
+    /// because Community Programme composes after this module. Every registered authority is asked
+    /// and the first grant wins; with none registered nobody may post into a community, which is the
+    /// direction a permission must fail. A refusal is never a silent fallback to an event with no
+    /// community: the host asked for one, and an event that quietly went elsewhere would be shown
+    /// to the wrong people.
+    /// </para>
+    /// </summary>
+    private async Task<Result<Guid?>> ResolveCommunityAsync(
+        UserId caller, CreateEventRequest request, CancellationToken cancellationToken)
+    {
+        if (request.CommunityId is not { } communityId)
+        {
+            return Result.Success<Guid?>(null);
+        }
+
+        if (communityId == Guid.Empty)
+        {
+            return Result.Failure<Guid?>(CommunityLifeErrors.CommunityPostingForbidden);
+        }
+
+        foreach (var authority in _communityAuthorities)
+        {
+            if (await authority.AuthorizeAsync(caller.Value, communityId, cancellationToken) is { } grant)
+            {
+                return Result.Success<Guid?>(grant.CommunityId);
+            }
+        }
+
+        return Result.Failure<Guid?>(CommunityLifeErrors.CommunityPostingForbidden);
     }
 
     /// <summary>

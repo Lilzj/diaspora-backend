@@ -30,4 +30,7 @@ public static class LocationErrorCodes
     public const string ExpertiseLimitReached = "location.expertise.limit-reached";
     public const string GeocodingUnavailable = "location.geocoding.unavailable";
     public const string SpatialCapabilityUnsupported = "location.spatial.unsupported";
+
+    /// <summary>21 Oct 2026. A presence report while "when the app is open" is switched off.</summary>
+    public const string PresenceNotEnabled = "location.presence.not-enabled";
 }

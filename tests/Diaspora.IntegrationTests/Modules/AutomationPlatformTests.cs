@@ -70,8 +70,11 @@ public sealed class AutomationPlatformTests : IdentityTestBase
         access.CanCreatePlatformWide.Should().BeFalse(
             "§66: a normal member must not be able to create platform-wide automation");
 
-        access.CanUseLocationTriggers.Should().BeFalse(
-            "the app requests only foreground location and there is no geofence backend");
+        // 21 Oct 2026: a member's own area automations, now that Location takes an opt-in,
+        // foreground-only presence report. Personal: it reaches nobody else.
+        access.CanUseLocationTriggers.Should().BeTrue(
+            "an area trigger tells the member about their own movements, and the opt-in is the consent");
+        access.GrantedCapabilities.Should().Contain("automations.location");
 
         access.CanNotifyOtherMembers.Should().BeFalse(
             "no scope authority in this deployment grants a broadcast capability");
@@ -104,16 +107,21 @@ public sealed class AutomationPlatformTests : IdentityTestBase
         available.IsAvailable.Should().BeTrue("B12.1 publishes EventUpdated");
         available.UnavailableReason.Should().BeNull();
 
-        // Wave 12 made `provider.leadReceived` available — a lead is a conversation, and B13.2
-        // publishes it — so the unavailable half is now asserted against one that genuinely still is.
-        // `community.memberJoined` names a scope with no aggregate anywhere in this backend: the
-        // frontend's Phase 13 Community Directory has no backend, and Wave 12 deferred it rather than
-        // inventing a community to satisfy an automation trigger.
-        var unavailable = catalog.Triggers.Single(trigger => trigger.Key == "community.memberJoined");
-        unavailable.IsAvailable.Should().BeFalse(
-            "no module owns community membership, so nobody publishes the fact");
+        // 21 Oct 2026: the last four unavailable triggers were wired, so no trigger is unavailable
+        // and the unavailable half is asserted as a rule: anything unavailable says why.
+        catalog.Triggers.Where(trigger => !trigger.IsAvailable)
+            .Should().OnlyContain(trigger => !string.IsNullOrWhiteSpace(trigger.UnavailableReason));
 
-        unavailable.UnavailableReason.Should().NotBeNullOrWhiteSpace();
+        foreach (var key in new[]
+        {
+            "community.memberJoined", "community.eventCreated",
+            "location.enteredArea", "location.countryChanged"
+        })
+        {
+            var wired = catalog.Triggers.Single(trigger => trigger.Key == key);
+            wired.IsAvailable.Should().BeTrue($"{key} has a published contract since 21 Oct 2026");
+            wired.UnavailableReason.Should().BeNull();
+        }
 
         // And the two Wave 12 closed, so a later change that quietly re-broke either fails here.
         catalog.Triggers.Single(trigger => trigger.Key == "provider.leadReceived")
@@ -464,24 +472,22 @@ public sealed class AutomationPlatformTests : IdentityTestBase
     }
 
     /// <summary>
-    /// An automation cannot be switched on against a trigger the platform cannot observe — and can
-    /// still be saved as a draft.
+    /// A draft saved against a trigger the platform once could not observe reads as connected now,
+    /// and switches on.
     /// <para>
-    /// The fail-closed reading, from both sides. A member may keep a rule for a capability that has
-    /// not shipped; switching it on is refused with a reason, because a rule that is on and will never
-    /// fire is how a member concludes the platform is broken.
+    /// This test used to prove the refusal: <c>location.countryChanged</c> was device-local and the
+    /// server refused to activate it. On 21 Oct 2026 Location began publishing a residence starting,
+    /// and with that the last unavailable trigger was wired — so no trigger is left to exercise the
+    /// refusal over HTTP. The refusal itself is unchanged in <c>AutomationRuleValidator</c>, and
+    /// <c>AutomationCatalogTests.Every_unavailable_trigger_states_a_reason</c> still binds the next
+    /// unavailable entry. What a member with an old draft sees is what this asserts.
     /// </para>
     /// </summary>
     [Fact]
-    public async Task An_unobservable_trigger_may_be_drafted_and_may_not_be_activated()
+    public async Task A_draft_on_a_formerly_unobservable_trigger_is_connected_and_may_be_activated()
     {
         await NewVerifiedMemberAsync();
 
-        // Wave 12 made `housing.applicationStatusChanged` observable, so the rule is asserted against
-        // one that is still not — and against one a *member* may own, since this test creates a user
-        // automation and a community trigger would be refused for the owner rather than for the gap.
-        // `location.countryChanged` is that trigger: the device observes it in the foreground and the
-        // server never claims to, which is the frontend's own position too.
         var draft = await HttpClient.PostAsJsonAsync(
             Automations,
             new
@@ -494,17 +500,16 @@ public sealed class AutomationPlatformTests : IdentityTestBase
             },
             JsonOptions);
 
-        draft.StatusCode.Should().Be(HttpStatusCode.Created, "a draft against a future capability is fine");
+        draft.StatusCode.Should().Be(HttpStatusCode.Created);
 
         var saved = await ReadAsync<AutomationDto>(draft);
-        saved.Support.Should().Be("BACKEND_GAP");
-        saved.GapIds.Should().Contain("location.countryChanged");
+        saved.Support.Should().Be("CONNECTED");
+        saved.GapIds.Should().BeEmpty();
 
         var activate = await HttpClient.PatchAsJsonAsync(
             $"{Automations}/{saved.Id}/status", new { status = "ACTIVE" }, JsonOptions);
 
-        activate.StatusCode.Should().Be(
-            HttpStatusCode.BadRequest, "switching on a rule that can never fire is refused");
+        activate.IsSuccessStatusCode.Should().BeTrue(await activate.Content.ReadAsStringAsync());
     }
 
     // ════════════════════════════════════════════════════════════════════════════════════════
