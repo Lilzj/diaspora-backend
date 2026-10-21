@@ -578,7 +578,12 @@ public sealed class TrustEndpointContributor : IEndpointContributor
             })
             .RequireAuthorization(TrustPolicies.Confirm)
             .WithName("RecordConfirmation")
-            .WithSummary("Confirm the accuracy of another member's contribution.");
+            .WithSummary("Confirm the accuracy of another member's contribution.")
+            .WithDescription(
+                "Records the confirmation and moves the target's tally. Deprecated as a scoring " +
+                "path: pointsAwarded is always 0, because the target and its author are not " +
+                "verified here. Confirmations earn the author reputation through a corroborating " +
+                "reaction on the content instead.");
 
         group.MapGet("/contributions/confirmations", async (
                 string targetType,

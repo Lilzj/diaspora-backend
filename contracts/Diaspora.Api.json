@@ -37447,6 +37447,7 @@
           "Trust"
         ],
         "summary": "Confirm the accuracy of another member's contribution.",
+        "description": "Records the confirmation and moves the target's tally. Deprecated as a scoring path: pointsAwarded is always 0, because the target and its author are not verified here. Confirmations earn the author reputation through a corroborating reaction on the content instead.",
         "operationId": "RecordConfirmation",
         "requestBody": {
           "content": {

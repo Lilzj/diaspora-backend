@@ -37,6 +37,10 @@ public sealed class TrustConfirmationTests : PooledIdentityTestBase
 
     private sealed record Envelope<T>(T Data);
 
+    private sealed record Confirmation(Guid ConfirmationId, int PointsAwarded);
+
+    private sealed record Reputation(int TrustScore, int CommunityConfirmationsReceived);
+
     /// <summary>
     /// The regression. An author with no reputation profile is the ordinary case for a first
     /// confirmation, and it was the case that threw.
@@ -142,6 +146,68 @@ public sealed class TrustConfirmationTests : PooledIdentityTestBase
         (await ReadSummaryAsync("guide", targetId)).ConfirmationCount.Should().Be(1);
     }
 
+    /// <summary>
+    /// The route records and does not score. The author it names is the caller's word, so the
+    /// response says zero and the author's reputation does not move.
+    /// </summary>
+    [Fact]
+    public async Task A_confirmation_through_the_endpoint_pays_the_author_nothing()
+    {
+        var (_, author) = await RegisterVerifiedMemberAsync();
+        var (_, confirmer) = await RegisterVerifiedMemberAsync();
+
+        HttpClient.DefaultRequestHeaders.Authorization = Bearer(author.Tokens.AccessToken);
+        var before = await ReadReputationAsync();
+
+        HttpClient.DefaultRequestHeaders.Authorization = Bearer(confirmer.Tokens.AccessToken);
+
+        var response = await HttpClient.PostAsJsonAsync(Root, new
+        {
+            targetType = "guide",
+            targetId = $"unpaid-{Guid.NewGuid():N}",
+            authorUserId = author.User.Id,
+            countryCode = "NG"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var confirmation = JsonSerializer.Deserialize<Envelope<Confirmation>>(
+            await response.Content.ReadAsStringAsync(), JsonOptions)!.Data;
+
+        confirmation.PointsAwarded.Should().Be(0);
+
+        HttpClient.DefaultRequestHeaders.Authorization = Bearer(author.Tokens.AccessToken);
+        (await ReadReputationAsync()).Should().Be(before);
+    }
+
+    /// <summary>
+    /// The abuse the change closes. Nothing checks that a target exists or that the named author
+    /// wrote it, so this used to pay five trust points per invented id — two accounts could farm
+    /// trust without limit. Now it pays nothing, however many are invented.
+    /// </summary>
+    [Fact]
+    public async Task Inventing_targets_cannot_pay_anyone()
+    {
+        var (_, beneficiary) = await RegisterVerifiedMemberAsync();
+        var (_, accomplice) = await RegisterVerifiedMemberAsync();
+
+        HttpClient.DefaultRequestHeaders.Authorization = Bearer(beneficiary.Tokens.AccessToken);
+        var before = await ReadReputationAsync();
+
+        HttpClient.DefaultRequestHeaders.Authorization = Bearer(accomplice.Tokens.AccessToken);
+
+        for (var i = 0; i < 5; i++)
+        {
+            await ConfirmAsync(beneficiary.User.Id, $"invented-{Guid.NewGuid():N}");
+        }
+
+        HttpClient.DefaultRequestHeaders.Authorization = Bearer(beneficiary.Tokens.AccessToken);
+        var after = await ReadReputationAsync();
+
+        after.TrustScore.Should().Be(before.TrustScore);
+        after.CommunityConfirmationsReceived.Should().Be(before.CommunityConfirmationsReceived);
+    }
+
     [Fact]
     public async Task Confirming_your_own_contribution_is_refused()
     {
@@ -174,6 +240,16 @@ public sealed class TrustConfirmationTests : PooledIdentityTestBase
         });
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
+    }
+
+    private async Task<Reputation> ReadReputationAsync()
+    {
+        var response = await HttpClient.GetAsync("/api/v1/trust/reputation/me");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        return JsonSerializer.Deserialize<Envelope<Reputation>>(
+            await response.Content.ReadAsStringAsync(), JsonOptions)!.Data;
     }
 
     private async Task<ConfirmationSummary> ReadSummaryAsync(string targetType, string targetId)

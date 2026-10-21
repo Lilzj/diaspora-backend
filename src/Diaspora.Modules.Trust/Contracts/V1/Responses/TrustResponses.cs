@@ -197,7 +197,11 @@ public sealed record ConfirmationResponse
 
     public required string TargetId { get; init; }
 
-    /// <summary>Points the author earned. Zero when the rule is capped out.</summary>
+    /// <summary>
+    /// Always zero. Kept because the response shape is frozen; this route no longer scores,
+    /// because it cannot verify whose work it is being told about. Confirmations are paid from
+    /// corroborating reactions instead.
+    /// </summary>
     public required int PointsAwarded { get; init; }
 
     public required DateTimeOffset ConfirmedAt { get; init; }

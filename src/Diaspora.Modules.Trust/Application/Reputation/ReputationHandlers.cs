@@ -116,6 +116,21 @@ public sealed class ListMyReputationEventsQueryHandler
 /// counting and both are enforced: you cannot confirm your own work (in the aggregate), and
 /// you cannot confirm the same thing twice (here, because it needs a repository read).
 /// </para>
+/// <para>
+/// <b>It records; it no longer pays.</b> Everything this command knows about the target —
+/// its type, its id, and whose it is — is what the caller typed. Nothing here can check any of
+/// it: the content belongs to Guides or Community. Paying on it meant any member holding
+/// <c>trust:confirm</c> could name a target that does not exist, name any author, and pay that
+/// author five trust points per invented target, without limit; two accounts were enough to farm
+/// trust indefinitely.
+/// </para>
+/// <para>
+/// Confirmations are paid where the author is a fact rather than a claim: from a corroborating
+/// reaction, through <c>CommunityCorroborationConsumer</c>, which reads the author from the event
+/// Community publishes. That is also the only path the app uses — <c>UpdateCard</c> posts the
+/// reaction, and nothing calls this route. Its shape is in the Trust contract freeze, so the
+/// route stays; <see cref="ConfirmationResponse.PointsAwarded"/> is always zero.
+/// </para>
 /// </summary>
 [Authorize(Permission = TrustPermissions.Confirm)]
 [Transactional]
@@ -158,23 +173,17 @@ public sealed class RecordConfirmationCommandHandler
     : ICommandHandler<RecordConfirmationCommand, ConfirmationResponse>
 {
     private readonly ICommunityContributionRepository _contributions;
-    private readonly ReputationService _reputation;
-    private readonly TrustProfileProvisioner _provisioner;
     private readonly ICurrentUser _currentUser;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
 
     public RecordConfirmationCommandHandler(
         ICommunityContributionRepository contributions,
-        ReputationService reputation,
-        TrustProfileProvisioner provisioner,
         ICurrentUser currentUser,
         IUnitOfWork unitOfWork,
         IClock clock)
     {
         _contributions = contributions;
-        _reputation = reputation;
-        _provisioner = provisioner;
         _currentUser = currentUser;
         _unitOfWork = unitOfWork;
         _clock = clock;
@@ -222,19 +231,8 @@ public sealed class RecordConfirmationCommandHandler
 
         await _contributions.AddAsync(confirmation, cancellationToken);
 
-        // The author earns the points, not the confirmer. Ensure they have a profile first —
-        // a member can be confirmed before they have ever opened the trust centre.
-        await _provisioner.GetOrCreateBothAsync(authorId, cancellationToken);
-
-        var outcome = await _reputation.ScoreAsync(
-            authorId,
-            ReputationActions.CommunityConfirmation,
-            ReputationAwardKey.Confirmation(request.TargetType, request.TargetId, userId.Value),
-            request.TargetType,
-            request.TargetId,
-            request.CountryCode,
-            cancellationToken);
-
+        // Recorded, so the tally and confirmed-by-viewer stay right — and not scored. See the
+        // summary: the author here is the caller's word, and only corroborating reactions pay.
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Result.Success(new ConfirmationResponse
@@ -242,7 +240,7 @@ public sealed class RecordConfirmationCommandHandler
             ConfirmationId = confirmation.Id.Value,
             TargetType = confirmation.TargetType,
             TargetId = confirmation.TargetId,
-            PointsAwarded = outcome.WasApplied ? outcome.Points : 0,
+            PointsAwarded = 0,
             ConfirmedAt = confirmation.ConfirmedAt
         });
     }
