@@ -16,8 +16,9 @@ namespace Diaspora.IntegrationTests.Modules;
 /// <para>
 /// <c>ReputationService</c> reads before it writes, and two outbox workers holding the same
 /// message — a lease that lapsed while the first was still running — both read "not yet awarded".
-/// Only <c>ix_reputation_events_profile_award_key</c> stands between them and two payments. These
-/// tests stage exactly that: two scopes, both past the read, then both saving.
+/// <c>ix_reputation_events_profile_award_key</c> is what stops the second payment. Since the
+/// profile gained a <c>Revision</c> token the loser may trip that first instead; either way it
+/// throws, and these tests assert the outcome rather than which guard fired.
 /// </para>
 /// </summary>
 [Collection(AssortedCollection.Name)]

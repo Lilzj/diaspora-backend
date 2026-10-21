@@ -231,6 +231,11 @@ public sealed class ReputationProfileConfiguration : IEntityTypeConfiguration<Re
         builder.Property(reputation => reputation.NoViolationSince).IsRequired();
         builder.Property(reputation => reputation.LastCalculatedAt).IsRequired();
 
+        // The same int token Financial's aggregates use. The aggregate advances it; there is no
+        // interceptor. A conflict surfaces as ConcurrencyConflictException — a 409 to an HTTP
+        // caller, a retry to an outbox consumer.
+        builder.Property(reputation => reputation.Revision).IsConcurrencyToken();
+
         // Derived, never stored: a persisted copy would go stale the moment the benefit table
         // or the thresholds changed, and would then grant the wrong thing silently.
         builder.Ignore(reputation => reputation.CombinedScore);

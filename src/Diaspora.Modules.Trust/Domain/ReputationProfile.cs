@@ -75,6 +75,18 @@ public sealed class ReputationProfile : AggregateRoot<ReputationProfileId>, IAud
 
     public DateTimeOffset? LevelChangedAt { get; private set; }
 
+    /// <summary>
+    /// Optimistic concurrency token, advanced by every <see cref="Apply"/>.
+    /// <para>
+    /// Two awards for one member saved at once used to be last-writer-wins on the score columns:
+    /// both events persisted, one score change was lost, and the profile stopped equalling the sum
+    /// of its own history. Worse, a <c>MaxOccurrences = 1</c> rule read "not yet scored" in both,
+    /// and both paid. With the token the second save fails, the outbox retries it, and the retry
+    /// reads the first award's usage — so the cap holds and the arithmetic stays whole.
+    /// </para>
+    /// </summary>
+    public int Revision { get; private set; }
+
     public IReadOnlyList<ReputationEvent> Events => _events.AsReadOnly();
 
     public DateTimeOffset CreatedAt { get; private set; }
@@ -138,6 +150,7 @@ public sealed class ReputationProfile : AggregateRoot<ReputationProfileId>, IAud
 
         Level = ReputationThresholds.LevelFor(CombinedScore);
         LastCalculatedAt = at;
+        Revision++;
 
         var recorded = ReputationEvent.Record(
             Id, award.ActionType, award.Dimension, award.Points,

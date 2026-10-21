@@ -17677,6 +17677,10 @@ namespace Diaspora.Persistence.Migrations
                     b.Property<int>("ReportsResolved")
                         .HasColumnType("integer");
 
+                    b.Property<int>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
                     b.Property<int>("TrustScore")
                         .HasColumnType("integer");
 
