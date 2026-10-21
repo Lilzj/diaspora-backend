@@ -1,4 +1,3 @@
-using Diaspora.Modules.Guides.Domain.Enums;
 using Diaspora.Modules.Guides.Domain.Errors;
 using Diaspora.Modules.Guides.Domain.Guides;
 using Diaspora.Platform.Services.Abstractions;
@@ -100,16 +99,8 @@ public sealed class GuideAuthorizationService
             return true;
         }
 
-        if (guide.ModerationState == GuideModerationState.Hidden)
-        {
-            return false;
-        }
-
-        if (guide.Status != GuideStatus.Published)
-        {
-            return false;
-        }
-
-        return guide.Visibility is GuideVisibility.Public or GuideVisibility.Unlisted;
+        // Published, Public or Unlisted, not hidden. One rule, on the aggregate, because the
+        // contract that tells savers about an edit reads the same one.
+        return guide.IsReadableByOthers;
     }
 }

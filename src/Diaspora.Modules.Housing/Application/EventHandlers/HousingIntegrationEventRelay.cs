@@ -246,7 +246,17 @@ public sealed class HousingIntegrationEventRelay
                     : null,
                 CountryCode = listing?.Location.CountryCode,
                 NeighborhoodAreaId = listing?.Location.NeighborhoodAreaId,
-                ChangedAt = domainEvent.OccurredAt
+                ChangedAt = domainEvent.OccurredAt,
+
+                // 21 Oct 2026. A draft's rent change reached strangers' price-watch automations.
+                // Who may be told is this module's rule; a listing that could not be read back is
+                // told to nobody.
+                IsListedPublicly = listing?.IsDiscoverable ?? false,
+                AccommodationTypeKey = listing?.AccommodationTypeKey,
+                Bedrooms = listing?.Capacity.Bedrooms,
+                FurnishedStatus = listing?.FurnishedStatus.ToString(),
+                AcceptsShortStay = listing?.StayPolicy.AcceptsShortStay ?? false,
+                IsStudentFriendly = listing?.StayPolicy.IsStudentFriendly ?? false
             },
             cancellationToken);
     }

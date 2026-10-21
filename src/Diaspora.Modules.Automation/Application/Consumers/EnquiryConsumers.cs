@@ -2,7 +2,9 @@ using System.Globalization;
 using Diaspora.Contracts.Conversations.V1.Events;
 using Diaspora.Contracts.Marketplace.V1.Events;
 using Diaspora.Modules.Automation.Application.Engine;
+using Diaspora.Modules.Automation.Application.Services;
 using Diaspora.Modules.Automation.Domain.Catalog;
+using Diaspora.Modules.Automation.Domain.Enums;
 
 namespace Diaspora.Modules.Automation.Application.Consumers;
 
@@ -266,56 +268,99 @@ public sealed class ConversationUnreadAutomationConsumer
 /// same figure on both sides is an edit that touched the field without changing it, and "the price
 /// changed" about a price that did not is the same wrong notification by a slower route.
 /// </para>
+/// <para>
+/// <b>And only to somebody watching it — 21 Oct 2026.</b> This passed an empty owner set, which the
+/// engine reads as "everybody": a draft's price reached every member's price-watch automation, and a
+/// published one reached members whose saved searches had nothing to do with it. Now the listing must
+/// be one a stranger could find (<c>IsListedPublicly</c>, Marketplace's own rule; a message without
+/// it fails closed), the price must be one the seller discloses, and the owners are the members with
+/// an alerts-enabled marketplace saved search the listing matches. No such member, no run — never an
+/// empty owner set.
+/// </para>
 /// </summary>
 public sealed class ListingPriceChangedAutomationConsumer
     : AutomationEventConsumer<ListingUpdatedIntegrationEvent>
 {
-    public ListingPriceChangedAutomationConsumer(AutomationEngine engine) : base(engine) { }
+    private readonly SavedSearchMatcher _matcher;
 
+    public ListingPriceChangedAutomationConsumer(AutomationEngine engine, SavedSearchMatcher matcher)
+        : base(engine) => _matcher = matcher;
+
+    /// <summary>Nothing: the owner set needs the saved-search read in <see cref="HandleAsync"/>.</summary>
     protected override IEnumerable<AutomationTriggerContext> Translate(
-        ListingUpdatedIntegrationEvent integrationEvent)
+        ListingUpdatedIntegrationEvent integrationEvent) => [];
+
+    protected override async Task HandleAsync(
+        ListingUpdatedIntegrationEvent integrationEvent, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
 
+        if (!integrationEvent.IsListedPublicly || !integrationEvent.IsPriceDisclosed)
+        {
+            // A draft, an archived, private or hidden listing, or a price the seller does not publish:
+            // nobody but the seller may hear about it.
+            return;
+        }
+
         if (!integrationEvent.ChangedFields.Contains("price", StringComparer.OrdinalIgnoreCase))
         {
-            yield break;
+            return;
         }
 
         if (integrationEvent.PriceAmount is not { } price)
         {
-            // The field moved but the module published no figure — an undisclosed price. There is
-            // nothing a price condition could be compared against, and inventing one would be the
-            // platform reporting a number the seller chose not to publish.
-            yield break;
+            // The field moved but the module published no figure. There is nothing a price condition
+            // could be compared against, and inventing one would be the platform reporting a number
+            // the seller chose not to publish.
+            return;
         }
 
         if (integrationEvent.PreviousPriceAmount is { } previous && previous == price)
         {
-            yield break;
+            return;
+        }
+
+        // The same fields `ListingPublished` offers a new-match comparison, so a search matches a
+        // price change exactly when it would have matched the listing.
+        var fields = PriceChangeFields.New();
+        fields["country"] = integrationEvent.CountryCode;
+        fields["category"] = integrationEvent.CategoryKey;
+        fields["city"] = integrationEvent.CityName;
+        fields["region"] = integrationEvent.RegionName;
+        fields["listingType"] = integrationEvent.ListingType;
+        fields["condition"] = integrationEvent.Condition;
+        fields["price"] = price.ToString(CultureInfo.InvariantCulture);
+
+        var owners = await _matcher.ListMatchingMembersAsync(
+            SavedSearchSubject.Marketplace,
+            new SavedSearchCandidate(integrationEvent.ListingId, string.Empty, fields, null),
+            cancellationToken);
+
+        if (owners.Count == 0)
+        {
+            return;
         }
 
         var values = Values();
         values["priceAbove"] = price.ToString(CultureInfo.InvariantCulture);
         values["priceBelow"] = price.ToString(CultureInfo.InvariantCulture);
 
-        yield return Context(
-            "savedSearch.priceChanged",
-            integrationEvent.EventId,
-
-            // Empty: a price movement concerns everybody watching that thing, not one person. The
-            // same reading Wave 11 applied to `event.updated` and `guide.savedChanged`.
-            [],
-            integrationEvent.PreviousPriceAmount is { } before && before > price
-                ? "The price dropped on something you are watching."
-                : "The price changed on something you are watching.",
-            integrationEvent.ChangedAt,
-            AutomationSubjectKinds.Listing,
-            integrationEvent.ListingId,
-            null,
-            null,
-            null,
-            values);
+        await Engine.ObserveAsync(
+            Context(
+                "savedSearch.priceChanged",
+                integrationEvent.EventId,
+                owners,
+                integrationEvent.PreviousPriceAmount is { } before && before > price
+                    ? "The price dropped on something you are watching."
+                    : "The price changed on something you are watching.",
+                integrationEvent.ChangedAt,
+                AutomationSubjectKinds.Listing,
+                integrationEvent.ListingId,
+                null,
+                null,
+                null,
+                values),
+            cancellationToken);
     }
 }
 
@@ -323,37 +368,78 @@ public sealed class ListingPriceChangedAutomationConsumer
 /// A property's content changed, and the rent is what moved.
 /// <para>
 /// The housing half of the same trigger, over Wave 12's <c>HousingUpdatedIntegrationEvent</c>. Same
-/// two guards as the marketplace half — the field must be among the changed ones, and the figure must
+/// guards as the marketplace half — the field must be among the changed ones, and the figure must
 /// have been disclosed — plus the disclosure flag, which Housing carries separately because a
 /// landlord withholding the rent is the common case rather than the exception.
+/// </para>
+/// <para>
+/// <b>21 Oct 2026</b>, as the marketplace half: only a listing a stranger could find
+/// (<c>IsListedPublicly</c>, Housing's own rule), and only the members with an alerts-enabled housing
+/// saved search it matches. Nobody else, and never an empty owner set.
 /// </para>
 /// </summary>
 public sealed class HousingPriceChangedAutomationConsumer
     : AutomationEventConsumer<global::Diaspora.Contracts.Housing.V1.Events.HousingUpdatedIntegrationEvent>
 {
-    public HousingPriceChangedAutomationConsumer(AutomationEngine engine) : base(engine) { }
+    private readonly SavedSearchMatcher _matcher;
 
+    public HousingPriceChangedAutomationConsumer(AutomationEngine engine, SavedSearchMatcher matcher)
+        : base(engine) => _matcher = matcher;
+
+    /// <summary>Nothing: the owner set needs the saved-search read in <see cref="HandleAsync"/>.</summary>
     protected override IEnumerable<AutomationTriggerContext> Translate(
-        global::Diaspora.Contracts.Housing.V1.Events.HousingUpdatedIntegrationEvent integrationEvent)
+        global::Diaspora.Contracts.Housing.V1.Events.HousingUpdatedIntegrationEvent integrationEvent) => [];
+
+    protected override async Task HandleAsync(
+        global::Diaspora.Contracts.Housing.V1.Events.HousingUpdatedIntegrationEvent integrationEvent,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
+
+        if (!integrationEvent.IsListedPublicly)
+        {
+            return;
+        }
 
         // The aggregate names its fields in PascalCase — `nameof(Price)` — and Marketplace names its
         // equivalent in lower case. Compared case-insensitively rather than re-cased on the way out,
         // so the published list keeps agreeing with the one B11's own handlers read.
         if (!integrationEvent.ChangedFields.Contains("Price", StringComparer.OrdinalIgnoreCase))
         {
-            yield break;
+            return;
         }
 
         if (!integrationEvent.IsRentDisclosed || integrationEvent.RentAmount is not { } rent)
         {
-            yield break;
+            return;
         }
 
         if (integrationEvent.PreviousRentAmount is { } previous && previous == rent)
         {
-            yield break;
+            return;
+        }
+
+        // The fields `HousingPublished` offers a new-match comparison, plus the country and area the
+        // update carries.
+        var fields = PriceChangeFields.New();
+        fields["accommodationType"] = integrationEvent.AccommodationTypeKey;
+        fields["bedrooms"] = integrationEvent.Bedrooms?.ToString(CultureInfo.InvariantCulture);
+        fields["furnished"] = integrationEvent.FurnishedStatus;
+        fields["shortStay"] = integrationEvent.AcceptsShortStay ? "true" : "false";
+        fields["studentFriendly"] = integrationEvent.IsStudentFriendly ? "true" : "false";
+        fields["rent"] = rent.ToString(CultureInfo.InvariantCulture);
+        fields["price"] = rent.ToString(CultureInfo.InvariantCulture);
+        fields["country"] = integrationEvent.CountryCode;
+        fields["neighbourhood"] = integrationEvent.NeighborhoodAreaId?.ToString("D");
+
+        var owners = await _matcher.ListMatchingMembersAsync(
+            SavedSearchSubject.Housing,
+            new SavedSearchCandidate(integrationEvent.ListingId, string.Empty, fields, null),
+            cancellationToken);
+
+        if (owners.Count == 0)
+        {
+            return;
         }
 
         var values = Values();
@@ -362,21 +448,29 @@ public sealed class HousingPriceChangedAutomationConsumer
         values["country"] = integrationEvent.CountryCode;
         values["neighbourhood"] = integrationEvent.NeighborhoodAreaId?.ToString("D");
 
-        yield return Context(
-            "savedSearch.priceChanged",
-            integrationEvent.EventId,
-            [],
-            integrationEvent.PreviousRentAmount is { } before && before > rent
-                ? "The rent dropped on somewhere you are watching."
-                : "The rent changed on somewhere you are watching.",
-            integrationEvent.ChangedAt,
-            AutomationSubjectKinds.Housing,
-            integrationEvent.ListingId,
-            null,
-            null,
-            null,
-            values);
+        await Engine.ObserveAsync(
+            Context(
+                "savedSearch.priceChanged",
+                integrationEvent.EventId,
+                owners,
+                integrationEvent.PreviousRentAmount is { } before && before > rent
+                    ? "The rent dropped on somewhere you are watching."
+                    : "The rent changed on somewhere you are watching.",
+                integrationEvent.ChangedAt,
+                AutomationSubjectKinds.Housing,
+                integrationEvent.ListingId,
+                null,
+                null,
+                null,
+                values),
+            cancellationToken);
     }
+}
+
+/// <summary>The saved-search field bag both price consumers build, with the matcher's comparer.</summary>
+internal static class PriceChangeFields
+{
+    public static Dictionary<string, string?> New() => new(StringComparer.OrdinalIgnoreCase);
 }
 
 /// <summary>

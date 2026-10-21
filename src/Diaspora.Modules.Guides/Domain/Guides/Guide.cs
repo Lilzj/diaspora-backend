@@ -216,6 +216,22 @@ public sealed class Guide
         && Visibility == GuideVisibility.Public
         && ModerationState != GuideModerationState.Hidden;
 
+    /// <summary>
+    /// Whether anybody but its author (and staff) may open the guide — 21 Oct 2026.
+    /// <para>
+    /// Published, Public or Unlisted (an unlisted guide is readable by whoever has its link, and a
+    /// member who saved it evidently had it), not hidden by moderation, not deleted. Wider than
+    /// <see cref="IsDiscoverable"/>, which also excludes Unlisted. The reader-side rule
+    /// <c>GuideAuthorizationService.CanSee</c> applies, written once here so the contract that tells
+    /// savers about an edit cannot drift from who may read the result.
+    /// </para>
+    /// </summary>
+    public bool IsReadableByOthers =>
+        !IsDeleted
+        && Status == GuideStatus.Published
+        && Visibility is GuideVisibility.Public or GuideVisibility.Unlisted
+        && ModerationState != GuideModerationState.Hidden;
+
     /// <summary>The words a reader reads across the whole draft. Feeds the reading time.</summary>
     public int WordCount => _sections.Sum(section => section.WordCount);
 

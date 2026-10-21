@@ -238,6 +238,18 @@ public sealed class HousingListing
         && ModerationState is HousingModerationState.Clear or HousingModerationState.Flagged
         && Availability.AcceptsReservationAt(now);
 
+    /// <summary>
+    /// Whether a stranger could find the listing by searching — 21 Oct 2026: not deleted, in a
+    /// publicly visible status (not Draft or Archived), <c>Public</c> (an unlisted listing is reachable
+    /// only by its link), not hidden or suspended. The anonymous half of the listing search's audience
+    /// filter, written on the aggregate so the contract that announces a rent change says the same.
+    /// </summary>
+    public bool IsDiscoverable =>
+        !IsDeleted
+        && HousingListingStatusTransitions.IsPubliclyVisible(Status)
+        && Visibility == HousingVisibility.Public
+        && ModerationState is HousingModerationState.Clear or HousingModerationState.Flagged;
+
     /// <summary>Whether the listing has the minimum a member needs to judge it.</summary>
     public bool IsPublishable =>
         _mediaReferences.Count > 0

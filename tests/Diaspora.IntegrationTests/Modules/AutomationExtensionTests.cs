@@ -55,6 +55,12 @@ public sealed class AutomationExtensionTests : PooledIdentityTestBase
     {
         await NewVerifiedMemberAsync();
 
+        // 21 Oct 2026: a price change reaches only the members whose saved search the listing
+        // matches, and only for a listing a stranger could find. Both are set up here so this test
+        // keeps proving what it was written for — the changed-field guard.
+        var category = $"price-watch-{Guid.NewGuid():N}";
+        await SaveSearchAsync("marketplace", new { category });
+
         var automation = await CreateAutomationAsync(
             "Tell me when the price drops",
             trigger: "savedSearch.priceChanged",
@@ -66,7 +72,10 @@ public sealed class AutomationExtensionTests : PooledIdentityTestBase
             ListingId = Guid.NewGuid(),
             SellerId = Guid.NewGuid(),
             ChangedFields = ["title", "description"],
-            ChangedAt = DateTimeOffset.UtcNow
+            ChangedAt = DateTimeOffset.UtcNow,
+            IsListedPublicly = true,
+            IsPriceDisclosed = true,
+            CategoryKey = category
         });
 
         await Factory.DrainOutboxAsync();
@@ -82,7 +91,10 @@ public sealed class AutomationExtensionTests : PooledIdentityTestBase
             PriceAmount = 420m,
             PreviousPriceAmount = 500m,
             CurrencyCode = "GBP",
-            ChangedAt = DateTimeOffset.UtcNow
+            ChangedAt = DateTimeOffset.UtcNow,
+            IsListedPublicly = true,
+            IsPriceDisclosed = true,
+            CategoryKey = category
         });
 
         await Factory.DrainOutboxAsync();
@@ -106,6 +118,9 @@ public sealed class AutomationExtensionTests : PooledIdentityTestBase
     {
         await NewVerifiedMemberAsync();
 
+        var accommodationType = $"rent-watch-{Guid.NewGuid():N}";
+        await SaveSearchAsync("housing", new { accommodationType });
+
         var automation = await CreateAutomationAsync(
             "Tell me when the rent drops",
             trigger: "savedSearch.priceChanged",
@@ -118,7 +133,9 @@ public sealed class AutomationExtensionTests : PooledIdentityTestBase
             ChangedFields = ["Price"],
             IsRentDisclosed = false,
             RentAmount = null,
-            ChangedAt = DateTimeOffset.UtcNow
+            ChangedAt = DateTimeOffset.UtcNow,
+            IsListedPublicly = true,
+            AccommodationTypeKey = accommodationType
         });
 
         await Factory.DrainOutboxAsync();
@@ -134,7 +151,9 @@ public sealed class AutomationExtensionTests : PooledIdentityTestBase
             RentAmount = 1_200m,
             CurrencyCode = "GBP",
             CountryCode = "GB",
-            ChangedAt = DateTimeOffset.UtcNow
+            ChangedAt = DateTimeOffset.UtcNow,
+            IsListedPublicly = true,
+            AccommodationTypeKey = accommodationType
         });
 
         await Factory.DrainOutboxAsync();
@@ -696,6 +715,25 @@ public sealed class AutomationExtensionTests : PooledIdentityTestBase
         await scope.ServiceProvider
             .GetRequiredService<Diaspora.Domain.Abstractions.IUnitOfWork>()
             .SaveChangesAsync();
+    }
+
+    /// <summary>Saves a search as the current member, with alerts on.</summary>
+    private async Task SaveSearchAsync(string subject, object criteria)
+    {
+        var response = await HttpClient.PostAsJsonAsync(
+            $"{Automations}/saved-searches",
+            new
+            {
+                subject,
+                name = $"Watching {Guid.NewGuid():N}",
+                criteria = JsonSerializer.Serialize(criteria, JsonOptions),
+                alertsEnabled = true,
+                alertFrequency = "instant",
+                watchFor = new[] { "newMatch" }
+            },
+            JsonOptions);
+
+        response.IsSuccessStatusCode.Should().BeTrue(await response.Content.ReadAsStringAsync());
     }
 
     private async Task<PageDto<RunDto>> RunsForAsync(string automationId) =>

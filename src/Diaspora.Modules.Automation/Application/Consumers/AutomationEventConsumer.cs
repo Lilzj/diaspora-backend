@@ -37,6 +37,13 @@ public abstract class AutomationEventConsumer<TIntegrationEvent>
     protected AutomationEventConsumer(AutomationEngine engine) => _engine = engine;
 
     /// <summary>
+    /// The engine, for a consumer whose owner set needs an asynchronous read before it can be built —
+    /// a saved-search match, a saver list. Such a consumer overrides <c>HandleAsync</c> and yields
+    /// nothing from <c>Translate</c>.
+    /// </summary>
+    protected AutomationEngine Engine => _engine;
+
+    /// <summary>
     /// The trigger contexts this event produces — one per catalogue key it satisfies.
     /// <para>
     /// Several is the normal case: an application being submitted is <c>job.applicationSubmitted</c>

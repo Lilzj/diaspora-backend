@@ -5,11 +5,13 @@ using System.Text.Json.Nodes;
 using Diaspora.Contracts.CommunityLife.V1.Events;
 using Diaspora.Contracts.Events;
 using Diaspora.Contracts.Guides.V1.Events;
+using Diaspora.Contracts.Housing.V1.Events;
 using Diaspora.Contracts.Jobs.V1.Events;
 using Diaspora.Contracts.Providers.V1.Events;
 using Diaspora.Platform.Messaging.Outbox.Serialization;
 using FluentAssertions;
 using Xunit;
+using ListingUpdatedIntegrationEvent = Diaspora.Contracts.Marketplace.V1.Events.ListingUpdatedIntegrationEvent;
 
 namespace Diaspora.UnitTests.Contracts;
 
@@ -225,6 +227,64 @@ public sealed class EventContractEnrichmentTests
         (typeof(EventCancelledIntegrationEvent), "IsListedPublicly"),
         (typeof(EventOccurrenceRescheduledIntegrationEvent), "IsListedPublicly")
     ];
+
+    /// <summary>
+    /// What 21 Oct 2026 appended for <c>guide.savedChanged</c> and <c>savedSearch.priceChanged</c>:
+    /// whether anybody but the author, seller or landlord may be told, and the fields a saved search
+    /// compares a price change against. Recorded for the same reason the audience flags above are.
+    /// </summary>
+    public static readonly (Type Contract, string Property)[] SavedAudienceEnrichments =
+    [
+        (typeof(GuideUpdatedIntegrationEvent), "IsReadableByOthers"),
+        (typeof(ListingUpdatedIntegrationEvent), "IsListedPublicly"),
+        (typeof(ListingUpdatedIntegrationEvent), "IsPriceDisclosed"),
+        (typeof(ListingUpdatedIntegrationEvent), "CategoryKey"),
+        (typeof(ListingUpdatedIntegrationEvent), "CountryCode"),
+        (typeof(ListingUpdatedIntegrationEvent), "RegionName"),
+        (typeof(ListingUpdatedIntegrationEvent), "CityName"),
+        (typeof(ListingUpdatedIntegrationEvent), "ListingType"),
+        (typeof(ListingUpdatedIntegrationEvent), "Condition"),
+        (typeof(HousingUpdatedIntegrationEvent), "IsListedPublicly"),
+        (typeof(HousingUpdatedIntegrationEvent), "AccommodationTypeKey"),
+        (typeof(HousingUpdatedIntegrationEvent), "Bedrooms"),
+        (typeof(HousingUpdatedIntegrationEvent), "FurnishedStatus"),
+        (typeof(HousingUpdatedIntegrationEvent), "AcceptsShortStay"),
+        (typeof(HousingUpdatedIntegrationEvent), "IsStudentFriendly")
+    ];
+
+    /// <summary>
+    /// Each is appended after everything the contract carried before it — the promise the theories
+    /// below make for the identifier enrichments, checked here for these because they are not
+    /// recipients and so are not among <c>Cases</c> — and none is required, so a message written
+    /// before it still reads.
+    /// </summary>
+    [Fact]
+    public void The_saved_audience_enrichments_are_appended_rather_than_inserted()
+    {
+        foreach (var group in SavedAudienceEnrichments.GroupBy(entry => entry.Contract))
+        {
+            var contract = group.Key;
+            var appended = group.Select(entry => entry.Property).ToList();
+
+            var declared = contract
+                .GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+                .OrderBy(property => property.MetadataToken)
+                .Select(property => property.Name)
+                .ToList();
+
+            declared.TakeLast(appended.Count).Should().Equal(
+                appended, "{0}'s 21 Oct 2026 fields come last, in the order recorded", contract.Name);
+
+            foreach (var property in appended.Select(name => contract.GetProperty(name)!))
+            {
+                property.GetCustomAttributes().Should().NotContain(
+                    attribute => attribute.GetType().Name == "RequiredMemberAttribute",
+                    "{0}.{1} must not be required, or a message written before it fails to read",
+                    contract.Name,
+                    property.Name);
+            }
+        }
+    }
 
     public static TheoryData<Type, string> Cases()
     {
@@ -443,6 +503,7 @@ public sealed class EventContractEnrichmentTests
             .Concat(SeriesEnrichments)
             .Concat(ReminderEnrichments)
             .Concat(AudienceEnrichments)
+            .Concat(SavedAudienceEnrichments)
             .Where(entry => entry.Contract == contract)
             .Select(entry => entry.Property)
             .ToHashSet(StringComparer.Ordinal);

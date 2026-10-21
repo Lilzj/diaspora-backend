@@ -139,12 +139,20 @@ public sealed class MarketplaceIntegrationEventRelay
     /// this runs the aggregate already holds the new one — the old figure exists only in the
     /// handler's own memory, and a price-drop notification is useless without it.
     /// </para>
+    /// <para>
+    /// <b><paramref name="listing"/> decides who may be told — 21 Oct 2026.</b> A draft's price change
+    /// reached strangers' price-watch automations because the contract could not say the listing was
+    /// a draft. The listing as it now stands (the handler's identity-map read) supplies
+    /// <c>IsListedPublicly</c> and the fields a saved search compares; without it the contract says
+    /// "not public", which tells nobody.
+    /// </para>
     /// </summary>
     public Task PublishAsync(
         ListingUpdatedDomainEvent domainEvent,
         decimal? previousPrice = null,
         decimal? currentPrice = null,
         string? currencyCode = null,
+        MarketplaceListing? listing = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(domainEvent);
@@ -159,7 +167,15 @@ public sealed class MarketplaceIntegrationEventRelay
                 PriceAmount = currentPrice,
                 PreviousPriceAmount = previousPrice,
                 CurrencyCode = currencyCode,
-                ChangedAt = domainEvent.OccurredAt
+                ChangedAt = domainEvent.OccurredAt,
+                IsListedPublicly = listing?.IsDiscoverable ?? false,
+                IsPriceDisclosed = listing?.Price.IsDisclosed ?? false,
+                CategoryKey = listing?.CategoryKey,
+                CountryCode = listing?.Location.CountryCode,
+                RegionName = listing?.Location.RegionName,
+                CityName = listing?.Location.CityName,
+                ListingType = listing?.ListingType.ToString(),
+                Condition = listing?.Condition.ToString()
             },
             cancellationToken);
     }

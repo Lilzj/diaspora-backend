@@ -71,4 +71,31 @@ public sealed record HousingUpdatedIntegrationEvent : IntegrationEvent
     public Guid? NeighborhoodAreaId { get; init; }
 
     public required DateTimeOffset ChangedAt { get; init; }
+
+    // ── 21 Oct 2026: who may be told, and what a saved search can compare. Appended, never inserted.
+
+    /// <summary>
+    /// Whether a stranger could find the property by searching after this change — not deleted, in a
+    /// publicly visible status (not Draft or Archived), <c>Public</c>, not hidden or suspended: the
+    /// housing search's own rule (<c>HousingListing.IsDiscoverable</c>).
+    /// <para>
+    /// <b>What decides whether a consumer may tell anybody but the landlord.</b> A draft's rent is the
+    /// landlord's business. Defaults to false, so a message written before the field existed fails
+    /// closed.
+    /// </para>
+    /// </summary>
+    public bool IsListedPublicly { get; init; }
+
+    /// <summary>The accommodation type, as <c>HousingPublished</c> carries it — for saved-search matching.</summary>
+    public string? AccommodationTypeKey { get; init; }
+
+    /// <summary>Null on a message written before 21 Oct 2026.</summary>
+    public int? Bedrooms { get; init; }
+
+    /// <summary><c>Furnished</c>, <c>Unfurnished</c> and so on, as <c>HousingPublished</c> names them.</summary>
+    public string? FurnishedStatus { get; init; }
+
+    public bool AcceptsShortStay { get; init; }
+
+    public bool IsStudentFriendly { get; init; }
 }

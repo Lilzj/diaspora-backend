@@ -80,12 +80,11 @@ public sealed class AutomationSubjectHorizon : AggregateRoot<AutomationSubjectHo
     /// and this list holds at most three identifiers — a profile id and the user behind it.
     /// </para>
     /// <para>
-    /// <b>Empty means "anybody watching", and that is the platform's established reading.</b> Wave 11's
-    /// <c>event.created</c>, <c>guide.published</c> and <c>guide.savedChanged</c> consumers all pass an
-    /// empty owner set for the same reason: a new job closing concerns everybody who wrote a rule about
-    /// jobs closing, and the member's own conditions narrow it. The alternative — resolving who saved
-    /// the job — would mean this module reading the Bookmarks module's store, which is exactly the
-    /// cross-module read the whole arrangement exists without.
+    /// <b>Empty means "anybody watching", and that is the platform's established reading</b> for a
+    /// public subject: a new job closing concerns everybody who wrote a rule about jobs closing, and the
+    /// member's own conditions narrow it. A subject that is not public must never be armed with an empty
+    /// set — 21 Oct 2026, when <c>event.created</c> and <c>guide.savedChanged</c> stopped passing one
+    /// (the event's audience, and the guide's savers through <c>ISaverDirectory</c>).
     /// </para>
     /// </summary>
     public string ConcernedOwnerIds { get; private set; } = string.Empty;

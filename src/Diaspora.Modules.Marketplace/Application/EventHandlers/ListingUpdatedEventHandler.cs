@@ -57,7 +57,8 @@ public sealed class ListingUpdatedEventHandler : DomainEventHandler<ListingUpdat
             previousPrice: null,
             currentPrice: carriesPrice ? listing?.Price.Amount : null,
             currencyCode: carriesPrice ? listing?.Price.CurrencyCode : null,
-            cancellationToken);
+            listing: listing,
+            cancellationToken: cancellationToken);
 
         if (listing is null)
         {

@@ -145,6 +145,33 @@ public sealed class SavedSearchMatcher
     }
 
     /// <summary>
+    /// The members whose saved search on <paramref name="subject"/> this item satisfies — 21 Oct 2026.
+    /// <para>
+    /// <c>savedSearch.priceChanged</c> ran every member's price-watch automation on every price change,
+    /// whatever they had searched for. It runs now for the members with an alerts-enabled saved search
+    /// the item matches, by the same criteria comparison a new match uses — so "something you are
+    /// watching" is true. Nothing is recorded: a price change is not a match, and the once-ever barrier
+    /// belongs to new matches.
+    /// </para>
+    /// </summary>
+    public async Task<IReadOnlyList<Guid>> ListMatchingMembersAsync(
+        SavedSearchSubject subject,
+        SavedSearchCandidate candidate,
+        CancellationToken cancellationToken = default)
+    {
+        var searches = await _searches.ListWatchingAsync(subject, cancellationToken);
+
+        return
+        [
+            .. searches
+                .Where(search => Matches(search, candidate))
+                .Select(search => search.MemberId.Value)
+                .Where(memberId => memberId != Guid.Empty)
+                .Distinct()
+        ];
+    }
+
+    /// <summary>
     /// Whether one item satisfies one saved search's criteria.
     /// <para>
     /// Every criterion must match. A criterion whose field the candidate does not carry does not

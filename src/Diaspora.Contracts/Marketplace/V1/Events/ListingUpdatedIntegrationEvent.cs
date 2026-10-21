@@ -40,4 +40,39 @@ public sealed record ListingUpdatedIntegrationEvent : IntegrationEvent
     public string? CurrencyCode { get; init; }
 
     public required DateTimeOffset ChangedAt { get; init; }
+
+    // ── 21 Oct 2026: who may be told, and what a saved search can compare. Appended, never inserted.
+
+    /// <summary>
+    /// Whether a stranger could find the listing by searching after this change — not deleted, in a
+    /// publicly visible status (not Draft or Archived), <c>Public</c>, not hidden by moderation: the
+    /// marketplace search's own rule (<c>MarketplaceListing.IsDiscoverable</c>).
+    /// <para>
+    /// <b>What decides whether a consumer may tell anybody but the seller.</b> A draft's price is the
+    /// seller's business. Defaults to false, so a message written before the field existed fails
+    /// closed.
+    /// </para>
+    /// </summary>
+    public bool IsListedPublicly { get; init; }
+
+    /// <summary>
+    /// Whether the seller publishes the price. <see cref="PriceAmount"/> is the stored figure either
+    /// way; a consumer must never report or compare an undisclosed one. Defaults to false.
+    /// </summary>
+    public bool IsPriceDisclosed { get; init; }
+
+    /// <summary>The listing's category, as <c>ListingPublished</c> carries it — for saved-search matching.</summary>
+    public string? CategoryKey { get; init; }
+
+    public string? CountryCode { get; init; }
+
+    public string? RegionName { get; init; }
+
+    public string? CityName { get; init; }
+
+    /// <summary><c>FixedPrice</c>, <c>Swap</c> and so on, as <c>ListingPublished</c> names them.</summary>
+    public string? ListingType { get; init; }
+
+    /// <summary>The item's condition, as <c>ListingPublished</c> names it.</summary>
+    public string? Condition { get; init; }
 }

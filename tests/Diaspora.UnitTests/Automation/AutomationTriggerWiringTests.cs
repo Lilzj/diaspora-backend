@@ -91,6 +91,39 @@ public sealed class AutomationTriggerWiringTests
         }
     }
 
+    /// <summary>
+    /// 21 Oct 2026: <c>guide.savedChanged</c> and <c>savedSearch.priceChanged</c> spoke to everybody,
+    /// drafts included. Each contract they read now says whether anybody but its owner may be told,
+    /// and a message written before the flag reads as "no".
+    /// </summary>
+    [Fact]
+    public void Guide_and_price_contracts_say_who_may_be_told_and_fail_closed()
+    {
+        Contracts["Diaspora.Contracts.Guides.V1.Events.GuideUpdatedIntegrationEvent"]
+            .GetProperty("IsReadableByOthers")!.PropertyType.Should().Be<bool>();
+
+        foreach (var name in new[]
+        {
+            "Diaspora.Contracts.Marketplace.V1.Events.ListingUpdatedIntegrationEvent",
+            "Diaspora.Contracts.Housing.V1.Events.HousingUpdatedIntegrationEvent"
+        })
+        {
+            Contracts[name].GetProperty("IsListedPublicly")!.PropertyType.Should().Be<bool>();
+        }
+
+        const string Historical =
+            "{\"ListingId\":\"7c9e6679-7425-40de-944b-e07fc1f90ae7\","
+            + "\"SellerId\":\"7c9e6679-7425-40de-944b-e07fc1f90ae7\","
+            + "\"ChangedFields\":[\"price\"],\"PriceAmount\":420,"
+            + "\"ChangedAt\":\"2026-10-01T00:00:00Z\"}";
+
+        var historical = System.Text.Json.JsonSerializer.Deserialize<
+            Diaspora.Contracts.Marketplace.V1.Events.ListingUpdatedIntegrationEvent>(Historical)!;
+
+        historical.IsListedPublicly.Should().BeFalse("a message from before the flag fails closed");
+        historical.IsPriceDisclosed.Should().BeFalse();
+    }
+
     [Fact]
     public void Location_contracts_carry_no_coordinate()
     {

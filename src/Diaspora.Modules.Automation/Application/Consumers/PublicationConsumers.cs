@@ -1,4 +1,5 @@
 using System.Globalization;
+using Diaspora.Contracts.Bookmarks.V1.Savers;
 using Diaspora.Contracts.Community.V1.Events;
 using Diaspora.Contracts.CommunityLife.V1.Events;
 using Diaspora.Contracts.Guides.V1.Events;
@@ -59,12 +60,16 @@ public sealed class JobPublishedAutomationConsumer
     /// <para>
     /// <b>The owner set is empty, and that is the platform's established reading rather than an
     /// omission.</b> The frontend calls this "a job I saved is about to close", and the honest backend
-    /// answer to "which jobs did this member save" lives in the Bookmarks module. Wave 11's
-    /// <c>event.created</c>, <c>guide.published</c> and <c>guide.savedChanged</c> consumers all pass an
-    /// empty owner set for the same reason: the fact concerns anybody watching for it, and the
-    /// member's own conditions — <c>country</c> and <c>category</c>, which are exactly the two the
-    /// frontend offers on this trigger — narrow it. Reading another module's bookmarks here would be
-    /// the cross-module read the whole arrangement exists without.
+    /// answer to "which jobs did this member save" lives in the Bookmarks module. A published job is
+    /// public, so the fact may concern anybody watching for it, and the member's own conditions —
+    /// <c>country</c> and <c>category</c>, which are exactly the two the frontend offers on this
+    /// trigger — narrow it.
+    /// </para>
+    /// <para>
+    /// 21 Oct 2026: <c>event.created</c> and <c>guide.savedChanged</c> no longer pass an empty set —
+    /// the first asks the event's audience, the second asks Bookmarks for the guide's savers through
+    /// <c>ISaverDirectory</c>. The same seam could narrow this horizon to a job's savers; it was not
+    /// part of that change.
     /// </para>
     /// </summary>
     protected override async Task HandleAsync(
@@ -812,27 +817,87 @@ public sealed class GuidePublishedAutomationConsumer
     }
 }
 
-/// <summary>A guide changed.</summary>
+/// <summary>
+/// A guide a member saved changed — <c>guide.savedChanged</c>.
+/// <para>
+/// <b>Until 21 Oct 2026 this passed an empty owner set</b>, which the engine reads as "everybody":
+/// every member's "a guide you saved was updated" automation ran on every edit of every guide —
+/// including a private draft only its author could open. Two rules now, and either alone reaches
+/// nobody:
+/// </para>
+/// <list type="bullet">
+/// <item><b>Only a guide others may read.</b> <c>IsReadableByOthers</c> is the Guides module's own
+/// rule (published, Public or Unlisted, not hidden, not deleted); a draft edit, or one to a private
+/// or hidden guide, is the author's alone. A message without the field fails closed.</item>
+/// <item><b>Only its savers.</b> The Bookmarks module answers who saved it, through
+/// <see cref="ISaverDirectory"/>. The member who made the edit is not told about it. With no
+/// directory registered, or no saver, nothing runs — never an empty owner set.</item>
+/// </list>
+/// <para>
+/// <b>Bounded at <see cref="MaximumSavers"/>,</b> the most recent savers first, so one edit of a
+/// widely saved guide is one bounded read and one bounded owner list for the engine.
+/// </para>
+/// </summary>
 public sealed class GuideUpdatedAutomationConsumer
     : AutomationEventConsumer<GuideUpdatedIntegrationEvent>
 {
-    public GuideUpdatedAutomationConsumer(AutomationEngine engine) : base(engine) { }
+    /// <summary>The most savers one edit reaches.</summary>
+    public const int MaximumSavers = 1_000;
 
+    private readonly IEnumerable<ISaverDirectory> _savers;
+
+    public GuideUpdatedAutomationConsumer(AutomationEngine engine, IEnumerable<ISaverDirectory> savers)
+        : base(engine) => _savers = savers;
+
+    /// <summary>Nothing: the owner set needs the saver read in <see cref="HandleAsync"/>.</summary>
     protected override IEnumerable<AutomationTriggerContext> Translate(
-        GuideUpdatedIntegrationEvent integrationEvent)
+        GuideUpdatedIntegrationEvent integrationEvent) => [];
+
+    protected override async Task HandleAsync(
+        GuideUpdatedIntegrationEvent integrationEvent, CancellationToken cancellationToken)
     {
-        yield return Context(
-            "guide.savedChanged",
-            integrationEvent.EventId,
-            [],
-            "A guide you saved was updated.",
-            integrationEvent.OccurredAt,
-            "guide",
-            integrationEvent.GuideId,
-            null,
-            null,
-            null,
-            Values());
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+
+        if (!integrationEvent.IsReadableByOthers)
+        {
+            return;
+        }
+
+        var savers = new HashSet<Guid>();
+
+        foreach (var directory in _savers)
+        {
+            savers.UnionWith(await directory.ListSaversAsync(
+                SavedTargetTypes.Guide, integrationEvent.GuideId, MaximumSavers, cancellationToken));
+        }
+
+        // Whoever made the edit already knows. Telling them would be their own action announced back.
+        if (integrationEvent.ChangedBy is { } editor)
+        {
+            savers.Remove(editor);
+        }
+
+        savers.Remove(Guid.Empty);
+
+        if (savers.Count == 0)
+        {
+            return;
+        }
+
+        await Engine.ObserveAsync(
+            Context(
+                "guide.savedChanged",
+                integrationEvent.EventId,
+                [.. savers.Take(MaximumSavers)],
+                "A guide you saved was updated.",
+                integrationEvent.OccurredAt,
+                "guide",
+                integrationEvent.GuideId,
+                null,
+                null,
+                null,
+                Values()),
+            cancellationToken);
     }
 }
 

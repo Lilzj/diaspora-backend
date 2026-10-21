@@ -87,6 +87,8 @@ public sealed class GuideIntegrationEventRelay
     {
         ArgumentNullException.ThrowIfNull(domainEvent);
 
+        var guide = await _guides.GetAsync(domainEvent.GuideId, cancellationToken);
+
         await PublishSafelyAsync(
             new GuideUpdatedIntegrationEvent
             {
@@ -94,7 +96,11 @@ public sealed class GuideIntegrationEventRelay
                 ChangedBy = domainEvent.ChangedBy?.Value,
                 ChangedFields = domainEvent.ChangedFields,
                 ChangedAt = domainEvent.OccurredAt,
-                AuthorUserId = await AuthorOfAsync(domainEvent.GuideId, cancellationToken)
+                AuthorUserId = guide?.AuthorId.Value,
+
+                // 21 Oct 2026. A draft edit, or one to a guide nobody else may read, is told to
+                // nobody else. A guide that could not be read back is the same: false.
+                IsReadableByOthers = guide?.IsReadableByOthers ?? false
             },
             cancellationToken);
     }
@@ -112,6 +118,8 @@ public sealed class GuideIntegrationEventRelay
     {
         ArgumentNullException.ThrowIfNull(domainEvent);
 
+        var guide = await _guides.GetAsync(domainEvent.GuideId, cancellationToken);
+
         await PublishSafelyAsync(
             new GuideUpdatedIntegrationEvent
             {
@@ -119,7 +127,8 @@ public sealed class GuideIntegrationEventRelay
                 ChangedBy = domainEvent.ChangedBy?.Value,
                 ChangedFields = ["content"],
                 ChangedAt = domainEvent.OccurredAt,
-                AuthorUserId = await AuthorOfAsync(domainEvent.GuideId, cancellationToken)
+                AuthorUserId = guide?.AuthorId.Value,
+                IsReadableByOthers = guide?.IsReadableByOthers ?? false
             },
             cancellationToken);
     }

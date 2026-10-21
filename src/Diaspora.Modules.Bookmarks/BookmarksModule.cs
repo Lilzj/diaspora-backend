@@ -1,4 +1,6 @@
+using Diaspora.Contracts.Bookmarks.V1.Savers;
 using Diaspora.Modules.Bookmarks.Domain;
+using Diaspora.Modules.Bookmarks.Extensibility;
 using Diaspora.Modules.Bookmarks.Persistence;
 using Diaspora.Platform.Modules;
 using FluentValidation;
@@ -47,6 +49,10 @@ public sealed class BookmarksModule : IPlatformModule
         services.AddValidatorsFromAssembly(assembly, includeInternalTypes: true);
 
         services.AddScoped<IBookmarkRepository, BookmarkRepository>();
+
+        // Who saved a thing, for a module composed later that must not reference this one —
+        // Automation's `guide.savedChanged` (21 Oct 2026).
+        services.AddScoped<ISaverDirectory, BookmarkSaverDirectory>();
 
         // The set of things that may be bookmarked. Singleton because it is composed once
         // from the baseline plus whatever modules contribute, and never changes after start.
