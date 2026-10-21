@@ -117,4 +117,10 @@ public static class CreatorErrorCodes
     /// existing policy already treats it so.
     /// </summary>
     public const string IdempotencyKeyInFlight = Prefix + "idempotency.in-flight";
+
+    /// <summary>
+    /// The key was already used by this caller for a different target — another reward, milestone,
+    /// challenge or grant. Not retryable: the client reused a key it should not have.
+    /// </summary>
+    public const string IdempotencyKeyReused = Prefix + "idempotency.key-reused";
 }

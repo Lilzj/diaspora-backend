@@ -170,9 +170,9 @@ public sealed class GrantApplicationRepository : IGrantApplicationRepository
     }
 
     public async Task<GrantApplication?> FindBySubmitKeyAsync(
-        string key, CancellationToken cancellationToken = default) =>
+        CreatorId creatorId, string key, CancellationToken cancellationToken = default) =>
         await Loaded().FirstOrDefaultAsync(
-            application => application.SubmitIdempotencyKey == key, cancellationToken);
+            application => application.CreatorId == creatorId && application.SubmitIdempotencyKey == key, cancellationToken);
 
     private IQueryable<GrantApplication> Loaded() =>
         Applications

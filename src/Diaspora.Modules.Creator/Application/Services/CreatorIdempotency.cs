@@ -1,3 +1,4 @@
+using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Creator.Domain.Errors;
 using Diaspora.SharedKernel.Results;
 using Microsoft.EntityFrameworkCore;
@@ -29,14 +30,29 @@ namespace Diaspora.Modules.Creator.Application.Services;
 public sealed class CreatorIdempotency
 {
     /// <summary>
+    /// The longest client key kept. The column is 200; the longest operation name
+    /// (<c>creator-signup-bonus-acknowledge</c>) is 32, the caller's id 32, and two separators 2.
+    /// </summary>
+    internal const int MaxClientKeyLength = 128;
+
+    /// <summary>
     /// Normalises a key from the header or the body.
     /// <para>
     /// The header wins where both are present. <b>Scoped by operation</b>, because two different
     /// operations can legitimately be retried with the same client-generated key and a bare key
     /// would make the second replay the first's record.
     /// </para>
+    /// <para>
+    /// <b>And scoped by caller.</b> It used to be scoped by operation alone while every key column
+    /// is unique across all members, so the lookup that precedes each write found <em>another
+    /// member's</em> record whenever two members chose the same key: member B was handed member A's
+    /// signup bonus, redemption, claim or application, and B's own action never ran. Client keys
+    /// are often short or predictable, so this was not hypothetical. With the caller's id inside the
+    /// key, the existing unique indexes become per-member without a migration, and a key written in
+    /// the old format can never match one written in this one.
+    /// </para>
     /// </summary>
-    public static string? Normalise(string operation, string? header, string? body)
+    public static string? Normalise(string operation, Guid callerUserId, string? header, string? body)
     {
         var raw = !string.IsNullOrWhiteSpace(header) ? header : body;
 
@@ -46,10 +62,9 @@ public sealed class CreatorIdempotency
         }
 
         var trimmed = raw.Trim();
+        var clientKey = trimmed.Length > MaxClientKeyLength ? trimmed[..MaxClientKeyLength] : trimmed;
 
-        return trimmed.Length > 150
-            ? $"{operation}:{trimmed[..150]}"
-            : $"{operation}:{trimmed}";
+        return $"{operation}:{callerUserId:N}:{clientKey}";
     }
 
     /// <summary>
@@ -76,11 +91,24 @@ public sealed class CreatorIdempotency
     /// still better than the 500 an uncaught violation produces.
     /// </para>
     /// </param>
+    /// <param name="inTransaction">
+    /// True for a <c>[Transactional]</c> command.
+    /// <para>
+    /// There the violation has aborted the request's transaction — on Postgres every statement
+    /// after it fails with 25P02 — so the lookup cannot run, and <c>TransactionBehavior</c> rolls
+    /// back only on an exception: a failed <c>Result</c> would be committed. The violation is
+    /// therefore rethrown as <see cref="ConcurrencyConflictException"/>, which rolls the request
+    /// back and answers 409. The client retries with the same key; the retry's pre-check finds
+    /// the committed record and replays it. SQLite does not abort the transaction, which is why
+    /// the concurrency suite never showed this.
+    /// </para>
+    /// </param>
     public static async Task<Result<IdempotentCommit<TAggregate>>> GuardAsync<TAggregate>(
         string? key,
         Func<CancellationToken, Task> save,
         Func<CancellationToken, Task<TAggregate?>> lookup,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool inTransaction = false)
         where TAggregate : class
     {
         ArgumentNullException.ThrowIfNull(save);
@@ -97,6 +125,11 @@ public sealed class CreatorIdempotency
         // `key is not null`, which let a keyless concurrent join escape as a 500 — the natural
         // (challenge, creator) index refused the second insert and nothing caught it. A concurrency
         // test found it; a suite that only raced keyed writes would not have.
+        catch (DbUpdateException exception) when (inTransaction && IsUniqueViolation(exception))
+        {
+            throw new ConcurrencyConflictException(
+                "An identical request is still being processed. Try again in a moment.", exception);
+        }
         catch (DbUpdateException exception) when (IsUniqueViolation(exception))
         {
             // The index refused a duplicate. Either the first request has landed — in which case its

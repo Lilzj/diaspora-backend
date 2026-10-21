@@ -56,9 +56,9 @@ public sealed class CreatorVerificationRepository : ICreatorVerificationReposito
     }
 
     public async Task<CreatorVerificationApplication?> FindByIdempotencyKeyAsync(
-        string key, CancellationToken cancellationToken = default) =>
+        CreatorId creatorId, string key, CancellationToken cancellationToken = default) =>
         await Loaded().FirstOrDefaultAsync(
-            application => application.IdempotencyKey == key, cancellationToken);
+            application => application.CreatorId == creatorId && application.IdempotencyKey == key, cancellationToken);
 
     public async Task<IReadOnlyList<CreatorVerificationApplication>> ListLapsedAsync(
         DateTimeOffset asOf, int take, CancellationToken cancellationToken = default) =>
@@ -205,10 +205,10 @@ public sealed class CreatorMilestoneProgressRepository : ICreatorMilestoneProgre
     }
 
     public async Task<CreatorMilestoneProgress?> FindByClaimKeyAsync(
-        string key, CancellationToken cancellationToken = default) =>
+        CreatorId creatorId, string key, CancellationToken cancellationToken = default) =>
         await Progress
             .Include(row => row.Contributions)
-            .FirstOrDefaultAsync(row => row.ClaimIdempotencyKey == key, cancellationToken);
+            .FirstOrDefaultAsync(row => row.CreatorId == creatorId && row.ClaimIdempotencyKey == key, cancellationToken);
 }
 
 /// <summary>Reads the challenge catalogue.</summary>
@@ -383,17 +383,17 @@ public sealed class CreatorChallengeEnrollmentRepository : ICreatorChallengeEnro
     }
 
     public async Task<CreatorChallengeEnrollment?> FindByJoinKeyAsync(
-        string key, CancellationToken cancellationToken = default) =>
+        CreatorId creatorId, string key, CancellationToken cancellationToken = default) =>
         await Enrollments
             .Include(enrollment => enrollment.Tasks)
-            .FirstOrDefaultAsync(enrollment => enrollment.JoinIdempotencyKey == key, cancellationToken);
+            .FirstOrDefaultAsync(enrollment => enrollment.CreatorId == creatorId && enrollment.JoinIdempotencyKey == key, cancellationToken);
 
     public async Task<CreatorChallengeEnrollment?> FindByClaimKeyAsync(
-        string key, CancellationToken cancellationToken = default) =>
+        CreatorId creatorId, string key, CancellationToken cancellationToken = default) =>
         await Enrollments
             .Include(enrollment => enrollment.Tasks)
             .FirstOrDefaultAsync(
-                enrollment => enrollment.ClaimIdempotencyKey == key, cancellationToken);
+                enrollment => enrollment.CreatorId == creatorId && enrollment.ClaimIdempotencyKey == key, cancellationToken);
 }
 
 /// <summary>

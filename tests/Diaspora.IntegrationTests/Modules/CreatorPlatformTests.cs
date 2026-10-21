@@ -1741,6 +1741,146 @@ public sealed class CreatorPlatformTests : IdentityTestBase
         history[0].CatalogueVersion.Should().Be("creator-rewards/1");
     }
 
+    // ════════════════════════════════════════════════════════════════════════════════════════
+    // Idempotency keys belong to the caller
+    //
+    // Keys were scoped by operation alone while every key column is unique across all members, so
+    // the lookup before each write found another member's record whenever two members chose the
+    // same key. Member B was handed A's response — which looks right, which is the problem — and
+    // B's own action never ran. Each test below therefore re-reads B's state rather than trusting
+    // the response B was given.
+    // ════════════════════════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public async Task Another_members_key_does_not_replay_their_signup_bonus()
+    {
+        var key = Guid.NewGuid().ToString("N");
+
+        var (_, first) = await RegisterAndVerifyAsync();
+        Api.Authenticate(first.Tokens.AccessToken);
+        await Factory.DrainOutboxAsync();
+        await HttpClient.PostAsJsonAsync(
+            $"{Rewards}/signup-bonus/acknowledge", new { idempotencyKey = key }, JsonOptions);
+
+        var (_, second) = await RegisterAndVerifyAsync();
+        Api.Authenticate(second.Tokens.AccessToken);
+        await Factory.DrainOutboxAsync();
+        await HttpClient.PostAsJsonAsync(
+            $"{Rewards}/signup-bonus/acknowledge", new { idempotencyKey = key }, JsonOptions);
+
+        await Factory.DrainOutboxAsync();
+
+        var bonus = await ReadDataAsync<SignupBonusDto>(
+            await HttpClient.GetAsync($"{Rewards}/signup-bonus/me"));
+
+        bonus.State.Should().Be("Awarded", "the second member's own bonus was acknowledged");
+
+        var balance = await ReadDataAsync<RewardBalanceDto>(
+            await HttpClient.GetAsync($"{Financial}/rewards/me"));
+
+        balance.Balance.Should().Be(bonus.Points, "the second member was paid their own bonus");
+    }
+
+    [Fact]
+    public async Task Another_members_key_does_not_replay_their_milestone_claim()
+    {
+        var key = Guid.NewGuid().ToString("N");
+
+        await AuthenticateAsync();
+        await ClaimFirstGuideAsync(key);
+
+        await AuthenticateAsync();
+        await ClaimFirstGuideAsync(key);
+
+        var milestones = await ReadDataAsync<List<MilestoneDto>>(
+            await HttpClient.GetAsync($"{Creators}/me/milestones"));
+
+        milestones.Single(milestone => milestone.Key == "first-guide")
+            .State.Should().Be("Claimed", "the second member's own milestone was claimed");
+    }
+
+    [Fact]
+    public async Task Another_members_key_does_not_replay_their_challenge_enrolment()
+    {
+        var key = Guid.NewGuid().ToString("N");
+
+        await AuthenticateAsync();
+        var sprint = await SprintAsync();
+        await HttpClient.PostAsJsonAsync(
+            $"{Challenges}/{sprint.ChallengeId}/join", new { idempotencyKey = key }, JsonOptions);
+
+        await AuthenticateAsync();
+        await HttpClient.PostAsJsonAsync(
+            $"{Challenges}/{sprint.ChallengeId}/join", new { idempotencyKey = key }, JsonOptions);
+
+        (await SprintAsync()).State.Should().Be(
+            "Joined", "the second member was enrolled, not shown the first member's enrolment");
+    }
+
+    /// <summary>
+    /// The same caller, the same key, a different milestone. Replaying would report the second
+    /// milestone as the first one's claim and leave it unclaimed; refusing tells the client its key
+    /// was spent.
+    /// </summary>
+    [Fact]
+    public async Task A_key_reused_for_a_different_milestone_is_refused()
+    {
+        await AuthenticateAsync();
+
+        for (var index = 0; index < 10; index++)
+        {
+            await PublishGuideAsync($"Reused key guide {index}");
+        }
+
+        await Factory.DrainOutboxAsync();
+
+        var milestones = await ReadDataAsync<List<MilestoneDto>>(
+            await HttpClient.GetAsync($"{Creators}/me/milestones"));
+
+        var first = milestones.Single(milestone => milestone.Key == "first-guide");
+        var ten = milestones.Single(milestone => milestone.Key == "ten-guides");
+        ten.State.Should().Be("Completed");
+
+        var key = Guid.NewGuid().ToString("N");
+
+        (await HttpClient.PostAsJsonAsync(
+                $"{Creators}/me/milestones/{first.MilestoneId}/claim", new { idempotencyKey = key }, JsonOptions))
+            .IsSuccessStatusCode.Should().BeTrue();
+
+        var reused = await HttpClient.PostAsJsonAsync(
+            $"{Creators}/me/milestones/{ten.MilestoneId}/claim", new { idempotencyKey = key }, JsonOptions);
+
+        reused.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await ReadBodyAsync(reused)).Should().Contain("creator.idempotency.key-reused");
+
+        var after = await ReadDataAsync<List<MilestoneDto>>(
+            await HttpClient.GetAsync($"{Creators}/me/milestones"));
+
+        after.Single(milestone => milestone.Key == "ten-guides")
+            .State.Should().Be("Completed", "a refused claim claims nothing");
+    }
+
+    private async Task ClaimFirstGuideAsync(string key)
+    {
+        await PublishGuideAsync("Key scoping");
+        await Factory.DrainOutboxAsync();
+
+        var milestones = await ReadDataAsync<List<MilestoneDto>>(
+            await HttpClient.GetAsync($"{Creators}/me/milestones"));
+
+        var first = milestones.Single(milestone => milestone.Key == "first-guide");
+
+        await HttpClient.PostAsJsonAsync(
+            $"{Creators}/me/milestones/{first.MilestoneId}/claim", new { idempotencyKey = key }, JsonOptions);
+    }
+
+    private async Task<ChallengeDto> SprintAsync()
+    {
+        var challenges = await ReadDataAsync<List<ChallengeDto>>(await HttpClient.GetAsync(Challenges));
+
+        return challenges.Single(challenge => challenge.Key == "settling-in-sprint");
+    }
+
     /// <summary>A per-creator cap is enforced against real persisted redemptions.</summary>
     [Fact]
     public async Task A_reward_with_a_per_creator_cap_refuses_the_second_redemption()

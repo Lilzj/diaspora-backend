@@ -616,15 +616,18 @@ public sealed class SubmitGrantApplicationCommandHandler
         var now = _clock.UtcNow;
 
         var key = CreatorIdempotency.Normalise(
-            Operation, command.IdempotencyKeyHeader, command.Request?.IdempotencyKey);
+            Operation, creator.Value.UserId, command.IdempotencyKeyHeader, command.Request?.IdempotencyKey);
 
         if (key is not null)
         {
-            var replayed = await _applications.FindBySubmitKeyAsync(key, cancellationToken);
+            var replayed = await _applications.FindBySubmitKeyAsync(creator.Value.Id, key, cancellationToken);
 
             if (replayed is not null)
             {
-                return Result.Success(replayed.ToResponse(grant, now));
+                // A key the caller already spent on another grant is not a retry of this one.
+                return replayed.GrantId == grant.Id
+                    ? Result.Success(replayed.ToResponse(grant, now))
+                    : Result.Failure<GrantApplicationResponse>(CreatorErrors.IdempotencyKeyReused);
             }
         }
 
@@ -678,12 +681,17 @@ public sealed class SubmitGrantApplicationCommandHandler
         var commit = await CreatorIdempotency.GuardAsync(
             key,
             token => _unitOfWork.SaveChangesAsync(token),
-            token => _applications.FindBySubmitKeyAsync(key!, token),
+            token => _applications.FindBySubmitKeyAsync(creator.Value.Id, key!, token),
             cancellationToken);
 
         if (commit.IsFailure)
         {
             return Result.Failure<GrantApplicationResponse>(commit.Error);
+        }
+
+        if (commit.Value.Replayed is { } raced && raced.GrantId != grant.Id)
+        {
+            return Result.Failure<GrantApplicationResponse>(CreatorErrors.IdempotencyKeyReused);
         }
 
         return Result.Success((commit.Value.Replayed ?? application).ToResponse(grant, now));

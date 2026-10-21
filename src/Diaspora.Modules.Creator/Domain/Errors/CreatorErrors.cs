@@ -241,4 +241,8 @@ public static class CreatorErrors
     public static readonly Error IdempotencyKeyInFlight = Error.Conflict(
         CreatorErrorCodes.IdempotencyKeyInFlight,
         "An identical request is still being processed. Try again in a moment.");
+
+    public static readonly Error IdempotencyKeyReused = Error.Validation(
+        CreatorErrorCodes.IdempotencyKeyReused,
+        "That idempotency key was already used for a different request. Send a new key.");
 }

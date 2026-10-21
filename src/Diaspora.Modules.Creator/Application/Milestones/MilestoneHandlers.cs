@@ -161,15 +161,18 @@ public sealed class ClaimMilestoneCommandHandler
         }
 
         var key = CreatorIdempotency.Normalise(
-            Operation, command.IdempotencyKeyHeader, command.Request?.IdempotencyKey);
+            Operation, creator.Value.UserId, command.IdempotencyKeyHeader, command.Request?.IdempotencyKey);
 
         if (key is not null)
         {
-            var replayed = await _progress.FindByClaimKeyAsync(key, cancellationToken);
+            var replayed = await _progress.FindByClaimKeyAsync(creator.Value.Id, key, cancellationToken);
 
             if (replayed is not null)
             {
-                return Result.Success(definition.ToResponse(replayed));
+                // A key the caller already spent on another milestone is not a retry of this one.
+                return replayed.MilestoneId == definition.Id
+                    ? Result.Success(definition.ToResponse(replayed))
+                    : Result.Failure<CreatorMilestoneResponse>(CreatorErrors.IdempotencyKeyReused);
             }
         }
 
@@ -198,12 +201,17 @@ public sealed class ClaimMilestoneCommandHandler
         var commit = await CreatorIdempotency.GuardAsync(
             key,
             token => _unitOfWork.SaveChangesAsync(token),
-            token => _progress.FindByClaimKeyAsync(key!, token),
+            token => _progress.FindByClaimKeyAsync(creator.Value.Id, key!, token),
             cancellationToken);
 
         if (commit.IsFailure)
         {
             return Result.Failure<CreatorMilestoneResponse>(commit.Error);
+        }
+
+        if (commit.Value.Replayed is { } raced && raced.MilestoneId != definition.Id)
+        {
+            return Result.Failure<CreatorMilestoneResponse>(CreatorErrors.IdempotencyKeyReused);
         }
 
         return Result.Success(definition.ToResponse(commit.Value.Replayed ?? row));
