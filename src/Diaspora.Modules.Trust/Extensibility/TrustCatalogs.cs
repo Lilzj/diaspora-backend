@@ -99,6 +99,45 @@ public sealed class ReputationRuleCatalog
             : null;
 
     public IReadOnlyCollection<ReputationRule> All => _rules.Values.ToList();
+
+    /// <summary>
+    /// What a breakdown row for <paramref name="actionType"/> is called.
+    /// <para>
+    /// Deliberately looks past <see cref="ReputationRule.IsActive"/>, unlike <see cref="For"/>: a
+    /// retired rule stops paying, but the points it already paid are still in the member's score
+    /// and still need a name. An action with no rule at all — an award applied directly, or one
+    /// whose contributor has since been removed — is named after the action itself, split into
+    /// words, rather than left blank.
+    /// </para>
+    /// </summary>
+    public string LabelFor(string actionType)
+    {
+        ArgumentNullException.ThrowIfNull(actionType);
+
+        return _rules.TryGetValue(actionType, out var rule) && !string.IsNullOrWhiteSpace(rule.Label)
+            ? rule.Label
+            : Humanise(actionType);
+    }
+
+    /// <summary>"GuidePublished" → "Guide published".</summary>
+    private static string Humanise(string actionType)
+    {
+        var words = new System.Text.StringBuilder(actionType.Length + 8);
+
+        for (var index = 0; index < actionType.Length; index++)
+        {
+            var character = actionType[index];
+
+            if (index > 0 && char.IsUpper(character) && !char.IsUpper(actionType[index - 1]))
+            {
+                words.Append(' ');
+            }
+
+            words.Append(index == 0 ? char.ToUpperInvariant(character) : char.ToLowerInvariant(character));
+        }
+
+        return words.ToString();
+    }
 }
 
 /// <summary>

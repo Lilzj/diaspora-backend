@@ -405,6 +405,31 @@ public sealed class ReputationProfileRepository : IReputationProfileRepository
                 cancellationToken);
     }
 
+    public async Task<IReadOnlyList<ReputationEventSummary>> SummariseEventsAsync(
+        ReputationProfileId profileId, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(profileId);
+
+        // Grouped in the database, on ix_reputation_events_profile_action_created: a member with
+        // three years of comments sends back a row per action, not a row per comment.
+        var rows = await Events
+            .AsNoTracking()
+            .Where(item => item.ProfileId == profileId)
+            .GroupBy(item => new { item.Dimension, item.ActionType })
+            .Select(group => new
+            {
+                group.Key.Dimension,
+                group.Key.ActionType,
+                Count = group.Count(),
+                Points = group.Sum(item => item.Points)
+            })
+            .ToListAsync(cancellationToken);
+
+        return rows
+            .Select(row => new ReputationEventSummary(row.Dimension, row.ActionType, row.Count, row.Points))
+            .ToList();
+    }
+
     public async Task AddAsync(
         ReputationProfile profile, CancellationToken cancellationToken = default) =>
         await Profiles.AddAsync(profile, cancellationToken);

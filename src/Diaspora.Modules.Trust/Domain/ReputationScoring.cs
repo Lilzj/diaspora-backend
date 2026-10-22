@@ -65,6 +65,16 @@ public sealed record ReputationRule
 
     public string? Description { get; init; }
 
+    /// <summary>
+    /// What a breakdown row for this action is called — "Guides published", "Policy violations".
+    /// <para>
+    /// A noun phrase that reads beside a count, where <see cref="Description"/> is a sentence about
+    /// one occurrence. Optional so a contributed rule need not declare one; such a row is named
+    /// after its action instead (see <see cref="Extensibility.ReputationRuleCatalog.LabelFor"/>).
+    /// </para>
+    /// </summary>
+    public string? Label { get; init; }
+
     public bool IsActive { get; init; } = true;
 
     /// <summary>Turns this rule into the award applied to a profile.</summary>
@@ -127,7 +137,8 @@ public static class DefaultReputationRules
             Points = 50,
             CooldownHours = 1,
             IsCountryScoped = true,
-            Description = "Published a community guide."
+            Description = "Published a community guide.",
+            Label = "Guides published"
         },
         new()
         {
@@ -135,7 +146,8 @@ public static class DefaultReputationRules
             Dimension = ReputationDimension.contribution,
             Points = 25,
             IsCountryScoped = true,
-            Description = "A guide passed moderation."
+            Description = "A guide passed moderation.",
+            Label = "Guides approved"
         },
         new()
         {
@@ -144,7 +156,8 @@ public static class DefaultReputationRules
             Points = 10,
             CooldownHours = 24,
             IsCountryScoped = true,
-            Description = "Kept a guide current."
+            Description = "Kept a guide current.",
+            Label = "Guides kept current"
         },
         new()
         {
@@ -153,7 +166,8 @@ public static class DefaultReputationRules
             Points = 10,
             CooldownHours = 1,
             IsCountryScoped = true,
-            Description = "Published a community update."
+            Description = "Published a community update.",
+            Label = "Community updates published"
         },
         new()
         {
@@ -161,7 +175,8 @@ public static class DefaultReputationRules
             Dimension = ReputationDimension.contribution,
             Points = 15,
             IsCountryScoped = true,
-            Description = "An update was confirmed by the community."
+            Description = "An update was confirmed by the community.",
+            Label = "Updates confirmed by the community"
         },
         new()
         {
@@ -172,7 +187,8 @@ public static class DefaultReputationRules
             Points = 2,
             MaxOccurrences = 250,
             CooldownHours = 0,
-            Description = "Wrote a comment."
+            Description = "Wrote a comment.",
+            Label = "Comments written"
         },
 
         // ── Verification ─────────────────────────────────────────────────
@@ -182,7 +198,8 @@ public static class DefaultReputationRules
             Dimension = ReputationDimension.verification,
             Points = 20,
             MaxOccurrences = 1,
-            Description = "Linked and verified a phone number."
+            Description = "Linked and verified a phone number.",
+            Label = "Phone verified"
         },
         new()
         {
@@ -190,7 +207,8 @@ public static class DefaultReputationRules
             Dimension = ReputationDimension.verification,
             Points = 10,
             MaxOccurrences = 1,
-            Description = "Verified an email address."
+            Description = "Verified an email address.",
+            Label = "Email verified"
         },
         new()
         {
@@ -198,7 +216,8 @@ public static class DefaultReputationRules
             Dimension = ReputationDimension.verification,
             Points = 40,
             MaxOccurrences = 1,
-            Description = "Passed government ID and biometric checks."
+            Description = "Passed government ID and biometric checks.",
+            Label = "Government ID verified"
         },
         new()
         {
@@ -212,7 +231,8 @@ public static class DefaultReputationRules
             // approval paid thirty points twice, and ApplyAwardAsync said in a comment that
             // "verifying the same country twice should not pay twice" while nothing enforced it.
             MaxOccurrences = 1,
-            Description = "Verified residency in a country community."
+            Description = "Verified residency in a country community.",
+            Label = "Countries verified"
         },
         new()
         {
@@ -220,7 +240,8 @@ public static class DefaultReputationRules
             Dimension = ReputationDimension.verification,
             Points = 25,
             MaxOccurrences = 1,
-            Description = "Verified as a professional or business."
+            Description = "Verified as a professional or business.",
+            Label = "Professional or business verified"
         },
         new()
         {
@@ -228,7 +249,8 @@ public static class DefaultReputationRules
             Dimension = ReputationDimension.verification,
             Points = 5,
             MaxOccurrences = 1,
-            Description = "Added a profile photo."
+            Description = "Added a profile photo.",
+            Label = "Profile photo added"
         },
         new()
         {
@@ -236,7 +258,8 @@ public static class DefaultReputationRules
             Dimension = ReputationDimension.verification,
             Points = 10,
             MaxOccurrences = 1,
-            Description = "Completed the profile."
+            Description = "Completed the profile.",
+            Label = "Profile completed"
         },
 
         // ── Trust ────────────────────────────────────────────────────────
@@ -246,7 +269,8 @@ public static class DefaultReputationRules
             Dimension = ReputationDimension.trust,
             Points = 2,
             IsCountryScoped = true,
-            Description = "Someone found your contribution helpful."
+            Description = "Someone found your contribution helpful.",
+            Label = "Helpful votes received"
         },
         new()
         {
@@ -254,14 +278,16 @@ public static class DefaultReputationRules
             Dimension = ReputationDimension.trust,
             Points = 5,
             IsCountryScoped = true,
-            Description = "The community confirmed your information."
+            Description = "The community confirmed your information.",
+            Label = "Community confirmations"
         },
         new()
         {
             ActionType = ReputationActions.ReportResolved,
             Dimension = ReputationDimension.trust,
             Points = 5,
-            Description = "A report you raised was upheld."
+            Description = "A report you raised was upheld.",
+            Label = "Reports upheld"
         },
         new()
         {
@@ -270,14 +296,16 @@ public static class DefaultReputationRules
             ActionType = ReputationActions.ViolationRecorded,
             Dimension = ReputationDimension.trust,
             Points = -75,
-            Description = "A policy violation was confirmed."
+            Description = "A policy violation was confirmed.",
+            Label = "Policy violations"
         },
         new()
         {
             ActionType = ReputationActions.ContentRemoved,
             Dimension = ReputationDimension.trust,
             Points = -25,
-            Description = "Content was removed by moderation."
+            Description = "Content was removed by moderation.",
+            Label = "Content removed by moderation"
         }
     ];
 }

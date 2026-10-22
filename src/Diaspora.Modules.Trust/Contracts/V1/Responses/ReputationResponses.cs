@@ -55,6 +55,60 @@ public sealed record ReputationProfileResponse
     public required DateTimeOffset LastCalculatedAt { get; init; }
 
     public DateTimeOffset? LevelChangedAt { get; init; }
+
+    /// <summary>
+    /// What each dimension's score is made of: contribution, verification and trust, always all
+    /// three and in that order.
+    /// <para>
+    /// The counters above say how often something happened; they never said what it was worth, and
+    /// the screen multiplied them by figures of its own that the server does not pay. These rows are
+    /// totalled from the scoring history itself, so they are the points actually recorded.
+    /// </para>
+    /// </summary>
+    public required IReadOnlyList<ReputationDimensionBreakdownResponse> Breakdown { get; init; }
+}
+
+/// <summary>
+/// One dimension's score and the rows that make it up.
+/// <para>
+/// <b><see cref="Score"/> = Σ <see cref="Lines"/>.Points + <see cref="Adjustment"/>, always.</b>
+/// The adjustment is non-zero where the score was held at zero — a penalty larger than the score
+/// records its full amount and moves the score by less — or, on history scored before scoring
+/// was concurrency-checked, where two awards raced and one was lost from the score. Sent rather
+/// than hidden, so the rows always add up and the reason they otherwise would not is visible.
+/// </para>
+/// </summary>
+public sealed record ReputationDimensionBreakdownResponse
+{
+    /// <summary>Lowercase: contribution, verification, trust.</summary>
+    public required string Dimension { get; init; }
+
+    public required int Score { get; init; }
+
+    /// <summary>One row per action, largest award first, so penalties come last.</summary>
+    public required IReadOnlyList<ReputationBreakdownLineResponse> Lines { get; init; }
+
+    /// <summary>
+    /// The score less the sum of the rows. Positive when a penalty went below zero; zero almost
+    /// everywhere else.
+    /// </summary>
+    public required int Adjustment { get; init; }
+}
+
+/// <summary>Everything one action has paid on one dimension.</summary>
+public sealed record ReputationBreakdownLineResponse
+{
+    /// <summary>The scoring rule's action — "GuidePublished", "ViolationRecorded".</summary>
+    public required string ActionType { get; init; }
+
+    /// <summary>What to call the row — "Guides published", "Policy violations".</summary>
+    public required string Label { get; init; }
+
+    /// <summary>How many times it was recorded.</summary>
+    public required int Count { get; init; }
+
+    /// <summary>Signed: the total those records carried. Penalties are negative.</summary>
+    public required int Points { get; init; }
 }
 
 /// <summary>Matches the frontend's <c>UserReputation.nextLevel</c>.</summary>
