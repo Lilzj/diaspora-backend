@@ -113,17 +113,32 @@ public sealed class RewardQueryHandlers
         // The pricer falls back to the member's own currency when no rate names one.
         var terms = await _pricer.TermsAsync(caller.Value, query.Currency, cancellationToken);
 
+        // Two columns, not the aggregate: the entry history has nothing to say about standing.
+        var points = await _accounts.FindStandingAsync(caller.Value, cancellationToken);
+
+        var standing = RewardConversionPricer.Standing(
+            terms, points?.Balance ?? 0, points?.IsConversionBlocked ?? false);
+
         return Result.Success(new RewardConversionTermsResponse
         {
             IsEnabled = terms.IsEnabled,
             DisabledReason = terms.DisabledCode,
             Currency = terms.Currency,
+            Exponent = terms.Exponent,
+            Symbol = terms.Symbol,
             MinorUnitsPerPoint = terms.MinorUnitsPerPoint,
             MinimumPoints = terms.MinimumPoints,
             MaximumPoints = terms.MaximumPoints,
             DailyMaximumPoints = terms.DailyMaximumPoints,
             DailyRemainingPoints = terms.DailyRemainingPoints,
-            PolicyVersion = terms.PolicyVersion
+            PolicyVersion = terms.PolicyVersion,
+            Member = new RewardConversionMemberResponse
+            {
+                CanConvert = standing.CanConvert,
+                ReasonCode = standing.ReasonCode,
+                ReasonMessage = standing.ReasonMessage,
+                MaximumNow = standing.MaximumNow
+            }
         });
     }
 
@@ -144,7 +159,7 @@ public sealed class RewardQueryHandlers
         var account = await _accounts.FindByMemberAsync(caller.Value, cancellationToken);
         var quote = RewardConversionPricer.Quote(
             terms, query.Points, account?.Balance ?? 0,
-            ConvertRewardPointsCommandHandler.BlockedReason(account));
+            ConvertRewardPointsCommandHandler.IsHeld(account));
 
         // A refusal is rendered rather than thrown: a member asked to convert two points when the
         // minimum is five should be told that, not shown an error.

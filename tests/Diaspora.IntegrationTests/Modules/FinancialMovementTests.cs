@@ -5,6 +5,7 @@ using System.Text.Json;
 using Diaspora.Domain.Abstractions;
 using Diaspora.IntegrationTests.Common;
 using Diaspora.Modules.Financial;
+using Diaspora.Modules.Financial.Application.Rewards;
 using Diaspora.Modules.Financial.Application.Services;
 using Diaspora.Modules.Financial.Domain.Accounts;
 using Diaspora.Modules.Financial.Domain.Enums;
@@ -1524,10 +1525,11 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
 
     /// <summary>
     /// A hold on the points account used to surface only when the conversion was attempted, as a bare
-    /// conflict. The preview now says why, in the hold's own words.
+    /// conflict. The preview now says it is held — and only that: the hold's own reason is an
+    /// operator's note, and naming the check a refusal tripped is a map for getting round it.
     /// </summary>
     [Fact]
-    public async Task A_held_points_account_sees_the_reason_in_the_preview()
+    public async Task A_held_points_account_is_told_it_is_held_in_the_preview()
     {
         var userId = await AuthenticateAsync();
         var currency = await MemberCurrencyAsync(userId);
@@ -1553,13 +1555,167 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
 
             preview.IsPermitted.Should().BeFalse();
             preview.RefusalCode.Should().Be(FinancialErrorCodes.RewardNotEligible);
-            preview.RefusalMessage.Should().Be("Under review after a report.");
+            preview.RefusalMessage.Should().Be(RewardConversionPricer.HeldMessage);
+            preview.RefusalMessage.Should().NotContain("report");
         }
         finally
         {
             await ResetConversionRatesAsync();
         }
     }
+
+    // ── The terms state the member's standing ──────────────────────────────────────────────
+    //
+    // The app worked eligibility out as terms.isEnabled && balance.canConvert. canConvert is false
+    // below the minimum and carries no reason, so a member short of the minimum was told
+    // "Conversion is not available on your account" and never saw the minimum. The terms now say
+    // whether this member may convert, why not, and the most they may convert now.
+
+    [Fact]
+    public async Task Terms_say_why_a_member_below_the_minimum_cannot_convert()
+    {
+        var userId = await AuthenticateAsync();
+        var currency = await MemberCurrencyAsync(userId);
+
+        try
+        {
+            // The helper's minimum is ten points.
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
+            await GrantPointsAsync(userId, 5, "grant:" + Guid.NewGuid().ToString("N"));
+
+            var terms = await MemberTermsAsync();
+
+            terms.IsEnabled.Should().BeTrue("the deployment converts; this member cannot yet");
+            terms.Member.Should().Be(new MemberStandingShape(
+                false,
+                FinancialErrorCodes.RewardBelowMinimum,
+                "You need at least 10 points to convert. You have 5.",
+                null));
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
+    [Fact]
+    public async Task Terms_report_a_financial_account_that_was_never_activated()
+    {
+        // As in the conversion test above: verified in Identity, the outbox deliberately not drained.
+        var (_, auth) = await RegisterVerifiedMemberAsync();
+        Api.Authenticate(auth.Tokens.AccessToken);
+        HttpClient.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", auth.Tokens.AccessToken);
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, DepositCurrency);
+            await GrantPointsAsync(auth.User.Id, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
+
+            var member = (await MemberTermsAsync()).Member;
+
+            member.CanConvert.Should().BeFalse();
+            member.ReasonCode.Should().Be(FinancialErrorCodes.AccountNotEligible);
+            member.ReasonMessage.Should().StartWith("Verify your identity");
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
+    [Fact]
+    public async Task Terms_on_a_held_account_say_only_that_it_is_held()
+    {
+        var userId = await AuthenticateAsync();
+        var currency = await MemberCurrencyAsync(userId);
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
+            await GrantPointsAsync(userId, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
+
+            using (var scope = Factory.Services.CreateScope())
+            {
+                var rewards = scope.ServiceProvider.GetRequiredService<IRewardAccountRepository>();
+                var account = (await rewards.FindByMemberAsync(userId))!;
+
+                account.BlockConversion("Velocity rule 7 tripped.", scope.ServiceProvider.GetRequiredService<IClock>().UtcNow);
+                rewards.Update(account);
+                await scope.ServiceProvider.GetRequiredService<IUnitOfWork>().SaveChangesAsync();
+            }
+
+            (await MemberTermsAsync()).Member.Should().Be(new MemberStandingShape(
+                false, FinancialErrorCodes.RewardNotEligible, RewardConversionPricer.HeldMessage, null));
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
+    /// <summary>
+    /// The app fell back to the member's balance when no maximum was stated, and labelled the
+    /// balance as policy. The server now takes the minimum itself.
+    /// </summary>
+    [Fact]
+    public async Task The_most_a_member_can_convert_now_is_the_smallest_limit()
+    {
+        var userId = await AuthenticateAsync();
+        var currency = await MemberCurrencyAsync(userId);
+
+        try
+        {
+            await PublishConversionRateAsync(
+                minorUnitsPerPoint: 1m, currency, maximumPoints: 600, dailyMaximumPoints: 400);
+            await GrantPointsAsync(userId, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
+
+            var member = (await MemberTermsAsync()).Member;
+
+            member.CanConvert.Should().BeTrue();
+            member.MaximumNow.Should().Be(400, "today's allowance is smaller than the single maximum and the balance");
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
+    /// <summary>
+    /// The app wrote the rate as <c>pointsPerMinorUnit × 100</c> points to one unit, right only for
+    /// two-decimal currencies. The terms now carry the currency's own exponent and symbol.
+    /// </summary>
+    [Fact]
+    public async Task Terms_state_the_currency_exponent_and_symbol()
+    {
+        var userId = await AuthenticateAsync();
+        var currency = await MemberCurrencyAsync(userId);
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
+
+            CurrencyCatalog.CurrencyFacts facts;
+            using (var scope = Factory.Services.CreateScope())
+            {
+                facts = await scope.ServiceProvider.GetRequiredService<CurrencyCatalog>().FactsAsync(currency);
+            }
+
+            var terms = await MemberTermsAsync();
+
+            terms.Currency.Should().Be(currency);
+            terms.Exponent.Should().Be(facts.Exponent);
+            terms.Symbol.Should().Be(facts.Symbol);
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
+    private async Task<MemberTermsShape> MemberTermsAsync() =>
+        await ReadDataAsync<MemberTermsShape>(await HttpClient.GetAsync(
+            new Uri("/api/v1/financial/rewards/conversion", UriKind.Relative)));
 
     /// <summary>The same rule at the door: an operator cannot publish a positive rate without one.</summary>
     [Fact]
@@ -1925,7 +2081,11 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
     /// </para>
     /// </summary>
     private async Task PublishConversionRateAsync(
-        decimal minorUnitsPerPoint, string? currency, string? country = null)
+        decimal minorUnitsPerPoint,
+        string? currency,
+        string? country = null,
+        long? maximumPoints = null,
+        long? dailyMaximumPoints = null)
     {
         using var scope = Factory.Services.CreateScope();
 
@@ -1978,6 +2138,22 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         {
             policy.SetParameter(
                 guids.NewSequentialGuid(), FinancialPolicyParameters.Currency, currency);
+        }
+
+        if (maximumPoints is { } maximum)
+        {
+            policy.SetParameter(
+                guids.NewSequentialGuid(),
+                FinancialPolicyParameters.MaximumPoints,
+                maximum.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        if (dailyMaximumPoints is { } daily)
+        {
+            policy.SetParameter(
+                guids.NewSequentialGuid(),
+                FinancialPolicyParameters.DailyMaximumPoints,
+                daily.ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
 
         policies.Add(policy);
@@ -2148,6 +2324,12 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
 
     private sealed record TermsShape(
         bool IsEnabled, string? DisabledReason, string Currency, decimal MinorUnitsPerPoint);
+
+    private sealed record MemberTermsShape(
+        bool IsEnabled, string Currency, int Exponent, string? Symbol, MemberStandingShape Member);
+
+    private sealed record MemberStandingShape(
+        bool CanConvert, string? ReasonCode, string? ReasonMessage, long? MaximumNow);
 
     private sealed record PreviewShape(
         long Points,

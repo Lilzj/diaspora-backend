@@ -184,12 +184,13 @@ public sealed class RewardConversionPricer
     /// to exactly <c>c</c>. All of it in <see cref="decimal"/> and <see cref="long"/>, never
     /// floating point.
     /// </para>
-    /// <param name="conversionBlockedReason">
-    /// Non-null when the member's points account is held from conversion (a fraud or review hold).
-    /// A refusal here, rather than the aggregate's exception later, so the preview can say why.
+    /// <param name="isHeld">
+    /// True when the member's points account is held from conversion (a fraud or review hold). A
+    /// refusal here, rather than the aggregate's exception later, so the preview can say it is held —
+    /// in <see cref="HeldMessage"/>, never the hold's own reason.
     /// </param>
     public static RewardConversionQuote Quote(
-        RewardConversionTerms terms, long points, long balance, string? conversionBlockedReason = null)
+        RewardConversionTerms terms, long points, long balance, bool isHeld = false)
     {
         ArgumentNullException.ThrowIfNull(terms);
 
@@ -210,7 +211,7 @@ public sealed class RewardConversionPricer
 
         var credit = Money.FromMinorUnits(creditMinorUnits, terms.Currency, terms.Exponent);
 
-        var refusal = Refusal(terms, points, consumed, balance, credit, conversionBlockedReason);
+        var refusal = Refusal(terms, points, consumed, balance, credit, isHeld);
 
         return new RewardConversionQuote
         {
@@ -236,22 +237,11 @@ public sealed class RewardConversionPricer
         long consumed,
         long balance,
         Money credit,
-        string? conversionBlockedReason)
+        bool isHeld)
     {
-        if (!terms.IsEnabled)
+        if (Gate(terms, isHeld) is { } gate)
         {
-            return (terms.DisabledCode ?? FinancialErrorCodes.RewardConversionNotSupported,
-                terms.DisabledMessage ?? "Reward points cannot be converted on this deployment.");
-        }
-
-        if (terms.AccountRefusalCode is { } accountCode)
-        {
-            return (accountCode, terms.AccountRefusalMessage ?? "This account cannot convert points right now.");
-        }
-
-        if (conversionBlockedReason is not null)
-        {
-            return (FinancialErrorCodes.RewardNotEligible, conversionBlockedReason);
+            return gate;
         }
 
         if (points <= 0)
@@ -293,6 +283,111 @@ public sealed class RewardConversionPricer
 
         return null;
     }
+
+    /// <summary>
+    /// What a member is told when their points account is held from conversion.
+    /// <para>
+    /// <b>Never the hold's own reason.</b> <see cref="RewardAccount.BlockReason"/> is written by
+    /// whoever placed the hold — a fraud signal, a review note — and a refusal that names the check it
+    /// tripped is a map for getting round it. The reason stays on the account for staff. (A financial
+    /// account's <c>RestrictionReason</c> is different: deposits, payments and withdrawals all show it,
+    /// and conversion does the same.)
+    /// </para>
+    /// </summary>
+    public const string HeldMessage =
+        "Conversion is paused on your account. Contact support if you think this is a mistake.";
+
+    /// <summary>
+    /// Whether this member may convert at all right now, and if so how much — before they type a
+    /// number.
+    /// <para>
+    /// The app used to work this out as <c>terms.IsEnabled &amp;&amp; balance.CanConvert</c>.
+    /// <c>CanConvert</c> is false below the minimum and carries no reason, so a member short of the
+    /// minimum was told "Conversion is not available on your account" and never saw the minimum.
+    /// Checked in the order a member can do something about: the deployment, the account, a hold, the
+    /// balance, then today's allowance.
+    /// </para>
+    /// </summary>
+    public static RewardConversionStanding Standing(
+        RewardConversionTerms terms, long balance, bool isHeld)
+    {
+        ArgumentNullException.ThrowIfNull(terms);
+
+        var refusal = Gate(terms, isHeld);
+
+        if (refusal is null && balance < terms.MinimumPoints)
+        {
+            refusal = (FinancialErrorCodes.RewardBelowMinimum,
+                $"You need at least {terms.MinimumPoints} points to convert. You have {balance}.");
+        }
+
+        // Less left today than the smallest conversion is as good as none left.
+        if (refusal is null
+            && terms.DailyRemainingPoints is { } remaining
+            && remaining < terms.MinimumPoints)
+        {
+            refusal = (FinancialErrorCodes.RewardDailyLimitReached,
+                "You have converted as much as you can today. You can convert again tomorrow.");
+        }
+
+        return new RewardConversionStanding
+        {
+            CanConvert = refusal is null,
+            ReasonCode = refusal?.Code,
+            ReasonMessage = refusal?.Message,
+
+            // The smallest of every limit that applies, so a client never has to take a minimum of
+            // its own — the app used to fall back to the balance and label it as policy.
+            MaximumNow = refusal is null
+                ? Math.Min(
+                    balance,
+                    Math.Min(
+                        terms.MaximumPoints ?? long.MaxValue,
+                        terms.DailyRemainingPoints ?? long.MaxValue))
+                : null
+        };
+    }
+
+    /// <summary>
+    /// The refusals that do not depend on how many points: the deployment, the member's financial
+    /// account, and a hold. One place, so the terms and every quote check them in the same order.
+    /// </summary>
+    private static (string Code, string Message)? Gate(RewardConversionTerms terms, bool isHeld)
+    {
+        if (!terms.IsEnabled)
+        {
+            return (terms.DisabledCode ?? FinancialErrorCodes.RewardConversionNotSupported,
+                terms.DisabledMessage ?? "Reward points cannot be converted on this deployment.");
+        }
+
+        if (terms.AccountRefusalCode is { } accountCode)
+        {
+            return (accountCode, terms.AccountRefusalMessage ?? "This account cannot convert points right now.");
+        }
+
+        if (isHeld)
+        {
+            return (FinancialErrorCodes.RewardNotEligible, HeldMessage);
+        }
+
+        return null;
+    }
+}
+
+/// <summary>
+/// Whether a member may convert right now, why not, and the most they may convert. See
+/// <see cref="RewardConversionPricer.Standing"/>.
+/// </summary>
+public sealed record RewardConversionStanding
+{
+    public required bool CanConvert { get; init; }
+
+    public string? ReasonCode { get; init; }
+
+    public string? ReasonMessage { get; init; }
+
+    /// <summary>The smallest of the single, daily and balance limits. Null when it may not convert.</summary>
+    public long? MaximumNow { get; init; }
 }
 
 /// <summary>The terms in force for one member, in one currency, right now.</summary>
@@ -445,7 +540,7 @@ public sealed class ConvertRewardPointsCommandHandler
         }
 
         var quote = RewardConversionPricer.Quote(
-            terms, command.Points, account.Balance, BlockedReason(account));
+            terms, command.Points, account.Balance, IsHeld(account));
 
         if (!quote.IsPermitted)
         {
@@ -600,11 +695,8 @@ public sealed class ConvertRewardPointsCommandHandler
             });
     }
 
-    /// <summary>The points account's hold, as a sentence, or null when it may convert.</summary>
-    internal static string? BlockedReason(RewardAccount? account) =>
-        account is { IsConversionBlocked: true }
-            ? account.BlockReason ?? "Reward conversion is not available on this account at the moment."
-            : null;
+    /// <summary>Whether the points account is held from conversion.</summary>
+    internal static bool IsHeld(RewardAccount? account) => account is { IsConversionBlocked: true };
 
     /// <summary>
     /// Whether a failed save was a unique-index violation. Matched on the message, as the Creator and
