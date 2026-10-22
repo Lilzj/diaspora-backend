@@ -1086,7 +1086,7 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
 
         var response = await HttpClient.PostAsJsonAsync(
             new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
-            new { points = 500L, currency = "GBP" });
+            new { points = 500L, currency = "GBP", idempotencyKey = Guid.NewGuid().ToString("N") });
 
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
         (await CodeAsync(response))
@@ -1162,7 +1162,7 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
 
         var response = await HttpClient.PostAsJsonAsync(
             new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
-            new { points = 5_000L, currency });
+            new { points = 5_000L, currency, idempotencyKey = Guid.NewGuid().ToString("N") });
 
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
         (await PointsAsync()).Should().Be(100, "a refused conversion moves nothing");
@@ -1320,6 +1320,115 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
 
             (await PointsAsync()).Should().Be(50, "the fifty that bought nothing are still the member's");
             (await AvailableAsync(userId, currency)).Should().Be(before + 5);
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
+    // ── The idempotency key: required, and each member's own ────────────────────────────────
+
+    /// <summary>
+    /// Two members, one key. The key's index was unique across everyone while the replay lookup was
+    /// per member, so the second member found no replay of their own and then hit the index: a 500
+    /// for an ordinary request. Keys are each member's own now.
+    /// </summary>
+    [Fact]
+    public async Task Two_members_may_use_the_same_idempotency_key()
+    {
+        var key = "convert-" + Guid.NewGuid().ToString("N");
+
+        var first = await AuthenticateAsync();
+        var currency = await MemberCurrencyAsync(first);
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
+            await GrantPointsAsync(first, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
+
+            var mine = await ReadDataAsync<ConversionShape>(await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
+                new { points = 300L, idempotencyKey = key }));
+
+            var second = await AuthenticateAsync();
+            (await MemberCurrencyAsync(second)).Should().Be(currency, "both members convert at the one published rate");
+            await GrantPointsAsync(second, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
+
+            var response = await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
+                new { points = 200L, idempotencyKey = key });
+
+            response.StatusCode.Should().Be(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
+
+            var theirs = await ReadDataAsync<ConversionShape>(response);
+
+            theirs.ConversionId.Should().NotBe(mine.ConversionId, "the second member converted, not replayed the first");
+            theirs.Points.Should().Be(200);
+            (await PointsAsync()).Should().Be(800);
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
+    /// <summary>A keyless conversion had no replay at all; it is refused before anything moves.</summary>
+    [Fact]
+    public async Task A_conversion_without_an_idempotency_key_is_refused()
+    {
+        var userId = await AuthenticateAsync();
+        var currency = await MemberCurrencyAsync(userId);
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
+            await GrantPointsAsync(userId, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
+
+            var response = await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
+                new { points = 300L });
+
+            response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+            (await PointsAsync()).Should().Be(1_000);
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
+    /// <summary>The header wins over the body, as it does in the Creator and Programme modules.</summary>
+    [Fact]
+    public async Task The_idempotency_key_header_wins_over_the_body()
+    {
+        var userId = await AuthenticateAsync();
+        var currency = await MemberCurrencyAsync(userId);
+        var headerKey = "header-" + Guid.NewGuid().ToString("N");
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
+            await GrantPointsAsync(userId, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
+
+            ConversionShape? first = null;
+
+            foreach (var bodyKey in new[] { "body-a", "body-b" })
+            {
+                using var request = new HttpRequestMessage(
+                    HttpMethod.Post, new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative))
+                {
+                    Content = JsonContent.Create(new { points = 300L, idempotencyKey = bodyKey })
+                };
+                request.Headers.Add("Idempotency-Key", headerKey);
+
+                var conversion = await ReadDataAsync<ConversionShape>(await HttpClient.SendAsync(request));
+
+                first ??= conversion;
+                conversion.ConversionId.Should().Be(first.ConversionId, "one header key, one conversion");
+            }
+
+            (await PointsAsync()).Should().Be(700, "the second request replayed the first");
         }
         finally
         {

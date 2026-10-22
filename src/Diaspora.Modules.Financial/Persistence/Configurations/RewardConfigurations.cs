@@ -108,9 +108,12 @@ public sealed class RewardConversionConfiguration : IEntityTypeConfiguration<Rew
         builder.Property(conversion => conversion.IdempotencyKey)
             .HasMaxLength(FinancialPersistenceConstants.ReferenceLength);
 
-        builder.HasIndex(conversion => conversion.IdempotencyKey)
+        // Unique per member, as the replay lookup always was. It used to be unique across everyone,
+        // so a second member who happened to choose the same key found no replay of their own and
+        // then hit the index: a 500 for an ordinary request.
+        builder.HasIndex(conversion => new { conversion.MemberUserId, conversion.IdempotencyKey })
             .IsUnique()
-            .HasDatabaseName("ix_financial_reward_conversions_idempotency");
+            .HasDatabaseName("ix_financial_reward_conversions_member_idempotency");
 
         builder.HasIndex(conversion => new { conversion.MemberUserId, conversion.ConvertedAt })
             .HasDatabaseName("ix_financial_reward_conversions_member");

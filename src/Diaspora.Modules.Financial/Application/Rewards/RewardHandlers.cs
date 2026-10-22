@@ -15,6 +15,7 @@ using Diaspora.Modules.Financial.Observability;
 using Diaspora.Modules.Financial.Options;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Results;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace Diaspora.Modules.Financial.Application.Rewards;
@@ -519,7 +520,24 @@ public sealed class ConvertRewardPointsCommandHandler
 
         _conversions.Add(conversion);
 
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+
+        // The replay check above cannot see a request with the same key still in flight; the
+        // per-member unique index is what refuses it. This command is [Transactional], so the
+        // violation has aborted the transaction — on Postgres nothing more can run in it, and a
+        // failed Result would be committed rather than rolled back. Rethrown as the platform's
+        // concurrency conflict: the transaction rolls back, the client gets 409, and its retry with
+        // the same key replays the conversion that won.
+        catch (DbUpdateException exception) when (IsUniqueViolation(exception))
+        {
+            throw new ConcurrencyConflictException(
+                "A conversion with this idempotency key is still being processed. Try again in a moment.",
+                exception);
+        }
+
         await _relay.PublishAsync(conversion, cancellationToken);
 
         FinancialTelemetry.RewardConversions.Add(
@@ -530,5 +548,27 @@ public sealed class ConvertRewardPointsCommandHandler
             {
                 PointsRequested = command.Points
             });
+    }
+
+    /// <summary>
+    /// Whether a failed save was a unique-index violation. Matched on the message, as the Creator and
+    /// Programme modules do: production runs Npgsql and the suite SQLite, and naming either driver's
+    /// exception here would put a database provider in the application layer.
+    /// </summary>
+    private static bool IsUniqueViolation(DbUpdateException exception)
+    {
+        for (Exception? current = exception; current is not null; current = current.InnerException)
+        {
+            var message = current.Message;
+
+            if (message.Contains("UNIQUE constraint failed", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("duplicate key value", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("23505", StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

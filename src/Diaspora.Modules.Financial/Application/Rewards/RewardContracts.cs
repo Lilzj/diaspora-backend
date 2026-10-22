@@ -1,5 +1,6 @@
 using Diaspora.Application.Abstractions;
 using Diaspora.Modules.Financial.Contracts.V1.Responses;
+using FluentValidation;
 
 namespace Diaspora.Modules.Financial.Application.Rewards;
 
@@ -93,7 +94,36 @@ public sealed record ConvertRewardPointsCommand : ICommand<RewardConversionRespo
     /// <summary>Ignored. The rate's country is the member's account's, never the request's.</summary>
     public string? CountryCode { get; init; }
 
+    /// <summary>
+    /// Required: from the <c>Idempotency-Key</c> header, or the body. Unique per member — two members
+    /// choosing the same key convert independently.
+    /// </summary>
     public string? IdempotencyKey { get; init; }
+}
+
+/// <summary>
+/// A conversion must carry its key.
+/// <para>
+/// It was optional, and a keyless conversion had no replay at all: a double-tapped button or a
+/// retried request converted twice, and only the balance stopped the second. Every client of this
+/// route already sends one. Points are left to the pricer, whose refusal says why in the member's
+/// terms rather than as a validation error.
+/// </para>
+/// </summary>
+public sealed class ConvertRewardPointsCommandValidator : AbstractValidator<ConvertRewardPointsCommand>
+{
+    public ConvertRewardPointsCommandValidator()
+    {
+        RuleFor(command => command.IdempotencyKey)
+            .NotEmpty()
+            .WithMessage("A conversion needs an idempotency key, in the Idempotency-Key header or the body.")
+            .MaximumLength(Domain.Policies.FinancialLimits.MaxReferenceLength);
+
+        RuleFor(command => command.Currency)
+            .Length(3)
+            .When(command => !string.IsNullOrWhiteSpace(command.Currency))
+            .WithMessage("A currency is three ISO 4217 letters.");
+    }
 }
 
 /// <summary>The caller's conversions.</summary>

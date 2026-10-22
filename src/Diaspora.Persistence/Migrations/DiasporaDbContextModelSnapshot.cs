@@ -9331,12 +9331,12 @@ namespace Diaspora.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IdempotencyKey")
-                        .IsUnique()
-                        .HasDatabaseName("ix_financial_reward_conversions_idempotency");
-
                     b.HasIndex("MemberUserId", "ConvertedAt")
                         .HasDatabaseName("ix_financial_reward_conversions_member");
+
+                    b.HasIndex("MemberUserId", "IdempotencyKey")
+                        .IsUnique()
+                        .HasDatabaseName("ix_financial_reward_conversions_member_idempotency");
 
                     b.ToTable("financial_reward_conversions", "financial");
                 });
