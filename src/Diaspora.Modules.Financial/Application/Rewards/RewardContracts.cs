@@ -44,8 +44,10 @@ public sealed record GetMyRewardHistoryQuery : IQuery<IReadOnlyList<RewardEntryR
 [Authorize(Permission = FinancialPermissions.WalletRead)]
 public sealed record GetRewardConversionTermsQuery : IQuery<RewardConversionTermsResponse>
 {
+    /// <summary>Optional. A currency other than the rate's reads as disabled, with the reason.</summary>
     public string? Currency { get; init; }
 
+    /// <summary>Ignored. The rate's country is the member's account's, never the request's.</summary>
     public string? CountryCode { get; init; }
 }
 
@@ -62,8 +64,10 @@ public sealed record PreviewRewardConversionQuery : IQuery<RewardConversionPrevi
 {
     public required long Points { get; init; }
 
-    public required string Currency { get; init; }
+    /// <summary>Optional. When given, it must be the currency the rate is in.</summary>
+    public string? Currency { get; init; }
 
+    /// <summary>Ignored. The rate's country is the member's account's, never the request's.</summary>
     public string? CountryCode { get; init; }
 }
 
@@ -83,8 +87,10 @@ public sealed record ConvertRewardPointsCommand : ICommand<RewardConversionRespo
 {
     public required long Points { get; init; }
 
-    public required string Currency { get; init; }
+    /// <summary>Optional. When given, it must be the currency the rate is in.</summary>
+    public string? Currency { get; init; }
 
+    /// <summary>Ignored. The rate's country is the member's account's, never the request's.</summary>
     public string? CountryCode { get; init; }
 
     public string? IdempotencyKey { get; init; }

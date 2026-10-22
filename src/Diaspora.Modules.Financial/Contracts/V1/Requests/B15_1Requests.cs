@@ -162,9 +162,16 @@ public sealed record ConvertRewardPointsRequest
 {
     public required long Points { get; init; }
 
-    /// <summary>Which currency to be credited in. Must be one the caller holds a wallet in.</summary>
-    public required string Currency { get; init; }
+    /// <summary>
+    /// Optional. The credit is in the currency the published rate is in; naming any other currency
+    /// is refused (<c>financial.rewards.currency_not_offered</c>) rather than repriced.
+    /// </summary>
+    public string? Currency { get; init; }
 
+    /// <summary>
+    /// Ignored, and kept only so existing clients still bind. The rate is chosen by the country on the
+    /// member's own financial account.
+    /// </summary>
     public string? CountryCode { get; init; }
 
     /// <summary>Uniquely indexed. A double-tapped button converts once.</summary>

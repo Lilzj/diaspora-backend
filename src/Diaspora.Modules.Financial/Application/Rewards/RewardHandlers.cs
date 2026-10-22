@@ -4,6 +4,7 @@ using Diaspora.Modules.Financial.Application.EventHandlers;
 using Diaspora.Modules.Financial.Application.Mapping;
 using Diaspora.Modules.Financial.Application.Services;
 using Diaspora.Modules.Financial.Contracts.V1.Responses;
+using Diaspora.Modules.Financial.Domain.Accounts;
 using Diaspora.Modules.Financial.Domain.Enums;
 using Diaspora.Modules.Financial.Domain.Identifiers;
 using Diaspora.Modules.Financial.Domain.Ledgers;
@@ -30,6 +31,8 @@ public sealed class RewardConversionPricer
 {
     private readonly FinancialLimitsResolver _limits;
     private readonly IRewardConversionRepository _conversions;
+    private readonly IFinancialAccountRepository _accounts;
+    private readonly MemberCurrency _memberCurrency;
     private readonly CurrencyCatalog _currencies;
     private readonly IClock _clock;
     private readonly FinancialOptions _options;
@@ -37,6 +40,8 @@ public sealed class RewardConversionPricer
     public RewardConversionPricer(
         FinancialLimitsResolver limits,
         IRewardConversionRepository conversions,
+        IFinancialAccountRepository accounts,
+        MemberCurrency memberCurrency,
         CurrencyCatalog currencies,
         IClock clock,
         IOptions<FinancialOptions> options)
@@ -45,37 +50,85 @@ public sealed class RewardConversionPricer
 
         _limits = limits;
         _conversions = conversions;
+        _accounts = accounts;
+        _memberCurrency = memberCurrency;
         _currencies = currencies;
         _clock = clock;
         _options = options.Value;
     }
 
-    /// <summary>The terms in force for a member, right now.</summary>
+    /// <summary>
+    /// The terms in force for a member, right now.
+    /// <para>
+    /// <b>The server decides both the country and the currency.</b> The rate used to resolve by a
+    /// country the request named and then apply to a currency the request named, while
+    /// <c>minorUnitsPerPoint</c> meant nothing without a currency — a hundred minor units is a pound
+    /// or a hundred kobo. Any member could pick the country with the best rate and the currency whose
+    /// minor unit was worth the most. Now:
+    /// </para>
+    /// <list type="bullet">
+    ///   <item>the country is the one on the member's own financial account, set by registration and
+    ///   verification, never by a request;</item>
+    ///   <item>a rate is in exactly one currency — the policy's <c>currency</c> parameter — and a
+    ///   rate without a supported currency converts nothing;</item>
+    ///   <item><paramref name="requestedCurrency"/> may only confirm that currency. Asking for another
+    ///   is refused, not repriced.</item>
+    /// </list>
+    /// </summary>
     public async Task<RewardConversionTerms> TermsAsync(
         Guid memberUserId,
-        string currency,
-        string? countryCode,
+        string? requestedCurrency,
         CancellationToken cancellationToken = default)
     {
-        var facts = await _currencies.FactsAsync(currency, cancellationToken);
+        var account = await _accounts.FindByOwnerAsync(
+            memberUserId, FinancialAccountType.Personal, cancellationToken);
 
         var policy = await _limits.MostSpecificAsync(
-            FinancialPolicyKeys.RewardConversion, countryCode, cancellationToken);
+            FinancialPolicyKeys.RewardConversion, account?.CountryCode, cancellationToken);
 
         var rate = policy?.DecimalParameter(FinancialPolicyParameters.MinorUnitsPerPoint) ?? 0m;
         var dailyMaximum = policy?.Int64Parameter(FinancialPolicyParameters.DailyMaximumPoints);
+
+        var offered = CurrencyCode(policy?.Parameter(FinancialPolicyParameters.Currency));
+
+        if (offered is not null && !await _currencies.IsSupportedAsync(offered, cancellationToken))
+        {
+            offered = null;
+        }
+
+        var requested = CurrencyCode(requestedCurrency);
+
+        // What the terms are shown in when nothing converts: the member's own currency, so the
+        // screen still reads naturally.
+        var currency = offered
+            ?? requested
+            ?? await _memberCurrency.ForMemberAsync(memberUserId, cancellationToken);
+
+        var facts = await _currencies.FactsAsync(currency, cancellationToken);
 
         var convertedToday = dailyMaximum is null
             ? 0
             : await _conversions.PointsConvertedSinceAsync(
                 memberUserId, _clock.UtcNow.AddDays(-1), cancellationToken);
 
+        // Three switches, and all must be on: the deployment has to have decided it converts, an
+        // operator has to have published a rate, and the rate has to say what currency it is in. A
+        // rate with no switch would turn conversion on by seeding data; a switch with no rate would
+        // price points at nothing; a rate with no currency is a number with no unit.
+        (string Code, string Message)? disabled =
+            !_options.EnableRewardConversion || rate <= 0m || offered is null
+                ? (FinancialErrorCodes.RewardConversionNotSupported,
+                    "Reward points cannot be converted on this deployment.")
+                : requested is not null && !string.Equals(requested, offered, StringComparison.Ordinal)
+                    ? (FinancialErrorCodes.RewardCurrencyNotOffered,
+                        $"Reward points convert into {offered} only.")
+                    : null;
+
         return new RewardConversionTerms
         {
-            // Two switches, and both must be on: the deployment has to have decided it converts, and
-            // an operator has to have published a rate. A rate with no switch would turn conversion
-            // on by seeding data; a switch with no rate would price points at nothing.
-            IsEnabled = _options.EnableRewardConversion && rate > 0m,
+            IsEnabled = disabled is null,
+            DisabledCode = disabled?.Code,
+            DisabledMessage = disabled?.Message,
             Currency = facts.Code,
             Exponent = facts.Exponent,
             Symbol = facts.Symbol,
@@ -90,6 +143,9 @@ public sealed class RewardConversionPricer
             PolicyVersion = policy?.VersionLabel
         };
     }
+
+    private static string? CurrencyCode(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim().ToUpperInvariant();
 
     /// <summary>
     /// What the conversion would produce, and whether it is permitted.
@@ -125,8 +181,8 @@ public sealed class RewardConversionPricer
     {
         if (!terms.IsEnabled)
         {
-            return (FinancialErrorCodes.RewardConversionNotSupported,
-                "Reward points cannot be converted on this deployment.");
+            return (terms.DisabledCode ?? FinancialErrorCodes.RewardConversionNotSupported,
+                terms.DisabledMessage ?? "Reward points cannot be converted on this deployment.");
         }
 
         if (points <= 0)
@@ -171,6 +227,12 @@ public sealed class RewardConversionPricer
 public sealed record RewardConversionTerms
 {
     public required bool IsEnabled { get; init; }
+
+    /// <summary>Why not, as a code. Null when enabled.</summary>
+    public string? DisabledCode { get; init; }
+
+    /// <summary>Why not, as a sentence. Null when enabled.</summary>
+    public string? DisabledMessage { get; init; }
 
     public required string Currency { get; init; }
 
@@ -222,9 +284,9 @@ public sealed record RewardConversionQuote
 /// </para>
 /// <para>
 /// <b>The credit is a real ledger posting with a real counterparty.</b> Points come out of a store
-/// that is not money; the credit comes out of the platform's revenue wallet, which is where the cost
-/// of a rewards programme actually lands. A conversion that credited a member from nowhere would be
-/// a ledger that no longer balanced.
+/// that is not money; the credit comes out of the platform's <em>clearing</em> wallet — see the note
+/// at the posting for why clearing and not revenue (this summary used to say revenue). A conversion
+/// that credited a member from nowhere would be a ledger that no longer balanced.
 /// </para>
 /// </summary>
 public sealed class ConvertRewardPointsCommandHandler
@@ -277,8 +339,7 @@ public sealed class ConvertRewardPointsCommandHandler
             return Result.Failure<RewardConversionResponse>(caller.Error);
         }
 
-        var terms = await _pricer.TermsAsync(
-            caller.Value, command.Currency, command.CountryCode, cancellationToken);
+        var terms = await _pricer.TermsAsync(caller.Value, command.Currency, cancellationToken);
 
         if (command.IdempotencyKey is { } key
             && await _conversions.FindByIdempotencyKeyAsync(caller.Value, key, cancellationToken) is { } already)
@@ -307,11 +368,12 @@ public sealed class ConvertRewardPointsCommandHandler
                 quote.RefusalMessage ?? "That conversion is not available."));
         }
 
+        // No country from the request: an account opened here would keep it, and the account's
+        // country is what selects the conversion rate next time.
         var accountRecord = await _identities.GetOrCreateAsync(
             caller.Value,
             FinancialAccountType.Personal,
             terms.Currency,
-            countryCode: command.CountryCode,
             cancellationToken: cancellationToken);
 
         var wallet = await _identities.PrimaryWalletAsync(

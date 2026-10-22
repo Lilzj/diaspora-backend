@@ -1095,18 +1095,19 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
 
     /// <summary>
     /// <b>The one crossing, with a real ledger posting behind it.</b> Points come out of a store that
-    /// is not money; the credit comes out of the platform's revenue wallet, which is where the cost
-    /// of a rewards programme actually lands.
+    /// is not money; the credit comes out of the platform's clearing wallet (this comment used to say
+    /// revenue; the posting has always used clearing).
     /// </summary>
     [Fact]
     public async Task Converting_points_credits_the_wallet_and_posts_to_the_ledger()
     {
         var userId = await AuthenticateAsync();
 
-        await PublishConversionRateAsync(minorUnitsPerPoint: 1m);
+        var currency = await MemberCurrencyAsync(userId);
+
+        await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
         await GrantPointsAsync(userId, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
 
-        var currency = await MemberCurrencyAsync(userId);
         var before = await AvailableAsync(userId, currency);
 
         var response = await HttpClient.PostAsJsonAsync(
@@ -1131,11 +1132,12 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
     {
         var userId = await AuthenticateAsync();
 
-        await PublishConversionRateAsync(minorUnitsPerPoint: 1m);
+        var currency = await MemberCurrencyAsync(userId);
+
+        await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
         await GrantPointsAsync(userId, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
 
         var key = Guid.NewGuid().ToString("N");
-        var currency = await MemberCurrencyAsync(userId);
 
         await HttpClient.PostAsJsonAsync(
             new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
@@ -1153,12 +1155,14 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
     {
         var userId = await AuthenticateAsync();
 
-        await PublishConversionRateAsync(minorUnitsPerPoint: 1m);
+        var currency = await MemberCurrencyAsync(userId);
+
+        await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
         await GrantPointsAsync(userId, 100, "grant:" + Guid.NewGuid().ToString("N"));
 
         var response = await HttpClient.PostAsJsonAsync(
             new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
-            new { points = 5_000L, currency = "GBP" });
+            new { points = 5_000L, currency });
 
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
         (await PointsAsync()).Should().Be(100, "a refused conversion moves nothing");
@@ -1179,6 +1183,130 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         await GrantPointsAsync(userId, 250, reference);
 
         (await PointsAsync()).Should().Be(250);
+    }
+
+    // ── A rate is in one currency, chosen by the server ────────────────────────────────────
+    //
+    // The rate used to resolve by a country the request named and apply to a currency the request
+    // named, so a member could pick both. Each test below restores the seeded state (a zero rate) when
+    // it finishes, because the rate is shared by every test in this class.
+
+    [Fact]
+    public async Task A_rate_published_in_one_currency_cannot_be_converted_into_another()
+    {
+        var userId = await AuthenticateAsync();
+        var currency = await MemberCurrencyAsync(userId);
+        var other = currency == "USD" ? "EUR" : "USD";
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
+            await GrantPointsAsync(userId, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
+
+            var response = await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
+                new { points = 500L, currency = other, idempotencyKey = Guid.NewGuid().ToString("N") });
+
+            response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+            (await CodeAsync(response)).Should().Be(FinancialErrorCodes.RewardCurrencyNotOffered);
+            (await PointsAsync()).Should().Be(1_000, "a refused conversion moves nothing");
+
+            // Naming no currency converts in the rate's.
+            var converted = await ReadDataAsync<ConversionShape>(await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
+                new { points = 500L, idempotencyKey = Guid.NewGuid().ToString("N") }));
+
+            converted.Credited.Currency.Should().Be(currency);
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
+    /// <summary>
+    /// The member's account says GB. The request says CH, where a far better rate is published. The
+    /// GB rate applies.
+    /// </summary>
+    [Fact]
+    public async Task The_request_country_does_not_select_the_rate()
+    {
+        var userId = await AuthenticateAsync();
+        var currency = await MemberCurrencyAsync(userId);
+
+        try
+        {
+            await SetAccountCountryAsync(userId, "GB");
+
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
+            await PublishConversionRateAsync(minorUnitsPerPoint: 3m, currency, country: "GB");
+            await PublishConversionRateAsync(minorUnitsPerPoint: 50m, currency, country: "CH");
+            await GrantPointsAsync(userId, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
+
+            var preview = await ReadDataAsync<PreviewShape>(await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions/preview", UriKind.Relative),
+                new { points = 100L, countryCode = "CH" }));
+
+            preview.MinorUnitsPerPoint.Should().Be(3m, "the account's country prices it, not the request's");
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
+    /// <summary>A rate with no currency is a number with no unit, and converts nothing.</summary>
+    [Fact]
+    public async Task A_rate_without_a_currency_disables_conversion()
+    {
+        var userId = await AuthenticateAsync();
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency: null);
+            await GrantPointsAsync(userId, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
+
+            var terms = await ReadDataAsync<TermsShape>(await HttpClient.GetAsync(
+                new Uri("/api/v1/financial/rewards/conversion", UriKind.Relative)));
+
+            terms.IsEnabled.Should().BeFalse();
+            terms.DisabledReason.Should().Be(FinancialErrorCodes.RewardConversionNotSupported);
+            terms.Currency.Should().Be(
+                await MemberCurrencyAsync(userId), "the screen still reads in the member's currency");
+
+            var response = await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
+                new { points = 500L, idempotencyKey = Guid.NewGuid().ToString("N") });
+
+            (await CodeAsync(response)).Should().Be(FinancialErrorCodes.RewardConversionNotSupported);
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
+    /// <summary>The same rule at the door: an operator cannot publish a positive rate without one.</summary>
+    [Fact]
+    public async Task Publishing_a_positive_rate_without_a_currency_is_refused()
+    {
+        var (_, admin) = await SignInAsRoleAsync("Admin");
+
+        HttpClient.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", admin.Tokens.AccessToken);
+
+        var response = await HttpClient.PostAsJsonAsync(
+            new Uri("/api/v1/financial/operations/policies", UriKind.Relative),
+            new
+            {
+                policyKey = FinancialPolicyKeys.RewardConversion,
+                kind = "RewardConversion",
+                description = "A rate with no unit.",
+                parameters = new Dictionary<string, string> { ["minorUnitsPerPoint"] = "1" }
+            });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await CodeAsync(response)).Should().Be(FinancialErrorCodes.RewardCurrencyRequired);
     }
 
     /// <summary>The points surface carries no currency, and a client that looked for one finds none.</summary>
@@ -1472,8 +1600,15 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
     /// Publishes a conversion rate, which is what an operator does before points are worth anything.
     /// The seeded version prices them at zero on purpose — a rate seeded above zero would turn
     /// conversion on by deploying.
+    /// <para>
+    /// A rate is in one currency, so <paramref name="currency"/> is part of publishing it; passing null
+    /// publishes the incomplete kind of rate that converts nothing. <paramref name="country"/> narrows
+    /// the version to one country; only versions in the same scope are superseded, so a platform rate
+    /// and a country rate can both be in force.
+    /// </para>
     /// </summary>
-    private async Task PublishConversionRateAsync(decimal minorUnitsPerPoint)
+    private async Task PublishConversionRateAsync(
+        decimal minorUnitsPerPoint, string? currency, string? country = null)
     {
         using var scope = Factory.Services.CreateScope();
 
@@ -1484,10 +1619,13 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         var clock = scope.ServiceProvider.GetRequiredService<IClock>();
         var guids = scope.ServiceProvider.GetRequiredService<IGuidGenerator>();
 
+        var policyScope = country is null ? PolicyScopeKind.Platform : PolicyScopeKind.Country;
+
         var active = await policies.ListActiveByKeyAsync(
             FinancialPolicyKeys.RewardConversion);
 
-        foreach (var superseded in active)
+        foreach (var superseded in active.Where(policy => policy.Scope == policyScope
+            && string.Equals(policy.ScopeValue, country, StringComparison.OrdinalIgnoreCase)))
         {
             superseded.Supersede(clock.UtcNow);
             policies.Update(superseded);
@@ -1495,15 +1633,15 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
 
         var version = await policies.HighestVersionAsync(
             FinancialPolicyKeys.RewardConversion,
-            PolicyScopeKind.Platform,
-            scopeValue: null);
+            policyScope,
+            scopeValue: country);
 
         var policy = FinancialPolicy.Publish(
             FinancialPolicyId.From(guids.NewSequentialGuid()),
             FinancialPolicyKeys.RewardConversion,
             FinancialPolicyKind.RewardConversion,
-            PolicyScopeKind.Platform,
-            scopeValue: null,
+            policyScope,
+            scopeValue: country,
             version + 1,
             DateWindow.Open(clock.UtcNow.AddMinutes(-1)),
             "An integration-test conversion rate.",
@@ -1519,9 +1657,50 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
             FinancialPolicyParameters.MinimumPoints,
             "10");
 
+        if (currency is not null)
+        {
+            policy.SetParameter(
+                guids.NewSequentialGuid(), FinancialPolicyParameters.Currency, currency);
+        }
+
         policies.Add(policy);
 
         await unitOfWork.SaveChangesAsync();
+    }
+
+    /// <summary>Back to the seed: no country rates, and a platform rate of zero.</summary>
+    private async Task ResetConversionRatesAsync()
+    {
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var policies = scope.ServiceProvider.GetRequiredService<IFinancialPolicyRepository>();
+            var clock = scope.ServiceProvider.GetRequiredService<IClock>();
+
+            foreach (var country in (await policies.ListActiveByKeyAsync(FinancialPolicyKeys.RewardConversion))
+                .Where(policy => policy.Scope == PolicyScopeKind.Country))
+            {
+                country.Supersede(clock.UtcNow);
+                policies.Update(country);
+            }
+
+            await scope.ServiceProvider.GetRequiredService<IUnitOfWork>().SaveChangesAsync();
+        }
+
+        await PublishConversionRateAsync(minorUnitsPerPoint: 0m, currency: null);
+    }
+
+    private async Task SetAccountCountryAsync(Guid userId, string country)
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        var accounts = scope.ServiceProvider.GetRequiredService<IFinancialAccountRepository>();
+        var account = await accounts.FindByOwnerAsync(userId, FinancialAccountType.Personal)
+            ?? throw new InvalidOperationException($"Member {userId} has no financial account.");
+
+        account.SetCountry(country, scope.ServiceProvider.GetRequiredService<IClock>().UtcNow);
+        accounts.Update(account);
+
+        await scope.ServiceProvider.GetRequiredService<IUnitOfWork>().SaveChangesAsync();
     }
 
     private async Task<long> AvailableAsync(Guid userId, string currency = DepositCurrency) =>
@@ -1649,5 +1828,11 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         Guid ConversionId, long Points, MoneyShape Credited, Guid? TransactionId);
 
     private sealed record RewardBalanceShape(long Balance, long LifetimeEarned, bool CanConvert);
+
+    private sealed record TermsShape(
+        bool IsEnabled, string? DisabledReason, string Currency, decimal MinorUnitsPerPoint);
+
+    private sealed record PreviewShape(
+        long Points, decimal MinorUnitsPerPoint, bool IsPermitted, string? RefusalCode);
 
 }

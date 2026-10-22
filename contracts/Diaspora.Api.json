@@ -41222,8 +41222,7 @@
       },
       "ConvertRewardPointsRequest": {
         "required": [
-          "points",
-          "currency"
+          "points"
         ],
         "type": "object",
         "properties": {
@@ -41236,7 +41235,10 @@
             "format": "int64"
           },
           "currency": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "countryCode": {
             "type": [

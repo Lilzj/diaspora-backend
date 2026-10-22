@@ -67,6 +67,12 @@ public static class FinancialPolicyParameters
     /// <summary>Minor units of credit one reward point converts into.</summary>
     public const string MinorUnitsPerPoint = "minorUnitsPerPoint";
 
+    /// <summary>
+    /// The ISO 4217 currency a <see cref="MinorUnitsPerPoint"/> rate is in. Required for the rate to
+    /// apply: a count of minor units with no currency is a pound or a kobo depending on who asks.
+    /// </summary>
+    public const string Currency = "currency";
+
     public const string MinimumPoints = "minimumPoints";
     public const string MaximumPoints = "maximumPoints";
     public const string DailyMaximumPoints = "dailyMaximumPoints";
