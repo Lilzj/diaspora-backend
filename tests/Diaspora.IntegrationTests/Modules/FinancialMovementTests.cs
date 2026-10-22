@@ -1286,6 +1286,47 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         }
     }
 
+    /// <summary>
+    /// At 0.01 minor units a point, 550 points buy 5 minor units. Five hundred leave the balance and
+    /// fifty stay: they would only have bought half a minor unit, and used to vanish with the rest.
+    /// </summary>
+    [Fact]
+    public async Task Points_that_would_buy_a_fraction_of_a_minor_unit_stay_in_the_balance()
+    {
+        var userId = await AuthenticateAsync();
+        var currency = await MemberCurrencyAsync(userId);
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 0.01m, currency);
+            await GrantPointsAsync(userId, 550, "grant:" + Guid.NewGuid().ToString("N"));
+
+            var before = await AvailableAsync(userId, currency);
+
+            var preview = await ReadDataAsync<PreviewShape>(await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions/preview", UriKind.Relative),
+                new { points = 550L }));
+
+            preview.Points.Should().Be(550);
+            preview.PointsConsumed.Should().Be(500, "the preview says what will actually leave");
+
+            var conversion = await ReadDataAsync<RoundedConversionShape>(await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
+                new { points = 550L, idempotencyKey = Guid.NewGuid().ToString("N") }));
+
+            conversion.Points.Should().Be(500);
+            conversion.PointsRequested.Should().Be(550);
+            conversion.Credited.MinorUnits.Should().Be(5);
+
+            (await PointsAsync()).Should().Be(50, "the fifty that bought nothing are still the member's");
+            (await AvailableAsync(userId, currency)).Should().Be(before + 5);
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
     /// <summary>The same rule at the door: an operator cannot publish a positive rate without one.</summary>
     [Fact]
     public async Task Publishing_a_positive_rate_without_a_currency_is_refused()
@@ -1833,6 +1874,8 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         bool IsEnabled, string? DisabledReason, string Currency, decimal MinorUnitsPerPoint);
 
     private sealed record PreviewShape(
-        long Points, decimal MinorUnitsPerPoint, bool IsPermitted, string? RefusalCode);
+        long Points, long PointsConsumed, decimal MinorUnitsPerPoint, bool IsPermitted, string? RefusalCode);
+
+    private sealed record RoundedConversionShape(long Points, long? PointsRequested, MoneyShape Credited);
 
 }

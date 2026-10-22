@@ -149,6 +149,7 @@ public sealed class RewardQueryHandlers
         return Result.Success(new RewardConversionPreviewResponse
         {
             Points = quote.Points,
+            PointsConsumed = quote.PointsConsumed,
             Credit = FinancialMapper.ToResponse(quote.Credit, terms.Symbol),
             MinorUnitsPerPoint = quote.MinorUnitsPerPoint,
             IsPermitted = quote.IsPermitted,

@@ -85,7 +85,14 @@ public sealed record RewardConversionTermsResponse
 /// </summary>
 public sealed record RewardConversionPreviewResponse
 {
+    /// <summary>What was asked for.</summary>
     public required long Points { get; init; }
+
+    /// <summary>
+    /// What would leave the balance: the fewest points that buy <see cref="Credit"/>. Points that
+    /// would only buy a fraction of a minor unit stay with the member.
+    /// </summary>
+    public long PointsConsumed { get; init; }
 
     public required MoneyResponse Credit { get; init; }
 
@@ -106,7 +113,14 @@ public sealed record RewardConversionResponse
 {
     public required Guid ConversionId { get; init; }
 
+    /// <summary>The points that left the balance.</summary>
     public required long Points { get; init; }
+
+    /// <summary>
+    /// What the member asked to convert, when this response is the conversion itself. Null on a
+    /// replay or in history, where only what actually moved is recorded.
+    /// </summary>
+    public long? PointsRequested { get; init; }
 
     public required MoneyResponse Credited { get; init; }
 

@@ -154,19 +154,48 @@ public sealed class RewardConversionPricer
     /// convert two points when the minimum is five should be told that, not shown an error.
     /// </para>
     /// </summary>
+    /// <para>
+    /// <b>Only the points that buy whole minor units leave the balance.</b> The credit is floored —
+    /// a fraction of a minor unit cannot be paid — and this used to debit every point asked for
+    /// anyway: at 0.01 minor units a point, 550 points paid 5 and took 550, so 50 points bought
+    /// nothing and vanished. <see cref="RewardConversionQuote.PointsConsumed"/> is the fewest points
+    /// that buy exactly the same credit, and the rest stay with the member.
+    /// </para>
+    /// <para>
+    /// Why it is never more than was asked for, and never changes the credit: with
+    /// <c>c = floor(p·r)</c>, <c>p·r ≥ c</c>, so <c>p ≥ c/r</c> and <c>p ≥ ceil(c/r)</c>; and
+    /// <c>ceil(c/r)·r ≥ c</c> while <c>ceil(c/r)·r ≤ p·r &lt; c + 1</c>, so the consumed points floor
+    /// to exactly <c>c</c>. All of it in <see cref="decimal"/> and <see cref="long"/>, never
+    /// floating point.
+    /// </para>
     public static RewardConversionQuote Quote(
         RewardConversionTerms terms, long points, long balance)
     {
         ArgumentNullException.ThrowIfNull(terms);
 
-        var credit = Money.FromMinorUnits(
-            (long)Math.Floor(points * terms.MinorUnitsPerPoint), terms.Currency, terms.Exponent);
+        var creditMinorUnits = points > 0 && terms.MinorUnitsPerPoint > 0m
+            ? (long)Math.Floor(points * terms.MinorUnitsPerPoint)
+            : 0L;
 
-        var refusal = Refusal(terms, points, balance, credit);
+        var consumed = creditMinorUnits == 0
+            ? 0L
+            : (long)Math.Ceiling(creditMinorUnits / terms.MinorUnitsPerPoint);
+
+        if (consumed > points)
+        {
+            // Unreachable by the argument above; refused loudly rather than debiting more than asked.
+            throw new InvalidOperationException(
+                $"A conversion of {points} points priced {consumed} points; the rate arithmetic is wrong.");
+        }
+
+        var credit = Money.FromMinorUnits(creditMinorUnits, terms.Currency, terms.Exponent);
+
+        var refusal = Refusal(terms, points, consumed, balance, credit);
 
         return new RewardConversionQuote
         {
             Points = points,
+            PointsConsumed = consumed,
             Credit = credit,
             IsPermitted = refusal is null,
             RefusalCode = refusal?.Code,
@@ -176,8 +205,13 @@ public sealed class RewardConversionPricer
         };
     }
 
+    /// <summary>
+    /// Why not, if not. The limits read <paramref name="consumed"/> — what would actually leave the
+    /// balance — while "more than you hold" reads what was asked for, which is the number the
+    /// member typed.
+    /// </summary>
     private static (string Code, string Message)? Refusal(
-        RewardConversionTerms terms, long points, long balance, Money credit)
+        RewardConversionTerms terms, long points, long consumed, long balance, Money credit)
     {
         if (!terms.IsEnabled)
         {
@@ -190,24 +224,6 @@ public sealed class RewardConversionPricer
             return (FinancialErrorCodes.RewardBelowMinimum, "Convert at least one point.");
         }
 
-        if (points < terms.MinimumPoints)
-        {
-            return (FinancialErrorCodes.RewardBelowMinimum,
-                $"The smallest conversion is {terms.MinimumPoints} points.");
-        }
-
-        if (terms.MaximumPoints is { } maximum && points > maximum)
-        {
-            return (FinancialErrorCodes.RewardAboveMaximum,
-                $"The largest single conversion is {maximum} points.");
-        }
-
-        if (terms.DailyRemainingPoints is { } remaining && points > remaining)
-        {
-            return (FinancialErrorCodes.RewardDailyLimitReached,
-                "That would take you past what you can convert in a day.");
-        }
-
         if (points > balance)
         {
             return (FinancialErrorCodes.RewardInsufficientPoints,
@@ -216,10 +232,31 @@ public sealed class RewardConversionPricer
 
         // A rate that rounds a legitimate number of points down to nothing is a member giving points
         // away. Refusing is the only answer that does not quietly take something.
-        return credit.IsZero
-            ? (FinancialErrorCodes.RewardBelowMinimum,
-                "That many points is not yet worth anything. Save a few more.")
-            : null;
+        if (credit.IsZero)
+        {
+            return (FinancialErrorCodes.RewardBelowMinimum,
+                "That many points is not yet worth anything. Save a few more.");
+        }
+
+        if (consumed < terms.MinimumPoints)
+        {
+            return (FinancialErrorCodes.RewardBelowMinimum,
+                $"The smallest conversion is {terms.MinimumPoints} points.");
+        }
+
+        if (terms.MaximumPoints is { } maximum && consumed > maximum)
+        {
+            return (FinancialErrorCodes.RewardAboveMaximum,
+                $"The largest single conversion is {maximum} points.");
+        }
+
+        if (terms.DailyRemainingPoints is { } remaining && consumed > remaining)
+        {
+            return (FinancialErrorCodes.RewardDailyLimitReached,
+                "That would take you past what you can convert in a day.");
+        }
+
+        return null;
     }
 }
 
@@ -256,7 +293,14 @@ public sealed record RewardConversionTerms
 /// <summary>What a conversion would produce, and whether it may happen.</summary>
 public sealed record RewardConversionQuote
 {
+    /// <summary>What was asked for.</summary>
     public required long Points { get; init; }
+
+    /// <summary>
+    /// What would leave the balance: the fewest points that buy <see cref="Credit"/>. Never more
+    /// than <see cref="Points"/>; the difference stays with the member.
+    /// </summary>
+    public required long PointsConsumed { get; init; }
 
     public required Money Credit { get; init; }
 
@@ -409,7 +453,8 @@ public sealed class ConvertRewardPointsCommandHandler
 
         try
         {
-            account.Convert(_guids.NewSequentialGuid(), command.Points, reference, _clock.UtcNow);
+            // The consumed points, not the requested ones: the remainder bought nothing and stays.
+            account.Convert(_guids.NewSequentialGuid(), quote.PointsConsumed, reference, _clock.UtcNow);
         }
         catch (DomainException exception)
         {
@@ -424,11 +469,11 @@ public sealed class ConvertRewardPointsCommandHandler
             {
                 TransactionType = TransactionType.RewardConversion,
                 Amount = quote.Credit,
-                Description = $"Converted {command.Points} reward points",
+                Description = $"Converted {quote.PointsConsumed} reward points",
                 Audit = AuditStamp.Create(
                     FinancialActor.Member(caller.Value),
                     FinancialSource.Api,
-                    $"Reward conversion of {command.Points} points",
+                    $"Reward conversion of {quote.PointsConsumed} points",
                     policyVersion: quote.PolicyVersion),
                 Legs =
                 [
@@ -461,7 +506,7 @@ public sealed class ConvertRewardPointsCommandHandler
         var conversion = RewardConversion.Record(
             conversionId,
             caller.Value,
-            command.Points,
+            quote.PointsConsumed,
             quote.Credit,
 
             // The rate as applied, stored beside the amounts. Never recomputed from a later policy.
@@ -481,6 +526,9 @@ public sealed class ConvertRewardPointsCommandHandler
             1, new KeyValuePair<string, object?>("outcome", "converted"));
 
         return Result.Success(
-            FinancialMapperExtensions.ToResponse(conversion, terms.Symbol));
+            FinancialMapperExtensions.ToResponse(conversion, terms.Symbol) with
+            {
+                PointsRequested = command.Points
+            });
     }
 }
