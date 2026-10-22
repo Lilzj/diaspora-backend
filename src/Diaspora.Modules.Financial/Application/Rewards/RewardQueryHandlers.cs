@@ -142,7 +142,9 @@ public sealed class RewardQueryHandlers
         var terms = await _pricer.TermsAsync(caller.Value, query.Currency, cancellationToken);
 
         var account = await _accounts.FindByMemberAsync(caller.Value, cancellationToken);
-        var quote = RewardConversionPricer.Quote(terms, query.Points, account?.Balance ?? 0);
+        var quote = RewardConversionPricer.Quote(
+            terms, query.Points, account?.Balance ?? 0,
+            ConvertRewardPointsCommandHandler.BlockedReason(account));
 
         // A refusal is rendered rather than thrown: a member asked to convert two points when the
         // minimum is five should be told that, not shown an error.

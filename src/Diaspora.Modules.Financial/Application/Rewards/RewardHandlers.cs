@@ -125,10 +125,25 @@ public sealed class RewardConversionPricer
                         $"Reward points convert into {offered} only.")
                     : null;
 
+        // The same bar withdrawals set (WithdrawalHandlers: account.CanDebit). Converting turns points
+        // into money in the withdrawable primary wallet, so it is held to the rule for moving money
+        // out: an unverified (Pending) or Restricted account converts nothing.
+        (string Code, string Message)? standing =
+            account is null || account.Status == FinancialAccountStatus.Pending
+                ? (FinancialErrorCodes.AccountNotEligible,
+                    "Verify your identity before converting points into money. "
+                    + "Your points are safe in the meantime.")
+                : !account.CanDebit
+                    ? (FinancialErrorCodes.AccountRestricted,
+                        account.RestrictionReason ?? "This account cannot convert points right now.")
+                    : null;
+
         return new RewardConversionTerms
         {
             IsEnabled = disabled is null,
             DisabledCode = disabled?.Code,
+            AccountRefusalCode = standing?.Code,
+            AccountRefusalMessage = standing?.Message,
             DisabledMessage = disabled?.Message,
             Currency = facts.Code,
             Exponent = facts.Exponent,
@@ -169,8 +184,12 @@ public sealed class RewardConversionPricer
     /// to exactly <c>c</c>. All of it in <see cref="decimal"/> and <see cref="long"/>, never
     /// floating point.
     /// </para>
+    /// <param name="conversionBlockedReason">
+    /// Non-null when the member's points account is held from conversion (a fraud or review hold).
+    /// A refusal here, rather than the aggregate's exception later, so the preview can say why.
+    /// </param>
     public static RewardConversionQuote Quote(
-        RewardConversionTerms terms, long points, long balance)
+        RewardConversionTerms terms, long points, long balance, string? conversionBlockedReason = null)
     {
         ArgumentNullException.ThrowIfNull(terms);
 
@@ -191,7 +210,7 @@ public sealed class RewardConversionPricer
 
         var credit = Money.FromMinorUnits(creditMinorUnits, terms.Currency, terms.Exponent);
 
-        var refusal = Refusal(terms, points, consumed, balance, credit);
+        var refusal = Refusal(terms, points, consumed, balance, credit, conversionBlockedReason);
 
         return new RewardConversionQuote
         {
@@ -212,12 +231,27 @@ public sealed class RewardConversionPricer
     /// member typed.
     /// </summary>
     private static (string Code, string Message)? Refusal(
-        RewardConversionTerms terms, long points, long consumed, long balance, Money credit)
+        RewardConversionTerms terms,
+        long points,
+        long consumed,
+        long balance,
+        Money credit,
+        string? conversionBlockedReason)
     {
         if (!terms.IsEnabled)
         {
             return (terms.DisabledCode ?? FinancialErrorCodes.RewardConversionNotSupported,
                 terms.DisabledMessage ?? "Reward points cannot be converted on this deployment.");
+        }
+
+        if (terms.AccountRefusalCode is { } accountCode)
+        {
+            return (accountCode, terms.AccountRefusalMessage ?? "This account cannot convert points right now.");
+        }
+
+        if (conversionBlockedReason is not null)
+        {
+            return (FinancialErrorCodes.RewardNotEligible, conversionBlockedReason);
         }
 
         if (points <= 0)
@@ -271,6 +305,15 @@ public sealed record RewardConversionTerms
 
     /// <summary>Why not, as a sentence. Null when enabled.</summary>
     public string? DisabledMessage { get; init; }
+
+    /// <summary>
+    /// Why this member's account may not convert, as a code — <c>financial.account.not_eligible</c>
+    /// or <c>financial.account.restricted</c>. Null when it may.
+    /// </summary>
+    public string? AccountRefusalCode { get; init; }
+
+    /// <summary>Why not, as a sentence the member reads. Null when it may.</summary>
+    public string? AccountRefusalMessage { get; init; }
 
     public required string Currency { get; init; }
 
@@ -401,16 +444,23 @@ public sealed class ConvertRewardPointsCommandHandler
                 FinancialErrorCodes.RewardAccountNotFound, "You have no reward points yet."));
         }
 
-        var quote = RewardConversionPricer.Quote(terms, command.Points, account.Balance);
+        var quote = RewardConversionPricer.Quote(
+            terms, command.Points, account.Balance, BlockedReason(account));
 
         if (!quote.IsPermitted)
         {
             FinancialTelemetry.RewardConversions.Add(
                 1, new KeyValuePair<string, object?>("outcome", "refused"));
 
-            return Result.Failure<RewardConversionResponse>(Error.Conflict(
-                quote.RefusalCode ?? FinancialErrorCodes.RewardNotEligible,
-                quote.RefusalMessage ?? "That conversion is not available."));
+            var code = quote.RefusalCode ?? FinancialErrorCodes.RewardNotEligible;
+            var message = quote.RefusalMessage ?? "That conversion is not available.";
+
+            // An account that may not move money out is a 403, as it is for a withdrawal; everything
+            // else about the request (limits, balance, rate) stays a 409.
+            return Result.Failure<RewardConversionResponse>(
+                code is FinancialErrorCodes.AccountNotEligible or FinancialErrorCodes.AccountRestricted
+                    ? Error.Forbidden(code, message)
+                    : Error.Conflict(code, message));
         }
 
         // No country from the request: an account opened here would keep it, and the account's
@@ -549,6 +599,12 @@ public sealed class ConvertRewardPointsCommandHandler
                 PointsRequested = command.Points
             });
     }
+
+    /// <summary>The points account's hold, as a sentence, or null when it may convert.</summary>
+    internal static string? BlockedReason(RewardAccount? account) =>
+        account is { IsConversionBlocked: true }
+            ? account.BlockReason ?? "Reward conversion is not available on this account at the moment."
+            : null;
 
     /// <summary>
     /// Whether a failed save was a unique-index violation. Matched on the message, as the Creator and

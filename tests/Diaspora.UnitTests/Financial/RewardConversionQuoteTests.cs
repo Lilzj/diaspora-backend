@@ -101,6 +101,49 @@ public sealed class RewardConversionQuoteTests
         }
     }
 
+    /// <summary>An account that may not move money out converts nothing, whatever else is true.</summary>
+    [Fact]
+    public void An_ineligible_account_is_refused_before_any_limit_is_read()
+    {
+        var terms = Terms(1m) with
+        {
+            AccountRefusalCode = FinancialErrorCodes.AccountNotEligible,
+            AccountRefusalMessage = "Verify your identity."
+        };
+
+        var quote = RewardConversionPricer.Quote(terms, points: 500, balance: 1_000);
+
+        quote.IsPermitted.Should().BeFalse();
+        quote.RefusalCode.Should().Be(FinancialErrorCodes.AccountNotEligible);
+        quote.RefusalMessage.Should().Be("Verify your identity.");
+    }
+
+    /// <summary>A deployment that does not convert says so first; the account is a later question.</summary>
+    [Fact]
+    public void The_deployment_switch_is_answered_before_the_account()
+    {
+        var terms = Terms(1m) with
+        {
+            IsEnabled = false,
+            DisabledCode = FinancialErrorCodes.RewardConversionNotSupported,
+            AccountRefusalCode = FinancialErrorCodes.AccountRestricted
+        };
+
+        RewardConversionPricer.Quote(terms, points: 500, balance: 1_000)
+            .RefusalCode.Should().Be(FinancialErrorCodes.RewardConversionNotSupported);
+    }
+
+    [Fact]
+    public void A_held_points_account_is_refused_with_its_own_reason()
+    {
+        var quote = RewardConversionPricer.Quote(
+            Terms(1m), points: 500, balance: 1_000, conversionBlockedReason: "Under review after a report.");
+
+        quote.IsPermitted.Should().BeFalse();
+        quote.RefusalCode.Should().Be(FinancialErrorCodes.RewardNotEligible);
+        quote.RefusalMessage.Should().Be("Under review after a report.");
+    }
+
     private static RewardConversionTerms Terms(decimal rate, long minimum = 1) => new()
     {
         IsEnabled = true,

@@ -1436,6 +1436,131 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         }
     }
 
+    // ── Who may convert: the bar withdrawals already set ───────────────────────────────────
+    //
+    // Converted credit lands in the withdrawable primary wallet, so converting is held to the rule
+    // for moving money out: an Active financial account. Conversion checked nothing about the account
+    // before, so an unverified or restricted member could mint withdrawable credit.
+
+    /// <summary>
+    /// A member Identity has verified, whose financial account was never activated — the approval
+    /// event is still queued (or was lost). A member who is not verified at all never reaches this
+    /// route: the tier check refuses them first (<c>FinancialContractGapTests</c>). This is the case
+    /// that check cannot see, and the account gate is what stops it.
+    /// </summary>
+    [Fact]
+    public async Task A_verified_member_whose_financial_account_was_never_activated_cannot_convert()
+    {
+        // The outbox is deliberately not drained: the events that would open and activate this
+        // member's financial account have not been consumed.
+        var (_, auth) = await RegisterVerifiedMemberAsync();
+        Api.Authenticate(auth.Tokens.AccessToken);
+        HttpClient.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", auth.Tokens.AccessToken);
+
+        var userId = auth.User.Id;
+        const string currency = DepositCurrency;
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
+            await GrantPointsAsync(userId, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
+
+            var preview = await ReadDataAsync<PreviewShape>(await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions/preview", UriKind.Relative),
+                new { points = 500L }));
+
+            preview.IsPermitted.Should().BeFalse();
+            preview.RefusalCode.Should().Be(FinancialErrorCodes.AccountNotEligible, "the preview says why first");
+
+            var response = await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
+                new { points = 500L, idempotencyKey = Guid.NewGuid().ToString("N") });
+
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden, "as a withdrawal from this account would be");
+            (await CodeAsync(response)).Should().Be(FinancialErrorCodes.AccountNotEligible);
+            (await PointsAsync()).Should().Be(1_000);
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
+    [Fact]
+    public async Task A_restricted_account_cannot_convert()
+    {
+        var userId = await AuthenticateAsync();
+        var currency = await MemberCurrencyAsync(userId);
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
+            await GrantPointsAsync(userId, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
+
+            using (var scope = Factory.Services.CreateScope())
+            {
+                var accounts = scope.ServiceProvider.GetRequiredService<IFinancialAccountRepository>();
+                var account = (await accounts.FindByOwnerAsync(userId, FinancialAccountType.Personal))!;
+
+                account.Restrict("Identity verification was revoked.", scope.ServiceProvider.GetRequiredService<IClock>().UtcNow);
+                accounts.Update(account);
+                await scope.ServiceProvider.GetRequiredService<IUnitOfWork>().SaveChangesAsync();
+            }
+
+            var response = await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
+                new { points = 500L, idempotencyKey = Guid.NewGuid().ToString("N") });
+
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+            (await CodeAsync(response)).Should().Be(FinancialErrorCodes.AccountRestricted);
+            (await PointsAsync()).Should().Be(1_000);
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
+    /// <summary>
+    /// A hold on the points account used to surface only when the conversion was attempted, as a bare
+    /// conflict. The preview now says why, in the hold's own words.
+    /// </summary>
+    [Fact]
+    public async Task A_held_points_account_sees_the_reason_in_the_preview()
+    {
+        var userId = await AuthenticateAsync();
+        var currency = await MemberCurrencyAsync(userId);
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
+            await GrantPointsAsync(userId, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
+
+            using (var scope = Factory.Services.CreateScope())
+            {
+                var rewards = scope.ServiceProvider.GetRequiredService<IRewardAccountRepository>();
+                var account = (await rewards.FindByMemberAsync(userId))!;
+
+                account.BlockConversion("Under review after a report.", scope.ServiceProvider.GetRequiredService<IClock>().UtcNow);
+                rewards.Update(account);
+                await scope.ServiceProvider.GetRequiredService<IUnitOfWork>().SaveChangesAsync();
+            }
+
+            var preview = await ReadDataAsync<PreviewShape>(await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions/preview", UriKind.Relative),
+                new { points = 500L }));
+
+            preview.IsPermitted.Should().BeFalse();
+            preview.RefusalCode.Should().Be(FinancialErrorCodes.RewardNotEligible);
+            preview.RefusalMessage.Should().Be("Under review after a report.");
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
     /// <summary>The same rule at the door: an operator cannot publish a positive rate without one.</summary>
     [Fact]
     public async Task Publishing_a_positive_rate_without_a_currency_is_refused()
@@ -1983,7 +2108,12 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         bool IsEnabled, string? DisabledReason, string Currency, decimal MinorUnitsPerPoint);
 
     private sealed record PreviewShape(
-        long Points, long PointsConsumed, decimal MinorUnitsPerPoint, bool IsPermitted, string? RefusalCode);
+        long Points,
+        long PointsConsumed,
+        decimal MinorUnitsPerPoint,
+        bool IsPermitted,
+        string? RefusalCode,
+        string? RefusalMessage = null);
 
     private sealed record RoundedConversionShape(long Points, long? PointsRequested, MoneyShape Credited);
 
