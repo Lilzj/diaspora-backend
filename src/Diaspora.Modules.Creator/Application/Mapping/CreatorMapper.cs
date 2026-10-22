@@ -681,6 +681,8 @@ public static class CreatorMapper
         {
             RedemptionId = redemption.Id.Value,
             RewardId = redemption.RewardId.Value,
+            RewardKey = redemption.RewardKey,
+            MemberUserId = redemption.UserId,
             RewardTitle = redemption.RewardTitle,
             PointsSpent = redemption.PointsSpent,
             State = redemption.State.ToString(),

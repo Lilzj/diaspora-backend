@@ -980,6 +980,12 @@ public sealed record CreatorRewardRedemptionResponse
 
     public required Guid RewardId { get; init; }
 
+    /// <summary>The catalogue key, so the fulfilment queue knows what to issue.</summary>
+    public string? RewardKey { get; init; }
+
+    /// <summary>Who redeemed it. The caller's own id on their own list; the member on the staff queue.</summary>
+    public Guid MemberUserId { get; init; }
+
     public required string RewardTitle { get; init; }
 
     public required int PointsSpent { get; init; }

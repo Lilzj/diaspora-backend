@@ -347,6 +347,14 @@ public interface ICreatorRewardRepository
     Task<IReadOnlyList<CreatorRewardRedemption>> ListRedemptionsAsync(
         CreatorId creatorId, int take, CancellationToken cancellationToken = default);
 
+    /// <summary>One redemption, tracked, for a staff decision.</summary>
+    Task<CreatorRewardRedemption?> GetRedemptionAsync(
+        CreatorRewardRedemptionId id, CancellationToken cancellationToken = default);
+
+    /// <summary>The fulfilment queue across all members, oldest first so nothing waits forever.</summary>
+    Task<IReadOnlyList<CreatorRewardRedemption>> ListRedemptionsForReviewAsync(
+        CreatorRewardState? state, int take, CancellationToken cancellationToken = default);
+
     /// <summary>How many times this creator has redeemed one reward. The per-creator cap's input.</summary>
     Task<int> CountRedemptionsAsync(
         CreatorId creatorId, CreatorRewardId rewardId, CancellationToken cancellationToken = default);

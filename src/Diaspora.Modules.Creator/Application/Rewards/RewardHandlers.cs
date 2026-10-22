@@ -629,11 +629,11 @@ public sealed class RedeemRewardCommandHandler
         var redemption = CreatorRewardRedemption.Open(
             redemptionId, reward, creator.Value.Id, creator.Value.UserId, debitReference, key, now);
 
-        // What the platform issues for a reward is the reward's own business. Today every seeded
-        // reward is an entitlement the grant reference names; a reward whose fulfilment needs another
-        // module's act would be Pending here until that module answered.
-        redemption.Fulfil($"{reward.GrantKind ?? "entitlement"}:{reward.Key}", now);
-
+        // Pending, and left Pending. This used to call Fulfil at once with a grant reference built
+        // from the reward's own key — "placement:featured-guide-slot" — and nothing anywhere issued a
+        // placement, a badge or a session against it. Members spent points and were told they had
+        // been given something they never received. A redemption is now fulfilled, or rejected and
+        // refunded, by a person: DecideRedemptionCommand. The points are spent now, exactly as before.
         _rewards.AddRedemption(redemption);
 
         // In a transaction: a violation here aborts it, so the guard rethrows rather than looking

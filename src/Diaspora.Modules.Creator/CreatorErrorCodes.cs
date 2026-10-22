@@ -104,6 +104,11 @@ public static class CreatorErrorCodes
     public const string RewardCooldown = Prefix + "reward.cooldown";
     public const string RewardVersionStale = Prefix + "reward.version-stale";
     public const string RewardPointsUnavailable = Prefix + "reward.points-unavailable";
+    public const string RedemptionNotFound = Prefix + "redemption.not-found";
+    public const string RedemptionAlreadyDecided = Prefix + "redemption.already-decided";
+    public const string RedemptionDecisionInvalid = Prefix + "redemption.decision-invalid";
+    public const string RedemptionRefundFailed = Prefix + "redemption.refund-failed";
+    public const string RedemptionStateUnknown = Prefix + "redemption.state-unknown";
 
     // ── Directory and leaderboard ───────────────────────────────────────────────────────────
 

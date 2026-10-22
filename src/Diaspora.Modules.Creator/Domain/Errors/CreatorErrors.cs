@@ -227,6 +227,24 @@ public static class CreatorErrors
         CreatorErrorCodes.RewardPointsUnavailable,
         "Your points are not available to spend at the moment.");
 
+    public static readonly Error RedemptionNotFound = Error.NotFound(
+        CreatorErrorCodes.RedemptionNotFound, "No such redemption.");
+
+    public static readonly Error RedemptionAlreadyDecided = Error.Conflict(
+        CreatorErrorCodes.RedemptionAlreadyDecided,
+        "That redemption has already been fulfilled or rejected.");
+
+    public static readonly Error RedemptionDecisionInvalid = Error.Validation(
+        CreatorErrorCodes.RedemptionDecisionInvalid,
+        "Decide 'fulfil' with what was issued, or 'reject' with a reason the member will read.");
+
+    public static readonly Error RedemptionStateUnknown = Error.Validation(
+        CreatorErrorCodes.RedemptionStateUnknown, "State is Pending, Redeemed, Rejected or all.");
+
+    public static readonly Error RedemptionRefundFailed = Error.Unexpected(
+        CreatorErrorCodes.RedemptionRefundFailed,
+        "The points could not be refunded, so the redemption was not rejected.");
+
     // ── Directory and leaderboard ───────────────────────────────────────────────────────────
 
     public static readonly Error LeaderboardScopeUnknown = Error.Validation(

@@ -203,6 +203,24 @@ public sealed record RedeemRewardRequest
 }
 
 /// <summary>
+/// A staff decision on a pending redemption.
+/// <para>
+/// <c>fulfil</c> records what was issued — a placement id, a badge, a booking — in
+/// <see cref="GrantReference"/>. <c>reject</c> refunds the points in the same transaction and needs
+/// a <see cref="Reason"/>, which the member reads. No points figure: the refund is what was spent.
+/// </para>
+/// </summary>
+public sealed record DecideRedemptionRequest
+{
+    /// <summary><c>fulfil</c> or <c>reject</c>.</summary>
+    public required string Action { get; init; }
+
+    public string? GrantReference { get; init; }
+
+    public string? Reason { get; init; }
+}
+
+/// <summary>
 /// Makes one of the member's own image uploads their creator cover. Upload first through
 /// <c>POST /api/v1/media/uploads/direct</c>, then name the upload here.
 /// </summary>

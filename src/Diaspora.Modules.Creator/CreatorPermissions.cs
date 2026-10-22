@@ -54,4 +54,11 @@ public static class CreatorPermissions
     /// programmes, and restricting or suspending a creator.
     /// </summary>
     public const string ProgrammeManage = Prefix + ":programme:manage";
+
+    /// <summary>
+    /// Work the redemption queue: fulfil what a member redeemed, or reject it and refund their
+    /// points. Separate from <see cref="ProgrammeManage"/> so a deployment can hand fulfilment to
+    /// whoever delivers placements without also handing them the catalogue.
+    /// </summary>
+    public const string RewardsManage = Prefix + ":rewards:manage";
 }

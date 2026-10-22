@@ -1711,9 +1711,12 @@ public sealed class CreatorPlatformTests : IdentityTestBase
                 new { rewardId = badge.RewardId, idempotencyKey = key },
                 JsonOptions));
 
-        redemption.State.Should().Be("Redeemed");
+        // Pending, not Redeemed: nothing has been issued yet, and the response used to claim it had
+        // with a grant reference nothing stood behind. Staff fulfil or reject it — see the queue
+        // tests below.
+        redemption.State.Should().Be("Pending");
         redemption.PointsSpent.Should().Be(300);
-        redemption.GrantReference.Should().NotBeNullOrWhiteSpace();
+        redemption.GrantReference.Should().BeNull();
 
         var after = await ReadDataAsync<RewardBalanceDto>(
             await HttpClient.GetAsync($"{Financial}/rewards/me"));
@@ -1740,6 +1743,177 @@ public sealed class CreatorPlatformTests : IdentityTestBase
         history.Should().ContainSingle();
         history[0].CatalogueVersion.Should().Be("creator-rewards/1");
     }
+
+    // ════════════════════════════════════════════════════════════════════════════════════════
+    // The redemption queue
+    //
+    // A redemption is Pending until a reward manager fulfils it with what was issued, or rejects it
+    // and the points come back in the same transaction. Points are granted here by the Financial
+    // staff command rather than earned through ten guides: what is under test is the queue.
+    // ════════════════════════════════════════════════════════════════════════════════════════
+
+    private const string RewardsManage = "creator:rewards:manage";
+
+    [Fact]
+    public async Task A_redemption_is_pending_until_staff_fulfil_it()
+    {
+        var (staffToken, _, redemption) = await RedeemTheBadgeAsync();
+
+        var queue = await AsReviewerQueryAsync(
+            staffToken,
+            RewardsManage,
+            new Diaspora.Modules.Creator.Application.Rewards.ListRedemptionsForReviewQuery());
+
+        queue.Should().Contain(queued => queued.RedemptionId == redemption.RedemptionId
+            && queued.State == "Pending");
+
+        var fulfilled = await AsReviewerAsync(staffToken, RewardsManage, Decide(redemption, "fulfil", grantReference: "badge:supporter-issued"));
+
+        fulfilled.State.Should().Be("Redeemed");
+        fulfilled.GrantReference.Should().Be("badge:supporter-issued");
+
+        var history = await ReadDataAsync<List<RedemptionDto>>(
+            await HttpClient.GetAsync($"{Rewards}/redemptions/me"));
+
+        history.Single().State.Should().Be("Redeemed", "the member sees what staff recorded");
+    }
+
+    [Fact]
+    public async Task Rejecting_a_redemption_refunds_the_points_once()
+    {
+        var (staffToken, _, redemption) = await RedeemTheBadgeAsync();
+
+        var spent = await BalanceAsync();
+
+        var rejected = await AsReviewerAsync(
+            staffToken, RewardsManage, Decide(redemption, "reject", reason: "Out of stock this month."));
+
+        rejected.State.Should().Be("Rejected");
+        rejected.RejectionReason.Should().Be("Out of stock this month.");
+        (await BalanceAsync()).Should().Be(spent + 300, "the points spent come back");
+
+        var again = await AsReviewerExpectingFailureAsync(
+            staffToken, RewardsManage, Decide(redemption, "reject", reason: "Again."));
+
+        again.Code.Should().Be("creator.redemption.already-decided");
+        (await BalanceAsync()).Should().Be(spent + 300, "a second decision refunds nothing more");
+    }
+
+    /// <summary>The supporter badge is once per creator; a rejected one must not count.</summary>
+    [Fact]
+    public async Task A_rejected_redemption_frees_the_per_creator_cap()
+    {
+        var (staffToken, _, redemption) = await RedeemTheBadgeAsync();
+
+        await AsReviewerAsync(staffToken, RewardsManage, Decide(redemption, "reject", reason: "Try again."));
+
+        var second = await ReadDataAsync<RedemptionDto>(
+            await HttpClient.PostAsJsonAsync(
+                Rewards + "/redemptions",
+                new { rewardId = redemption.RewardId, idempotencyKey = Guid.NewGuid().ToString("N") },
+                JsonOptions));
+
+        second.State.Should().Be("Pending");
+    }
+
+    [Fact]
+    public async Task Only_reward_managers_can_decide_a_redemption()
+    {
+        var (staffToken, _, redemption) = await RedeemTheBadgeAsync();
+
+        // A grant reviewer is staff, and still not the person who hands out rewards. The pipeline's
+        // authorization refuses before the handler runs — a 403 over HTTP.
+        using (var scope = Factory.Services.CreateScope())
+        {
+            ScopedCurrentUser.Apply(scope.ServiceProvider, staffToken, "creator:grant:review");
+
+            var deciding = () => scope.ServiceProvider.GetRequiredService<MediatR.ISender>()
+                .Send(Decide(redemption, "fulfil", grantReference: "badge:x"));
+
+            await deciding.Should().ThrowAsync<Diaspora.Application.Exceptions.ForbiddenException>()
+                .WithMessage("*creator:rewards:manage*");
+        }
+
+        (await ReadDataAsync<List<RedemptionDto>>(await HttpClient.GetAsync($"{Rewards}/redemptions/me")))
+            .Single().State.Should().Be("Pending");
+    }
+
+    [Fact]
+    public async Task A_reward_manager_cannot_decide_their_own_redemption()
+    {
+        var (_, memberToken, redemption) = await RedeemTheBadgeAsync();
+
+        var refused = await AsReviewerExpectingFailureAsync(
+            memberToken, RewardsManage, Decide(redemption, "fulfil", grantReference: "badge:mine"));
+
+        refused.Code.Should().Be("creator.review.self");
+    }
+
+    [Fact]
+    public async Task A_decision_needs_what_was_issued_or_why_not()
+    {
+        var (staffToken, _, redemption) = await RedeemTheBadgeAsync();
+
+        (await AsReviewerExpectingFailureAsync(staffToken, RewardsManage, Decide(redemption, "fulfil")))
+            .Code.Should().Be("creator.redemption.decision-invalid");
+
+        (await AsReviewerExpectingFailureAsync(staffToken, RewardsManage, Decide(redemption, "reject")))
+            .Code.Should().Be("creator.redemption.decision-invalid");
+    }
+
+    /// <summary>
+    /// A member with exactly the supporter badge's price, who has redeemed it, plus a staff token.
+    /// Leaves the member authenticated on <c>HttpClient</c>.
+    /// </summary>
+    private async Task<(string StaffToken, string MemberToken, RedemptionDto Redemption)> RedeemTheBadgeAsync()
+    {
+        var (_, staffToken) = await ReviewerAsync();
+
+        var (_, member) = await RegisterVerifiedMemberAsync();
+        Api.Authenticate(member.Tokens.AccessToken);
+
+        await AsReviewerAsync(
+            staffToken,
+            "financial:credit:manage",
+            new Diaspora.Modules.Financial.Application.Rewards.GrantRewardPointsCommand
+            {
+                UserId = member.User.Id,
+                Points = 300,
+                Source = "Test",
+                GrantReference = $"test:{Guid.NewGuid():N}"
+            });
+
+        var catalogue = await ReadDataAsync<RewardCatalogueDto>(
+            await HttpClient.GetAsync($"{Rewards}/catalogue"));
+
+        var badge = catalogue.Rewards.Single(reward => reward.Key == "creator-badge-supporter");
+
+        var redemption = await ReadDataAsync<RedemptionDto>(
+            await HttpClient.PostAsJsonAsync(
+                Rewards + "/redemptions",
+                new { rewardId = badge.RewardId, idempotencyKey = Guid.NewGuid().ToString("N") },
+                JsonOptions));
+
+        redemption.State.Should().Be("Pending");
+
+        return (staffToken, member.Tokens.AccessToken, redemption);
+    }
+
+    private static Diaspora.Modules.Creator.Application.Rewards.DecideRedemptionCommand Decide(
+        RedemptionDto redemption, string action, string? grantReference = null, string? reason = null) =>
+        new()
+        {
+            RedemptionId = redemption.RedemptionId,
+            Request = new DecideRedemptionRequest
+            {
+                Action = action,
+                GrantReference = grantReference,
+                Reason = reason
+            }
+        };
+
+    private async Task<long> BalanceAsync() =>
+        (await ReadDataAsync<RewardBalanceDto>(await HttpClient.GetAsync($"{Financial}/rewards/me"))).Balance;
 
     // ════════════════════════════════════════════════════════════════════════════════════════
     // Idempotency keys belong to the caller

@@ -333,6 +333,26 @@ public sealed class CreatorRewardRepository : ICreatorRewardRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<CreatorRewardRedemption?> GetRedemptionAsync(
+        CreatorRewardRedemptionId id, CancellationToken cancellationToken = default) =>
+        await Redemptions.FirstOrDefaultAsync(redemption => redemption.Id == id, cancellationToken);
+
+    public async Task<IReadOnlyList<CreatorRewardRedemption>> ListRedemptionsForReviewAsync(
+        CreatorRewardState? state, int take, CancellationToken cancellationToken = default)
+    {
+        var query = Redemptions.AsNoTracking();
+
+        if (state is { } wanted)
+        {
+            query = query.Where(redemption => redemption.State == wanted);
+        }
+
+        return await query
+            .OrderBy(redemption => redemption.CreatedAt)
+            .Take(CreatorLimits.PageSize(take))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<int> CountRedemptionsAsync(
         CreatorId creatorId, CreatorRewardId rewardId, CancellationToken cancellationToken = default)
     {
