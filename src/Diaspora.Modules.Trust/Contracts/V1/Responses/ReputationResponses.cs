@@ -134,6 +134,37 @@ public sealed record LevelBenefitsResponse
 }
 
 /// <summary>
+/// One thing the platform pays reputation for, as <c>GET /trust/reputation/rules</c> lists it.
+/// <para>
+/// The reputation screen's "How to earn" was a sentence typed into the app: three of its four
+/// figures were wrong, and one described a payment that does not exist. It is built from these
+/// now, so the copy changes when the rules do.
+/// </para>
+/// </summary>
+public sealed record ReputationRuleResponse
+{
+    public required string ActionType { get; init; }
+
+    /// <summary>"Guides published", "Policy violations" — the same names the breakdown rows use.</summary>
+    public required string Label { get; init; }
+
+    /// <summary>Lowercase: contribution, verification, trust.</summary>
+    public required string Dimension { get; init; }
+
+    /// <summary>Signed. Penalties are negative.</summary>
+    public required int Points { get; init; }
+
+    /// <summary>How many times it can ever count. Null means uncapped.</summary>
+    public int? MaxOccurrences { get; init; }
+
+    /// <summary>The minimum gap between two awards, in hours. Null means none.</summary>
+    public int? CooldownHours { get; init; }
+
+    /// <summary>Whether it also counts toward the member's standing in that country.</summary>
+    public required bool IsCountryScoped { get; init; }
+}
+
+/// <summary>
 /// One scoring event. Matches the frontend's <c>ReputationEvent</c>, which is declared but
 /// never fetched — the history route is what makes it useful.
 /// </summary>

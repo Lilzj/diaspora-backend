@@ -342,6 +342,18 @@ public static class TrustMappers
         }
     }
 
+    public static ReputationRuleResponse ToResponse(this ReputationRule rule, string label) =>
+        new()
+        {
+            ActionType = rule.ActionType,
+            Label = label,
+            Dimension = rule.Dimension.ToString(),
+            Points = rule.Points,
+            MaxOccurrences = rule.MaxOccurrences,
+            CooldownHours = rule.CooldownHours,
+            IsCountryScoped = rule.IsCountryScoped
+        };
+
     public static LevelBenefitsResponse ToResponse(this LevelBenefits benefits) =>
         new()
         {

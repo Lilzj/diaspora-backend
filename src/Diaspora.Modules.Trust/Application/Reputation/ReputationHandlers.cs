@@ -78,6 +78,42 @@ public sealed class GetMyReputationQueryHandler
     }
 }
 
+/// <summary>
+/// What the platform pays reputation for: every active rule that something actually scores.
+/// <para>
+/// Excludes a rule that is switched off (<see cref="ReputationRule.IsActive"/>) and one nothing
+/// pays yet (<see cref="ReputationRule.IsAwarded"/>), because a member reads this list as
+/// promises. Ordered contribution, verification, trust, and within each the largest award first.
+/// </para>
+/// </summary>
+[Authorize(Permission = TrustPermissions.ReadSelf)]
+public sealed record ListReputationRulesQuery : IQuery<IReadOnlyList<ReputationRuleResponse>>;
+
+public sealed class ListReputationRulesQueryHandler
+    : IQueryHandler<ListReputationRulesQuery, IReadOnlyList<ReputationRuleResponse>>
+{
+    private readonly ReputationRuleCatalog _rules;
+
+    public ListReputationRulesQueryHandler(ReputationRuleCatalog rules)
+    {
+        _rules = rules;
+    }
+
+    public Task<Result<IReadOnlyList<ReputationRuleResponse>>> Handle(
+        ListReputationRulesQuery request, CancellationToken cancellationToken)
+    {
+        IReadOnlyList<ReputationRuleResponse> rules = _rules.All
+            .Where(rule => rule.IsActive && rule.IsAwarded)
+            .OrderBy(rule => rule.Dimension)
+            .ThenByDescending(rule => rule.Points)
+            .ThenBy(rule => rule.ActionType, StringComparer.Ordinal)
+            .Select(rule => rule.ToResponse(_rules.LabelFor(rule.ActionType)))
+            .ToList();
+
+        return Task.FromResult(Result.Success(rules));
+    }
+}
+
 /// <summary>The caller's scoring history.</summary>
 [Authorize(Permission = TrustPermissions.ReadSelf)]
 public sealed record ListMyReputationEventsQuery : IQuery<PagedResult<ReputationEventResponse>>

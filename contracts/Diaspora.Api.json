@@ -37462,6 +37462,20 @@
         }
       }
     },
+    "/api/v1/trust/reputation/rules": {
+      "get": {
+        "tags": [
+          "Trust"
+        ],
+        "summary": "What the platform pays reputation for: active rules that something actually scores.",
+        "operationId": "ListReputationRules",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/trust/reputation/me/events": {
       "get": {
         "tags": [

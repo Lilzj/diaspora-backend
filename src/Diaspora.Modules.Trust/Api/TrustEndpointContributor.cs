@@ -535,6 +535,22 @@ public sealed class TrustEndpointContributor : IEndpointContributor
             .WithName("GetMyReputation")
             .WithSummary("The caller's reputation across contribution, verification and trust.");
 
+        group.MapGet("/reputation/rules", async (
+                ISender sender, HttpContext context, CancellationToken cancellationToken) =>
+            {
+                var result = await sender.Send(new ListReputationRulesQuery(), cancellationToken);
+
+                // The same for every member and fixed for the life of a deployment. Private
+                // because the route is authenticated; an hour because a rule change ships with a
+                // deployment, and the app also holds it for the session.
+                context.Response.Headers.CacheControl = "private, max-age=3600";
+
+                return PlatformResults.Ok(context, result);
+            })
+            .RequireAuthorization(TrustPolicies.ReadSelf)
+            .WithName("ListReputationRules")
+            .WithSummary("What the platform pays reputation for: active rules that something actually scores.");
+
         group.MapGet("/reputation/me/events", async (
                 string? dimension,
                 int? page,

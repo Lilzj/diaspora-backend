@@ -77,6 +77,18 @@ public sealed record ReputationRule
 
     public bool IsActive { get; init; } = true;
 
+    /// <summary>
+    /// Whether anything on the platform actually scores this rule yet.
+    /// <para>
+    /// A rule can be priced before any module produces it. That is fine for scoring, which simply
+    /// never sees the action, and wrong for the rules a member is shown: "add a profile photo
+    /// (+5 XP)" is a promise if nothing pays it. False keeps the rule out of
+    /// <c>GET /trust/reputation/rules</c>. It has no effect on scoring. Whoever wires a producer
+    /// for one of these flips it to true in the same change.
+    /// </para>
+    /// </summary>
+    public bool IsAwarded { get; init; } = true;
+
     /// <summary>Turns this rule into the award applied to a profile.</summary>
     public ReputationAward ToAward() => new()
     {
@@ -176,7 +188,11 @@ public static class DefaultReputationRules
             Points = 15,
             IsCountryScoped = true,
             Description = "An update was confirmed by the community.",
-            Label = "Updates confirmed by the community"
+            Label = "Updates confirmed by the community",
+
+            // Nothing scores it: a corroborated update pays its author CommunityConfirmation
+            // (CommunityCorroborationConsumer), not this.
+            IsAwarded = false
         },
         new()
         {
@@ -250,7 +266,10 @@ public static class DefaultReputationRules
             Points = 5,
             MaxOccurrences = 1,
             Description = "Added a profile photo.",
-            Label = "Profile photo added"
+            Label = "Profile photo added",
+
+            // Nothing scores it yet: no consumer or handler calls ScoreAsync with this action.
+            IsAwarded = false
         },
         new()
         {
@@ -259,7 +278,10 @@ public static class DefaultReputationRules
             Points = 10,
             MaxOccurrences = 1,
             Description = "Completed the profile.",
-            Label = "Profile completed"
+            Label = "Profile completed",
+
+            // Nothing scores it yet: no consumer or handler calls ScoreAsync with this action.
+            IsAwarded = false
         },
 
         // ── Trust ────────────────────────────────────────────────────────
@@ -287,7 +309,10 @@ public static class DefaultReputationRules
             Dimension = ReputationDimension.trust,
             Points = 5,
             Description = "A report you raised was upheld.",
-            Label = "Reports upheld"
+            Label = "Reports upheld",
+
+            // Nothing scores it yet: upholding a report does not score the member who raised it.
+            IsAwarded = false
         },
         new()
         {
