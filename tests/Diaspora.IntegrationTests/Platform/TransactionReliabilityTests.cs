@@ -33,13 +33,7 @@ public sealed class TransactionReliabilityTests : PooledIdentityTestBase
     [Fact]
     public async Task Readiness_reports_how_transactions_execute()
     {
-        var response = await HttpClient.GetAsync("/health/ready");
-
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-
-        var transactions = document.RootElement.GetProperty("checks")
-            .EnumerateArray()
-            .Single(check => check.GetProperty("name").GetString() == "transactions");
+        var transactions = await HttpClient.ReadinessCheckAsync("transactions");
 
         transactions.GetProperty("status").GetString().Should().Be("Healthy");
 
@@ -92,13 +86,7 @@ public sealed class TransactionReliabilityTests : PooledIdentityTestBase
             new { body = "No receipt for this.", visibility = "public", publish = true },
             JsonOptions);
 
-        var response = await HttpClient.GetAsync("/health/ready");
-
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-
-        var transactions = document.RootElement.GetProperty("checks")
-            .EnumerateArray()
-            .Single(check => check.GetProperty("name").GetString() == "transactions");
+        var transactions = await HttpClient.ReadinessCheckAsync("transactions");
 
         transactions.GetProperty("data").TryGetProperty("retainedReceipts", out _)
             .Should().BeFalse("nothing is written, so there is nothing to count");
