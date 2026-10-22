@@ -1600,6 +1600,48 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
             "points are a count; a currency here would let somebody add them to a balance");
     }
 
+    /// <summary>
+    /// Points spent on a reward read as spent. The entry used to say only whether it was a
+    /// conversion, so a redemption reached the app as a positive entry and rendered as points
+    /// earned; and the balance carried no spent total, so earned minus converted stopped equalling
+    /// it after the first redemption.
+    /// </summary>
+    [Fact]
+    public async Task A_spend_reads_as_a_spend_in_the_history_and_the_balance()
+    {
+        var userId = await AuthenticateAsync();
+
+        await GrantPointsAsync(userId, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
+
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var spent = await scope.ServiceProvider
+                .GetRequiredService<Diaspora.Modules.Financial.Extensibility.Rewards.IRewardPointsAccount>()
+                .TrySpendAsync(userId, 300, "Redemption:creator-badge-supporter", "spend:" + Guid.NewGuid().ToString("N"));
+
+            spent.Should().Be(Diaspora.Modules.Financial.Extensibility.Rewards.RewardPointsSpendResult.Debited);
+            await scope.ServiceProvider.GetRequiredService<IUnitOfWork>().SaveChangesAsync();
+        }
+
+        var history = await ReadDataAsync<List<HistoryEntryShape>>(await HttpClient.GetAsync(
+            new Uri("/api/v1/financial/rewards/me/history", UriKind.Relative)));
+
+        var spend = history.Single(entry => entry.Source == "Redemption:creator-badge-supporter");
+        spend.IsSpend.Should().BeTrue();
+        spend.IsConversion.Should().BeFalse();
+        spend.Points.Should().Be(300, "points stay positive; the flag says which way they moved");
+
+        history.Single(entry => entry.Source == "IntegrationTest").IsSpend.Should().BeFalse();
+
+        var balance = await ReadDataAsync<BalanceTotalsShape>(await HttpClient.GetAsync(
+            new Uri("/api/v1/financial/rewards/me", UriKind.Relative)));
+
+        balance.LifetimeSpent.Should().Be(300);
+        balance.Balance.Should().Be(
+            balance.LifetimeEarned - balance.LifetimeConverted - balance.LifetimeSpent,
+            "the three totals account for the balance");
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────────────────────
 
     private async Task<Guid> AuthenticateAsync()
@@ -2116,5 +2158,10 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         string? RefusalMessage = null);
 
     private sealed record RoundedConversionShape(long Points, long? PointsRequested, MoneyShape Credited);
+
+    private sealed record HistoryEntryShape(long Points, bool IsConversion, bool IsSpend, string Source);
+
+    private sealed record BalanceTotalsShape(
+        long Balance, long LifetimeEarned, long LifetimeConverted, long LifetimeSpent);
 
 }
