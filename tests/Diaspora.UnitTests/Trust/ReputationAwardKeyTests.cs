@@ -250,14 +250,7 @@ public sealed class ReputationAwardKeyTests
     public async Task A_redelivered_guide_update_pays_once()
     {
         var harness = new Harness();
-        var updated = new GuideUpdatedIntegrationEvent
-        {
-            GuideId = GuideId,
-            ChangedFields = ["body"],
-            ChangedAt = Now,
-            AuthorUserId = AuthorGuid,
-            IsReadableByOthers = true
-        };
+        var updated = GuideUpdated(changedBy: AuthorGuid, isReadableByOthers: true);
 
         await DeliverAsync(
             new GuideUpdatedReputationConsumer(harness.Service, harness.Provisioner, harness.UnitOfWork),
@@ -267,6 +260,33 @@ public sealed class ReputationAwardKeyTests
             updated);
 
         harness.Profile.GuidesUpdated.Should().Be(1);
+    }
+
+    /// <summary>
+    /// REP-10. The event fires for drafts, and a guide can be edited by a contributor or a moderator:
+    /// only the author's own edit of a guide others can read pays them.
+    /// </summary>
+    [Theory]
+    [InlineData(false, "author", "a draft edit")]
+    [InlineData(true, "other", "somebody else's edit")]
+    [InlineData(true, "nobody", "a projection's update, which names no editor")]
+    public async Task A_guide_update_that_is_not_the_authors_published_work_pays_nothing(
+        bool isReadableByOthers, string editor, string because)
+    {
+        var harness = new Harness();
+        Guid? changedBy = editor switch
+        {
+            "author" => AuthorGuid,
+            "other" => VoterA,
+            _ => null
+        };
+
+        await DeliverAsync(
+            new GuideUpdatedReputationConsumer(harness.Service, harness.Provisioner, harness.UnitOfWork),
+            GuideUpdated(changedBy, isReadableByOthers));
+
+        harness.Profile.GuidesUpdated.Should().Be(0, because);
+        harness.Profile.Events.Should().BeEmpty();
     }
 
     // ── REP-13: the profile photo and the verified update ───────────────────────────────────
@@ -314,6 +334,16 @@ public sealed class ReputationAwardKeyTests
     }
 
     // ── Fixtures ────────────────────────────────────────────────────────────────────────────
+
+    private static GuideUpdatedIntegrationEvent GuideUpdated(Guid? changedBy, bool isReadableByOthers) => new()
+    {
+        GuideId = GuideId,
+        ChangedBy = changedBy,
+        ChangedFields = ["body"],
+        ChangedAt = Now,
+        AuthorUserId = AuthorGuid,
+        IsReadableByOthers = isReadableByOthers
+    };
 
     private static UserAvatarChangedIntegrationEvent Avatar(Guid? mediaId) => new()
     {

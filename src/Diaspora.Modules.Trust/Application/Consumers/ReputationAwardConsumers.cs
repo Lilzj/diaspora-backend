@@ -130,7 +130,12 @@ public sealed class GuideReputationConsumer
 }
 
 /// <summary>
-/// Pays an author for a substantive update to their guide.
+/// Pays an author for updating their own guide while others can read it.
+/// <para>
+/// Not for a draft edit, and not for somebody else's edit of it: both used to pay the author.
+/// Whether an edit was substantive enough to count is still to be defined (D-2), so a published
+/// typo fix pays like a rewrite.
+/// </para>
 /// <para>
 /// The rule carries its own cap and cooldown, so a guide edited fifty times in an afternoon pays
 /// what the scoring table says it pays and no more. That is the table's job, not this consumer's.
@@ -158,7 +163,13 @@ public sealed class GuideUpdatedReputationConsumer
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
 
-        if (integrationEvent.AuthorUserId is not { } author)
+        // The author's own edit of a guide others can read, and nothing else (REP-10). A draft edit
+        // keeps nobody's guide current, and the event fires for those too. An edit by a contributor
+        // or a moderator is not the author's work, and one a projection made names nobody. Whether
+        // the edit was substantive is not decided yet (D-2).
+        if (!integrationEvent.IsReadableByOthers
+            || integrationEvent.AuthorUserId is not { } author
+            || integrationEvent.ChangedBy != author)
         {
             return;
         }
