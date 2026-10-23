@@ -65,7 +65,7 @@ public sealed class ReputationBreakdownTests : PooledIdentityTestBase
         Line(trust, ReputationActions.CommunityConfirmation).Points.Should().Be(5);
         Line(trust, ReputationActions.ViolationRecorded).Points.Should().Be(-75);
         trust.Adjustment.Should().Be(70, "the floor absorbed seventy of the seventy-five");
-        trust.Lines.Last().ActionType.Should().Be(
+        trust.Lines[^1].ActionType.Should().Be(
             ReputationActions.ViolationRecorded, "penalties come last");
     }
 

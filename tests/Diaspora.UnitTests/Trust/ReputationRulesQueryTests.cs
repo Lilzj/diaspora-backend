@@ -63,7 +63,7 @@ public sealed class ReputationRulesQueryTests
             dimension.Select(rule => rule.Points).Should().BeInDescendingOrder();
         }
 
-        rules.Last().ActionType.Should().Be(
+        rules[^1].ActionType.Should().Be(
             ReputationActions.ViolationRecorded, "the largest penalty is the last trust rule");
     }
 
