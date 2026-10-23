@@ -4,6 +4,7 @@ using Diaspora.Modules.Trust.Application.Mapping;
 using Diaspora.Modules.Trust.Application.Services;
 using Diaspora.Modules.Trust.Contracts.V1.Responses;
 using Diaspora.Modules.Trust.Domain;
+using Diaspora.Modules.Trust.Extensibility;
 using Diaspora.Modules.Trust.Persistence;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Identity;
@@ -22,17 +23,20 @@ public sealed class GetMyReputationQueryHandler
 {
     private readonly IReputationProfileRepository _reputations;
     private readonly ITrustProfileRepository _profiles;
+    private readonly ReputationRuleCatalog _rules;
     private readonly ICurrentUser _currentUser;
     private readonly IClock _clock;
 
     public GetMyReputationQueryHandler(
         IReputationProfileRepository reputations,
         ITrustProfileRepository profiles,
+        ReputationRuleCatalog rules,
         ICurrentUser currentUser,
         IClock clock)
     {
         _reputations = reputations;
         _profiles = profiles;
+        _rules = rules;
         _currentUser = currentUser;
         _clock = clock;
     }
@@ -65,7 +69,48 @@ public sealed class GetMyReputationQueryHandler
                 .Select(badge => badge.ToResponse())
                 .ToList();
 
-        return Result.Success(reputation.ToResponse(badges, now));
+        // From the history, not from the counters: the counters say how often, and only the
+        // events say what each occurrence was worth.
+        var summaries = await _reputations.SummariseEventsAsync(reputation.Id, cancellationToken);
+
+        return Result.Success(reputation.ToResponse(
+            badges, reputation.ToBreakdown(summaries, _rules), now));
+    }
+}
+
+/// <summary>
+/// What the platform pays reputation for: every active rule that something actually scores.
+/// <para>
+/// Excludes a rule that is switched off (<see cref="ReputationRule.IsActive"/>) and one nothing
+/// pays yet (<see cref="ReputationRule.IsAwarded"/>), because a member reads this list as
+/// promises. Ordered contribution, verification, trust, and within each the largest award first.
+/// </para>
+/// </summary>
+[Authorize(Permission = TrustPermissions.ReadSelf)]
+public sealed record ListReputationRulesQuery : IQuery<IReadOnlyList<ReputationRuleResponse>>;
+
+public sealed class ListReputationRulesQueryHandler
+    : IQueryHandler<ListReputationRulesQuery, IReadOnlyList<ReputationRuleResponse>>
+{
+    private readonly ReputationRuleCatalog _rules;
+
+    public ListReputationRulesQueryHandler(ReputationRuleCatalog rules)
+    {
+        _rules = rules;
+    }
+
+    public Task<Result<IReadOnlyList<ReputationRuleResponse>>> Handle(
+        ListReputationRulesQuery request, CancellationToken cancellationToken)
+    {
+        IReadOnlyList<ReputationRuleResponse> rules = _rules.All
+            .Where(rule => rule.IsActive && rule.IsAwarded)
+            .OrderBy(rule => rule.Dimension)
+            .ThenByDescending(rule => rule.Points)
+            .ThenBy(rule => rule.ActionType, StringComparer.Ordinal)
+            .Select(rule => rule.ToResponse(_rules.LabelFor(rule.ActionType)))
+            .ToList();
+
+        return Task.FromResult(Result.Success(rules));
     }
 }
 

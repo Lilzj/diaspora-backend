@@ -133,15 +133,88 @@ public sealed class RewardConversionQuoteTests
             .RefusalCode.Should().Be(FinancialErrorCodes.RewardConversionNotSupported);
     }
 
+    /// <summary>
+    /// A hold is refused as a hold, and says no more: the hold's own reason is an operator's note,
+    /// and a refusal that names the check it tripped is a map for getting round it.
+    /// </summary>
     [Fact]
-    public void A_held_points_account_is_refused_with_its_own_reason()
+    public void A_held_points_account_is_refused_without_the_holds_reason()
     {
-        var quote = RewardConversionPricer.Quote(
-            Terms(1m), points: 500, balance: 1_000, conversionBlockedReason: "Under review after a report.");
+        var quote = RewardConversionPricer.Quote(Terms(1m), points: 500, balance: 1_000, isHeld: true);
 
         quote.IsPermitted.Should().BeFalse();
         quote.RefusalCode.Should().Be(FinancialErrorCodes.RewardNotEligible);
-        quote.RefusalMessage.Should().Be("Under review after a report.");
+        quote.RefusalMessage.Should().Be(RewardConversionPricer.HeldMessage);
+    }
+
+    // ── Standing: whether a member may convert before they type a number ────────────────────
+
+    [Fact]
+    public void A_member_below_the_minimum_is_told_the_minimum_and_their_balance()
+    {
+        var standing = RewardConversionPricer.Standing(Terms(1m, minimum: 500), balance: 320, isHeld: false);
+
+        standing.Should().BeEquivalentTo(new RewardConversionStanding
+        {
+            CanConvert = false,
+            ReasonCode = FinancialErrorCodes.RewardBelowMinimum,
+            ReasonMessage = "You need at least 500 points to convert. You have 320.",
+            MaximumNow = null
+        });
+    }
+
+    /// <summary>The order is the order a member can act on: deployment, account, hold, balance, today.</summary>
+    [Fact]
+    public void The_deployment_then_the_account_then_a_hold_come_before_the_balance()
+    {
+        var terms = Terms(1m, minimum: 500);
+
+        RewardConversionPricer.Standing(
+                terms with { IsEnabled = false, DisabledCode = FinancialErrorCodes.RewardConversionNotSupported },
+                balance: 0, isHeld: true)
+            .ReasonCode.Should().Be(FinancialErrorCodes.RewardConversionNotSupported);
+
+        RewardConversionPricer.Standing(
+                terms with { AccountRefusalCode = FinancialErrorCodes.AccountNotEligible },
+                balance: 0, isHeld: true)
+            .ReasonCode.Should().Be(FinancialErrorCodes.AccountNotEligible);
+
+        var held = RewardConversionPricer.Standing(terms, balance: 0, isHeld: true);
+        held.ReasonCode.Should().Be(FinancialErrorCodes.RewardNotEligible);
+        held.ReasonMessage.Should().Be(RewardConversionPricer.HeldMessage);
+    }
+
+    [Fact]
+    public void Less_left_today_than_the_minimum_is_the_daily_limit()
+    {
+        var standing = RewardConversionPricer.Standing(
+            Terms(1m, minimum: 100) with { DailyMaximumPoints = 1_000, DailyRemainingPoints = 40 },
+            balance: 5_000,
+            isHeld: false);
+
+        standing.CanConvert.Should().BeFalse();
+        standing.ReasonCode.Should().Be(FinancialErrorCodes.RewardDailyLimitReached);
+    }
+
+    [Theory]
+    [InlineData(null, null, 700L, 700L)]
+    [InlineData(300L, null, 1_000L, 300L)]
+    [InlineData(2_000L, 800L, 5_000L, 800L)]
+    [InlineData(2_000L, 800L, 500L, 500L)]
+    public void The_most_a_member_can_convert_now_is_the_smallest_limit(
+        long? maximum, long? dailyRemaining, long balance, long expected)
+    {
+        var terms = Terms(1m, minimum: 10) with
+        {
+            MaximumPoints = maximum,
+            DailyMaximumPoints = dailyRemaining is null ? null : 10_000,
+            DailyRemainingPoints = dailyRemaining
+        };
+
+        var standing = RewardConversionPricer.Standing(terms, balance, isHeld: false);
+
+        standing.CanConvert.Should().BeTrue();
+        standing.MaximumNow.Should().Be(expected);
     }
 
     private static RewardConversionTerms Terms(decimal rate, long minimum = 1) => new()

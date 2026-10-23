@@ -108,6 +108,18 @@ public readonly record struct RuleUsage(int Total, int InCountry, DateTimeOffset
     public static RuleUsage None => new(0, 0, null);
 }
 
+/// <summary>
+/// Everything one action has paid a member on one dimension: how many times, and the points it
+/// recorded. One row of a reputation breakdown, before it is named.
+/// <para>
+/// <paramref name="Points"/> is what the events recorded, not what the score moved by. A score is
+/// held at zero, so a penalty larger than the score records its full amount and moves the score
+/// by less; the difference is the breakdown's adjustment, not an error in this sum.
+/// </para>
+/// </summary>
+public readonly record struct ReputationEventSummary(
+    ReputationDimension Dimension, string ActionType, int Count, int Points);
+
 /// <summary>Persistence contract for the <see cref="ReputationProfile"/> aggregate.</summary>
 public interface IReputationProfileRepository
 {
@@ -146,6 +158,17 @@ public interface IReputationProfileRepository
     /// </summary>
     Task<bool> HasAwardAsync(
         UserId userId, ReputationAwardKey key, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The member's whole scoring history, totalled per dimension and action — one aggregate
+    /// query, however long the history.
+    /// <para>
+    /// Takes the profile's id rather than the member's: the one caller already holds the profile,
+    /// and a profile opened on the spot for a new member has no history to look up.
+    /// </para>
+    /// </summary>
+    Task<IReadOnlyList<ReputationEventSummary>> SummariseEventsAsync(
+        ReputationProfileId profileId, CancellationToken cancellationToken = default);
 
     Task AddAsync(ReputationProfile profile, CancellationToken cancellationToken = default);
 }

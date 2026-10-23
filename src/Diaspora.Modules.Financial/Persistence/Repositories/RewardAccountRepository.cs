@@ -56,4 +56,18 @@ public sealed class RewardAccountRepository : IRewardAccountRepository
         return staged ?? await Accounts.FirstOrDefaultAsync(
             account => account.MemberUserId == memberUserId, cancellationToken);
     }
+
+    public async Task<RewardAccountStanding?> FindStandingAsync(
+        Guid memberUserId, CancellationToken cancellationToken = default)
+    {
+        // A projection, not Accounts: the terms are read on every visit to the points screen, and
+        // Accounts would bring back every entry the member has ever earned to read two columns.
+        var row = await _dbContext.Set<RewardAccount>()
+            .AsNoTracking()
+            .Where(account => account.MemberUserId == memberUserId)
+            .Select(account => new { account.Balance, account.IsConversionBlocked })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return row is null ? null : new RewardAccountStanding(row.Balance, row.IsConversionBlocked);
+    }
 }

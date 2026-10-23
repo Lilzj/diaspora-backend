@@ -22,4 +22,15 @@ public interface IRewardAccountRepository
     /// </summary>
     Task<RewardAccount?> FindByMemberAsync(
         Guid memberUserId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// A member's balance and whether conversion is held: all the conversion terms need, read
+    /// without loading the entry history the aggregate carries. Null when the member has never
+    /// earned a point.
+    /// </summary>
+    Task<RewardAccountStanding?> FindStandingAsync(
+        Guid memberUserId, CancellationToken cancellationToken = default);
 }
+
+/// <summary>The two facts about a points account that decide whether it may convert.</summary>
+public readonly record struct RewardAccountStanding(long Balance, bool IsConversionBlocked);

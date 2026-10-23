@@ -24,8 +24,10 @@ public sealed record RewardBalanceResponse
     public long LifetimeSpent { get; init; }
 
     /// <summary>
-    /// False when this account may not convert. The reason is deliberately absent — a refusal that
-    /// explains which check it tripped is a map for getting round it.
+    /// False when this points account is held or empty. <b>Superseded</b> by
+    /// <see cref="RewardConversionTermsResponse.Member"/>, which also covers the deployment, the
+    /// financial account, the minimum and today's allowance, and says why — except for a hold, whose
+    /// own reason stays with staff. Kept, unchanged in meaning, for clients that still read it.
     /// </summary>
     public required bool CanConvert { get; init; }
 
@@ -74,6 +76,18 @@ public sealed record RewardConversionTermsResponse
 
     public required string Currency { get; init; }
 
+    /// <summary>
+    /// How many minor units make one of <see cref="Currency"/>: 2 for GBP, 0 for JPY, 3 for KWD.
+    /// <para>
+    /// Without it the app wrote the rate as <c>pointsPerMinorUnit × 100</c> points to one unit, which
+    /// is right only for two-decimal currencies: a hundred times out for yen, ten times for dinars.
+    /// </para>
+    /// </summary>
+    public required int Exponent { get; init; }
+
+    /// <summary>"£", "₦". Null when the currency has none; show the code instead.</summary>
+    public string? Symbol { get; init; }
+
     /// <summary>Minor units of credit one point produces.</summary>
     public required decimal MinorUnitsPerPoint { get; init; }
 
@@ -89,6 +103,43 @@ public sealed record RewardConversionTermsResponse
 
     /// <summary>The policy version these terms came from. <c>reward.conversion@2</c>.</summary>
     public string? PolicyVersion { get; init; }
+
+    /// <summary>
+    /// Whether the caller may convert right now, and if not, why. The terms above are the platform's;
+    /// this is the member's.
+    /// </summary>
+    public required RewardConversionMemberResponse Member { get; init; }
+}
+
+/// <summary>
+/// Whether one member may convert right now.
+/// <para>
+/// The app worked eligibility out from <c>terms.isEnabled &amp;&amp; balance.canConvert</c>, and
+/// <c>canConvert</c> is false below the minimum with no reason given, so a member short of the
+/// minimum was told conversion was "not available on your account" and never saw the minimum.
+/// </para>
+/// </summary>
+public sealed record RewardConversionMemberResponse
+{
+    public required bool CanConvert { get; init; }
+
+    /// <summary>
+    /// Why not, checked in this order: <c>financial.rewards.conversion_not_supported</c> or
+    /// <c>currency_not_offered</c> (the deployment); <c>financial.account.not_eligible</c> or
+    /// <c>restricted</c> (the financial account); <c>financial.rewards.not_eligible</c> (a hold);
+    /// <c>financial.rewards.below_minimum</c>; <c>financial.rewards.daily_limit_reached</c>. Null when
+    /// the member may convert.
+    /// </summary>
+    public string? ReasonCode { get; init; }
+
+    /// <summary>Why not, as a sentence the member reads. A hold says only that it is a hold.</summary>
+    public string? ReasonMessage { get; init; }
+
+    /// <summary>
+    /// The most the member may convert in one go right now: the smallest of the single-conversion
+    /// maximum, what is left of today's allowance, and the balance. Null when they may not convert.
+    /// </summary>
+    public long? MaximumNow { get; init; }
 }
 
 /// <summary>

@@ -1,6 +1,8 @@
 using Diaspora.Modules.Trust.Application.Services;
 using Diaspora.Modules.Trust.Contracts.V1.Responses;
 using Diaspora.Modules.Trust.Domain;
+using Diaspora.Modules.Trust.Extensibility;
+using Diaspora.Modules.Trust.Persistence;
 
 namespace Diaspora.Modules.Trust.Application.Mapping;
 
@@ -245,6 +247,7 @@ public static class TrustMappers
     public static ReputationProfileResponse ToResponse(
         this ReputationProfile reputation,
         IReadOnlyList<BadgeResponse> badges,
+        IReadOnlyList<ReputationDimensionBreakdownResponse> breakdown,
         DateTimeOffset asOf)
     {
         var next = reputation.NextLevel;
@@ -286,9 +289,70 @@ public static class TrustMappers
             Badges = badges,
             LevelBenefits = reputation.Benefits.ToResponse(),
             LastCalculatedAt = reputation.LastCalculatedAt,
-            LevelChangedAt = reputation.LevelChangedAt
+            LevelChangedAt = reputation.LevelChangedAt,
+            Breakdown = breakdown
         };
     }
+
+    /// <summary>
+    /// The three dimension cards' rows, from the totals the scoring history recorded.
+    /// <para>
+    /// Every dimension is present even with no history, so the screen draws three cards for a new
+    /// member as it always has. The adjustment is whatever the rows do not account for; see
+    /// <see cref="ReputationDimensionBreakdownResponse"/>.
+    /// </para>
+    /// </summary>
+    public static IReadOnlyList<ReputationDimensionBreakdownResponse> ToBreakdown(
+        this ReputationProfile reputation,
+        IReadOnlyList<ReputationEventSummary> summaries,
+        ReputationRuleCatalog rules)
+    {
+        ArgumentNullException.ThrowIfNull(summaries);
+        ArgumentNullException.ThrowIfNull(rules);
+
+        return
+        [
+            Dimension(ReputationDimension.contribution, reputation.ContributionScore),
+            Dimension(ReputationDimension.verification, reputation.VerificationScore),
+            Dimension(ReputationDimension.trust, reputation.TrustScore)
+        ];
+
+        ReputationDimensionBreakdownResponse Dimension(ReputationDimension dimension, int score)
+        {
+            var lines = summaries
+                .Where(summary => summary.Dimension == dimension)
+                .Select(summary => new ReputationBreakdownLineResponse
+                {
+                    ActionType = summary.ActionType,
+                    Label = rules.LabelFor(summary.ActionType),
+                    Count = summary.Count,
+                    Points = summary.Points
+                })
+                .OrderByDescending(line => line.Points)
+                .ThenBy(line => line.Label, StringComparer.Ordinal)
+                .ToList();
+
+            return new ReputationDimensionBreakdownResponse
+            {
+                Dimension = dimension.ToString(),
+                Score = score,
+                Lines = lines,
+                Adjustment = score - lines.Sum(line => line.Points)
+            };
+        }
+    }
+
+    public static ReputationRuleResponse ToResponse(this ReputationRule rule, string label) =>
+        new()
+        {
+            ActionType = rule.ActionType,
+            Label = label,
+            Dimension = rule.Dimension.ToString(),
+            Points = rule.Points,
+            MaxOccurrences = rule.MaxOccurrences,
+            CooldownHours = rule.CooldownHours,
+            IsCountryScoped = rule.IsCountryScoped
+        };
 
     public static LevelBenefitsResponse ToResponse(this LevelBenefits benefits) =>
         new()
