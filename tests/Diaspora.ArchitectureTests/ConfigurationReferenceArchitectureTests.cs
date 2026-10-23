@@ -28,7 +28,7 @@ public sealed class ConfigurationReferenceArchitectureTests
     /// drift, because drifting is a red build.
     /// </para>
     /// </summary>
-    [Fact]
+    [DocumentationFact]
     public void The_configuration_reference_is_current()
     {
         var expected = ConfigurationReference.Render();
@@ -62,7 +62,7 @@ public sealed class ConfigurationReferenceArchitectureTests
     /// asks the question an operator asks.
     /// </para>
     /// </summary>
-    [Fact]
+    [DocumentationFact]
     public void Every_configuration_section_is_indexed()
     {
         var document = File.ReadAllText(

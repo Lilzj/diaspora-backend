@@ -65,7 +65,7 @@ public sealed class EngineeringGuardrailArchitectureTests
     /// and in the catalogue a human reads. <c>RS2008</c> already fails the build on the first;
     /// nothing but this fails it on the second.
     /// </summary>
-    [Fact]
+    [DocumentationFact]
     public void Every_analyzer_diagnostic_is_catalogued()
     {
         var ids = AnalyzerIds();
@@ -91,7 +91,7 @@ public sealed class EngineeringGuardrailArchitectureTests
     /// finds it two years later cannot tell which. Each entry carries its reason and the condition
     /// that would remove it; the guidelines document explains what qualifies.
     /// </summary>
-    [Fact]
+    [DocumentationFact]
     public void Every_suppressed_rule_carries_its_reason()
     {
         var lines = File.ReadAllLines(Path.Combine(SourceTree.Root.FullName, ".editorconfig"));
@@ -162,7 +162,7 @@ public sealed class EngineeringGuardrailArchitectureTests
     /// The documents the phase promised. Named individually rather than counted, because a
     /// count passes when the wrong eleven files exist.
     /// </summary>
-    [Theory]
+    [DocumentationTheory]
     [InlineData("b1.4-engineering-guardrails-guide.md")]
     [InlineData("b1.4-analyzer-catalog.md")]
     [InlineData("b1.4-contributor-validation-guide.md")]
