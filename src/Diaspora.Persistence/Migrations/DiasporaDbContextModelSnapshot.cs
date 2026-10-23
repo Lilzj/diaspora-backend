@@ -9331,12 +9331,12 @@ namespace Diaspora.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IdempotencyKey")
-                        .IsUnique()
-                        .HasDatabaseName("ix_financial_reward_conversions_idempotency");
-
                     b.HasIndex("MemberUserId", "ConvertedAt")
                         .HasDatabaseName("ix_financial_reward_conversions_member");
+
+                    b.HasIndex("MemberUserId", "IdempotencyKey")
+                        .IsUnique()
+                        .HasDatabaseName("ix_financial_reward_conversions_member_idempotency");
 
                     b.ToTable("financial_reward_conversions", "financial");
                 });
@@ -17555,6 +17555,10 @@ namespace Diaspora.Persistence.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
+                    b.Property<string>("AwardKey")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<string>("CountryCode")
                         .HasMaxLength(2)
                         .HasColumnType("character varying(2)");
@@ -17586,6 +17590,10 @@ namespace Diaspora.Persistence.Migrations
                         .HasColumnType("character varying(64)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ProfileId", "AwardKey")
+                        .IsUnique()
+                        .HasDatabaseName("ix_reputation_events_profile_award_key");
 
                     b.HasIndex("ProfileId", "ActionType", "CreatedAt")
                         .HasDatabaseName("ix_reputation_events_profile_action_created");
@@ -17667,6 +17675,10 @@ namespace Diaspora.Persistence.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<int>("ReportsResolved")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Revision")
+                        .IsConcurrencyToken()
                         .HasColumnType("integer");
 
                     b.Property<int>("TrustScore")

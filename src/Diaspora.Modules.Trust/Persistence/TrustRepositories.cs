@@ -375,6 +375,36 @@ public sealed class ReputationProfileRepository : IReputationProfileRepository
             : new RuleUsage(usage.Count, usage.InCountry, usage.LastAt);
     }
 
+    public async Task<bool> HasAwardAsync(
+        UserId userId, ReputationAwardKey key, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+
+        // The tracked side first, for the same reason GetByUserAsync looks there: a profile opened
+        // and scored earlier in this unit of work is not in the database yet.
+        var profileId = Profiles.Local.FirstOrDefault(profile => profile.UserId == userId)?.Id
+            ?? await Profiles
+                .Where(profile => profile.UserId == userId)
+                .Select(profile => profile.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+
+        if (profileId is null)
+        {
+            return false;
+        }
+
+        if (Events.Local.Any(item => item.ProfileId == profileId && item.AwardKey == key.Value))
+        {
+            return true;
+        }
+
+        return await Events
+            .AsNoTracking()
+            .AnyAsync(
+                item => item.ProfileId == profileId && item.AwardKey == key.Value,
+                cancellationToken);
+    }
+
     public async Task AddAsync(
         ReputationProfile profile, CancellationToken cancellationToken = default) =>
         await Profiles.AddAsync(profile, cancellationToken);

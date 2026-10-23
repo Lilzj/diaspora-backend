@@ -258,7 +258,7 @@ public sealed class FinancialContractGapTests : PooledIdentityTestBase
                 new { amount = 25m, currency = "GBP", destinationId = Guid.NewGuid() }),
             await HttpClient.PostAsJsonAsync(
                 new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
-                new { points = 100L, currency = "GBP" }),
+                new { points = 100L, currency = "GBP", idempotencyKey = Guid.NewGuid().ToString("N") }),
             await HttpClient.PostAsJsonAsync(
                 new Uri("/api/v1/financial/payout-destinations", UriKind.Relative),
                 new { kind = "BankAccount", label = "Test ••••1111", currency = "GBP" }),

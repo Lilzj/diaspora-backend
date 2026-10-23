@@ -31,6 +31,7 @@ public sealed class PublishFinancialPolicyCommandHandler
     private readonly IFinancialPolicyRepository _policies;
     private readonly FinancialAuthorizationService _authorization;
     private readonly IFinancialCache _cache;
+    private readonly CurrencyCatalog _currencies;
     private readonly IGuidGenerator _guids;
     private readonly IClock _clock;
     private readonly IUnitOfWork _unitOfWork;
@@ -39,6 +40,7 @@ public sealed class PublishFinancialPolicyCommandHandler
         IFinancialPolicyRepository policies,
         FinancialAuthorizationService authorization,
         IFinancialCache cache,
+        CurrencyCatalog currencies,
         IGuidGenerator guids,
         IClock clock,
         IUnitOfWork unitOfWork)
@@ -46,6 +48,7 @@ public sealed class PublishFinancialPolicyCommandHandler
         _policies = policies;
         _authorization = authorization;
         _cache = cache;
+        _currencies = currencies;
         _guids = guids;
         _clock = clock;
         _unitOfWork = unitOfWork;
@@ -61,6 +64,12 @@ public sealed class PublishFinancialPolicyCommandHandler
             return Result.Failure<FinancialPolicyResponse>(Error.Validation(
                 FinancialErrorCodes.PolicyNotFound,
                 $"'{command.Kind}' is not a policy kind the platform recognises."));
+        }
+
+        if (kind == FinancialPolicyKind.RewardConversion
+            && await RewardRateRefusalAsync(command.Parameters, cancellationToken) is { } refusal)
+        {
+            return Result.Failure<FinancialPolicyResponse>(refusal);
         }
 
         var scope = Enum.TryParse<PolicyScopeKind>(command.Scope, true, out var parsed)
@@ -121,4 +130,43 @@ public sealed class PublishFinancialPolicyCommandHandler
 
         return Result.Success(FinancialMapper.ToResponse(policy));
     }
+
+    /// <summary>
+    /// A positive conversion rate must say what currency it is in.
+    /// <para>
+    /// <c>minorUnitsPerPoint</c> is a count of minor units, which is a pound or a kobo depending on the
+    /// currency. A rate published without one would be applied to whatever currency a caller asked
+    /// for — the defect this guard exists to make unpublishable. A zero rate needs no currency: it
+    /// converts nothing, which is what the seed relies on.
+    /// </para>
+    /// </summary>
+    private async Task<Error?> RewardRateRefusalAsync(
+        IReadOnlyDictionary<string, string> parameters, CancellationToken cancellationToken)
+    {
+        var rate = Lookup(parameters, FinancialPolicyParameters.MinorUnitsPerPoint);
+
+        if (!decimal.TryParse(
+                rate,
+                System.Globalization.NumberStyles.Number,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out var parsedRate)
+            || parsedRate <= 0m)
+        {
+            return null;
+        }
+
+        var currency = Lookup(parameters, FinancialPolicyParameters.Currency)?.Trim();
+
+        return !string.IsNullOrEmpty(currency) && await _currencies.IsSupportedAsync(currency, cancellationToken)
+            ? null
+            : Error.Validation(
+                FinancialErrorCodes.RewardCurrencyRequired,
+                "A reward conversion rate needs the currency it is in: a supported ISO 4217 code in "
+                + $"the '{FinancialPolicyParameters.Currency}' parameter.");
+    }
+
+    private static string? Lookup(IReadOnlyDictionary<string, string> parameters, string key) =>
+        parameters
+            .FirstOrDefault(pair => string.Equals(pair.Key?.Trim(), key, StringComparison.OrdinalIgnoreCase))
+            .Value;
 }

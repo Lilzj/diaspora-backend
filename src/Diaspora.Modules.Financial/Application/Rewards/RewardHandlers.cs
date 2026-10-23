@@ -4,6 +4,7 @@ using Diaspora.Modules.Financial.Application.EventHandlers;
 using Diaspora.Modules.Financial.Application.Mapping;
 using Diaspora.Modules.Financial.Application.Services;
 using Diaspora.Modules.Financial.Contracts.V1.Responses;
+using Diaspora.Modules.Financial.Domain.Accounts;
 using Diaspora.Modules.Financial.Domain.Enums;
 using Diaspora.Modules.Financial.Domain.Identifiers;
 using Diaspora.Modules.Financial.Domain.Ledgers;
@@ -14,6 +15,7 @@ using Diaspora.Modules.Financial.Observability;
 using Diaspora.Modules.Financial.Options;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Results;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace Diaspora.Modules.Financial.Application.Rewards;
@@ -30,6 +32,8 @@ public sealed class RewardConversionPricer
 {
     private readonly FinancialLimitsResolver _limits;
     private readonly IRewardConversionRepository _conversions;
+    private readonly IFinancialAccountRepository _accounts;
+    private readonly MemberCurrency _memberCurrency;
     private readonly CurrencyCatalog _currencies;
     private readonly IClock _clock;
     private readonly FinancialOptions _options;
@@ -37,6 +41,8 @@ public sealed class RewardConversionPricer
     public RewardConversionPricer(
         FinancialLimitsResolver limits,
         IRewardConversionRepository conversions,
+        IFinancialAccountRepository accounts,
+        MemberCurrency memberCurrency,
         CurrencyCatalog currencies,
         IClock clock,
         IOptions<FinancialOptions> options)
@@ -45,37 +51,100 @@ public sealed class RewardConversionPricer
 
         _limits = limits;
         _conversions = conversions;
+        _accounts = accounts;
+        _memberCurrency = memberCurrency;
         _currencies = currencies;
         _clock = clock;
         _options = options.Value;
     }
 
-    /// <summary>The terms in force for a member, right now.</summary>
+    /// <summary>
+    /// The terms in force for a member, right now.
+    /// <para>
+    /// <b>The server decides both the country and the currency.</b> The rate used to resolve by a
+    /// country the request named and then apply to a currency the request named, while
+    /// <c>minorUnitsPerPoint</c> meant nothing without a currency — a hundred minor units is a pound
+    /// or a hundred kobo. Any member could pick the country with the best rate and the currency whose
+    /// minor unit was worth the most. Now:
+    /// </para>
+    /// <list type="bullet">
+    ///   <item>the country is the one on the member's own financial account, set by registration and
+    ///   verification, never by a request;</item>
+    ///   <item>a rate is in exactly one currency — the policy's <c>currency</c> parameter — and a
+    ///   rate without a supported currency converts nothing;</item>
+    ///   <item><paramref name="requestedCurrency"/> may only confirm that currency. Asking for another
+    ///   is refused, not repriced.</item>
+    /// </list>
+    /// </summary>
     public async Task<RewardConversionTerms> TermsAsync(
         Guid memberUserId,
-        string currency,
-        string? countryCode,
+        string? requestedCurrency,
         CancellationToken cancellationToken = default)
     {
-        var facts = await _currencies.FactsAsync(currency, cancellationToken);
+        var account = await _accounts.FindByOwnerAsync(
+            memberUserId, FinancialAccountType.Personal, cancellationToken);
 
         var policy = await _limits.MostSpecificAsync(
-            FinancialPolicyKeys.RewardConversion, countryCode, cancellationToken);
+            FinancialPolicyKeys.RewardConversion, account?.CountryCode, cancellationToken);
 
         var rate = policy?.DecimalParameter(FinancialPolicyParameters.MinorUnitsPerPoint) ?? 0m;
         var dailyMaximum = policy?.Int64Parameter(FinancialPolicyParameters.DailyMaximumPoints);
+
+        var offered = CurrencyCode(policy?.Parameter(FinancialPolicyParameters.Currency));
+
+        if (offered is not null && !await _currencies.IsSupportedAsync(offered, cancellationToken))
+        {
+            offered = null;
+        }
+
+        var requested = CurrencyCode(requestedCurrency);
+
+        // What the terms are shown in when nothing converts: the member's own currency, so the
+        // screen still reads naturally.
+        var currency = offered
+            ?? requested
+            ?? await _memberCurrency.ForMemberAsync(memberUserId, cancellationToken);
+
+        var facts = await _currencies.FactsAsync(currency, cancellationToken);
 
         var convertedToday = dailyMaximum is null
             ? 0
             : await _conversions.PointsConvertedSinceAsync(
                 memberUserId, _clock.UtcNow.AddDays(-1), cancellationToken);
 
+        // Three switches, and all must be on: the deployment has to have decided it converts, an
+        // operator has to have published a rate, and the rate has to say what currency it is in. A
+        // rate with no switch would turn conversion on by seeding data; a switch with no rate would
+        // price points at nothing; a rate with no currency is a number with no unit.
+        (string Code, string Message)? disabled =
+            !_options.EnableRewardConversion || rate <= 0m || offered is null
+                ? (FinancialErrorCodes.RewardConversionNotSupported,
+                    "Reward points cannot be converted on this deployment.")
+                : requested is not null && !string.Equals(requested, offered, StringComparison.Ordinal)
+                    ? (FinancialErrorCodes.RewardCurrencyNotOffered,
+                        $"Reward points convert into {offered} only.")
+                    : null;
+
+        // The same bar withdrawals set (WithdrawalHandlers: account.CanDebit). Converting turns points
+        // into money in the withdrawable primary wallet, so it is held to the rule for moving money
+        // out: an unverified (Pending) or Restricted account converts nothing.
+        (string Code, string Message)? standing =
+            account is null || account.Status == FinancialAccountStatus.Pending
+                ? (FinancialErrorCodes.AccountNotEligible,
+                    "Verify your identity before converting points into money. "
+                    + "Your points are safe in the meantime.")
+                : !account.CanDebit
+                    ? (FinancialErrorCodes.AccountRestricted,
+                        account.RestrictionReason ?? "This account cannot convert points right now.")
+                    : null;
+
         return new RewardConversionTerms
         {
-            // Two switches, and both must be on: the deployment has to have decided it converts, and
-            // an operator has to have published a rate. A rate with no switch would turn conversion
-            // on by seeding data; a switch with no rate would price points at nothing.
-            IsEnabled = _options.EnableRewardConversion && rate > 0m,
+            IsEnabled = disabled is null,
+            DisabledCode = disabled?.Code,
+            AccountRefusalCode = standing?.Code,
+            AccountRefusalMessage = standing?.Message,
+            DisabledMessage = disabled?.Message,
             Currency = facts.Code,
             Exponent = facts.Exponent,
             Symbol = facts.Symbol,
@@ -91,6 +160,9 @@ public sealed class RewardConversionPricer
         };
     }
 
+    private static string? CurrencyCode(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim().ToUpperInvariant();
+
     /// <summary>
     /// What the conversion would produce, and whether it is permitted.
     /// <para>
@@ -98,19 +170,52 @@ public sealed class RewardConversionPricer
     /// convert two points when the minimum is five should be told that, not shown an error.
     /// </para>
     /// </summary>
+    /// <para>
+    /// <b>Only the points that buy whole minor units leave the balance.</b> The credit is floored —
+    /// a fraction of a minor unit cannot be paid — and this used to debit every point asked for
+    /// anyway: at 0.01 minor units a point, 550 points paid 5 and took 550, so 50 points bought
+    /// nothing and vanished. <see cref="RewardConversionQuote.PointsConsumed"/> is the fewest points
+    /// that buy exactly the same credit, and the rest stay with the member.
+    /// </para>
+    /// <para>
+    /// Why it is never more than was asked for, and never changes the credit: with
+    /// <c>c = floor(p·r)</c>, <c>p·r ≥ c</c>, so <c>p ≥ c/r</c> and <c>p ≥ ceil(c/r)</c>; and
+    /// <c>ceil(c/r)·r ≥ c</c> while <c>ceil(c/r)·r ≤ p·r &lt; c + 1</c>, so the consumed points floor
+    /// to exactly <c>c</c>. All of it in <see cref="decimal"/> and <see cref="long"/>, never
+    /// floating point.
+    /// </para>
+    /// <param name="conversionBlockedReason">
+    /// Non-null when the member's points account is held from conversion (a fraud or review hold).
+    /// A refusal here, rather than the aggregate's exception later, so the preview can say why.
+    /// </param>
     public static RewardConversionQuote Quote(
-        RewardConversionTerms terms, long points, long balance)
+        RewardConversionTerms terms, long points, long balance, string? conversionBlockedReason = null)
     {
         ArgumentNullException.ThrowIfNull(terms);
 
-        var credit = Money.FromMinorUnits(
-            (long)Math.Floor(points * terms.MinorUnitsPerPoint), terms.Currency, terms.Exponent);
+        var creditMinorUnits = points > 0 && terms.MinorUnitsPerPoint > 0m
+            ? (long)Math.Floor(points * terms.MinorUnitsPerPoint)
+            : 0L;
 
-        var refusal = Refusal(terms, points, balance, credit);
+        var consumed = creditMinorUnits == 0
+            ? 0L
+            : (long)Math.Ceiling(creditMinorUnits / terms.MinorUnitsPerPoint);
+
+        if (consumed > points)
+        {
+            // Unreachable by the argument above; refused loudly rather than debiting more than asked.
+            throw new InvalidOperationException(
+                $"A conversion of {points} points priced {consumed} points; the rate arithmetic is wrong.");
+        }
+
+        var credit = Money.FromMinorUnits(creditMinorUnits, terms.Currency, terms.Exponent);
+
+        var refusal = Refusal(terms, points, consumed, balance, credit, conversionBlockedReason);
 
         return new RewardConversionQuote
         {
             Points = points,
+            PointsConsumed = consumed,
             Credit = credit,
             IsPermitted = refusal is null,
             RefusalCode = refusal?.Code,
@@ -120,36 +225,38 @@ public sealed class RewardConversionPricer
         };
     }
 
+    /// <summary>
+    /// Why not, if not. The limits read <paramref name="consumed"/> — what would actually leave the
+    /// balance — while "more than you hold" reads what was asked for, which is the number the
+    /// member typed.
+    /// </summary>
     private static (string Code, string Message)? Refusal(
-        RewardConversionTerms terms, long points, long balance, Money credit)
+        RewardConversionTerms terms,
+        long points,
+        long consumed,
+        long balance,
+        Money credit,
+        string? conversionBlockedReason)
     {
         if (!terms.IsEnabled)
         {
-            return (FinancialErrorCodes.RewardConversionNotSupported,
-                "Reward points cannot be converted on this deployment.");
+            return (terms.DisabledCode ?? FinancialErrorCodes.RewardConversionNotSupported,
+                terms.DisabledMessage ?? "Reward points cannot be converted on this deployment.");
+        }
+
+        if (terms.AccountRefusalCode is { } accountCode)
+        {
+            return (accountCode, terms.AccountRefusalMessage ?? "This account cannot convert points right now.");
+        }
+
+        if (conversionBlockedReason is not null)
+        {
+            return (FinancialErrorCodes.RewardNotEligible, conversionBlockedReason);
         }
 
         if (points <= 0)
         {
             return (FinancialErrorCodes.RewardBelowMinimum, "Convert at least one point.");
-        }
-
-        if (points < terms.MinimumPoints)
-        {
-            return (FinancialErrorCodes.RewardBelowMinimum,
-                $"The smallest conversion is {terms.MinimumPoints} points.");
-        }
-
-        if (terms.MaximumPoints is { } maximum && points > maximum)
-        {
-            return (FinancialErrorCodes.RewardAboveMaximum,
-                $"The largest single conversion is {maximum} points.");
-        }
-
-        if (terms.DailyRemainingPoints is { } remaining && points > remaining)
-        {
-            return (FinancialErrorCodes.RewardDailyLimitReached,
-                "That would take you past what you can convert in a day.");
         }
 
         if (points > balance)
@@ -160,10 +267,31 @@ public sealed class RewardConversionPricer
 
         // A rate that rounds a legitimate number of points down to nothing is a member giving points
         // away. Refusing is the only answer that does not quietly take something.
-        return credit.IsZero
-            ? (FinancialErrorCodes.RewardBelowMinimum,
-                "That many points is not yet worth anything. Save a few more.")
-            : null;
+        if (credit.IsZero)
+        {
+            return (FinancialErrorCodes.RewardBelowMinimum,
+                "That many points is not yet worth anything. Save a few more.");
+        }
+
+        if (consumed < terms.MinimumPoints)
+        {
+            return (FinancialErrorCodes.RewardBelowMinimum,
+                $"The smallest conversion is {terms.MinimumPoints} points.");
+        }
+
+        if (terms.MaximumPoints is { } maximum && consumed > maximum)
+        {
+            return (FinancialErrorCodes.RewardAboveMaximum,
+                $"The largest single conversion is {maximum} points.");
+        }
+
+        if (terms.DailyRemainingPoints is { } remaining && consumed > remaining)
+        {
+            return (FinancialErrorCodes.RewardDailyLimitReached,
+                "That would take you past what you can convert in a day.");
+        }
+
+        return null;
     }
 }
 
@@ -171,6 +299,21 @@ public sealed class RewardConversionPricer
 public sealed record RewardConversionTerms
 {
     public required bool IsEnabled { get; init; }
+
+    /// <summary>Why not, as a code. Null when enabled.</summary>
+    public string? DisabledCode { get; init; }
+
+    /// <summary>Why not, as a sentence. Null when enabled.</summary>
+    public string? DisabledMessage { get; init; }
+
+    /// <summary>
+    /// Why this member's account may not convert, as a code — <c>financial.account.not_eligible</c>
+    /// or <c>financial.account.restricted</c>. Null when it may.
+    /// </summary>
+    public string? AccountRefusalCode { get; init; }
+
+    /// <summary>Why not, as a sentence the member reads. Null when it may.</summary>
+    public string? AccountRefusalMessage { get; init; }
 
     public required string Currency { get; init; }
 
@@ -194,7 +337,14 @@ public sealed record RewardConversionTerms
 /// <summary>What a conversion would produce, and whether it may happen.</summary>
 public sealed record RewardConversionQuote
 {
+    /// <summary>What was asked for.</summary>
     public required long Points { get; init; }
+
+    /// <summary>
+    /// What would leave the balance: the fewest points that buy <see cref="Credit"/>. Never more
+    /// than <see cref="Points"/>; the difference stays with the member.
+    /// </summary>
+    public required long PointsConsumed { get; init; }
 
     public required Money Credit { get; init; }
 
@@ -222,9 +372,9 @@ public sealed record RewardConversionQuote
 /// </para>
 /// <para>
 /// <b>The credit is a real ledger posting with a real counterparty.</b> Points come out of a store
-/// that is not money; the credit comes out of the platform's revenue wallet, which is where the cost
-/// of a rewards programme actually lands. A conversion that credited a member from nowhere would be
-/// a ledger that no longer balanced.
+/// that is not money; the credit comes out of the platform's <em>clearing</em> wallet — see the note
+/// at the posting for why clearing and not revenue (this summary used to say revenue). A conversion
+/// that credited a member from nowhere would be a ledger that no longer balanced.
 /// </para>
 /// </summary>
 public sealed class ConvertRewardPointsCommandHandler
@@ -277,8 +427,7 @@ public sealed class ConvertRewardPointsCommandHandler
             return Result.Failure<RewardConversionResponse>(caller.Error);
         }
 
-        var terms = await _pricer.TermsAsync(
-            caller.Value, command.Currency, command.CountryCode, cancellationToken);
+        var terms = await _pricer.TermsAsync(caller.Value, command.Currency, cancellationToken);
 
         if (command.IdempotencyKey is { } key
             && await _conversions.FindByIdempotencyKeyAsync(caller.Value, key, cancellationToken) is { } already)
@@ -295,23 +444,31 @@ public sealed class ConvertRewardPointsCommandHandler
                 FinancialErrorCodes.RewardAccountNotFound, "You have no reward points yet."));
         }
 
-        var quote = RewardConversionPricer.Quote(terms, command.Points, account.Balance);
+        var quote = RewardConversionPricer.Quote(
+            terms, command.Points, account.Balance, BlockedReason(account));
 
         if (!quote.IsPermitted)
         {
             FinancialTelemetry.RewardConversions.Add(
                 1, new KeyValuePair<string, object?>("outcome", "refused"));
 
-            return Result.Failure<RewardConversionResponse>(Error.Conflict(
-                quote.RefusalCode ?? FinancialErrorCodes.RewardNotEligible,
-                quote.RefusalMessage ?? "That conversion is not available."));
+            var code = quote.RefusalCode ?? FinancialErrorCodes.RewardNotEligible;
+            var message = quote.RefusalMessage ?? "That conversion is not available.";
+
+            // An account that may not move money out is a 403, as it is for a withdrawal; everything
+            // else about the request (limits, balance, rate) stays a 409.
+            return Result.Failure<RewardConversionResponse>(
+                code is FinancialErrorCodes.AccountNotEligible or FinancialErrorCodes.AccountRestricted
+                    ? Error.Forbidden(code, message)
+                    : Error.Conflict(code, message));
         }
 
+        // No country from the request: an account opened here would keep it, and the account's
+        // country is what selects the conversion rate next time.
         var accountRecord = await _identities.GetOrCreateAsync(
             caller.Value,
             FinancialAccountType.Personal,
             terms.Currency,
-            countryCode: command.CountryCode,
             cancellationToken: cancellationToken);
 
         var wallet = await _identities.PrimaryWalletAsync(
@@ -347,7 +504,8 @@ public sealed class ConvertRewardPointsCommandHandler
 
         try
         {
-            account.Convert(_guids.NewSequentialGuid(), command.Points, reference, _clock.UtcNow);
+            // The consumed points, not the requested ones: the remainder bought nothing and stays.
+            account.Convert(_guids.NewSequentialGuid(), quote.PointsConsumed, reference, _clock.UtcNow);
         }
         catch (DomainException exception)
         {
@@ -362,11 +520,11 @@ public sealed class ConvertRewardPointsCommandHandler
             {
                 TransactionType = TransactionType.RewardConversion,
                 Amount = quote.Credit,
-                Description = $"Converted {command.Points} reward points",
+                Description = $"Converted {quote.PointsConsumed} reward points",
                 Audit = AuditStamp.Create(
                     FinancialActor.Member(caller.Value),
                     FinancialSource.Api,
-                    $"Reward conversion of {command.Points} points",
+                    $"Reward conversion of {quote.PointsConsumed} points",
                     policyVersion: quote.PolicyVersion),
                 Legs =
                 [
@@ -399,7 +557,7 @@ public sealed class ConvertRewardPointsCommandHandler
         var conversion = RewardConversion.Record(
             conversionId,
             caller.Value,
-            command.Points,
+            quote.PointsConsumed,
             quote.Credit,
 
             // The rate as applied, stored beside the amounts. Never recomputed from a later policy.
@@ -412,13 +570,61 @@ public sealed class ConvertRewardPointsCommandHandler
 
         _conversions.Add(conversion);
 
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+
+        // The replay check above cannot see a request with the same key still in flight; the
+        // per-member unique index is what refuses it. This command is [Transactional], so the
+        // violation has aborted the transaction — on Postgres nothing more can run in it, and a
+        // failed Result would be committed rather than rolled back. Rethrown as the platform's
+        // concurrency conflict: the transaction rolls back, the client gets 409, and its retry with
+        // the same key replays the conversion that won.
+        catch (DbUpdateException exception) when (IsUniqueViolation(exception))
+        {
+            throw new ConcurrencyConflictException(
+                "A conversion with this idempotency key is still being processed. Try again in a moment.",
+                exception);
+        }
+
         await _relay.PublishAsync(conversion, cancellationToken);
 
         FinancialTelemetry.RewardConversions.Add(
             1, new KeyValuePair<string, object?>("outcome", "converted"));
 
         return Result.Success(
-            FinancialMapperExtensions.ToResponse(conversion, terms.Symbol));
+            FinancialMapperExtensions.ToResponse(conversion, terms.Symbol) with
+            {
+                PointsRequested = command.Points
+            });
+    }
+
+    /// <summary>The points account's hold, as a sentence, or null when it may convert.</summary>
+    internal static string? BlockedReason(RewardAccount? account) =>
+        account is { IsConversionBlocked: true }
+            ? account.BlockReason ?? "Reward conversion is not available on this account at the moment."
+            : null;
+
+    /// <summary>
+    /// Whether a failed save was a unique-index violation. Matched on the message, as the Creator and
+    /// Programme modules do: production runs Npgsql and the suite SQLite, and naming either driver's
+    /// exception here would put a database provider in the application layer.
+    /// </summary>
+    private static bool IsUniqueViolation(DbUpdateException exception)
+    {
+        for (Exception? current = exception; current is not null; current = current.InnerException)
+        {
+            var message = current.Message;
+
+            if (message.Contains("UNIQUE constraint failed", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("duplicate key value", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("23505", StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

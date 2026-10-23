@@ -17,6 +17,13 @@ public sealed record RewardBalanceResponse
     public required long LifetimeConverted { get; init; }
 
     /// <summary>
+    /// Points spent on rewards, net of any refunded redemption. With the two above it accounts for
+    /// the balance: earned − converted − spent. The app used to hard-code this to zero, so its
+    /// arithmetic stopped matching the balance after the first redemption.
+    /// </summary>
+    public long LifetimeSpent { get; init; }
+
+    /// <summary>
     /// False when this account may not convert. The reason is deliberately absent — a refusal that
     /// explains which check it tripped is a map for getting round it.
     /// </summary>
@@ -25,15 +32,24 @@ public sealed record RewardBalanceResponse
     public required DateTimeOffset ResolvedAt { get; init; }
 }
 
-/// <summary>One movement of points, earned or converted away.</summary>
+/// <summary>One movement of points: earned, converted away, or spent on a reward.</summary>
 public sealed record RewardEntryResponse
 {
     public required Guid EntryId { get; init; }
 
-    /// <summary>Always positive. Which way it moved is <see cref="IsConversion"/>.</summary>
+    /// <summary>
+    /// Always positive. Which way it moved is <see cref="IsConversion"/> or <see cref="IsSpend"/>:
+    /// either one means the points left the balance.
+    /// </summary>
     public required long Points { get; init; }
 
     public required bool IsConversion { get; init; }
+
+    /// <summary>
+    /// True when the points were spent on a reward. Without it a redemption reached the client as
+    /// a positive entry and rendered as points earned — the same figure with the opposite meaning.
+    /// </summary>
+    public bool IsSpend { get; init; }
 
     /// <summary>Why. <c>ReferralQualified</c>, <c>GuidePublished</c>, <c>Conversion</c>.</summary>
     public required string Source { get; init; }
@@ -85,7 +101,14 @@ public sealed record RewardConversionTermsResponse
 /// </summary>
 public sealed record RewardConversionPreviewResponse
 {
+    /// <summary>What was asked for.</summary>
     public required long Points { get; init; }
+
+    /// <summary>
+    /// What would leave the balance: the fewest points that buy <see cref="Credit"/>. Points that
+    /// would only buy a fraction of a minor unit stay with the member.
+    /// </summary>
+    public long PointsConsumed { get; init; }
 
     public required MoneyResponse Credit { get; init; }
 
@@ -106,7 +129,14 @@ public sealed record RewardConversionResponse
 {
     public required Guid ConversionId { get; init; }
 
+    /// <summary>The points that left the balance.</summary>
     public required long Points { get; init; }
+
+    /// <summary>
+    /// What the member asked to convert, when this response is the conversion itself. Null on a
+    /// replay or in history, where only what actually moved is recorded.
+    /// </summary>
+    public long? PointsRequested { get; init; }
 
     public required MoneyResponse Credited { get; init; }
 

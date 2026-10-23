@@ -163,10 +163,16 @@ public sealed class ReliableMessagingTests : PooledIdentityTestBase
     /// <para>
     /// The assertion is on the outbox entry rather than on the overall status, deliberately.
     /// Readiness aggregates every check, and this suite's host shares one in-memory SQLite
-    /// connection across every scope — an arrangement that occasionally makes the
-    /// <c>database</c> check report a connection-level artefact that has nothing to do with the
-    /// outbox. Asserting on the aggregate would make this test fail for a reason it does not
-    /// cover, which is how a suite stops being read.
+    /// connection across every scope — an arrangement that occasionally makes a check report a
+    /// connection-level artefact that has nothing to do with what it checks. Asserting on the
+    /// aggregate would make this test fail for a reason it does not cover, which is how a suite
+    /// stops being read.
+    /// </para>
+    /// <para>
+    /// The outbox check is not immune either: it queries the same connection, concurrently with
+    /// the others, and under a full run it occasionally threw — reported as <c>Unhealthy</c> with
+    /// no data. <see cref="ReadinessProbe"/> reads past a check that threw and never past one that
+    /// evaluated, so a genuinely unhealthy outbox still fails here on the first read.
     /// </para>
     /// </summary>
     [Fact]
@@ -174,15 +180,9 @@ public sealed class ReliableMessagingTests : PooledIdentityTestBase
     {
         await Factory.DrainOutboxAsync();
 
-        var response = await HttpClient.GetAsync("/health/ready");
+        var outbox = await HttpClient.ReadinessCheckAsync("outbox");
 
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-
-        var outbox = document.RootElement.GetProperty("checks")
-            .EnumerateArray()
-            .Single(check => check.GetProperty("name").GetString() == "outbox");
-
-        outbox.GetProperty("status").GetString().Should().Be("Healthy");
+        outbox.GetProperty("status").GetString().Should().Be("Healthy", outbox.GetRawText());
 
         // The numbers an operator needs, on the endpoint every probe already calls.
         var data = outbox.GetProperty("data");
@@ -210,11 +210,9 @@ public sealed class ReliableMessagingTests : PooledIdentityTestBase
             new { body = "Observed.", visibility = "public", publish = true },
             JsonOptions);
 
-        var response = await HttpClient.GetAsync("/health/ready");
+        var outbox = await HttpClient.ReadinessCheckAsync("outbox");
 
-        var body = await response.Content.ReadAsStringAsync();
-
-        body.Should().Contain("pending");
+        outbox.GetProperty("data").TryGetProperty("pending", out _).Should().BeTrue(outbox.GetRawText());
     }
 
     // ── Administration ───────────────────────────────────────────────────

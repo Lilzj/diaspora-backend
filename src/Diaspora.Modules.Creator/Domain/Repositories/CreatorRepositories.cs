@@ -72,7 +72,7 @@ public interface ICreatorVerificationRepository
         CreatorId creatorId, CancellationToken cancellationToken = default);
 
     Task<CreatorVerificationApplication?> FindByIdempotencyKeyAsync(
-        string key, CancellationToken cancellationToken = default);
+        CreatorId creatorId, string key, CancellationToken cancellationToken = default);
 
     /// <summary>Approvals that have run out. The expiry sweep's page.</summary>
     Task<IReadOnlyList<CreatorVerificationApplication>> ListLapsedAsync(
@@ -114,7 +114,7 @@ public interface ICreatorMilestoneProgressRepository
         CreatorId creatorId, CancellationToken cancellationToken = default);
 
     Task<CreatorMilestoneProgress?> FindByClaimKeyAsync(
-        string key, CancellationToken cancellationToken = default);
+        CreatorId creatorId, string key, CancellationToken cancellationToken = default);
 }
 
 public interface ICreatorChallengeRepository
@@ -161,10 +161,10 @@ public interface ICreatorChallengeEnrollmentRepository
         CreatorChallengeId challengeId, long score, CancellationToken cancellationToken = default);
 
     Task<CreatorChallengeEnrollment?> FindByJoinKeyAsync(
-        string key, CancellationToken cancellationToken = default);
+        CreatorId creatorId, string key, CancellationToken cancellationToken = default);
 
     Task<CreatorChallengeEnrollment?> FindByClaimKeyAsync(
-        string key, CancellationToken cancellationToken = default);
+        CreatorId creatorId, string key, CancellationToken cancellationToken = default);
 }
 
 public interface ICommunityGrantRepository
@@ -204,7 +204,7 @@ public interface IGrantApplicationRepository
         CancellationToken cancellationToken = default);
 
     Task<GrantApplication?> FindBySubmitKeyAsync(
-        string key, CancellationToken cancellationToken = default);
+        CreatorId creatorId, string key, CancellationToken cancellationToken = default);
 }
 
 public interface IAcademyRepository
@@ -314,7 +314,7 @@ public interface ISignupBonusRepository
     Task<SignupBonus?> FindForUserAsync(Guid userId, CancellationToken cancellationToken = default);
 
     Task<SignupBonus?> FindByAcknowledgeKeyAsync(
-        string key, CancellationToken cancellationToken = default);
+        CreatorId creatorId, string key, CancellationToken cancellationToken = default);
 }
 
 public interface ICreatorRewardRepository
@@ -347,6 +347,14 @@ public interface ICreatorRewardRepository
     Task<IReadOnlyList<CreatorRewardRedemption>> ListRedemptionsAsync(
         CreatorId creatorId, int take, CancellationToken cancellationToken = default);
 
+    /// <summary>One redemption, tracked, for a staff decision.</summary>
+    Task<CreatorRewardRedemption?> GetRedemptionAsync(
+        CreatorRewardRedemptionId id, CancellationToken cancellationToken = default);
+
+    /// <summary>The fulfilment queue across all members, oldest first so nothing waits forever.</summary>
+    Task<IReadOnlyList<CreatorRewardRedemption>> ListRedemptionsForReviewAsync(
+        CreatorRewardState? state, int take, CancellationToken cancellationToken = default);
+
     /// <summary>How many times this creator has redeemed one reward. The per-creator cap's input.</summary>
     Task<int> CountRedemptionsAsync(
         CreatorId creatorId, CreatorRewardId rewardId, CancellationToken cancellationToken = default);
@@ -356,7 +364,7 @@ public interface ICreatorRewardRepository
         CreatorId creatorId, CreatorRewardId rewardId, CancellationToken cancellationToken = default);
 
     Task<CreatorRewardRedemption?> FindByIdempotencyKeyAsync(
-        string key, CancellationToken cancellationToken = default);
+        CreatorId creatorId, string key, CancellationToken cancellationToken = default);
 }
 
 /// <summary>

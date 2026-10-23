@@ -231,6 +231,11 @@ public sealed class ReputationProfileConfiguration : IEntityTypeConfiguration<Re
         builder.Property(reputation => reputation.NoViolationSince).IsRequired();
         builder.Property(reputation => reputation.LastCalculatedAt).IsRequired();
 
+        // The same int token Financial's aggregates use. The aggregate advances it; there is no
+        // interceptor. A conflict surfaces as ConcurrencyConflictException — a 409 to an HTTP
+        // caller, a retry to an outbox consumer.
+        builder.Property(reputation => reputation.Revision).IsConcurrencyToken();
+
         // Derived, never stored: a persisted copy would go stale the moment the benefit table
         // or the thresholds changed, and would then grant the wrong thing silently.
         builder.Ignore(reputation => reputation.CombinedScore);
@@ -292,6 +297,21 @@ public sealed class ReputationEventConfiguration : IEntityTypeConfiguration<Repu
             .HasMaxLength(ReputationEvent.MaxDescriptionLength);
 
         builder.Property(reputationEvent => reputationEvent.CreatedAt).IsRequired();
+
+        builder.Property(reputationEvent => reputationEvent.AwardKey)
+            .HasMaxLength(ReputationAwardKey.MaxLength);
+
+        // The guarantee behind ReputationAwardKey: one award per business fact per member, held
+        // by the database rather than by a read that two outbox workers can both pass. Rows from
+        // before awards were keyed are NULL, and NULLs are distinct on Postgres and SQLite alike,
+        // so history needs no rewrite for this to apply.
+        builder.HasIndex(reputationEvent => new
+        {
+            reputationEvent.ProfileId,
+            reputationEvent.AwardKey
+        })
+            .IsUnique()
+            .HasDatabaseName("ix_reputation_events_profile_award_key");
 
         // Backs the MaxOccurrences and CooldownHours caps, which read count-and-latest for
         // one (profile, action) pair on every scoring attempt.

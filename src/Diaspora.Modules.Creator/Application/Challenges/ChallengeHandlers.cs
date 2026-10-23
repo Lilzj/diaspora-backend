@@ -311,15 +311,18 @@ public sealed class JoinChallengeCommandHandler
         var now = _clock.UtcNow;
 
         var key = CreatorIdempotency.Normalise(
-            Operation, command.IdempotencyKeyHeader, command.Request?.IdempotencyKey);
+            Operation, creator.Value.UserId, command.IdempotencyKeyHeader, command.Request?.IdempotencyKey);
 
         if (key is not null)
         {
-            var replayed = await _enrollments.FindByJoinKeyAsync(key, cancellationToken);
+            var replayed = await _enrollments.FindByJoinKeyAsync(creator.Value.Id, key, cancellationToken);
 
             if (replayed is not null)
             {
-                return Result.Success(challenge.ToResponse(replayed, false, null, now));
+                // A key the caller already spent on another challenge is not a retry of this one.
+                return replayed.ChallengeId == challenge.Id
+                    ? Result.Success(challenge.ToResponse(replayed, false, null, now))
+                    : Result.Failure<CreatorChallengeResponse>(CreatorErrors.IdempotencyKeyReused);
             }
         }
 
@@ -362,7 +365,7 @@ public sealed class JoinChallengeCommandHandler
             key,
             token => _unitOfWork.SaveChangesAsync(token),
             async token =>
-                (key is null ? null : await _enrollments.FindByJoinKeyAsync(key, token))
+                (key is null ? null : await _enrollments.FindByJoinKeyAsync(creator.Value.Id, key, token))
                 ?? await _enrollments.FindAsync(challenge.Id, creator.Value.Id, token),
             cancellationToken);
 
@@ -372,6 +375,11 @@ public sealed class JoinChallengeCommandHandler
         }
 
         var rendered = commit.Value.Replayed ?? enrollment;
+
+        if (rendered.ChallengeId != challenge.Id)
+        {
+            return Result.Failure<CreatorChallengeResponse>(CreatorErrors.IdempotencyKeyReused);
+        }
 
         return Result.Success(challenge.ToResponse(rendered, false, null, now));
     }
@@ -449,15 +457,18 @@ public sealed class ClaimChallengeCommandHandler
         var now = _clock.UtcNow;
 
         var key = CreatorIdempotency.Normalise(
-            Operation, command.IdempotencyKeyHeader, command.Request?.IdempotencyKey);
+            Operation, creator.Value.UserId, command.IdempotencyKeyHeader, command.Request?.IdempotencyKey);
 
         if (key is not null)
         {
-            var replayed = await _enrollments.FindByClaimKeyAsync(key, cancellationToken);
+            var replayed = await _enrollments.FindByClaimKeyAsync(creator.Value.Id, key, cancellationToken);
 
             if (replayed is not null)
             {
-                return Result.Success(challenge.ToResponse(replayed, false, null, now));
+                // A key the caller already spent on another challenge is not a retry of this one.
+                return replayed.ChallengeId == challenge.Id
+                    ? Result.Success(challenge.ToResponse(replayed, false, null, now))
+                    : Result.Failure<CreatorChallengeResponse>(CreatorErrors.IdempotencyKeyReused);
             }
         }
 
@@ -486,7 +497,7 @@ public sealed class ClaimChallengeCommandHandler
         var commit = await CreatorIdempotency.GuardAsync(
             key,
             token => _unitOfWork.SaveChangesAsync(token),
-            token => _enrollments.FindByClaimKeyAsync(key!, token),
+            token => _enrollments.FindByClaimKeyAsync(creator.Value.Id, key!, token),
             cancellationToken);
 
         if (commit.IsFailure)
@@ -495,6 +506,11 @@ public sealed class ClaimChallengeCommandHandler
         }
 
         var rendered = commit.Value.Replayed ?? enrollment;
+
+        if (rendered.ChallengeId != challenge.Id)
+        {
+            return Result.Failure<CreatorChallengeResponse>(CreatorErrors.IdempotencyKeyReused);
+        }
 
         return Result.Success(challenge.ToResponse(rendered, false, null, now));
     }

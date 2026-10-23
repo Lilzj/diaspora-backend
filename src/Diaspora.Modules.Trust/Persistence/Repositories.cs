@@ -140,6 +140,13 @@ public interface IReputationProfileRepository
         string? countryCode = null,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Whether this member has already been awarded for <paramref name="key"/> — including an
+    /// award staged earlier in this same unit of work and not yet saved.
+    /// </summary>
+    Task<bool> HasAwardAsync(
+        UserId userId, ReputationAwardKey key, CancellationToken cancellationToken = default);
+
     Task AddAsync(ReputationProfile profile, CancellationToken cancellationToken = default);
 }
 

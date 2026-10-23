@@ -57,10 +57,10 @@ public sealed class VerificationGrantApplier
     /// compliance team" would be a lie about who looked at their documents.
     /// </para>
     /// <para>
-    /// <b>The award is applied here and nowhere else for these types.</b> A second producer for
-    /// the same action is a second payment — <c>ScoreAsync</c> does not deduplicate on source, so
-    /// a consumer that also pays on approval doubles it. Two such consumers were written and
-    /// removed; see the header of <c>ReputationAwardConsumers.cs</c>.
+    /// <b>The award is applied here and nowhere else for these types.</b> The award is keyed on the
+    /// verification id, so applying the same approval twice pays once — but a second producer
+    /// that keyed the same approval some other way would still be a second payment. Two such
+    /// consumers were written and removed; see the header of <c>ReputationAwardConsumers.cs</c>.
     /// </para>
     /// </summary>
     public async Task<TrustProfile> ApplyApprovalAsync(
@@ -83,6 +83,7 @@ public sealed class VerificationGrantApplier
             await _reputation.ApplyAwardAsync(
                 verification.UserId,
                 award,
+                ReputationAwardKey.Verification(award.ActionType, verification.Id.Value),
                 "verification",
                 verification.Id.Value.ToString(),
                 country,

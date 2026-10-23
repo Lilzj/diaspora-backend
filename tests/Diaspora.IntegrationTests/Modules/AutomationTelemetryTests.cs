@@ -492,14 +492,20 @@ public sealed class AutomationTelemetryTests : IdentityTestBase
         result.Results.Should().OnlyContain(
             entry => entry.Reason == "analytics.ingest.event-unknown");
 
-        observed.Should().NotBeEmpty("the counters were exercised, so the assertion below means something");
+        // Asserted on this test's own names, never on everything the meter saw. The meter is
+        // process-wide and the suite runs its collections in parallel, each with its own host, so
+        // another test's legitimate "content.viewed" can land in `observed` while this listener is
+        // open. Written as "only 'unregistered' was observed", this failed now and then in full
+        // runs for exactly that reason. Neither assertion below can be disturbed by another test:
+        // nobody else can produce these GUID names, and other measurements only ever add to the
+        // count, never subtract from it.
+        observed.Should().NotIntersectWith(
+            invented,
+            "a caller must not be able to grow the metric's dimension by choosing strings");
 
-        observed.Should().OnlyContain(
-            value => value == "unregistered",
-            "every unrecognised name collapses into one bucket; a caller must not be able to grow "
-            + "the metric's dimension by choosing strings");
-
-        observed.Should().NotIntersectWith(invented);
+        observed.Count(value => value == "unregistered").Should().BeGreaterThanOrEqualTo(
+            invented.Length,
+            "every invented name was counted, and counted under the one 'unregistered' bucket");
     }
 
     // ════════════════════════════════════════════════════════════════════════════════════════

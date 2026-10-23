@@ -39,6 +39,12 @@ public sealed class ReputationEvent : Entity<ReputationEventId>
 
     public string? Description { get; private set; }
 
+    /// <summary>
+    /// Which business fact this award was for — see <see cref="ReputationAwardKey"/>. Unique per
+    /// profile. Null on rows written before awards were keyed, and only on those.
+    /// </summary>
+    public string? AwardKey { get; private set; }
+
     public DateTimeOffset CreatedAt { get; private set; }
 
     private ReputationEvent() { }
@@ -67,7 +73,8 @@ public sealed class ReputationEvent : Entity<ReputationEventId>
         string? sourceId,
         string? countryCode,
         string? description,
-        DateTimeOffset createdAt)
+        DateTimeOffset createdAt,
+        ReputationAwardKey? awardKey = null)
     {
         ArgumentNullException.ThrowIfNull(profileId);
 
@@ -82,7 +89,10 @@ public sealed class ReputationEvent : Entity<ReputationEventId>
             CountryCode = string.IsNullOrWhiteSpace(countryCode)
                 ? null
                 : countryCode.Trim().ToUpperInvariant(),
-            Description = Truncate(description, MaxDescriptionLength)
+            Description = Truncate(description, MaxDescriptionLength),
+
+            // Never truncated: a shortened key is a different key. The factory already bounds it.
+            AwardKey = awardKey?.Value
         };
     }
 

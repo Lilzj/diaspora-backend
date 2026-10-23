@@ -121,6 +121,8 @@ public static class FinancialErrorCodes
     public const string RewardDailyLimitReached = "financial.rewards.daily_limit_reached";
     public const string RewardNotEligible = "financial.rewards.not_eligible";
     public const string RewardConversionNotSupported = "financial.rewards.conversion_not_supported";
+    public const string RewardCurrencyNotOffered = "financial.rewards.currency_not_offered";
+    public const string RewardCurrencyRequired = "financial.rewards.currency_required";
     public const string RewardGrantDuplicate = "financial.rewards.grant_duplicate";
 
     // ── Policy ───────────────────────────────────────────────────────────────────────────────

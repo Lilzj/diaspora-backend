@@ -43,8 +43,9 @@ namespace Diaspora.Modules.Trust.Application.Consumers;
 //     20 Oct 2026, `EmailVerificationMirrorConsumer` submits an Email verification that
 //     auto-approves, so the award is `EmailVerificationHandler.ApprovalAward`, paid once by the
 //     approval. A consumer here that also scored it would be the fourth duplicate producer.
-//   * `ProfileCompleted`, `ProfilePhotoAdded` — Identity publishes three integration events and
-//     none of them is a profile change.
+//   * `ProfileCompleted` — Identity publishes no profile-completeness event.
+//   * `ProfilePhotoAdded` — Identity now publishes `UserAvatarChangedIntegrationEvent`, so this one
+//     is wiring rather than a missing producer (gap matrix REP-13). Not wired yet.
 //   * `UpdateVerified` — `CommunityPostVerificationChangedIntegrationEvent` carries the post and
 //     its confirmation counts, and not the author. Trust cannot look that up; it is Community's
 //     data. Paying it needs one field added to that contract.
@@ -68,8 +69,11 @@ namespace Diaspora.Modules.Trust.Application.Consumers;
 // been paid twice has still been paid: only counting the rows found it. A country approval
 // produced two CountryVerified events, 30 points each, against one verification id.
 //
-// `ScoreAsync` does not deduplicate on source. Two producers for one action means two payments,
-// so before adding a consumer here, check `VerificationTypeHandlers.cs` for the same action.
+// `ScoreAsync` now deduplicates on a `ReputationAwardKey`, which every caller must supply: a
+// redelivered event, a retried message or a vote flipped back pays once. That does not make a
+// second *producer* safe — two producers that name the same fact differently (a verification id
+// here, an event id there) are two keys and two payments. Before adding a consumer here, check
+// `VerificationTypeHandlers.cs` for the same action.
 //
 // The reason production showed nothing despite an approved verification is narrower than it
 // looked: that account was approved by hand in SQL during the admin bootstrap, so
@@ -100,6 +104,14 @@ public sealed class GuideReputationConsumer
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
 
+        // Guides raises this on every publish, new versions included. Only the first is a new
+        // guide. The award key alone would catch republishing too, but not for a guide first
+        // published before awards were keyed — its original row carries no key to find.
+        if (!integrationEvent.IsFirstPublication)
+        {
+            return;
+        }
+
         var authorId = UserId.From(integrationEvent.AuthorId);
 
         await _provisioner.GetOrCreateBothAsync(authorId, cancellationToken);
@@ -107,6 +119,7 @@ public sealed class GuideReputationConsumer
         await _reputation.ScoreAsync(
             authorId,
             ReputationActions.GuidePublished,
+            ReputationAwardKey.GuidePublished(integrationEvent.GuideId),
             "guide",
             integrationEvent.GuideId.ToString(),
             integrationEvent.CountryCode,
@@ -157,6 +170,7 @@ public sealed class GuideUpdatedReputationConsumer
         await _reputation.ScoreAsync(
             authorId,
             ReputationActions.GuideUpdated,
+            ReputationAwardKey.GuideUpdated(integrationEvent.EventId),
             "guide",
             integrationEvent.GuideId.ToString(),
             cancellationToken: cancellationToken);
@@ -169,8 +183,8 @@ public sealed class GuideUpdatedReputationConsumer
 /// Pays an author when their guide is verified.
 /// <para>
 /// The event fires on every change of verification state, including losing it. Only a move into
-/// a verified state pays, and the rule's single-occurrence cap means a guide that flickers does
-/// not pay twice.
+/// a verified state pays, and the award key — one per guide — means a guide that flickers does
+/// not pay twice. (This comment used to credit a single-occurrence cap the rule never had.)
 /// </para>
 /// </summary>
 public sealed class GuideVerifiedReputationConsumer
@@ -210,6 +224,7 @@ public sealed class GuideVerifiedReputationConsumer
         await _reputation.ScoreAsync(
             authorId,
             ReputationActions.GuideApproved,
+            ReputationAwardKey.GuideApproved(integrationEvent.GuideId),
             "guide",
             integrationEvent.GuideId.ToString(),
             cancellationToken: cancellationToken);
@@ -224,6 +239,11 @@ public sealed class GuideVerifiedReputationConsumer
 /// <b>The author, never the voter.</b> The event names both, and paying the wrong one would turn
 /// a quality signal into a way to farm points by voting. A vote that is not helpful pays nobody,
 /// and a member cannot pay themselves.
+/// </para>
+/// <para>
+/// The event also fires when a vote is <em>changed</em>, so Helpful → Not helpful → Helpful used to
+/// pay twice. The award is keyed on voter and guide: one voter's helpful vote on one guide pays
+/// once, however often it is cast.
 /// </para>
 /// </summary>
 public sealed class GuideVoteReputationConsumer
@@ -264,6 +284,7 @@ public sealed class GuideVoteReputationConsumer
         await _reputation.ScoreAsync(
             authorId,
             ReputationActions.HelpfulVoteReceived,
+            ReputationAwardKey.HelpfulVote(integrationEvent.GuideId, integrationEvent.VoterUserId),
             "guide",
             integrationEvent.GuideId.ToString(),
             cancellationToken: cancellationToken);
@@ -302,6 +323,7 @@ public sealed class CommunityPostReputationConsumer
         await _reputation.ScoreAsync(
             authorId,
             ReputationActions.UpdatePublished,
+            ReputationAwardKey.CommunityPost(integrationEvent.PostId),
             "post",
             integrationEvent.PostId.ToString(),
             integrationEvent.CountryCode,
@@ -347,6 +369,7 @@ public sealed class CommunityCommentReputationConsumer
         await _reputation.ScoreAsync(
             authorId,
             ReputationActions.CommentWritten,
+            ReputationAwardKey.Comment(integrationEvent.CommentId),
             "comment",
             integrationEvent.CommentId.ToString(),
             cancellationToken: cancellationToken);

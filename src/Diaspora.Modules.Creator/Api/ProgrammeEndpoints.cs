@@ -502,7 +502,40 @@ internal static class RewardEndpoints
             .WithName("RedeemCreatorReward")
             .WithSummary(
                 "Redeems a reward. The price is the catalogue's; the request carries no points "
-                + "figure at all.");
+                + "figure at all. The redemption is Pending until staff fulfil or reject it.");
+
+        group.MapGet("/redemptions", async (
+                [FromQuery] string? state,
+                [FromQuery] int? take,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new ListRedemptionsForReviewQuery { State = state, Take = take },
+                        cancellationToken)))
+            .WithName("ListCreatorRedemptionsForReview")
+            .WithSummary(
+                "The fulfilment queue, oldest first. Pending unless a state (or 'all') is given. "
+                + "Reward managers only.");
+
+        group.MapPost("/redemptions/{redemptionId:guid}/decide", async (
+                Guid redemptionId,
+                DecideRedemptionRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new DecideRedemptionCommand { RedemptionId = redemptionId, Request = request },
+                        cancellationToken)))
+            .WithName("DecideCreatorRedemption")
+            .WithSummary(
+                "Fulfils a pending redemption with what was issued, or rejects it with a reason and "
+                + "refunds the points in the same transaction. Reward managers only, never on their "
+                + "own redemption.");
 
         group.MapGet("/signup-bonus/me", async (
                 ISender sender, HttpContext context, CancellationToken cancellationToken) =>

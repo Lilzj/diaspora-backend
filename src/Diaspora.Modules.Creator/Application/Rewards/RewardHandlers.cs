@@ -136,11 +136,11 @@ public sealed class AcknowledgeSignupBonusCommandHandler
         }
 
         var key = CreatorIdempotency.Normalise(
-            Operation, command.IdempotencyKeyHeader, command.Request?.IdempotencyKey);
+            Operation, creator.Value.UserId, command.IdempotencyKeyHeader, command.Request?.IdempotencyKey);
 
         if (key is not null)
         {
-            var replayed = await _bonuses.FindByAcknowledgeKeyAsync(key, cancellationToken);
+            var replayed = await _bonuses.FindByAcknowledgeKeyAsync(creator.Value.Id, key, cancellationToken);
 
             if (replayed is not null)
             {
@@ -180,7 +180,7 @@ public sealed class AcknowledgeSignupBonusCommandHandler
         var commit = await CreatorIdempotency.GuardAsync(
             key,
             token => _unitOfWork.SaveChangesAsync(token),
-            token => _bonuses.FindByAcknowledgeKeyAsync(key!, token),
+            token => _bonuses.FindByAcknowledgeKeyAsync(creator.Value.Id, key!, token),
             cancellationToken);
 
         if (commit.IsFailure)
@@ -543,15 +543,19 @@ public sealed class RedeemRewardCommandHandler
         }
 
         var key = CreatorIdempotency.Normalise(
-            Operation, command.IdempotencyKeyHeader, command.Request.IdempotencyKey);
+            Operation, creator.Value.UserId, command.IdempotencyKeyHeader, command.Request.IdempotencyKey);
 
         if (key is not null)
         {
-            var replayed = await _rewards.FindByIdempotencyKeyAsync(key, cancellationToken);
+            var replayed = await _rewards.FindByIdempotencyKeyAsync(creator.Value.Id, key, cancellationToken);
 
             if (replayed is not null)
             {
-                return Result.Success(replayed.ToResponse());
+                // The same key for a different reward is a client bug, not a retry. Replaying the
+                // first redemption would tell the member they got something they did not ask for.
+                return replayed.RewardId == CreatorRewardId.From(command.Request.RewardId)
+                    ? Result.Success(replayed.ToResponse())
+                    : Result.Failure<CreatorRewardRedemptionResponse>(CreatorErrors.IdempotencyKeyReused);
             }
         }
 
@@ -625,18 +629,21 @@ public sealed class RedeemRewardCommandHandler
         var redemption = CreatorRewardRedemption.Open(
             redemptionId, reward, creator.Value.Id, creator.Value.UserId, debitReference, key, now);
 
-        // What the platform issues for a reward is the reward's own business. Today every seeded
-        // reward is an entitlement the grant reference names; a reward whose fulfilment needs another
-        // module's act would be Pending here until that module answered.
-        redemption.Fulfil($"{reward.GrantKind ?? "entitlement"}:{reward.Key}", now);
-
+        // Pending, and left Pending. This used to call Fulfil at once with a grant reference built
+        // from the reward's own key — "placement:featured-guide-slot" — and nothing anywhere issued a
+        // placement, a badge or a session against it. Members spent points and were told they had
+        // been given something they never received. A redemption is now fulfilled, or rejected and
+        // refunded, by a person: DecideRedemptionCommand. The points are spent now, exactly as before.
         _rewards.AddRedemption(redemption);
 
+        // In a transaction: a violation here aborts it, so the guard rethrows rather than looking
+        // up — the client's retry replays from the pre-check above.
         var commit = await CreatorIdempotency.GuardAsync(
             key,
             token => _unitOfWork.SaveChangesAsync(token),
-            token => _rewards.FindByIdempotencyKeyAsync(key!, token),
-            cancellationToken);
+            token => _rewards.FindByIdempotencyKeyAsync(creator.Value.Id, key!, token),
+            cancellationToken,
+            inTransaction: true);
 
         if (commit.IsFailure)
         {

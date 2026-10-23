@@ -98,6 +98,17 @@ public sealed class CreatorPermissionContributor : IPermissionContributor
             MinimumTier = AccessTier.Limited,
             Roles = AdministratorRoles()
         };
+
+        // Administrators, like the catalogue: rejecting a redemption hands points back, which is a
+        // decision about value rather than about content.
+        yield return new PermissionDefinition(
+            CreatorPermissions.RewardsManage,
+            Module,
+            "Fulfil a redeemed reward, or reject it and refund the member's points.")
+        {
+            MinimumTier = AccessTier.Limited,
+            Roles = AdministratorRoles()
+        };
     }
 
     /// <summary>

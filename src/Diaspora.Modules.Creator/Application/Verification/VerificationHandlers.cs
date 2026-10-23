@@ -436,11 +436,11 @@ public sealed class SubmitCreatorVerificationCommandHandler
         var requirements = await _requirements.EvaluateAsync(creator.Value, cancellationToken);
 
         var key = CreatorIdempotency.Normalise(
-            Operation, command.IdempotencyKeyHeader, command.Request.IdempotencyKey);
+            Operation, creator.Value.UserId, command.IdempotencyKeyHeader, command.Request.IdempotencyKey);
 
         if (key is not null)
         {
-            var replayed = await _applications.FindByIdempotencyKeyAsync(key, cancellationToken);
+            var replayed = await _applications.FindByIdempotencyKeyAsync(creator.Value.Id, key, cancellationToken);
 
             if (replayed is not null)
             {
@@ -491,7 +491,7 @@ public sealed class SubmitCreatorVerificationCommandHandler
         var commit = await CreatorIdempotency.GuardAsync(
             key,
             token => _unitOfWork.SaveChangesAsync(token),
-            token => _applications.FindByIdempotencyKeyAsync(key!, token),
+            token => _applications.FindByIdempotencyKeyAsync(creator.Value.Id, key!, token),
             cancellationToken);
 
         if (commit.IsFailure)

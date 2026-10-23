@@ -109,7 +109,7 @@ internal static class RewardEndpoints
                             Points = request.Points,
                             Currency = request.Currency,
                             CountryCode = request.CountryCode,
-                            IdempotencyKey = request.IdempotencyKey
+                            IdempotencyKey = IdempotencyHeader.Resolve(context, request.IdempotencyKey)
                         },
                         cancellationToken)))
             .WithName("ConvertRewardPoints")

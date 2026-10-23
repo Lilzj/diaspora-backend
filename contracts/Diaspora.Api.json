@@ -15856,13 +15856,81 @@
         "tags": [
           "Creator Rewards"
         ],
-        "summary": "Redeems a reward. The price is the catalogue's; the request carries no points figure at all.",
+        "summary": "Redeems a reward. The price is the catalogue's; the request carries no points figure at all. The redemption is Pending until staff fulfil or reject it.",
         "operationId": "RedeemCreatorReward",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/RedeemRewardRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Creator Rewards"
+        ],
+        "summary": "The fulfilment queue, oldest first. Pending unless a state (or 'all') is given. Reward managers only.",
+        "operationId": "ListCreatorRedemptionsForReview",
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "take",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/rewards/redemptions/{redemptionId}/decide": {
+      "post": {
+        "tags": [
+          "Creator Rewards"
+        ],
+        "summary": "Fulfils a pending redemption with what was issued, or rejects it with a reason and refunds the points in the same transaction. Reward managers only, never on their own redemption.",
+        "operationId": "DecideCreatorRedemption",
+        "parameters": [
+          {
+            "name": "redemptionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecideRedemptionRequest"
               }
             }
           },
@@ -37447,6 +37515,7 @@
           "Trust"
         ],
         "summary": "Confirm the accuracy of another member's contribution.",
+        "description": "Records the confirmation and moves the target's tally. Deprecated as a scoring path: pointsAwarded is always 0, because the target and its author are not verified here. Confirmations earn the author reputation through a corroborating reaction on the content instead.",
         "operationId": "RecordConfirmation",
         "requestBody": {
           "content": {
@@ -41153,8 +41222,7 @@
       },
       "ConvertRewardPointsRequest": {
         "required": [
-          "points",
-          "currency"
+          "points"
         ],
         "type": "object",
         "properties": {
@@ -41167,7 +41235,10 @@
             "format": "int64"
           },
           "currency": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "countryCode": {
             "type": [
@@ -44737,6 +44808,29 @@
             "type": "string"
           },
           "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "DecideRedemptionRequest": {
+        "required": [
+          "action"
+        ],
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "grantReference": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reason": {
             "type": [
               "null",
               "string"

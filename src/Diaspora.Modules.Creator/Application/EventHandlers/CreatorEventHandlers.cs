@@ -21,10 +21,18 @@ namespace Diaspora.Modules.Creator.Application.EventHandlers;
 /// class means the two never drift.
 /// </para>
 /// <para>
-/// <b>A publish failure never fails the write.</b> The aggregate is already saved by the time a
-/// domain event handler runs; throwing here would roll back a completed decision because a
-/// notification did not go out. Failures are logged, and at-least-once delivery is the contract —
-/// consumers de-duplicate on <c>EventId</c>.
+/// <b>A publish failure does not fail the write — with one exception.</b> Domain event handlers run
+/// after the aggregate's SQL is flushed but <em>before commit</em>, in the same transaction
+/// (<c>DiasporaDbContext.SaveAndDispatchAsync</c>), so throwing here rolls the write back. For an
+/// announcement — a status changed, an application decided — that is the wrong trade: the decision
+/// stands and a lost notification is logged. Failures there are swallowed; cancellation is not.
+/// </para>
+/// <para>
+/// <b>The exception is a points grant.</b> There the announcement <em>is</em> the payment: Financial
+/// credits the member only from <see cref="RewardPointsGrantedIntegrationEvent"/>. Swallowing a
+/// failed publish committed the claim as Claimed with no grant behind it — the member was told they
+/// were paid, never were, and every retry replayed "Claimed". A grant that cannot be enqueued now
+/// fails the claim, which rolls back and can be retried.
 /// </para>
 /// <para>
 /// <b>Everything goes through <see cref="IIntegrationEventPublisher"/>.</b> Its only implementation
@@ -207,7 +215,9 @@ public sealed class CreatorIntegrationEventRelay
     {
         ArgumentNullException.ThrowIfNull(domainEvent);
 
-        return PublishSafelyAsync(
+        // Not PublishSafelyAsync. A grant that is not enqueued is a payment that never happens,
+        // so the failure must reach the save and roll the claim back with it. See the summary.
+        return _publisher.PublishAsync(
             new RewardPointsGrantedIntegrationEvent
             {
                 MemberUserId = domainEvent.UserId,
@@ -227,8 +237,10 @@ public sealed class CreatorIntegrationEventRelay
         {
             await _publisher.PublishAsync(integrationEvent, cancellationToken);
         }
+        // Cancellation is the caller giving up, not a failed announcement: it must still unwind the
+        // request. Every other module's relay already carved it out; this one swallowed it.
 #pragma warning disable CA1031 // A publish failure must not roll back a decision that already landed.
-        catch (Exception exception)
+        catch (Exception exception) when (exception is not OperationCanceledException)
 #pragma warning restore CA1031
         {
             _logger.LogError(

@@ -43,16 +43,24 @@ public sealed class ReputationService
     /// comment still posts, it simply stops earning — and a caller should not have to catch
     /// an exception to express that.
     /// </para>
+    /// <para>
+    /// <paramref name="key"/> has no default on purpose. Every caller must say which business
+    /// fact it is paying for, and a fact already paid is skipped before any cap is consulted.
+    /// The unique index on <c>(ProfileId, AwardKey)</c> backs this when two deliveries race: the
+    /// loser's save throws, the outbox retries it, and the retry lands here and is skipped.
+    /// </para>
     /// </summary>
     public async Task<ScoringOutcome> ScoreAsync(
         UserId userId,
         string actionType,
+        ReputationAwardKey key,
         string? sourceType = null,
         string? sourceId = null,
         string? countryCode = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(userId);
+        ArgumentNullException.ThrowIfNull(key);
 
         var rule = _rules.For(actionType);
         if (rule is null)
@@ -60,6 +68,11 @@ public sealed class ReputationService
             // An unknown action is a caller bug, but not one worth failing a request over —
             // the member's comment should still post if Trust does not recognise the action.
             return ScoringOutcome.Skipped(actionType, "No active scoring rule for this action.");
+        }
+
+        if (await _reputations.HasAwardAsync(userId, key, cancellationToken))
+        {
+            return ScoringOutcome.Skipped(actionType, "Already awarded for this.");
         }
 
         var now = _clock.UtcNow;
@@ -100,7 +113,7 @@ public sealed class ReputationService
         }
 
         var recorded = reputation.Apply(
-            rule.ToAward(), sourceType, sourceId, countryCode, now);
+            rule.ToAward(), sourceType, sourceId, countryCode, now, key);
 
         // Country-scoped rules also move the member's standing in that community, which is
         // what the per-country reputation the trust centre renders is built from.
@@ -120,6 +133,7 @@ public sealed class ReputationService
     public async Task<ScoringOutcome> ApplyAwardAsync(
         UserId userId,
         ReputationAward award,
+        ReputationAwardKey key,
         string? sourceType = null,
         string? sourceId = null,
         string? countryCode = null,
@@ -127,13 +141,19 @@ public sealed class ReputationService
     {
         ArgumentNullException.ThrowIfNull(userId);
         ArgumentNullException.ThrowIfNull(award);
+        ArgumentNullException.ThrowIfNull(key);
 
         // Route through the rule when one exists, so caps still apply — verifying the same
         // country twice should not pay twice.
         if (_rules.For(award.ActionType) is not null)
         {
             return await ScoreAsync(
-                userId, award.ActionType, sourceType, sourceId, countryCode, cancellationToken);
+                userId, award.ActionType, key, sourceType, sourceId, countryCode, cancellationToken);
+        }
+
+        if (await _reputations.HasAwardAsync(userId, key, cancellationToken))
+        {
+            return ScoringOutcome.Skipped(award.ActionType, "Already awarded for this.");
         }
 
         var now = _clock.UtcNow;
@@ -145,7 +165,7 @@ public sealed class ReputationService
             await _reputations.AddAsync(reputation, cancellationToken);
         }
 
-        var recorded = reputation.Apply(award, sourceType, sourceId, countryCode, now);
+        var recorded = reputation.Apply(award, sourceType, sourceId, countryCode, now, key);
 
         return ScoringOutcome.Applied(award.ActionType, award.Points, award.Dimension, recorded.Id);
     }

@@ -104,6 +104,11 @@ public static class CreatorErrorCodes
     public const string RewardCooldown = Prefix + "reward.cooldown";
     public const string RewardVersionStale = Prefix + "reward.version-stale";
     public const string RewardPointsUnavailable = Prefix + "reward.points-unavailable";
+    public const string RedemptionNotFound = Prefix + "redemption.not-found";
+    public const string RedemptionAlreadyDecided = Prefix + "redemption.already-decided";
+    public const string RedemptionDecisionInvalid = Prefix + "redemption.decision-invalid";
+    public const string RedemptionRefundFailed = Prefix + "redemption.refund-failed";
+    public const string RedemptionStateUnknown = Prefix + "redemption.state-unknown";
 
     // ── Directory and leaderboard ───────────────────────────────────────────────────────────
 
@@ -117,4 +122,10 @@ public static class CreatorErrorCodes
     /// existing policy already treats it so.
     /// </summary>
     public const string IdempotencyKeyInFlight = Prefix + "idempotency.in-flight";
+
+    /// <summary>
+    /// The key was already used by this caller for a different target — another reward, milestone,
+    /// challenge or grant. Not retryable: the client reused a key it should not have.
+    /// </summary>
+    public const string IdempotencyKeyReused = Prefix + "idempotency.key-reused";
 }

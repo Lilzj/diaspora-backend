@@ -146,6 +146,7 @@ public sealed class CommunityCorroborationConsumer
         await _reputation.ScoreAsync(
             authorId,
             ReputationActions.CommunityConfirmation,
+            ReputationAwardKey.Confirmation(targetType, targetId, confirmerId.Value),
             targetType,
             targetId,
             integrationEvent.CountryCode,

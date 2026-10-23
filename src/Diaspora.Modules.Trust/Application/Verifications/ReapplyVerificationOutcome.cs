@@ -96,10 +96,11 @@ public sealed class ReapplyVerificationOutcomeCommandHandler
 
         var country = verification.TargetCountry ?? verification.ResidenceCountry;
 
-        // Already applied, so there is nothing to finish. Refused rather than repeated, because
-        // the award behind a country verification declares no MaxOccurrences: running this twice
-        // would pay for the same approval twice, which is the exact defect this module has
-        // produced three times already. See ReputationAwardConsumers.
+        // Already applied, so there is nothing to finish. Refused rather than repeated. Paying
+        // twice is now prevented twice over — CountryVerified is capped once per country, and the
+        // award is keyed on the verification id — but a repeat would still append a second grant
+        // and a second journey entry, which is the defect this module has produced three times
+        // already. See ReputationAwardConsumers.
         if (AlreadyApplied(profile, verification.Type, country))
         {
             // The standing half arrived; the account half may not have. Until 7 Oct 2026 an

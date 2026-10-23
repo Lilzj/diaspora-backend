@@ -22,7 +22,6 @@ public sealed class RewardQueryHandlers
     private readonly IRewardConversionRepository _conversions;
     private readonly RewardConversionPricer _pricer;
     private readonly FinancialAuthorizationService _authorization;
-    private readonly MemberCurrency _memberCurrency;
     private readonly IClock _clock;
 
     public RewardQueryHandlers(
@@ -30,14 +29,12 @@ public sealed class RewardQueryHandlers
         IRewardConversionRepository conversions,
         RewardConversionPricer pricer,
         FinancialAuthorizationService authorization,
-        MemberCurrency memberCurrency,
         IClock clock)
     {
         _accounts = accounts;
         _conversions = conversions;
         _pricer = pricer;
         _authorization = authorization;
-        _memberCurrency = memberCurrency;
         _clock = clock;
     }
 
@@ -113,18 +110,13 @@ public sealed class RewardQueryHandlers
             return Result.Failure<RewardConversionTermsResponse>(caller.Error);
         }
 
-        var terms = await _pricer.TermsAsync(
-            caller.Value,
-            query.Currency ?? await _memberCurrency.ForMemberAsync(caller.Value, cancellationToken),
-            query.CountryCode,
-            cancellationToken);
+        // The pricer falls back to the member's own currency when no rate names one.
+        var terms = await _pricer.TermsAsync(caller.Value, query.Currency, cancellationToken);
 
         return Result.Success(new RewardConversionTermsResponse
         {
             IsEnabled = terms.IsEnabled,
-            DisabledReason = terms.IsEnabled
-                ? null
-                : FinancialErrorCodes.RewardConversionNotSupported,
+            DisabledReason = terms.DisabledCode,
             Currency = terms.Currency,
             MinorUnitsPerPoint = terms.MinorUnitsPerPoint,
             MinimumPoints = terms.MinimumPoints,
@@ -147,17 +139,19 @@ public sealed class RewardQueryHandlers
             return Result.Failure<RewardConversionPreviewResponse>(caller.Error);
         }
 
-        var terms = await _pricer.TermsAsync(
-            caller.Value, query.Currency, query.CountryCode, cancellationToken);
+        var terms = await _pricer.TermsAsync(caller.Value, query.Currency, cancellationToken);
 
         var account = await _accounts.FindByMemberAsync(caller.Value, cancellationToken);
-        var quote = RewardConversionPricer.Quote(terms, query.Points, account?.Balance ?? 0);
+        var quote = RewardConversionPricer.Quote(
+            terms, query.Points, account?.Balance ?? 0,
+            ConvertRewardPointsCommandHandler.BlockedReason(account));
 
         // A refusal is rendered rather than thrown: a member asked to convert two points when the
         // minimum is five should be told that, not shown an error.
         return Result.Success(new RewardConversionPreviewResponse
         {
             Points = quote.Points,
+            PointsConsumed = quote.PointsConsumed,
             Credit = FinancialMapper.ToResponse(quote.Credit, terms.Symbol),
             MinorUnitsPerPoint = quote.MinorUnitsPerPoint,
             IsPermitted = quote.IsPermitted,
