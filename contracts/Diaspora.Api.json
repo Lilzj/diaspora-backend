@@ -45960,7 +45960,8 @@
           "userId",
           "points",
           "source",
-          "grantReference"
+          "grantReference",
+          "reason"
         ],
         "type": "object",
         "properties": {
@@ -45980,6 +45981,9 @@
             "type": "string"
           },
           "grantReference": {
+            "type": "string"
+          },
+          "reason": {
             "type": "string"
           }
         }

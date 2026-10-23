@@ -91,6 +91,21 @@ public sealed class RewardAccount : AggregateRoot<RewardAccountId>, IAuditableEn
     }
 
     /// <summary>
+    /// Whether points were already awarded against this grant reference. A staff grant asks before
+    /// applying its limits, so a retried grant replays instead of being refused as over the limit
+    /// it already counts toward.
+    /// </summary>
+    public bool HasGranted(string grantReference)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(grantReference);
+
+        var reference = grantReference.Trim();
+
+        return _entries.Exists(entry =>
+            string.Equals(entry.Reference, reference, StringComparison.Ordinal));
+    }
+
+    /// <summary>
     /// Records points earned.
     /// <para>
     /// <b>The grant reference is the anti-double-award barrier and it is checked here as well as at
@@ -100,20 +115,26 @@ public sealed class RewardAccount : AggregateRoot<RewardAccountId>, IAuditableEn
     /// </para>
     /// </summary>
     public bool Grant(
-        Guid entryId, long points, string source, string grantReference, DateTimeOffset now)
+        Guid entryId,
+        long points,
+        string source,
+        string grantReference,
+        DateTimeOffset now,
+        Guid? grantedByUserId = null,
+        string? reason = null)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(points);
         ArgumentException.ThrowIfNullOrWhiteSpace(grantReference);
 
         var reference = grantReference.Trim();
 
-        if (_entries.Exists(entry =>
-            string.Equals(entry.Reference, reference, StringComparison.Ordinal)))
+        if (HasGranted(reference))
         {
             return false;
         }
 
-        _entries.Add(RewardEntry.Earned(entryId, points, source, reference, now));
+        _entries.Add(RewardEntry.Earned(
+            entryId, points, source, reference, now, grantedByUserId, reason));
         Balance += points;
         LifetimeEarned += points;
         Touch(now);

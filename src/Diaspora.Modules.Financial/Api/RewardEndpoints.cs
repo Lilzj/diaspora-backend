@@ -148,7 +148,8 @@ internal static class RewardEndpoints
                             UserId = request.UserId,
                             Points = request.Points,
                             Source = request.Source,
-                            GrantReference = request.GrantReference
+                            GrantReference = request.GrantReference,
+                            Reason = request.Reason
                         },
                         cancellationToken)))
             .WithName("GrantRewardPoints")

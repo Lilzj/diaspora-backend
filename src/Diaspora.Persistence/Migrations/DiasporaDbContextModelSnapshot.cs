@@ -23585,6 +23585,9 @@ namespace Diaspora.Persistence.Migrations
                             b1.Property<Guid>("EntryId")
                                 .HasColumnType("uuid");
 
+                            b1.Property<Guid?>("GrantedByUserId")
+                                .HasColumnType("uuid");
+
                             b1.Property<bool>("IsConversion")
                                 .HasColumnType("boolean");
 
@@ -23596,6 +23599,10 @@ namespace Diaspora.Persistence.Migrations
 
                             b1.Property<long>("Points")
                                 .HasColumnType("bigint");
+
+                            b1.Property<string>("Reason")
+                                .HasMaxLength(512)
+                                .HasColumnType("character varying(512)");
 
                             b1.Property<string>("Reference")
                                 .IsRequired()
@@ -23611,6 +23618,9 @@ namespace Diaspora.Persistence.Migrations
                                 .HasColumnType("character varying(64)");
 
                             b1.HasKey("EntryId");
+
+                            b1.HasIndex("GrantedByUserId", "OccurredAt")
+                                .HasDatabaseName("ix_financial_reward_entries_grantor");
 
                             b1.HasIndex("RewardAccountId", "Reference")
                                 .IsUnique()

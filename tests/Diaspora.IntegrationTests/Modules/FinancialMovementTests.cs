@@ -1410,6 +1410,96 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         }
     }
 
+    // ── Staff grants: a reason, and the reward.grant policy's limits ────────────────────────
+    //
+    // The one route that creates points with no earning behind them had no upper bound and asked
+    // nothing about why. These run against the shipped policy: 1,000 points a grant, 5,000 a day for
+    // one staff member.
+
+    /// <summary>A grant must say why; a blank reason is refused before anything is awarded.</summary>
+    [Fact]
+    public async Task A_staff_grant_without_a_reason_is_refused()
+    {
+        var member = await AuthenticateAsync();
+
+        await SignInAsRoleAsync("Admin");
+
+        var response = await PostGrantAsync(member, 100, "grant:" + Guid.NewGuid().ToString("N"), reason: "  ");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest, await response.Content.ReadAsStringAsync());
+        (await BalanceOfAsync(member)).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task A_staff_grant_above_the_per_grant_maximum_is_refused()
+    {
+        var member = await AuthenticateAsync();
+
+        await SignInAsRoleAsync("Admin");
+
+        var response = await PostGrantAsync(member, 1_001, "grant:" + Guid.NewGuid().ToString("N"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict, await response.Content.ReadAsStringAsync());
+        (await CodeAsync(response)).Should().Be(FinancialErrorCodes.RewardGrantAboveMaximum);
+        (await BalanceOfAsync(member)).Should().Be(0);
+    }
+
+    /// <summary>
+    /// The ceiling is the grantor's, not the member's: one staff account is what it bounds. A retry
+    /// of a grant that already landed still replays at the ceiling, and another staff member can
+    /// still grant.
+    /// </summary>
+    [Fact]
+    public async Task One_staff_member_cannot_grant_past_the_daily_maximum()
+    {
+        var member = await AuthenticateAsync();
+
+        await SignInAsRoleAsync("Admin");
+
+        var references = Enumerable.Range(0, 5).Select(_ => "grant:" + Guid.NewGuid().ToString("N")).ToList();
+
+        foreach (var reference in references)
+        {
+            (await PostGrantAsync(member, 1_000, reference)).StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        (await PostGrantAsync(member, 1_000, references[^1])).StatusCode.Should().Be(
+            HttpStatusCode.OK, "a retried grant replays; it is not a sixth grant");
+
+        var over = await PostGrantAsync(member, 1, "grant:" + Guid.NewGuid().ToString("N"));
+
+        over.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await CodeAsync(over)).Should().Be(FinancialErrorCodes.RewardGrantDailyLimitReached);
+        (await BalanceOfAsync(member)).Should().Be(5_000);
+
+        await SignInAsRoleAsync("Admin");
+
+        (await PostGrantAsync(member, 1, "grant:" + Guid.NewGuid().ToString("N"))).StatusCode
+            .Should().Be(HttpStatusCode.OK, "the ceiling is per grantor");
+    }
+
+    [Fact]
+    public async Task A_staff_grant_records_who_granted_it_and_why()
+    {
+        var member = await AuthenticateAsync();
+
+        var (admin, _) = await SignInAsRoleAsync("Admin");
+
+        (await PostGrantAsync(member, 100, "grant:" + Guid.NewGuid().ToString("N"), "Missed referral, ticket 4411"))
+            .StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var scope = Factory.Services.CreateScope();
+
+        var account = await scope.ServiceProvider
+            .GetRequiredService<IRewardAccountRepository>()
+            .FindByMemberAsync(member);
+
+        var entry = account!.Entries.Should().ContainSingle().Subject;
+
+        entry.GrantedByUserId.Should().Be(admin);
+        entry.Reason.Should().Be("Missed referral, ticket 4411");
+    }
+
     // ── The idempotency key: required, and each member's own ────────────────────────────────
 
     /// <summary>
@@ -2345,6 +2435,25 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
                 $"Member {userId} has no financial account, so there is no currency to convert "
                 + "into. AuthenticateAsync drains the outbox and activates the identity, so this "
                 + "means the account was never opened.");
+    }
+
+    /// <summary>A staff grant over HTTP, as whoever the client is signed in as.</summary>
+    private Task<HttpResponseMessage> PostGrantAsync(
+        Guid userId, long points, string reference, string? reason = "Integration suite: a missed earning.") =>
+        HttpClient.PostAsJsonAsync(
+            new Uri("/api/v1/financial/operations/rewards/grants", UriKind.Relative),
+            new { userId, points, source = "StaffAdjustment", grantReference = reference, reason });
+
+    /// <summary>A member's balance, read without signing in as them.</summary>
+    private async Task<long> BalanceOfAsync(Guid userId)
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        var standing = await scope.ServiceProvider
+            .GetRequiredService<IRewardAccountRepository>()
+            .FindStandingAsync(userId);
+
+        return standing?.Balance ?? 0;
     }
 
     private async Task<long> PointsAsync()

@@ -25,7 +25,9 @@ public sealed class RewardEntry : ValueObject
         bool isSpend,
         string source,
         string reference,
-        DateTimeOffset occurredAt)
+        DateTimeOffset occurredAt,
+        Guid? grantedByUserId = null,
+        string? reason = null)
     {
         EntryId = entryId;
         Points = points;
@@ -34,6 +36,8 @@ public sealed class RewardEntry : ValueObject
         Source = source;
         Reference = reference;
         OccurredAt = occurredAt;
+        GrantedByUserId = grantedByUserId;
+        Reason = reason;
     }
 
     private RewardEntry() { }
@@ -75,8 +79,27 @@ public sealed class RewardEntry : ValueObject
 
     public DateTimeOffset OccurredAt { get; private set; }
 
+    /// <summary>
+    /// The staff member who awarded these points by hand. Null for an earning a grantor's event
+    /// recognised, and for every debit.
+    /// <para>
+    /// Added additively: every existing row is an earning or a debit, and null is what those rows
+    /// mean. It is what the <c>reward.grant</c> policy's daily ceiling is counted against.
+    /// </para>
+    /// </summary>
+    public Guid? GrantedByUserId { get; private set; }
+
+    /// <summary>Why staff awarded these points. Required on a staff grant; null otherwise.</summary>
+    public string? Reason { get; private set; }
+
     public static RewardEntry Earned(
-        Guid entryId, long points, string source, string reference, DateTimeOffset occurredAt)
+        Guid entryId,
+        long points,
+        string source,
+        string reference,
+        DateTimeOffset occurredAt,
+        Guid? grantedByUserId = null,
+        string? reason = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(reference);
 
@@ -87,7 +110,9 @@ public sealed class RewardEntry : ValueObject
             isSpend: false,
             string.IsNullOrWhiteSpace(source) ? "Unspecified" : source.Trim(),
             reference.Trim(),
-            occurredAt);
+            occurredAt,
+            grantedByUserId,
+            string.IsNullOrWhiteSpace(reason) ? null : reason.Trim());
     }
 
     public static RewardEntry Converted(

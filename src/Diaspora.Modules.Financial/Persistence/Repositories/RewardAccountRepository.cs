@@ -70,4 +70,12 @@ public sealed class RewardAccountRepository : IRewardAccountRepository
 
         return row is null ? null : new RewardAccountStanding(row.Balance, row.IsConversionBlocked);
     }
+
+    public async Task<long> PointsGrantedBySinceAsync(
+        Guid grantorUserId, DateTimeOffset since, CancellationToken cancellationToken = default) =>
+        await _dbContext.Set<RewardAccount>()
+            .AsNoTracking()
+            .SelectMany(account => account.Entries)
+            .Where(entry => entry.GrantedByUserId == grantorUserId && entry.OccurredAt >= since)
+            .SumAsync(entry => entry.Points, cancellationToken);
 }

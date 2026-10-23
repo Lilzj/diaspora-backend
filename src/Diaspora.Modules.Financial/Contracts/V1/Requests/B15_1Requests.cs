@@ -182,7 +182,10 @@ public sealed record ConvertRewardPointsRequest
     public string? IdempotencyKey { get; init; }
 }
 
-/// <summary>Award points to a member. Staff, or an integration event from a grantor.</summary>
+/// <summary>
+/// Award points to a member by hand. Staff only, and bounded by the <c>reward.grant</c> policy: per
+/// grant, and per staff member per rolling day.
+/// </summary>
 public sealed record GrantRewardPointsRequest
 {
     public required Guid UserId { get; init; }
@@ -197,6 +200,9 @@ public sealed record GrantRewardPointsRequest
     /// grants carrying one reference award points once.
     /// </summary>
     public required string GrantReference { get; init; }
+
+    /// <summary>Why. Required, and stored on the grant with the staff member who made it.</summary>
+    public required string Reason { get; init; }
 }
 
 /// <summary>Change plan, mid-period.</summary>

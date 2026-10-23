@@ -44,6 +44,12 @@ public static class FinancialPolicyKeys
 
     /// <summary>What a reward point is worth, and how many may be converted.</summary>
     public const string RewardConversion = "reward.conversion";
+
+    /// <summary>
+    /// How many points one staff grant may award (<c>maximumPoints</c>), and how many one staff
+    /// member may award in a rolling day (<c>dailyMaximumPoints</c>).
+    /// </summary>
+    public const string RewardGrant = "reward.grant";
 }
 
 /// <summary>

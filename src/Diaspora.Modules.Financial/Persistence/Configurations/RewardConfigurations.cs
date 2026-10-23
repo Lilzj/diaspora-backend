@@ -52,6 +52,14 @@ public sealed class RewardAccountConfiguration : IEntityTypeConfiguration<Reward
                 .HasMaxLength(FinancialPersistenceConstants.ReferenceLength)
                 .IsRequired();
 
+            entry.Property(record => record.Reason)
+                .HasMaxLength(FinancialPersistenceConstants.ReasonLength);
+
+            // What the reward.grant policy's daily ceiling sums: one staff member's grants since a
+            // moment, without scanning every member's history.
+            entry.HasIndex(nameof(RewardEntry.GrantedByUserId), nameof(RewardEntry.OccurredAt))
+                .HasDatabaseName("ix_financial_reward_entries_grantor");
+
             // One grant reference per account, refused at the database. Two deliveries of one
             // integration event award points once even when they race each other.
             entry.HasIndex("RewardAccountId", nameof(RewardEntry.Reference))

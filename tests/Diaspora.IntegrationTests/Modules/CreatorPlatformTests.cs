@@ -1880,7 +1880,8 @@ public sealed class CreatorPlatformTests : IdentityTestBase
                 UserId = member.User.Id,
                 Points = 300,
                 Source = "Test",
-                GrantReference = $"test:{Guid.NewGuid():N}"
+                GrantReference = $"test:{Guid.NewGuid():N}",
+                Reason = "Integration suite: the badge's price."
             });
 
         var catalogue = await ReadDataAsync<RewardCatalogueDto>(
