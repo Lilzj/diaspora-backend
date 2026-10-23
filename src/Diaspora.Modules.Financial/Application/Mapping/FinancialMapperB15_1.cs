@@ -93,6 +93,30 @@ public static class FinancialMapperExtensions
             ResolvedAt = resolvedAt
         };
 
+    /// <summary>The staff view of a hold. An account that does not exist yet is simply not held.</summary>
+    public static RewardConversionHoldResponse ToHoldResponse(Guid userId, RewardAccount? account) =>
+        new()
+        {
+            UserId = userId,
+            IsHeld = account is { IsConversionBlocked: true },
+            Reason = account?.BlockReason,
+            Decisions = account is null
+                ? []
+                :
+                [
+                    .. account.HoldDecisions
+                        .OrderByDescending(decision => decision.DecidedAt)
+                        .ThenByDescending(decision => decision.DecisionId)
+                        .Select(decision => new RewardHoldDecisionResponse
+                        {
+                            IsHeld = decision.IsHeld,
+                            Reason = decision.Reason,
+                            DecidedByUserId = decision.DecidedByUserId,
+                            DecidedAt = decision.DecidedAt
+                        })
+                ]
+        };
+
     public static RewardEntryResponse ToResponse(RewardEntry entry)
     {
         ArgumentNullException.ThrowIfNull(entry);

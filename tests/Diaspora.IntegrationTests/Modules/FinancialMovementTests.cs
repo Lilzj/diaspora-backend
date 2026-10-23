@@ -1500,6 +1500,124 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         entry.Reason.Should().Be("Missed referral, ticket 4411");
     }
 
+    // ── Staff conversion holds: placed, lifted, and kept ───────────────────────────────────
+    //
+    // The account could be held and conversion honoured it, but nothing could place a hold. The
+    // platform's audit service writes a log line, so each decision is kept on the account.
+
+    /// <summary>
+    /// A staff hold stops conversion, and the member is told only that it is held: the operator's
+    /// note never reaches them.
+    /// </summary>
+    [Fact]
+    public async Task A_staff_hold_stops_conversion_and_the_member_sees_only_that_it_is_held()
+    {
+        var member = await AuthenticateAsync();
+        var memberToken = HttpClient.DefaultRequestHeaders.Authorization!.Parameter!;
+        var currency = await MemberCurrencyAsync(member);
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
+            await GrantPointsAsync(member, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
+
+            await SignInAsRoleAsync("Admin");
+
+            var held = await ReadDataAsync<HoldShape>(await PutHoldAsync(member, true, "Referral ring, case 77"));
+
+            held.IsHeld.Should().BeTrue();
+            held.Reason.Should().Be("Referral ring, case 77");
+
+            UseToken(memberToken);
+
+            (await MemberTermsAsync()).Member.Should().Be(new MemberStandingShape(
+                false, FinancialErrorCodes.RewardNotEligible, RewardConversionPricer.HeldMessage, null));
+
+            var refused = await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
+                new { points = 500L, idempotencyKey = Guid.NewGuid().ToString("N") });
+
+            (await CodeAsync(refused)).Should().Be(FinancialErrorCodes.RewardNotEligible);
+            (await refused.Content.ReadAsStringAsync()).Should().NotContain("case 77");
+            (await PointsAsync()).Should().Be(1_000);
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
+    /// <summary>Lifting the hold lets the member convert, and both decisions are kept with who and why.</summary>
+    [Fact]
+    public async Task Lifting_a_staff_hold_lets_the_member_convert_and_both_decisions_are_kept()
+    {
+        var member = await AuthenticateAsync();
+        var memberToken = HttpClient.DefaultRequestHeaders.Authorization!.Parameter!;
+        var currency = await MemberCurrencyAsync(member);
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
+            await GrantPointsAsync(member, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
+
+            var (admin, _) = await SignInAsRoleAsync("Admin");
+
+            await ReadDataAsync<HoldShape>(await PutHoldAsync(member, true, "Under review"));
+
+            var lifted = await ReadDataAsync<HoldShape>(await PutHoldAsync(member, false, "Review cleared"));
+
+            lifted.IsHeld.Should().BeFalse();
+            lifted.Reason.Should().BeNull();
+            lifted.Decisions.Select(decision => (decision.IsHeld, decision.Reason, decision.DecidedByUserId))
+                .Should().Equal((false, "Review cleared", admin), (true, "Under review", admin));
+
+            UseToken(memberToken);
+
+            var converted = await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
+                new { points = 500L, idempotencyKey = Guid.NewGuid().ToString("N") });
+
+            converted.StatusCode.Should().Be(HttpStatusCode.OK, await converted.Content.ReadAsStringAsync());
+            (await PointsAsync()).Should().Be(500);
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
+    [Fact]
+    public async Task A_staff_hold_without_a_reason_is_refused()
+    {
+        var member = await AuthenticateAsync();
+
+        await SignInAsRoleAsync("Admin");
+
+        var response = await PutHoldAsync(member, true, reason: " ");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest, await response.Content.ReadAsStringAsync());
+
+        using var scope = Factory.Services.CreateScope();
+
+        (await scope.ServiceProvider.GetRequiredService<IRewardAccountRepository>().FindStandingAsync(member))
+            .Should().BeNull("nothing was held, so no account was opened to hold");
+    }
+
+    /// <summary>Lifting a hold that is not in force is not a decision, and nothing is recorded.</summary>
+    [Fact]
+    public async Task Lifting_a_hold_that_is_not_in_force_records_nothing()
+    {
+        var member = await AuthenticateAsync();
+
+        await GrantPointsAsync(member, 100, "grant:" + Guid.NewGuid().ToString("N"));
+        await SignInAsRoleAsync("Admin");
+
+        var state = await ReadDataAsync<HoldShape>(await PutHoldAsync(member, false, "Nothing to lift"));
+
+        state.IsHeld.Should().BeFalse();
+        state.Decisions.Should().BeEmpty();
+    }
+
     // ── The idempotency key: required, and each member's own ────────────────────────────────
 
     /// <summary>
@@ -1716,7 +1834,7 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
                 var rewards = scope.ServiceProvider.GetRequiredService<IRewardAccountRepository>();
                 var account = (await rewards.FindByMemberAsync(userId))!;
 
-                account.BlockConversion("Under review after a report.", scope.ServiceProvider.GetRequiredService<IClock>().UtcNow);
+                account.BlockConversion(Guid.NewGuid(), "Under review after a report.", null, scope.ServiceProvider.GetRequiredService<IClock>().UtcNow);
                 rewards.Update(account);
                 await scope.ServiceProvider.GetRequiredService<IUnitOfWork>().SaveChangesAsync();
             }
@@ -1812,7 +1930,7 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
                 var rewards = scope.ServiceProvider.GetRequiredService<IRewardAccountRepository>();
                 var account = (await rewards.FindByMemberAsync(userId))!;
 
-                account.BlockConversion("Velocity rule 7 tripped.", scope.ServiceProvider.GetRequiredService<IClock>().UtcNow);
+                account.BlockConversion(Guid.NewGuid(), "Velocity rule 7 tripped.", null, scope.ServiceProvider.GetRequiredService<IClock>().UtcNow);
                 rewards.Update(account);
                 await scope.ServiceProvider.GetRequiredService<IUnitOfWork>().SaveChangesAsync();
             }
@@ -2444,6 +2562,21 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
             new Uri("/api/v1/financial/operations/rewards/grants", UriKind.Relative),
             new { userId, points, source = "StaffAdjustment", grantReference = reference, reason });
 
+    /// <summary>A staff hold decision over HTTP, as whoever the client is signed in as.</summary>
+    private Task<HttpResponseMessage> PutHoldAsync(
+        Guid userId, bool isHeld, string? reason = "Integration suite: under review.") =>
+        HttpClient.PutAsJsonAsync(
+            new Uri($"/api/v1/financial/operations/rewards/members/{userId}/conversion-hold", UriKind.Relative),
+            new { isHeld, reason });
+
+    /// <summary>Signs the client back in with a token it held earlier.</summary>
+    private void UseToken(string token)
+    {
+        Api.Authenticate(token);
+        HttpClient.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+    }
+
     /// <summary>A member's balance, read without signing in as them.</summary>
     private async Task<long> BalanceOfAsync(Guid userId)
     {
@@ -2489,6 +2622,10 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
     }
 
     private sealed record MoneyShape(decimal Amount, string Currency, long MinorUnits);
+
+    private sealed record HoldShape(Guid UserId, bool IsHeld, string? Reason, List<HoldDecisionShape> Decisions);
+
+    private sealed record HoldDecisionShape(bool IsHeld, string Reason, Guid? DecidedByUserId, DateTimeOffset DecidedAt);
 
     private sealed record PaymentShape(Guid PaymentIntentId, string Status, string Purpose);
 

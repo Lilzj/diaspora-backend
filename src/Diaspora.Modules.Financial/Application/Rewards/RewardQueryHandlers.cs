@@ -342,3 +342,74 @@ public sealed class GrantRewardPointsCommandHandler
             : null;
     }
 }
+
+/// <summary>
+/// Holds a member's points from conversion, or lifts the hold, and keeps the decision.
+/// <para>
+/// A hold may come before any earning, so a member with no points account gets one, held. Lifting a
+/// hold that is not in force changes nothing and records nothing: there was no decision to make.
+/// </para>
+/// </summary>
+public sealed class SetRewardConversionHoldCommandHandler
+    : ICommandHandler<SetRewardConversionHoldCommand, RewardConversionHoldResponse>
+{
+    private readonly IRewardAccountRepository _accounts;
+    private readonly FinancialAuthorizationService _authorization;
+    private readonly IGuidGenerator _guids;
+    private readonly IClock _clock;
+    private readonly IUnitOfWork _unitOfWork;
+
+    public SetRewardConversionHoldCommandHandler(
+        IRewardAccountRepository accounts,
+        FinancialAuthorizationService authorization,
+        IGuidGenerator guids,
+        IClock clock,
+        IUnitOfWork unitOfWork)
+    {
+        _accounts = accounts;
+        _authorization = authorization;
+        _guids = guids;
+        _clock = clock;
+        _unitOfWork = unitOfWork;
+    }
+
+    public async Task<Result<RewardConversionHoldResponse>> Handle(
+        SetRewardConversionHoldCommand command, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+
+        var decider = _authorization.RequireUserId();
+
+        if (decider.IsFailure)
+        {
+            return Result.Failure<RewardConversionHoldResponse>(decider.Error);
+        }
+
+        var account = await _accounts.FindByMemberAsync(command.UserId, cancellationToken);
+        var now = _clock.UtcNow;
+
+        if (command.IsHeld)
+        {
+            if (account is null)
+            {
+                account = RewardAccount.Open(
+                    RewardAccountId.From(_guids.NewSequentialGuid()), command.UserId, now);
+
+                _accounts.Add(account);
+            }
+
+            account.BlockConversion(_guids.NewSequentialGuid(), command.Reason, decider.Value, now);
+        }
+        else if (account is null
+            || !account.AllowConversion(_guids.NewSequentialGuid(), command.Reason, decider.Value, now))
+        {
+            return Result.Success(FinancialMapperExtensions.ToHoldResponse(command.UserId, account));
+        }
+
+        _accounts.Update(account);
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return Result.Success(FinancialMapperExtensions.ToHoldResponse(command.UserId, account));
+    }
+}

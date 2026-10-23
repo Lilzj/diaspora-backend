@@ -201,3 +201,37 @@ public sealed record RewardConversionResponse
 
     public required DateTimeOffset ConvertedAt { get; init; }
 }
+
+/// <summary>
+/// Whether a member's points are held from conversion, and every decision about it. Staff only.
+/// <para>
+/// The reasons here are operators' notes. A held member sees only that conversion is held — the
+/// generic message the terms and the preview carry — never which check tripped.
+/// </para>
+/// </summary>
+public sealed record RewardConversionHoldResponse
+{
+    public required Guid UserId { get; init; }
+
+    public required bool IsHeld { get; init; }
+
+    /// <summary>The note on the hold in force. Null when the member is not held.</summary>
+    public string? Reason { get; init; }
+
+    /// <summary>Every hold placed and lifted, newest first.</summary>
+    public required IReadOnlyList<RewardHoldDecisionResponse> Decisions { get; init; }
+}
+
+/// <summary>One hold placed or lifted: who decided, when, and why.</summary>
+public sealed record RewardHoldDecisionResponse
+{
+    /// <summary>True for a hold placed, false for a hold lifted.</summary>
+    public required bool IsHeld { get; init; }
+
+    public required string Reason { get; init; }
+
+    /// <summary>The staff member who decided. Null for a decision the platform made itself.</summary>
+    public Guid? DecidedByUserId { get; init; }
+
+    public required DateTimeOffset DecidedAt { get; init; }
+}

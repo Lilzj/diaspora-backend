@@ -67,6 +67,19 @@ public sealed class RewardAccountConfiguration : IEntityTypeConfiguration<Reward
                 .HasDatabaseName("ix_financial_reward_entries_reference");
         });
 
+        builder.OwnsMany(account => account.HoldDecisions, decision =>
+        {
+            decision.ToTable(
+                FinancialPersistenceConstants.RewardHoldDecisionsTable, FinancialModuleMetadata.Schema);
+
+            decision.HasKey(record => record.DecisionId);
+            decision.Property(record => record.DecisionId).ValueGeneratedNever();
+
+            decision.Property(record => record.Reason)
+                .HasMaxLength(FinancialPersistenceConstants.ReasonLength)
+                .IsRequired();
+        });
+
         builder.HasIndex(account => account.MemberUserId)
             .IsUnique()
             .HasDatabaseName("ix_financial_reward_accounts_member");

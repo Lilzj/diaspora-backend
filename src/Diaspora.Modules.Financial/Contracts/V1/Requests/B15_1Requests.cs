@@ -205,6 +205,16 @@ public sealed record GrantRewardPointsRequest
     public required string Reason { get; init; }
 }
 
+/// <summary>Hold a member's points from conversion, or lift the hold. Staff.</summary>
+public sealed record SetRewardConversionHoldRequest
+{
+    /// <summary>True to hold, false to lift.</summary>
+    public required bool IsHeld { get; init; }
+
+    /// <summary>Why. Required both ways; kept with the decision and never shown to the member.</summary>
+    public required string Reason { get; init; }
+}
+
 /// <summary>Change plan, mid-period.</summary>
 public sealed record ChangeSubscriptionPlanRequest
 {

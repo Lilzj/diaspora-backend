@@ -23632,7 +23632,41 @@ namespace Diaspora.Persistence.Migrations
                                 .HasForeignKey("RewardAccountId");
                         });
 
+                    b.OwnsMany("Diaspora.Modules.Financial.Domain.Rewards.RewardHoldDecision", "HoldDecisions", b1 =>
+                        {
+                            b1.Property<Guid>("DecisionId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<DateTimeOffset>("DecidedAt")
+                                .HasColumnType("timestamp with time zone");
+
+                            b1.Property<Guid?>("DecidedByUserId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<bool>("IsHeld")
+                                .HasColumnType("boolean");
+
+                            b1.Property<string>("Reason")
+                                .IsRequired()
+                                .HasMaxLength(512)
+                                .HasColumnType("character varying(512)");
+
+                            b1.Property<Guid>("RewardAccountId")
+                                .HasColumnType("uuid");
+
+                            b1.HasKey("DecisionId");
+
+                            b1.HasIndex("RewardAccountId");
+
+                            b1.ToTable("financial_reward_hold_decisions", "financial");
+
+                            b1.WithOwner()
+                                .HasForeignKey("RewardAccountId");
+                        });
+
                     b.Navigation("Entries");
+
+                    b.Navigation("HoldDecisions");
                 });
 
             modelBuilder.Entity("Diaspora.Modules.Financial.Domain.Subscriptions.Subscription", b =>

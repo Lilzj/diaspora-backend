@@ -171,6 +171,44 @@ public sealed record GrantRewardPointsCommand : ICommand<RewardBalanceResponse>
     public required string Reason { get; init; }
 }
 
+/// <summary>
+/// Holds a member's points from conversion, or lifts the hold. Staff.
+/// <para>
+/// <b>The caller <c>BlockConversion</c> never had.</b> The hold existed on the account and the
+/// conversion path honoured it, but nothing could place one. The permission is the wallet freeze's:
+/// a hold is the same act for points, and it is admin-only for the same reason.
+/// </para>
+/// <para>
+/// <b>Every decision is kept on the account,</b> with who made it and why, because the audit entry
+/// this attribute writes is a log line and the hold's own reason is cleared when it lifts.
+/// </para>
+/// </summary>
+[Authorize(Permission = FinancialPermissions.WalletManage)]
+[Transactional(Reason = "Opening the account and holding it are one change.")]
+[Auditable(Action = "financial.rewards.conversion_hold")]
+public sealed record SetRewardConversionHoldCommand : ICommand<RewardConversionHoldResponse>
+{
+    public required Guid UserId { get; init; }
+
+    /// <summary>True to hold, false to lift.</summary>
+    public required bool IsHeld { get; init; }
+
+    public required string Reason { get; init; }
+}
+
+/// <summary>A hold, and a lift, must say why.</summary>
+public sealed class SetRewardConversionHoldCommandValidator
+    : AbstractValidator<SetRewardConversionHoldCommand>
+{
+    public SetRewardConversionHoldCommandValidator()
+    {
+        RuleFor(command => command.Reason)
+            .NotEmpty()
+            .WithMessage("A hold needs a reason, and so does lifting one.")
+            .MaximumLength(Domain.Policies.FinancialLimits.MaxReasonLength);
+    }
+}
+
 /// <summary>A staff grant must say why.</summary>
 public sealed class GrantRewardPointsCommandValidator : AbstractValidator<GrantRewardPointsCommand>
 {
