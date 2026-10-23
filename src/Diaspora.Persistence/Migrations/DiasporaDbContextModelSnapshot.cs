@@ -9929,9 +9929,9 @@ namespace Diaspora.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IdempotencyKey")
+                    b.HasIndex("RequestedByUserId", "IdempotencyKey")
                         .IsUnique()
-                        .HasDatabaseName("ix_financial_withdrawals_idempotency");
+                        .HasDatabaseName("ix_financial_withdrawals_requester_idempotency");
 
                     b.HasIndex("RequestedByUserId", "RequestedAt")
                         .HasDatabaseName("ix_financial_withdrawals_requester");

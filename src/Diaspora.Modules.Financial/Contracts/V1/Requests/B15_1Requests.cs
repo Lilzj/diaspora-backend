@@ -41,6 +41,10 @@ public sealed record CreateWithdrawalRequest
 
     public string? CountryCode { get; init; }
 
+    /// <summary>
+    /// Required here or in the <c>Idempotency-Key</c> header, which wins. Unique per member: a retry
+    /// with the same key answers with the first withdrawal.
+    /// </summary>
     public string? IdempotencyKey { get; init; }
 }
 

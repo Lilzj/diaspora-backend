@@ -676,7 +676,7 @@ public sealed class ConvertRewardPointsCommandHandler
         // failed Result would be committed rather than rolled back. Rethrown as the platform's
         // concurrency conflict: the transaction rolls back, the client gets 409, and its retry with
         // the same key replays the conversion that won.
-        catch (DbUpdateException exception) when (IsUniqueViolation(exception))
+        catch (DbUpdateException exception) when (UniqueIndexViolation.Is(exception))
         {
             throw new ConcurrencyConflictException(
                 "A conversion with this idempotency key is still being processed. Try again in a moment.",
@@ -697,26 +697,4 @@ public sealed class ConvertRewardPointsCommandHandler
 
     /// <summary>Whether the points account is held from conversion.</summary>
     internal static bool IsHeld(RewardAccount? account) => account is { IsConversionBlocked: true };
-
-    /// <summary>
-    /// Whether a failed save was a unique-index violation. Matched on the message, as the Creator and
-    /// Programme modules do: production runs Npgsql and the suite SQLite, and naming either driver's
-    /// exception here would put a database provider in the application layer.
-    /// </summary>
-    private static bool IsUniqueViolation(DbUpdateException exception)
-    {
-        for (Exception? current = exception; current is not null; current = current.InnerException)
-        {
-            var message = current.Message;
-
-            if (message.Contains("UNIQUE constraint failed", StringComparison.OrdinalIgnoreCase)
-                || message.Contains("duplicate key value", StringComparison.OrdinalIgnoreCase)
-                || message.Contains("23505", StringComparison.Ordinal))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
 }

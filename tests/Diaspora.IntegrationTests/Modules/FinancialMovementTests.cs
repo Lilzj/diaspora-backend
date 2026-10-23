@@ -874,7 +874,8 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
                 destinationId,
 
                 // The country the matrix does cover. It must not help.
-                countryCode = "GB"
+                countryCode = "GB",
+                idempotencyKey = Guid.NewGuid().ToString("N")
             });
 
         response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
@@ -1042,6 +1043,87 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
 
         secondWithdrawal.WithdrawalId.Should().Be(firstWithdrawal.WithdrawalId);
         (await ReservedAsync(userId)).Should().Be(2_000, "one hold, not two");
+    }
+
+    /// <summary>
+    /// Two members, one key. The key's index was unique across everyone while the replay lookup was
+    /// per member, so the second member found nothing of theirs to replay and then hit the index: a
+    /// 500 for an ordinary request. Keys are each member's own now.
+    /// </summary>
+    [Fact]
+    public async Task Two_members_may_use_the_same_withdrawal_idempotency_key()
+    {
+        var key = "withdraw-" + Guid.NewGuid().ToString("N");
+
+        var first = await AuthenticateAsync();
+
+        await FundAsync(first, 100m);
+
+        var mine = await ReadDataAsync<WithdrawalShape>(
+            await PostWithdrawalAsync(20m, await RegisterVerifiedDestinationAsync(), key));
+
+        var second = await AuthenticateAsync();
+
+        await FundAsync(second, 100m);
+
+        var response = await PostWithdrawalAsync(30m, await RegisterVerifiedDestinationAsync(), key);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
+
+        var theirs = await ReadDataAsync<WithdrawalShape>(response);
+
+        theirs.WithdrawalId.Should().NotBe(mine.WithdrawalId, "the second member withdrew, not replayed the first");
+        (await ReservedAsync(second)).Should().Be(3_000);
+    }
+
+    /// <summary>A keyless withdrawal had no replay at all; it is refused before anything is held.</summary>
+    [Fact]
+    public async Task A_withdrawal_without_an_idempotency_key_is_refused()
+    {
+        var userId = await AuthenticateAsync();
+
+        await FundAsync(userId, 100m);
+
+        var destinationId = await RegisterVerifiedDestinationAsync();
+
+        var response = await HttpClient.PostAsJsonAsync(
+            new Uri("/api/v1/financial/wallets/me/withdrawals", UriKind.Relative),
+            new { amount = 20m, currency = "GBP", destinationId });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await ReservedAsync(userId)).Should().Be(0, "nothing was held");
+    }
+
+    /// <summary>The header wins over the body, as it does for conversions.</summary>
+    [Fact]
+    public async Task The_withdrawal_idempotency_key_header_wins_over_the_body()
+    {
+        var userId = await AuthenticateAsync();
+
+        await FundAsync(userId, 100m);
+
+        var destinationId = await RegisterVerifiedDestinationAsync();
+        var headerKey = "header-" + Guid.NewGuid().ToString("N");
+
+        WithdrawalShape? first = null;
+
+        foreach (var bodyKey in new[] { "body-a", "body-b" })
+        {
+            using var request = new HttpRequestMessage(
+                HttpMethod.Post, new Uri("/api/v1/financial/wallets/me/withdrawals", UriKind.Relative))
+            {
+                Content = JsonContent.Create(
+                    new { amount = 20m, currency = "GBP", destinationId, idempotencyKey = bodyKey })
+            };
+            request.Headers.Add("Idempotency-Key", headerKey);
+
+            var withdrawal = await ReadDataAsync<WithdrawalShape>(await HttpClient.SendAsync(request));
+
+            first ??= withdrawal;
+            withdrawal.WithdrawalId.Should().Be(first.WithdrawalId, "one header key, one withdrawal");
+        }
+
+        (await ReservedAsync(userId)).Should().Be(2_000, "the second request replayed the first");
     }
 
     /// <summary>
@@ -2033,11 +2115,12 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         await unitOfWork.SaveChangesAsync();
     }
 
+    /// <summary>A withdrawal needs a key, so each call that names none gets a fresh one.</summary>
     private Task<HttpResponseMessage> PostWithdrawalAsync(
         decimal amount, Guid destinationId, string? idempotencyKey = null) =>
         HttpClient.PostAsJsonAsync(
             new Uri("/api/v1/financial/wallets/me/withdrawals", UriKind.Relative),
-            new { amount, currency = "GBP", destinationId, idempotencyKey });
+            new { amount, currency = "GBP", destinationId, idempotencyKey = idempotencyKey ?? Guid.NewGuid().ToString("N") });
 
     /// <summary>
     /// Grants points through the repository, because the grant route is staff-only and this suite

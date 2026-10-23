@@ -72,9 +72,11 @@ public sealed class WithdrawalConfiguration : IEntityTypeConfiguration<Withdrawa
         builder.Property(withdrawal => withdrawal.CountryCode)
             .HasMaxLength(FinancialPersistenceConstants.CountryLength);
 
-        builder.HasIndex(withdrawal => withdrawal.IdempotencyKey)
+        // Per member, as the replay lookup is. A global index refused a second member's key with a
+        // 500, because their lookup found nothing of theirs to replay.
+        builder.HasIndex(withdrawal => new { withdrawal.RequestedByUserId, withdrawal.IdempotencyKey })
             .IsUnique()
-            .HasDatabaseName("ix_financial_withdrawals_idempotency");
+            .HasDatabaseName("ix_financial_withdrawals_requester_idempotency");
 
         builder.HasIndex(withdrawal => new { withdrawal.RequestedByUserId, withdrawal.RequestedAt })
             .HasDatabaseName("ix_financial_withdrawals_requester");

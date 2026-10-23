@@ -44,7 +44,7 @@ internal static class WithdrawalEndpoints
                             Currency = request.Currency,
                             DestinationId = request.DestinationId,
                             CountryCode = request.CountryCode,
-                            IdempotencyKey = request.IdempotencyKey
+                            IdempotencyKey = IdempotencyHeader.Resolve(context, request.IdempotencyKey)
                         },
                         cancellationToken)))
             .WithName("CreateWithdrawal")
