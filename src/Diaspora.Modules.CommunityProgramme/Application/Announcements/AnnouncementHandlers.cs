@@ -112,14 +112,23 @@ public sealed class PublishAnnouncementCommandHandler
         }
 
         var key = ProgrammeIdempotency.Normalise(
-            Operation, command.IdempotencyKeyHeader, command.Request.IdempotencyKey);
+            Operation, caller.Value.Value, command.IdempotencyKeyHeader, command.Request.IdempotencyKey);
 
         if (key is not null)
         {
-            var replayed = await _announcements.FindByIdempotencyKeyAsync(key, cancellationToken);
+            var replayed = await _announcements.FindByIdempotencyKeyAsync(
+                caller.Value, key, cancellationToken);
 
             if (replayed is not null)
             {
+                // The caller's own key, spent on an announcement somewhere else. Replaying it would
+                // answer for the wrong place; publishing would break the key's promise.
+                if (replayed.Scope != scope || replayed.ScopeId != command.Request.ScopeId)
+                {
+                    return Result.Failure<CommunityAnnouncementResponse>(
+                        CommunityProgrammeErrors.IdempotencyKeyReused);
+                }
+
                 return await RenderAsync(replayed, cancellationToken);
             }
         }
@@ -157,8 +166,9 @@ public sealed class PublishAnnouncementCommandHandler
             token => _unitOfWork.SaveChangesAsync(token),
             token => key is null
                 ? Task.FromResult<CommunityAnnouncement?>(null)
-                : _announcements.FindByIdempotencyKeyAsync(key, token),
-            cancellationToken);
+                : _announcements.FindByIdempotencyKeyAsync(caller.Value, key, token),
+            cancellationToken,
+            inTransaction: true);
 
         if (committed.IsFailure)
         {

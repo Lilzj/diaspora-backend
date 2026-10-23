@@ -44,6 +44,13 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Services;
 public sealed class ProgrammeIdempotency
 {
     /// <summary>
+    /// The longest client key kept. The column is 200; the longest operation name
+    /// (<c>membership-application</c>) is 22, the scope at most 44 (a voter fingerprint; a caller's
+    /// id is 32), and two separators 2.
+    /// </summary>
+    internal const int MaxClientKeyLength = 128;
+
+    /// <summary>
     /// Normalises a key from the header or the body.
     /// <para>
     /// The header wins where both are present. The register asks for "an <c>Idempotency-Key</c>
@@ -58,8 +65,37 @@ public sealed class ProgrammeIdempotency
     /// would make the second replay the first's record. The prefix makes each operation's key space
     /// its own.
     /// </para>
+    /// <para>
+    /// <b>And scoped by caller.</b> It used to be scoped by operation alone while every key column
+    /// is unique across all members, so the lookup that precedes each write found <em>another
+    /// member's</em> record whenever two members chose the same key: member B was handed member A's
+    /// membership or application, or told their vote was in when it was never cast. With the
+    /// caller's id inside the key, the existing unique indexes become per-member without a
+    /// migration, and a key written in the old format can never match one written in this one. The
+    /// Creator module made the same change (<c>CreatorIdempotency</c>).
+    /// </para>
     /// </summary>
-    public static string? Normalise(string operation, string? header, string? body)
+    public static string? Normalise(string operation, Guid callerUserId, string? header, string? body) =>
+        Compose(operation, callerUserId.ToString("N"), header, body);
+
+    /// <summary>
+    /// Normalises a vote's key, scoped by the voter's fingerprint rather than their id.
+    /// <para>
+    /// <b>An anonymous poll stores no voter, and its key must not store one either.</b> The
+    /// fingerprint is the keyed, poll-scoped hash the response row already carries, so it scopes the
+    /// key to one member without adding anything that identifies them. Being poll-scoped, it also
+    /// keeps a key reused on another poll from matching.
+    /// </para>
+    /// </summary>
+    public static string? NormaliseForVoter(
+        string operation, string voterFingerprint, string? header, string? body)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(voterFingerprint);
+
+        return Compose(operation, voterFingerprint, header, body);
+    }
+
+    private static string? Compose(string operation, string scope, string? header, string? body)
     {
         var raw = !string.IsNullOrWhiteSpace(header) ? header : body;
 
@@ -69,10 +105,9 @@ public sealed class ProgrammeIdempotency
         }
 
         var trimmed = raw.Trim();
+        var clientKey = trimmed.Length > MaxClientKeyLength ? trimmed[..MaxClientKeyLength] : trimmed;
 
-        return trimmed.Length > 150
-            ? $"{operation}:{trimmed[..150]}"
-            : $"{operation}:{trimmed}";
+        return $"{operation}:{scope}:{clientKey}";
     }
 
     /// <summary>
@@ -93,6 +128,18 @@ public sealed class ProgrammeIdempotency
     /// </para>
     /// </param>
     /// <param name="lookup">Finds the aggregate by key. Called only after a violation.</param>
+    /// <param name="inTransaction">
+    /// True for a <c>[Transactional]</c> command, which every keyed write in this module is.
+    /// <para>
+    /// There the violation has aborted the request's transaction — on Postgres every statement
+    /// after it fails with 25P02 — so the lookup cannot run, and <c>TransactionBehavior</c> rolls
+    /// back only on an exception: a failed <c>Result</c> would be committed. The violation is
+    /// therefore rethrown as <see cref="ConcurrencyConflictException"/>, which rolls the request
+    /// back and answers 409. The client retries with the same key; the retry's pre-check finds the
+    /// committed record and replays it. SQLite does not abort the transaction, which is why the
+    /// concurrency suite never showed this.
+    /// </para>
+    /// </param>
     /// <returns>
     /// <see cref="IdempotentCommit{T}.Committed"/> when the write landed — the caller renders what it
     /// staged. <see cref="IdempotentCommit{T}.Replay"/> when the index refused a duplicate and the
@@ -103,7 +150,8 @@ public sealed class ProgrammeIdempotency
         string? key,
         Func<CancellationToken, Task> save,
         Func<CancellationToken, Task<TAggregate?>> lookup,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool inTransaction = false)
         where TAggregate : class
     {
         ArgumentNullException.ThrowIfNull(save);
@@ -114,6 +162,13 @@ public sealed class ProgrammeIdempotency
             await save(cancellationToken);
 
             return Result.Success(IdempotentCommit<TAggregate>.Committed());
+        }
+        // Any unique violation, keyed or not: a keyless request that loses a race on a natural index
+        // — (organization, member), (poll, fingerprint) — is the same aborted transaction.
+        catch (DbUpdateException exception) when (inTransaction && IsUniqueViolation(exception))
+        {
+            throw new ConcurrencyConflictException(
+                "An identical request is still being processed. Try again in a moment.", exception);
         }
         catch (DbUpdateException exception) when (key is not null && IsUniqueViolation(exception))
         {

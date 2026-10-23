@@ -335,6 +335,110 @@ public sealed class CommunityProgrammeTests : PooledIdentityTestBase
         second.MembershipId.Should().Be(first.MembershipId);
     }
 
+    // ── The idempotency key: each member's own ──────────────────────────────────────────────
+    //
+    // Keys were scoped by operation alone while every key column is unique across all members, so
+    // the lookup before each write found another member's record whenever two members chose the
+    // same key: B was handed A's membership or application, or told their vote was in when it was
+    // never cast.
+
+    /// <summary>Member B sends member A's key and gets a membership of their own.</summary>
+    [Fact]
+    public async Task Another_members_key_does_not_replay_their_membership()
+    {
+        await AuthenticateAsync();
+        var organizationId = await CreateOrganizationAsync();
+        var programme = await SaveProgrammeAsync(organizationId, requiresApproval: true);
+        var tier = programme.Tiers[0].TierId;
+
+        var key = "join-" + Guid.NewGuid().ToString("N");
+
+        await AuthenticateAsync();
+        var theirs = await ApplyAsync(organizationId, tier, key);
+
+        await AuthenticateAsync();
+        var mine = await ApplyAsync(organizationId, tier, key);
+
+        mine.MembershipId.Should().NotBe(theirs.MembershipId, "B applied, not replayed A's application");
+
+        var held = await ReadDataAsync<List<MembershipDto>>(
+            await HttpClient.GetAsync($"{Root}/memberships/me"));
+
+        held.Should().ContainSingle(row => row.OrganizationId == organizationId);
+    }
+
+    /// <summary>
+    /// Member B sends member A's key and their vote counts. The replay answered with the poll's
+    /// result, so B saw a tally and nothing told them their own vote was never cast.
+    /// </summary>
+    [Fact]
+    public async Task Another_members_key_does_not_replay_their_vote()
+    {
+        await AuthenticateAsync();
+        var poll = await CreatePollAsync();
+        var path = $"{Root}/polls/{poll.PollId}/responses";
+        var key = "vote-" + Guid.NewGuid().ToString("N");
+
+        await AuthenticateAsync();
+        await ReadDataAsync<PollResultDto>(await HttpClient.PostAsJsonAsync(
+            path, new { selectedOptionIds = new[] { poll.Options[0].OptionId }, idempotencyKey = key }));
+
+        await AuthenticateAsync();
+        var result = await ReadDataAsync<PollResultDto>(await HttpClient.PostAsJsonAsync(
+            path, new { selectedOptionIds = new[] { poll.Options[1].OptionId }, idempotencyKey = key }));
+
+        result.TotalResponses.Should().Be(2, "B's vote was cast, not replayed as A's");
+    }
+
+    /// <summary>Member B sends member A's key and gets a volunteer application of their own.</summary>
+    [Fact]
+    public async Task Another_members_key_does_not_replay_their_volunteer_application()
+    {
+        await AuthenticateAsync();
+        var organizationId = await CreateOrganizationAsync();
+        var opportunity = await CreateOpportunityAsync(organizationId);
+
+        var payload = new
+        {
+            shiftId = opportunity.Shifts[0].ShiftId,
+            idempotencyKey = "volunteer-" + Guid.NewGuid().ToString("N")
+        };
+        var path = $"{Root}/volunteer/opportunities/{opportunity.OpportunityId}/applications";
+
+        await AuthenticateAsync();
+        var theirs = await ReadDataAsync<ApplicationDto>(await HttpClient.PostAsJsonAsync(path, payload));
+
+        await AuthenticateAsync();
+        var mine = await ReadDataAsync<ApplicationDto>(await HttpClient.PostAsJsonAsync(path, payload));
+
+        mine.ApplicationId.Should().NotBe(theirs.ApplicationId, "B applied, not replayed A's application");
+    }
+
+    /// <summary>
+    /// A key the member already spent on one organization is refused for another, instead of
+    /// replaying the first organization's membership.
+    /// </summary>
+    [Fact]
+    public async Task A_key_reused_for_another_organization_is_refused()
+    {
+        await AuthenticateAsync();
+        var first = await CreateOrganizationAsync();
+        var firstTier = (await SaveProgrammeAsync(first)).Tiers[0].TierId;
+        var second = await CreateOrganizationAsync();
+        var secondTier = (await SaveProgrammeAsync(second)).Tiers[0].TierId;
+
+        var key = "join-" + Guid.NewGuid().ToString("N");
+
+        await AuthenticateAsync();
+        await ApplyAsync(first, firstTier, key);
+
+        var response = await HttpClient.PostAsJsonAsync(
+            $"{Root}/{second}/memberships/applications", new { tierId = secondTier, idempotencyKey = key });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync()).Should().Contain("communities.idempotency.key-reused");
+    }
+
     /// <summary>A member cannot hold two live memberships of one organization.</summary>
     [Fact]
     public async Task A_second_application_while_live_is_refused()

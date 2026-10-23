@@ -117,17 +117,24 @@ public sealed class SubmitMembershipApplicationCommandHandler
         }
 
         var key = ProgrammeIdempotency.Normalise(
-            Operation, command.IdempotencyKeyHeader, command.Request.IdempotencyKey);
+            Operation, caller.Value.Value, command.IdempotencyKeyHeader, command.Request.IdempotencyKey);
 
         // B15's pattern: look the key up first, and return the record it already made. A retried
         // submission must return the *same* membership rather than creating a second.
         if (key is not null)
         {
             var replayed = await _memberships.FindByApplicationIdempotencyKeyAsync(
-                key, cancellationToken);
+                caller.Value, key, cancellationToken);
 
             if (replayed is not null)
             {
+                // The caller's own key, spent on another organization's programme.
+                if (replayed.OrganizationId != command.OrganizationId)
+                {
+                    return Result.Failure<ProgrammeMembershipResponse>(
+                        CommunityProgrammeErrors.IdempotencyKeyReused);
+                }
+
                 return await RenderAsync(replayed, cancellationToken);
             }
         }
@@ -235,8 +242,9 @@ public sealed class SubmitMembershipApplicationCommandHandler
         var committed = await ProgrammeIdempotency.GuardAsync(
             key,
             token => _unitOfWork.SaveChangesAsync(token),
-            token => _memberships.FindByApplicationIdempotencyKeyAsync(key!, token),
-            cancellationToken);
+            token => _memberships.FindByApplicationIdempotencyKeyAsync(caller.Value, key!, token),
+            cancellationToken,
+            inTransaction: true);
 
         if (committed.IsFailure)
         {
@@ -296,8 +304,9 @@ public sealed class SubmitMembershipApplicationCommandHandler
             token => _unitOfWork.SaveChangesAsync(token),
             token => key is null
                 ? Task.FromResult<ProgrammeMembership?>(null)
-                : _memberships.FindByApplicationIdempotencyKeyAsync(key, token),
-            cancellationToken);
+                : _memberships.FindByApplicationIdempotencyKeyAsync(membership.MemberUserId, key, token),
+            cancellationToken,
+            inTransaction: true);
 
         if (committed.IsFailure)
         {
@@ -622,15 +631,22 @@ public sealed class RenewMembershipCommandHandler
         }
 
         var key = ProgrammeIdempotency.Normalise(
-            Operation, command.IdempotencyKeyHeader, command.Request?.IdempotencyKey);
+            Operation, caller.Value.Value, command.IdempotencyKeyHeader, command.Request?.IdempotencyKey);
 
         if (key is not null)
         {
             var replayed = await _memberships.FindByRenewalIdempotencyKeyAsync(
-                key, cancellationToken);
+                caller.Value, key, cancellationToken);
 
             if (replayed is not null)
             {
+                // The caller's own key, spent renewing a different membership.
+                if (replayed.Id.Value != command.MembershipId)
+                {
+                    return Result.Failure<ProgrammeMembershipResponse>(
+                        CommunityProgrammeErrors.IdempotencyKeyReused);
+                }
+
                 return await RenderAsync(replayed, cancellationToken);
             }
         }
@@ -666,8 +682,9 @@ public sealed class RenewMembershipCommandHandler
         var committed = await ProgrammeIdempotency.GuardAsync(
             key,
             token => _unitOfWork.SaveChangesAsync(token),
-            token => _memberships.FindByRenewalIdempotencyKeyAsync(key!, token),
-            cancellationToken);
+            token => _memberships.FindByRenewalIdempotencyKeyAsync(caller.Value, key!, token),
+            cancellationToken,
+            inTransaction: true);
 
         if (committed.IsFailure)
         {
