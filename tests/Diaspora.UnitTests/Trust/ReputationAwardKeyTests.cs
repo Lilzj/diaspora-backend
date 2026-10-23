@@ -289,6 +289,35 @@ public sealed class ReputationAwardKeyTests
         harness.Profile.Events.Should().BeEmpty();
     }
 
+    // ── REP-20: the community post consumer ─────────────────────────────────────────────────
+
+    /// <summary>
+    /// Publishing a post pays its author ten points, counted in the post's country, and a
+    /// redelivered event pays once while a second post still pays.
+    /// </summary>
+    [Fact]
+    public async Task A_published_post_pays_its_author_once_in_its_country()
+    {
+        var harness = new Harness();
+        var consumer = new CommunityPostReputationConsumer(harness.Service, harness.Provisioner, harness.UnitOfWork);
+        var first = PostPublished(Guid.NewGuid());
+
+        await DeliverAsync(consumer, first);
+        await DeliverAsync(consumer, first);
+        await DeliverAsync(consumer, PostPublished(Guid.NewGuid()));
+
+        harness.Profile.UpdatesPublished.Should().Be(2);
+
+        var paid = harness.Profile.Events
+            .Where(recorded => recorded.ActionType == ReputationActions.UpdatePublished)
+            .ToList();
+
+        paid.Should().HaveCount(2);
+        paid.Should().OnlyContain(recorded => recorded.Points == 10 && recorded.CountryCode == "MU");
+        paid.Select(recorded => recorded.AwardKey).Should().Contain(
+            ReputationAwardKey.CommunityPost(first.PostId).Value, "the post is the key, not the delivery");
+    }
+
     // ── REP-13: the profile photo and the verified update ───────────────────────────────────
 
     /// <summary>
@@ -334,6 +363,17 @@ public sealed class ReputationAwardKeyTests
     }
 
     // ── Fixtures ────────────────────────────────────────────────────────────────────────────
+
+    private static CommunityPostPublishedIntegrationEvent PostPublished(Guid postId) => new()
+    {
+        PostId = postId,
+        AuthorId = AuthorGuid,
+        Category = "traffic",
+        Urgency = "normal",
+        Visibility = "public",
+        CountryCode = "MU",
+        PublishedAt = Now
+    };
 
     private static GuideUpdatedIntegrationEvent GuideUpdated(Guid? changedBy, bool isReadableByOthers) => new()
     {
