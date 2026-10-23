@@ -42,7 +42,7 @@ public sealed class DocumentationSyncArchitectureTests
     /// is now describing a key nobody ships, read by somebody copying it into a new module.
     /// </para>
     /// </summary>
-    [Theory]
+    [DocumentationTheory]
     [InlineData("docs/platform/permission-guide.md")]
     [InlineData("docs/platform/authorization-guide.md")]
     public void Every_permission_key_quoted_in_a_guide_is_one_the_platform_declares(string document)
@@ -76,7 +76,7 @@ public sealed class DocumentationSyncArchitectureTests
     /// policies that no longer exist as policies, and a rule that did not know about aliases would
     /// report the very documentation that explains them.
     /// </summary>
-    [Fact]
+    [DocumentationFact]
     public void Every_policy_name_quoted_in_the_authorization_guide_resolves()
     {
         var quoted = InlineCode("docs/platform/authorization-guide.md")
@@ -107,7 +107,7 @@ public sealed class DocumentationSyncArchitectureTests
     /// guide is where somebody looks before writing their first endpoint contributor, so a prefix
     /// that has drifted is copied into the next module.
     /// </summary>
-    [Fact]
+    [DocumentationFact]
     public void Every_route_prefix_quoted_in_the_api_style_guide_is_declared()
     {
         var declared = DeclaredPrefixes();
