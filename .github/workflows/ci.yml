@@ -120,6 +120,21 @@ jobs:
         with:
           global-json-file: global.json
 
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      # The EF tools read the projects' metadata before they build anything, and that
+      # needs obj/project.assets.json. On a fresh runner nothing has restored, so the
+      # first `dotnet ef` failed in seconds — "Assets file … not found. Run a NuGet
+      # package restore" — before a single migration ran. The build job restores; this
+      # one never did.
+      - name: Restore
+        run: dotnet restore Diaspora.slnx
+
       - name: Install EF Core tools
         run: dotnet tool install --global dotnet-ef
 
