@@ -16,7 +16,10 @@ jobs:
   build-and-test:
     name: Release build, tests, vulnerability scan
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # About 9 minutes reach the integration tests (restore, scan, Release build, unit,
+    # architecture), and the integration suite takes about 15 more. At 20 the job was
+    # cancelled 11 minutes into it. 45 leaves room for the API tests and a slow runner.
+    timeout-minutes: 45
 
     steps:
       - uses: actions/checkout@v4
