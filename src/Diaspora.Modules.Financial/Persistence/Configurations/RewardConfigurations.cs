@@ -55,6 +55,9 @@ public sealed class RewardAccountConfiguration : IEntityTypeConfiguration<Reward
             entry.Property(record => record.Reason)
                 .HasMaxLength(FinancialPersistenceConstants.ReasonLength);
 
+            entry.Property(record => record.PolicyVersion)
+                .HasMaxLength(FinancialPersistenceConstants.CodeLength);
+
             // What the reward.grant policy's daily ceiling sums: one staff member's grants since a
             // moment, without scanning every member's history.
             entry.HasIndex(nameof(RewardEntry.GrantedByUserId), nameof(RewardEntry.OccurredAt))

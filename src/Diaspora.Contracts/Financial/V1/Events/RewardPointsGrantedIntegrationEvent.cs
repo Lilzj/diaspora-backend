@@ -34,4 +34,14 @@ public sealed record RewardPointsGrantedIntegrationEvent : IntegrationEvent
     public required string GrantReference { get; init; }
 
     public required DateTimeOffset GrantedAt { get; init; }
+
+    /// <summary>
+    /// The version of the grantor's rule that decided how many points — <c>creator.milestone@3</c>.
+    /// Stored on the entry it produces, so "why 250 and not 100" is answerable after the rule changes.
+    /// <para>
+    /// Additive and optional. Null from a grantor whose schedule is not versioned yet: who owns the
+    /// points schedule (D-12) is still open, and no grantor stamps one today.
+    /// </para>
+    /// </summary>
+    public string? PolicyVersion { get; init; }
 }

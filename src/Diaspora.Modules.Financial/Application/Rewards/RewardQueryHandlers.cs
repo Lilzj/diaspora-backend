@@ -266,7 +266,10 @@ public sealed class GrantRewardPointsCommandHandler
             return Result.Success(FinancialMapperExtensions.ToResponse(account, _clock.UtcNow));
         }
 
-        var refusal = await RefuseAsync(grantor.Value, command.Points, cancellationToken);
+        var policy = await _limits.MostSpecificAsync(
+            FinancialPolicyKeys.RewardGrant, countryCode: null, cancellationToken);
+
+        var refusal = await RefuseAsync(policy, grantor.Value, command.Points, cancellationToken);
 
         if (refusal is not null)
         {
@@ -288,7 +291,10 @@ public sealed class GrantRewardPointsCommandHandler
             command.GrantReference,
             _clock.UtcNow,
             grantedByUserId: grantor.Value,
-            reason: command.Reason);
+            reason: command.Reason,
+
+            // The version of the limits that allowed it. Not refused, so the policy is there.
+            policyVersion: policy!.VersionLabel);
 
         if (awarded)
         {
@@ -309,11 +315,8 @@ public sealed class GrantRewardPointsCommandHandler
     /// </para>
     /// </summary>
     private async Task<Error?> RefuseAsync(
-        Guid grantorUserId, long points, CancellationToken cancellationToken)
+        FinancialPolicy? policy, Guid grantorUserId, long points, CancellationToken cancellationToken)
     {
-        var policy = await _limits.MostSpecificAsync(
-            FinancialPolicyKeys.RewardGrant, countryCode: null, cancellationToken);
-
         var maximum = policy?.Int64Parameter(FinancialPolicyParameters.MaximumPoints);
         var dailyMaximum = policy?.Int64Parameter(FinancialPolicyParameters.DailyMaximumPoints);
 

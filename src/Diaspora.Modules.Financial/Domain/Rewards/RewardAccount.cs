@@ -129,7 +129,8 @@ public sealed class RewardAccount : AggregateRoot<RewardAccountId>, IAuditableEn
         string grantReference,
         DateTimeOffset now,
         Guid? grantedByUserId = null,
-        string? reason = null)
+        string? reason = null,
+        string? policyVersion = null)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(points);
         ArgumentException.ThrowIfNullOrWhiteSpace(grantReference);
@@ -142,7 +143,7 @@ public sealed class RewardAccount : AggregateRoot<RewardAccountId>, IAuditableEn
         }
 
         _entries.Add(RewardEntry.Earned(
-            entryId, points, source, reference, now, grantedByUserId, reason));
+            entryId, points, source, reference, now, grantedByUserId, reason, policyVersion));
         Balance += points;
         LifetimeEarned += points;
         Touch(now);

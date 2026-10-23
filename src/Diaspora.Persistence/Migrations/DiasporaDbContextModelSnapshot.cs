@@ -23600,6 +23600,10 @@ namespace Diaspora.Persistence.Migrations
                             b1.Property<long>("Points")
                                 .HasColumnType("bigint");
 
+                            b1.Property<string>("PolicyVersion")
+                                .HasMaxLength(64)
+                                .HasColumnType("character varying(64)");
+
                             b1.Property<string>("Reason")
                                 .HasMaxLength(512)
                                 .HasColumnType("character varying(512)");

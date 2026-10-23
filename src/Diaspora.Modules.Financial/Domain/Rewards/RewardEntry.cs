@@ -27,7 +27,8 @@ public sealed class RewardEntry : ValueObject
         string reference,
         DateTimeOffset occurredAt,
         Guid? grantedByUserId = null,
-        string? reason = null)
+        string? reason = null,
+        string? policyVersion = null)
     {
         EntryId = entryId;
         Points = points;
@@ -38,6 +39,7 @@ public sealed class RewardEntry : ValueObject
         OccurredAt = occurredAt;
         GrantedByUserId = grantedByUserId;
         Reason = reason;
+        PolicyVersion = policyVersion;
     }
 
     private RewardEntry() { }
@@ -92,6 +94,13 @@ public sealed class RewardEntry : ValueObject
     /// <summary>Why staff awarded these points. Required on a staff grant; null otherwise.</summary>
     public string? Reason { get; private set; }
 
+    /// <summary>
+    /// The version of the rule that decided this earning: the grantor's, carried on its event, or
+    /// <c>reward.grant@N</c> for a staff grant. Null where no versioned rule decided it, which is every
+    /// row written before this column existed and every grantor that does not stamp one yet.
+    /// </summary>
+    public string? PolicyVersion { get; private set; }
+
     public static RewardEntry Earned(
         Guid entryId,
         long points,
@@ -99,7 +108,8 @@ public sealed class RewardEntry : ValueObject
         string reference,
         DateTimeOffset occurredAt,
         Guid? grantedByUserId = null,
-        string? reason = null)
+        string? reason = null,
+        string? policyVersion = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(reference);
 
@@ -112,7 +122,8 @@ public sealed class RewardEntry : ValueObject
             reference.Trim(),
             occurredAt,
             grantedByUserId,
-            string.IsNullOrWhiteSpace(reason) ? null : reason.Trim());
+            string.IsNullOrWhiteSpace(reason) ? null : reason.Trim(),
+            string.IsNullOrWhiteSpace(policyVersion) ? null : policyVersion.Trim());
     }
 
     public static RewardEntry Converted(

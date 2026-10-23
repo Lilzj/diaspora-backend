@@ -2,6 +2,8 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using Diaspora.Application.Abstractions;
+using Diaspora.Contracts.Financial.V1.Events;
 using Diaspora.Domain.Abstractions;
 using Diaspora.IntegrationTests.Common;
 using Diaspora.Modules.Financial;
@@ -1498,6 +1500,47 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
 
         entry.GrantedByUserId.Should().Be(admin);
         entry.Reason.Should().Be("Missed referral, ticket 4411");
+        entry.PolicyVersion.Should().MatchRegex(@"^reward\.grant@\d+$", "the limits that allowed it are on record");
+    }
+
+    /// <summary>
+    /// A grantor's rule version travels on its event and is kept on the entry it produces, so the
+    /// earning can still be explained after the rule changes.
+    /// </summary>
+    [Fact]
+    public async Task A_granted_events_policy_version_is_kept_on_its_entry()
+    {
+        var member = await AuthenticateAsync();
+
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var consumer = new Diaspora.Modules.Financial.Application.Consumers.Rewards.RewardPointsGrantedConsumer(
+                scope.ServiceProvider.GetRequiredService<IRewardAccountRepository>(),
+                scope.ServiceProvider.GetRequiredService<IGuidGenerator>(),
+                scope.ServiceProvider.GetRequiredService<IClock>(),
+                scope.ServiceProvider.GetRequiredService<IUnitOfWork>());
+
+            await consumer.Handle(
+                new IntegrationEventNotification<RewardPointsGrantedIntegrationEvent>(
+                    new RewardPointsGrantedIntegrationEvent
+                    {
+                        MemberUserId = member,
+                        Points = 250,
+                        Source = "ReferralQualified",
+                        GrantReference = "referral:" + Guid.NewGuid().ToString("N"),
+                        GrantedAt = DateTimeOffset.UtcNow,
+                        PolicyVersion = "creator.referral@2"
+                    }),
+                CancellationToken.None);
+        }
+
+        using var read = Factory.Services.CreateScope();
+
+        var account = await read.ServiceProvider
+            .GetRequiredService<IRewardAccountRepository>()
+            .FindByMemberAsync(member);
+
+        account!.Entries.Should().ContainSingle().Which.PolicyVersion.Should().Be("creator.referral@2");
     }
 
     // ── Staff conversion holds: placed, lifted, and kept ───────────────────────────────────

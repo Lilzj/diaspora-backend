@@ -76,7 +76,8 @@ public sealed class RewardPointsGrantedConsumer
             integrationEvent.Points,
             integrationEvent.Source,
             integrationEvent.GrantReference,
-            integrationEvent.GrantedAt);
+            integrationEvent.GrantedAt,
+            policyVersion: integrationEvent.PolicyVersion);
 
         if (!awarded)
         {
