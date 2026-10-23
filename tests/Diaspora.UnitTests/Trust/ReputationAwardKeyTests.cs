@@ -2,6 +2,7 @@ using Diaspora.Application.Abstractions;
 using Diaspora.Contracts.Community.V1.Events;
 using Diaspora.Contracts.Events;
 using Diaspora.Contracts.Guides.V1.Events;
+using Diaspora.Contracts.Identity.V1.Events;
 using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Trust.Application.Consumers;
 using Diaspora.Modules.Trust.Application.Services;
@@ -268,7 +269,70 @@ public sealed class ReputationAwardKeyTests
         harness.Profile.GuidesUpdated.Should().Be(1);
     }
 
+    // ── REP-13: the profile photo and the verified update ───────────────────────────────────
+
+    /// <summary>
+    /// The first photo pays; removing it pays nothing; a replacement is not a second first photo.
+    /// </summary>
+    [Fact]
+    public async Task A_profile_photo_pays_once_and_a_removal_pays_nothing()
+    {
+        var harness = new Harness();
+        var consumer = new ProfilePhotoReputationConsumer(harness.Service, harness.Provisioner, harness.UnitOfWork);
+
+        await DeliverAsync(consumer, Avatar(Guid.NewGuid()));
+        await DeliverAsync(consumer, Avatar(mediaId: null));
+        await DeliverAsync(consumer, Avatar(Guid.NewGuid()));
+
+        harness.Profile.Events.Should().ContainSingle(recorded => recorded.ActionType == ReputationActions.ProfilePhotoAdded)
+            .Which.Points.Should().Be(5);
+        harness.Profile.ProfilePhotoAdded.Should().BeTrue();
+    }
+
+    /// <summary>
+    /// Only a move into community-verified pays, once per post, counted in the post's country. A
+    /// post that is disputed and verified again does not pay twice, and an event that does not name
+    /// the author, published before the field existed, pays nothing.
+    /// </summary>
+    [Fact]
+    public async Task A_post_the_community_verifies_pays_its_author_once_in_its_country()
+    {
+        var harness = new Harness();
+        var consumer = new PostVerifiedReputationConsumer(harness.Service, harness.Provisioner, harness.UnitOfWork);
+        var postId = Guid.NewGuid();
+
+        await DeliverAsync(consumer, Verification(postId, "unverified", "disputed"));
+        await DeliverAsync(consumer, Verification(postId, "unverified", "communityVerified"));
+        await DeliverAsync(consumer, Verification(postId, "communityVerified", "disputed"));
+        await DeliverAsync(consumer, Verification(postId, "disputed", "communityVerified"));
+        await DeliverAsync(
+            consumer, Verification(Guid.NewGuid(), "unverified", "communityVerified") with { AuthorUserId = null });
+
+        harness.Profile.Events.Should().ContainSingle(recorded => recorded.ActionType == ReputationActions.UpdateVerified)
+            .Which.CountryCode.Should().Be("MU");
+        harness.Profile.UpdatesVerified.Should().Be(1);
+    }
+
     // ── Fixtures ────────────────────────────────────────────────────────────────────────────
+
+    private static UserAvatarChangedIntegrationEvent Avatar(Guid? mediaId) => new()
+    {
+        UserId = AuthorGuid,
+        MediaId = mediaId,
+        AvatarUrl = mediaId is null ? null : $"https://media.example/{mediaId:N}/medium"
+    };
+
+    private static CommunityPostVerificationChangedIntegrationEvent Verification(
+        Guid postId, string previous, string current) => new()
+    {
+        PostId = postId,
+        Previous = previous,
+        Current = current,
+        Confirmations = 10,
+        VerifiedConfirmations = 5,
+        AuthorUserId = AuthorGuid,
+        CountryCode = "MU"
+    };
 
     private static GuidePublishedIntegrationEvent GuidePublished(bool isFirstPublication) => new()
     {

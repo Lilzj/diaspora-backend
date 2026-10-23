@@ -23,4 +23,14 @@ public sealed record CommunityPostVerificationChangedIntegrationEvent : Integrat
     public required int Confirmations { get; init; }
 
     public required int VerifiedConfirmations { get; init; }
+
+    /// <summary>
+    /// Whose post it is. Trust pays the author <c>UpdateVerified</c> when the post becomes
+    /// community-verified, and Trust cannot look the author up: it is Community's data.
+    /// <para>Additive. Null on an event published before this field existed.</para>
+    /// </summary>
+    public Guid? AuthorUserId { get; init; }
+
+    /// <summary>The post's country, which that reward counts once per. Null when the post has none.</summary>
+    public string? CountryCode { get; init; }
 }

@@ -9,24 +9,23 @@ namespace Diaspora.UnitTests.Trust;
 /// <summary>
 /// <c>GET /trust/reputation/rules</c>: what a member is told the platform pays for.
 /// <para>
-/// A member reads the list as promises, so it is the rules something actually scores. Four of
-/// Trust's defaults are priced and paid by nothing — <c>UpdateVerified</c>, <c>ReportResolved</c>,
-/// <c>ProfilePhotoAdded</c>, <c>ProfileCompleted</c> — and listing them would be the hard-coded
-/// "How to earn" sentence again, just served from further away.
+/// A member reads the list as promises, so it is the rules something actually scores. Two of
+/// Trust's defaults are priced and paid by nothing — <c>ReportResolved</c> and
+/// <c>ProfileCompleted</c> — and listing them would be the hard-coded "How to earn" sentence again,
+/// just served from further away. <c>UpdateVerified</c> and <c>ProfilePhotoAdded</c> were in that
+/// list until their consumers were wired (REP-13).
 /// </para>
 /// </summary>
 public sealed class ReputationRulesQueryTests
 {
     [Fact]
-    public void The_rules_nothing_pays_are_the_four_marked_as_such()
+    public void The_rules_nothing_pays_are_the_two_marked_as_such()
     {
         DefaultReputationRules.All
             .Where(rule => !rule.IsAwarded)
             .Select(rule => rule.ActionType)
             .Should().BeEquivalentTo(
-                ReputationActions.UpdateVerified,
                 ReputationActions.ReportResolved,
-                ReputationActions.ProfilePhotoAdded,
                 ReputationActions.ProfileCompleted);
     }
 
@@ -38,16 +37,16 @@ public sealed class ReputationRulesQueryTests
         rules.Select(rule => rule.ActionType).Should()
             .NotContain(
                 [
-                    ReputationActions.UpdateVerified,
                     ReputationActions.ReportResolved,
-                    ReputationActions.ProfilePhotoAdded,
                     ReputationActions.ProfileCompleted,
                     "ListingFeatured",
                     "SaleDisputed"
                 ])
-            .And.Contain("SaleCompleted");
+            .And.Contain("SaleCompleted")
+            .And.Contain(ReputationActions.UpdateVerified)
+            .And.Contain(ReputationActions.ProfilePhotoAdded);
 
-        rules.Should().HaveCount(DefaultReputationRules.All.Count - 4 + 1);
+        rules.Should().HaveCount(DefaultReputationRules.All.Count - 2 + 1);
     }
 
     [Fact]

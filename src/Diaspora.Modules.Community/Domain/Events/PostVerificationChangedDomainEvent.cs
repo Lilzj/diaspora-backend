@@ -1,5 +1,6 @@
 using Diaspora.Modules.Community.Domain.Enums;
 using Diaspora.Modules.Community.Domain.Identifiers;
+using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Primitives;
 
 namespace Diaspora.Modules.Community.Domain.Events;
@@ -23,4 +24,10 @@ public sealed record PostVerificationChangedDomainEvent : DomainEvent
     public required int Confirmations { get; init; }
 
     public required int VerifiedConfirmations { get; init; }
+
+    /// <summary>Whose post it is. Trust pays the author when the community verifies it.</summary>
+    public required UserId AuthorId { get; init; }
+
+    /// <summary>The post's country, for a reward that counts once per country. Null when it has none.</summary>
+    public string? CountryCode { get; init; }
 }
