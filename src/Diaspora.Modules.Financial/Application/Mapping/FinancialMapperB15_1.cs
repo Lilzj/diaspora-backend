@@ -88,6 +88,7 @@ public static class FinancialMapperExtensions
             LifetimeEarned = account?.LifetimeEarned ?? 0,
             LifetimeConverted = account?.LifetimeConverted ?? 0,
             LifetimeSpent = account?.LifetimeSpent ?? 0,
+            LifetimeReversed = account?.LifetimeReversed ?? 0,
 
             // An account that does not exist yet can convert nothing, which is true rather than a
             // refusal — and says nothing about why, like every other conversion block.
@@ -129,6 +130,7 @@ public static class FinancialMapperExtensions
             Points = entry.Points,
             IsConversion = entry.IsConversion,
             IsSpend = entry.IsSpend,
+            IsReversal = entry.IsReversal,
             Source = entry.Source,
             OccurredAt = entry.OccurredAt
         };

@@ -54,6 +54,7 @@ public sealed class RewardAccountRepository : IRewardAccountRepository
             .AsNoTracking()
             .SelectMany(account => account.Entries, (account, entry) => new { account.Id, entry })
             .Where(row => row.entry.VestedAt == null
+                && row.entry.ReversedAt == null
                 && row.entry.VestsAt != null
                 && row.entry.VestsAt <= asOf)
             .GroupBy(row => row.Id)

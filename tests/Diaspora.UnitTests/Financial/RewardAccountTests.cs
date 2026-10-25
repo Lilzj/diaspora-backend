@@ -207,6 +207,72 @@ public class RewardAccountTests
         account.VestDue(Now.AddYears(1)).Should().Be(0);
     }
 
+    // ── Reversing pending points (D-9, RWD-08) ──────────────────────────────────────────────
+
+    [Fact]
+    public void A_pending_grant_is_taken_back_and_never_vests()
+    {
+        var account = Open();
+        account.Grant(Guid.NewGuid(), 500, "GuidePublished", "guide:1", Now, vestsAt: Now.AddDays(7));
+
+        account.ReversePending(Guid.NewGuid(), "guide:1", "Guide deleted.", Now.AddDays(1))
+            .Should().Be(RewardReversalOutcome.Reversed);
+
+        account.PendingBalance.Should().Be(0);
+        account.Balance.Should().Be(0);
+        account.LifetimeEarned.Should().Be(500, "what was earned is history");
+        account.LifetimeReversed.Should().Be(500);
+        account.NextVestsAt.Should().BeNull();
+
+        var grant = account.Entries.Single(entry => entry.Reference == "guide:1");
+        grant.ReversedAt.Should().Be(Now.AddDays(1));
+        grant.ReversalReason.Should().Be("Guide deleted.");
+
+        var reversal = account.Entries.Single(entry => entry.IsReversal);
+        reversal.Points.Should().Be(500);
+        reversal.IsDebit.Should().BeTrue();
+        reversal.Reference.Should().Be($"reversal:{grant.EntryId:N}");
+
+        account.VestDue(Now.AddDays(30)).Should().Be(0, "points taken back never vest");
+    }
+
+    /// <summary>
+    /// D-9: points that could have been spent stay earned. The grantor cannot know whether its grant
+    /// vested, so the request is recorded rather than refused.
+    /// </summary>
+    [Fact]
+    public void A_vested_grant_stays_earned_and_the_request_is_recorded()
+    {
+        var account = Open();
+        account.Grant(Guid.NewGuid(), 500, "GuidePublished", "guide:1", Now, vestsAt: Now.AddDays(7));
+        account.VestDue(Now.AddDays(7));
+
+        account.ReversePending(Guid.NewGuid(), "guide:1", "Guide deleted.", Now.AddDays(8))
+            .Should().Be(RewardReversalOutcome.Declined);
+
+        account.Balance.Should().Be(500);
+        account.LifetimeReversed.Should().Be(0);
+        account.Entries.Should().NotContain(entry => entry.IsReversal);
+
+        var grant = account.Entries.Single();
+        grant.ReversalDeclinedAt.Should().Be(Now.AddDays(8));
+        grant.ReversalReason.Should().Be("Guide deleted.");
+    }
+
+    [Fact]
+    public void A_grant_is_taken_back_once_however_often_it_is_asked()
+    {
+        var account = Open();
+        account.Grant(Guid.NewGuid(), 500, "GuidePublished", "guide:1", Now, vestsAt: Now.AddDays(7));
+
+        account.ReversePending(Guid.NewGuid(), "guide:1", "Guide deleted.", Now).Should().Be(RewardReversalOutcome.Reversed);
+        account.ReversePending(Guid.NewGuid(), "guide:1", "Guide deleted.", Now).Should().Be(RewardReversalOutcome.AlreadyDecided);
+
+        account.LifetimeReversed.Should().Be(500);
+        account.Entries.Count(entry => entry.IsReversal).Should().Be(1);
+        account.ReversePending(Guid.NewGuid(), "guide:2", "Never granted.", Now).Should().Be(RewardReversalOutcome.NotFound);
+    }
+
     private static RewardAccount Open() =>
         RewardAccount.Open(RewardAccountId.New(), Guid.NewGuid(), Now);
 }

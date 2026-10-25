@@ -69,6 +69,12 @@ public sealed class RewardAccount : AggregateRoot<RewardAccountId>, IAuditableEn
     public long LifetimeSpent { get; private set; }
 
     /// <summary>
+    /// Pending points taken back because their grantor withdrew the grant (D-9). With the three
+    /// above it accounts for both balances: earned − reversed − converted − spent = balance + pending.
+    /// </summary>
+    public long LifetimeReversed { get; private set; }
+
+    /// <summary>
     /// True when this member may not convert — a fraud hold, an unresolved dispute.
     /// <para>
     /// The refusal it produces is deliberately vague to the member. A block that explains which check
@@ -205,6 +211,61 @@ public sealed class RewardAccount : AggregateRoot<RewardAccountId>, IAuditableEn
         Touch(asOf);
 
         return vested;
+    }
+
+    /// <summary>
+    /// Takes back a grant whose points have not vested, because its grantor withdrew it (D-9, RWD-08).
+    /// <para>
+    /// <b>Pending points only.</b> A grant that has vested stays earned: the request is recorded on
+    /// the grant and nothing moves, because points that could have been spent are not taken back,
+    /// and money never is. The grantor cannot know whether its grant has vested, so that answer is
+    /// an outcome rather than a refusal.
+    /// </para>
+    /// <para>
+    /// <b>Once per grant.</b> A second request for the same grant, however it went the first time,
+    /// changes nothing.
+    /// </para>
+    /// </summary>
+    public RewardReversalOutcome ReversePending(
+        Guid entryId, string grantReference, string reason, DateTimeOffset now)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(grantReference);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+
+        var reference = grantReference.Trim();
+
+        var grant = _entries.FirstOrDefault(entry =>
+            !entry.IsDebit && string.Equals(entry.Reference, reference, StringComparison.Ordinal));
+
+        if (grant is null)
+        {
+            return RewardReversalOutcome.NotFound;
+        }
+
+        if (grant.ReversedAt is not null || grant.ReversalDeclinedAt is not null)
+        {
+            return RewardReversalOutcome.AlreadyDecided;
+        }
+
+        var why = reason.Trim();
+
+        if (!grant.IsPending)
+        {
+            grant.MarkReversalDeclined(now, why);
+            Touch(now);
+
+            return RewardReversalOutcome.Declined;
+        }
+
+        grant.MarkReversed(now, why);
+
+        _entries.Add(RewardEntry.Reversed(
+            entryId, grant.Points, grant.Source, $"reversal:{grant.EntryId:N}", now));
+        PendingBalance = Math.Max(0, PendingBalance - grant.Points);
+        LifetimeReversed += grant.Points;
+        Touch(now);
+
+        return RewardReversalOutcome.Reversed;
     }
 
     /// <summary>

@@ -1794,6 +1794,67 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         }
     }
 
+    // ── Reversing pending points (D-9, RWD-08) ───────────────────────────────────────────
+    //
+    // Nothing could take points back. A grantor withdraws a grant now, and the Financial Platform
+    // takes back what is still pending and leaves what has vested.
+
+    [Fact]
+    public async Task A_withdrawn_pending_grant_is_taken_back_once()
+    {
+        var userId = await AuthenticateAsync();
+        var reference = "guide:" + Guid.NewGuid().ToString("N");
+
+        await DeliverGrantAsync(userId, 1_000, DateTimeOffset.UtcNow, reference);
+
+        await DeliverReversalAsync(userId, reference, "Guide deleted.");
+        await DeliverReversalAsync(userId, reference, "Guide deleted.");
+
+        var balance = await RewardBalanceAsync();
+        balance.PendingPoints.Should().Be(0);
+        balance.Balance.Should().Be(0);
+        balance.LifetimeReversed.Should().Be(1_000, "a redelivered withdrawal takes the points back once");
+
+        var account = await RewardAccountOfAsync(userId);
+        account.Entries.Should().ContainSingle(entry => entry.IsReversal).Which.Points.Should().Be(1_000);
+        account.Entries.Single(entry => entry.Reference == reference).ReversalReason.Should().Be("Guide deleted.");
+    }
+
+    /// <summary>D-9: points that could have been spent stay earned, and the request is on the record.</summary>
+    [Fact]
+    public async Task A_withdrawn_grant_that_has_vested_stays_earned()
+    {
+        var userId = await AuthenticateAsync();
+        var reference = "guide:" + Guid.NewGuid().ToString("N");
+
+        await DeliverGrantAsync(userId, 1_000, DateTimeOffset.UtcNow.AddDays(-8), reference);
+        await RunSweepAsync<RewardVestingSweep>();
+
+        await DeliverReversalAsync(userId, reference, "Guide deleted.");
+
+        (await BalanceOfAsync(userId)).Should().Be(1_000);
+
+        var grant = (await RewardAccountOfAsync(userId)).Entries.Single(entry => entry.Reference == reference);
+        grant.ReversalDeclinedAt.Should().NotBeNull();
+        grant.ReversedAt.Should().BeNull();
+    }
+
+    /// <summary>A grant taken back before its window ended is not vested when the window does.</summary>
+    [Fact]
+    public async Task A_withdrawn_grant_is_never_vested_by_the_sweep()
+    {
+        var userId = await AuthenticateAsync();
+        var reference = "guide:" + Guid.NewGuid().ToString("N");
+
+        await DeliverGrantAsync(userId, 1_000, DateTimeOffset.UtcNow.AddDays(-8), reference);
+        await DeliverReversalAsync(userId, reference, "Guide deleted.");
+
+        await RunSweepAsync<RewardVestingSweep>();
+
+        (await BalanceOfAsync(userId)).Should().Be(0);
+        (await PendingPointsOfAsync(userId)).Should().Be(0);
+    }
+
     // ── The hold on converted credit (D-7) ───────────────────────────────────────────────
     //
     // Converted credit landed in the withdrawable primary wallet at once (CNV-07). It lands pending
@@ -3128,7 +3189,8 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
     }
 
     /// <summary>A grantor's points arriving through the consumer, as Creator's and Trust's do.</summary>
-    private async Task DeliverGrantAsync(Guid userId, long points, DateTimeOffset grantedAt)
+    private async Task DeliverGrantAsync(
+        Guid userId, long points, DateTimeOffset grantedAt, string? reference = null)
     {
         using var scope = Factory.Services.CreateScope();
 
@@ -3143,10 +3205,39 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
                     MemberUserId = userId,
                     Points = points,
                     Source = "IntegrationTest",
-                    GrantReference = "grant:" + Guid.NewGuid().ToString("N"),
+                    GrantReference = reference ?? "grant:" + Guid.NewGuid().ToString("N"),
                     GrantedAt = grantedAt
                 }),
             CancellationToken.None);
+    }
+
+    /// <summary>A grantor withdrawing a grant through the consumer, as Trust will (Part C).</summary>
+    private async Task DeliverReversalAsync(Guid userId, string reference, string reason)
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        var consumer = ActivatorUtilities.CreateInstance<
+            Diaspora.Modules.Financial.Application.Consumers.Rewards.RewardPointsReversedConsumer>(
+            scope.ServiceProvider);
+
+        await consumer.Handle(
+            new IntegrationEventNotification<RewardPointsReversedIntegrationEvent>(
+                new RewardPointsReversedIntegrationEvent
+                {
+                    MemberUserId = userId,
+                    GrantReference = reference,
+                    Reason = reason
+                }),
+            CancellationToken.None);
+    }
+
+    private async Task<RewardAccount> RewardAccountOfAsync(Guid userId)
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        return (await scope.ServiceProvider
+            .GetRequiredService<IRewardAccountRepository>()
+            .FindByMemberAsync(userId))!;
     }
 
     private async Task<long> PendingPointsOfAsync(Guid userId)
@@ -3232,7 +3323,12 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         DateTimeOffset? AvailableAt = null);
 
     private sealed record RewardBalanceShape(
-        long Balance, long LifetimeEarned, bool CanConvert, long PendingPoints = 0, DateTimeOffset? NextVestsAt = null);
+        long Balance,
+        long LifetimeEarned,
+        bool CanConvert,
+        long PendingPoints = 0,
+        DateTimeOffset? NextVestsAt = null,
+        long LifetimeReversed = 0);
 
     private sealed record TermsShape(
         bool IsEnabled, string? DisabledReason, string Currency, decimal MinorUnitsPerPoint);

@@ -34,6 +34,12 @@ public sealed record RewardBalanceResponse
     public long LifetimeSpent { get; init; }
 
     /// <summary>
+    /// Pending points taken back because their grantor withdrew them (D-9). Additive:
+    /// earned − reversed − converted − spent = balance + pending.
+    /// </summary>
+    public long LifetimeReversed { get; init; }
+
+    /// <summary>
     /// False when this points account is held or empty. <b>Superseded</b> by
     /// <see cref="RewardConversionTermsResponse.Member"/>, which also covers the deployment, the
     /// financial account, the minimum and today's allowance, and says why — except for a hold, whose
@@ -50,8 +56,8 @@ public sealed record RewardEntryResponse
     public required Guid EntryId { get; init; }
 
     /// <summary>
-    /// Always positive. Which way it moved is <see cref="IsConversion"/> or <see cref="IsSpend"/>:
-    /// either one means the points left the balance.
+    /// Always positive. Which way it moved is <see cref="IsConversion"/>, <see cref="IsSpend"/> or
+    /// <see cref="IsReversal"/>: any one means the points left.
     /// </summary>
     public required long Points { get; init; }
 
@@ -62,6 +68,12 @@ public sealed record RewardEntryResponse
     /// a positive entry and rendered as points earned — the same figure with the opposite meaning.
     /// </summary>
     public bool IsSpend { get; init; }
+
+    /// <summary>
+    /// True when pending points were taken back because their grantor withdrew them (D-9). Like
+    /// <see cref="IsSpend"/>, the points left, and a client that ignored it would show them earned.
+    /// </summary>
+    public bool IsReversal { get; init; }
 
     /// <summary>Why. <c>ReferralQualified</c>, <c>GuidePublished</c>, <c>Conversion</c>.</summary>
     public required string Source { get; init; }

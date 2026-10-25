@@ -9245,6 +9245,9 @@ namespace Diaspora.Persistence.Migrations
                     b.Property<long>("LifetimeEarned")
                         .HasColumnType("bigint");
 
+                    b.Property<long>("LifetimeReversed")
+                        .HasColumnType("bigint");
+
                     b.Property<long>("LifetimeSpent")
                         .HasColumnType("bigint");
 
@@ -23615,6 +23618,9 @@ namespace Diaspora.Persistence.Migrations
                             b1.Property<bool>("IsConversion")
                                 .HasColumnType("boolean");
 
+                            b1.Property<bool>("IsReversal")
+                                .HasColumnType("boolean");
+
                             b1.Property<bool>("IsSpend")
                                 .HasColumnType("boolean");
 
@@ -23636,6 +23642,16 @@ namespace Diaspora.Persistence.Migrations
                                 .IsRequired()
                                 .HasMaxLength(256)
                                 .HasColumnType("character varying(256)");
+
+                            b1.Property<DateTimeOffset?>("ReversalDeclinedAt")
+                                .HasColumnType("timestamp with time zone");
+
+                            b1.Property<string>("ReversalReason")
+                                .HasMaxLength(512)
+                                .HasColumnType("character varying(512)");
+
+                            b1.Property<DateTimeOffset?>("ReversedAt")
+                                .HasColumnType("timestamp with time zone");
 
                             b1.Property<Guid>("RewardAccountId")
                                 .HasColumnType("uuid");
