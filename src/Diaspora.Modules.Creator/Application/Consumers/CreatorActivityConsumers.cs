@@ -119,8 +119,9 @@ public sealed class CreatorActivityRecorder
             return;
         }
 
-        // The weight is the rules catalogue's, so what an action is worth to a milestone, a
-        // leaderboard and the points a member earns is one number rather than three.
+        // The weight is the rules catalogue's, so what an action is worth to a milestone and a
+        // leaderboard is one number rather than two. It pays no points: Trust's rules do that, for
+        // confirmed outcomes (RWD-02, D-12).
         var rule = await _rewards.FindRuleForActionAsync(actionType, cancellationToken);
         var weight = rule?.Points ?? 1;
 

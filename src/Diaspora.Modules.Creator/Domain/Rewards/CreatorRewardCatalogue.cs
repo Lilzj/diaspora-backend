@@ -74,7 +74,16 @@ public sealed class CreatorPointRule : AggregateRoot<CreatorPointRuleId>, IAudit
 
     public string Description { get; private set; } = string.Empty;
 
-    /// <summary>What one occurrence pays. The server's number, and never the client's.</summary>
+    /// <summary>
+    /// What one occurrence weighs toward this programme's leaderboards, milestones and challenges.
+    /// The server's number, and never the client's.
+    /// <para>
+    /// <b>Not reward points (RWD-02, D-12).</b> Nothing pays this value: reward points are paid for
+    /// confirmed outcomes by Trust's rules (<c>creditPoints</c> on <c>GET /trust/reputation/rules</c>)
+    /// and by this programme's milestones, challenges and sign-up bonus. The name is the contract's,
+    /// kept so existing clients still parse.
+    /// </para>
+    /// </summary>
     public int Points { get; private set; }
 
     /// <summary>Where the member goes to do it.</summary>
