@@ -51,7 +51,7 @@ public sealed class ArchiveGuideCommandHandler : ICommandHandler<ArchiveGuideCom
             return Result.Failure<GuideResponse>(caller.Error);
         }
 
-        var archived = guide.Archive(_clock.UtcNow);
+        var archived = guide.Archive(_clock.UtcNow, caller.Value);
 
         if (archived.IsFailure)
         {

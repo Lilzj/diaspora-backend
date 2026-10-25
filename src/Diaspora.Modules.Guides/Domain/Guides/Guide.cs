@@ -903,7 +903,11 @@ public sealed class Guide
     }
 
     /// <summary>Retires a published guide. The versions stay — history is permanent.</summary>
-    public Result Archive(DateTimeOffset now)
+    /// <param name="archivedBy">
+    /// Who did it, when a person did. Trust reads it to tell an author retiring their own guide,
+    /// which keeps what the guide earned, from anyone else's archive, which takes it back (D-9, Q4).
+    /// </param>
+    public Result Archive(DateTimeOffset now, UserId? archivedBy = null)
     {
         if (IsDeleted)
         {
@@ -922,7 +926,8 @@ public sealed class Guide
         RaiseDomainEvent(new GuideArchivedDomainEvent
         {
             GuideId = Id,
-            ArchivedAt = now
+            ArchivedAt = now,
+            ArchivedBy = archivedBy
         });
 
         return Result.Success();

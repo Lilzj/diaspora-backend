@@ -130,36 +130,106 @@ public sealed class ReputationProfile : AggregateRoot<ReputationProfileId>, IAud
         ArgumentNullException.ThrowIfNull(award);
 
         var previousLevel = Level;
+        var applied = MoveScore(award.Dimension, award.Points);
 
-        switch (award.Dimension)
+        ApplyCounter(award.ActionType, at, reverse: false);
+
+        var recorded = ReputationEvent.Record(
+            Id, award.ActionType, award.Dimension, award.Points,
+            sourceType, sourceId, countryCode, award.Description, at, key, appliedPoints: applied);
+
+        Record(recorded, award.Dimension, award.ActionType, award.Points, previousLevel, at);
+
+        return recorded;
+    }
+
+    /// <summary>
+    /// Takes an award back, or refunds a penalty, as a compensating event (D-9).
+    /// <para>
+    /// <b>Append-only, like every other change.</b> The original stays; the reversal names it in
+    /// <see cref="ReputationEvent.ReversesEventId"/>, moves the score by the opposite of what the
+    /// original actually applied, and moves the detail counter back. Through the same path as
+    /// <see cref="Apply"/>, so the level and the domain events follow.
+    /// </para>
+    /// <para>
+    /// <b>It records the original's opposite</b> as its points, and what it really moved in
+    /// <see cref="ReputationEvent.AppliedPoints"/>, as <see cref="Apply"/> does. The breakdown sums
+    /// recorded points, so an action and its reversal net to nothing there, and the floor stays in
+    /// the adjustment where it was.
+    /// </para>
+    /// </summary>
+    public ReputationEvent Reverse(
+        ReputationEvent original, string reason, DateTimeOffset at, ReputationAwardKey key)
+    {
+        ArgumentNullException.ThrowIfNull(original);
+        ArgumentNullException.ThrowIfNull(key);
+
+        if (original.ProfileId != Id)
         {
-            case ReputationDimension.contribution:
-                ContributionScore = Math.Max(0, ContributionScore + award.Points);
-                break;
-
-            case ReputationDimension.verification:
-                VerificationScore = Math.Max(0, VerificationScore + award.Points);
-                break;
-
-            case ReputationDimension.trust:
-                TrustScore = Math.Max(0, TrustScore + award.Points);
-                break;
+            throw new InvalidOperationException("That reputation event belongs to another profile.");
         }
 
-        ApplyCounter(award.ActionType, at);
+        if (original.IsReversal)
+        {
+            throw new InvalidOperationException("A reversal is not itself reversed.");
+        }
 
+        var previousLevel = Level;
+        var applied = MoveScore(original.Dimension, -(original.AppliedPoints ?? original.Points));
+
+        ApplyCounter(original.ActionType, at, reverse: true);
+
+        var recorded = ReputationEvent.Record(
+            Id, original.ActionType, original.Dimension, -original.Points,
+            original.SourceType, original.SourceId, original.CountryCode, reason, at, key,
+            appliedPoints: applied, reversesEventId: original.Id);
+
+        Record(recorded, original.Dimension, original.ActionType, -original.Points, previousLevel, at);
+
+        return recorded;
+    }
+
+    /// <summary>Moves one dimension's score, floored at zero, and says by how much it really moved.</summary>
+    private int MoveScore(ReputationDimension dimension, int points)
+    {
+        switch (dimension)
+        {
+            case ReputationDimension.contribution:
+                var contribution = ContributionScore;
+                ContributionScore = Math.Max(0, ContributionScore + points);
+                return ContributionScore - contribution;
+
+            case ReputationDimension.verification:
+                var verification = VerificationScore;
+                VerificationScore = Math.Max(0, VerificationScore + points);
+                return VerificationScore - verification;
+
+            case ReputationDimension.trust:
+                var trust = TrustScore;
+                TrustScore = Math.Max(0, TrustScore + points);
+                return TrustScore - trust;
+
+            default:
+                return 0;
+        }
+    }
+
+    private void Record(
+        ReputationEvent recorded,
+        ReputationDimension dimension,
+        string actionType,
+        int points,
+        ReputationLevel previousLevel,
+        DateTimeOffset at)
+    {
         Level = ReputationThresholds.LevelFor(CombinedScore);
         LastCalculatedAt = at;
         Revision++;
 
-        var recorded = ReputationEvent.Record(
-            Id, award.ActionType, award.Dimension, award.Points,
-            sourceType, sourceId, countryCode, award.Description, at, key);
-
         _events.Add(recorded);
 
         RaiseDomainEvent(new ReputationScoredDomainEvent(
-            Id, UserId, award.Dimension, award.ActionType, award.Points, at));
+            Id, UserId, dimension, actionType, points, at));
 
         if (Level != previousLevel)
         {
@@ -167,8 +237,6 @@ public sealed class ReputationProfile : AggregateRoot<ReputationProfileId>, IAud
             RaiseDomainEvent(new ReputationLevelChangedDomainEvent(
                 Id, UserId, previousLevel, Level, CombinedScore, at));
         }
-
-        return recorded;
     }
 
     /// <summary>
@@ -178,34 +246,53 @@ public sealed class ReputationProfile : AggregateRoot<ReputationProfileId>, IAud
     /// far easier to read as a list of "this action moves that number".
     /// </para>
     /// </summary>
-    private void ApplyCounter(string actionType, DateTimeOffset at)
+    /// <remarks>
+    /// <paramref name="reverse"/> moves the counter back for a reversal: a count goes down (never
+    /// below zero) and a flag goes false. A refunded violation leaves the no-violation streak where
+    /// it is; the streak is a fact about time, not a score.
+    /// </remarks>
+    private void ApplyCounter(string actionType, DateTimeOffset at, bool reverse)
     {
+        var step = reverse ? -1 : 1;
+        var flag = !reverse;
+
         switch (actionType)
         {
-            case ReputationActions.GuidePublished: GuidesPublished++; break;
-            case ReputationActions.GuideApproved: GuidesApproved++; break;
-            case ReputationActions.GuideUpdated: GuidesUpdated++; break;
-            case ReputationActions.UpdatePublished: UpdatesPublished++; break;
-            case ReputationActions.UpdateVerified: UpdatesVerified++; break;
-            case ReputationActions.CommentWritten: CommentsWritten++; break;
-            case ReputationActions.HelpfulVoteReceived: HelpfulVotesReceived++; break;
-            case ReputationActions.CommunityConfirmation: CommunityConfirmationsReceived++; break;
-            case ReputationActions.ReportResolved: ReportsResolved++; break;
+            case ReputationActions.GuidePublished: GuidesPublished = Count(GuidesPublished, step); break;
+            case ReputationActions.GuideApproved: GuidesApproved = Count(GuidesApproved, step); break;
+            case ReputationActions.GuideUpdated: GuidesUpdated = Count(GuidesUpdated, step); break;
+            case ReputationActions.UpdatePublished: UpdatesPublished = Count(UpdatesPublished, step); break;
+            case ReputationActions.UpdateVerified: UpdatesVerified = Count(UpdatesVerified, step); break;
+            case ReputationActions.CommentWritten: CommentsWritten = Count(CommentsWritten, step); break;
+            case ReputationActions.HelpfulVoteReceived: HelpfulVotesReceived = Count(HelpfulVotesReceived, step); break;
+            case ReputationActions.CommunityConfirmation:
+                CommunityConfirmationsReceived = Count(CommunityConfirmationsReceived, step);
+                break;
+            case ReputationActions.ReportResolved: ReportsResolved = Count(ReportsResolved, step); break;
 
-            case ReputationActions.PhoneVerified: PhoneVerified = true; break;
-            case ReputationActions.EmailVerified: EmailVerified = true; break;
-            case ReputationActions.GovernmentIdVerified: GovernmentIdVerified = true; break;
-            case ReputationActions.ProfilePhotoAdded: ProfilePhotoAdded = true; break;
-            case ReputationActions.ProfileCompleted: ProfileCompleted = true; break;
-            case ReputationActions.ProviderVerified: ProviderVerified = true; break;
-            case ReputationActions.CountryVerified: CountryVerificationsCount++; break;
+            case ReputationActions.PhoneVerified: PhoneVerified = flag; break;
+            case ReputationActions.EmailVerified: EmailVerified = flag; break;
+            case ReputationActions.GovernmentIdVerified: GovernmentIdVerified = flag; break;
+            case ReputationActions.ProfilePhotoAdded: ProfilePhotoAdded = flag; break;
+            case ReputationActions.ProfileCompleted: ProfileCompleted = flag; break;
+            case ReputationActions.ProviderVerified: ProviderVerified = flag; break;
+            case ReputationActions.CountryVerified:
+                CountryVerificationsCount = Count(CountryVerificationsCount, step);
+                break;
 
             case ReputationActions.ViolationRecorded:
-                ViolationCount++;
-                NoViolationSince = at; // the streak restarts
+                ViolationCount = Count(ViolationCount, step);
+
+                if (!reverse)
+                {
+                    NoViolationSince = at; // the streak restarts
+                }
+
                 break;
         }
     }
+
+    private static int Count(int value, int step) => Math.Max(0, value + step);
 
     /// <summary>Days without a violation, as at <paramref name="asOf"/>.</summary>
     public int NoViolationStreakDays(DateTimeOffset asOf) =>

@@ -17564,6 +17564,9 @@ namespace Diaspora.Persistence.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
+                    b.Property<int?>("AppliedPoints")
+                        .HasColumnType("integer");
+
                     b.Property<string>("AwardKey")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
@@ -17590,6 +17593,9 @@ namespace Diaspora.Persistence.Migrations
                     b.Property<Guid>("ProfileId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("ReversesEventId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("SourceId")
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
@@ -17600,9 +17606,15 @@ namespace Diaspora.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ReversesEventId")
+                        .HasDatabaseName("ix_reputation_events_reverses");
+
                     b.HasIndex("ProfileId", "AwardKey")
                         .IsUnique()
                         .HasDatabaseName("ix_reputation_events_profile_award_key");
+
+                    b.HasIndex("SourceType", "SourceId")
+                        .HasDatabaseName("ix_reputation_events_source");
 
                     b.HasIndex("ProfileId", "ActionType", "CreatedAt")
                         .HasDatabaseName("ix_reputation_events_profile_action_created");

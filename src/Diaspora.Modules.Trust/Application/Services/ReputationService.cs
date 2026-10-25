@@ -169,6 +169,94 @@ public sealed class ReputationService
 
         return ScoringOutcome.Applied(award.ActionType, award.Points, award.Dimension, recorded.Id);
     }
+
+    /// <summary>
+    /// Reverses every unreversed award or penalty with this source (D-9). Staged; the caller saves.
+    /// <para>
+    /// <b>Found by source, across profiles, not by member.</b> A removal event does not always name
+    /// whose content it was (a removed comment's does not), and every award already records what
+    /// earned it. <paramref name="which"/> picks the awards (points above zero) or the penalties
+    /// (below), and <paramref name="memberUserId"/>, when given, keeps it to one member.
+    /// </para>
+    /// </summary>
+    /// <returns>How many events were reversed. Zero on a second delivery.</returns>
+    public async Task<int> ReverseBySourceAsync(
+        string? sourceType,
+        string sourceId,
+        string reason,
+        Func<ReputationEvent, bool> which,
+        UserId? memberUserId = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(which);
+
+        var originals = await _reputations.ListUnreversedBySourceAsync(
+            sourceType, sourceId, cancellationToken);
+
+        return await ReverseAsync(originals.Where(which), reason, memberUserId, cancellationToken);
+    }
+
+    /// <summary>
+    /// Reverses one member's unreversed events that carry any of these award keys (D-9). Staged; the
+    /// caller saves. For a refund whose target is the decision rather than the content.
+    /// </summary>
+    public async Task<int> ReverseAwardsAsync(
+        UserId memberUserId,
+        IReadOnlyCollection<ReputationAwardKey> keys,
+        string reason,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(memberUserId);
+        ArgumentNullException.ThrowIfNull(keys);
+
+        var originals = await _reputations.ListUnreversedByAwardKeysAsync(
+            memberUserId, [.. keys.Select(key => key.Value)], cancellationToken);
+
+        return await ReverseAsync(originals, reason, memberUserId, cancellationToken);
+    }
+
+    private async Task<int> ReverseAsync(
+        IEnumerable<ReputationEvent> originals,
+        string reason,
+        UserId? memberUserId,
+        CancellationToken cancellationToken)
+    {
+        var now = _clock.UtcNow;
+        var reversed = 0;
+
+        foreach (var original in originals)
+        {
+            var reputation = await _reputations.GetByIdAsync(original.ProfileId, cancellationToken);
+
+            if (reputation is null
+                || (memberUserId is not null && reputation.UserId != memberUserId))
+            {
+                continue;
+            }
+
+            // The unique (profile, award key) index backs this when two deliveries race.
+            var key = ReputationAwardKey.Reversal(original.Id);
+
+            if (await _reputations.HasAwardAsync(reputation.UserId, key, cancellationToken))
+            {
+                continue;
+            }
+
+            reputation.Reverse(original, reason, now, key);
+
+            // A country-scoped award also moved the member's standing there; that comes back too.
+            if (original.CountryCode is { } country
+                && _rules.For(original.ActionType) is { IsCountryScoped: true })
+            {
+                var profile = await _profiles.GetByUserAsync(reputation.UserId, cancellationToken);
+                profile?.AddCountryPoints(country, -original.Points, now);
+            }
+
+            reversed++;
+        }
+
+        return reversed;
+    }
 }
 
 /// <summary>The result of asking to score an action.</summary>

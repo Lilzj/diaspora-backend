@@ -202,10 +202,10 @@ public sealed class GuideIntegrationEventRelay
             {
                 GuideId = domainEvent.GuideId.Value,
 
-                // The aggregate does not record who archived it — archival is reachable from the
-                // author, from staff and from the moderation projection, and attributing it to
-                // the wrong one would be worse than attributing it to nobody.
-                ArchivedBy = null,
+                // The person, when the archive command ran: the author or staff. Null when the
+                // moderation projection archived it, which names nobody, and attributing it to
+                // the wrong person would be worse than attributing it to nobody.
+                ArchivedBy = domainEvent.ArchivedBy?.Value,
                 ArchivedAt = domainEvent.ArchivedAt,
 
                 // Which is precisely why the author is carried: the actor is unknowable and the

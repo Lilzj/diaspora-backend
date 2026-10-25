@@ -187,6 +187,31 @@ public class GuideLifecycleTests
         guide.CurrentVersion.Should().Be(1, "archiving is not a publication and mints no version");
     }
 
+    /// <summary>
+    /// Trust takes back what a guide earned when anyone but its author archives it (D-9) and leaves
+    /// it when the author does (Q4). It can only tell them apart if the event says who it was.
+    /// </summary>
+    [Fact]
+    public void Archiving_says_who_did_it_when_a_person_did()
+    {
+        var byPerson = Published();
+        var archivist = UserId.From(Guid.NewGuid());
+        byPerson.ClearDomainEvents();
+
+        byPerson.Archive(Now.AddDays(1), archivist).IsSuccess.Should().BeTrue();
+
+        byPerson.DomainEvents.OfType<GuideArchivedDomainEvent>().Single()
+            .ArchivedBy.Should().Be(archivist);
+
+        var byModeration = Published();
+        byModeration.ClearDomainEvents();
+
+        byModeration.Archive(Now.AddDays(1)).IsSuccess.Should().BeTrue();
+
+        byModeration.DomainEvents.OfType<GuideArchivedDomainEvent>().Single()
+            .ArchivedBy.Should().BeNull("moderation names no person");
+    }
+
     [Fact]
     public void A_draft_cannot_be_archived()
     {
