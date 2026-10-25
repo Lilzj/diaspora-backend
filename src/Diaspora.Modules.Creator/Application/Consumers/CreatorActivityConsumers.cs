@@ -761,3 +761,31 @@ public sealed class ReferralQualifiedCreatorConsumer
             integrationEvent.ReferralId);
     }
 }
+
+/// <summary>
+/// Records a finished course as the member's activity, so the <c>academy-graduate</c> milestone can
+/// be reached (RWD-11). This module's own event, idempotent on the course.
+/// </summary>
+public sealed class CourseCompletedCreatorConsumer
+    : IntegrationEventHandler<Diaspora.Contracts.Creator.V1.Events.CourseCompletedIntegrationEvent>
+{
+    private readonly CreatorActivityRecorder _recorder;
+
+    public CourseCompletedCreatorConsumer(CreatorActivityRecorder recorder) => _recorder = recorder;
+
+    protected override Task HandleAsync(
+        Diaspora.Contracts.Creator.V1.Events.CourseCompletedIntegrationEvent integrationEvent,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+
+        return _recorder.RecordAsync(
+            integrationEvent.UserId,
+            CreatorActivityTypes.CourseCompleted,
+            $"{CreatorActivityTypes.CourseCompleted}:{integrationEvent.CourseId:N}",
+            integrationEvent.CompletedAt,
+            cancellationToken,
+            "course",
+            integrationEvent.CourseId);
+    }
+}

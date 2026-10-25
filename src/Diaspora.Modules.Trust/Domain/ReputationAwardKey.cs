@@ -59,6 +59,10 @@ public sealed record ReputationAwardKey
     public static ReputationAwardKey Comment(Guid commentId) =>
         Of(ReputationActions.CommentWritten, "comment", commentId.ToString("N"));
 
+    /// <summary>Once per course a member finishes.</summary>
+    public static ReputationAwardKey Course(Guid courseId) =>
+        Of(ReputationActions.CourseCompleted, "course", courseId.ToString("N"));
+
     /// <summary>Once per referral, whoever delivers the qualification and however often.</summary>
     public static ReputationAwardKey Referral(Guid referralId) =>
         Of(ReputationActions.ReferralQualified, "referral", referralId.ToString("N"));

@@ -549,3 +549,46 @@ public sealed class ReferralQualifiedReputationConsumer
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 }
+
+/// <summary>
+/// Pays a member 10 XP for finishing an Academy course, once per course (RWD-12, Q6). No points: a
+/// course stopped paying them for new completions.
+/// </summary>
+public sealed class CourseCompletedReputationConsumer
+    : IntegrationEventHandler<Diaspora.Contracts.Creator.V1.Events.CourseCompletedIntegrationEvent>
+{
+    private readonly ReputationService _reputation;
+    private readonly TrustProfileProvisioner _provisioner;
+    private readonly IUnitOfWork _unitOfWork;
+
+    public CourseCompletedReputationConsumer(
+        ReputationService reputation,
+        TrustProfileProvisioner provisioner,
+        IUnitOfWork unitOfWork)
+    {
+        _reputation = reputation;
+        _provisioner = provisioner;
+        _unitOfWork = unitOfWork;
+    }
+
+    protected override async Task HandleAsync(
+        Diaspora.Contracts.Creator.V1.Events.CourseCompletedIntegrationEvent integrationEvent,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+
+        var member = UserId.From(integrationEvent.UserId);
+
+        await _provisioner.GetOrCreateBothAsync(member, cancellationToken);
+
+        await _reputation.ScoreAsync(
+            member,
+            ReputationActions.CourseCompleted,
+            ReputationAwardKey.Course(integrationEvent.CourseId),
+            "course",
+            integrationEvent.CourseId.ToString(),
+            cancellationToken: cancellationToken);
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+}

@@ -20,6 +20,7 @@ public static class ReputationActions
     public const string UpdateVerified = "UpdateVerified";
     public const string CommentWritten = "CommentWritten";
     public const string ReferralQualified = "ReferralQualified";
+    public const string CourseCompleted = "CourseCompleted";
 
     // Verification
     public const string PhoneVerified = "PhoneVerified";
@@ -169,9 +170,10 @@ public static class DefaultReputationRules
     /// <list type="bullet">
     ///   <item>1, 2026-10-25: credit points for an approved guide (250) and a confirmed update (200).</item>
     ///   <item>2, 2026-10-25: a qualified referral, 25 XP and 250 credit points.</item>
+    ///   <item>3, 2026-10-25: a finished Academy course, 10 XP (Q6).</item>
     /// </list>
     /// </summary>
-    public const int Version = 2;
+    public const int Version = 3;
 
     public static IReadOnlyList<ReputationRule> All { get; } =
     [
@@ -252,6 +254,16 @@ public static class DefaultReputationRules
             CreditPoints = 250,
             Description = "Someone you invited joined and contributed.",
             Label = "Referrals qualified"
+        },
+        new()
+        {
+            // CourseCompletedReputationConsumer, off Creator's completion. Once per course. A course
+            // pays XP and no points (Q6); learning is not a confirmed outcome for anyone else.
+            ActionType = ReputationActions.CourseCompleted,
+            Dimension = ReputationDimension.contribution,
+            Points = 10,
+            Description = "Finished an Academy course.",
+            Label = "Academy courses completed"
         },
 
         // ── Verification ─────────────────────────────────────────────────

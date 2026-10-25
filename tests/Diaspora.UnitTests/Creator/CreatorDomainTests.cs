@@ -833,6 +833,31 @@ public sealed class AcademyQuizTests
         progress.CompletedAtVersion(lesson.Id).Should().Be(1, "but they read version one");
     }
 
+    /// <summary>
+    /// <b>A finished course announces itself and pays no points (Q6).</b> It paid the course's 40
+    /// points; a completion now earns XP from Trust and counts toward <c>academy-graduate</c>. Once.
+    /// </summary>
+    [Fact]
+    public void A_finished_course_is_announced_once_and_pays_no_points()
+    {
+        var course = AcademyCourse.Define(
+            AcademyCourseId.New(), "c", "C", "…", CourseLevel.Beginner, 5, 1, completionPoints: 40);
+
+        var progress = CreatorLearningProgress.Begin(
+            CreatorLearningProgressId.New(), CreatorId.New(), Guid.NewGuid(), course,
+            DateTimeOffset.UtcNow);
+
+        progress.AwardCompletion(course, null, "course:c:abc", DateTimeOffset.UtcNow);
+        progress.AwardCompletion(course, null, "course:c:abc", DateTimeOffset.UtcNow);
+
+        progress.DomainEvents.OfType<Modules.Creator.Domain.Events.CreatorPointsEarnedDomainEvent>()
+            .Should().BeEmpty("a course stopped paying points for new completions");
+        progress.DomainEvents.OfType<Modules.Creator.Domain.Events.CourseCompletedDomainEvent>()
+            .Should().ContainSingle()
+            .Which.Should().Match<Modules.Creator.Domain.Events.CourseCompletedDomainEvent>(
+                completed => completed.CourseId == course.Id && completed.CourseSlug == "c");
+    }
+
     private static (AcademyQuiz Quiz, Dictionary<Guid, Guid> Correct, Dictionary<Guid, Guid> Wrong)
         Quiz()
     {
