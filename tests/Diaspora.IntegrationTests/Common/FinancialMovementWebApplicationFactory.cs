@@ -81,6 +81,8 @@ public class FinancialMovementWebApplicationFactory : CustomWebApplicationFactor
                 // is: one shared in-memory SQLite connection, and a loop querying it mid-command is a
                 // concurrent use SQLite will not allow. Tests drive RunOnceAsync directly.
                 ["Financial:EnableWithdrawalSweep"] = "false",
+                ["Financial:EnableRewardConversionReleaseSweep"] = "false",
+                ["Financial:EnableRewardVestingSweep"] = "false",
                 ["Financial:EnableExpiryNoticeSweep"] = "false",
                 ["Financial:EnableReconciliationSweep"] = "false",
                 ["Financial:EnablePaymentExpirySweep"] = "false",

@@ -11,6 +11,7 @@ using Diaspora.Modules.Financial.Domain.Ledgers;
 using Diaspora.Modules.Financial.Domain.Policies;
 using Diaspora.Modules.Financial.Domain.Rewards;
 using Diaspora.Modules.Financial.Domain.ValueObjects;
+using Diaspora.Modules.Financial.Domain.Wallets;
 using Diaspora.Modules.Financial.Observability;
 using Diaspora.Modules.Financial.Options;
 using Diaspora.Platform.Services.Abstractions;
@@ -35,6 +36,7 @@ public sealed class RewardConversionPricer
     private readonly IFinancialAccountRepository _accounts;
     private readonly MemberCurrency _memberCurrency;
     private readonly CurrencyCatalog _currencies;
+    private readonly IWalletRepository _wallets;
     private readonly IClock _clock;
     private readonly FinancialOptions _options;
 
@@ -44,6 +46,7 @@ public sealed class RewardConversionPricer
         IFinancialAccountRepository accounts,
         MemberCurrency memberCurrency,
         CurrencyCatalog currencies,
+        IWalletRepository wallets,
         IClock clock,
         IOptions<FinancialOptions> options)
     {
@@ -53,6 +56,7 @@ public sealed class RewardConversionPricer
         _conversions = conversions;
         _accounts = accounts;
         _memberCurrency = memberCurrency;
+        _wallets = wallets;
         _currencies = currencies;
         _clock = clock;
         _options = options.Value;
@@ -125,6 +129,29 @@ public sealed class RewardConversionPricer
                         $"Reward points convert into {offered} only.")
                     : null;
 
+        var minimumPoints = policy?.Int64Parameter(FinancialPolicyParameters.MinimumPoints) ?? 1;
+
+        // The pot pays every conversion (D-6), and when it cannot pay for the smallest one,
+        // conversion pauses for everybody in that currency. Read only when everything else says yes,
+        // and with the repository rather than the identity service, which would open a missing wallet
+        // from inside a read.
+        long? potAvailable = null;
+
+        if (disabled is null)
+        {
+            var pot = await _wallets.FindPlatformWalletAsync(
+                WalletType.Rewards, offered!, cancellationToken);
+
+            potAvailable = pot is { Status: WalletStatus.Active } ? pot.AvailableMinorUnits : 0;
+
+            var smallestCredit = Math.Max(1, (long)Math.Floor(minimumPoints * rate));
+
+            if (potAvailable < smallestCredit)
+            {
+                disabled = (FinancialErrorCodes.RewardBudgetExhausted, PausedMessage);
+            }
+        }
+
         // The same bar withdrawals set (WithdrawalHandlers: account.CanDebit). Converting turns points
         // into money in the withdrawable primary wallet, so it is held to the rule for moving money
         // out: an unverified (Pending) or Restricted account converts nothing.
@@ -149,16 +176,33 @@ public sealed class RewardConversionPricer
             Exponent = facts.Exponent,
             Symbol = facts.Symbol,
             MinorUnitsPerPoint = rate,
-            MinimumPoints =
-                policy?.Int64Parameter(FinancialPolicyParameters.MinimumPoints) ?? 1,
+            MinimumPoints = minimumPoints,
             MaximumPoints = policy?.Int64Parameter(FinancialPolicyParameters.MaximumPoints),
             DailyMaximumPoints = dailyMaximum,
             DailyRemainingPoints = dailyMaximum is { } cap
                 ? Math.Max(0, cap - convertedToday)
                 : null,
-            PolicyVersion = policy?.VersionLabel
+            PolicyVersion = policy?.VersionLabel,
+            PotAvailableMinorUnits = potAvailable,
+
+            // Clamped rather than refused: a policy version that says -3 days is a typo, and the
+            // safe reading of a typo in a hold is "no shorter than none".
+            HoldDays = (int)Math.Clamp(
+                policy?.Int64Parameter(FinancialPolicyParameters.HoldDays) ?? DefaultHoldDays,
+                0,
+                365)
         };
     }
+
+    /// <summary>
+    /// How long converted credit is held when the policy does not say (D-7). The seeder never
+    /// overwrites a policy, so a deployment seeded before the hold existed has no
+    /// <c>holdDays</c> and gets this.
+    /// </summary>
+    public const int DefaultHoldDays = 14;
+
+    /// <summary>What a member is told while the rewards pot cannot pay for a conversion.</summary>
+    public const string PausedMessage = "Conversions are paused for now. Your points are safe.";
 
     private static string? CurrencyCode(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim().ToUpperInvariant();
@@ -279,6 +323,14 @@ public sealed class RewardConversionPricer
         {
             return (FinancialErrorCodes.RewardDailyLimitReached,
                 "That would take you past what you can convert in a day.");
+        }
+
+        // The pot covers the smallest conversion (or the terms would have paused it) but may not
+        // cover this one. Said without naming what is left in it.
+        if (terms.PotAvailableMinorUnits is { } pot && credit.MinorUnits > pot)
+        {
+            return (FinancialErrorCodes.RewardBudgetExhausted,
+                "That is more than can be converted right now. Try fewer points, or come back later.");
         }
 
         return null;
@@ -427,6 +479,16 @@ public sealed record RewardConversionTerms
     public long? DailyRemainingPoints { get; init; }
 
     public string? PolicyVersion { get; init; }
+
+    /// <summary>
+    /// What the rewards pot in <see cref="Currency"/> can pay, in minor units. Null when conversion
+    /// is off for another reason. Internal to pricing: never mapped to a response, because what is
+    /// left in the budget is the platform's business, not the member's.
+    /// </summary>
+    public long? PotAvailableMinorUnits { get; init; }
+
+    /// <summary>Days converted credit stays pending before it can be used (D-7).</summary>
+    public int HoldDays { get; init; } = RewardConversionPricer.DefaultHoldDays;
 }
 
 /// <summary>What a conversion would produce, and whether it may happen.</summary>
@@ -576,22 +638,18 @@ public sealed class ConvertRewardPointsCommandHandler
                 $"You hold no {terms.Currency} wallet for the credit to land in."));
         }
 
-        // Funded from the platform's clearing wallet, and the choice is an accounting one worth
-        // stating. Converting points creates an obligation the platform will eventually settle in
-        // real money — when the member spends the credit, or withdraws it and it leaves the bank.
-        // Clearing is the account whose balance is by construction the platform's net position with
-        // the outside world, and the only one allowed to run negative; sourcing from it makes that
-        // balance include what the platform has promised as well as what it holds. Revenue would
-        // have been the intuitive choice and is wrong twice over: it is not allowed to run negative,
-        // so a deployment that had taken no payments could not honour a single conversion.
+        // Paid from the rewards pot (D-6). It used to be Clearing, the one wallet allowed to run
+        // negative, so what the platform promised had no ceiling and sat inside the deposit float.
+        // The pot cannot go negative: the terms paused conversion if it could not pay the smallest
+        // one, the quote refused this one if it could not pay for it, and the posting service's
+        // CanDebit refuses a conversion that races another for the last of it.
         var source = await _identities.PlatformWalletAsync(
-            WalletType.Clearing, terms.Currency, cancellationToken);
+            WalletType.Rewards, terms.Currency, cancellationToken);
 
         if (source is null)
         {
-            return Result.Failure<RewardConversionResponse>(Error.Unexpected(
-                FinancialErrorCodes.WalletNotFound,
-                "The platform has no clearing wallet in this currency to fund the conversion from."));
+            return Result.Failure<RewardConversionResponse>(Error.Conflict(
+                FinancialErrorCodes.RewardBudgetExhausted, RewardConversionPricer.PausedMessage));
         }
 
         var conversionId = RewardConversionId.From(_guids.NewSequentialGuid());
@@ -635,6 +693,10 @@ public sealed class ConvertRewardPointsCommandHandler
                         WalletId = wallet.Id,
                         Direction = LedgerDirection.Credit,
                         Amount = quote.Credit,
+
+                        // Pending, not available (D-7): it cannot be spent or withdrawn until the
+                        // release sweep moves it, HoldDays from now.
+                        Bucket = LedgerBucket.Pending,
                         EntryType = LedgerEntryType.RewardConversion
                     }
                 ],
@@ -661,7 +723,8 @@ public sealed class ConvertRewardPointsCommandHandler
             _clock.UtcNow,
             quote.PolicyVersion,
             command.IdempotencyKey,
-            posting.Value.Transaction.Id);
+            posting.Value.Transaction.Id,
+            availableAt: _clock.UtcNow.AddDays(terms.HoldDays));
 
         _conversions.Add(conversion);
 

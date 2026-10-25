@@ -220,6 +220,7 @@ public sealed class GrantRewardPointsCommandHandler
 {
     private readonly IRewardAccountRepository _accounts;
     private readonly FinancialLimitsResolver _limits;
+    private readonly RewardVesting _vesting;
     private readonly FinancialAuthorizationService _authorization;
     private readonly IGuidGenerator _guids;
     private readonly IClock _clock;
@@ -228,6 +229,7 @@ public sealed class GrantRewardPointsCommandHandler
     public GrantRewardPointsCommandHandler(
         IRewardAccountRepository accounts,
         FinancialLimitsResolver limits,
+        RewardVesting vesting,
         FinancialAuthorizationService authorization,
         IGuidGenerator guids,
         IClock clock,
@@ -235,6 +237,7 @@ public sealed class GrantRewardPointsCommandHandler
     {
         _accounts = accounts;
         _limits = limits;
+        _vesting = vesting;
         _authorization = authorization;
         _guids = guids;
         _clock = clock;
@@ -284,17 +287,22 @@ public sealed class GrantRewardPointsCommandHandler
             _accounts.Add(account);
         }
 
+        var now = _clock.UtcNow;
+
         var awarded = account.Grant(
             _guids.NewSequentialGuid(),
             command.Points,
             command.Source,
             command.GrantReference,
-            _clock.UtcNow,
+            now,
             grantedByUserId: grantor.Value,
             reason: command.Reason,
 
             // The version of the limits that allowed it. Not refused, so the policy is there.
-            policyVersion: policy!.VersionLabel);
+            policyVersion: policy!.VersionLabel,
+
+            // Pending like every other grant (D-9): a staff grant is a grant.
+            vestsAt: await _vesting.VestsAtAsync(command.UserId, now, cancellationToken));
 
         if (awarded)
         {

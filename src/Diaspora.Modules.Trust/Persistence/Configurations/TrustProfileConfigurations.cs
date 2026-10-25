@@ -3,6 +3,7 @@ using Diaspora.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Diaspora.Modules.Trust.Persistence.Configurations;
 
@@ -300,6 +301,23 @@ public sealed class ReputationEventConfiguration : IEntityTypeConfiguration<Repu
 
         builder.Property(reputationEvent => reputationEvent.AwardKey)
             .HasMaxLength(ReputationAwardKey.MaxLength);
+
+        // Through the non-generic overload, as FinancialValueConverters.Id does: the generic one
+        // wants a converter of ReputationEventId?, and null never reaches a converter anyway.
+        builder.Property(reputationEvent => reputationEvent.ReversesEventId)
+            .HasConversion((ValueConverter)new StronglyTypedIdValueConverter<ReputationEventId>());
+
+        // What reversal reads (D-9): every award with a given source, across profiles.
+        builder.HasIndex(reputationEvent => new
+        {
+            reputationEvent.SourceType,
+            reputationEvent.SourceId
+        })
+            .HasDatabaseName("ix_reputation_events_source");
+
+        // What "already reversed?" reads.
+        builder.HasIndex(reputationEvent => reputationEvent.ReversesEventId)
+            .HasDatabaseName("ix_reputation_events_reverses");
 
         // The guarantee behind ReputationAwardKey: one award per business fact per member, held
         // by the database rather than by a read that two outbox workers can both pass. Rows from

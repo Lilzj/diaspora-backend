@@ -42,6 +42,9 @@ public sealed class CreatorPlatformTests : IdentityTestBase
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
+    /// <summary>The member <see cref="AuthenticateAsync"/> last signed in, whose points a test vests.</summary>
+    private Guid _memberUserId;
+
     public CreatorPlatformTests(CustomWebApplicationFactory factory) : base(factory) { }
 
     // ════════════════════════════════════════════════════════════════════════════════════════
@@ -648,18 +651,18 @@ public sealed class CreatorPlatformTests : IdentityTestBase
         var balance = await ReadDataAsync<RewardBalanceDto>(
             await HttpClient.GetAsync($"{Financial}/rewards/me"));
 
-        balance.Balance.Should().BeGreaterThanOrEqualTo(
-            100, "the first-guide milestone pays a hundred points, and B15 holds them");
+        balance.PendingPoints.Should().BeGreaterThanOrEqualTo(
+            100, "the first-guide milestone pays a hundred points, and B15 holds them until they vest");
 
         // A second drain must not award again: the grant reference is uniquely indexed per account.
-        var before = balance.Balance;
+        var before = balance.PendingPoints;
 
         await Factory.DrainOutboxAsync();
 
         var after = await ReadDataAsync<RewardBalanceDto>(
             await HttpClient.GetAsync($"{Financial}/rewards/me"));
 
-        after.Balance.Should().Be(before, "a redelivered grant awards once");
+        after.PendingPoints.Should().Be(before, "a redelivered grant awards once");
     }
 
     /// <summary>Claiming a milestone that is not complete is refused.</summary>
@@ -1576,7 +1579,8 @@ public sealed class CreatorPlatformTests : IdentityTestBase
         var balance = await ReadDataAsync<RewardBalanceDto>(
             await HttpClient.GetAsync($"{Financial}/rewards/me"));
 
-        balance.Balance.Should().BeGreaterThanOrEqualTo(100);
+        balance.PendingPoints.Should().BeGreaterThanOrEqualTo(
+            100, "B15 holds the bonus, pending until it vests (D-9)");
     }
 
     /// <summary>The rules catalogue serves the caps, the cooldowns, the version and the expiry policy.</summary>
@@ -1686,6 +1690,7 @@ public sealed class CreatorPlatformTests : IdentityTestBase
         }
 
         await Factory.DrainOutboxAsync();
+        await Factory.VestRewardPointsAsync(_memberUserId);
 
         var before = await ReadDataAsync<RewardBalanceDto>(
             await HttpClient.GetAsync($"{Financial}/rewards/me"));
@@ -1884,6 +1889,8 @@ public sealed class CreatorPlatformTests : IdentityTestBase
                 Reason = "Integration suite: the badge's price."
             });
 
+        await Factory.VestRewardPointsAsync(member.User.Id);
+
         var catalogue = await ReadDataAsync<RewardCatalogueDto>(
             await HttpClient.GetAsync($"{Rewards}/catalogue"));
 
@@ -1953,7 +1960,7 @@ public sealed class CreatorPlatformTests : IdentityTestBase
         var balance = await ReadDataAsync<RewardBalanceDto>(
             await HttpClient.GetAsync($"{Financial}/rewards/me"));
 
-        balance.Balance.Should().Be(bonus.Points, "the second member was paid their own bonus");
+        balance.PendingPoints.Should().Be(bonus.Points, "the second member was paid their own bonus");
     }
 
     [Fact]
@@ -2083,6 +2090,7 @@ public sealed class CreatorPlatformTests : IdentityTestBase
         }
 
         await Factory.DrainOutboxAsync();
+        await Factory.VestRewardPointsAsync(_memberUserId);
 
         var catalogue = await ReadDataAsync<RewardCatalogueDto>(
             await HttpClient.GetAsync($"{Rewards}/catalogue"));
@@ -2401,6 +2409,7 @@ public sealed class CreatorPlatformTests : IdentityTestBase
     {
         var (_, auth) = await RegisterVerifiedMemberAsync();
         Api.Authenticate(auth.Tokens.AccessToken);
+        _memberUserId = auth.User.Id;
 
         return auth.Tokens.AccessToken;
     }
@@ -2937,7 +2946,7 @@ public sealed class CreatorPlatformTests : IdentityTestBase
         string? GrantReference,
         string CatalogueVersion);
 
-    private sealed record RewardBalanceDto(long Balance, long LifetimeEarned);
+    private sealed record RewardBalanceDto(long Balance, long LifetimeEarned, long PendingPoints = 0);
 
     private sealed record FacetDto(string Value, int Count);
 

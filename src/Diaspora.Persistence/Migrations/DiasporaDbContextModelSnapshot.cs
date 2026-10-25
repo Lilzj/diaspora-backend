@@ -9245,6 +9245,9 @@ namespace Diaspora.Persistence.Migrations
                     b.Property<long>("LifetimeEarned")
                         .HasColumnType("bigint");
 
+                    b.Property<long>("LifetimeReversed")
+                        .HasColumnType("bigint");
+
                     b.Property<long>("LifetimeSpent")
                         .HasColumnType("bigint");
 
@@ -9256,6 +9259,9 @@ namespace Diaspora.Persistence.Migrations
 
                     b.Property<string>("ModifiedBy")
                         .HasColumnType("text");
+
+                    b.Property<long>("PendingBalance")
+                        .HasColumnType("bigint");
 
                     b.Property<int>("Revision")
                         .IsConcurrencyToken()
@@ -9274,6 +9280,9 @@ namespace Diaspora.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("AvailableAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTimeOffset>("ConvertedAt")
                         .HasColumnType("timestamp with time zone");
@@ -9319,6 +9328,9 @@ namespace Diaspora.Persistence.Migrations
                         .HasPrecision(18, 6)
                         .HasColumnType("numeric(18,6)");
 
+                    b.Property<DateTimeOffset?>("ReleasedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("Revision")
                         .IsConcurrencyToken()
                         .HasColumnType("integer");
@@ -9337,6 +9349,9 @@ namespace Diaspora.Persistence.Migrations
                     b.HasIndex("MemberUserId", "IdempotencyKey")
                         .IsUnique()
                         .HasDatabaseName("ix_financial_reward_conversions_member_idempotency");
+
+                    b.HasIndex("ReleasedAt", "AvailableAt")
+                        .HasDatabaseName("ix_financial_reward_conversions_release");
 
                     b.ToTable("financial_reward_conversions", "financial");
                 });
@@ -17555,6 +17570,9 @@ namespace Diaspora.Persistence.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
+                    b.Property<int?>("AppliedPoints")
+                        .HasColumnType("integer");
+
                     b.Property<string>("AwardKey")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
@@ -17581,6 +17599,9 @@ namespace Diaspora.Persistence.Migrations
                     b.Property<Guid>("ProfileId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("ReversesEventId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("SourceId")
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
@@ -17591,9 +17612,15 @@ namespace Diaspora.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ReversesEventId")
+                        .HasDatabaseName("ix_reputation_events_reverses");
+
                     b.HasIndex("ProfileId", "AwardKey")
                         .IsUnique()
                         .HasDatabaseName("ix_reputation_events_profile_award_key");
+
+                    b.HasIndex("SourceType", "SourceId")
+                        .HasDatabaseName("ix_reputation_events_source");
 
                     b.HasIndex("ProfileId", "ActionType", "CreatedAt")
                         .HasDatabaseName("ix_reputation_events_profile_action_created");
@@ -23591,6 +23618,9 @@ namespace Diaspora.Persistence.Migrations
                             b1.Property<bool>("IsConversion")
                                 .HasColumnType("boolean");
 
+                            b1.Property<bool>("IsReversal")
+                                .HasColumnType("boolean");
+
                             b1.Property<bool>("IsSpend")
                                 .HasColumnType("boolean");
 
@@ -23613,6 +23643,16 @@ namespace Diaspora.Persistence.Migrations
                                 .HasMaxLength(256)
                                 .HasColumnType("character varying(256)");
 
+                            b1.Property<DateTimeOffset?>("ReversalDeclinedAt")
+                                .HasColumnType("timestamp with time zone");
+
+                            b1.Property<string>("ReversalReason")
+                                .HasMaxLength(512)
+                                .HasColumnType("character varying(512)");
+
+                            b1.Property<DateTimeOffset?>("ReversedAt")
+                                .HasColumnType("timestamp with time zone");
+
                             b1.Property<Guid>("RewardAccountId")
                                 .HasColumnType("uuid");
 
@@ -23620,6 +23660,12 @@ namespace Diaspora.Persistence.Migrations
                                 .IsRequired()
                                 .HasMaxLength(64)
                                 .HasColumnType("character varying(64)");
+
+                            b1.Property<DateTimeOffset?>("VestedAt")
+                                .HasColumnType("timestamp with time zone");
+
+                            b1.Property<DateTimeOffset?>("VestsAt")
+                                .HasColumnType("timestamp with time zone");
 
                             b1.HasKey("EntryId");
 
@@ -23629,6 +23675,9 @@ namespace Diaspora.Persistence.Migrations
                             b1.HasIndex("RewardAccountId", "Reference")
                                 .IsUnique()
                                 .HasDatabaseName("ix_financial_reward_entries_reference");
+
+                            b1.HasIndex("VestedAt", "VestsAt")
+                                .HasDatabaseName("ix_financial_reward_entries_vesting");
 
                             b1.ToTable("financial_reward_entries", "financial");
 

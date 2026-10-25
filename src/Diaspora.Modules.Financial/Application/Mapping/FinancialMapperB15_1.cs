@@ -83,9 +83,12 @@ public static class FinancialMapperExtensions
         new()
         {
             Balance = account?.Balance ?? 0,
+            PendingPoints = account?.PendingBalance ?? 0,
+            NextVestsAt = account?.NextVestsAt,
             LifetimeEarned = account?.LifetimeEarned ?? 0,
             LifetimeConverted = account?.LifetimeConverted ?? 0,
             LifetimeSpent = account?.LifetimeSpent ?? 0,
+            LifetimeReversed = account?.LifetimeReversed ?? 0,
 
             // An account that does not exist yet can convert nothing, which is true rather than a
             // refusal — and says nothing about why, like every other conversion block.
@@ -127,6 +130,7 @@ public static class FinancialMapperExtensions
             Points = entry.Points,
             IsConversion = entry.IsConversion,
             IsSpend = entry.IsSpend,
+            IsReversal = entry.IsReversal,
             Source = entry.Source,
             OccurredAt = entry.OccurredAt
         };
@@ -145,7 +149,9 @@ public static class FinancialMapperExtensions
             MinorUnitsPerPoint = conversion.RateMinorUnitsPerPoint,
             PolicyVersion = conversion.PolicyVersion,
             TransactionId = conversion.TransactionId?.Value,
-            ConvertedAt = conversion.ConvertedAt
+            ConvertedAt = conversion.ConvertedAt,
+            Status = conversion.IsHolding ? "Holding" : "Available",
+            AvailableAt = conversion.AvailableAt
         };
     }
 

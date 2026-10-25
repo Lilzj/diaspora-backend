@@ -149,6 +149,22 @@ public sealed class FinancialOptions
     public int PayoutReconciliationSweepMinutes { get; set; } = 360;
 
     /// <summary>
+    /// Whether converted reward credit is released from its hold when the hold ends (D-7). Off
+    /// means converted credit stays pending until it is switched back on; nothing is lost.
+    /// </summary>
+    public bool EnableRewardConversionReleaseSweep { get; set; } = true;
+
+    public int RewardConversionReleaseSweepMinutes { get; set; } = 60;
+
+    /// <summary>
+    /// Whether pending reward points vest when their window ends (D-9). Off means granted points
+    /// stay pending, and unspendable, until it is switched back on; nothing is lost.
+    /// </summary>
+    public bool EnableRewardVestingSweep { get; set; } = true;
+
+    public int RewardVestingSweepMinutes { get; set; } = 60;
+
+    /// <summary>
     /// How far back each pass looks. Wide enough to cover a provider that settles slowly and a
     /// deployment that was down for a while, because a window that misses a payout misses it
     /// permanently — nothing else looks for one.

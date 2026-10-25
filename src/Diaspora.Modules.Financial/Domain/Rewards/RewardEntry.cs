@@ -7,7 +7,9 @@ namespace Diaspora.Modules.Financial.Domain.Rewards;
 /// <para>
 /// <b>Append-only, like the ledger, and for the same reason.</b> "Why do I have 340 points" is a
 /// question a member asks and a support agent has to answer; a balance that was simply overwritten
-/// cannot answer it. There is no operation on an entry but reading it.
+/// cannot answer it. There is no operation on an entry but reading it, and recording what became
+/// of a grant: when it vested, or when its grantor asked for it back and whether it came back.
+/// None of that changes what the grant was.
 /// </para>
 /// <para>
 /// <b><see cref="Reference"/> is the idempotency key on an earning.</b> It is the grantor's own
@@ -28,7 +30,8 @@ public sealed class RewardEntry : ValueObject
         DateTimeOffset occurredAt,
         Guid? grantedByUserId = null,
         string? reason = null,
-        string? policyVersion = null)
+        string? policyVersion = null,
+        DateTimeOffset? vestsAt = null)
     {
         EntryId = entryId;
         Points = points;
@@ -40,6 +43,7 @@ public sealed class RewardEntry : ValueObject
         GrantedByUserId = grantedByUserId;
         Reason = reason;
         PolicyVersion = policyVersion;
+        VestsAt = vestsAt;
     }
 
     private RewardEntry() { }
@@ -70,8 +74,15 @@ public sealed class RewardEntry : ValueObject
     /// </summary>
     public bool IsSpend { get; private set; }
 
-    /// <summary>Whether this entry takes points away, for whichever of the two reasons.</summary>
-    public bool IsDebit => IsConversion || IsSpend;
+    /// <summary>
+    /// True for pending points taken back because their grantor withdrew the grant (D-9, RWD-08). A
+    /// debit from <see cref="RewardAccount.PendingBalance"/>, never from the spendable balance.
+    /// Added like <see cref="IsSpend"/>, as a flag that is false on every existing row.
+    /// </summary>
+    public bool IsReversal { get; private set; }
+
+    /// <summary>Whether this entry takes points away, for whichever reason.</summary>
+    public bool IsDebit => IsConversion || IsSpend || IsReversal;
 
     /// <summary>Why. <c>ReferralQualified</c>, <c>GuidePublished</c>, <c>Conversion</c>.</summary>
     public string Source { get; private set; } = string.Empty;
@@ -101,6 +112,37 @@ public sealed class RewardEntry : ValueObject
     /// </summary>
     public string? PolicyVersion { get; private set; }
 
+    /// <summary>
+    /// When a grant becomes spendable (D-9, RWD-07). Until then its points are pending: they count
+    /// toward what was earned and can be reversed, but cannot be converted or spent.
+    /// <para>
+    /// Null on every debit, on a refunded spend (those points were already spendable), and on every
+    /// grant written before vesting existed: those count as vested, so existing balances stay
+    /// convertible (D-5).
+    /// </para>
+    /// </summary>
+    public DateTimeOffset? VestsAt { get; private set; }
+
+    /// <summary>When the vesting sweep made this grant spendable. Null until then, and on every
+    /// entry that never vested because it was never pending.</summary>
+    public DateTimeOffset? VestedAt { get; private set; }
+
+    /// <summary>When this grant's pending points were taken back. Null on every other entry.</summary>
+    public DateTimeOffset? ReversedAt { get; private set; }
+
+    /// <summary>
+    /// When the grantor asked for this grant back after it had vested, or for one that was never
+    /// pending, and it stayed earned (D-9). Recorded rather than refused: the grantor cannot know
+    /// whether its grant has vested, so asking is not an error.
+    /// </summary>
+    public DateTimeOffset? ReversalDeclinedAt { get; private set; }
+
+    /// <summary>Why the grantor asked for this grant back, whichever way it went.</summary>
+    public string? ReversalReason { get; private set; }
+
+    /// <summary>A grant whose points are not spendable yet, and have not been taken back.</summary>
+    public bool IsPending => !IsDebit && VestsAt is not null && VestedAt is null && ReversedAt is null;
+
     public static RewardEntry Earned(
         Guid entryId,
         long points,
@@ -109,7 +151,8 @@ public sealed class RewardEntry : ValueObject
         DateTimeOffset occurredAt,
         Guid? grantedByUserId = null,
         string? reason = null,
-        string? policyVersion = null)
+        string? policyVersion = null,
+        DateTimeOffset? vestsAt = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(reference);
 
@@ -123,7 +166,8 @@ public sealed class RewardEntry : ValueObject
             occurredAt,
             grantedByUserId,
             string.IsNullOrWhiteSpace(reason) ? null : reason.Trim(),
-            string.IsNullOrWhiteSpace(policyVersion) ? null : policyVersion.Trim());
+            string.IsNullOrWhiteSpace(policyVersion) ? null : policyVersion.Trim(),
+            vestsAt);
     }
 
     public static RewardEntry Converted(
@@ -153,12 +197,52 @@ public sealed class RewardEntry : ValueObject
             occurredAt);
     }
 
+    /// <summary>
+    /// Pending points taken back. The reference is the reversal's own: <c>reversal:{grant entry}</c>,
+    /// unique per account like every other, so a redelivered reversal debits once.
+    /// </summary>
+    public static RewardEntry Reversed(
+        Guid entryId, long points, string source, string reference, DateTimeOffset occurredAt)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reference);
+
+        var entry = new RewardEntry(
+            entryId,
+            points,
+            isConversion: false,
+            isSpend: false,
+            string.IsNullOrWhiteSpace(source) ? "Reversal" : source.Trim(),
+            reference.Trim(),
+            occurredAt);
+
+        entry.IsReversal = true;
+
+        return entry;
+    }
+
+    /// <summary>The account's half of vesting. Only <see cref="RewardAccount.VestDue"/> calls it.</summary>
+    internal void MarkVested(DateTimeOffset at) => VestedAt = at;
+
+    /// <summary>The account's half of a reversal. Only <see cref="RewardAccount.ReversePending"/> calls these.</summary>
+    internal void MarkReversed(DateTimeOffset at, string reason)
+    {
+        ReversedAt = at;
+        ReversalReason = reason;
+    }
+
+    internal void MarkReversalDeclined(DateTimeOffset at, string reason)
+    {
+        ReversalDeclinedAt = at;
+        ReversalReason = reason;
+    }
+
     protected override IEnumerable<object?> GetEqualityComponents()
     {
         yield return EntryId;
         yield return Points;
         yield return IsConversion;
         yield return IsSpend;
+        yield return IsReversal;
         yield return Reference;
     }
 }

@@ -59,6 +59,16 @@ public sealed record ReputationAwardKey
     public static ReputationAwardKey Comment(Guid commentId) =>
         Of(ReputationActions.CommentWritten, "comment", commentId.ToString("N"));
 
+    /// <summary>
+    /// Once per reversed event (D-9): a removal delivered twice takes the award back once.
+    /// </summary>
+    public static ReputationAwardKey Reversal(ReputationEventId originalEventId)
+    {
+        ArgumentNullException.ThrowIfNull(originalEventId);
+
+        return Of("Reversal", "event", originalEventId.Value.ToString("N"));
+    }
+
     /// <summary>Once per member, ever. Removing a photo and adding another is not a second photo.</summary>
     public static ReputationAwardKey ProfilePhoto(Guid userId) =>
         Of(ReputationActions.ProfilePhotoAdded, "user", userId.ToString("N"));

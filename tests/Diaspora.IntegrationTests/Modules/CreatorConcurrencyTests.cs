@@ -34,6 +34,9 @@ public sealed class CreatorConcurrencyTests : IdentityTestBase<ConcurrentWebAppl
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
+    /// <summary>The member <see cref="AuthenticateAsync"/> last signed in, whose points a test vests.</summary>
+    private Guid _memberUserId;
+
     public CreatorConcurrencyTests(ConcurrentWebApplicationFactory factory) : base(factory) { }
 
     /// <summary>
@@ -82,7 +85,7 @@ public sealed class CreatorConcurrencyTests : IdentityTestBase<ConcurrentWebAppl
             var balance = await ReadDataAsync<RewardBalanceDto>(
                 await first.GetAsync($"{Financial}/rewards/me"));
 
-            balance.Balance.Should().Be(
+            balance.PendingPoints.Should().Be(
                 100, "the milestone pays a hundred points, once, however many callers asked");
 
             var after = await ReadDataAsync<List<MilestoneDto>>(
@@ -182,6 +185,7 @@ public sealed class CreatorConcurrencyTests : IdentityTestBase<ConcurrentWebAppl
         }
 
         await Factory.DrainOutboxAsync();
+        await Factory.VestRewardPointsAsync(_memberUserId);
 
         var before = await ReadDataAsync<RewardBalanceDto>(
             await first.GetAsync($"{Financial}/rewards/me"));
@@ -239,6 +243,7 @@ public sealed class CreatorConcurrencyTests : IdentityTestBase<ConcurrentWebAppl
     {
         var (_, auth) = await RegisterVerifiedMemberAsync();
         Api.Authenticate(auth.Tokens.AccessToken);
+        _memberUserId = auth.User.Id;
 
         return auth.Tokens.AccessToken;
     }
@@ -324,5 +329,5 @@ public sealed class CreatorConcurrencyTests : IdentityTestBase<ConcurrentWebAppl
 
     private sealed record RedemptionDto(Guid RedemptionId, int PointsSpent, string State);
 
-    private sealed record RewardBalanceDto(long Balance, long LifetimeEarned);
+    private sealed record RewardBalanceDto(long Balance, long LifetimeEarned, long PendingPoints = 0);
 }

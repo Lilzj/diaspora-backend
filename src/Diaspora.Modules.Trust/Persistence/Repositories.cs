@@ -159,6 +159,22 @@ public interface IReputationProfileRepository
     Task<bool> HasAwardAsync(
         UserId userId, ReputationAwardKey key, CancellationToken cancellationToken = default);
 
+    /// <summary>A profile by its own id, staged or saved. Reversal finds profiles by the events it undoes.</summary>
+    Task<ReputationProfile?> GetByIdAsync(
+        ReputationProfileId profileId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Every award or penalty with this source that has not been reversed, across all profiles
+    /// (D-9). How a removed comment's award is found when the removal names no author.
+    /// </summary>
+    /// <param name="sourceType">Null matches any source type.</param>
+    Task<IReadOnlyList<ReputationEvent>> ListUnreversedBySourceAsync(
+        string? sourceType, string sourceId, CancellationToken cancellationToken = default);
+
+    /// <summary>The unreversed events on one member's profile that carry any of these award keys.</summary>
+    Task<IReadOnlyList<ReputationEvent>> ListUnreversedByAwardKeysAsync(
+        UserId userId, IReadOnlyCollection<string> awardKeys, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// The member's whole scoring history, totalled per dimension and action — one aggregate
     /// query, however long the history.

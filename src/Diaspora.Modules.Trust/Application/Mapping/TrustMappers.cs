@@ -319,8 +319,10 @@ public static class TrustMappers
 
         ReputationDimensionBreakdownResponse Dimension(ReputationDimension dimension, int score)
         {
+            // An action that was done and then reversed nets to nothing (D-9), and says nothing.
             var lines = summaries
-                .Where(summary => summary.Dimension == dimension)
+                .Where(summary => summary.Dimension == dimension
+                    && (summary.Count != 0 || summary.Points != 0))
                 .Select(summary => new ReputationBreakdownLineResponse
                 {
                     ActionType = summary.ActionType,

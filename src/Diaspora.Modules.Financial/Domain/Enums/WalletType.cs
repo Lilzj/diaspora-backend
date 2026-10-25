@@ -36,5 +36,16 @@ public enum WalletType
     /// account holds one.
     /// </para>
     /// </summary>
-    Clearing = 5
+    Clearing = 5,
+
+    /// <summary>
+    /// The platform's rewards pot, one per currency: what converted reward points are paid from.
+    /// <para>
+    /// <b>Funded, and bounded by its funding.</b> Conversions used to debit Clearing, the one wallet
+    /// allowed to go negative, so the promise to members had no ceiling and sat inside the deposit
+    /// float. This wallet cannot go negative: staff top it up from Revenue each period, and when it
+    /// cannot cover a conversion, conversion pauses (D-6). Only the platform account holds one.
+    /// </para>
+    /// </summary>
+    Rewards = 6
 }

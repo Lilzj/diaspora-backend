@@ -21,6 +21,22 @@ public sealed class RewardConversionRepository : IRewardConversionRepository
         Conversions.Add(conversion);
     }
 
+    public void Update(RewardConversion conversion)
+    {
+        ArgumentNullException.ThrowIfNull(conversion);
+
+        FinancialAggregateUpdater.MarkDirty(_dbContext, conversion);
+    }
+
+    public async Task<RewardConversion?> FindAsync(
+        RewardConversionId conversionId, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(conversionId);
+
+        return await Conversions.FirstOrDefaultAsync(
+            conversion => conversion.Id == conversionId, cancellationToken);
+    }
+
     public async Task<RewardConversion?> FindByIdempotencyKeyAsync(
         Guid memberUserId, string idempotencyKey, CancellationToken cancellationToken = default)
     {
@@ -86,4 +102,14 @@ public sealed class RewardConversionRepository : IRewardConversionRepository
             .Where(conversion => conversion.MemberUserId == memberUserId
                 && conversion.ConvertedAt >= since)
             .SumAsync(conversion => conversion.Points, cancellationToken);
+
+    public async Task<IReadOnlyList<RewardConversion>> ListDueForReleaseAsync(
+        DateTimeOffset asOf, int take, CancellationToken cancellationToken = default) =>
+        await Conversions
+            .Where(conversion => conversion.ReleasedAt == null
+                && conversion.AvailableAt != null
+                && conversion.AvailableAt <= asOf)
+            .OrderBy(conversion => conversion.AvailableAt)
+            .Take(take)
+            .ToListAsync(cancellationToken);
 }

@@ -356,23 +356,31 @@ public sealed class ReputationProfileRepository : IReputationProfileRepository
         // Still one indexed aggregate. The per-country arm is a conditional sum in the same
         // pass rather than a second round trip: this runs on every scoring attempt, including
         // every comment written on the platform.
+        //
+        // A reversal (D-9) shares its original's action type and counts against it: a comment
+        // that was removed gives its place under the cap back. The cooldown reads awards only, so
+        // a reversal does not restart it.
         var usage = await Events
             .AsNoTracking()
             .Where(item => item.ProfileId == profileId && item.ActionType == actionType)
             .GroupBy(item => 1)
             .Select(group => new
             {
-                Count = group.Count(),
+                Count = group.Count(item => item.ReversesEventId == null)
+                    - group.Count(item => item.ReversesEventId != null),
                 InCountry = countryCode == null
                     ? 0
-                    : group.Count(item => item.CountryCode == countryCode),
-                LastAt = (DateTimeOffset?)group.Max(item => item.CreatedAt)
+                    : group.Count(item => item.CountryCode == countryCode && item.ReversesEventId == null)
+                        - group.Count(item => item.CountryCode == countryCode && item.ReversesEventId != null),
+                LastAt = group
+                    .Where(item => item.ReversesEventId == null)
+                    .Max(item => (DateTimeOffset?)item.CreatedAt)
             })
             .FirstOrDefaultAsync(cancellationToken);
 
         return usage is null
             ? RuleUsage.None
-            : new RuleUsage(usage.Count, usage.InCountry, usage.LastAt);
+            : new RuleUsage(Math.Max(0, usage.Count), Math.Max(0, usage.InCountry), usage.LastAt);
     }
 
     public async Task<bool> HasAwardAsync(
@@ -420,7 +428,10 @@ public sealed class ReputationProfileRepository : IReputationProfileRepository
             {
                 group.Key.Dimension,
                 group.Key.ActionType,
-                Count = group.Count(),
+
+                // Net of reversals (D-9): a guide published and then deleted is not a guide.
+                Count = group.Count(item => item.ReversesEventId == null)
+                    - group.Count(item => item.ReversesEventId != null),
                 Points = group.Sum(item => item.Points)
             })
             .ToListAsync(cancellationToken);
@@ -433,6 +444,59 @@ public sealed class ReputationProfileRepository : IReputationProfileRepository
     public async Task AddAsync(
         ReputationProfile profile, CancellationToken cancellationToken = default) =>
         await Profiles.AddAsync(profile, cancellationToken);
+
+    public async Task<ReputationProfile?> GetByIdAsync(
+        ReputationProfileId profileId, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(profileId);
+
+        return Profiles.Local.FirstOrDefault(profile => profile.Id == profileId)
+            ?? await Profiles.FirstOrDefaultAsync(profile => profile.Id == profileId, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<ReputationEvent>> ListUnreversedBySourceAsync(
+        string? sourceType, string sourceId, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourceId);
+
+        var id = sourceId.Trim();
+
+        // On ix_reputation_events_source. Reversals are excluded, and so is anything a reversal
+        // already names, so a second delivery of a removal finds nothing left to undo.
+        return await Events
+            .AsNoTracking()
+            .Where(item => item.SourceId == id
+                && (sourceType == null || item.SourceType == sourceType)
+                && item.ReversesEventId == null
+                && !Events.Any(reversal => reversal.ReversesEventId == item.Id))
+            .OrderBy(item => item.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<ReputationEvent>> ListUnreversedByAwardKeysAsync(
+        UserId userId, IReadOnlyCollection<string> awardKeys, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(awardKeys);
+
+        var profileId = await Profiles
+            .Where(profile => profile.UserId == userId)
+            .Select(profile => profile.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (profileId is null || awardKeys.Count == 0)
+        {
+            return [];
+        }
+
+        return await Events
+            .AsNoTracking()
+            .Where(item => item.ProfileId == profileId
+                && item.AwardKey != null
+                && awardKeys.Contains(item.AwardKey)
+                && item.ReversesEventId == null
+                && !Events.Any(reversal => reversal.ReversesEventId == item.Id))
+            .ToListAsync(cancellationToken);
+    }
 }
 
 public sealed class AppealRepository : IAppealRepository

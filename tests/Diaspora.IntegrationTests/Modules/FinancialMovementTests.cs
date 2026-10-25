@@ -14,6 +14,7 @@ using Diaspora.Modules.Financial.Domain.Enums;
 using Diaspora.Modules.Financial.Domain.Identifiers;
 using Diaspora.Modules.Financial.Domain.Policies;
 using Diaspora.Modules.Financial.Domain.Rewards;
+using Diaspora.Modules.Financial.Domain.Ledgers;
 using Diaspora.Modules.Financial.Domain.ValueObjects;
 using Diaspora.Modules.Financial.Domain.Wallets;
 using Diaspora.Modules.Financial.Domain.Withdrawals;
@@ -1180,8 +1181,8 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
 
     /// <summary>
     /// <b>The one crossing, with a real ledger posting behind it.</b> Points come out of a store that
-    /// is not money; the credit comes out of the platform's clearing wallet (this comment used to say
-    /// revenue; the posting has always used clearing).
+    /// is not money; the credit comes out of the platform's rewards pot (it was Clearing until CS-A1)
+    /// and lands pending until its hold ends (CS-A2).
     /// </summary>
     [Fact]
     public async Task Converting_points_credits_the_wallet_and_posts_to_the_ledger()
@@ -1193,7 +1194,7 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
         await GrantPointsAsync(userId, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
 
-        var before = await AvailableAsync(userId, currency);
+        var before = await PendingAsync(userId, currency);
 
         var response = await HttpClient.PostAsJsonAsync(
             new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
@@ -1207,7 +1208,7 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         conversion.Credited.MinorUnits.Should().Be(600);
         conversion.TransactionId.Should().NotBeNull("a conversion is a ledger posting, not a counter");
 
-        (await AvailableAsync(userId, currency)).Should().Be(before + 600);
+        (await PendingAsync(userId, currency)).Should().Be(before + 600, "converted credit lands pending (D-7)");
         (await PointsAsync()).Should().Be(400);
     }
 
@@ -1386,7 +1387,7 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
             await PublishConversionRateAsync(minorUnitsPerPoint: 0.01m, currency);
             await GrantPointsAsync(userId, 550, "grant:" + Guid.NewGuid().ToString("N"));
 
-            var before = await AvailableAsync(userId, currency);
+            var before = await PendingAsync(userId, currency);
 
             var preview = await ReadDataAsync<PreviewShape>(await HttpClient.PostAsJsonAsync(
                 new Uri("/api/v1/financial/rewards/conversions/preview", UriKind.Relative),
@@ -1404,12 +1405,149 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
             conversion.Credited.MinorUnits.Should().Be(5);
 
             (await PointsAsync()).Should().Be(50, "the fifty that bought nothing are still the member's");
-            (await AvailableAsync(userId, currency)).Should().Be(before + 5);
+            (await PendingAsync(userId, currency)).Should().Be(before + 5, "converted credit lands pending (D-7)");
         }
         finally
         {
             await ResetConversionRatesAsync();
         }
+    }
+
+    // ── The rewards pot: conversions are paid from a funded pot ────────────────────────────
+    //
+    // Conversions debited Clearing, the one wallet allowed to go negative, so what the platform
+    // promised had no ceiling and sat in the deposit float (CNV-02, D-6). They are paid from a pot
+    // now, topped up from Revenue, and pause when it runs short.
+
+    [Fact]
+    public async Task An_empty_rewards_pot_pauses_conversion_and_moves_nothing()
+    {
+        var userId = await AuthenticateAsync();
+        var currency = await MemberCurrencyAsync(userId);
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
+            await GrantPointsAsync(userId, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
+            await SetPlatformBalanceAsync(WalletType.Rewards, currency, 0);
+
+            (await MemberTermsAsync()).Member.Should().Be(new MemberStandingShape(
+                false, FinancialErrorCodes.RewardBudgetExhausted, RewardConversionPricer.PausedMessage, null));
+
+            var refused = await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
+                new { points = 500L, idempotencyKey = Guid.NewGuid().ToString("N") });
+
+            (await CodeAsync(refused)).Should().Be(FinancialErrorCodes.RewardBudgetExhausted);
+            (await PointsAsync()).Should().Be(1_000);
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
+    /// <summary>The pot can pay the smallest conversion but not this one: refused, and a smaller one is not.</summary>
+    [Fact]
+    public async Task A_conversion_larger_than_the_pot_can_pay_is_refused()
+    {
+        var userId = await AuthenticateAsync();
+        var currency = await MemberCurrencyAsync(userId);
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
+            await GrantPointsAsync(userId, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
+            await SetPlatformBalanceAsync(WalletType.Rewards, currency, 600);
+
+            var preview = await ReadDataAsync<PreviewShape>(await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions/preview", UriKind.Relative),
+                new { points = 700L }));
+
+            preview.IsPermitted.Should().BeFalse();
+            preview.RefusalCode.Should().Be(FinancialErrorCodes.RewardBudgetExhausted);
+
+            var smaller = await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
+                new { points = 500L, idempotencyKey = Guid.NewGuid().ToString("N") });
+
+            smaller.StatusCode.Should().Be(HttpStatusCode.OK, await smaller.Content.ReadAsStringAsync());
+            (await PlatformBalanceAsync(WalletType.Rewards, currency)).Should().Be(100);
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
+    [Fact]
+    public async Task A_conversion_is_paid_from_the_pot_and_not_from_clearing()
+    {
+        var userId = await AuthenticateAsync();
+        var currency = await MemberCurrencyAsync(userId);
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
+            await GrantPointsAsync(userId, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
+            await SetPlatformBalanceAsync(WalletType.Rewards, currency, 10_000);
+
+            var clearingBefore = await PlatformBalanceAsync(WalletType.Clearing, currency);
+
+            var converted = await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
+                new { points = 500L, idempotencyKey = Guid.NewGuid().ToString("N") });
+
+            converted.StatusCode.Should().Be(HttpStatusCode.OK, await converted.Content.ReadAsStringAsync());
+            (await PlatformBalanceAsync(WalletType.Rewards, currency)).Should().Be(9_500);
+            (await PlatformBalanceAsync(WalletType.Clearing, currency)).Should().Be(clearingBefore);
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
+    /// <summary>
+    /// Staff fill the pot from Revenue and from nothing else, so it never holds more than the
+    /// platform has earned (Q1).
+    /// </summary>
+    [Fact]
+    public async Task Staff_top_up_the_pot_from_revenue_and_no_further()
+    {
+        await SignInAsRoleAsync("Admin");
+        await SetPlatformBalanceAsync(WalletType.Revenue, "GBP", 5_000);
+        await SetPlatformBalanceAsync(WalletType.Rewards, "GBP", 0);
+
+        var first = await PostTopUpAsync("GBP", 30m, "October rewards budget");
+
+        first.StatusCode.Should().Be(HttpStatusCode.OK, await first.Content.ReadAsStringAsync());
+        (await ReadDataAsync<PotShape>(first)).Available.MinorUnits.Should().Be(3_000);
+        (await PlatformBalanceAsync(WalletType.Revenue, "GBP")).Should().Be(2_000);
+
+        var second = await PostTopUpAsync("GBP", 30m, "October rewards budget, again");
+
+        second.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await CodeAsync(second)).Should().Be(FinancialErrorCodes.InsufficientFunds);
+        (await PlatformBalanceAsync(WalletType.Rewards, "GBP")).Should().Be(3_000);
+
+        var pots = await ReadDataAsync<List<PotShape>>(await HttpClient.GetAsync(
+            new Uri("/api/v1/financial/operations/rewards/pots", UriKind.Relative)));
+
+        pots.Should().ContainSingle(pot => pot.Currency == "GBP")
+            .Which.Available.MinorUnits.Should().Be(3_000);
+    }
+
+    [Fact]
+    public async Task A_top_up_needs_an_admin_and_a_reason()
+    {
+        await AuthenticateAsync();
+
+        (await PostTopUpAsync("GBP", 1m, "A member trying")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+
+        await SignInAsRoleAsync("Admin");
+
+        (await PostTopUpAsync("GBP", 1m, " ")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     // ── Staff grants: a reason, and the reward.grant policy's limits ────────────────────────
@@ -1472,7 +1610,7 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
 
         over.StatusCode.Should().Be(HttpStatusCode.Conflict);
         (await CodeAsync(over)).Should().Be(FinancialErrorCodes.RewardGrantDailyLimitReached);
-        (await BalanceOfAsync(member)).Should().Be(5_000);
+        (await PendingPointsOfAsync(member)).Should().Be(5_000, "a staff grant vests like any other (D-9)");
 
         await SignInAsRoleAsync("Admin");
 
@@ -1514,11 +1652,9 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
 
         using (var scope = Factory.Services.CreateScope())
         {
-            var consumer = new Diaspora.Modules.Financial.Application.Consumers.Rewards.RewardPointsGrantedConsumer(
-                scope.ServiceProvider.GetRequiredService<IRewardAccountRepository>(),
-                scope.ServiceProvider.GetRequiredService<IGuidGenerator>(),
-                scope.ServiceProvider.GetRequiredService<IClock>(),
-                scope.ServiceProvider.GetRequiredService<IUnitOfWork>());
+            var consumer = ActivatorUtilities.CreateInstance<
+                Diaspora.Modules.Financial.Application.Consumers.Rewards.RewardPointsGrantedConsumer>(
+                scope.ServiceProvider);
 
             await consumer.Handle(
                 new IntegrationEventNotification<RewardPointsGrantedIntegrationEvent>(
@@ -1541,6 +1677,300 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
             .FindByMemberAsync(member);
 
         account!.Entries.Should().ContainSingle().Which.PolicyVersion.Should().Be("creator.referral@2");
+    }
+
+    // ── Points vesting (D-9, RWD-07) ─────────────────────────────────────────────────────
+    //
+    // A grant was spendable the moment it landed, so a point earned for a guide could be converted
+    // before the guide was deleted. Grants are pending for a week now (Q3: pending points can be
+    // neither converted nor spent), and a sweep vests them when the week ends.
+
+    [Fact]
+    public async Task A_granted_point_is_pending_and_cannot_be_converted_until_it_vests()
+    {
+        var userId = await AuthenticateAsync();
+        var currency = await MemberCurrencyAsync(userId);
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
+            await DeliverGrantAsync(userId, 1_000, DateTimeOffset.UtcNow);
+
+            var balance = await RewardBalanceAsync();
+            balance.Balance.Should().Be(0);
+            balance.PendingPoints.Should().Be(1_000);
+            balance.LifetimeEarned.Should().Be(1_000);
+            balance.NextVestsAt.Should().BeCloseTo(
+                DateTimeOffset.UtcNow.AddDays(RewardVesting.DefaultVestingDays), TimeSpan.FromMinutes(5));
+
+            var conversion = await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
+                new { points = 500L, idempotencyKey = Guid.NewGuid().ToString("N") });
+
+            conversion.StatusCode.Should().Be(HttpStatusCode.Conflict, "pending points are not convertible");
+
+            await RunSweepAsync<RewardVestingSweep>();
+
+            (await RewardBalanceAsync()).PendingPoints.Should().Be(1_000, "nothing is due for a week");
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
+    [Fact]
+    public async Task The_vesting_sweep_vests_a_due_grant_once_and_it_can_then_be_converted()
+    {
+        var userId = await AuthenticateAsync();
+        var currency = await MemberCurrencyAsync(userId);
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
+
+            // Granted eight days ago, so its week ended yesterday.
+            await DeliverGrantAsync(userId, 1_000, DateTimeOffset.UtcNow.AddDays(-8));
+
+            (await RewardBalanceAsync()).PendingPoints.Should().Be(1_000);
+
+            await RunSweepAsync<RewardVestingSweep>();
+            await RunSweepAsync<RewardVestingSweep>();
+
+            var balance = await RewardBalanceAsync();
+            balance.Balance.Should().Be(1_000, "a grant vests once, however often the sweep runs");
+            balance.PendingPoints.Should().Be(0);
+            balance.NextVestsAt.Should().BeNull();
+
+            (await HttpClient.PostAsJsonAsync(
+                    new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
+                    new { points = 500L, idempotencyKey = Guid.NewGuid().ToString("N") }))
+                .IsSuccessStatusCode.Should().BeTrue();
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
+    /// <summary>A hold placed during the window keeps the points pending, and reversible, until it lifts.</summary>
+    [Fact]
+    public async Task A_held_members_points_stay_pending_until_the_hold_lifts()
+    {
+        var userId = await AuthenticateAsync();
+
+        await DeliverGrantAsync(userId, 300, DateTimeOffset.UtcNow.AddDays(-8));
+        await SetConversionHoldAsync(userId, held: true);
+
+        await RunSweepAsync<RewardVestingSweep>();
+
+        (await PendingPointsOfAsync(userId)).Should().Be(300);
+
+        await SetConversionHoldAsync(userId, held: false);
+        await RunSweepAsync<RewardVestingSweep>();
+
+        (await PendingPointsOfAsync(userId)).Should().Be(0);
+        (await BalanceOfAsync(userId)).Should().Be(300);
+    }
+
+    /// <summary>The window is the policy's: zero days means spendable at once.</summary>
+    [Fact]
+    public async Task A_policy_with_no_vesting_window_grants_spendable_points()
+    {
+        var userId = await AuthenticateAsync();
+        var currency = await MemberCurrencyAsync(userId);
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency, vestingDays: 0);
+            await DeliverGrantAsync(userId, 400, DateTimeOffset.UtcNow);
+
+            (await BalanceOfAsync(userId)).Should().Be(400);
+            (await PendingPointsOfAsync(userId)).Should().Be(0);
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
+    // ── Reversing pending points (D-9, RWD-08) ───────────────────────────────────────────
+    //
+    // Nothing could take points back. A grantor withdraws a grant now, and the Financial Platform
+    // takes back what is still pending and leaves what has vested.
+
+    [Fact]
+    public async Task A_withdrawn_pending_grant_is_taken_back_once()
+    {
+        var userId = await AuthenticateAsync();
+        var reference = "guide:" + Guid.NewGuid().ToString("N");
+
+        await DeliverGrantAsync(userId, 1_000, DateTimeOffset.UtcNow, reference);
+
+        await DeliverReversalAsync(userId, reference, "Guide deleted.");
+        await DeliverReversalAsync(userId, reference, "Guide deleted.");
+
+        var balance = await RewardBalanceAsync();
+        balance.PendingPoints.Should().Be(0);
+        balance.Balance.Should().Be(0);
+        balance.LifetimeReversed.Should().Be(1_000, "a redelivered withdrawal takes the points back once");
+
+        var account = await RewardAccountOfAsync(userId);
+        account.Entries.Should().ContainSingle(entry => entry.IsReversal).Which.Points.Should().Be(1_000);
+        account.Entries.Single(entry => entry.Reference == reference).ReversalReason.Should().Be("Guide deleted.");
+    }
+
+    /// <summary>D-9: points that could have been spent stay earned, and the request is on the record.</summary>
+    [Fact]
+    public async Task A_withdrawn_grant_that_has_vested_stays_earned()
+    {
+        var userId = await AuthenticateAsync();
+        var reference = "guide:" + Guid.NewGuid().ToString("N");
+
+        await DeliverGrantAsync(userId, 1_000, DateTimeOffset.UtcNow.AddDays(-8), reference);
+        await RunSweepAsync<RewardVestingSweep>();
+
+        await DeliverReversalAsync(userId, reference, "Guide deleted.");
+
+        (await BalanceOfAsync(userId)).Should().Be(1_000);
+
+        var grant = (await RewardAccountOfAsync(userId)).Entries.Single(entry => entry.Reference == reference);
+        grant.ReversalDeclinedAt.Should().NotBeNull();
+        grant.ReversedAt.Should().BeNull();
+    }
+
+    /// <summary>A grant taken back before its window ended is not vested when the window does.</summary>
+    [Fact]
+    public async Task A_withdrawn_grant_is_never_vested_by_the_sweep()
+    {
+        var userId = await AuthenticateAsync();
+        var reference = "guide:" + Guid.NewGuid().ToString("N");
+
+        await DeliverGrantAsync(userId, 1_000, DateTimeOffset.UtcNow.AddDays(-8), reference);
+        await DeliverReversalAsync(userId, reference, "Guide deleted.");
+
+        await RunSweepAsync<RewardVestingSweep>();
+
+        (await BalanceOfAsync(userId)).Should().Be(0);
+        (await PendingPointsOfAsync(userId)).Should().Be(0);
+    }
+
+    // ── The hold on converted credit (D-7) ───────────────────────────────────────────────
+    //
+    // Converted credit landed in the withdrawable primary wallet at once (CNV-07). It lands pending
+    // now, and a sweep makes it available when the hold ends: 14 days unless the policy says
+    // otherwise.
+
+    [Fact]
+    public async Task Converted_credit_is_held_before_it_can_be_spent_or_withdrawn()
+    {
+        var userId = await AuthenticateAsync();
+        var currency = await MemberCurrencyAsync(userId);
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
+            await GrantPointsAsync(userId, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
+
+            var before = (await PrimaryWalletAsync(userId, currency))!;
+
+            var conversion = await ReadDataAsync<ConversionShape>(await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
+                new { points = 500L, idempotencyKey = Guid.NewGuid().ToString("N") }));
+
+            conversion.Status.Should().Be("Holding");
+            conversion.AvailableAt.Should().BeCloseTo(DateTimeOffset.UtcNow.AddDays(14), TimeSpan.FromMinutes(5));
+
+            await RunSweepAsync<RewardConversionReleaseSweep>();
+
+            var after = (await PrimaryWalletAsync(userId, currency))!;
+
+            after.PendingMinorUnits.Should().Be(before.PendingMinorUnits + 500, "the credit waits out its hold");
+            after.AvailableMinorUnits.Should().Be(before.AvailableMinorUnits, "nothing can be spent or withdrawn yet");
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
+    /// <summary>When the hold ends the sweep releases the credit, once.</summary>
+    [Fact]
+    public async Task The_release_sweep_makes_held_credit_available_when_the_hold_ends()
+    {
+        var userId = await AuthenticateAsync();
+        var currency = await MemberCurrencyAsync(userId);
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency, holdDays: 0);
+            await GrantPointsAsync(userId, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
+
+            var before = (await PrimaryWalletAsync(userId, currency))!;
+
+            var conversion = await ReadDataAsync<ConversionShape>(await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
+                new { points = 500L, idempotencyKey = Guid.NewGuid().ToString("N") }));
+
+            conversion.Status.Should().Be("Holding");
+
+            await RunSweepAsync<RewardConversionReleaseSweep>();
+            await RunSweepAsync<RewardConversionReleaseSweep>();
+
+            var after = (await PrimaryWalletAsync(userId, currency))!;
+
+            after.AvailableMinorUnits.Should().Be(before.AvailableMinorUnits + 500, "released once, not twice");
+            after.PendingMinorUnits.Should().Be(before.PendingMinorUnits);
+
+            var history = await ReadDataAsync<List<ConversionShape>>(await HttpClient.GetAsync(
+                new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative)));
+
+            history.Single(row => row.ConversionId == conversion.ConversionId).Status.Should().Be("Available");
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
+    /// <summary>
+    /// A member held during the window keeps their credit pending until the hold is lifted; this is
+    /// what gives a review time before money can leave.
+    /// </summary>
+    [Fact]
+    public async Task A_held_members_converted_credit_stays_pending_until_the_hold_lifts()
+    {
+        var userId = await AuthenticateAsync();
+        var currency = await MemberCurrencyAsync(userId);
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency, holdDays: 0);
+            await GrantPointsAsync(userId, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
+
+            var before = (await PrimaryWalletAsync(userId, currency))!;
+
+            (await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
+                new { points = 500L, idempotencyKey = Guid.NewGuid().ToString("N") }))
+                .StatusCode.Should().Be(HttpStatusCode.OK);
+
+            await SetConversionHoldAsync(userId, held: true);
+            await RunSweepAsync<RewardConversionReleaseSweep>();
+
+            (await PrimaryWalletAsync(userId, currency))!.PendingMinorUnits
+                .Should().Be(before.PendingMinorUnits + 500, "a held member's credit is not released");
+
+            await SetConversionHoldAsync(userId, held: false);
+            await RunSweepAsync<RewardConversionReleaseSweep>();
+
+            (await PrimaryWalletAsync(userId, currency))!.AvailableMinorUnits
+                .Should().Be(before.AvailableMinorUnits + 500);
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
     }
 
     // ── Staff conversion holds: placed, lifted, and kept ───────────────────────────────────
@@ -2419,7 +2849,9 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         string? currency,
         string? country = null,
         long? maximumPoints = null,
-        long? dailyMaximumPoints = null)
+        long? dailyMaximumPoints = null,
+        long? holdDays = null,
+        long? vestingDays = null)
     {
         using var scope = Factory.Services.CreateScope();
 
@@ -2490,9 +2922,102 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
                 daily.ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
 
+        if (holdDays is { } hold)
+        {
+            policy.SetParameter(
+                guids.NewSequentialGuid(),
+                FinancialPolicyParameters.HoldDays,
+                hold.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        if (vestingDays is { } vesting)
+        {
+            policy.SetParameter(
+                guids.NewSequentialGuid(),
+                FinancialPolicyParameters.VestingDays,
+                vesting.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
         policies.Add(policy);
 
         await unitOfWork.SaveChangesAsync();
+
+        // Conversions are paid from the rewards pot (CS-A1), and an empty pot pauses them, so the
+        // suite funds the pot generously wherever it publishes a rate.
+        if (currency is not null)
+        {
+            await SetPlatformBalanceAsync(WalletType.Rewards, currency, 100_000_000);
+        }
+    }
+
+    /// <summary>
+    /// Sets a platform wallet to an exact balance, moving the difference to or from Clearing. Test
+    /// setup only: in a deployment, Revenue fills from fees and the pot from the staff top-up route.
+    /// </summary>
+    private async Task SetPlatformBalanceAsync(WalletType walletType, string currency, long minorUnits)
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        var identities = scope.ServiceProvider.GetRequiredService<FinancialIdentityService>();
+        var ledger = scope.ServiceProvider.GetRequiredService<ILedgerPostingService>();
+        var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+
+        var wallet = (await identities.PlatformWalletAsync(walletType, currency))!;
+        var clearing = (await identities.PlatformWalletAsync(WalletType.Clearing, currency))!;
+        var delta = minorUnits - wallet.AvailableMinorUnits;
+
+        if (delta == 0)
+        {
+            return;
+        }
+
+        var amount = Money.FromMinorUnits(Math.Abs(delta), wallet.Currency, wallet.Exponent);
+        var (from, to) = delta > 0 ? (clearing, wallet) : (wallet, clearing);
+
+        var posted = await ledger.PostAsync(new LedgerPostingRequest
+        {
+            TransactionType = TransactionType.Adjustment,
+            Amount = amount,
+            Description = "Integration suite: set a platform balance.",
+            Audit = AuditStamp.Create(
+                FinancialActor.System("IntegrationSuite"),
+                FinancialSource.System,
+                "Integration suite: set a platform balance."),
+            Legs =
+            [
+                new LedgerPostingLeg
+                {
+                    WalletId = from.Id,
+                    Direction = LedgerDirection.Debit,
+                    Amount = amount,
+                    EntryType = LedgerEntryType.Adjustment
+                },
+                new LedgerPostingLeg
+                {
+                    WalletId = to.Id,
+                    Direction = LedgerDirection.Credit,
+                    Amount = amount,
+                    EntryType = LedgerEntryType.Adjustment
+                }
+            ],
+            Reference = $"integration-suite:{Guid.NewGuid():N}"
+        });
+
+        posted.IsSuccess.Should().BeTrue(posted.IsFailure ? posted.Error.Description : null);
+
+        await unitOfWork.SaveChangesAsync();
+    }
+
+    /// <summary>A platform wallet's available balance, in minor units.</summary>
+    private async Task<long> PlatformBalanceAsync(WalletType walletType, string currency)
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        var wallet = await scope.ServiceProvider
+            .GetRequiredService<IWalletRepository>()
+            .FindPlatformWalletAsync(walletType, currency);
+
+        return wallet!.AvailableMinorUnits;
     }
 
     /// <summary>Back to the seed: no country rates, and a platform rate of zero.</summary>
@@ -2532,6 +3057,9 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
 
     private async Task<long> AvailableAsync(Guid userId, string currency = DepositCurrency) =>
         (await PrimaryWalletAsync(userId, currency))?.AvailableMinorUnits ?? 0;
+
+    private async Task<long> PendingAsync(Guid userId, string currency = DepositCurrency) =>
+        (await PrimaryWalletAsync(userId, currency))?.PendingMinorUnits ?? 0;
 
     private async Task<long> ReservedAsync(Guid userId, string currency = DepositCurrency) =>
         (await PrimaryWalletAsync(userId, currency))?.ReservedMinorUnits ?? 0;
@@ -2605,6 +3133,34 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
             new Uri("/api/v1/financial/operations/rewards/grants", UriKind.Relative),
             new { userId, points, source = "StaffAdjustment", grantReference = reference, reason });
 
+    /// <summary>Holds or lifts a member's conversion hold through the aggregate, as a system decision.</summary>
+    private async Task SetConversionHoldAsync(Guid userId, bool held)
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        var rewards = scope.ServiceProvider.GetRequiredService<IRewardAccountRepository>();
+        var now = scope.ServiceProvider.GetRequiredService<IClock>().UtcNow;
+        var account = (await rewards.FindByMemberAsync(userId))!;
+
+        if (held)
+        {
+            account.BlockConversion(Guid.NewGuid(), "Integration suite: under review.", null, now);
+        }
+        else
+        {
+            account.AllowConversion(Guid.NewGuid(), "Integration suite: review cleared.", null, now);
+        }
+
+        rewards.Update(account);
+        await scope.ServiceProvider.GetRequiredService<IUnitOfWork>().SaveChangesAsync();
+    }
+
+    /// <summary>A staff top-up of a rewards pot over HTTP, as whoever the client is signed in as.</summary>
+    private Task<HttpResponseMessage> PostTopUpAsync(string currency, decimal amount, string reason) =>
+        HttpClient.PostAsJsonAsync(
+            new Uri($"/api/v1/financial/operations/rewards/pots/{currency}/top-ups", UriKind.Relative),
+            new { amount, reason });
+
     /// <summary>A staff hold decision over HTTP, as whoever the client is signed in as.</summary>
     private Task<HttpResponseMessage> PutHoldAsync(
         Guid userId, bool isHeld, string? reason = "Integration suite: under review.") =>
@@ -2631,6 +3187,73 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
 
         return standing?.Balance ?? 0;
     }
+
+    /// <summary>A grantor's points arriving through the consumer, as Creator's and Trust's do.</summary>
+    private async Task DeliverGrantAsync(
+        Guid userId, long points, DateTimeOffset grantedAt, string? reference = null)
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        var consumer = ActivatorUtilities.CreateInstance<
+            Diaspora.Modules.Financial.Application.Consumers.Rewards.RewardPointsGrantedConsumer>(
+            scope.ServiceProvider);
+
+        await consumer.Handle(
+            new IntegrationEventNotification<RewardPointsGrantedIntegrationEvent>(
+                new RewardPointsGrantedIntegrationEvent
+                {
+                    MemberUserId = userId,
+                    Points = points,
+                    Source = "IntegrationTest",
+                    GrantReference = reference ?? "grant:" + Guid.NewGuid().ToString("N"),
+                    GrantedAt = grantedAt
+                }),
+            CancellationToken.None);
+    }
+
+    /// <summary>A grantor withdrawing a grant through the consumer, as Trust will (Part C).</summary>
+    private async Task DeliverReversalAsync(Guid userId, string reference, string reason)
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        var consumer = ActivatorUtilities.CreateInstance<
+            Diaspora.Modules.Financial.Application.Consumers.Rewards.RewardPointsReversedConsumer>(
+            scope.ServiceProvider);
+
+        await consumer.Handle(
+            new IntegrationEventNotification<RewardPointsReversedIntegrationEvent>(
+                new RewardPointsReversedIntegrationEvent
+                {
+                    MemberUserId = userId,
+                    GrantReference = reference,
+                    Reason = reason
+                }),
+            CancellationToken.None);
+    }
+
+    private async Task<RewardAccount> RewardAccountOfAsync(Guid userId)
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        return (await scope.ServiceProvider
+            .GetRequiredService<IRewardAccountRepository>()
+            .FindByMemberAsync(userId))!;
+    }
+
+    private async Task<long> PendingPointsOfAsync(Guid userId)
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        var account = await scope.ServiceProvider
+            .GetRequiredService<IRewardAccountRepository>()
+            .FindByMemberAsync(userId);
+
+        return account?.PendingBalance ?? 0;
+    }
+
+    private async Task<RewardBalanceShape> RewardBalanceAsync() =>
+        await ReadDataAsync<RewardBalanceShape>(await HttpClient.GetAsync(
+            new Uri("/api/v1/financial/rewards/me", UriKind.Relative)));
 
     private async Task<long> PointsAsync()
     {
@@ -2666,6 +3289,8 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
 
     private sealed record MoneyShape(decimal Amount, string Currency, long MinorUnits);
 
+    private sealed record PotShape(string Currency, MoneyShape Available);
+
     private sealed record HoldShape(Guid UserId, bool IsHeld, string? Reason, List<HoldDecisionShape> Decisions);
 
     private sealed record HoldDecisionShape(bool IsHeld, string Reason, Guid? DecidedByUserId, DateTimeOffset DecidedAt);
@@ -2690,9 +3315,20 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         bool IsEnabled, MoneyShape? Minimum, MoneyShape? Maximum, MoneyShape? Available);
 
     private sealed record ConversionShape(
-        Guid ConversionId, long Points, MoneyShape Credited, Guid? TransactionId);
+        Guid ConversionId,
+        long Points,
+        MoneyShape Credited,
+        Guid? TransactionId,
+        string Status = "Available",
+        DateTimeOffset? AvailableAt = null);
 
-    private sealed record RewardBalanceShape(long Balance, long LifetimeEarned, bool CanConvert);
+    private sealed record RewardBalanceShape(
+        long Balance,
+        long LifetimeEarned,
+        bool CanConvert,
+        long PendingPoints = 0,
+        DateTimeOffset? NextVestsAt = null,
+        long LifetimeReversed = 0);
 
     private sealed record TermsShape(
         bool IsEnabled, string? DisabledReason, string Currency, decimal MinorUnitsPerPoint);

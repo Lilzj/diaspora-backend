@@ -45,6 +45,22 @@ public sealed class ReputationEvent : Entity<ReputationEventId>
     /// </summary>
     public string? AwardKey { get; private set; }
 
+    /// <summary>
+    /// The event this one reverses (D-9): an award taken back, or a penalty refunded. Null on every
+    /// award and penalty. A reversal shares the original's action type and source, so the
+    /// breakdown and the caps net it against the original rather than counting a second action.
+    /// </summary>
+    public ReputationEventId? ReversesEventId { get; private set; }
+
+    /// <summary>
+    /// What this event actually moved its dimension's score by, after the floor at zero: a 75-point
+    /// fine against a score of 10 applies -10. A reversal undoes this, not <see cref="Points"/>,
+    /// so it never refunds more than was taken. Null on rows written before it was recorded.
+    /// </summary>
+    public int? AppliedPoints { get; private set; }
+
+    public bool IsReversal => ReversesEventId is not null;
+
     public DateTimeOffset CreatedAt { get; private set; }
 
     private ReputationEvent() { }
@@ -74,7 +90,9 @@ public sealed class ReputationEvent : Entity<ReputationEventId>
         string? countryCode,
         string? description,
         DateTimeOffset createdAt,
-        ReputationAwardKey? awardKey = null)
+        ReputationAwardKey? awardKey = null,
+        int? appliedPoints = null,
+        ReputationEventId? reversesEventId = null)
     {
         ArgumentNullException.ThrowIfNull(profileId);
 
@@ -92,7 +110,9 @@ public sealed class ReputationEvent : Entity<ReputationEventId>
             Description = Truncate(description, MaxDescriptionLength),
 
             // Never truncated: a shortened key is a different key. The factory already bounds it.
-            AwardKey = awardKey?.Value
+            AwardKey = awardKey?.Value,
+            AppliedPoints = appliedPoints,
+            ReversesEventId = reversesEventId
         };
     }
 

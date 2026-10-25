@@ -6,7 +6,7 @@ using Diaspora.SharedKernel.Primitives;
 namespace Diaspora.Modules.Financial.Domain.Rewards;
 
 /// <summary>
-/// One crossing from points into money, recorded once and never changed.
+/// One crossing from points into money. Its amounts and rate are recorded once and never change.
 /// <para>
 /// <b>The rate that was applied is stored, not the rate that applies today.</b> This is the same rule
 /// that puts a policy version on every ledger entry, and it matters more here than almost anywhere
@@ -17,6 +17,11 @@ namespace Diaspora.Modules.Financial.Domain.Rewards;
 /// <para>
 /// <b>The transaction it produced is named here.</b> That is what lets somebody walk from "I
 /// converted 500 points" to the ledger entries that credited the wallet, and back.
+/// </para>
+/// <para>
+/// <b>The credit is held before it can be used</b> (D-7). It lands in the wallet's pending bucket and
+/// <see cref="AvailableAt"/> says when it may move to available; <see cref="ReleasedAt"/> records that
+/// it did. Those two dates are the only thing about a conversion that changes.
 /// </para>
 /// </summary>
 public sealed class RewardConversion : AggregateRoot<RewardConversionId>, IAuditableEntity
@@ -69,6 +74,18 @@ public sealed class RewardConversion : AggregateRoot<RewardConversionId>, IAudit
 
     public DateTimeOffset ConvertedAt { get; private set; }
 
+    /// <summary>
+    /// When the credit may leave the pending bucket. Null on a conversion made before the hold
+    /// existed, whose credit landed available at once.
+    /// </summary>
+    public DateTimeOffset? AvailableAt { get; private set; }
+
+    /// <summary>When the release posting moved the credit to available. Null while it is held.</summary>
+    public DateTimeOffset? ReleasedAt { get; private set; }
+
+    /// <summary>Whether the credit is still in the pending bucket.</summary>
+    public bool IsHolding => AvailableAt is not null && ReleasedAt is null;
+
     /// <summary>Bumped on every change. The optimistic-concurrency token.</summary>
     public int Revision { get; private set; }
 
@@ -92,7 +109,8 @@ public sealed class RewardConversion : AggregateRoot<RewardConversionId>, IAudit
         DateTimeOffset convertedAt,
         string? policyVersion = null,
         string? idempotencyKey = null,
-        TransactionId? transactionId = null)
+        TransactionId? transactionId = null,
+        DateTimeOffset? availableAt = null)
     {
         ArgumentNullException.ThrowIfNull(id);
         ArgumentNullException.ThrowIfNull(credited);
@@ -111,8 +129,26 @@ public sealed class RewardConversion : AggregateRoot<RewardConversionId>, IAudit
         {
             PolicyVersion = string.IsNullOrWhiteSpace(policyVersion) ? null : policyVersion.Trim(),
             IdempotencyKey = string.IsNullOrWhiteSpace(idempotencyKey) ? null : idempotencyKey.Trim(),
-            TransactionId = transactionId
+            TransactionId = transactionId,
+            AvailableAt = availableAt
         };
+    }
+
+    /// <summary>
+    /// Records that the hold ended and the credit moved to available. False, and nothing changes,
+    /// when there is no hold or it was already released, so a second sweep cannot release twice.
+    /// </summary>
+    public bool Release(DateTimeOffset at)
+    {
+        if (!IsHolding)
+        {
+            return false;
+        }
+
+        ReleasedAt = at;
+        Revision++;
+
+        return true;
     }
 
     public void SetCreated(DateTimeOffset timestamp, string? userId)

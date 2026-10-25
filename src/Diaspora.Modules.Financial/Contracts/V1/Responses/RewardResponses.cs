@@ -10,7 +10,17 @@ namespace Diaspora.Modules.Financial.Contracts.V1.Responses;
 /// </summary>
 public sealed record RewardBalanceResponse
 {
+    /// <summary>Points that can be converted or spent now: vested points only (Q3).</summary>
     public required long Balance { get; init; }
+
+    /// <summary>
+    /// Points granted but not vested yet (D-9). Not spendable, and not counted in
+    /// <see cref="Balance"/>. Additive: zero for a client that never reads it.
+    /// </summary>
+    public long PendingPoints { get; init; }
+
+    /// <summary>When the next pending grant vests. Null when nothing is pending.</summary>
+    public DateTimeOffset? NextVestsAt { get; init; }
 
     public required long LifetimeEarned { get; init; }
 
@@ -18,10 +28,16 @@ public sealed record RewardBalanceResponse
 
     /// <summary>
     /// Points spent on rewards, net of any refunded redemption. With the two above it accounts for
-    /// the balance: earned − converted − spent. The app used to hard-code this to zero, so its
-    /// arithmetic stopped matching the balance after the first redemption.
+    /// the balance and what is pending: earned − converted − spent. The app used to hard-code this
+    /// to zero, so its arithmetic stopped matching the balance after the first redemption.
     /// </summary>
     public long LifetimeSpent { get; init; }
+
+    /// <summary>
+    /// Pending points taken back because their grantor withdrew them (D-9). Additive:
+    /// earned − reversed − converted − spent = balance + pending.
+    /// </summary>
+    public long LifetimeReversed { get; init; }
 
     /// <summary>
     /// False when this points account is held or empty. <b>Superseded</b> by
@@ -40,8 +56,8 @@ public sealed record RewardEntryResponse
     public required Guid EntryId { get; init; }
 
     /// <summary>
-    /// Always positive. Which way it moved is <see cref="IsConversion"/> or <see cref="IsSpend"/>:
-    /// either one means the points left the balance.
+    /// Always positive. Which way it moved is <see cref="IsConversion"/>, <see cref="IsSpend"/> or
+    /// <see cref="IsReversal"/>: any one means the points left.
     /// </summary>
     public required long Points { get; init; }
 
@@ -52,6 +68,12 @@ public sealed record RewardEntryResponse
     /// a positive entry and rendered as points earned — the same figure with the opposite meaning.
     /// </summary>
     public bool IsSpend { get; init; }
+
+    /// <summary>
+    /// True when pending points were taken back because their grantor withdrew them (D-9). Like
+    /// <see cref="IsSpend"/>, the points left, and a client that ignored it would show them earned.
+    /// </summary>
+    public bool IsReversal { get; init; }
 
     /// <summary>Why. <c>ReferralQualified</c>, <c>GuidePublished</c>, <c>Conversion</c>.</summary>
     public required string Source { get; init; }
@@ -200,6 +222,15 @@ public sealed record RewardConversionResponse
     public Guid? TransactionId { get; init; }
 
     public required DateTimeOffset ConvertedAt { get; init; }
+
+    /// <summary>
+    /// <c>Holding</c> while the credit is pending, <c>Available</c> once it can be spent or withdrawn
+    /// (D-7). A conversion made before the hold existed is <c>Available</c>.
+    /// </summary>
+    public string Status { get; init; } = "Available";
+
+    /// <summary>When the credit becomes available. Null on a conversion made before the hold existed.</summary>
+    public DateTimeOffset? AvailableAt { get; init; }
 }
 
 /// <summary>
@@ -234,4 +265,12 @@ public sealed record RewardHoldDecisionResponse
     public Guid? DecidedByUserId { get; init; }
 
     public required DateTimeOffset DecidedAt { get; init; }
+}
+
+/// <summary>What one currency's rewards pot can pay for conversions. Staff only.</summary>
+public sealed record RewardPotResponse
+{
+    public required string Currency { get; init; }
+
+    public required MoneyResponse Available { get; init; }
 }

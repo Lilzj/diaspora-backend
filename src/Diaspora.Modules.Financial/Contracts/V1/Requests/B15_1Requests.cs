@@ -205,6 +205,15 @@ public sealed record GrantRewardPointsRequest
     public required string Reason { get; init; }
 }
 
+/// <summary>Top up a currency's rewards pot from the platform's Revenue. Staff.</summary>
+public sealed record FundRewardsPotRequest
+{
+    public required decimal Amount { get; init; }
+
+    /// <summary>Why, and for which period. Kept on the posting's audit stamp.</summary>
+    public required string Reason { get; init; }
+}
+
 /// <summary>Hold a member's points from conversion, or lift the hold. Staff.</summary>
 public sealed record SetRewardConversionHoldRequest
 {
