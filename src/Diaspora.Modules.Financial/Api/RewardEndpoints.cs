@@ -173,5 +173,34 @@ internal static class RewardEndpoints
                         cancellationToken)))
             .WithName("SetRewardConversionHold")
             .WithSummary("Holds a member's points from conversion, or lifts the hold, and says why. Staff.");
+
+        group.MapGet("/operations/rewards/pots", async (
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(new GetRewardPotsQuery(), cancellationToken)))
+            .WithName("GetRewardPots")
+            .WithSummary("What each currency's rewards pot can pay for conversions. Staff.");
+
+        group.MapPost("/operations/rewards/pots/{currency}/top-ups", async (
+                string currency,
+                FundRewardsPotRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new FundRewardsPotCommand
+                        {
+                            Currency = currency,
+                            Amount = request.Amount,
+                            Reason = request.Reason
+                        },
+                        cancellationToken)))
+            .WithName("FundRewardsPot")
+            .WithSummary("Tops up a currency's rewards pot from the platform's Revenue. Staff.");
     }
 }

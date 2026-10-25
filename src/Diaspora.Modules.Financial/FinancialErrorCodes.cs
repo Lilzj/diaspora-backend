@@ -131,6 +131,12 @@ public static class FinancialErrorCodes
     /// <summary>A staff grant that would take its grantor past the policy's rolling-day ceiling.</summary>
     public const string RewardGrantDailyLimitReached = "financial.rewards.grant_daily_limit_reached";
 
+    /// <summary>
+    /// The rewards pot in this currency cannot pay for this conversion, or for the smallest one.
+    /// Conversion pauses until staff top it up; the member's points are untouched.
+    /// </summary>
+    public const string RewardBudgetExhausted = "financial.rewards.budget_exhausted";
+
     /// <summary>No <c>reward.grant</c> policy states both limits, so no staff grant is allowed.</summary>
     public const string RewardGrantLimitsUnset = "financial.rewards.grant_limits_unset";
 

@@ -14,6 +14,7 @@ using Diaspora.Modules.Financial.Domain.Enums;
 using Diaspora.Modules.Financial.Domain.Identifiers;
 using Diaspora.Modules.Financial.Domain.Policies;
 using Diaspora.Modules.Financial.Domain.Rewards;
+using Diaspora.Modules.Financial.Domain.Ledgers;
 using Diaspora.Modules.Financial.Domain.ValueObjects;
 using Diaspora.Modules.Financial.Domain.Wallets;
 using Diaspora.Modules.Financial.Domain.Withdrawals;
@@ -1412,6 +1413,143 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         }
     }
 
+    // ── The rewards pot: conversions are paid from a funded pot ────────────────────────────
+    //
+    // Conversions debited Clearing, the one wallet allowed to go negative, so what the platform
+    // promised had no ceiling and sat in the deposit float (CNV-02, D-6). They are paid from a pot
+    // now, topped up from Revenue, and pause when it runs short.
+
+    [Fact]
+    public async Task An_empty_rewards_pot_pauses_conversion_and_moves_nothing()
+    {
+        var userId = await AuthenticateAsync();
+        var currency = await MemberCurrencyAsync(userId);
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
+            await GrantPointsAsync(userId, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
+            await SetPlatformBalanceAsync(WalletType.Rewards, currency, 0);
+
+            (await MemberTermsAsync()).Member.Should().Be(new MemberStandingShape(
+                false, FinancialErrorCodes.RewardBudgetExhausted, RewardConversionPricer.PausedMessage, null));
+
+            var refused = await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
+                new { points = 500L, idempotencyKey = Guid.NewGuid().ToString("N") });
+
+            (await CodeAsync(refused)).Should().Be(FinancialErrorCodes.RewardBudgetExhausted);
+            (await PointsAsync()).Should().Be(1_000);
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
+    /// <summary>The pot can pay the smallest conversion but not this one: refused, and a smaller one is not.</summary>
+    [Fact]
+    public async Task A_conversion_larger_than_the_pot_can_pay_is_refused()
+    {
+        var userId = await AuthenticateAsync();
+        var currency = await MemberCurrencyAsync(userId);
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
+            await GrantPointsAsync(userId, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
+            await SetPlatformBalanceAsync(WalletType.Rewards, currency, 600);
+
+            var preview = await ReadDataAsync<PreviewShape>(await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions/preview", UriKind.Relative),
+                new { points = 700L }));
+
+            preview.IsPermitted.Should().BeFalse();
+            preview.RefusalCode.Should().Be(FinancialErrorCodes.RewardBudgetExhausted);
+
+            var smaller = await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
+                new { points = 500L, idempotencyKey = Guid.NewGuid().ToString("N") });
+
+            smaller.StatusCode.Should().Be(HttpStatusCode.OK, await smaller.Content.ReadAsStringAsync());
+            (await PlatformBalanceAsync(WalletType.Rewards, currency)).Should().Be(100);
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
+    [Fact]
+    public async Task A_conversion_is_paid_from_the_pot_and_not_from_clearing()
+    {
+        var userId = await AuthenticateAsync();
+        var currency = await MemberCurrencyAsync(userId);
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
+            await GrantPointsAsync(userId, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
+            await SetPlatformBalanceAsync(WalletType.Rewards, currency, 10_000);
+
+            var clearingBefore = await PlatformBalanceAsync(WalletType.Clearing, currency);
+
+            var converted = await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
+                new { points = 500L, idempotencyKey = Guid.NewGuid().ToString("N") });
+
+            converted.StatusCode.Should().Be(HttpStatusCode.OK, await converted.Content.ReadAsStringAsync());
+            (await PlatformBalanceAsync(WalletType.Rewards, currency)).Should().Be(9_500);
+            (await PlatformBalanceAsync(WalletType.Clearing, currency)).Should().Be(clearingBefore);
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
+    /// <summary>
+    /// Staff fill the pot from Revenue and from nothing else, so it never holds more than the
+    /// platform has earned (Q1).
+    /// </summary>
+    [Fact]
+    public async Task Staff_top_up_the_pot_from_revenue_and_no_further()
+    {
+        await SignInAsRoleAsync("Admin");
+        await SetPlatformBalanceAsync(WalletType.Revenue, "GBP", 5_000);
+        await SetPlatformBalanceAsync(WalletType.Rewards, "GBP", 0);
+
+        var first = await PostTopUpAsync("GBP", 30m, "October rewards budget");
+
+        first.StatusCode.Should().Be(HttpStatusCode.OK, await first.Content.ReadAsStringAsync());
+        (await ReadDataAsync<PotShape>(first)).Available.MinorUnits.Should().Be(3_000);
+        (await PlatformBalanceAsync(WalletType.Revenue, "GBP")).Should().Be(2_000);
+
+        var second = await PostTopUpAsync("GBP", 30m, "October rewards budget, again");
+
+        second.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await CodeAsync(second)).Should().Be(FinancialErrorCodes.InsufficientFunds);
+        (await PlatformBalanceAsync(WalletType.Rewards, "GBP")).Should().Be(3_000);
+
+        var pots = await ReadDataAsync<List<PotShape>>(await HttpClient.GetAsync(
+            new Uri("/api/v1/financial/operations/rewards/pots", UriKind.Relative)));
+
+        pots.Should().ContainSingle(pot => pot.Currency == "GBP")
+            .Which.Available.MinorUnits.Should().Be(3_000);
+    }
+
+    [Fact]
+    public async Task A_top_up_needs_an_admin_and_a_reason()
+    {
+        await AuthenticateAsync();
+
+        (await PostTopUpAsync("GBP", 1m, "A member trying")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+
+        await SignInAsRoleAsync("Admin");
+
+        (await PostTopUpAsync("GBP", 1m, " ")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
     // ── Staff grants: a reason, and the reward.grant policy's limits ────────────────────────
     //
     // The one route that creates points with no earning behind them had no upper bound and asked
@@ -2493,6 +2631,83 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         policies.Add(policy);
 
         await unitOfWork.SaveChangesAsync();
+
+        // Conversions are paid from the rewards pot (CS-A1), and an empty pot pauses them, so the
+        // suite funds the pot generously wherever it publishes a rate.
+        if (currency is not null)
+        {
+            await SetPlatformBalanceAsync(WalletType.Rewards, currency, 100_000_000);
+        }
+    }
+
+    /// <summary>
+    /// Sets a platform wallet to an exact balance, moving the difference to or from Clearing. Test
+    /// setup only: in a deployment, Revenue fills from fees and the pot from the staff top-up route.
+    /// </summary>
+    private async Task SetPlatformBalanceAsync(WalletType walletType, string currency, long minorUnits)
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        var identities = scope.ServiceProvider.GetRequiredService<FinancialIdentityService>();
+        var ledger = scope.ServiceProvider.GetRequiredService<ILedgerPostingService>();
+        var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+
+        var wallet = (await identities.PlatformWalletAsync(walletType, currency))!;
+        var clearing = (await identities.PlatformWalletAsync(WalletType.Clearing, currency))!;
+        var delta = minorUnits - wallet.AvailableMinorUnits;
+
+        if (delta == 0)
+        {
+            return;
+        }
+
+        var amount = Money.FromMinorUnits(Math.Abs(delta), wallet.Currency, wallet.Exponent);
+        var (from, to) = delta > 0 ? (clearing, wallet) : (wallet, clearing);
+
+        var posted = await ledger.PostAsync(new LedgerPostingRequest
+        {
+            TransactionType = TransactionType.Adjustment,
+            Amount = amount,
+            Description = "Integration suite: set a platform balance.",
+            Audit = AuditStamp.Create(
+                FinancialActor.System("IntegrationSuite"),
+                FinancialSource.System,
+                "Integration suite: set a platform balance."),
+            Legs =
+            [
+                new LedgerPostingLeg
+                {
+                    WalletId = from.Id,
+                    Direction = LedgerDirection.Debit,
+                    Amount = amount,
+                    EntryType = LedgerEntryType.Adjustment
+                },
+                new LedgerPostingLeg
+                {
+                    WalletId = to.Id,
+                    Direction = LedgerDirection.Credit,
+                    Amount = amount,
+                    EntryType = LedgerEntryType.Adjustment
+                }
+            ],
+            Reference = $"integration-suite:{Guid.NewGuid():N}"
+        });
+
+        posted.IsSuccess.Should().BeTrue(posted.IsFailure ? posted.Error.Description : null);
+
+        await unitOfWork.SaveChangesAsync();
+    }
+
+    /// <summary>A platform wallet's available balance, in minor units.</summary>
+    private async Task<long> PlatformBalanceAsync(WalletType walletType, string currency)
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        var wallet = await scope.ServiceProvider
+            .GetRequiredService<IWalletRepository>()
+            .FindPlatformWalletAsync(walletType, currency);
+
+        return wallet!.AvailableMinorUnits;
     }
 
     /// <summary>Back to the seed: no country rates, and a platform rate of zero.</summary>
@@ -2605,6 +2820,12 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
             new Uri("/api/v1/financial/operations/rewards/grants", UriKind.Relative),
             new { userId, points, source = "StaffAdjustment", grantReference = reference, reason });
 
+    /// <summary>A staff top-up of a rewards pot over HTTP, as whoever the client is signed in as.</summary>
+    private Task<HttpResponseMessage> PostTopUpAsync(string currency, decimal amount, string reason) =>
+        HttpClient.PostAsJsonAsync(
+            new Uri($"/api/v1/financial/operations/rewards/pots/{currency}/top-ups", UriKind.Relative),
+            new { amount, reason });
+
     /// <summary>A staff hold decision over HTTP, as whoever the client is signed in as.</summary>
     private Task<HttpResponseMessage> PutHoldAsync(
         Guid userId, bool isHeld, string? reason = "Integration suite: under review.") =>
@@ -2665,6 +2886,8 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
     }
 
     private sealed record MoneyShape(decimal Amount, string Currency, long MinorUnits);
+
+    private sealed record PotShape(string Currency, MoneyShape Available);
 
     private sealed record HoldShape(Guid UserId, bool IsHeld, string? Reason, List<HoldDecisionShape> Decisions);
 

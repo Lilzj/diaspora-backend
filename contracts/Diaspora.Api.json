@@ -18256,6 +18256,54 @@
         }
       }
     },
+    "/api/v1/financial/operations/rewards/pots": {
+      "get": {
+        "tags": [
+          "Financial"
+        ],
+        "summary": "What each currency's rewards pot can pay for conversions. Staff.",
+        "operationId": "GetRewardPots",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/financial/operations/rewards/pots/{currency}/top-ups": {
+      "post": {
+        "tags": [
+          "Financial"
+        ],
+        "summary": "Tops up a currency's rewards pot from the platform's Revenue. Staff.",
+        "operationId": "FundRewardsPot",
+        "parameters": [
+          {
+            "name": "currency",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FundRewardsPotRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/financial/entitlements/me": {
       "get": {
         "tags": [
@@ -45877,6 +45925,26 @@
         "type": "object",
         "properties": {
           "email": {
+            "type": "string"
+          }
+        }
+      },
+      "FundRewardsPotRequest": {
+        "required": [
+          "amount",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "amount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "reason": {
             "type": "string"
           }
         }

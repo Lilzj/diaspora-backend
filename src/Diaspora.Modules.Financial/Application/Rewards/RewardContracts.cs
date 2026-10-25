@@ -209,6 +209,52 @@ public sealed class SetRewardConversionHoldCommandValidator
     }
 }
 
+/// <summary>
+/// Tops up a currency's rewards pot from the platform's Revenue. Staff.
+/// <para>
+/// <b>The pot is what converted points are paid from, and Revenue is what fills it</b> (D-6, Q1), so
+/// the platform can never promise members more than it has earned. A top-up Revenue cannot cover is
+/// refused; nothing here creates money.
+/// </para>
+/// </summary>
+[Authorize(Permission = FinancialPermissions.WalletManage)]
+[Transactional(Reason = "The top-up is one posting and must land whole.")]
+[Auditable(Action = "financial.rewards.pot_fund")]
+public sealed record FundRewardsPotCommand : ICommand<RewardPotResponse>
+{
+    /// <summary>ISO 4217. The pot and the Revenue wallet in this currency.</summary>
+    public required string Currency { get; init; }
+
+    public required decimal Amount { get; init; }
+
+    /// <summary>Why, and for which period. Kept on the posting's audit stamp.</summary>
+    public required string Reason { get; init; }
+}
+
+/// <summary>A top-up must name its currency, be for something, and say why.</summary>
+public sealed class FundRewardsPotCommandValidator : AbstractValidator<FundRewardsPotCommand>
+{
+    public FundRewardsPotCommandValidator()
+    {
+        RuleFor(command => command.Currency)
+            .Length(3)
+            .WithMessage("A currency is three ISO 4217 letters.");
+
+        RuleFor(command => command.Amount)
+            .GreaterThan(0m)
+            .WithMessage("A top-up has to be for something.");
+
+        RuleFor(command => command.Reason)
+            .NotEmpty()
+            .WithMessage("A top-up needs a reason: which period, and why this amount.")
+            .MaximumLength(Domain.Policies.FinancialLimits.MaxReasonLength);
+    }
+}
+
+/// <summary>What each currency's rewards pot can pay. Staff.</summary>
+[Authorize(Permission = FinancialPermissions.WalletReadAny)]
+public sealed record GetRewardPotsQuery : IQuery<IReadOnlyList<RewardPotResponse>>;
+
 /// <summary>A staff grant must say why.</summary>
 public sealed class GrantRewardPointsCommandValidator : AbstractValidator<GrantRewardPointsCommand>
 {

@@ -12,16 +12,25 @@ namespace Diaspora.Modules.Financial.Infrastructure.Provisioning;
 /// first is a path with two failure modes.
 /// </para>
 /// <para>
-/// <b>The platform account gets four.</b> Clearing is the counterparty to everything arriving from
+/// <b>The platform account gets five.</b> Clearing is the counterparty to everything arriving from
 /// outside; revenue is where commission and fees land; escrow is the seam a future escrow engine
 /// needs; promotional funds credit grants so the platform's own giving is visible as a balance
-/// rather than as an unexplained hole in clearing.
+/// rather than as an unexplained hole in clearing; rewards is the funded pot converted points are
+/// paid from. The seeder opens any that are missing on every start, so a deployment gains the
+/// rewards pot without a migration.
 /// </para>
 /// </summary>
 public sealed class DefaultWalletProvisioningPolicy : IWalletProvisioningPolicy
 {
     public IReadOnlyList<WalletType> WalletsFor(FinancialAccountType accountType, string currency) =>
         accountType == FinancialAccountType.Platform
-            ? [WalletType.Clearing, WalletType.Revenue, WalletType.Escrow, WalletType.Promotional]
+            ?
+            [
+                WalletType.Clearing,
+                WalletType.Revenue,
+                WalletType.Escrow,
+                WalletType.Promotional,
+                WalletType.Rewards
+            ]
             : [WalletType.Primary, WalletType.Promotional];
 }

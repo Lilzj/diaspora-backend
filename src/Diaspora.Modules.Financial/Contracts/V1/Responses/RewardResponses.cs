@@ -235,3 +235,11 @@ public sealed record RewardHoldDecisionResponse
 
     public required DateTimeOffset DecidedAt { get; init; }
 }
+
+/// <summary>What one currency's rewards pot can pay for conversions. Staff only.</summary>
+public sealed record RewardPotResponse
+{
+    public required string Currency { get; init; }
+
+    public required MoneyResponse Available { get; init; }
+}
