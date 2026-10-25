@@ -17602,6 +17602,9 @@ namespace Diaspora.Persistence.Migrations
                     b.Property<Guid?>("ReversesEventId")
                         .HasColumnType("uuid");
 
+                    b.Property<int?>("RuleSetVersion")
+                        .HasColumnType("integer");
+
                     b.Property<string>("SourceId")
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");

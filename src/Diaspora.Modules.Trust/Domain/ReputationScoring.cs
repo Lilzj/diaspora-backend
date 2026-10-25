@@ -78,6 +78,17 @@ public sealed record ReputationRule
     public bool IsActive { get; init; } = true;
 
     /// <summary>
+    /// The reward points this action also pays, on top of its XP (D-2, D-12). Null pays none.
+    /// <para>
+    /// Points are paid only for confirmed outcomes: a guide that passed moderation, an update the
+    /// community confirmed, a referral that qualified. Trust owns the schedule and publishes the grant;
+    /// the Financial Platform holds the balance and decides when it vests. Publishing anything earns
+    /// XP alone.
+    /// </para>
+    /// </summary>
+    public int? CreditPoints { get; init; }
+
+    /// <summary>
     /// Whether anything on the platform actually scores this rule yet.
     /// <para>
     /// A rule can be priced before any module produces it. That is fine for scoring, which simply
@@ -95,7 +106,8 @@ public sealed record ReputationRule
         ActionType = ActionType,
         Dimension = Dimension,
         Points = Points,
-        Description = Description
+        Description = Description,
+        RuleSetVersion = DefaultReputationRules.Version
     };
 }
 
@@ -109,6 +121,12 @@ public sealed record ReputationAward
     public required int Points { get; init; }
 
     public string? Description { get; init; }
+
+    /// <summary>
+    /// The version of the rules that priced it. Null for an award no rule priced, such as a
+    /// handler's own approval award for an action with no rule.
+    /// </summary>
+    public int? RuleSetVersion { get; init; }
 
     public static ReputationAward Of(
         string actionType,
@@ -139,6 +157,20 @@ public sealed record ReputationAward
 /// </summary>
 public static class DefaultReputationRules
 {
+    /// <summary>
+    /// The version of these rules, stamped on every event they price (REP-16, D-10).
+    /// <para>
+    /// <b>Bump it with any change to a value</b>: points, credit points, a cap, a cooldown, a rule
+    /// added or retired. The rules stay in code, a reviewed change like
+    /// <see cref="ReputationThresholds"/>, and the version is what lets "why did this pay 25 and that
+    /// one 50" be answered after the values move. Contributed rules are priced under the same number.
+    /// </para>
+    /// <list type="bullet">
+    ///   <item>1, 2026-10-25: credit points for an approved guide (250) and a confirmed update (200).</item>
+    /// </list>
+    /// </summary>
+    public const int Version = 1;
+
     public static IReadOnlyList<ReputationRule> All { get; } =
     [
         // ── Contribution ─────────────────────────────────────────────────
@@ -157,6 +189,7 @@ public static class DefaultReputationRules
             ActionType = ReputationActions.GuideApproved,
             Dimension = ReputationDimension.contribution,
             Points = 25,
+            CreditPoints = 250,
             IsCountryScoped = true,
             Description = "A guide passed moderation.",
             Label = "Guides approved"
@@ -186,6 +219,7 @@ public static class DefaultReputationRules
             ActionType = ReputationActions.UpdateVerified,
             Dimension = ReputationDimension.contribution,
             Points = 15,
+            CreditPoints = 200,
             IsCountryScoped = true,
             Description = "An update was confirmed by the community.",
             Label = "Updates confirmed by the community",
