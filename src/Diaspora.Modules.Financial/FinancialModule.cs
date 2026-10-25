@@ -236,6 +236,7 @@ public sealed class FinancialModule : IPlatformModule
         // conversion — two code paths computing one rate is how a preview comes to disagree with a
         // charge, and the disagreement is only ever noticed by the member it shortchanged.
         services.AddScoped<Application.Rewards.RewardConversionPricer>();
+        services.AddScoped<Application.Rewards.RewardVesting>();
 
         // Resolves what a member is entitled to and how much of it they have used.
         services.AddScoped<EntitlementResolver>();
@@ -420,6 +421,7 @@ public sealed class FinancialModule : IPlatformModule
         services.AddHostedService<SubscriptionRenewalSweep>();
         services.AddHostedService<CreditExpirySweep>();
         services.AddHostedService<RewardConversionReleaseSweep>();
+        services.AddHostedService<RewardVestingSweep>();
         services.AddHostedService<RevenueRollupSweep>();
         services.AddHostedService<GivingReconciliationSweep>();
 

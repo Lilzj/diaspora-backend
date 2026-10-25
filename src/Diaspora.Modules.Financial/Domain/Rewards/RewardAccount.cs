@@ -42,8 +42,15 @@ public sealed class RewardAccount : AggregateRoot<RewardAccountId>, IAuditableEn
 
     public Guid MemberUserId { get; private set; }
 
-    /// <summary>Points available to convert. Never negative.</summary>
+    /// <summary>Points available to convert or spend: vested points only. Never negative.</summary>
     public long Balance { get; private set; }
+
+    /// <summary>
+    /// Points granted but not vested yet (D-9, RWD-07). Counted in <see cref="LifetimeEarned"/>, not in
+    /// <see cref="Balance"/>: they can be neither converted nor spent until they vest (Q3), and until
+    /// then a grantor can still take them back. Never negative.
+    /// </summary>
+    public long PendingBalance { get; private set; }
 
     /// <summary>Everything ever earned. Never decreases — the number a member's profile shows.</summary>
     public long LifetimeEarned { get; private set; }
@@ -73,6 +80,10 @@ public sealed class RewardAccount : AggregateRoot<RewardAccountId>, IAuditableEn
     public string? BlockReason { get; private set; }
 
     public IReadOnlyList<RewardEntry> Entries => _entries.AsReadOnly();
+
+    /// <summary>When the next pending grant vests. Null when nothing is pending.</summary>
+    public DateTimeOffset? NextVestsAt =>
+        _entries.Where(entry => entry.IsPending).Min(entry => entry.VestsAt);
 
     /// <summary>
     /// Every hold placed and lifted. Unordered once loaded; order by
@@ -121,6 +132,11 @@ public sealed class RewardAccount : AggregateRoot<RewardAccountId>, IAuditableEn
     /// in-aggregate check catches a redelivery inside a single unit of work, and the unique index
     /// catches one across two.
     /// </para>
+    /// <para>
+    /// <b>Pending until <paramref name="vestsAt"/>, when one is given</b> (D-9). The points count as
+    /// earned at once and become spendable when <see cref="VestDue"/> reaches them. Null means
+    /// spendable now.
+    /// </para>
     /// </summary>
     public bool Grant(
         Guid entryId,
@@ -130,7 +146,8 @@ public sealed class RewardAccount : AggregateRoot<RewardAccountId>, IAuditableEn
         DateTimeOffset now,
         Guid? grantedByUserId = null,
         string? reason = null,
-        string? policyVersion = null)
+        string? policyVersion = null,
+        DateTimeOffset? vestsAt = null)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(points);
         ArgumentException.ThrowIfNullOrWhiteSpace(grantReference);
@@ -143,12 +160,51 @@ public sealed class RewardAccount : AggregateRoot<RewardAccountId>, IAuditableEn
         }
 
         _entries.Add(RewardEntry.Earned(
-            entryId, points, source, reference, now, grantedByUserId, reason, policyVersion));
-        Balance += points;
+            entryId, points, source, reference, now, grantedByUserId, reason, policyVersion, vestsAt));
+
+        if (vestsAt is null)
+        {
+            Balance += points;
+        }
+        else
+        {
+            PendingBalance += points;
+        }
+
         LifetimeEarned += points;
         Touch(now);
 
         return true;
+    }
+
+    /// <summary>
+    /// Makes every pending grant due by <paramref name="asOf"/> spendable.
+    /// <para>
+    /// Called by the vesting sweep, which leaves a held account alone: a hold placed during the
+    /// window keeps the points pending, and so still reversible, until it is lifted.
+    /// </para>
+    /// </summary>
+    /// <returns>How many points vested. Zero when none were due.</returns>
+    public long VestDue(DateTimeOffset asOf)
+    {
+        var vested = 0L;
+
+        foreach (var entry in _entries.Where(entry => entry.IsPending && entry.VestsAt <= asOf))
+        {
+            entry.MarkVested(asOf);
+            vested += entry.Points;
+        }
+
+        if (vested == 0)
+        {
+            return 0;
+        }
+
+        PendingBalance = Math.Max(0, PendingBalance - vested);
+        Balance += vested;
+        Touch(asOf);
+
+        return vested;
     }
 
     /// <summary>

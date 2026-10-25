@@ -7,7 +7,8 @@ namespace Diaspora.Modules.Financial.Domain.Rewards;
 /// <para>
 /// <b>Append-only, like the ledger, and for the same reason.</b> "Why do I have 340 points" is a
 /// question a member asks and a support agent has to answer; a balance that was simply overwritten
-/// cannot answer it. There is no operation on an entry but reading it.
+/// cannot answer it. There is no operation on an entry but reading it, and marking a pending grant
+/// vested, which records when it became spendable and changes none of what it was.
 /// </para>
 /// <para>
 /// <b><see cref="Reference"/> is the idempotency key on an earning.</b> It is the grantor's own
@@ -28,7 +29,8 @@ public sealed class RewardEntry : ValueObject
         DateTimeOffset occurredAt,
         Guid? grantedByUserId = null,
         string? reason = null,
-        string? policyVersion = null)
+        string? policyVersion = null,
+        DateTimeOffset? vestsAt = null)
     {
         EntryId = entryId;
         Points = points;
@@ -40,6 +42,7 @@ public sealed class RewardEntry : ValueObject
         GrantedByUserId = grantedByUserId;
         Reason = reason;
         PolicyVersion = policyVersion;
+        VestsAt = vestsAt;
     }
 
     private RewardEntry() { }
@@ -101,6 +104,24 @@ public sealed class RewardEntry : ValueObject
     /// </summary>
     public string? PolicyVersion { get; private set; }
 
+    /// <summary>
+    /// When a grant becomes spendable (D-9, RWD-07). Until then its points are pending: they count
+    /// toward what was earned and can be reversed, but cannot be converted or spent.
+    /// <para>
+    /// Null on every debit, on a refunded spend (those points were already spendable), and on every
+    /// grant written before vesting existed: those count as vested, so existing balances stay
+    /// convertible (D-5).
+    /// </para>
+    /// </summary>
+    public DateTimeOffset? VestsAt { get; private set; }
+
+    /// <summary>When the vesting sweep made this grant spendable. Null until then, and on every
+    /// entry that never vested because it was never pending.</summary>
+    public DateTimeOffset? VestedAt { get; private set; }
+
+    /// <summary>A grant whose points are not spendable yet.</summary>
+    public bool IsPending => !IsDebit && VestsAt is not null && VestedAt is null;
+
     public static RewardEntry Earned(
         Guid entryId,
         long points,
@@ -109,7 +130,8 @@ public sealed class RewardEntry : ValueObject
         DateTimeOffset occurredAt,
         Guid? grantedByUserId = null,
         string? reason = null,
-        string? policyVersion = null)
+        string? policyVersion = null,
+        DateTimeOffset? vestsAt = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(reference);
 
@@ -123,7 +145,8 @@ public sealed class RewardEntry : ValueObject
             occurredAt,
             grantedByUserId,
             string.IsNullOrWhiteSpace(reason) ? null : reason.Trim(),
-            string.IsNullOrWhiteSpace(policyVersion) ? null : policyVersion.Trim());
+            string.IsNullOrWhiteSpace(policyVersion) ? null : policyVersion.Trim(),
+            vestsAt);
     }
 
     public static RewardEntry Converted(
@@ -152,6 +175,9 @@ public sealed class RewardEntry : ValueObject
             reference.Trim(),
             occurredAt);
     }
+
+    /// <summary>The account's half of vesting. Only <see cref="RewardAccount.VestDue"/> calls it.</summary>
+    internal void MarkVested(DateTimeOffset at) => VestedAt = at;
 
     protected override IEnumerable<object?> GetEqualityComponents()
     {

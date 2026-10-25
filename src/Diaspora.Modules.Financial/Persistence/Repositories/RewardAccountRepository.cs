@@ -45,6 +45,24 @@ public sealed class RewardAccountRepository : IRewardAccountRepository
             account => account.Id == accountId, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<RewardAccountId>> ListDueForVestingAsync(
+        DateTimeOffset asOf, int take, CancellationToken cancellationToken = default)
+    {
+        // On ix_financial_reward_entries_vesting. Ids, not accounts: each one is vested in its own
+        // unit of work, so loading every entry history here would be loading it twice.
+        return await _dbContext.Set<RewardAccount>()
+            .AsNoTracking()
+            .SelectMany(account => account.Entries, (account, entry) => new { account.Id, entry })
+            .Where(row => row.entry.VestedAt == null
+                && row.entry.VestsAt != null
+                && row.entry.VestsAt <= asOf)
+            .GroupBy(row => row.Id)
+            .OrderBy(group => group.Min(row => row.entry.VestsAt))
+            .Select(group => group.Key)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<RewardAccount?> FindByMemberAsync(
         Guid memberUserId, CancellationToken cancellationToken = default)
     {

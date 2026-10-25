@@ -13,6 +13,13 @@ public interface IRewardAccountRepository
         RewardAccountId accountId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Accounts holding a pending grant due to vest by <paramref name="asOf"/>, oldest due first
+    /// (D-9). Held accounts are included; the sweep decides what a hold means.
+    /// </summary>
+    Task<IReadOnlyList<RewardAccountId>> ListDueForVestingAsync(
+        DateTimeOffset asOf, int take, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// A member's account, staged or saved.
     /// <para>
     /// Consults the change tracker first: a grant that opens an account and immediately awards

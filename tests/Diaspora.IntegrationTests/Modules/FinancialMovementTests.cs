@@ -1610,7 +1610,7 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
 
         over.StatusCode.Should().Be(HttpStatusCode.Conflict);
         (await CodeAsync(over)).Should().Be(FinancialErrorCodes.RewardGrantDailyLimitReached);
-        (await BalanceOfAsync(member)).Should().Be(5_000);
+        (await PendingPointsOfAsync(member)).Should().Be(5_000, "a staff grant vests like any other (D-9)");
 
         await SignInAsRoleAsync("Admin");
 
@@ -1652,11 +1652,9 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
 
         using (var scope = Factory.Services.CreateScope())
         {
-            var consumer = new Diaspora.Modules.Financial.Application.Consumers.Rewards.RewardPointsGrantedConsumer(
-                scope.ServiceProvider.GetRequiredService<IRewardAccountRepository>(),
-                scope.ServiceProvider.GetRequiredService<IGuidGenerator>(),
-                scope.ServiceProvider.GetRequiredService<IClock>(),
-                scope.ServiceProvider.GetRequiredService<IUnitOfWork>());
+            var consumer = ActivatorUtilities.CreateInstance<
+                Diaspora.Modules.Financial.Application.Consumers.Rewards.RewardPointsGrantedConsumer>(
+                scope.ServiceProvider);
 
             await consumer.Handle(
                 new IntegrationEventNotification<RewardPointsGrantedIntegrationEvent>(
@@ -1679,6 +1677,121 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
             .FindByMemberAsync(member);
 
         account!.Entries.Should().ContainSingle().Which.PolicyVersion.Should().Be("creator.referral@2");
+    }
+
+    // ── Points vesting (D-9, RWD-07) ─────────────────────────────────────────────────────
+    //
+    // A grant was spendable the moment it landed, so a point earned for a guide could be converted
+    // before the guide was deleted. Grants are pending for a week now (Q3: pending points can be
+    // neither converted nor spent), and a sweep vests them when the week ends.
+
+    [Fact]
+    public async Task A_granted_point_is_pending_and_cannot_be_converted_until_it_vests()
+    {
+        var userId = await AuthenticateAsync();
+        var currency = await MemberCurrencyAsync(userId);
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
+            await DeliverGrantAsync(userId, 1_000, DateTimeOffset.UtcNow);
+
+            var balance = await RewardBalanceAsync();
+            balance.Balance.Should().Be(0);
+            balance.PendingPoints.Should().Be(1_000);
+            balance.LifetimeEarned.Should().Be(1_000);
+            balance.NextVestsAt.Should().BeCloseTo(
+                DateTimeOffset.UtcNow.AddDays(RewardVesting.DefaultVestingDays), TimeSpan.FromMinutes(5));
+
+            var conversion = await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
+                new { points = 500L, idempotencyKey = Guid.NewGuid().ToString("N") });
+
+            conversion.StatusCode.Should().Be(HttpStatusCode.Conflict, "pending points are not convertible");
+
+            await RunSweepAsync<RewardVestingSweep>();
+
+            (await RewardBalanceAsync()).PendingPoints.Should().Be(1_000, "nothing is due for a week");
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
+    [Fact]
+    public async Task The_vesting_sweep_vests_a_due_grant_once_and_it_can_then_be_converted()
+    {
+        var userId = await AuthenticateAsync();
+        var currency = await MemberCurrencyAsync(userId);
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
+
+            // Granted eight days ago, so its week ended yesterday.
+            await DeliverGrantAsync(userId, 1_000, DateTimeOffset.UtcNow.AddDays(-8));
+
+            (await RewardBalanceAsync()).PendingPoints.Should().Be(1_000);
+
+            await RunSweepAsync<RewardVestingSweep>();
+            await RunSweepAsync<RewardVestingSweep>();
+
+            var balance = await RewardBalanceAsync();
+            balance.Balance.Should().Be(1_000, "a grant vests once, however often the sweep runs");
+            balance.PendingPoints.Should().Be(0);
+            balance.NextVestsAt.Should().BeNull();
+
+            (await HttpClient.PostAsJsonAsync(
+                    new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
+                    new { points = 500L, idempotencyKey = Guid.NewGuid().ToString("N") }))
+                .IsSuccessStatusCode.Should().BeTrue();
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
+    /// <summary>A hold placed during the window keeps the points pending, and reversible, until it lifts.</summary>
+    [Fact]
+    public async Task A_held_members_points_stay_pending_until_the_hold_lifts()
+    {
+        var userId = await AuthenticateAsync();
+
+        await DeliverGrantAsync(userId, 300, DateTimeOffset.UtcNow.AddDays(-8));
+        await SetConversionHoldAsync(userId, held: true);
+
+        await RunSweepAsync<RewardVestingSweep>();
+
+        (await PendingPointsOfAsync(userId)).Should().Be(300);
+
+        await SetConversionHoldAsync(userId, held: false);
+        await RunSweepAsync<RewardVestingSweep>();
+
+        (await PendingPointsOfAsync(userId)).Should().Be(0);
+        (await BalanceOfAsync(userId)).Should().Be(300);
+    }
+
+    /// <summary>The window is the policy's: zero days means spendable at once.</summary>
+    [Fact]
+    public async Task A_policy_with_no_vesting_window_grants_spendable_points()
+    {
+        var userId = await AuthenticateAsync();
+        var currency = await MemberCurrencyAsync(userId);
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency, vestingDays: 0);
+            await DeliverGrantAsync(userId, 400, DateTimeOffset.UtcNow);
+
+            (await BalanceOfAsync(userId)).Should().Be(400);
+            (await PendingPointsOfAsync(userId)).Should().Be(0);
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
     }
 
     // ── The hold on converted credit (D-7) ───────────────────────────────────────────────
@@ -2676,7 +2789,8 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         string? country = null,
         long? maximumPoints = null,
         long? dailyMaximumPoints = null,
-        long? holdDays = null)
+        long? holdDays = null,
+        long? vestingDays = null)
     {
         using var scope = Factory.Services.CreateScope();
 
@@ -2753,6 +2867,14 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
                 guids.NewSequentialGuid(),
                 FinancialPolicyParameters.HoldDays,
                 hold.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        if (vestingDays is { } vesting)
+        {
+            policy.SetParameter(
+                guids.NewSequentialGuid(),
+                FinancialPolicyParameters.VestingDays,
+                vesting.ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
 
         policies.Add(policy);
@@ -3005,6 +3127,43 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         return standing?.Balance ?? 0;
     }
 
+    /// <summary>A grantor's points arriving through the consumer, as Creator's and Trust's do.</summary>
+    private async Task DeliverGrantAsync(Guid userId, long points, DateTimeOffset grantedAt)
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        var consumer = ActivatorUtilities.CreateInstance<
+            Diaspora.Modules.Financial.Application.Consumers.Rewards.RewardPointsGrantedConsumer>(
+            scope.ServiceProvider);
+
+        await consumer.Handle(
+            new IntegrationEventNotification<RewardPointsGrantedIntegrationEvent>(
+                new RewardPointsGrantedIntegrationEvent
+                {
+                    MemberUserId = userId,
+                    Points = points,
+                    Source = "IntegrationTest",
+                    GrantReference = "grant:" + Guid.NewGuid().ToString("N"),
+                    GrantedAt = grantedAt
+                }),
+            CancellationToken.None);
+    }
+
+    private async Task<long> PendingPointsOfAsync(Guid userId)
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        var account = await scope.ServiceProvider
+            .GetRequiredService<IRewardAccountRepository>()
+            .FindByMemberAsync(userId);
+
+        return account?.PendingBalance ?? 0;
+    }
+
+    private async Task<RewardBalanceShape> RewardBalanceAsync() =>
+        await ReadDataAsync<RewardBalanceShape>(await HttpClient.GetAsync(
+            new Uri("/api/v1/financial/rewards/me", UriKind.Relative)));
+
     private async Task<long> PointsAsync()
     {
         var response = await HttpClient.GetAsync(
@@ -3072,7 +3231,8 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         string Status = "Available",
         DateTimeOffset? AvailableAt = null);
 
-    private sealed record RewardBalanceShape(long Balance, long LifetimeEarned, bool CanConvert);
+    private sealed record RewardBalanceShape(
+        long Balance, long LifetimeEarned, bool CanConvert, long PendingPoints = 0, DateTimeOffset? NextVestsAt = null);
 
     private sealed record TermsShape(
         bool IsEnabled, string? DisabledReason, string Currency, decimal MinorUnitsPerPoint);

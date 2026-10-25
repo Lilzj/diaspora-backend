@@ -58,6 +58,10 @@ public sealed class RewardAccountConfiguration : IEntityTypeConfiguration<Reward
             entry.Property(record => record.PolicyVersion)
                 .HasMaxLength(FinancialPersistenceConstants.CodeLength);
 
+            // What the vesting sweep reads (D-9): pending grants that are due.
+            entry.HasIndex(nameof(RewardEntry.VestedAt), nameof(RewardEntry.VestsAt))
+                .HasDatabaseName("ix_financial_reward_entries_vesting");
+
             // What the reward.grant policy's daily ceiling sums: one staff member's grants since a
             // moment, without scanning every member's history.
             entry.HasIndex(nameof(RewardEntry.GrantedByUserId), nameof(RewardEntry.OccurredAt))

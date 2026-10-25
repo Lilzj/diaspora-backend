@@ -1,6 +1,7 @@
 using Diaspora.Application.Abstractions;
 using Diaspora.Contracts.Financial.V1.Events;
 using Diaspora.Domain.Abstractions;
+using Diaspora.Modules.Financial.Application.Rewards;
 using Diaspora.Modules.Financial.Domain.Identifiers;
 using Diaspora.Modules.Financial.Domain.Rewards;
 using Diaspora.Platform.Services.Abstractions;
@@ -26,22 +27,29 @@ namespace Diaspora.Modules.Financial.Application.Consumers.Rewards;
 /// <b>The account is opened on the first grant.</b> A member who has never earned anything has no
 /// row, which is what makes "you have no points" a zero rather than a 404 on the read side.
 /// </para>
+/// <para>
+/// <b>The points are pending until they vest</b> (D-9): earned at once, spendable after the
+/// member's vesting window. See <see cref="RewardVesting"/>.
+/// </para>
 /// </summary>
 public sealed class RewardPointsGrantedConsumer
     : IntegrationEventHandler<RewardPointsGrantedIntegrationEvent>
 {
     private readonly IRewardAccountRepository _accounts;
+    private readonly RewardVesting _vesting;
     private readonly IGuidGenerator _guids;
     private readonly IClock _clock;
     private readonly IUnitOfWork _unitOfWork;
 
     public RewardPointsGrantedConsumer(
         IRewardAccountRepository accounts,
+        RewardVesting vesting,
         IGuidGenerator guids,
         IClock clock,
         IUnitOfWork unitOfWork)
     {
         _accounts = accounts;
+        _vesting = vesting;
         _guids = guids;
         _clock = clock;
         _unitOfWork = unitOfWork;
@@ -71,13 +79,22 @@ public sealed class RewardPointsGrantedConsumer
             _accounts.Add(account);
         }
 
+        if (account.HasGranted(integrationEvent.GrantReference))
+        {
+            return;
+        }
+
+        var vestsAt = await _vesting.VestsAtAsync(
+            integrationEvent.MemberUserId, integrationEvent.GrantedAt, cancellationToken);
+
         var awarded = account.Grant(
             _guids.NewSequentialGuid(),
             integrationEvent.Points,
             integrationEvent.Source,
             integrationEvent.GrantReference,
             integrationEvent.GrantedAt,
-            policyVersion: integrationEvent.PolicyVersion);
+            policyVersion: integrationEvent.PolicyVersion,
+            vestsAt: vestsAt);
 
         if (!awarded)
         {

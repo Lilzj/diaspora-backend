@@ -141,6 +141,72 @@ public class RewardAccountTests
         account.ConvertedSince(Now.AddDays(-7)).Should().Be(250);
     }
 
+    // ── Vesting (D-9, RWD-07) ───────────────────────────────────────────────────────────────
+
+    /// <summary>Q3: pending points are earned, and can be neither converted nor spent.</summary>
+    [Fact]
+    public void A_grant_that_has_not_vested_is_earned_but_not_spendable()
+    {
+        var account = Open();
+
+        account.Grant(Guid.NewGuid(), 500, "GuidePublished", "guide:1", Now, vestsAt: Now.AddDays(7));
+
+        account.Balance.Should().Be(0);
+        account.PendingBalance.Should().Be(500);
+        account.LifetimeEarned.Should().Be(500);
+        account.NextVestsAt.Should().Be(Now.AddDays(7));
+
+        var convert = () => account.Convert(Guid.NewGuid(), 500, "conversion:1", Now);
+        convert.Should().Throw<DomainException>()
+            .Which.Code.Should().Be(FinancialErrorCodes.RewardInsufficientPoints);
+
+        var spend = () => account.Spend(Guid.NewGuid(), 500, "Redemption", "redemption:1", Now);
+        spend.Should().Throw<DomainException>()
+            .Which.Code.Should().Be(FinancialErrorCodes.RewardInsufficientPoints);
+    }
+
+    [Fact]
+    public void Vesting_makes_only_due_grants_spendable_and_only_once()
+    {
+        var account = Open();
+
+        account.Grant(Guid.NewGuid(), 500, "GuidePublished", "guide:1", Now, vestsAt: Now.AddDays(7));
+        account.Grant(Guid.NewGuid(), 200, "GuidePublished", "guide:2", Now.AddDays(3), vestsAt: Now.AddDays(10));
+
+        account.VestDue(Now.AddDays(6)).Should().Be(0, "nothing is due yet");
+
+        account.VestDue(Now.AddDays(8)).Should().Be(500);
+        account.VestDue(Now.AddDays(8)).Should().Be(0, "a grant vests once");
+
+        account.Balance.Should().Be(500);
+        account.PendingBalance.Should().Be(200);
+        account.NextVestsAt.Should().Be(Now.AddDays(10));
+        account.Entries.Single(entry => entry.Reference == "guide:1").VestedAt.Should().Be(Now.AddDays(8));
+
+        account.VestDue(Now.AddDays(10)).Should().Be(200);
+
+        account.Balance.Should().Be(700);
+        account.PendingBalance.Should().Be(0);
+        account.NextVestsAt.Should().BeNull();
+    }
+
+    /// <summary>
+    /// D-5: points granted before vesting existed carry no vesting date and stay convertible, and a
+    /// grant with no vesting date is spendable at once.
+    /// </summary>
+    [Fact]
+    public void A_grant_with_no_vesting_date_counts_as_vested()
+    {
+        var account = Open();
+
+        account.Grant(Guid.NewGuid(), 100, "Milestone", "milestone:first-guide", Now);
+
+        account.Balance.Should().Be(100);
+        account.PendingBalance.Should().Be(0);
+        account.Entries.Single().IsPending.Should().BeFalse();
+        account.VestDue(Now.AddYears(1)).Should().Be(0);
+    }
+
     private static RewardAccount Open() =>
         RewardAccount.Open(RewardAccountId.New(), Guid.NewGuid(), Now);
 }

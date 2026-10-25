@@ -10,7 +10,17 @@ namespace Diaspora.Modules.Financial.Contracts.V1.Responses;
 /// </summary>
 public sealed record RewardBalanceResponse
 {
+    /// <summary>Points that can be converted or spent now: vested points only (Q3).</summary>
     public required long Balance { get; init; }
+
+    /// <summary>
+    /// Points granted but not vested yet (D-9). Not spendable, and not counted in
+    /// <see cref="Balance"/>. Additive: zero for a client that never reads it.
+    /// </summary>
+    public long PendingPoints { get; init; }
+
+    /// <summary>When the next pending grant vests. Null when nothing is pending.</summary>
+    public DateTimeOffset? NextVestsAt { get; init; }
 
     public required long LifetimeEarned { get; init; }
 
@@ -18,8 +28,8 @@ public sealed record RewardBalanceResponse
 
     /// <summary>
     /// Points spent on rewards, net of any refunded redemption. With the two above it accounts for
-    /// the balance: earned − converted − spent. The app used to hard-code this to zero, so its
-    /// arithmetic stopped matching the balance after the first redemption.
+    /// the balance and what is pending: earned − converted − spent. The app used to hard-code this
+    /// to zero, so its arithmetic stopped matching the balance after the first redemption.
     /// </summary>
     public long LifetimeSpent { get; init; }
 

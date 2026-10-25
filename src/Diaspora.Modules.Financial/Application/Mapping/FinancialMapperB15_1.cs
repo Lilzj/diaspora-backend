@@ -83,6 +83,8 @@ public static class FinancialMapperExtensions
         new()
         {
             Balance = account?.Balance ?? 0,
+            PendingPoints = account?.PendingBalance ?? 0,
+            NextVestsAt = account?.NextVestsAt,
             LifetimeEarned = account?.LifetimeEarned ?? 0,
             LifetimeConverted = account?.LifetimeConverted ?? 0,
             LifetimeSpent = account?.LifetimeSpent ?? 0,

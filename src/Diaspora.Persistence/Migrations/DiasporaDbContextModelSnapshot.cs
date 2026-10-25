@@ -9257,6 +9257,9 @@ namespace Diaspora.Persistence.Migrations
                     b.Property<string>("ModifiedBy")
                         .HasColumnType("text");
 
+                    b.Property<long>("PendingBalance")
+                        .HasColumnType("bigint");
+
                     b.Property<int>("Revision")
                         .IsConcurrencyToken()
                         .HasColumnType("integer");
@@ -23642,6 +23645,12 @@ namespace Diaspora.Persistence.Migrations
                                 .HasMaxLength(64)
                                 .HasColumnType("character varying(64)");
 
+                            b1.Property<DateTimeOffset?>("VestedAt")
+                                .HasColumnType("timestamp with time zone");
+
+                            b1.Property<DateTimeOffset?>("VestsAt")
+                                .HasColumnType("timestamp with time zone");
+
                             b1.HasKey("EntryId");
 
                             b1.HasIndex("GrantedByUserId", "OccurredAt")
@@ -23650,6 +23659,9 @@ namespace Diaspora.Persistence.Migrations
                             b1.HasIndex("RewardAccountId", "Reference")
                                 .IsUnique()
                                 .HasDatabaseName("ix_financial_reward_entries_reference");
+
+                            b1.HasIndex("VestedAt", "VestsAt")
+                                .HasDatabaseName("ix_financial_reward_entries_vesting");
 
                             b1.ToTable("financial_reward_entries", "financial");
 
