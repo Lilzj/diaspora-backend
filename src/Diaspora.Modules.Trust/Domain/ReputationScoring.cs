@@ -21,6 +21,14 @@ public static class ReputationActions
     public const string CommentWritten = "CommentWritten";
     public const string ReferralQualified = "ReferralQualified";
     public const string CourseCompleted = "CourseCompleted";
+    public const string EventPublished = "EventPublished";
+    public const string ProviderPublished = "ProviderPublished";
+    public const string JobPublished = "JobPublished";
+    public const string HousingPublished = "HousingPublished";
+    public const string ListingPublished = "ListingPublished";
+    public const string NeighborhoodInsightApproved = "NeighborhoodInsightApproved";
+    public const string VolunteerHoursConfirmed = "VolunteerHoursConfirmed";
+    public const string ProviderRecommendationReceived = "ProviderRecommendationReceived";
 
     // Verification
     public const string PhoneVerified = "PhoneVerified";
@@ -173,9 +181,12 @@ public static class DefaultReputationRules
     ///   <item>2, 2026-10-25: a qualified referral, 25 XP and 250 credit points.</item>
     ///   <item>3, 2026-10-25: a finished Academy course, 10 XP (Q6).</item>
     ///   <item>4, 2026-10-25: "profile completed" retired (D-11).</item>
+    ///   <item>5, 2026-10-25: XP for publishing an event, a service, a job, a home and a listing, for an
+    ///   approved neighbourhood insight, confirmed volunteer hours and a provider recommendation
+    ///   (REP-14, D-3).</item>
     /// </list>
     /// </summary>
-    public const int Version = 4;
+    public const int Version = 5;
 
     public static IReadOnlyList<ReputationRule> All { get; } =
     [
@@ -268,6 +279,75 @@ public static class DefaultReputationRules
             Label = "Academy courses completed"
         },
 
+        // ── REP-14: what the rest of the platform publishes, on today's scale (D-3) ──
+        // Each pays once per entity by its award key. The ones with a cooldown are the ones that can
+        // be published often. Three events name no country, so their rules are not country-scoped.
+        new()
+        {
+            ActionType = ReputationActions.EventPublished,
+            Dimension = ReputationDimension.contribution,
+            Points = 10,
+            CooldownHours = 1,
+            IsCountryScoped = true,
+            Description = "Published a community event.",
+            Label = "Events published"
+        },
+        new()
+        {
+            ActionType = ReputationActions.ProviderPublished,
+            Dimension = ReputationDimension.contribution,
+            Points = 10,
+            IsCountryScoped = true,
+            Description = "Published a service.",
+            Label = "Services published"
+        },
+        new()
+        {
+            ActionType = ReputationActions.JobPublished,
+            Dimension = ReputationDimension.contribution,
+            Points = 5,
+            CooldownHours = 1,
+            IsCountryScoped = true,
+            Description = "Posted a job.",
+            Label = "Jobs posted"
+        },
+        new()
+        {
+            ActionType = ReputationActions.HousingPublished,
+            Dimension = ReputationDimension.contribution,
+            Points = 5,
+            CooldownHours = 1,
+            IsCountryScoped = true,
+            Description = "Listed a home.",
+            Label = "Homes listed"
+        },
+        new()
+        {
+            ActionType = ReputationActions.ListingPublished,
+            Dimension = ReputationDimension.contribution,
+            Points = 5,
+            CooldownHours = 1,
+            IsCountryScoped = true,
+            Description = "Listed something for sale.",
+            Label = "Items listed for sale"
+        },
+        new()
+        {
+            ActionType = ReputationActions.NeighborhoodInsightApproved,
+            Dimension = ReputationDimension.contribution,
+            Points = 15,
+            Description = "A neighbourhood insight was approved.",
+            Label = "Neighbourhood insights approved"
+        },
+        new()
+        {
+            ActionType = ReputationActions.VolunteerHoursConfirmed,
+            Dimension = ReputationDimension.contribution,
+            Points = 15,
+            Description = "An organizer confirmed your volunteer hours.",
+            Label = "Volunteering confirmed"
+        },
+
         // ── Verification ─────────────────────────────────────────────────
         new()
         {
@@ -353,6 +433,15 @@ public static class DefaultReputationRules
             IsCountryScoped = true,
             Description = "The community confirmed your information.",
             Label = "Community confirmations"
+        },
+        new()
+        {
+            // Somebody vouched for a service; paid to its owner, never to the person recommending.
+            ActionType = ReputationActions.ProviderRecommendationReceived,
+            Dimension = ReputationDimension.trust,
+            Points = 2,
+            Description = "Someone recommended your service.",
+            Label = "Recommendations received"
         },
         new()
         {

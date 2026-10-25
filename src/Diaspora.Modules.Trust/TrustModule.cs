@@ -1,4 +1,5 @@
 using Diaspora.Contracts.Trust.V1.Submission;
+using Diaspora.Modules.Trust.Application.Consumers;
 using Diaspora.Modules.Trust.Application.Services;
 using Diaspora.Modules.Trust.Extensibility;
 using Diaspora.Modules.Trust.Persistence;
@@ -133,6 +134,7 @@ public sealed class TrustModule : IPlatformModule
     {
         services.AddScoped<TrustProfileProvisioner>();
         services.AddScoped<ReputationService>();
+        services.AddScoped<ActivityReputationScorer>();
 
         // B3.0.2. The workflow, and the two entry points that share it — the member's own
         // route through MediatR, and the published in-process contract below.
