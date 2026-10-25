@@ -97,4 +97,61 @@ public sealed class RewardAccountRepository : IRewardAccountRepository
             .SelectMany(account => account.Entries)
             .Where(entry => entry.GrantedByUserId == grantorUserId && entry.OccurredAt >= since)
             .SumAsync(entry => entry.Points, cancellationToken);
+
+    public async Task<IReadOnlyList<HeldRewardAccount>> ListHeldAsync(
+        DateTimeOffset? before,
+        IReadOnlyCollection<Guid> excludeMemberUserIds,
+        int take,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(excludeMemberUserIds);
+
+        // Two projections, not Accounts: the queue reads four columns and one decision per account,
+        // and Accounts would bring back every entry each held member has ever earned. The first
+        // pages on the latest decision's instant; the second reads those accounts' decisions.
+        var held = _dbContext.Set<RewardAccount>()
+            .AsNoTracking()
+            .Where(account => account.IsConversionBlocked)
+            .Select(account => new
+            {
+                account.MemberUserId,
+                account.Balance,
+                account.PendingBalance,
+                DecidedAt = account.HoldDecisions.Max(decision => (DateTimeOffset?)decision.DecidedAt)
+            })
+            .Where(row => row.DecidedAt != null);
+
+        if (before is { } boundary)
+        {
+            held = held.Where(row =>
+                row.DecidedAt <= boundary && !excludeMemberUserIds.Contains(row.MemberUserId));
+        }
+
+        var page = await held
+            .OrderByDescending(row => row.DecidedAt)
+            .ThenBy(row => row.MemberUserId)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+
+        var members = page.Select(row => row.MemberUserId).ToList();
+
+        var decisions = await _dbContext.Set<RewardAccount>()
+            .AsNoTracking()
+            .Where(account => members.Contains(account.MemberUserId))
+            .SelectMany(account => account.HoldDecisions, (account, decision) => new
+            {
+                account.MemberUserId,
+                decision
+            })
+            .ToListAsync(cancellationToken);
+
+        var latest = decisions
+            .GroupBy(row => row.MemberUserId)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Select(row => row.decision).MaxBy(decision => decision.DecidedAt)!);
+
+        return [.. page.Select(row => new HeldRewardAccount(
+            row.MemberUserId, row.Balance, row.PendingBalance, latest[row.MemberUserId]))];
+    }
 }

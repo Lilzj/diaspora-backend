@@ -18256,6 +18256,53 @@
         }
       }
     },
+    "/api/v1/financial/operations/rewards/holds": {
+      "get": {
+        "tags": [
+          "Financial"
+        ],
+        "summary": "Every points account held from conversion, newest decision first, with the note in force. Staff.",
+        "operationId": "GetRewardHolds",
+        "parameters": [
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "excludeIds",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "take",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/financial/operations/rewards/pots": {
       "get": {
         "tags": [

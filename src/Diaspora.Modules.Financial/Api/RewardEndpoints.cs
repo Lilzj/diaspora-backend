@@ -174,6 +174,27 @@ internal static class RewardEndpoints
             .WithName("SetRewardConversionHold")
             .WithSummary("Holds a member's points from conversion, or lifts the hold, and says why. Staff.");
 
+        // The review queue (CS-D4): newest decision first, paged like every other read here.
+        group.MapGet("/operations/rewards/holds", async (
+                [FromQuery] DateTimeOffset? before,
+                [FromQuery] Guid[]? excludeIds,
+                [FromQuery] int? take,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new GetRewardHoldsQuery
+                        {
+                            Before = before,
+                            ExcludeIds = excludeIds ?? [],
+                            Take = take ?? Domain.Policies.FinancialLimits.DefaultLedgerPageSize
+                        },
+                        cancellationToken)))
+            .WithName("GetRewardHolds")
+            .WithSummary("Every points account held from conversion, newest decision first, with the note in force. Staff.");
+
         group.MapGet("/operations/rewards/pots", async (
                 ISender sender,
                 HttpContext context,

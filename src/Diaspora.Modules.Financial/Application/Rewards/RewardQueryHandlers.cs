@@ -361,6 +361,41 @@ public sealed class GrantRewardPointsCommandHandler
 /// hold that is not in force changes nothing and records nothing: there was no decision to make.
 /// </para>
 /// </summary>
+/// <summary>The held accounts, for staff working the review queue (CS-D4).</summary>
+public sealed class GetRewardHoldsQueryHandler
+    : IQueryHandler<GetRewardHoldsQuery, IReadOnlyList<RewardHoldResponse>>
+{
+    private readonly IRewardAccountRepository _accounts;
+
+    public GetRewardHoldsQueryHandler(IRewardAccountRepository accounts) => _accounts = accounts;
+
+    public async Task<Result<IReadOnlyList<RewardHoldResponse>>> Handle(
+        GetRewardHoldsQuery query, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var held = await _accounts.ListHeldAsync(
+            query.Before,
+            query.ExcludeIds.ToHashSet(),
+            Math.Clamp(query.Take, 1, FinancialLimits.MaxLedgerPageSize),
+            cancellationToken);
+
+        return Result.Success<IReadOnlyList<RewardHoldResponse>>([.. held.Select(account => new RewardHoldResponse
+        {
+            UserId = account.MemberUserId,
+            Balance = account.Balance,
+            PendingBalance = account.PendingBalance,
+            LatestDecision = new RewardHoldDecisionResponse
+            {
+                IsHeld = account.LatestDecision.IsHeld,
+                Reason = account.LatestDecision.Reason,
+                DecidedByUserId = account.LatestDecision.DecidedByUserId,
+                DecidedAt = account.LatestDecision.DecidedAt
+            }
+        })]);
+    }
+}
+
 public sealed class SetRewardConversionHoldCommandHandler
     : ICommandHandler<SetRewardConversionHoldCommand, RewardConversionHoldResponse>
 {

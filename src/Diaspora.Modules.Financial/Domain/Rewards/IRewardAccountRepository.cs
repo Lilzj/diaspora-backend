@@ -44,7 +44,22 @@ public interface IRewardAccountRepository
     /// </summary>
     Task<long> PointsGrantedBySinceAsync(
         Guid grantorUserId, DateTimeOffset since, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Every account held from conversion, newest decision first, with the decision in force: the
+    /// staff review queue (CS-D4). Paged like every other read in this module: inclusive of
+    /// <paramref name="before"/>, minus the members already shown at it.
+    /// </summary>
+    Task<IReadOnlyList<HeldRewardAccount>> ListHeldAsync(
+        DateTimeOffset? before,
+        IReadOnlyCollection<Guid> excludeMemberUserIds,
+        int take,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>The two facts about a points account that decide whether it may convert.</summary>
 public readonly record struct RewardAccountStanding(long Balance, bool IsConversionBlocked);
+
+/// <summary>One held account as the review queue shows it: whose, what it holds, and why it is held.</summary>
+public sealed record HeldRewardAccount(
+    Guid MemberUserId, long Balance, long PendingBalance, RewardHoldDecision LatestDecision);
