@@ -183,9 +183,23 @@ public sealed class RewardConversionPricer
                 ? Math.Max(0, cap - convertedToday)
                 : null,
             PolicyVersion = policy?.VersionLabel,
-            PotAvailableMinorUnits = potAvailable
+            PotAvailableMinorUnits = potAvailable,
+
+            // Clamped rather than refused: a policy version that says -3 days is a typo, and the
+            // safe reading of a typo in a hold is "no shorter than none".
+            HoldDays = (int)Math.Clamp(
+                policy?.Int64Parameter(FinancialPolicyParameters.HoldDays) ?? DefaultHoldDays,
+                0,
+                365)
         };
     }
+
+    /// <summary>
+    /// How long converted credit is held when the policy does not say (D-7). The seeder never
+    /// overwrites a policy, so a deployment seeded before the hold existed has no
+    /// <c>holdDays</c> and gets this.
+    /// </summary>
+    public const int DefaultHoldDays = 14;
 
     /// <summary>What a member is told while the rewards pot cannot pay for a conversion.</summary>
     public const string PausedMessage = "Conversions are paused for now. Your points are safe.";
@@ -472,6 +486,9 @@ public sealed record RewardConversionTerms
     /// left in the budget is the platform's business, not the member's.
     /// </summary>
     public long? PotAvailableMinorUnits { get; init; }
+
+    /// <summary>Days converted credit stays pending before it can be used (D-7).</summary>
+    public int HoldDays { get; init; } = RewardConversionPricer.DefaultHoldDays;
 }
 
 /// <summary>What a conversion would produce, and whether it may happen.</summary>
@@ -676,6 +693,10 @@ public sealed class ConvertRewardPointsCommandHandler
                         WalletId = wallet.Id,
                         Direction = LedgerDirection.Credit,
                         Amount = quote.Credit,
+
+                        // Pending, not available (D-7): it cannot be spent or withdrawn until the
+                        // release sweep moves it, HoldDays from now.
+                        Bucket = LedgerBucket.Pending,
                         EntryType = LedgerEntryType.RewardConversion
                     }
                 ],
@@ -702,7 +723,8 @@ public sealed class ConvertRewardPointsCommandHandler
             _clock.UtcNow,
             quote.PolicyVersion,
             command.IdempotencyKey,
-            posting.Value.Transaction.Id);
+            posting.Value.Transaction.Id,
+            availableAt: _clock.UtcNow.AddDays(terms.HoldDays));
 
         _conversions.Add(conversion);
 

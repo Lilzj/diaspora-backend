@@ -1,9 +1,16 @@
+using Diaspora.Modules.Financial.Domain.Identifiers;
+
 namespace Diaspora.Modules.Financial.Domain.Rewards;
 
 /// <summary>Retrieval and staging for reward conversions.</summary>
 public interface IRewardConversionRepository
 {
     void Add(RewardConversion conversion);
+
+    void Update(RewardConversion conversion);
+
+    Task<RewardConversion?> FindAsync(
+        RewardConversionId conversionId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// The idempotency check, scoped to the member.
@@ -27,4 +34,8 @@ public interface IRewardConversionRepository
     /// <summary>Points converted by a member since a moment. The daily-cap input.</summary>
     Task<long> PointsConvertedSinceAsync(
         Guid memberUserId, DateTimeOffset since, CancellationToken cancellationToken = default);
+
+    /// <summary>Conversions whose hold has ended and whose credit has not been released, oldest first.</summary>
+    Task<IReadOnlyList<RewardConversion>> ListDueForReleaseAsync(
+        DateTimeOffset asOf, int take, CancellationToken cancellationToken = default);
 }

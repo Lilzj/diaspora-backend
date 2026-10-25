@@ -9275,6 +9275,9 @@ namespace Diaspora.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTimeOffset?>("AvailableAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTimeOffset>("ConvertedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -9319,6 +9322,9 @@ namespace Diaspora.Persistence.Migrations
                         .HasPrecision(18, 6)
                         .HasColumnType("numeric(18,6)");
 
+                    b.Property<DateTimeOffset?>("ReleasedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("Revision")
                         .IsConcurrencyToken()
                         .HasColumnType("integer");
@@ -9337,6 +9343,9 @@ namespace Diaspora.Persistence.Migrations
                     b.HasIndex("MemberUserId", "IdempotencyKey")
                         .IsUnique()
                         .HasDatabaseName("ix_financial_reward_conversions_member_idempotency");
+
+                    b.HasIndex("ReleasedAt", "AvailableAt")
+                        .HasDatabaseName("ix_financial_reward_conversions_release");
 
                     b.ToTable("financial_reward_conversions", "financial");
                 });

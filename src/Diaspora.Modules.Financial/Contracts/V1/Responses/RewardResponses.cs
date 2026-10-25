@@ -200,6 +200,15 @@ public sealed record RewardConversionResponse
     public Guid? TransactionId { get; init; }
 
     public required DateTimeOffset ConvertedAt { get; init; }
+
+    /// <summary>
+    /// <c>Holding</c> while the credit is pending, <c>Available</c> once it can be spent or withdrawn
+    /// (D-7). A conversion made before the hold existed is <c>Available</c>.
+    /// </summary>
+    public string Status { get; init; } = "Available";
+
+    /// <summary>When the credit becomes available. Null on a conversion made before the hold existed.</summary>
+    public DateTimeOffset? AvailableAt { get; init; }
 }
 
 /// <summary>

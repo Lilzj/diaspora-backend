@@ -419,6 +419,7 @@ public sealed class FinancialModule : IPlatformModule
         services.AddHostedService<PlacementLifecycleSweep>();
         services.AddHostedService<SubscriptionRenewalSweep>();
         services.AddHostedService<CreditExpirySweep>();
+        services.AddHostedService<RewardConversionReleaseSweep>();
         services.AddHostedService<RevenueRollupSweep>();
         services.AddHostedService<GivingReconciliationSweep>();
 

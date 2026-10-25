@@ -83,6 +83,12 @@ public static class FinancialPolicyParameters
     public const string MaximumPoints = "maximumPoints";
     public const string DailyMaximumPoints = "dailyMaximumPoints";
 
+    /// <summary>
+    /// Days converted credit stays pending before it can be spent or withdrawn (D-7). Absent means
+    /// <c>RewardConversionPricer.DefaultHoldDays</c>.
+    /// </summary>
+    public const string HoldDays = "holdDays";
+
     /// <summary>Days a member has to ask for a refund after a payment captured.</summary>
     public const string WindowDays = "windowDays";
 

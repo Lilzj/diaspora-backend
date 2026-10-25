@@ -139,6 +139,10 @@ public sealed class RewardConversionConfiguration : IEntityTypeConfiguration<Rew
             .IsUnique()
             .HasDatabaseName("ix_financial_reward_conversions_member_idempotency");
 
+        // What the release sweep reads: holds that have not been released, by when they end.
+        builder.HasIndex(conversion => new { conversion.ReleasedAt, conversion.AvailableAt })
+            .HasDatabaseName("ix_financial_reward_conversions_release");
+
         builder.HasIndex(conversion => new { conversion.MemberUserId, conversion.ConvertedAt })
             .HasDatabaseName("ix_financial_reward_conversions_member");
 

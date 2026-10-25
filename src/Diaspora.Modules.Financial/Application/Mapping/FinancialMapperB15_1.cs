@@ -145,7 +145,9 @@ public static class FinancialMapperExtensions
             MinorUnitsPerPoint = conversion.RateMinorUnitsPerPoint,
             PolicyVersion = conversion.PolicyVersion,
             TransactionId = conversion.TransactionId?.Value,
-            ConvertedAt = conversion.ConvertedAt
+            ConvertedAt = conversion.ConvertedAt,
+            Status = conversion.IsHolding ? "Holding" : "Available",
+            AvailableAt = conversion.AvailableAt
         };
     }
 
