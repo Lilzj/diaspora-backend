@@ -2,6 +2,8 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using Diaspora.Application.Abstractions;
+using Diaspora.Contracts.Financial.V1.Events;
 using Diaspora.Domain.Abstractions;
 using Diaspora.IntegrationTests.Common;
 using Diaspora.Modules.Financial;
@@ -874,7 +876,8 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
                 destinationId,
 
                 // The country the matrix does cover. It must not help.
-                countryCode = "GB"
+                countryCode = "GB",
+                idempotencyKey = Guid.NewGuid().ToString("N")
             });
 
         response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
@@ -1042,6 +1045,87 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
 
         secondWithdrawal.WithdrawalId.Should().Be(firstWithdrawal.WithdrawalId);
         (await ReservedAsync(userId)).Should().Be(2_000, "one hold, not two");
+    }
+
+    /// <summary>
+    /// Two members, one key. The key's index was unique across everyone while the replay lookup was
+    /// per member, so the second member found nothing of theirs to replay and then hit the index: a
+    /// 500 for an ordinary request. Keys are each member's own now.
+    /// </summary>
+    [Fact]
+    public async Task Two_members_may_use_the_same_withdrawal_idempotency_key()
+    {
+        var key = "withdraw-" + Guid.NewGuid().ToString("N");
+
+        var first = await AuthenticateAsync();
+
+        await FundAsync(first, 100m);
+
+        var mine = await ReadDataAsync<WithdrawalShape>(
+            await PostWithdrawalAsync(20m, await RegisterVerifiedDestinationAsync(), key));
+
+        var second = await AuthenticateAsync();
+
+        await FundAsync(second, 100m);
+
+        var response = await PostWithdrawalAsync(30m, await RegisterVerifiedDestinationAsync(), key);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
+
+        var theirs = await ReadDataAsync<WithdrawalShape>(response);
+
+        theirs.WithdrawalId.Should().NotBe(mine.WithdrawalId, "the second member withdrew, not replayed the first");
+        (await ReservedAsync(second)).Should().Be(3_000);
+    }
+
+    /// <summary>A keyless withdrawal had no replay at all; it is refused before anything is held.</summary>
+    [Fact]
+    public async Task A_withdrawal_without_an_idempotency_key_is_refused()
+    {
+        var userId = await AuthenticateAsync();
+
+        await FundAsync(userId, 100m);
+
+        var destinationId = await RegisterVerifiedDestinationAsync();
+
+        var response = await HttpClient.PostAsJsonAsync(
+            new Uri("/api/v1/financial/wallets/me/withdrawals", UriKind.Relative),
+            new { amount = 20m, currency = "GBP", destinationId });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await ReservedAsync(userId)).Should().Be(0, "nothing was held");
+    }
+
+    /// <summary>The header wins over the body, as it does for conversions.</summary>
+    [Fact]
+    public async Task The_withdrawal_idempotency_key_header_wins_over_the_body()
+    {
+        var userId = await AuthenticateAsync();
+
+        await FundAsync(userId, 100m);
+
+        var destinationId = await RegisterVerifiedDestinationAsync();
+        var headerKey = "header-" + Guid.NewGuid().ToString("N");
+
+        WithdrawalShape? first = null;
+
+        foreach (var bodyKey in new[] { "body-a", "body-b" })
+        {
+            using var request = new HttpRequestMessage(
+                HttpMethod.Post, new Uri("/api/v1/financial/wallets/me/withdrawals", UriKind.Relative))
+            {
+                Content = JsonContent.Create(
+                    new { amount = 20m, currency = "GBP", destinationId, idempotencyKey = bodyKey })
+            };
+            request.Headers.Add("Idempotency-Key", headerKey);
+
+            var withdrawal = await ReadDataAsync<WithdrawalShape>(await HttpClient.SendAsync(request));
+
+            first ??= withdrawal;
+            withdrawal.WithdrawalId.Should().Be(first.WithdrawalId, "one header key, one withdrawal");
+        }
+
+        (await ReservedAsync(userId)).Should().Be(2_000, "the second request replayed the first");
     }
 
     /// <summary>
@@ -1328,6 +1412,255 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         }
     }
 
+    // ── Staff grants: a reason, and the reward.grant policy's limits ────────────────────────
+    //
+    // The one route that creates points with no earning behind them had no upper bound and asked
+    // nothing about why. These run against the shipped policy: 1,000 points a grant, 5,000 a day for
+    // one staff member.
+
+    /// <summary>A grant must say why; a blank reason is refused before anything is awarded.</summary>
+    [Fact]
+    public async Task A_staff_grant_without_a_reason_is_refused()
+    {
+        var member = await AuthenticateAsync();
+
+        await SignInAsRoleAsync("Admin");
+
+        var response = await PostGrantAsync(member, 100, "grant:" + Guid.NewGuid().ToString("N"), reason: "  ");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest, await response.Content.ReadAsStringAsync());
+        (await BalanceOfAsync(member)).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task A_staff_grant_above_the_per_grant_maximum_is_refused()
+    {
+        var member = await AuthenticateAsync();
+
+        await SignInAsRoleAsync("Admin");
+
+        var response = await PostGrantAsync(member, 1_001, "grant:" + Guid.NewGuid().ToString("N"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict, await response.Content.ReadAsStringAsync());
+        (await CodeAsync(response)).Should().Be(FinancialErrorCodes.RewardGrantAboveMaximum);
+        (await BalanceOfAsync(member)).Should().Be(0);
+    }
+
+    /// <summary>
+    /// The ceiling is the grantor's, not the member's: one staff account is what it bounds. A retry
+    /// of a grant that already landed still replays at the ceiling, and another staff member can
+    /// still grant.
+    /// </summary>
+    [Fact]
+    public async Task One_staff_member_cannot_grant_past_the_daily_maximum()
+    {
+        var member = await AuthenticateAsync();
+
+        await SignInAsRoleAsync("Admin");
+
+        var references = Enumerable.Range(0, 5).Select(_ => "grant:" + Guid.NewGuid().ToString("N")).ToList();
+
+        foreach (var reference in references)
+        {
+            (await PostGrantAsync(member, 1_000, reference)).StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        (await PostGrantAsync(member, 1_000, references[^1])).StatusCode.Should().Be(
+            HttpStatusCode.OK, "a retried grant replays; it is not a sixth grant");
+
+        var over = await PostGrantAsync(member, 1, "grant:" + Guid.NewGuid().ToString("N"));
+
+        over.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await CodeAsync(over)).Should().Be(FinancialErrorCodes.RewardGrantDailyLimitReached);
+        (await BalanceOfAsync(member)).Should().Be(5_000);
+
+        await SignInAsRoleAsync("Admin");
+
+        (await PostGrantAsync(member, 1, "grant:" + Guid.NewGuid().ToString("N"))).StatusCode
+            .Should().Be(HttpStatusCode.OK, "the ceiling is per grantor");
+    }
+
+    [Fact]
+    public async Task A_staff_grant_records_who_granted_it_and_why()
+    {
+        var member = await AuthenticateAsync();
+
+        var (admin, _) = await SignInAsRoleAsync("Admin");
+
+        (await PostGrantAsync(member, 100, "grant:" + Guid.NewGuid().ToString("N"), "Missed referral, ticket 4411"))
+            .StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var scope = Factory.Services.CreateScope();
+
+        var account = await scope.ServiceProvider
+            .GetRequiredService<IRewardAccountRepository>()
+            .FindByMemberAsync(member);
+
+        var entry = account!.Entries.Should().ContainSingle().Subject;
+
+        entry.GrantedByUserId.Should().Be(admin);
+        entry.Reason.Should().Be("Missed referral, ticket 4411");
+        entry.PolicyVersion.Should().MatchRegex(@"^reward\.grant@\d+$", "the limits that allowed it are on record");
+    }
+
+    /// <summary>
+    /// A grantor's rule version travels on its event and is kept on the entry it produces, so the
+    /// earning can still be explained after the rule changes.
+    /// </summary>
+    [Fact]
+    public async Task A_granted_events_policy_version_is_kept_on_its_entry()
+    {
+        var member = await AuthenticateAsync();
+
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var consumer = new Diaspora.Modules.Financial.Application.Consumers.Rewards.RewardPointsGrantedConsumer(
+                scope.ServiceProvider.GetRequiredService<IRewardAccountRepository>(),
+                scope.ServiceProvider.GetRequiredService<IGuidGenerator>(),
+                scope.ServiceProvider.GetRequiredService<IClock>(),
+                scope.ServiceProvider.GetRequiredService<IUnitOfWork>());
+
+            await consumer.Handle(
+                new IntegrationEventNotification<RewardPointsGrantedIntegrationEvent>(
+                    new RewardPointsGrantedIntegrationEvent
+                    {
+                        MemberUserId = member,
+                        Points = 250,
+                        Source = "ReferralQualified",
+                        GrantReference = "referral:" + Guid.NewGuid().ToString("N"),
+                        GrantedAt = DateTimeOffset.UtcNow,
+                        PolicyVersion = "creator.referral@2"
+                    }),
+                CancellationToken.None);
+        }
+
+        using var read = Factory.Services.CreateScope();
+
+        var account = await read.ServiceProvider
+            .GetRequiredService<IRewardAccountRepository>()
+            .FindByMemberAsync(member);
+
+        account!.Entries.Should().ContainSingle().Which.PolicyVersion.Should().Be("creator.referral@2");
+    }
+
+    // ── Staff conversion holds: placed, lifted, and kept ───────────────────────────────────
+    //
+    // The account could be held and conversion honoured it, but nothing could place a hold. The
+    // platform's audit service writes a log line, so each decision is kept on the account.
+
+    /// <summary>
+    /// A staff hold stops conversion, and the member is told only that it is held: the operator's
+    /// note never reaches them.
+    /// </summary>
+    [Fact]
+    public async Task A_staff_hold_stops_conversion_and_the_member_sees_only_that_it_is_held()
+    {
+        var member = await AuthenticateAsync();
+        var memberToken = HttpClient.DefaultRequestHeaders.Authorization!.Parameter!;
+        var currency = await MemberCurrencyAsync(member);
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
+            await GrantPointsAsync(member, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
+
+            await SignInAsRoleAsync("Admin");
+
+            var held = await ReadDataAsync<HoldShape>(await PutHoldAsync(member, true, "Referral ring, case 77"));
+
+            held.IsHeld.Should().BeTrue();
+            held.Reason.Should().Be("Referral ring, case 77");
+
+            UseToken(memberToken);
+
+            (await MemberTermsAsync()).Member.Should().Be(new MemberStandingShape(
+                false, FinancialErrorCodes.RewardNotEligible, RewardConversionPricer.HeldMessage, null));
+
+            var refused = await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
+                new { points = 500L, idempotencyKey = Guid.NewGuid().ToString("N") });
+
+            (await CodeAsync(refused)).Should().Be(FinancialErrorCodes.RewardNotEligible);
+            (await refused.Content.ReadAsStringAsync()).Should().NotContain("case 77");
+            (await PointsAsync()).Should().Be(1_000);
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
+    /// <summary>Lifting the hold lets the member convert, and both decisions are kept with who and why.</summary>
+    [Fact]
+    public async Task Lifting_a_staff_hold_lets_the_member_convert_and_both_decisions_are_kept()
+    {
+        var member = await AuthenticateAsync();
+        var memberToken = HttpClient.DefaultRequestHeaders.Authorization!.Parameter!;
+        var currency = await MemberCurrencyAsync(member);
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
+            await GrantPointsAsync(member, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
+
+            var (admin, _) = await SignInAsRoleAsync("Admin");
+
+            await ReadDataAsync<HoldShape>(await PutHoldAsync(member, true, "Under review"));
+
+            var lifted = await ReadDataAsync<HoldShape>(await PutHoldAsync(member, false, "Review cleared"));
+
+            lifted.IsHeld.Should().BeFalse();
+            lifted.Reason.Should().BeNull();
+            lifted.Decisions.Select(decision => (decision.IsHeld, decision.Reason, decision.DecidedByUserId))
+                .Should().Equal((false, "Review cleared", admin), (true, "Under review", admin));
+
+            UseToken(memberToken);
+
+            var converted = await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
+                new { points = 500L, idempotencyKey = Guid.NewGuid().ToString("N") });
+
+            converted.StatusCode.Should().Be(HttpStatusCode.OK, await converted.Content.ReadAsStringAsync());
+            (await PointsAsync()).Should().Be(500);
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
+    [Fact]
+    public async Task A_staff_hold_without_a_reason_is_refused()
+    {
+        var member = await AuthenticateAsync();
+
+        await SignInAsRoleAsync("Admin");
+
+        var response = await PutHoldAsync(member, true, reason: " ");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest, await response.Content.ReadAsStringAsync());
+
+        using var scope = Factory.Services.CreateScope();
+
+        (await scope.ServiceProvider.GetRequiredService<IRewardAccountRepository>().FindStandingAsync(member))
+            .Should().BeNull("nothing was held, so no account was opened to hold");
+    }
+
+    /// <summary>Lifting a hold that is not in force is not a decision, and nothing is recorded.</summary>
+    [Fact]
+    public async Task Lifting_a_hold_that_is_not_in_force_records_nothing()
+    {
+        var member = await AuthenticateAsync();
+
+        await GrantPointsAsync(member, 100, "grant:" + Guid.NewGuid().ToString("N"));
+        await SignInAsRoleAsync("Admin");
+
+        var state = await ReadDataAsync<HoldShape>(await PutHoldAsync(member, false, "Nothing to lift"));
+
+        state.IsHeld.Should().BeFalse();
+        state.Decisions.Should().BeEmpty();
+    }
+
     // ── The idempotency key: required, and each member's own ────────────────────────────────
 
     /// <summary>
@@ -1544,7 +1877,7 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
                 var rewards = scope.ServiceProvider.GetRequiredService<IRewardAccountRepository>();
                 var account = (await rewards.FindByMemberAsync(userId))!;
 
-                account.BlockConversion("Under review after a report.", scope.ServiceProvider.GetRequiredService<IClock>().UtcNow);
+                account.BlockConversion(Guid.NewGuid(), "Under review after a report.", null, scope.ServiceProvider.GetRequiredService<IClock>().UtcNow);
                 rewards.Update(account);
                 await scope.ServiceProvider.GetRequiredService<IUnitOfWork>().SaveChangesAsync();
             }
@@ -1640,7 +1973,7 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
                 var rewards = scope.ServiceProvider.GetRequiredService<IRewardAccountRepository>();
                 var account = (await rewards.FindByMemberAsync(userId))!;
 
-                account.BlockConversion("Velocity rule 7 tripped.", scope.ServiceProvider.GetRequiredService<IClock>().UtcNow);
+                account.BlockConversion(Guid.NewGuid(), "Velocity rule 7 tripped.", null, scope.ServiceProvider.GetRequiredService<IClock>().UtcNow);
                 rewards.Update(account);
                 await scope.ServiceProvider.GetRequiredService<IUnitOfWork>().SaveChangesAsync();
             }
@@ -2033,11 +2366,12 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         await unitOfWork.SaveChangesAsync();
     }
 
+    /// <summary>A withdrawal needs a key, so each call that names none gets a fresh one.</summary>
     private Task<HttpResponseMessage> PostWithdrawalAsync(
         decimal amount, Guid destinationId, string? idempotencyKey = null) =>
         HttpClient.PostAsJsonAsync(
             new Uri("/api/v1/financial/wallets/me/withdrawals", UriKind.Relative),
-            new { amount, currency = "GBP", destinationId, idempotencyKey });
+            new { amount, currency = "GBP", destinationId, idempotencyKey = idempotencyKey ?? Guid.NewGuid().ToString("N") });
 
     /// <summary>
     /// Grants points through the repository, because the grant route is staff-only and this suite
@@ -2264,6 +2598,40 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
                 + "means the account was never opened.");
     }
 
+    /// <summary>A staff grant over HTTP, as whoever the client is signed in as.</summary>
+    private Task<HttpResponseMessage> PostGrantAsync(
+        Guid userId, long points, string reference, string? reason = "Integration suite: a missed earning.") =>
+        HttpClient.PostAsJsonAsync(
+            new Uri("/api/v1/financial/operations/rewards/grants", UriKind.Relative),
+            new { userId, points, source = "StaffAdjustment", grantReference = reference, reason });
+
+    /// <summary>A staff hold decision over HTTP, as whoever the client is signed in as.</summary>
+    private Task<HttpResponseMessage> PutHoldAsync(
+        Guid userId, bool isHeld, string? reason = "Integration suite: under review.") =>
+        HttpClient.PutAsJsonAsync(
+            new Uri($"/api/v1/financial/operations/rewards/members/{userId}/conversion-hold", UriKind.Relative),
+            new { isHeld, reason });
+
+    /// <summary>Signs the client back in with a token it held earlier.</summary>
+    private void UseToken(string token)
+    {
+        Api.Authenticate(token);
+        HttpClient.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+    }
+
+    /// <summary>A member's balance, read without signing in as them.</summary>
+    private async Task<long> BalanceOfAsync(Guid userId)
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        var standing = await scope.ServiceProvider
+            .GetRequiredService<IRewardAccountRepository>()
+            .FindStandingAsync(userId);
+
+        return standing?.Balance ?? 0;
+    }
+
     private async Task<long> PointsAsync()
     {
         var response = await HttpClient.GetAsync(
@@ -2297,6 +2665,10 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
     }
 
     private sealed record MoneyShape(decimal Amount, string Currency, long MinorUnits);
+
+    private sealed record HoldShape(Guid UserId, bool IsHeld, string? Reason, List<HoldDecisionShape> Decisions);
+
+    private sealed record HoldDecisionShape(bool IsHeld, string Reason, Guid? DecidedByUserId, DateTimeOffset DecidedAt);
 
     private sealed record PaymentShape(Guid PaymentIntentId, string Status, string Purpose);
 

@@ -103,7 +103,7 @@ public class RewardAccountTests
         var account = Open();
 
         account.Grant(Guid.NewGuid(), 500, "GuidePublished", "guide:1", Now);
-        account.BlockConversion("Under review.", Now);
+        account.BlockConversion(Guid.NewGuid(), "Under review.", null, Now);
 
         var attempt = () => account.Convert(Guid.NewGuid(), 100, "conversion:1", Now);
 
@@ -112,7 +112,7 @@ public class RewardAccountTests
 
         account.Balance.Should().Be(500);
 
-        account.AllowConversion(Now);
+        account.AllowConversion(Guid.NewGuid(), "Review cleared.", null, Now).Should().BeTrue();
         account.Convert(Guid.NewGuid(), 100, "conversion:1", Now);
 
         account.Balance.Should().Be(400);

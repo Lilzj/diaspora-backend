@@ -30,12 +30,16 @@ public sealed class ReputationRulesTests : PooledIdentityTestBase
 
         rules.Select(rule => rule.ActionType).Should().NotContain(
             [
-                ReputationActions.UpdateVerified,
                 ReputationActions.ReportResolved,
-                ReputationActions.ProfilePhotoAdded,
                 ReputationActions.ProfileCompleted
             ],
             "nothing pays them, and the list is read as promises");
+
+        // Paid since REP-13: the first profile photo, and a post the community verifies.
+        rules.Should().ContainEquivalentOf(new RuleView(
+            ReputationActions.UpdateVerified, "Updates confirmed by the community", "contribution", 15, null, null, true));
+        rules.Should().ContainEquivalentOf(new RuleView(
+            ReputationActions.ProfilePhotoAdded, "Profile photo added", "verification", 5, 1, null, false));
 
         rules.Should().ContainEquivalentOf(new RuleView(
             ReputationActions.GuidePublished, "Guides published", "contribution", 50, null, 1, true));

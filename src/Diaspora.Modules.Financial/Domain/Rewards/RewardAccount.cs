@@ -30,6 +30,8 @@ public sealed class RewardAccount : AggregateRoot<RewardAccountId>, IAuditableEn
 {
     private readonly List<RewardEntry> _entries = [];
 
+    private readonly List<RewardHoldDecision> _holdDecisions = [];
+
     private RewardAccount(RewardAccountId id, Guid memberUserId, DateTimeOffset createdAt) : base(id)
     {
         MemberUserId = memberUserId;
@@ -72,6 +74,12 @@ public sealed class RewardAccount : AggregateRoot<RewardAccountId>, IAuditableEn
 
     public IReadOnlyList<RewardEntry> Entries => _entries.AsReadOnly();
 
+    /// <summary>
+    /// Every hold placed and lifted. Unordered once loaded; order by
+    /// <see cref="RewardHoldDecision.DecidedAt"/>. See <see cref="RewardHoldDecision"/>.
+    /// </summary>
+    public IReadOnlyList<RewardHoldDecision> HoldDecisions => _holdDecisions.AsReadOnly();
+
     /// <summary>Bumped on every change. The optimistic-concurrency token.</summary>
     public int Revision { get; private set; }
 
@@ -91,6 +99,21 @@ public sealed class RewardAccount : AggregateRoot<RewardAccountId>, IAuditableEn
     }
 
     /// <summary>
+    /// Whether points were already awarded against this grant reference. A staff grant asks before
+    /// applying its limits, so a retried grant replays instead of being refused as over the limit
+    /// it already counts toward.
+    /// </summary>
+    public bool HasGranted(string grantReference)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(grantReference);
+
+        var reference = grantReference.Trim();
+
+        return _entries.Exists(entry =>
+            string.Equals(entry.Reference, reference, StringComparison.Ordinal));
+    }
+
+    /// <summary>
     /// Records points earned.
     /// <para>
     /// <b>The grant reference is the anti-double-award barrier and it is checked here as well as at
@@ -100,20 +123,27 @@ public sealed class RewardAccount : AggregateRoot<RewardAccountId>, IAuditableEn
     /// </para>
     /// </summary>
     public bool Grant(
-        Guid entryId, long points, string source, string grantReference, DateTimeOffset now)
+        Guid entryId,
+        long points,
+        string source,
+        string grantReference,
+        DateTimeOffset now,
+        Guid? grantedByUserId = null,
+        string? reason = null,
+        string? policyVersion = null)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(points);
         ArgumentException.ThrowIfNullOrWhiteSpace(grantReference);
 
         var reference = grantReference.Trim();
 
-        if (_entries.Exists(entry =>
-            string.Equals(entry.Reference, reference, StringComparison.Ordinal)))
+        if (HasGranted(reference))
         {
             return false;
         }
 
-        _entries.Add(RewardEntry.Earned(entryId, points, source, reference, now));
+        _entries.Add(RewardEntry.Earned(
+            entryId, points, source, reference, now, grantedByUserId, reason, policyVersion));
         Balance += points;
         LifetimeEarned += points;
         Touch(now);
@@ -240,19 +270,43 @@ public sealed class RewardAccount : AggregateRoot<RewardAccountId>, IAuditableEn
         return true;
     }
 
-    /// <summary>Stops conversion without touching the balance. A hold, not a forfeiture.</summary>
-    public void BlockConversion(string reason, DateTimeOffset now)
+    /// <summary>
+    /// Stops conversion without touching the balance. A hold, not a forfeiture.
+    /// <para>
+    /// Holding an account already held records the new reason as a second decision: the note in
+    /// force is the latest one, and the earlier one stays in <see cref="HoldDecisions"/>.
+    /// </para>
+    /// </summary>
+    public void BlockConversion(
+        Guid decisionId, string reason, Guid? decidedByUserId, DateTimeOffset now)
     {
+        var decision = RewardHoldDecision.Record(decisionId, isHeld: true, reason, decidedByUserId, now);
+
+        _holdDecisions.Add(decision);
         IsConversionBlocked = true;
-        BlockReason = string.IsNullOrWhiteSpace(reason) ? "Blocked." : reason.Trim();
+        BlockReason = decision.Reason;
         Touch(now);
     }
 
-    public void AllowConversion(DateTimeOffset now)
+    /// <summary>
+    /// Lifts a hold, and records who lifted it and why. False, and nothing recorded, when the account
+    /// was not held: there is nothing to lift.
+    /// </summary>
+    public bool AllowConversion(
+        Guid decisionId, string reason, Guid? decidedByUserId, DateTimeOffset now)
     {
+        if (!IsConversionBlocked)
+        {
+            return false;
+        }
+
+        _holdDecisions.Add(
+            RewardHoldDecision.Record(decisionId, isHeld: false, reason, decidedByUserId, now));
         IsConversionBlocked = false;
         BlockReason = null;
         Touch(now);
+
+        return true;
     }
 
     /// <summary>How many points this account converted since a moment. The daily-cap input.</summary>

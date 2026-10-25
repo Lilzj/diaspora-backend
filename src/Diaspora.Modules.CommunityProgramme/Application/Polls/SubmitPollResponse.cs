@@ -114,11 +114,15 @@ public sealed class SubmitPollResponseCommandHandler
             return Result.Failure<PollResultResponse>(CommunityProgrammeErrors.PollNotFound);
         }
 
-        var key = ProgrammeIdempotency.Normalise(
-            Operation, command.IdempotencyKeyHeader, command.Request.IdempotencyKey);
+        // Computed before the key, because the key is scoped by it: an anonymous poll stores no
+        // voter, so neither may the vote's key.
+        var fingerprint = _audience.Fingerprint(poll.Id, caller.Value);
+
+        var key = ProgrammeIdempotency.NormaliseForVoter(
+            Operation, fingerprint, command.IdempotencyKeyHeader, command.Request.IdempotencyKey);
 
         if (key is not null
-            && await _polls.FindResponseByIdempotencyKeyAsync(key, cancellationToken) is not null)
+            && await _polls.FindResponseByIdempotencyKeyAsync(fingerprint, key, cancellationToken) is not null)
         {
             // A retried vote is the same vote. Answering with the result rather than a 409 is what
             // makes a flaky connection harmless.
@@ -146,8 +150,6 @@ public sealed class SubmitPollResponseCommandHandler
         {
             return Result.Failure<PollResultResponse>(validated.Error);
         }
-
-        var fingerprint = _audience.Fingerprint(poll.Id, caller.Value);
 
         var existing = await _polls.FindResponseAsync(poll.Id, fingerprint, cancellationToken);
 
@@ -187,8 +189,9 @@ public sealed class SubmitPollResponseCommandHandler
             token => _unitOfWork.SaveChangesAsync(token),
             token => key is null
                 ? Task.FromResult<PollResponse?>(null)
-                : _polls.FindResponseByIdempotencyKeyAsync(key, token),
-            cancellationToken);
+                : _polls.FindResponseByIdempotencyKeyAsync(fingerprint, key, token),
+            cancellationToken,
+            inTransaction: true);
 
         if (committed.IsFailure)
         {

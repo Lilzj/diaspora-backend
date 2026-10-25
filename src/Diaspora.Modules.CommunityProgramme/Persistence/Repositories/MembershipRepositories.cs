@@ -246,7 +246,7 @@ public sealed class ProgrammeMembershipRepository : IProgrammeMembershipReposito
     }
 
     public async Task<ProgrammeMembership?> FindByApplicationIdempotencyKeyAsync(
-        string idempotencyKey, CancellationToken cancellationToken = default)
+        UserId memberUserId, string idempotencyKey, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(idempotencyKey))
         {
@@ -256,11 +256,13 @@ public sealed class ProgrammeMembershipRepository : IProgrammeMembershipReposito
         var normalized = idempotencyKey.Trim();
 
         return await Memberships.FirstOrDefaultAsync(
-            membership => membership.ApplicationIdempotencyKey == normalized, cancellationToken);
+            membership => membership.MemberUserId == memberUserId
+                && membership.ApplicationIdempotencyKey == normalized,
+            cancellationToken);
     }
 
     public async Task<ProgrammeMembership?> FindByRenewalIdempotencyKeyAsync(
-        string idempotencyKey, CancellationToken cancellationToken = default)
+        UserId memberUserId, string idempotencyKey, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(idempotencyKey))
         {
@@ -270,7 +272,9 @@ public sealed class ProgrammeMembershipRepository : IProgrammeMembershipReposito
         var normalized = idempotencyKey.Trim();
 
         return await Memberships.FirstOrDefaultAsync(
-            membership => membership.RenewalIdempotencyKey == normalized, cancellationToken);
+            membership => membership.MemberUserId == memberUserId
+                && membership.RenewalIdempotencyKey == normalized,
+            cancellationToken);
     }
 
     public async Task<IReadOnlyDictionary<MembershipTierId, int>> CountByTierAsync(

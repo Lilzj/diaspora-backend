@@ -1,11 +1,17 @@
+using Diaspora.Application.Abstractions;
+using Diaspora.Contracts.Community.V1.Events;
+using Diaspora.Modules.Community.Application.EventHandlers;
 using Diaspora.Modules.Community.Domain.Enums;
 using Diaspora.Modules.Community.Domain.Events;
 using Diaspora.Modules.Community.Domain.Policies;
 using Diaspora.Modules.Community.Domain.Posts;
 using Diaspora.Modules.Community.Domain.ValueObjects;
 using Diaspora.Modules.Media.Domain.ValueObjects;
+using Diaspora.Platform.Messaging;
 using Diaspora.SharedKernel.Identity;
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
+using NSubstitute;
 using Xunit;
 using MediaId = Diaspora.SharedKernel.Identity.MediaId;
 
@@ -147,6 +153,54 @@ public class CommunityPostTests
         post.DomainEvents.OfType<PostVerificationChangedDomainEvent>()
             .Should().ContainSingle()
             .Which.Current.Should().Be(PostVerificationStatus.CommunityVerified);
+    }
+
+    /// <summary>
+    /// Trust pays the author when the community verifies a post, and cannot look the author up: the
+    /// event has to name them, and the post's country for a reward counted once per country. The
+    /// published contract carries both through.
+    /// </summary>
+    [Fact]
+    public async Task The_verification_change_names_the_author_and_the_posts_country()
+    {
+        var author = UserId.New();
+        var post = CommunityPost.Draft(
+            author,
+            PublishingIdentity.Personal(),
+            Body("Flooding on the coast road."),
+            null,
+            PostCategory.Traffic,
+            UrgencyLevel.Normal,
+            ContentAudience.Public,
+            PostLocationContext.Create(countryCode: "mu"),
+            Now).Value;
+
+        post.Publish(Now);
+        post.ClearDomainEvents();
+
+        var (total, verified) = ConfirmationThresholds.For(UrgencyLevel.Normal);
+
+        for (var index = 0; index < total; index++)
+        {
+            post.RecordCorroboration(index < verified, 1);
+        }
+
+        var changed = post.DomainEvents.OfType<PostVerificationChangedDomainEvent>().Single();
+
+        changed.AuthorId.Should().Be(author);
+        changed.CountryCode.Should().Be("MU");
+
+        var publisher = Substitute.For<IIntegrationEventPublisher>();
+        var handler = new PostVerificationChangedEventHandler(
+            new CommunityIntegrationEventRelay(publisher, NullLogger<CommunityIntegrationEventRelay>.Instance));
+
+        await handler.Handle(
+            new DomainEventNotification<PostVerificationChangedDomainEvent>(changed), CancellationToken.None);
+
+        await publisher.Received(1).PublishAsync(
+            Arg.Is<CommunityPostVerificationChangedIntegrationEvent>(
+                published => published.AuthorUserId == author.Value && published.CountryCode == "MU"),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]

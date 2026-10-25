@@ -93,13 +93,16 @@ public interface IProgrammeMembershipRepository
     Task<CursorPagedResult<ProgrammeMembership>> SearchAsync(
         MembershipRollFilter filter, CancellationToken cancellationToken = default);
 
-    /// <summary>B15's idempotency lookup, for the application. Replayed on a repeat.</summary>
+    /// <summary>
+    /// B15's idempotency lookup, for the application. Replayed on a repeat. The member's own only:
+    /// the key carries the caller, and the filter is defence in depth.
+    /// </summary>
     Task<ProgrammeMembership?> FindByApplicationIdempotencyKeyAsync(
-        string idempotencyKey, CancellationToken cancellationToken = default);
+        UserId memberUserId, string idempotencyKey, CancellationToken cancellationToken = default);
 
-    /// <summary>B15's idempotency lookup, for a renewal.</summary>
+    /// <summary>B15's idempotency lookup, for a renewal. The member's own only.</summary>
     Task<ProgrammeMembership?> FindByRenewalIdempotencyKeyAsync(
-        string idempotencyKey, CancellationToken cancellationToken = default);
+        UserId memberUserId, string idempotencyKey, CancellationToken cancellationToken = default);
 
     /// <summary>How many memberships hold each tier, counting only those that occupy a place.</summary>
     Task<IReadOnlyDictionary<MembershipTierId, int>> CountByTierAsync(
@@ -150,8 +153,9 @@ public interface IVolunteerOpportunityRepository
     Task<CursorPagedResult<VolunteerOpportunity>> SearchAsync(
         OpportunityQueryFilter filter, CancellationToken cancellationToken = default);
 
+    /// <summary>The idempotency lookup, for an opportunity the caller created.</summary>
     Task<VolunteerOpportunity?> FindByIdempotencyKeyAsync(
-        string idempotencyKey, CancellationToken cancellationToken = default);
+        UserId createdByUserId, string idempotencyKey, CancellationToken cancellationToken = default);
 
     /// <summary>Published opportunities whose application deadline has passed. The sweep's list.</summary>
     Task<IReadOnlyList<VolunteerOpportunity>> FindPastDeadlineAsync(
@@ -184,8 +188,9 @@ public interface IVolunteerApplicationRepository
     Task<CursorPagedResult<VolunteerApplication>> SearchAsync(
         ApplicationQueryFilter filter, CancellationToken cancellationToken = default);
 
+    /// <summary>The idempotency lookup, for the caller's own application.</summary>
     Task<VolunteerApplication?> FindByIdempotencyKeyAsync(
-        string idempotencyKey, CancellationToken cancellationToken = default);
+        UserId volunteerUserId, string idempotencyKey, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// The waiting list in submission order, so a position can be computed rather than stored.
@@ -281,8 +286,12 @@ public interface ICommunityPollRepository
     Task<PollResponse?> FindResponseAsync(
         CommunityPollId pollId, string voterFingerprint, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// The idempotency lookup, for the caller's own vote. By fingerprint, because an anonymous poll's
+    /// response has no voter to filter on.
+    /// </summary>
     Task<PollResponse?> FindResponseByIdempotencyKeyAsync(
-        string idempotencyKey, CancellationToken cancellationToken = default);
+        string voterFingerprint, string idempotencyKey, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// The tally, computed in the database.
@@ -328,8 +337,9 @@ public interface ICommunityAnnouncementRepository
     Task<CursorPagedResult<CommunityAnnouncement>> SearchAsync(
         AnnouncementQueryFilter filter, CancellationToken cancellationToken = default);
 
+    /// <summary>The idempotency lookup, for an announcement the caller published.</summary>
     Task<CommunityAnnouncement?> FindByIdempotencyKeyAsync(
-        string idempotencyKey, CancellationToken cancellationToken = default);
+        UserId publishedByUserId, string idempotencyKey, CancellationToken cancellationToken = default);
 
     Task<int> CountSinceAsync(
         Guid organizationId, DateTimeOffset since, CancellationToken cancellationToken = default);

@@ -125,6 +125,15 @@ public static class FinancialErrorCodes
     public const string RewardCurrencyRequired = "financial.rewards.currency_required";
     public const string RewardGrantDuplicate = "financial.rewards.grant_duplicate";
 
+    /// <summary>A staff grant larger than the <c>reward.grant</c> policy allows in one go.</summary>
+    public const string RewardGrantAboveMaximum = "financial.rewards.grant_above_maximum";
+
+    /// <summary>A staff grant that would take its grantor past the policy's rolling-day ceiling.</summary>
+    public const string RewardGrantDailyLimitReached = "financial.rewards.grant_daily_limit_reached";
+
+    /// <summary>No <c>reward.grant</c> policy states both limits, so no staff grant is allowed.</summary>
+    public const string RewardGrantLimitsUnset = "financial.rewards.grant_limits_unset";
+
     // ── Policy ───────────────────────────────────────────────────────────────────────────────
 
     public const string PolicyNotFound = "financial.policy.not_found";

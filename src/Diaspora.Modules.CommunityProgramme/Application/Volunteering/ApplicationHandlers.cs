@@ -101,14 +101,22 @@ public sealed class SubmitVolunteerApplicationCommandHandler
         }
 
         var key = ProgrammeIdempotency.Normalise(
-            Operation, command.IdempotencyKeyHeader, command.Request.IdempotencyKey);
+            Operation, caller.Value.Value, command.IdempotencyKeyHeader, command.Request.IdempotencyKey);
 
         if (key is not null)
         {
-            var replayed = await _applications.FindByIdempotencyKeyAsync(key, cancellationToken);
+            var replayed = await _applications.FindByIdempotencyKeyAsync(
+                caller.Value, key, cancellationToken);
 
             if (replayed is not null)
             {
+                // The caller's own key, spent applying for a different opportunity.
+                if (replayed.OpportunityId.Value != command.OpportunityId)
+                {
+                    return Result.Failure<VolunteerApplicationResponse>(
+                        CommunityProgrammeErrors.IdempotencyKeyReused);
+                }
+
                 return await RenderAsync(replayed, cancellationToken);
             }
         }
@@ -208,8 +216,9 @@ public sealed class SubmitVolunteerApplicationCommandHandler
             token => _unitOfWork.SaveChangesAsync(token),
             token => key is null
                 ? Task.FromResult<VolunteerApplication?>(null)
-                : _applications.FindByIdempotencyKeyAsync(key, token),
-            cancellationToken);
+                : _applications.FindByIdempotencyKeyAsync(caller.Value, key, token),
+            cancellationToken,
+            inTransaction: true);
 
         if (committed.IsFailure)
         {

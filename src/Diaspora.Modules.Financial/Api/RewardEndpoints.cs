@@ -148,10 +148,30 @@ internal static class RewardEndpoints
                             UserId = request.UserId,
                             Points = request.Points,
                             Source = request.Source,
-                            GrantReference = request.GrantReference
+                            GrantReference = request.GrantReference,
+                            Reason = request.Reason
                         },
                         cancellationToken)))
             .WithName("GrantRewardPoints")
             .WithSummary("Awards points, once per grant reference. Staff.");
+
+        group.MapPut("/operations/rewards/members/{userId:guid}/conversion-hold", async (
+                Guid userId,
+                SetRewardConversionHoldRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new SetRewardConversionHoldCommand
+                        {
+                            UserId = userId,
+                            IsHeld = request.IsHeld,
+                            Reason = request.Reason
+                        },
+                        cancellationToken)))
+            .WithName("SetRewardConversionHold")
+            .WithSummary("Holds a member's points from conversion, or lifts the hold, and says why. Staff.");
     }
 }

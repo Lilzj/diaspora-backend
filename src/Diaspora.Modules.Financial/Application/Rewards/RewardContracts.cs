@@ -138,12 +138,20 @@ public sealed record GetMyRewardConversionsQuery : IQuery<IReadOnlyList<RewardCo
 }
 
 /// <summary>
-/// Awards points to a member. Staff, or a grantor's integration event.
+/// Awards points to a member by hand. Staff only: a grantor's integration event awards through
+/// <c>RewardPointsGrantedConsumer</c>, which never sends this command.
 /// <para>
 /// <b>The grant reference is what stops a double award, and it belongs to the grantor.</b> Only
 /// whoever recognised the earning can know whether two events describe one thing; B15 enforces
 /// uniqueness per account and refuses the second silently, which is what an at-least-once bus
 /// requires of everything downstream of it.
+/// </para>
+/// <para>
+/// <b>Bounded by the <c>reward.grant</c> policy, and it says why.</b> This was the one route that
+/// creates points with no earning behind them, and it had no upper bound: one staff account could
+/// mint any balance. A grant now carries a reason, stored on its entry with the grantor, and is
+/// refused above the policy's per-grant maximum or past its per-grantor daily ceiling. A second
+/// approver above a threshold is still to come.
 /// </para>
 /// </summary>
 [Authorize(Permission = FinancialPermissions.CreditManage)]
@@ -158,4 +166,61 @@ public sealed record GrantRewardPointsCommand : ICommand<RewardBalanceResponse>
     public required string Source { get; init; }
 
     public required string GrantReference { get; init; }
+
+    /// <summary>Why the member is being given these points. Stored on the entry, with the grantor.</summary>
+    public required string Reason { get; init; }
+}
+
+/// <summary>
+/// Holds a member's points from conversion, or lifts the hold. Staff.
+/// <para>
+/// <b>The caller <c>BlockConversion</c> never had.</b> The hold existed on the account and the
+/// conversion path honoured it, but nothing could place one. The permission is the wallet freeze's:
+/// a hold is the same act for points, and it is admin-only for the same reason.
+/// </para>
+/// <para>
+/// <b>Every decision is kept on the account,</b> with who made it and why, because the audit entry
+/// this attribute writes is a log line and the hold's own reason is cleared when it lifts.
+/// </para>
+/// </summary>
+[Authorize(Permission = FinancialPermissions.WalletManage)]
+[Transactional(Reason = "Opening the account and holding it are one change.")]
+[Auditable(Action = "financial.rewards.conversion_hold")]
+public sealed record SetRewardConversionHoldCommand : ICommand<RewardConversionHoldResponse>
+{
+    public required Guid UserId { get; init; }
+
+    /// <summary>True to hold, false to lift.</summary>
+    public required bool IsHeld { get; init; }
+
+    public required string Reason { get; init; }
+}
+
+/// <summary>A hold, and a lift, must say why.</summary>
+public sealed class SetRewardConversionHoldCommandValidator
+    : AbstractValidator<SetRewardConversionHoldCommand>
+{
+    public SetRewardConversionHoldCommandValidator()
+    {
+        RuleFor(command => command.Reason)
+            .NotEmpty()
+            .WithMessage("A hold needs a reason, and so does lifting one.")
+            .MaximumLength(Domain.Policies.FinancialLimits.MaxReasonLength);
+    }
+}
+
+/// <summary>A staff grant must say why.</summary>
+public sealed class GrantRewardPointsCommandValidator : AbstractValidator<GrantRewardPointsCommand>
+{
+    public GrantRewardPointsCommandValidator()
+    {
+        RuleFor(command => command.Reason)
+            .NotEmpty()
+            .WithMessage("A grant needs a reason: why is this member being given points?")
+            .MaximumLength(Domain.Policies.FinancialLimits.MaxReasonLength);
+
+        RuleFor(command => command.GrantReference)
+            .NotEmpty()
+            .MaximumLength(Domain.Policies.FinancialLimits.MaxReferenceLength);
+    }
 }

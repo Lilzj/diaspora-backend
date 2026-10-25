@@ -30,6 +30,13 @@ public interface IRewardAccountRepository
     /// </summary>
     Task<RewardAccountStanding?> FindStandingAsync(
         Guid memberUserId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// How many points one staff member has awarded by hand since a moment, across every account.
+    /// What the <c>reward.grant</c> policy's daily ceiling is checked against.
+    /// </summary>
+    Task<long> PointsGrantedBySinceAsync(
+        Guid grantorUserId, DateTimeOffset since, CancellationToken cancellationToken = default);
 }
 
 /// <summary>The two facts about a points account that decide whether it may convert.</summary>

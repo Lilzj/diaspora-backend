@@ -149,7 +149,7 @@ public sealed class VolunteerOpportunityRepository : IVolunteerOpportunityReposi
     }
 
     public async Task<VolunteerOpportunity?> FindByIdempotencyKeyAsync(
-        string idempotencyKey, CancellationToken cancellationToken = default)
+        UserId createdByUserId, string idempotencyKey, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(idempotencyKey))
         {
@@ -159,7 +159,9 @@ public sealed class VolunteerOpportunityRepository : IVolunteerOpportunityReposi
         var normalized = idempotencyKey.Trim();
 
         return await Opportunities.FirstOrDefaultAsync(
-            opportunity => opportunity.IdempotencyKey == normalized, cancellationToken);
+            opportunity => opportunity.CreatedByUserId == createdByUserId
+                && opportunity.IdempotencyKey == normalized,
+            cancellationToken);
     }
 
     public async Task<IReadOnlyList<VolunteerOpportunity>> FindPastDeadlineAsync(
@@ -299,7 +301,7 @@ public sealed class VolunteerApplicationRepository : IVolunteerApplicationReposi
     }
 
     public async Task<VolunteerApplication?> FindByIdempotencyKeyAsync(
-        string idempotencyKey, CancellationToken cancellationToken = default)
+        UserId volunteerUserId, string idempotencyKey, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(idempotencyKey))
         {
@@ -309,7 +311,9 @@ public sealed class VolunteerApplicationRepository : IVolunteerApplicationReposi
         var normalized = idempotencyKey.Trim();
 
         return await Applications.FirstOrDefaultAsync(
-            application => application.IdempotencyKey == normalized, cancellationToken);
+            application => application.VolunteerUserId == volunteerUserId
+                && application.IdempotencyKey == normalized,
+            cancellationToken);
     }
 
     public async Task<IReadOnlyList<VolunteerApplicationId>> FindWaitlistOrderAsync(

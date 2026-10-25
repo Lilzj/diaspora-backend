@@ -4,6 +4,7 @@ using Diaspora.Modules.Financial.Application.Mapping;
 using Diaspora.Modules.Financial.Application.Services;
 using Diaspora.Modules.Financial.Contracts.V1.Responses;
 using Diaspora.Modules.Financial.Domain.Identifiers;
+using Diaspora.Modules.Financial.Domain.Policies;
 using Diaspora.Modules.Financial.Domain.Rewards;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Results;
@@ -204,25 +205,37 @@ public sealed class RewardQueryHandlers
 /// type nobody can reason about from its signature.
 /// </para>
 /// <para>
-/// A repeated reference is a success that awarded nothing rather than a failure — an at-least-once
-/// bus redelivers, and a consumer that answered 409 to its second delivery would retry for ever.
+/// A repeated reference is a success that awarded nothing rather than a failure — a retried staff
+/// request must not answer 409 for a grant that already landed. It is answered before the limits,
+/// because the grant it repeats already counts toward the grantor's day.
+/// </para>
+/// <para>
+/// <b>The limits fail closed.</b> Most financial policies read a missing limit as "no limit stated";
+/// this one exists only to bound the route, so a <c>reward.grant</c> policy without both limits
+/// refuses every grant rather than allowing any.
 /// </para>
 /// </summary>
 public sealed class GrantRewardPointsCommandHandler
     : ICommandHandler<GrantRewardPointsCommand, RewardBalanceResponse>
 {
     private readonly IRewardAccountRepository _accounts;
+    private readonly FinancialLimitsResolver _limits;
+    private readonly FinancialAuthorizationService _authorization;
     private readonly IGuidGenerator _guids;
     private readonly IClock _clock;
     private readonly IUnitOfWork _unitOfWork;
 
     public GrantRewardPointsCommandHandler(
         IRewardAccountRepository accounts,
+        FinancialLimitsResolver limits,
+        FinancialAuthorizationService authorization,
         IGuidGenerator guids,
         IClock clock,
         IUnitOfWork unitOfWork)
     {
         _accounts = accounts;
+        _limits = limits;
+        _authorization = authorization;
         _guids = guids;
         _clock = clock;
         _unitOfWork = unitOfWork;
@@ -239,7 +252,29 @@ public sealed class GrantRewardPointsCommandHandler
                 FinancialErrorCodes.AmountInvalid, "A grant of no points is not a grant."));
         }
 
+        var grantor = _authorization.RequireUserId();
+
+        if (grantor.IsFailure)
+        {
+            return Result.Failure<RewardBalanceResponse>(grantor.Error);
+        }
+
         var account = await _accounts.FindByMemberAsync(command.UserId, cancellationToken);
+
+        if (account is not null && account.HasGranted(command.GrantReference))
+        {
+            return Result.Success(FinancialMapperExtensions.ToResponse(account, _clock.UtcNow));
+        }
+
+        var policy = await _limits.MostSpecificAsync(
+            FinancialPolicyKeys.RewardGrant, countryCode: null, cancellationToken);
+
+        var refusal = await RefuseAsync(policy, grantor.Value, command.Points, cancellationToken);
+
+        if (refusal is not null)
+        {
+            return Result.Failure<RewardBalanceResponse>(refusal);
+        }
 
         if (account is null)
         {
@@ -254,7 +289,12 @@ public sealed class GrantRewardPointsCommandHandler
             command.Points,
             command.Source,
             command.GrantReference,
-            _clock.UtcNow);
+            _clock.UtcNow,
+            grantedByUserId: grantor.Value,
+            reason: command.Reason,
+
+            // The version of the limits that allowed it. Not refused, so the policy is there.
+            policyVersion: policy!.VersionLabel);
 
         if (awarded)
         {
@@ -264,5 +304,115 @@ public sealed class GrantRewardPointsCommandHandler
         }
 
         return Result.Success(FinancialMapperExtensions.ToResponse(account, _clock.UtcNow));
+    }
+
+    /// <summary>
+    /// Why the <c>reward.grant</c> policy refuses this grant, or null when it allows it.
+    /// <para>
+    /// The daily ceiling is the grantor's, over a rolling day, and two grants racing from one staff
+    /// member can both pass it. That is a bound on one operator's hand, not a ledger invariant;
+    /// a second approver above a threshold is the stronger control, and it is still to come.
+    /// </para>
+    /// </summary>
+    private async Task<Error?> RefuseAsync(
+        FinancialPolicy? policy, Guid grantorUserId, long points, CancellationToken cancellationToken)
+    {
+        var maximum = policy?.Int64Parameter(FinancialPolicyParameters.MaximumPoints);
+        var dailyMaximum = policy?.Int64Parameter(FinancialPolicyParameters.DailyMaximumPoints);
+
+        if (maximum is not > 0 || dailyMaximum is not > 0)
+        {
+            return Error.Conflict(
+                FinancialErrorCodes.RewardGrantLimitsUnset,
+                "Staff grants are off until a reward.grant policy states a per-grant and a daily maximum.");
+        }
+
+        if (points > maximum)
+        {
+            return Error.Conflict(
+                FinancialErrorCodes.RewardGrantAboveMaximum,
+                $"The largest single grant is {maximum} points.");
+        }
+
+        var grantedToday = await _accounts.PointsGrantedBySinceAsync(
+            grantorUserId, _clock.UtcNow.AddDays(-1), cancellationToken);
+
+        return grantedToday + points > dailyMaximum
+            ? Error.Conflict(
+                FinancialErrorCodes.RewardGrantDailyLimitReached,
+                $"That would take you past the {dailyMaximum} points one person may grant in a day. "
+                + $"You have granted {grantedToday} since this time yesterday.")
+            : null;
+    }
+}
+
+/// <summary>
+/// Holds a member's points from conversion, or lifts the hold, and keeps the decision.
+/// <para>
+/// A hold may come before any earning, so a member with no points account gets one, held. Lifting a
+/// hold that is not in force changes nothing and records nothing: there was no decision to make.
+/// </para>
+/// </summary>
+public sealed class SetRewardConversionHoldCommandHandler
+    : ICommandHandler<SetRewardConversionHoldCommand, RewardConversionHoldResponse>
+{
+    private readonly IRewardAccountRepository _accounts;
+    private readonly FinancialAuthorizationService _authorization;
+    private readonly IGuidGenerator _guids;
+    private readonly IClock _clock;
+    private readonly IUnitOfWork _unitOfWork;
+
+    public SetRewardConversionHoldCommandHandler(
+        IRewardAccountRepository accounts,
+        FinancialAuthorizationService authorization,
+        IGuidGenerator guids,
+        IClock clock,
+        IUnitOfWork unitOfWork)
+    {
+        _accounts = accounts;
+        _authorization = authorization;
+        _guids = guids;
+        _clock = clock;
+        _unitOfWork = unitOfWork;
+    }
+
+    public async Task<Result<RewardConversionHoldResponse>> Handle(
+        SetRewardConversionHoldCommand command, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+
+        var decider = _authorization.RequireUserId();
+
+        if (decider.IsFailure)
+        {
+            return Result.Failure<RewardConversionHoldResponse>(decider.Error);
+        }
+
+        var account = await _accounts.FindByMemberAsync(command.UserId, cancellationToken);
+        var now = _clock.UtcNow;
+
+        if (command.IsHeld)
+        {
+            if (account is null)
+            {
+                account = RewardAccount.Open(
+                    RewardAccountId.From(_guids.NewSequentialGuid()), command.UserId, now);
+
+                _accounts.Add(account);
+            }
+
+            account.BlockConversion(_guids.NewSequentialGuid(), command.Reason, decider.Value, now);
+        }
+        else if (account is null
+            || !account.AllowConversion(_guids.NewSequentialGuid(), command.Reason, decider.Value, now))
+        {
+            return Result.Success(FinancialMapperExtensions.ToHoldResponse(command.UserId, account));
+        }
+
+        _accounts.Update(account);
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return Result.Success(FinancialMapperExtensions.ToHoldResponse(command.UserId, account));
     }
 }

@@ -218,5 +218,20 @@ public sealed class DefaultFinancialPolicyContributor : IFinancialPolicyContribu
                 [FinancialPolicyParameters.DailyMaximumPoints] = "50000"
             }
         };
+
+        yield return new FinancialPolicySeed
+        {
+            PolicyKey = FinancialPolicyKeys.RewardGrant,
+            Kind = FinancialPolicyKind.RewardGrant,
+            Description = "How many points staff may award by hand: per grant, and per staff member per day.",
+            Parameters = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                // Four referrals' worth in one grant, and five such grants a day for one staff member.
+                // Enough to put a member's missed earning right; not enough for one account to mint a
+                // balance worth converting at scale.
+                [FinancialPolicyParameters.MaximumPoints] = "1000",
+                [FinancialPolicyParameters.DailyMaximumPoints] = "5000"
+            }
+        };
     }
 }

@@ -186,7 +186,7 @@ public sealed class CommunityPollRepository : ICommunityPollRepository
     }
 
     public async Task<PollResponse?> FindResponseByIdempotencyKeyAsync(
-        string idempotencyKey, CancellationToken cancellationToken = default)
+        string voterFingerprint, string idempotencyKey, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(idempotencyKey))
         {
@@ -196,7 +196,9 @@ public sealed class CommunityPollRepository : ICommunityPollRepository
         var normalized = idempotencyKey.Trim();
 
         return await Responses.FirstOrDefaultAsync(
-            response => response.IdempotencyKey == normalized, cancellationToken);
+            response => response.VoterFingerprint == voterFingerprint
+                && response.IdempotencyKey == normalized,
+            cancellationToken);
     }
 
     public async Task<IReadOnlyDictionary<PollOptionId, int>> TallyAsync(
@@ -395,7 +397,7 @@ public sealed class CommunityAnnouncementRepository : ICommunityAnnouncementRepo
     }
 
     public async Task<CommunityAnnouncement?> FindByIdempotencyKeyAsync(
-        string idempotencyKey, CancellationToken cancellationToken = default)
+        UserId publishedByUserId, string idempotencyKey, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(idempotencyKey))
         {
@@ -405,7 +407,9 @@ public sealed class CommunityAnnouncementRepository : ICommunityAnnouncementRepo
         var normalized = idempotencyKey.Trim();
 
         return await Announcements.FirstOrDefaultAsync(
-            announcement => announcement.IdempotencyKey == normalized, cancellationToken);
+            announcement => announcement.PublishedByUserId == publishedByUserId
+                && announcement.IdempotencyKey == normalized,
+            cancellationToken);
     }
 
     public Task<int> CountSinceAsync(

@@ -1,5 +1,6 @@
 using Diaspora.Application.Abstractions;
 using Diaspora.Modules.Financial.Contracts.V1.Responses;
+using FluentValidation;
 
 namespace Diaspora.Modules.Financial.Application.Withdrawals;
 
@@ -24,7 +25,30 @@ public sealed record CreateWithdrawalCommand : ICommand<WithdrawalResponse>
 
     public string? CountryCode { get; init; }
 
+    /// <summary>
+    /// Required, and the caller's own: two members may send the same key and get two withdrawals.
+    /// The <c>Idempotency-Key</c> header wins over this field.
+    /// </summary>
     public string? IdempotencyKey { get; init; }
+}
+
+/// <summary>
+/// A withdrawal must carry its key.
+/// <para>
+/// It was optional, and a keyless withdrawal had no replay at all: a double-tapped button or a
+/// retried request held the money twice, and only the balance stopped the second. The app already
+/// sends one. Amounts are left to the handler, whose refusals say why in the member's terms.
+/// </para>
+/// </summary>
+public sealed class CreateWithdrawalCommandValidator : AbstractValidator<CreateWithdrawalCommand>
+{
+    public CreateWithdrawalCommandValidator()
+    {
+        RuleFor(command => command.IdempotencyKey)
+            .NotEmpty()
+            .WithMessage("A withdrawal needs an idempotency key, in the Idempotency-Key header or the body.")
+            .MaximumLength(Domain.Policies.FinancialLimits.MaxReferenceLength);
+    }
 }
 
 /// <summary>Calls off a withdrawal nobody has picked up yet, and releases the hold.</summary>

@@ -14,6 +14,7 @@ using Diaspora.Modules.Financial.Infrastructure.Payouts;
 using Diaspora.Modules.Financial.Observability;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Results;
+using Microsoft.EntityFrameworkCore;
 
 namespace Diaspora.Modules.Financial.Application.Withdrawals;
 
@@ -273,7 +274,22 @@ public sealed class CreateWithdrawalCommandHandler
             return Result.Failure<WithdrawalResponse>(held.Error);
         }
 
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+
+        // The replay check above cannot see a request with the same key still in flight; the
+        // per-member unique index is what refuses it. The command is [Transactional], so the
+        // violation has aborted the transaction and a failed Result would be committed, not rolled
+        // back. Rethrown as the platform's concurrency conflict: rollback, 409, and the client's
+        // retry with the same key replays the withdrawal that won.
+        catch (DbUpdateException exception) when (UniqueIndexViolation.Is(exception))
+        {
+            throw new ConcurrencyConflictException(
+                "A withdrawal with this idempotency key is still being processed. Try again in a moment.",
+                exception);
+        }
 
         FinancialTelemetry.WalletMovements.Add(
             1,

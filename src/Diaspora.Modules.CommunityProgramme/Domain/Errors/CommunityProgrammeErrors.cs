@@ -199,4 +199,8 @@ public static class CommunityProgrammeErrors
     public static readonly Error IdempotencyKeyInFlight = Error.Conflict(
         CommunityProgrammeErrorCodes.IdempotencyKeyInFlight,
         "An identical request is still being processed. Try again in a moment.");
+
+    public static readonly Error IdempotencyKeyReused = Error.Validation(
+        CommunityProgrammeErrorCodes.IdempotencyKeyReused,
+        "That idempotency key was already used for a different request. Send a new key.");
 }

@@ -751,7 +751,9 @@ public sealed class CommunityPost
             Previous = previous,
             Current = VerificationStatus,
             Confirmations = ConfirmationCount,
-            VerifiedConfirmations = VerifiedConfirmationCount
+            VerifiedConfirmations = VerifiedConfirmationCount,
+            AuthorId = AuthorId,
+            CountryCode = Location.CountryCode
         });
     }
 

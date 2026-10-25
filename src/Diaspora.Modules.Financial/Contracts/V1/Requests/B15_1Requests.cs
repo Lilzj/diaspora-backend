@@ -41,6 +41,10 @@ public sealed record CreateWithdrawalRequest
 
     public string? CountryCode { get; init; }
 
+    /// <summary>
+    /// Required here or in the <c>Idempotency-Key</c> header, which wins. Unique per member: a retry
+    /// with the same key answers with the first withdrawal.
+    /// </summary>
     public string? IdempotencyKey { get; init; }
 }
 
@@ -178,7 +182,10 @@ public sealed record ConvertRewardPointsRequest
     public string? IdempotencyKey { get; init; }
 }
 
-/// <summary>Award points to a member. Staff, or an integration event from a grantor.</summary>
+/// <summary>
+/// Award points to a member by hand. Staff only, and bounded by the <c>reward.grant</c> policy: per
+/// grant, and per staff member per rolling day.
+/// </summary>
 public sealed record GrantRewardPointsRequest
 {
     public required Guid UserId { get; init; }
@@ -193,6 +200,19 @@ public sealed record GrantRewardPointsRequest
     /// grants carrying one reference award points once.
     /// </summary>
     public required string GrantReference { get; init; }
+
+    /// <summary>Why. Required, and stored on the grant with the staff member who made it.</summary>
+    public required string Reason { get; init; }
+}
+
+/// <summary>Hold a member's points from conversion, or lift the hold. Staff.</summary>
+public sealed record SetRewardConversionHoldRequest
+{
+    /// <summary>True to hold, false to lift.</summary>
+    public required bool IsHeld { get; init; }
+
+    /// <summary>Why. Required both ways; kept with the decision and never shown to the member.</summary>
+    public required string Reason { get; init; }
 }
 
 /// <summary>Change plan, mid-period.</summary>

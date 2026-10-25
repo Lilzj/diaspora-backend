@@ -190,9 +190,9 @@ public static class DefaultReputationRules
             Description = "An update was confirmed by the community.",
             Label = "Updates confirmed by the community",
 
-            // Nothing scores it: a corroborated update pays its author CommunityConfirmation
-            // (CommunityCorroborationConsumer), not this.
-            IsAwarded = false
+            // PostVerifiedReputationConsumer, once per post, when the post becomes community-
+            // verified. Each confirmation also pays CommunityConfirmation, once per confirmer: the
+            // threshold and the confirmations are two facts.
         },
         new()
         {
@@ -268,8 +268,7 @@ public static class DefaultReputationRules
             Description = "Added a profile photo.",
             Label = "Profile photo added",
 
-            // Nothing scores it yet: no consumer or handler calls ScoreAsync with this action.
-            IsAwarded = false
+            // ProfilePhotoReputationConsumer, off Identity's UserAvatarChangedIntegrationEvent.
         },
         new()
         {

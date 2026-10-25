@@ -2,6 +2,7 @@ using Diaspora.Application.Abstractions;
 using Diaspora.Contracts.Community.V1.Events;
 using Diaspora.Contracts.Events;
 using Diaspora.Contracts.Guides.V1.Events;
+using Diaspora.Contracts.Identity.V1.Events;
 using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Trust.Application.Consumers;
 using Diaspora.Modules.Trust.Application.Services;
@@ -249,14 +250,7 @@ public sealed class ReputationAwardKeyTests
     public async Task A_redelivered_guide_update_pays_once()
     {
         var harness = new Harness();
-        var updated = new GuideUpdatedIntegrationEvent
-        {
-            GuideId = GuideId,
-            ChangedFields = ["body"],
-            ChangedAt = Now,
-            AuthorUserId = AuthorGuid,
-            IsReadableByOthers = true
-        };
+        var updated = GuideUpdated(changedBy: AuthorGuid, isReadableByOthers: true);
 
         await DeliverAsync(
             new GuideUpdatedReputationConsumer(harness.Service, harness.Provisioner, harness.UnitOfWork),
@@ -268,7 +262,147 @@ public sealed class ReputationAwardKeyTests
         harness.Profile.GuidesUpdated.Should().Be(1);
     }
 
+    /// <summary>
+    /// REP-10. The event fires for drafts, and a guide can be edited by a contributor or a moderator:
+    /// only the author's own edit of a guide others can read pays them.
+    /// </summary>
+    [Theory]
+    [InlineData(false, "author", "a draft edit")]
+    [InlineData(true, "other", "somebody else's edit")]
+    [InlineData(true, "nobody", "a projection's update, which names no editor")]
+    public async Task A_guide_update_that_is_not_the_authors_published_work_pays_nothing(
+        bool isReadableByOthers, string editor, string because)
+    {
+        var harness = new Harness();
+        Guid? changedBy = editor switch
+        {
+            "author" => AuthorGuid,
+            "other" => VoterA,
+            _ => null
+        };
+
+        await DeliverAsync(
+            new GuideUpdatedReputationConsumer(harness.Service, harness.Provisioner, harness.UnitOfWork),
+            GuideUpdated(changedBy, isReadableByOthers));
+
+        harness.Profile.GuidesUpdated.Should().Be(0, because);
+        harness.Profile.Events.Should().BeEmpty();
+    }
+
+    // ── REP-20: the community post consumer ─────────────────────────────────────────────────
+
+    /// <summary>
+    /// Publishing a post pays its author ten points, counted in the post's country, and a
+    /// redelivered event pays once while a second post still pays.
+    /// </summary>
+    [Fact]
+    public async Task A_published_post_pays_its_author_once_in_its_country()
+    {
+        var harness = new Harness();
+        var consumer = new CommunityPostReputationConsumer(harness.Service, harness.Provisioner, harness.UnitOfWork);
+        var first = PostPublished(Guid.NewGuid());
+
+        await DeliverAsync(consumer, first);
+        await DeliverAsync(consumer, first);
+        await DeliverAsync(consumer, PostPublished(Guid.NewGuid()));
+
+        harness.Profile.UpdatesPublished.Should().Be(2);
+
+        var paid = harness.Profile.Events
+            .Where(recorded => recorded.ActionType == ReputationActions.UpdatePublished)
+            .ToList();
+
+        paid.Should().HaveCount(2);
+        paid.Should().OnlyContain(recorded => recorded.Points == 10 && recorded.CountryCode == "MU");
+        paid.Select(recorded => recorded.AwardKey).Should().Contain(
+            ReputationAwardKey.CommunityPost(first.PostId).Value, "the post is the key, not the delivery");
+    }
+
+    // ── REP-13: the profile photo and the verified update ───────────────────────────────────
+
+    /// <summary>
+    /// The first photo pays; removing it pays nothing; a replacement is not a second first photo.
+    /// </summary>
+    [Fact]
+    public async Task A_profile_photo_pays_once_and_a_removal_pays_nothing()
+    {
+        var harness = new Harness();
+        var consumer = new ProfilePhotoReputationConsumer(harness.Service, harness.Provisioner, harness.UnitOfWork);
+
+        await DeliverAsync(consumer, Avatar(Guid.NewGuid()));
+        await DeliverAsync(consumer, Avatar(mediaId: null));
+        await DeliverAsync(consumer, Avatar(Guid.NewGuid()));
+
+        harness.Profile.Events.Should().ContainSingle(recorded => recorded.ActionType == ReputationActions.ProfilePhotoAdded)
+            .Which.Points.Should().Be(5);
+        harness.Profile.ProfilePhotoAdded.Should().BeTrue();
+    }
+
+    /// <summary>
+    /// Only a move into community-verified pays, once per post, counted in the post's country. A
+    /// post that is disputed and verified again does not pay twice, and an event that does not name
+    /// the author, published before the field existed, pays nothing.
+    /// </summary>
+    [Fact]
+    public async Task A_post_the_community_verifies_pays_its_author_once_in_its_country()
+    {
+        var harness = new Harness();
+        var consumer = new PostVerifiedReputationConsumer(harness.Service, harness.Provisioner, harness.UnitOfWork);
+        var postId = Guid.NewGuid();
+
+        await DeliverAsync(consumer, Verification(postId, "unverified", "disputed"));
+        await DeliverAsync(consumer, Verification(postId, "unverified", "communityVerified"));
+        await DeliverAsync(consumer, Verification(postId, "communityVerified", "disputed"));
+        await DeliverAsync(consumer, Verification(postId, "disputed", "communityVerified"));
+        await DeliverAsync(
+            consumer, Verification(Guid.NewGuid(), "unverified", "communityVerified") with { AuthorUserId = null });
+
+        harness.Profile.Events.Should().ContainSingle(recorded => recorded.ActionType == ReputationActions.UpdateVerified)
+            .Which.CountryCode.Should().Be("MU");
+        harness.Profile.UpdatesVerified.Should().Be(1);
+    }
+
     // ── Fixtures ────────────────────────────────────────────────────────────────────────────
+
+    private static CommunityPostPublishedIntegrationEvent PostPublished(Guid postId) => new()
+    {
+        PostId = postId,
+        AuthorId = AuthorGuid,
+        Category = "traffic",
+        Urgency = "normal",
+        Visibility = "public",
+        CountryCode = "MU",
+        PublishedAt = Now
+    };
+
+    private static GuideUpdatedIntegrationEvent GuideUpdated(Guid? changedBy, bool isReadableByOthers) => new()
+    {
+        GuideId = GuideId,
+        ChangedBy = changedBy,
+        ChangedFields = ["body"],
+        ChangedAt = Now,
+        AuthorUserId = AuthorGuid,
+        IsReadableByOthers = isReadableByOthers
+    };
+
+    private static UserAvatarChangedIntegrationEvent Avatar(Guid? mediaId) => new()
+    {
+        UserId = AuthorGuid,
+        MediaId = mediaId,
+        AvatarUrl = mediaId is null ? null : $"https://media.example/{mediaId:N}/medium"
+    };
+
+    private static CommunityPostVerificationChangedIntegrationEvent Verification(
+        Guid postId, string previous, string current) => new()
+    {
+        PostId = postId,
+        Previous = previous,
+        Current = current,
+        Confirmations = 10,
+        VerifiedConfirmations = 5,
+        AuthorUserId = AuthorGuid,
+        CountryCode = "MU"
+    };
 
     private static GuidePublishedIntegrationEvent GuidePublished(bool isFirstPublication) => new()
     {

@@ -378,14 +378,22 @@ public sealed class CreateOpportunityCommandHandler
         }
 
         var key = ProgrammeIdempotency.Normalise(
-            Operation, command.IdempotencyKeyHeader, command.Request.IdempotencyKey);
+            Operation, caller.Value.Value, command.IdempotencyKeyHeader, command.Request.IdempotencyKey);
 
         if (key is not null)
         {
-            var replayed = await _opportunities.FindByIdempotencyKeyAsync(key, cancellationToken);
+            var replayed = await _opportunities.FindByIdempotencyKeyAsync(
+                caller.Value, key, cancellationToken);
 
             if (replayed is not null)
             {
+                // The caller's own key, spent on another organization's opportunity.
+                if (replayed.OrganizationId != command.Request.OrganizationId)
+                {
+                    return Result.Failure<VolunteerOpportunityResponse>(
+                        CommunityProgrammeErrors.IdempotencyKeyReused);
+                }
+
                 return await RenderAsync(replayed, cancellationToken);
             }
         }
@@ -451,8 +459,9 @@ public sealed class CreateOpportunityCommandHandler
             token => _unitOfWork.SaveChangesAsync(token),
             token => key is null
                 ? Task.FromResult<VolunteerOpportunity?>(null)
-                : _opportunities.FindByIdempotencyKeyAsync(key, token),
-            cancellationToken);
+                : _opportunities.FindByIdempotencyKeyAsync(caller.Value, key, token),
+            cancellationToken,
+            inTransaction: true);
 
         if (committed.IsFailure)
         {

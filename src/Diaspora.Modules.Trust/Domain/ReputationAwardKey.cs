@@ -59,6 +59,14 @@ public sealed record ReputationAwardKey
     public static ReputationAwardKey Comment(Guid commentId) =>
         Of(ReputationActions.CommentWritten, "comment", commentId.ToString("N"));
 
+    /// <summary>Once per member, ever. Removing a photo and adding another is not a second photo.</summary>
+    public static ReputationAwardKey ProfilePhoto(Guid userId) =>
+        Of(ReputationActions.ProfilePhotoAdded, "user", userId.ToString("N"));
+
+    /// <summary>Once per post, however often its verification flickers.</summary>
+    public static ReputationAwardKey UpdateVerified(Guid postId) =>
+        Of(ReputationActions.UpdateVerified, "post", postId.ToString("N"));
+
     /// <summary>
     /// Once per confirmer per target — the same identity <c>community_contributions</c> already
     /// holds unique, so the award and the record of it cannot disagree.

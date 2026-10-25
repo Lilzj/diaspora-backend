@@ -26,7 +26,9 @@ public sealed class PostVerificationChangedEventHandler
                 Previous = CommunityWireNames.ToWire(domainEvent.Previous),
                 Current = CommunityWireNames.ToWire(domainEvent.Current),
                 Confirmations = domainEvent.Confirmations,
-                VerifiedConfirmations = domainEvent.VerifiedConfirmations
+                VerifiedConfirmations = domainEvent.VerifiedConfirmations,
+                AuthorUserId = domainEvent.AuthorId.Value,
+                CountryCode = domainEvent.CountryCode
             },
             cancellationToken);
     }

@@ -18221,6 +18221,41 @@
         }
       }
     },
+    "/api/v1/financial/operations/rewards/members/{userId}/conversion-hold": {
+      "put": {
+        "tags": [
+          "Financial"
+        ],
+        "summary": "Holds a member's points from conversion, or lifts the hold, and says why. Staff.",
+        "operationId": "SetRewardConversionHold",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetRewardConversionHoldRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/financial/entitlements/me": {
       "get": {
         "tags": [
@@ -45960,7 +45995,8 @@
           "userId",
           "points",
           "source",
-          "grantReference"
+          "grantReference",
+          "reason"
         ],
         "type": "object",
         "properties": {
@@ -45980,6 +46016,9 @@
             "type": "string"
           },
           "grantReference": {
+            "type": "string"
+          },
+          "reason": {
             "type": "string"
           }
         }
@@ -52164,6 +52203,21 @@
               "string"
             ],
             "format": "int32"
+          }
+        }
+      },
+      "SetRewardConversionHoldRequest": {
+        "required": [
+          "isHeld",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "isHeld": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
           }
         }
       },

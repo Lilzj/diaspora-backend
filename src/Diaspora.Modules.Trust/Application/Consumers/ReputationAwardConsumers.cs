@@ -43,12 +43,12 @@ namespace Diaspora.Modules.Trust.Application.Consumers;
 //     20 Oct 2026, `EmailVerificationMirrorConsumer` submits an Email verification that
 //     auto-approves, so the award is `EmailVerificationHandler.ApprovalAward`, paid once by the
 //     approval. A consumer here that also scored it would be the fourth duplicate producer.
-//   * `ProfileCompleted` — Identity publishes no profile-completeness event.
-//   * `ProfilePhotoAdded` — Identity now publishes `UserAvatarChangedIntegrationEvent`, so this one
-//     is wiring rather than a missing producer (gap matrix REP-13). Not wired yet.
-//   * `UpdateVerified` — `CommunityPostVerificationChangedIntegrationEvent` carries the post and
-//     its confirmation counts, and not the author. Trust cannot look that up; it is Community's
-//     data. Paying it needs one field added to that contract.
+//   * `ProfileCompleted` — Identity publishes no profile-completeness event, and what "complete"
+//     means is still to be decided (D-11).
+//   * `ProfilePhotoAdded` and `UpdateVerified` — no longer unpaid, since 23 Oct 2026 (REP-13):
+//     `ProfilePhotoReputationConsumer` pays the first photo off `UserAvatarChangedIntegrationEvent`,
+//     and `PostVerifiedReputationConsumer` pays a post's community verification now that
+//     `CommunityPostVerificationChangedIntegrationEvent` names the author.
 //   * `ReportResolved` — whose points these are is a product question, not a wiring one. The
 //     reporter whose report was upheld is the obvious answer and the moderation event does not
 //     name them.
@@ -130,7 +130,12 @@ public sealed class GuideReputationConsumer
 }
 
 /// <summary>
-/// Pays an author for a substantive update to their guide.
+/// Pays an author for updating their own guide while others can read it.
+/// <para>
+/// Not for a draft edit, and not for somebody else's edit of it: both used to pay the author.
+/// Whether an edit was substantive enough to count is still to be defined (D-2), so a published
+/// typo fix pays like a rewrite.
+/// </para>
 /// <para>
 /// The rule carries its own cap and cooldown, so a guide edited fifty times in an afternoon pays
 /// what the scoring table says it pays and no more. That is the table's job, not this consumer's.
@@ -158,7 +163,13 @@ public sealed class GuideUpdatedReputationConsumer
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
 
-        if (integrationEvent.AuthorUserId is not { } author)
+        // The author's own edit of a guide others can read, and nothing else (REP-10). A draft edit
+        // keeps nobody's guide current, and the event fires for those too. An edit by a contributor
+        // or a moderator is not the author's work, and one a projection made names nobody. Whether
+        // the edit was substantive is not decided yet (D-2).
+        if (!integrationEvent.IsReadableByOthers
+            || integrationEvent.AuthorUserId is not { } author
+            || integrationEvent.ChangedBy != author)
         {
             return;
         }
@@ -373,6 +384,120 @@ public sealed class CommunityCommentReputationConsumer
             "comment",
             integrationEvent.CommentId.ToString(),
             cancellationToken: cancellationToken);
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+}
+
+/// <summary>
+/// Pays a member for adding a profile photo.
+/// <para>
+/// Once per member, ever: the rule allows one occurrence and the award key is the member. Removing
+/// the photo publishes the same event with no media, and pays nothing; replacing it is not a second
+/// first photo.
+/// </para>
+/// </summary>
+public sealed class ProfilePhotoReputationConsumer
+    : IntegrationEventHandler<UserAvatarChangedIntegrationEvent>
+{
+    private readonly ReputationService _reputation;
+    private readonly TrustProfileProvisioner _provisioner;
+    private readonly IUnitOfWork _unitOfWork;
+
+    public ProfilePhotoReputationConsumer(
+        ReputationService reputation,
+        TrustProfileProvisioner provisioner,
+        IUnitOfWork unitOfWork)
+    {
+        _reputation = reputation;
+        _provisioner = provisioner;
+        _unitOfWork = unitOfWork;
+    }
+
+    protected override async Task HandleAsync(
+        UserAvatarChangedIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+
+        if (integrationEvent.MediaId is not { } mediaId)
+        {
+            return;
+        }
+
+        var userId = UserId.From(integrationEvent.UserId);
+
+        await _provisioner.GetOrCreateBothAsync(userId, cancellationToken);
+
+        await _reputation.ScoreAsync(
+            userId,
+            ReputationActions.ProfilePhotoAdded,
+            ReputationAwardKey.ProfilePhoto(integrationEvent.UserId),
+            "media",
+            mediaId.ToString(),
+            cancellationToken: cancellationToken);
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+}
+
+/// <summary>
+/// Pays an author when the community verifies their post.
+/// <para>
+/// <b>Not a second payment for the confirmations.</b> Each confirmation already pays the author
+/// <c>CommunityConfirmation</c>, once per confirmer (<c>CommunityCorroborationConsumer</c>). This
+/// is the post crossing the threshold, once per post: a different fact, priced by its own rule.
+/// </para>
+/// <para>
+/// The event fires on every change of verification state, including losing it. Only a move into
+/// community-verified pays, and the award key, one per post, means a post that is disputed and
+/// verified again does not pay twice. An event that does not name the author was published before
+/// the field existed and pays nothing.
+/// </para>
+/// </summary>
+public sealed class PostVerifiedReputationConsumer
+    : IntegrationEventHandler<CommunityPostVerificationChangedIntegrationEvent>
+{
+    /// <summary>Community's wire name for the state, as the contract documents it.</summary>
+    private const string CommunityVerified = "communityVerified";
+
+    private readonly ReputationService _reputation;
+    private readonly TrustProfileProvisioner _provisioner;
+    private readonly IUnitOfWork _unitOfWork;
+
+    public PostVerifiedReputationConsumer(
+        ReputationService reputation,
+        TrustProfileProvisioner provisioner,
+        IUnitOfWork unitOfWork)
+    {
+        _reputation = reputation;
+        _provisioner = provisioner;
+        _unitOfWork = unitOfWork;
+    }
+
+    protected override async Task HandleAsync(
+        CommunityPostVerificationChangedIntegrationEvent integrationEvent,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+
+        if (!string.Equals(integrationEvent.Current, CommunityVerified, StringComparison.OrdinalIgnoreCase)
+            || integrationEvent.AuthorUserId is not { } author)
+        {
+            return;
+        }
+
+        var authorId = UserId.From(author);
+
+        await _provisioner.GetOrCreateBothAsync(authorId, cancellationToken);
+
+        await _reputation.ScoreAsync(
+            authorId,
+            ReputationActions.UpdateVerified,
+            ReputationAwardKey.UpdateVerified(integrationEvent.PostId),
+            "post",
+            integrationEvent.PostId.ToString(),
+            integrationEvent.CountryCode,
+            cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }

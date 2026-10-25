@@ -9929,9 +9929,9 @@ namespace Diaspora.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IdempotencyKey")
+                    b.HasIndex("RequestedByUserId", "IdempotencyKey")
                         .IsUnique()
-                        .HasDatabaseName("ix_financial_withdrawals_idempotency");
+                        .HasDatabaseName("ix_financial_withdrawals_requester_idempotency");
 
                     b.HasIndex("RequestedByUserId", "RequestedAt")
                         .HasDatabaseName("ix_financial_withdrawals_requester");
@@ -23585,6 +23585,9 @@ namespace Diaspora.Persistence.Migrations
                             b1.Property<Guid>("EntryId")
                                 .HasColumnType("uuid");
 
+                            b1.Property<Guid?>("GrantedByUserId")
+                                .HasColumnType("uuid");
+
                             b1.Property<bool>("IsConversion")
                                 .HasColumnType("boolean");
 
@@ -23596,6 +23599,14 @@ namespace Diaspora.Persistence.Migrations
 
                             b1.Property<long>("Points")
                                 .HasColumnType("bigint");
+
+                            b1.Property<string>("PolicyVersion")
+                                .HasMaxLength(64)
+                                .HasColumnType("character varying(64)");
+
+                            b1.Property<string>("Reason")
+                                .HasMaxLength(512)
+                                .HasColumnType("character varying(512)");
 
                             b1.Property<string>("Reference")
                                 .IsRequired()
@@ -23612,6 +23623,9 @@ namespace Diaspora.Persistence.Migrations
 
                             b1.HasKey("EntryId");
 
+                            b1.HasIndex("GrantedByUserId", "OccurredAt")
+                                .HasDatabaseName("ix_financial_reward_entries_grantor");
+
                             b1.HasIndex("RewardAccountId", "Reference")
                                 .IsUnique()
                                 .HasDatabaseName("ix_financial_reward_entries_reference");
@@ -23622,7 +23636,41 @@ namespace Diaspora.Persistence.Migrations
                                 .HasForeignKey("RewardAccountId");
                         });
 
+                    b.OwnsMany("Diaspora.Modules.Financial.Domain.Rewards.RewardHoldDecision", "HoldDecisions", b1 =>
+                        {
+                            b1.Property<Guid>("DecisionId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<DateTimeOffset>("DecidedAt")
+                                .HasColumnType("timestamp with time zone");
+
+                            b1.Property<Guid?>("DecidedByUserId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<bool>("IsHeld")
+                                .HasColumnType("boolean");
+
+                            b1.Property<string>("Reason")
+                                .IsRequired()
+                                .HasMaxLength(512)
+                                .HasColumnType("character varying(512)");
+
+                            b1.Property<Guid>("RewardAccountId")
+                                .HasColumnType("uuid");
+
+                            b1.HasKey("DecisionId");
+
+                            b1.HasIndex("RewardAccountId");
+
+                            b1.ToTable("financial_reward_hold_decisions", "financial");
+
+                            b1.WithOwner()
+                                .HasForeignKey("RewardAccountId");
+                        });
+
                     b.Navigation("Entries");
+
+                    b.Navigation("HoldDecisions");
                 });
 
             modelBuilder.Entity("Diaspora.Modules.Financial.Domain.Subscriptions.Subscription", b =>

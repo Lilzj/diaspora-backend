@@ -25,7 +25,10 @@ public sealed class RewardEntry : ValueObject
         bool isSpend,
         string source,
         string reference,
-        DateTimeOffset occurredAt)
+        DateTimeOffset occurredAt,
+        Guid? grantedByUserId = null,
+        string? reason = null,
+        string? policyVersion = null)
     {
         EntryId = entryId;
         Points = points;
@@ -34,6 +37,9 @@ public sealed class RewardEntry : ValueObject
         Source = source;
         Reference = reference;
         OccurredAt = occurredAt;
+        GrantedByUserId = grantedByUserId;
+        Reason = reason;
+        PolicyVersion = policyVersion;
     }
 
     private RewardEntry() { }
@@ -75,8 +81,35 @@ public sealed class RewardEntry : ValueObject
 
     public DateTimeOffset OccurredAt { get; private set; }
 
+    /// <summary>
+    /// The staff member who awarded these points by hand. Null for an earning a grantor's event
+    /// recognised, and for every debit.
+    /// <para>
+    /// Added additively: every existing row is an earning or a debit, and null is what those rows
+    /// mean. It is what the <c>reward.grant</c> policy's daily ceiling is counted against.
+    /// </para>
+    /// </summary>
+    public Guid? GrantedByUserId { get; private set; }
+
+    /// <summary>Why staff awarded these points. Required on a staff grant; null otherwise.</summary>
+    public string? Reason { get; private set; }
+
+    /// <summary>
+    /// The version of the rule that decided this earning: the grantor's, carried on its event, or
+    /// <c>reward.grant@N</c> for a staff grant. Null where no versioned rule decided it, which is every
+    /// row written before this column existed and every grantor that does not stamp one yet.
+    /// </summary>
+    public string? PolicyVersion { get; private set; }
+
     public static RewardEntry Earned(
-        Guid entryId, long points, string source, string reference, DateTimeOffset occurredAt)
+        Guid entryId,
+        long points,
+        string source,
+        string reference,
+        DateTimeOffset occurredAt,
+        Guid? grantedByUserId = null,
+        string? reason = null,
+        string? policyVersion = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(reference);
 
@@ -87,7 +120,10 @@ public sealed class RewardEntry : ValueObject
             isSpend: false,
             string.IsNullOrWhiteSpace(source) ? "Unspecified" : source.Trim(),
             reference.Trim(),
-            occurredAt);
+            occurredAt,
+            grantedByUserId,
+            string.IsNullOrWhiteSpace(reason) ? null : reason.Trim(),
+            string.IsNullOrWhiteSpace(policyVersion) ? null : policyVersion.Trim());
     }
 
     public static RewardEntry Converted(

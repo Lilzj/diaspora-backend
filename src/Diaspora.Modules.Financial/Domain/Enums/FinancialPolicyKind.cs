@@ -64,6 +64,12 @@ public enum FinancialPolicyKind
     /// </summary>
     RewardConversion = 19,
 
+    /// <summary>
+    /// How many points staff may award by hand: per grant, and per staff member per day. A bound on
+    /// the one route that creates points without an earning behind them.
+    /// </summary>
+    RewardGrant = 20,
+
     /// <summary>A rule the deployment invented, read by whatever registered it.</summary>
     Custom = 99
 }
