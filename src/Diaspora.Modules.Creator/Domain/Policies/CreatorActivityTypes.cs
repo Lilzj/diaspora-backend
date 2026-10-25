@@ -95,6 +95,14 @@ public static class CreatorActivityTypes
         HousingPublished
     ];
 
+    /// <summary>
+    /// Contributions to the community: everything except this programme's own records of a
+    /// referral qualifying or a course finished. What a referral's qualification counts, because the
+    /// rule is "their first contribution to the community" and neither of those is one.
+    /// </summary>
+    public static readonly IReadOnlyList<string> CommunityContributions =
+        [.. All.Where(type => type is not (ReferralQualified or CourseCompleted))];
+
     public static bool IsKnown(string? actionType) =>
         actionType is not null && All.Contains(actionType, StringComparer.Ordinal);
 }

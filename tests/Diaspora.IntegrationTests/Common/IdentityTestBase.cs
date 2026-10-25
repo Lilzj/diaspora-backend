@@ -132,11 +132,14 @@ public abstract class IdentityTestCore<TFactory> : IDisposable
     /// what residence decides — a member's currency, for one.
     /// </remarks>
     protected async Task<string> RegisterAsync(
-        string? phoneNumber = null, string password = ValidPassword, string? countryOfResidence = null)
+        string? phoneNumber = null,
+        string password = ValidPassword,
+        string? countryOfResidence = null,
+        string? referralCode = null)
     {
         var phone = phoneNumber ?? NextPhoneNumber();
 
-        var registration = RegistrationFor(phone, password);
+        var registration = RegistrationFor(phone, password) with { ReferralCode = referralCode };
 
         if (countryOfResidence is not null)
         {
@@ -158,9 +161,10 @@ public abstract class IdentityTestCore<TFactory> : IDisposable
         string password = ValidPassword,
         string? deviceIdentifier = null,
         string? deviceName = null,
-        string? countryOfResidence = null)
+        string? countryOfResidence = null,
+        string? referralCode = null)
     {
-        var phone = await RegisterAsync(phoneNumber, password, countryOfResidence);
+        var phone = await RegisterAsync(phoneNumber, password, countryOfResidence, referralCode);
         var code = Factory.OtpCodes.LatestFor(phone, OtpPurpose.PhoneVerification);
 
         var response = await Api.VerifyPhoneAsync(new VerifyPhoneRequest
@@ -182,10 +186,10 @@ public abstract class IdentityTestCore<TFactory> : IDisposable
     /// the only legitimate route to a verified member.
     /// </summary>
     protected async Task<(string PhoneNumber, AuthenticationResponse Auth)> RegisterVerifiedMemberAsync(
-        string? phoneNumber = null, string? countryOfResidence = null)
+        string? phoneNumber = null, string? countryOfResidence = null, string? referralCode = null)
     {
         var (phone, auth) = await RegisterAndVerifyAsync(
-            phoneNumber, countryOfResidence: countryOfResidence);
+            phoneNumber, countryOfResidence: countryOfResidence, referralCode: referralCode);
 
         Api.Authenticate(auth.Tokens.AccessToken);
         await Api.SubmitVerificationAsync();

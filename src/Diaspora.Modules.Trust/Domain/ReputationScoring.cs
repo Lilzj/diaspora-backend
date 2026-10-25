@@ -19,6 +19,7 @@ public static class ReputationActions
     public const string UpdatePublished = "UpdatePublished";
     public const string UpdateVerified = "UpdateVerified";
     public const string CommentWritten = "CommentWritten";
+    public const string ReferralQualified = "ReferralQualified";
 
     // Verification
     public const string PhoneVerified = "PhoneVerified";
@@ -167,9 +168,10 @@ public static class DefaultReputationRules
     /// </para>
     /// <list type="bullet">
     ///   <item>1, 2026-10-25: credit points for an approved guide (250) and a confirmed update (200).</item>
+    ///   <item>2, 2026-10-25: a qualified referral, 25 XP and 250 credit points.</item>
     /// </list>
     /// </summary>
-    public const int Version = 1;
+    public const int Version = 2;
 
     public static IReadOnlyList<ReputationRule> All { get; } =
     [
@@ -239,6 +241,17 @@ public static class DefaultReputationRules
             CooldownHours = 0,
             Description = "Wrote a comment.",
             Label = "Comments written"
+        },
+        new()
+        {
+            // ReferralQualifiedReputationConsumer, off Creator's qualification: the person invited
+            // joined and made their first contribution. The referrer is paid; once per referral.
+            ActionType = ReputationActions.ReferralQualified,
+            Dimension = ReputationDimension.contribution,
+            Points = 25,
+            CreditPoints = 250,
+            Description = "Someone you invited joined and contributed.",
+            Label = "Referrals qualified"
         },
 
         // ── Verification ─────────────────────────────────────────────────

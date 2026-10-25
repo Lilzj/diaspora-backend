@@ -508,14 +508,26 @@ public sealed class CreatorActivityRepository : ICreatorActivityRepository
     {
         ArgumentNullException.ThrowIfNull(creatorId);
 
-        var query = Entries.AsNoTracking().Where(entry => entry.CreatorId == creatorId);
+        var contributions = CreatorActivityTypes.CommunityContributions.ToList();
+
+        var query = Entries.AsNoTracking().Where(entry =>
+            entry.CreatorId == creatorId && contributions.Contains(entry.ActionType));
 
         if (since is { } from)
         {
             query = query.Where(entry => entry.OccurredAt >= from);
         }
 
-        return await query.LongCountAsync(cancellationToken);
+        // Plus what this unit of work has staged and not saved. The recorder asks whether a referral
+        // qualifies in the same unit of work that adds the contribution, so without these the
+        // invitee's first contribution never counted itself and no referral ever qualified.
+        var staged = Entries.Local.LongCount(entry =>
+            entry.CreatorId == creatorId
+            && contributions.Contains(entry.ActionType)
+            && (since is not { } after || entry.OccurredAt >= after)
+            && _dbContext.Entry(entry).State == EntityState.Added);
+
+        return await query.LongCountAsync(cancellationToken) + staged;
     }
 
     public async Task<long> CountActionAsync(

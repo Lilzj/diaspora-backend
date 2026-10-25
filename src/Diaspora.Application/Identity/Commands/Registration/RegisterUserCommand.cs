@@ -30,4 +30,7 @@ public sealed record RegisterUserCommand : ICommand<RegistrationResponse>
     public string? PreferredLanguage { get; init; }
 
     public string? PreferredTimeZone { get; init; }
+
+    /// <summary>The inviting member's referral code, when there is one. Announced, never stored.</summary>
+    public string? ReferralCode { get; init; }
 }

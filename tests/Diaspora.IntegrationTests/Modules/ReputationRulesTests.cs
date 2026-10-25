@@ -67,7 +67,8 @@ public sealed class ReputationRulesTests : PooledIdentityTestBase
             .Should().BeEquivalentTo(new Dictionary<string, int?>
             {
                 [ReputationActions.GuideApproved] = 250,
-                [ReputationActions.UpdateVerified] = 200
+                [ReputationActions.UpdateVerified] = 200,
+                [ReputationActions.ReferralQualified] = 250
             });
     }
 

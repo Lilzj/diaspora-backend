@@ -641,6 +641,7 @@ public sealed class UserRegisteredCreatorConsumer
 {
     private readonly ICreatorProfileRepository _creators;
     private readonly ISignupBonusRepository _bonuses;
+    private readonly ReferralQualificationService _referrals;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IOptions<CreatorOptions> _options;
     private readonly IGuidGenerator _guids;
@@ -649,6 +650,7 @@ public sealed class UserRegisteredCreatorConsumer
     public UserRegisteredCreatorConsumer(
         ICreatorProfileRepository creators,
         ISignupBonusRepository bonuses,
+        ReferralQualificationService referrals,
         IUnitOfWork unitOfWork,
         IOptions<CreatorOptions> options,
         IGuidGenerator guids,
@@ -656,6 +658,7 @@ public sealed class UserRegisteredCreatorConsumer
     {
         _creators = creators;
         _bonuses = bonuses;
+        _referrals = referrals;
         _unitOfWork = unitOfWork;
         _options = options;
         _guids = guids;
@@ -706,6 +709,54 @@ public sealed class UserRegisteredCreatorConsumer
                 now.AddDays(_options.Value.SignupBonusValidDays)));
         }
 
+        // A registration through an invitation (RWD-03). Every refusal is the same silence: an
+        // unknown code, the member's own, an invitee already referred. The referrer sees the invitee
+        // by first name only.
+        if (!string.IsNullOrWhiteSpace(integrationEvent.ReferralCode))
+        {
+            await _referrals.AttributeSignupAsync(
+                integrationEvent.ReferralCode,
+                integrationEvent.UserId,
+                FirstName(integrationEvent.FullName),
+                cancellationToken);
+        }
+
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    private static string FirstName(string fullName) =>
+        fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .FirstOrDefault() ?? string.Empty;
+}
+
+/// <summary>
+/// Records a qualified referral as the referrer's activity, so the <c>first-referral</c> milestone
+/// can be reached (RWD-11).
+/// <para>
+/// This module's own event. The points are Trust's to pay (D-12); this records the fact for the
+/// programme's milestones and leaderboards, idempotent on the referral.
+/// </para>
+/// </summary>
+public sealed class ReferralQualifiedCreatorConsumer
+    : IntegrationEventHandler<Diaspora.Contracts.Creator.V1.Events.CreatorReferralQualifiedIntegrationEvent>
+{
+    private readonly CreatorActivityRecorder _recorder;
+
+    public ReferralQualifiedCreatorConsumer(CreatorActivityRecorder recorder) => _recorder = recorder;
+
+    protected override Task HandleAsync(
+        Diaspora.Contracts.Creator.V1.Events.CreatorReferralQualifiedIntegrationEvent integrationEvent,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+
+        return _recorder.RecordAsync(
+            integrationEvent.ReferrerUserId,
+            CreatorActivityTypes.ReferralQualified,
+            $"{CreatorActivityTypes.ReferralQualified}:{integrationEvent.ReferralId:N}",
+            integrationEvent.QualifiedAt,
+            cancellationToken,
+            "referral",
+            integrationEvent.ReferralId);
     }
 }

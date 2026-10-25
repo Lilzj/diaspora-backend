@@ -54,5 +54,16 @@ public sealed class RegisterUserCommandValidator : IdentityValidator<RegisterUse
             .Must(value => TimeZoneIdentifier.TryCreate(value, out _))
             .When(command => !string.IsNullOrWhiteSpace(command.PreferredTimeZone))
             .WithMessage(Message(IdentityMessageKeys.TimeZoneFormat));
+
+        // The shape only. Whether the code belongs to anybody is the referral programme's to decide,
+        // after the account exists, and it says nothing either way.
+        RuleFor(command => command.ReferralCode)
+            .Must(value => value!.Trim().Length <= MaxReferralCodeLength
+                && value.Trim().All(char.IsAsciiLetterOrDigit))
+            .When(command => !string.IsNullOrWhiteSpace(command.ReferralCode))
+            .WithMessage(Message(IdentityMessageKeys.ReferralCodeFormat));
     }
+
+    /// <summary>Longer than any code the programme issues, short enough that nothing else fits.</summary>
+    private const int MaxReferralCodeLength = 32;
 }

@@ -53,7 +53,8 @@ public sealed class UserRegisteredEventHandler : DomainEventHandler<UserRegister
             FullName = domainEvent.FullName,
             Nationality = domainEvent.Nationality,
             CountryOfResidence = domainEvent.CountryOfResidence,
-            PreferredLanguage = domainEvent.PreferredLanguage
+            PreferredLanguage = domainEvent.PreferredLanguage,
+            ReferralCode = domainEvent.ReferralCode
         }, cancellationToken);
     }
 }

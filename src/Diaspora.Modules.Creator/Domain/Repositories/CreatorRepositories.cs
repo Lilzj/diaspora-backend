@@ -428,7 +428,11 @@ public interface ICreatorActivityRepository
     Task<bool> ExistsAsync(
         CreatorId creatorId, string sourceReference, CancellationToken cancellationToken = default);
 
-    /// <summary>How many recognised actions this creator has, optionally since a moment.</summary>
+    /// <summary>
+    /// How many contributions to the community this creator has made, optionally since a moment
+    /// (<see cref="Policies.CreatorActivityTypes.CommunityContributions"/>). What a referral's
+    /// qualification reads.
+    /// </summary>
     Task<long> CountForCreatorAsync(
         CreatorId creatorId, DateTimeOffset? since, CancellationToken cancellationToken = default);
 

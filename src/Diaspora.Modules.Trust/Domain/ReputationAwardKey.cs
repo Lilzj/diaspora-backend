@@ -59,6 +59,10 @@ public sealed record ReputationAwardKey
     public static ReputationAwardKey Comment(Guid commentId) =>
         Of(ReputationActions.CommentWritten, "comment", commentId.ToString("N"));
 
+    /// <summary>Once per referral, whoever delivers the qualification and however often.</summary>
+    public static ReputationAwardKey Referral(Guid referralId) =>
+        Of(ReputationActions.ReferralQualified, "referral", referralId.ToString("N"));
+
     /// <summary>
     /// Once per reversed event (D-9): a removal delivered twice takes the award back once.
     /// </summary>

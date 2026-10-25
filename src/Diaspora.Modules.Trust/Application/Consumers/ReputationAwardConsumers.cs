@@ -503,4 +503,49 @@ public sealed class PostVerifiedReputationConsumer
     }
 }
 
+/// <summary>
+/// Pays the referrer when somebody they invited qualifies: joined and made a first contribution
+/// (RWD-03). 25 XP and, through the rule's credit points, 250 reward points (D-12, Q2).
+/// <para>
+/// Creator decides qualification and keeps the anti-abuse checks; Trust owns what it is worth. The
+/// award key is the referral, so a redelivered qualification pays once.
+/// </para>
+/// </summary>
+public sealed class ReferralQualifiedReputationConsumer
+    : IntegrationEventHandler<Diaspora.Contracts.Creator.V1.Events.CreatorReferralQualifiedIntegrationEvent>
+{
+    private readonly ReputationService _reputation;
+    private readonly TrustProfileProvisioner _provisioner;
+    private readonly IUnitOfWork _unitOfWork;
 
+    public ReferralQualifiedReputationConsumer(
+        ReputationService reputation,
+        TrustProfileProvisioner provisioner,
+        IUnitOfWork unitOfWork)
+    {
+        _reputation = reputation;
+        _provisioner = provisioner;
+        _unitOfWork = unitOfWork;
+    }
+
+    protected override async Task HandleAsync(
+        Diaspora.Contracts.Creator.V1.Events.CreatorReferralQualifiedIntegrationEvent integrationEvent,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+
+        var referrer = UserId.From(integrationEvent.ReferrerUserId);
+
+        await _provisioner.GetOrCreateBothAsync(referrer, cancellationToken);
+
+        await _reputation.ScoreAsync(
+            referrer,
+            ReputationActions.ReferralQualified,
+            ReputationAwardKey.Referral(integrationEvent.ReferralId),
+            "referral",
+            integrationEvent.ReferralId.ToString(),
+            cancellationToken: cancellationToken);
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+}
