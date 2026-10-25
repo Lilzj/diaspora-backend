@@ -43,8 +43,8 @@ namespace Diaspora.Modules.Trust.Application.Consumers;
 //     20 Oct 2026, `EmailVerificationMirrorConsumer` submits an Email verification that
 //     auto-approves, so the award is `EmailVerificationHandler.ApprovalAward`, paid once by the
 //     approval. A consumer here that also scored it would be the fourth duplicate producer.
-//   * `ProfileCompleted` — Identity publishes no profile-completeness event, and what "complete"
-//     means is still to be decided (D-11).
+//   * `ProfileCompleted` — retired (D-11). Nothing paid it, and the email and the photo it would
+//     have rewarded pay their own awards. The rule is gone; the action name stays for history.
 //   * `ProfilePhotoAdded` and `UpdateVerified` — no longer unpaid, since 23 Oct 2026 (REP-13):
 //     `ProfilePhotoReputationConsumer` pays the first photo off `UserAvatarChangedIntegrationEvent`,
 //     and `PostVerifiedReputationConsumer` pays a post's community verification now that

@@ -9,24 +9,34 @@ namespace Diaspora.UnitTests.Trust;
 /// <summary>
 /// <c>GET /trust/reputation/rules</c>: what a member is told the platform pays for.
 /// <para>
-/// A member reads the list as promises, so it is the rules something actually scores. Two of
-/// Trust's defaults are priced and paid by nothing — <c>ReportResolved</c> and
-/// <c>ProfileCompleted</c> — and listing them would be the hard-coded "How to earn" sentence again,
-/// just served from further away. <c>UpdateVerified</c> and <c>ProfilePhotoAdded</c> were in that
-/// list until their consumers were wired (REP-13).
+/// A member reads the list as promises, so it is the rules something actually scores. One of
+/// Trust's defaults is priced and paid by nothing — <c>ReportResolved</c> — and listing it would be
+/// the hard-coded "How to earn" sentence again, just served from further away.
+/// <c>UpdateVerified</c> and <c>ProfilePhotoAdded</c> were in that list until their consumers were
+/// wired (REP-13), and <c>ProfileCompleted</c> until it was retired (D-11).
 /// </para>
 /// </summary>
 public sealed class ReputationRulesQueryTests
 {
     [Fact]
-    public void The_rules_nothing_pays_are_the_two_marked_as_such()
+    public void The_only_rule_nothing_pays_is_report_resolved()
     {
         DefaultReputationRules.All
             .Where(rule => !rule.IsAwarded)
             .Select(rule => rule.ActionType)
-            .Should().BeEquivalentTo(
-                ReputationActions.ReportResolved,
-                ReputationActions.ProfileCompleted);
+            .Should().BeEquivalentTo([ReputationActions.ReportResolved]);
+    }
+
+    /// <summary>
+    /// D-11: "profile completed" stays unpaid and its rule is retired. Email and photo already pay
+    /// their own awards. The action and the profile flag stay, so any history still reads.
+    /// </summary>
+    [Fact]
+    public void Profile_completed_is_retired_and_its_history_still_has_a_name()
+    {
+        DefaultReputationRules.All.Should().NotContain(rule => rule.ActionType == ReputationActions.ProfileCompleted);
+
+        new ReputationRuleCatalog([]).LabelFor(ReputationActions.ProfileCompleted).Should().Be("Profile completed");
     }
 
     [Fact]
@@ -46,7 +56,7 @@ public sealed class ReputationRulesQueryTests
             .And.Contain(ReputationActions.UpdateVerified)
             .And.Contain(ReputationActions.ProfilePhotoAdded);
 
-        rules.Should().HaveCount(DefaultReputationRules.All.Count - 2 + 1);
+        rules.Should().HaveCount(DefaultReputationRules.All.Count - 1 + 1);
     }
 
     [Fact]

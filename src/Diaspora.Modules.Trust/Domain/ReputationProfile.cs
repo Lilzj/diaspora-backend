@@ -348,6 +348,11 @@ public sealed record LevelBenefits
     public required bool CanPublishImmediately { get; init; }
     public required bool CanModerate { get; init; }
     public required bool IsFeaturedEligible { get; init; }
+
+    /// <summary>
+    /// <b>Gates nothing (REP-18).</b> Reward conversion is gated by identity verification alone, not
+    /// by reputation. Kept because the Trust contract is frozen; the app does not show it.
+    /// </summary>
     public required bool IsRewardsEligible { get; init; }
     public required bool HasBetaAccess { get; init; }
     public required bool HasExclusiveBadge { get; init; }

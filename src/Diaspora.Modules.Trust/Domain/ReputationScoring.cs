@@ -29,6 +29,7 @@ public static class ReputationActions
     public const string CountryVerified = "CountryVerified";
     public const string ProviderVerified = "ProviderVerified";
     public const string ProfilePhotoAdded = "ProfilePhotoAdded";
+    /// <summary>Retired (D-11): no rule prices it. Kept so any event recorded under it still reads.</summary>
     public const string ProfileCompleted = "ProfileCompleted";
 
     // Trust
@@ -171,9 +172,10 @@ public static class DefaultReputationRules
     ///   <item>1, 2026-10-25: credit points for an approved guide (250) and a confirmed update (200).</item>
     ///   <item>2, 2026-10-25: a qualified referral, 25 XP and 250 credit points.</item>
     ///   <item>3, 2026-10-25: a finished Academy course, 10 XP (Q6).</item>
+    ///   <item>4, 2026-10-25: "profile completed" retired (D-11).</item>
     /// </list>
     /// </summary>
-    public const int Version = 3;
+    public const int Version = 4;
 
     public static IReadOnlyList<ReputationRule> All { get; } =
     [
@@ -329,18 +331,9 @@ public static class DefaultReputationRules
 
             // ProfilePhotoReputationConsumer, off Identity's UserAvatarChangedIntegrationEvent.
         },
-        new()
-        {
-            ActionType = ReputationActions.ProfileCompleted,
-            Dimension = ReputationDimension.verification,
-            Points = 10,
-            MaxOccurrences = 1,
-            Description = "Completed the profile.",
-            Label = "Profile completed",
-
-            // Nothing scores it yet: no consumer or handler calls ScoreAsync with this action.
-            IsAwarded = false
-        },
+        // ProfileCompleted is retired (D-11): nothing ever paid it, and the email and the photo it
+        // would have rewarded already pay their own awards. The action and the profile flag stay,
+        // so any history still reads.
 
         // ── Trust ────────────────────────────────────────────────────────
         new()
