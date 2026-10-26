@@ -186,7 +186,9 @@ public sealed class ListingReport : AggregateRoot<ListingReportId>, IAuditableEn
             Status = outcome,
             ResolvedBy = reviewerId,
             Resolution = trimmed,
-            ResolvedAt = now
+            ResolvedAt = now,
+            ReporterId = ReporterId,
+            SellerId = SellerId
         });
 
         return Result.Success();

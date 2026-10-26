@@ -180,6 +180,18 @@ public sealed class HousingReport : AggregateRoot<HousingReportId>, IAuditableEn
         Resolution = string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
         ModifiedAt = now;
 
+        if (upheld)
+        {
+            RaiseDomainEvent(new Events.HousingReportUpheldDomainEvent
+            {
+                ReportId = Id,
+                ListingId = ListingId,
+                LandlordId = LandlordId,
+                ReportedBy = ReportedBy,
+                UpheldAt = now
+            });
+        }
+
         return Result.Success();
     }
 

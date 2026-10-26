@@ -67,6 +67,13 @@ public sealed record ReputationAwardKey
     public static ReputationAwardKey ProviderRecommendation(Guid recommendationId) =>
         Of(ReputationActions.ProviderRecommendationReceived, "recommendation", recommendationId.ToString("N"));
 
+    /// <summary>
+    /// Once per upheld report. Report ids are unique within a module, not across the five that take
+    /// reports, so the module is part of the key.
+    /// </summary>
+    public static ReputationAwardKey Report(string module, Guid reportId) =>
+        Of(ReputationActions.ReportResolved, "report", $"{module}:{reportId:N}");
+
     /// <summary>Once per course a member finishes.</summary>
     public static ReputationAwardKey Course(Guid courseId) =>
         Of(ReputationActions.CourseCompleted, "course", courseId.ToString("N"));

@@ -29,11 +29,9 @@ public sealed class ReputationRulesTests : PooledIdentityTestBase
         var rules = await IdentityApiClient.ReadDataAsync<List<RuleView>>(response);
 
         rules.Select(rule => rule.ActionType).Should().NotContain(
-            [
-                ReputationActions.ReportResolved,
-                ReputationActions.ProfileCompleted
-            ],
-            "nothing pays them, and the list is read as promises");
+            ReputationActions.ProfileCompleted, "nothing pays it, and the list is read as promises");
+        rules.Select(rule => rule.ActionType).Should().Contain(
+            ReputationActions.ReportResolved, "an upheld report pays its reporter since step 3e");
 
         // Paid since REP-13: the first profile photo, and a post the community verifies.
         rules.Should().ContainEquivalentOf(new RuleView(

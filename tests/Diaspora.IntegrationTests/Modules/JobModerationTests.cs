@@ -2,7 +2,12 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Diaspora.IntegrationTests.Common;
+using Diaspora.Modules.Trust.Domain;
+using Diaspora.Modules.Trust.Persistence;
+using Diaspora.SharedKernel.Identity;
+using Diaspora.SharedKernel.Pagination;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Diaspora.IntegrationTests.Modules;
@@ -29,6 +34,9 @@ public sealed class JobModerationTests : PooledIdentityTestBase
     private const string Root = "/api/v1/jobs";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
+    /// <summary>Who filed the last report, so a test can see what upholding it paid them.</summary>
+    private Guid _lastReporterId;
 
     public JobModerationTests(CustomWebApplicationFactory factory) : base(factory) { }
 
@@ -117,6 +125,16 @@ public sealed class JobModerationTests : PooledIdentityTestBase
         resolved.StatusCode.Should().Be(HttpStatusCode.OK);
 
         (await IsPubliclyFindableAsync(posting)).Should().BeFalse();
+
+        // REP-13: the member who reported it is paid for a report a moderator agreed with.
+        await Factory.DrainOutboxAsync();
+
+        using var scope = Factory.Services.CreateScope();
+        var events = await scope.ServiceProvider.GetRequiredService<IReputationProfileRepository>()
+            .ListEventsAsync(UserId.From(_lastReporterId), new PaginationRequest { PageSize = 50 });
+
+        events.Items.Should().ContainSingle(item => item.ActionType == ReputationActions.ReportResolved)
+            .Which.AwardKey.Should().Be(ReputationAwardKey.Report("jobs", reportId).Value);
     }
 
     /// <summary>
@@ -299,6 +317,7 @@ public sealed class JobModerationTests : PooledIdentityTestBase
     {
         var (_, reporter) = await RegisterVerifiedMemberAsync();
         Api.Authenticate(reporter.Tokens.AccessToken);
+        _lastReporterId = reporter.User.Id;
 
         var response = await HttpClient.PostAsJsonAsync(
             $"{Root}/postings/{postingId}/reports", new { reason, detail });

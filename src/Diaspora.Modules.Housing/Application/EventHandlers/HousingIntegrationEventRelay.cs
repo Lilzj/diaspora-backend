@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Content.V1.Events;
 using Diaspora.Contracts.Events;
 using Diaspora.Contracts.Housing.V1.Events;
 using Diaspora.Modules.Housing.Domain.Enums;
@@ -568,6 +569,28 @@ public sealed class HousingIntegrationEventRelay
                 IsApproved = domainEvent.IsApproved,
                 ChangedBy = domainEvent.ChangedBy?.Value,
                 ChangedAt = domainEvent.OccurredAt
+            },
+            cancellationToken);
+    }
+
+    /// <summary>A report upheld (REP-13), with the landlord's owner when the profile was found.</summary>
+    public Task PublishAsync(
+        HousingReportUpheldDomainEvent domainEvent,
+        Guid? ownerUserId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(domainEvent);
+
+        return PublishSafelyAsync(
+            new ContentReportUpheldIntegrationEvent
+            {
+                ReportId = domainEvent.ReportId.Value,
+                Module = "housing",
+                ContentType = "listing",
+                ContentId = domainEvent.ListingId.Value,
+                ReporterUserId = domainEvent.ReportedBy.Value,
+                ContentOwnerUserId = ownerUserId,
+                UpheldAt = domainEvent.UpheldAt
             },
             cancellationToken);
     }

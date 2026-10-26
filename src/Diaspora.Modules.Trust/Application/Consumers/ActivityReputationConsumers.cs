@@ -1,5 +1,6 @@
 using Diaspora.Application.Abstractions;
 using Diaspora.Contracts.CommunityLife.V1.Events;
+using Diaspora.Contracts.Content.V1.Events;
 using Diaspora.Contracts.CommunityProgramme.V1.Events;
 using Diaspora.Contracts.Housing.V1.Events;
 using Diaspora.Contracts.Jobs.V1.Events;
@@ -258,5 +259,39 @@ public sealed class ProviderRecommendationReputationConsumer
                 null,
                 cancellationToken)
             : Task.CompletedTask;
+    }
+}
+
+/// <summary>
+/// Pays a member 5 trust XP when a moderator upholds a report they raised, in any of the five
+/// modules that take reports (REP-13). Never for reporting their own content.
+/// <para>
+/// <b>Sourced from the report, not the content.</b> Removing content takes back every award sourced
+/// from it, and an upheld report usually removes the content: an award sourced from the content
+/// would be taken back the moment it was paid.
+/// </para>
+/// </summary>
+public sealed class ReportUpheldReputationConsumer
+    : IntegrationEventHandler<ContentReportUpheldIntegrationEvent>
+{
+    private readonly ActivityReputationScorer _scorer;
+
+    public ReportUpheldReputationConsumer(ActivityReputationScorer scorer) => _scorer = scorer;
+
+    protected override Task HandleAsync(
+        ContentReportUpheldIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+
+        return integrationEvent.ContentOwnerUserId == integrationEvent.ReporterUserId
+            ? Task.CompletedTask
+            : _scorer.ScoreAsync(
+                integrationEvent.ReporterUserId,
+                ReputationActions.ReportResolved,
+                ReputationAwardKey.Report(integrationEvent.Module, integrationEvent.ReportId),
+                "report",
+                integrationEvent.ReportId,
+                null,
+                cancellationToken);
     }
 }

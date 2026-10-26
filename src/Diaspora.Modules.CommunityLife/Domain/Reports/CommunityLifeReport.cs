@@ -198,6 +198,18 @@ public sealed class CommunityLifeReport
         ResolutionNote = string.IsNullOrEmpty(trimmed) ? null : trimmed;
         ModifiedAt = now;
 
+        if (outcome == CommunityLifeReportStatus.Upheld)
+        {
+            RaiseDomainEvent(new Events.CommunityLifeReportUpheldDomainEvent
+            {
+                ReportId = Id,
+                SubjectType = SubjectType,
+                SubjectId = SubjectId,
+                ReportedByUserId = ReportedByUserId,
+                UpheldAt = now
+            });
+        }
+
         if (mergedIntoSubjectId is { } target && target != Guid.Empty && target != SubjectId)
         {
             MergedIntoSubjectId = target;

@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Content.V1.Events;
 using Diaspora.Contracts.Events;
 using Diaspora.Contracts.Marketplace.V1.Events;
 using Diaspora.Modules.Marketplace.Domain.Enums;
@@ -542,6 +543,28 @@ public sealed class MarketplaceIntegrationEventRelay
                 TotalReports = domainEvent.TotalReports,
                 WasFlagged = wasFlagged,
                 ReportedAt = domainEvent.ReportedAt
+            },
+            cancellationToken);
+    }
+
+    /// <summary>An actioned report (REP-13), with the seller's owner when the profile was found.</summary>
+    public Task PublishReportUpheldAsync(
+        ListingReportResolvedDomainEvent domainEvent,
+        Guid? ownerUserId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(domainEvent);
+
+        return PublishSafelyAsync(
+            new ContentReportUpheldIntegrationEvent
+            {
+                ReportId = domainEvent.ReportId.Value,
+                Module = "marketplace",
+                ContentType = "listing",
+                ContentId = domainEvent.ListingId.Value,
+                ReporterUserId = domainEvent.ReporterId.Value,
+                ContentOwnerUserId = ownerUserId,
+                UpheldAt = domainEvent.ResolvedAt
             },
             cancellationToken);
     }

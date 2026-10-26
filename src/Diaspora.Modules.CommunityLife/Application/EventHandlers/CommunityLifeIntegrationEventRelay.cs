@@ -1,4 +1,5 @@
 using Diaspora.Contracts.CommunityLife.V1.Events;
+using Diaspora.Contracts.Content.V1.Events;
 using Diaspora.Contracts.Events;
 using Diaspora.Modules.CommunityLife.Domain.Catalog;
 using Diaspora.Modules.CommunityLife.Domain.CommunityEvents;
@@ -1172,6 +1173,28 @@ public sealed class CommunityLifeIntegrationEventRelay
             ? []
             : [.. category.Facets.Split(
                 ',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)];
+    }
+
+    /// <summary>
+    /// A report upheld (REP-13). Who owns the event or organisation is not on the report, so no
+    /// owner travels; Trust pays the reporter either way.
+    /// </summary>
+    public Task PublishAsync(
+        CommunityLifeReportUpheldDomainEvent domainEvent, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(domainEvent);
+
+        return PublishSafelyAsync(
+            new ContentReportUpheldIntegrationEvent
+            {
+                ReportId = domainEvent.ReportId.Value,
+                Module = "community-life",
+                ContentType = domainEvent.SubjectType == ReportSubjectType.Organization ? "organization" : "event",
+                ContentId = domainEvent.SubjectId,
+                ReporterUserId = domainEvent.ReportedByUserId.Value,
+                UpheldAt = domainEvent.UpheldAt
+            },
+            cancellationToken);
     }
 
     private async Task PublishSafelyAsync<TEvent>(

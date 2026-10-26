@@ -1,4 +1,5 @@
 ﻿using Diaspora.Contracts.Events;
+using Diaspora.Contracts.Content.V1.Events;
 using Diaspora.Contracts.Jobs.V1.Events;
 using Diaspora.Modules.Jobs.Application.Services;
 using Diaspora.Modules.Jobs.Domain.Applications;
@@ -579,6 +580,28 @@ public sealed class JobIntegrationEventRelay
         var employer = await _employers.GetAsync(employerId, cancellationToken);
 
         return employer?.NotifiableOwnerUserId.Value;
+    }
+
+    /// <summary>A report upheld (REP-13), with the employer's owner when the profile was found.</summary>
+    public Task PublishAsync(
+        JobReportUpheldDomainEvent domainEvent,
+        Guid? ownerUserId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(domainEvent);
+
+        return PublishSafelyAsync(
+            new ContentReportUpheldIntegrationEvent
+            {
+                ReportId = domainEvent.ReportId.Value,
+                Module = "jobs",
+                ContentType = "job",
+                ContentId = domainEvent.PostingId.Value,
+                ReporterUserId = domainEvent.ReportedBy.Value,
+                ContentOwnerUserId = ownerUserId,
+                UpheldAt = domainEvent.UpheldAt
+            },
+            cancellationToken);
     }
 
     private async Task PublishSafelyAsync<TEvent>(
