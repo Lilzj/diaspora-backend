@@ -3,6 +3,7 @@ using Diaspora.Modules.Creator.Domain.Enums;
 using Diaspora.Modules.Creator.Domain.Errors;
 using Diaspora.Modules.Creator.Domain.Events;
 using Diaspora.Modules.Creator.Domain.Identifiers;
+using Diaspora.Modules.Creator.Domain.Policies;
 using Diaspora.Modules.Creator.Domain.ValueObjects;
 using Diaspora.SharedKernel.Primitives;
 using Diaspora.SharedKernel.Results;
@@ -282,7 +283,8 @@ public sealed class CreatorMilestoneProgress
                 definition.RewardPoints,
                 $"Milestone:{definition.Key}",
                 grantReference,
-                now));
+                now,
+                CreatorGrantPolicyVersions.Milestone(definition.Key, definition.PolicyRevision)));
         }
 
         return Result.Success();

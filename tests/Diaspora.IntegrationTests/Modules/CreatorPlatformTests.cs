@@ -663,6 +663,15 @@ public sealed class CreatorPlatformTests : IdentityTestBase
             await HttpClient.GetAsync($"{Financial}/rewards/me"));
 
         after.PendingPoints.Should().Be(before, "a redelivered grant awards once");
+
+        // RWD-13: the entry names the schedule that priced it, the milestone's own revision.
+        using var scope = Factory.Services.CreateScope();
+        var account = await scope.ServiceProvider
+            .GetRequiredService<Diaspora.Modules.Financial.Domain.Rewards.IRewardAccountRepository>()
+            .FindByMemberAsync(_memberUserId);
+
+        account!.Entries.Single(entry => entry.Source == "Milestone:first-guide")
+            .PolicyVersion.Should().Be("creator.milestone/first-guide@1");
     }
 
     /// <summary>Claiming a milestone that is not complete is refused.</summary>

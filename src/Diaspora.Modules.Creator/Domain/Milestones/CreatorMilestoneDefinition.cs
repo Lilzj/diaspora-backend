@@ -87,6 +87,13 @@ public sealed class CreatorMilestoneDefinition : AggregateRoot<CreatorMilestoneI
 
     public IReadOnlyList<MilestoneRule> Rules => _rules.AsReadOnly();
 
+    /// <summary>
+    /// Which version of this milestone priced a claim (RWD-13). Starts at 1 and moves with every
+    /// <see cref="Redefine"/>, and every claim's points grant names it:
+    /// <c>creator.milestone/{key}@{revision}</c>.
+    /// </summary>
+    public int PolicyRevision { get; private set; } = 1;
+
     public DateTimeOffset CreatedAt { get; private set; }
 
     public string? CreatedBy { get; private set; }
@@ -164,6 +171,7 @@ public sealed class CreatorMilestoneDefinition : AggregateRoot<CreatorMilestoneI
         Unit = unit;
         ExpiresAt = expiresAt;
         IsActive = true;
+        PolicyRevision++;
 
         _rules.Clear();
         _rules.AddRange(rules);

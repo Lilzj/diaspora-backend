@@ -96,6 +96,13 @@ public sealed class CreatorChallenge : AggregateRoot<CreatorChallengeId>, IAudit
     /// <summary>Countries this challenge runs in. Empty means everywhere.</summary>
     public IReadOnlyList<ChallengeCountry> Countries => _countries.AsReadOnly();
 
+    /// <summary>
+    /// Which version of this challenge priced a claim (RWD-13). Starts at 1 and moves with every
+    /// <see cref="Redefine"/>, and every claim's points grant names it:
+    /// <c>creator.challenge/{key}@{revision}</c>.
+    /// </summary>
+    public int PolicyRevision { get; private set; } = 1;
+
     public DateTimeOffset CreatedAt { get; private set; }
 
     public string? CreatedBy { get; private set; }
@@ -208,6 +215,7 @@ public sealed class CreatorChallenge : AggregateRoot<CreatorChallengeId>, IAudit
         MinimumStatus = minimumStatus;
         IsCancelled = false;
         IsPublished = true;
+        PolicyRevision++;
 
         _tasks.Clear();
         _tasks.AddRange(tasks);

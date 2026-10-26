@@ -5790,6 +5790,9 @@ namespace Diaspora.Persistence.Migrations
                     b.Property<int>("ParticipantCount")
                         .HasColumnType("integer");
 
+                    b.Property<int>("PolicyRevision")
+                        .HasColumnType("integer");
+
                     b.Property<string>("RewardBadgeKey")
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
@@ -6347,6 +6350,9 @@ namespace Diaspora.Persistence.Migrations
 
                     b.Property<string>("ModifiedBy")
                         .HasColumnType("text");
+
+                    b.Property<int>("PolicyRevision")
+                        .HasColumnType("integer");
 
                     b.Property<string>("RewardBadgeKey")
                         .HasMaxLength(128)
