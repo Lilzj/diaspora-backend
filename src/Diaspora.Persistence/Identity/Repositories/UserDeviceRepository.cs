@@ -39,6 +39,16 @@ public sealed class UserDeviceRepository : IUserDeviceRepository
     public async Task<int> CountByUserAsync(UserId userId, CancellationToken cancellationToken = default) =>
         await Devices.CountAsync(device => device.UserId == userId, cancellationToken);
 
+    // On ix_user_devices_identifier. Rows, not distinct accounts: the per-user unique index already
+    // allows one row per account for an identifier.
+    public async Task<int> CountOtherAccountsAsync(
+        UserId userId,
+        string deviceIdentifier,
+        CancellationToken cancellationToken = default) =>
+        await Devices.CountAsync(
+            device => device.DeviceIdentifier == deviceIdentifier && device.UserId != userId,
+            cancellationToken);
+
     public async Task AddAsync(UserDevice device, CancellationToken cancellationToken = default) =>
         await Devices.AddAsync(device, cancellationToken);
 

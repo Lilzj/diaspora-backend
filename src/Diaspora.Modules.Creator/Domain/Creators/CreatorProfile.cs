@@ -112,6 +112,15 @@ public sealed class CreatorProfile : AggregateRoot<CreatorId>, IAuditableEntity
     /// </summary>
     public string? StandingReason { get; private set; }
 
+    /// <summary>
+    /// When Identity said this member registered a device other accounts already use (D-13). Null
+    /// when it has not, or since staff reviewed the member. While it is set, a referral this member
+    /// was invited by waits for review instead of qualifying. Shown to nobody.
+    /// </summary>
+    public DateTimeOffset? SharedDeviceFlaggedAt { get; private set; }
+
+    public bool IsSharedDeviceFlagged => SharedDeviceFlaggedAt is not null;
+
     // ── Discovery ───────────────────────────────────────────────────────────────────────────
 
     /// <summary>
@@ -396,6 +405,32 @@ public sealed class CreatorProfile : AggregateRoot<CreatorId>, IAuditableEntity
         IsSuspended = isSuspended;
         StandingReason = Normalise(reason);
         Touch(now);
+    }
+
+    /// <summary>Records the shared-device signal. A second one is the same finding: the first instant stays.</summary>
+    public void FlagSharedDevice(DateTimeOffset now)
+    {
+        if (SharedDeviceFlaggedAt is not null)
+        {
+            return;
+        }
+
+        SharedDeviceFlaggedAt = now;
+        Touch(now);
+    }
+
+    /// <summary>Staff reviewed the member and lifted their hold. False when nothing was flagged.</summary>
+    public bool ClearSharedDeviceFlag(DateTimeOffset now)
+    {
+        if (SharedDeviceFlaggedAt is null)
+        {
+            return false;
+        }
+
+        SharedDeviceFlaggedAt = null;
+        Touch(now);
+
+        return true;
     }
 
     /// <summary>The tags of one kind, in the order the member gave them.</summary>

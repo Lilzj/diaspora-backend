@@ -63,4 +63,11 @@ public static class ReferralQualificationPolicy
 
     /// <summary>What the member is shown while a referral is still working toward the rule.</summary>
     public const string PendingReason = "Waiting for their first contribution.";
+
+    /// <summary>
+    /// What the member is shown while a referral waits for review (D-13). Like
+    /// <see cref="DeclinedReason"/>, it names nothing: the referrer learns it is being checked, never
+    /// which check.
+    /// </summary>
+    public const string ReviewReason = "Being checked before it can qualify.";
 }

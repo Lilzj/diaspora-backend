@@ -1,11 +1,15 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using Diaspora.Contracts.Identity.V1.Events;
+using Diaspora.Domain.Abstractions;
 using Diaspora.IntegrationTests.Common;
 using Diaspora.Modules.Creator.Domain.Enums;
+using Diaspora.Modules.Creator.Domain.Policies;
 using Diaspora.Modules.Creator.Domain.Repositories;
 using Diaspora.Modules.Financial.Domain.Rewards;
 using Diaspora.Modules.Trust.Domain;
 using Diaspora.Modules.Trust.Persistence;
+using Diaspora.Platform.Messaging;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Pagination;
 using FluentAssertions;
@@ -73,6 +77,49 @@ public sealed class ReferralRewardTests : PooledIdentityTestBase
             .Should().Be("Completed", "the qualified referral is the referrer's activity");
     }
 
+    /// <summary>
+    /// An invitee on a device another account already uses (C3.3, D-13). Their first contribution
+    /// does not qualify the referral: it waits for review, and the referrer is told it is being
+    /// checked and nothing about why. Staff lifting the invitee's hold, from the review queue, is the
+    /// review, and the referral then qualifies and pays.
+    /// </summary>
+    [Fact]
+    public async Task A_referral_from_a_shared_device_waits_for_review_and_qualifies_once_staff_clear_it()
+    {
+        var (_, referrer) = await RegisterVerifiedMemberAsync();
+        Api.Authenticate(referrer.Tokens.AccessToken);
+
+        var code = (await DataAsync(await HttpClient.GetAsync("/api/v1/referrals/me")))
+            .GetProperty("code").GetString()!;
+
+        var (_, invitee) = await RegisterVerifiedMemberAsync(referralCode: code);
+        await Factory.DrainOutboxAsync();
+        await AnnounceSharedDeviceAsync(invitee.User.Id);
+
+        Api.Authenticate(invitee.Tokens.AccessToken);
+        await PublishGuideAsync("Opening a bank account");
+        await Factory.DrainOutboxAsync();
+        await Factory.DrainOutboxAsync();
+
+        var waiting = (await ReferralOfAsync(invitee.User.Id))!;
+        waiting.State.Should().Be(ReferralState.Pending, "a contribution from a shared device is not enough");
+        waiting.StateReason.Should().Be(ReferralQualificationPolicy.ReviewReason);
+        (await EventsAsync(referrer.User.Id)).Should()
+            .NotContain(item => item.ActionType == ReputationActions.ReferralQualified);
+
+        await SignInAsRoleAsync("Admin");
+        (await HttpClient.PutAsJsonAsync(
+                new Uri($"/api/v1/financial/operations/rewards/members/{invitee.User.Id}/conversion-hold", UriKind.Relative),
+                new { isHeld = false, reason = "A family phone; reviewed." }))
+            .EnsureSuccessStatusCode();
+        await Factory.DrainOutboxAsync();
+        await Factory.DrainOutboxAsync();
+
+        (await ReferralOfAsync(invitee.User.Id))!.State.Should().Be(ReferralState.Rewarded);
+        (await EventsAsync(referrer.User.Id)).Should()
+            .ContainSingle(item => item.ActionType == ReputationActions.ReferralQualified);
+    }
+
     /// <summary>A code nobody owns registers the account and credits nobody, silently.</summary>
     [Fact]
     public async Task An_unknown_code_registers_the_account_and_refers_nobody()
@@ -93,6 +140,25 @@ public sealed class ReferralRewardTests : PooledIdentityTestBase
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────────────────────
+
+    /// <summary>Identity's shared-device announcement, through the outbox as Identity publishes it.</summary>
+    private async Task AnnounceSharedDeviceAsync(Guid userId)
+    {
+        using (var scope = Factory.Services.CreateScope())
+        {
+            await scope.ServiceProvider.GetRequiredService<IIntegrationEventPublisher>().PublishAsync(
+                new AccountDeviceSharedIntegrationEvent
+                {
+                    UserId = userId,
+                    OtherAccounts = 1,
+                    DetectedAt = DateTimeOffset.UtcNow
+                });
+
+            await scope.ServiceProvider.GetRequiredService<IUnitOfWork>().SaveChangesAsync();
+        }
+
+        await Factory.DrainOutboxAsync();
+    }
 
     private async Task<Diaspora.Modules.Creator.Domain.Referrals.CreatorReferral?> ReferralOfAsync(Guid inviteeUserId)
     {
