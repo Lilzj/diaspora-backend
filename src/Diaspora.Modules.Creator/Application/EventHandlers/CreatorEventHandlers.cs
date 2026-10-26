@@ -187,6 +187,23 @@ public sealed class CreatorIntegrationEventRelay
     }
 
     public Task PublishAsync(
+        CourseCompletedDomainEvent domainEvent, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(domainEvent);
+
+        return PublishSafelyAsync(
+            new CourseCompletedIntegrationEvent
+            {
+                CourseId = domainEvent.CourseId.Value,
+                CourseSlug = domainEvent.CourseSlug,
+                CreatorId = domainEvent.CreatorId.Value,
+                UserId = domainEvent.UserId,
+                CompletedAt = domainEvent.CompletedAt
+            },
+            cancellationToken);
+    }
+
+    public Task PublishAsync(
         SignupBonusAwardedDomainEvent domainEvent, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(domainEvent);
@@ -338,6 +355,17 @@ public sealed class ReferralQualifiedHandler : DomainEventHandler<ReferralQualif
 
     protected override Task HandleAsync(
         ReferralQualifiedDomainEvent domainEvent, CancellationToken cancellationToken) =>
+        _relay.PublishAsync(domainEvent, cancellationToken);
+}
+
+public sealed class CourseCompletedHandler : DomainEventHandler<CourseCompletedDomainEvent>
+{
+    private readonly CreatorIntegrationEventRelay _relay;
+
+    public CourseCompletedHandler(CreatorIntegrationEventRelay relay) => _relay = relay;
+
+    protected override Task HandleAsync(
+        CourseCompletedDomainEvent domainEvent, CancellationToken cancellationToken) =>
         _relay.PublishAsync(domainEvent, cancellationToken);
 }
 

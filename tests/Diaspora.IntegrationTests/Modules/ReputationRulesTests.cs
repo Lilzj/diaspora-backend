@@ -37,7 +37,7 @@ public sealed class ReputationRulesTests : PooledIdentityTestBase
 
         // Paid since REP-13: the first profile photo, and a post the community verifies.
         rules.Should().ContainEquivalentOf(new RuleView(
-            ReputationActions.UpdateVerified, "Updates confirmed by the community", "contribution", 15, null, null, true));
+            ReputationActions.UpdateVerified, "Updates confirmed by the community", "contribution", 15, null, null, true, 200));
         rules.Should().ContainEquivalentOf(new RuleView(
             ReputationActions.ProfilePhotoAdded, "Profile photo added", "verification", 5, 1, null, false));
 
@@ -47,6 +47,29 @@ public sealed class ReputationRulesTests : PooledIdentityTestBase
             ReputationActions.CountryVerified, "Countries verified", "verification", 30, 1, null, true));
         rules.Should().ContainEquivalentOf(new RuleView(
             ReputationActions.ViolationRecorded, "Policy violations", "trust", -75, null, null, false));
+    }
+
+    /// <summary>
+    /// D-2: points only for confirmed outcomes. The rules say which pay points as well as XP, so the
+    /// app can show what earns points from the platform's own list (CS-C4).
+    /// </summary>
+    [Fact]
+    public async Task The_rules_say_which_confirmed_outcomes_also_pay_points()
+    {
+        var (_, auth) = await RegisterAndVerifyAsync();
+        Api.Authenticate(auth.Tokens.AccessToken);
+
+        var rules = await IdentityApiClient.ReadDataAsync<List<RuleView>>(
+            await HttpClient.GetAsync("/api/v1/trust/reputation/rules"));
+
+        rules.Where(rule => rule.CreditPoints is not null)
+            .ToDictionary(rule => rule.ActionType, rule => rule.CreditPoints)
+            .Should().BeEquivalentTo(new Dictionary<string, int?>
+            {
+                [ReputationActions.GuideApproved] = 250,
+                [ReputationActions.UpdateVerified] = 200,
+                [ReputationActions.ReferralQualified] = 250
+            });
     }
 
     [Fact]
@@ -79,5 +102,6 @@ public sealed class ReputationRulesTests : PooledIdentityTestBase
         int Points,
         int? MaxOccurrences,
         int? CooldownHours,
-        bool IsCountryScoped);
+        bool IsCountryScoped,
+        int? CreditPoints = null);
 }

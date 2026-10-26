@@ -116,7 +116,8 @@ public sealed class User : AggregateRoot<UserId>, IAuditableEntity, ISoftDeletab
         CountryCode countryOfResidence,
         LanguageCode preferredLanguage,
         TimeZoneIdentifier preferredTimeZone,
-        DateTimeOffset now)
+        DateTimeOffset now,
+        string? referralCode = null)
     {
         ArgumentNullException.ThrowIfNull(fullName);
         ArgumentNullException.ThrowIfNull(phoneNumber);
@@ -136,7 +137,8 @@ public sealed class User : AggregateRoot<UserId>, IAuditableEntity, ISoftDeletab
             fullName.Value,
             nationality.Value,
             countryOfResidence.Value,
-            preferredLanguage.Value));
+            preferredLanguage.Value,
+            string.IsNullOrWhiteSpace(referralCode) ? null : referralCode.Trim()));
 
         return user;
     }

@@ -72,7 +72,8 @@ public sealed class AuthController : ApiController
             Nationality = request.Nationality,
             CountryOfResidence = request.CountryOfResidence,
             PreferredLanguage = request.PreferredLanguage,
-            PreferredTimeZone = request.PreferredTimeZone
+            PreferredTimeZone = request.PreferredTimeZone,
+            ReferralCode = request.ReferralCode
         }, cancellationToken);
 
         return HandleCreated(result);

@@ -9,6 +9,7 @@ using Diaspora.Modules.Trust.Application.Services;
 using Diaspora.Modules.Trust.Domain;
 using Diaspora.Modules.Trust.Extensibility;
 using Diaspora.Modules.Trust.Persistence;
+using Diaspora.Platform.Messaging;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Identity;
 using FluentAssertions;
@@ -460,7 +461,7 @@ public sealed class ReputationAwardKeyTests
 
             UnitOfWork = Substitute.For<IUnitOfWork>();
 
-            Service = new ReputationService(Reputations, profiles, new ReputationRuleCatalog([]), clock);
+            Service = new ReputationService(Reputations, profiles, new ReputationRuleCatalog([]), Substitute.For<IIntegrationEventPublisher>(), clock);
             Provisioner = new TrustProfileProvisioner(
                 profiles, Reputations, Substitute.For<ITrustEventRepository>(), clock);
         }

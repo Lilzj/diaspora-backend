@@ -10,4 +10,5 @@ public sealed record UserRegisteredDomainEvent(
     string FullName,
     string Nationality,
     string CountryOfResidence,
-    string PreferredLanguage) : DomainEvent;
+    string PreferredLanguage,
+    string? ReferralCode = null) : DomainEvent;

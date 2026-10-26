@@ -33,6 +33,7 @@ public static class IdentityMessageKeys
 
     public const string LanguageFormat = "identity.validation.language.format";
     public const string TimeZoneFormat = "identity.validation.timeZone.format";
+    public const string ReferralCodeFormat = "identity.validation.referralCode.format";
     public const string EmailFormat = "identity.validation.email.format";
 
     /// <summary>Sign-in and recovery both identify the member by email address.</summary>

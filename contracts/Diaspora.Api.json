@@ -49604,6 +49604,12 @@
               "null",
               "string"
             ]
+          },
+          "referralCode": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

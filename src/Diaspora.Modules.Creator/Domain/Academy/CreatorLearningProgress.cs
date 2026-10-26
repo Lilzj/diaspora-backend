@@ -214,10 +214,16 @@ public sealed class CreatorLearningProgress
     }
 
     /// <summary>
-    /// The course finished, so the reward and the certificate follow.
+    /// The course finished, so the certificate follows and the completion is announced.
     /// <para>
-    /// Separate from <see cref="Recompute"/> so the reference the grant carries is supplied by the
-    /// handler that owns idempotency rather than invented inside the aggregate.
+    /// Separate from <see cref="Recompute"/> so the reference that marks the completion done is
+    /// supplied by the handler that owns idempotency rather than invented inside the aggregate.
+    /// </para>
+    /// <para>
+    /// <b>Pays no points (Q6).</b> It paid the course's <see cref="AcademyCourse.CompletionPoints"/>
+    /// until 2026-10-25; points are now paid only for confirmed outcomes (D-2). A completion earns
+    /// XP, from Trust off <see cref="CourseCompletedDomainEvent"/>, and counts toward the
+    /// <c>academy-graduate</c> milestone, whose own points still pay. Points already earned stay.
     /// </para>
     /// </summary>
     public void AwardCompletion(
@@ -238,16 +244,7 @@ public sealed class CreatorLearningProgress
         CompletionGrantReference = grantReference;
         Touch(now);
 
-        if (course.CompletionPoints > 0)
-        {
-            RaiseDomainEvent(new CreatorPointsEarnedDomainEvent(
-                CreatorId,
-                UserId,
-                course.CompletionPoints,
-                $"Course:{course.Slug}",
-                grantReference,
-                now));
-        }
+        RaiseDomainEvent(new CourseCompletedDomainEvent(CreatorId, UserId, CourseId, course.Slug, now));
     }
 
     public void SetSaved(bool isSaved, DateTimeOffset now)

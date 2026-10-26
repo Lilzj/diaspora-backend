@@ -207,3 +207,24 @@ public sealed record SignupBonusAwardedIntegrationEvent : IntegrationEvent
 
     public required DateTimeOffset AwardedAt { get; init; }
 }
+
+/// <summary>
+/// A member finished an Academy course (RWD-12).
+/// <para>
+/// <b>Carries no points.</b> A course pays none for new completions (Q6): what it earns is XP, which
+/// Trust pays off this event, and the activity the <c>academy-graduate</c> milestone counts. Published
+/// once per member and course.
+/// </para>
+/// </summary>
+public sealed record CourseCompletedIntegrationEvent : IntegrationEvent
+{
+    public required Guid CourseId { get; init; }
+
+    public required string CourseSlug { get; init; }
+
+    public required Guid CreatorId { get; init; }
+
+    public required Guid UserId { get; init; }
+
+    public required DateTimeOffset CompletedAt { get; init; }
+}

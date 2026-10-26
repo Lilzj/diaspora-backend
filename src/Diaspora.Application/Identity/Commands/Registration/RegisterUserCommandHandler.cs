@@ -128,7 +128,8 @@ public sealed class RegisterUserCommandHandler : ICommandHandler<RegisterUserCom
             residence,
             language,
             timeZone,
-            now);
+            now,
+            request.ReferralCode);
 
         // `User.Register` predates email being a credential and does not take one.
         // Set through the domain so the profile-updated event is raised exactly as it

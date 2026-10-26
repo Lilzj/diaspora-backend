@@ -126,6 +126,10 @@ public sealed class AcademyCourse : AggregateRoot<AcademyCourseId>, IAuditableEn
     public string? AwardsBadgeKey { get; private set; }
 
     /// <summary>Points the programme grants for finishing. Awarded through B15, never here.</summary>
+    /// <summary>
+    /// What finishing the course used to pay. <b>No longer paid</b> for new completions (Q6): a
+    /// course earns XP and counts toward <c>academy-graduate</c>. Kept for the courses that paid it.
+    /// </summary>
     public int CompletionPoints { get; private set; }
 
     /// <summary>Bumped whenever the course or any of its lessons is rewritten. See the class summary.</summary>

@@ -898,6 +898,11 @@ public sealed record CreatorPointRuleResponse
 
     public required string Description { get; init; }
 
+    /// <summary>
+    /// The action's weight toward leaderboards, milestones and challenges. <b>Not reward points</b>:
+    /// nothing pays it (RWD-02). What pays points is Trust's rules with <c>creditPoints</c>, and this
+    /// programme's milestones, challenges and sign-up bonus.
+    /// </summary>
     public required int Points { get; init; }
 
     public string? ActionRoute { get; init; }

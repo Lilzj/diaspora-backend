@@ -17,4 +17,10 @@ public sealed record UserRegisteredIntegrationEvent : IntegrationEvent
     public required string CountryOfResidence { get; init; }
 
     public required string PreferredLanguage { get; init; }
+
+    /// <summary>
+    /// The referral code the member registered with, as given. Null without one, and on every
+    /// event published before referrals were attributed. Additive.
+    /// </summary>
+    public string? ReferralCode { get; init; }
 }

@@ -136,7 +136,8 @@ public sealed class ReputationProfile : AggregateRoot<ReputationProfileId>, IAud
 
         var recorded = ReputationEvent.Record(
             Id, award.ActionType, award.Dimension, award.Points,
-            sourceType, sourceId, countryCode, award.Description, at, key, appliedPoints: applied);
+            sourceType, sourceId, countryCode, award.Description, at, key, appliedPoints: applied,
+            ruleSetVersion: award.RuleSetVersion);
 
         Record(recorded, award.Dimension, award.ActionType, award.Points, previousLevel, at);
 
@@ -182,7 +183,8 @@ public sealed class ReputationProfile : AggregateRoot<ReputationProfileId>, IAud
         var recorded = ReputationEvent.Record(
             Id, original.ActionType, original.Dimension, -original.Points,
             original.SourceType, original.SourceId, original.CountryCode, reason, at, key,
-            appliedPoints: applied, reversesEventId: original.Id);
+            appliedPoints: applied, reversesEventId: original.Id,
+            ruleSetVersion: original.RuleSetVersion);
 
         Record(recorded, original.Dimension, original.ActionType, -original.Points, previousLevel, at);
 

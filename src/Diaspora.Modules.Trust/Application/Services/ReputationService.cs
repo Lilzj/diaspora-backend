@@ -1,6 +1,8 @@
+using Diaspora.Contracts.Financial.V1.Events;
 using Diaspora.Modules.Trust.Domain;
 using Diaspora.Modules.Trust.Extensibility;
 using Diaspora.Modules.Trust.Persistence;
+using Diaspora.Platform.Messaging;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Identity;
 
@@ -21,19 +23,25 @@ public sealed class ReputationService
     private readonly IReputationProfileRepository _reputations;
     private readonly ITrustProfileRepository _profiles;
     private readonly ReputationRuleCatalog _rules;
+    private readonly IIntegrationEventPublisher _events;
     private readonly IClock _clock;
 
     public ReputationService(
         IReputationProfileRepository reputations,
         ITrustProfileRepository profiles,
         ReputationRuleCatalog rules,
+        IIntegrationEventPublisher events,
         IClock clock)
     {
         _reputations = reputations;
         _profiles = profiles;
         _rules = rules;
+        _events = events;
         _clock = clock;
     }
+
+    /// <summary>The policy version a points grant carries: the rules that priced it.</summary>
+    public static string PolicyVersion => $"reputation@{DefaultReputationRules.Version}";
 
     /// <summary>
     /// Scores an action, if the rules allow it.
@@ -121,6 +129,25 @@ public sealed class ReputationService
         {
             var profile = await _profiles.GetByUserAsync(userId, cancellationToken);
             profile?.AddCountryPoints(countryCode, rule.Points, now);
+        }
+
+        // A confirmed outcome also pays reward points (D-2, D-12): Trust owns the schedule and says
+        // so; the Financial Platform holds the balance. In this unit of work, through the outbox, so
+        // the XP and the grant commit together or not at all. The award key is the grant's
+        // reference, which makes a redelivered grant pay once at the ledger as well as here.
+        if (rule.CreditPoints is > 0 and var points)
+        {
+            await _events.PublishAsync(
+                new RewardPointsGrantedIntegrationEvent
+                {
+                    MemberUserId = userId.Value,
+                    Points = points,
+                    Source = actionType,
+                    GrantReference = key.Value,
+                    GrantedAt = now,
+                    PolicyVersion = PolicyVersion
+                },
+                cancellationToken);
         }
 
         return ScoringOutcome.Applied(actionType, rule.Points, rule.Dimension, recorded.Id);
@@ -252,11 +279,32 @@ public sealed class ReputationService
                 profile?.AddCountryPoints(country, -original.Points, now);
             }
 
+            // The points it paid come back too, if they have not vested (D-9, CS-B3). The Financial
+            // Platform decides that; Trust names the grant by the award key it was paid under. A
+            // retired rule still names its grant: it stopped paying, and what it paid can still go.
+            if (original.AwardKey is { } grantReference && PaidPoints(original.ActionType))
+            {
+                await _events.PublishAsync(
+                    new RewardPointsReversedIntegrationEvent
+                    {
+                        MemberUserId = reputation.UserId.Value,
+                        GrantReference = grantReference,
+                        Reason = reason
+                    },
+                    cancellationToken);
+            }
+
             reversed++;
         }
 
         return reversed;
     }
+
+    /// <summary>Whether this action's rule pays points, active or retired.</summary>
+    private bool PaidPoints(string actionType) =>
+        _rules.All.Any(rule =>
+            string.Equals(rule.ActionType, actionType, StringComparison.OrdinalIgnoreCase)
+            && rule.CreditPoints is > 0);
 }
 
 /// <summary>The result of asking to score an action.</summary>

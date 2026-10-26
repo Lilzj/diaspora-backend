@@ -6,6 +6,7 @@ using Diaspora.Modules.Trust.Application.Services;
 using Diaspora.Modules.Trust.Domain;
 using Diaspora.Modules.Trust.Extensibility;
 using Diaspora.Modules.Trust.Persistence;
+using Diaspora.Platform.Messaging;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Identity;
 using FluentAssertions;
@@ -197,7 +198,7 @@ public sealed class CommunityCorroborationConsumerTests
 
             _consumer = new CommunityCorroborationConsumer(
                 contributions,
-                new ReputationService(reputations, profiles, new ReputationRuleCatalog([]), clock),
+                new ReputationService(reputations, profiles, new ReputationRuleCatalog([]), Substitute.For<IIntegrationEventPublisher>(), clock),
                 new TrustProfileProvisioner(profiles, reputations, timeline, clock),
                 UnitOfWork,
                 clock);

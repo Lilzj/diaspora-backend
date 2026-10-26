@@ -204,6 +204,20 @@ public sealed class CreatorActivityAttributionTests
             + "status update depends on it");
     }
 
+    /// <summary>
+    /// A referral qualifies on the invitee's first contribution to the community (RWD-03). The
+    /// programme's own records, a referral qualifying or a course finished, are not one: without this
+    /// a member's referral would qualify because they referred somebody else.
+    /// </summary>
+    [Fact]
+    public void A_qualifying_contribution_is_a_contribution_to_the_community()
+    {
+        CreatorActivityTypes.CommunityContributions.Should().NotContain(
+            [CreatorActivityTypes.ReferralQualified, CreatorActivityTypes.CourseCompleted]);
+        CreatorActivityTypes.CommunityContributions.Should().Contain(CreatorActivityTypes.Publications);
+        CreatorActivityTypes.CommunityContributions.Should().HaveCount(CreatorActivityTypes.All.Count - 2);
+    }
+
     // ── Fixtures ────────────────────────────────────────────────────────────────────────────
 
     /// <summary>

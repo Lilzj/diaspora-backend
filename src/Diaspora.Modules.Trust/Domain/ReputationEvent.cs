@@ -61,6 +61,13 @@ public sealed class ReputationEvent : Entity<ReputationEventId>
 
     public bool IsReversal => ReversesEventId is not null;
 
+    /// <summary>
+    /// The version of the rules that priced this event (<see cref="DefaultReputationRules.Version"/>).
+    /// A reversal carries its original's. Null on an event no rule priced, and on every event written
+    /// before the rules were versioned.
+    /// </summary>
+    public int? RuleSetVersion { get; private set; }
+
     public DateTimeOffset CreatedAt { get; private set; }
 
     private ReputationEvent() { }
@@ -92,7 +99,8 @@ public sealed class ReputationEvent : Entity<ReputationEventId>
         DateTimeOffset createdAt,
         ReputationAwardKey? awardKey = null,
         int? appliedPoints = null,
-        ReputationEventId? reversesEventId = null)
+        ReputationEventId? reversesEventId = null,
+        int? ruleSetVersion = null)
     {
         ArgumentNullException.ThrowIfNull(profileId);
 
@@ -112,7 +120,8 @@ public sealed class ReputationEvent : Entity<ReputationEventId>
             // Never truncated: a shortened key is a different key. The factory already bounds it.
             AwardKey = awardKey?.Value,
             AppliedPoints = appliedPoints,
-            ReversesEventId = reversesEventId
+            ReversesEventId = reversesEventId,
+            RuleSetVersion = ruleSetVersion
         };
     }
 

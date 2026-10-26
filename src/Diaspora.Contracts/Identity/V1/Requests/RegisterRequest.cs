@@ -40,4 +40,14 @@ public sealed record RegisterRequest
 
     /// <summary>IANA time zone identifier. Defaults to "UTC" when omitted.</summary>
     public string? PreferredTimeZone { get; init; }
+
+    /// <summary>
+    /// The code of the member who invited them, from an invitation link or typed in. Optional.
+    /// <para>
+    /// Letters and digits only. A code that is well formed but unknown, inactive or the member's own
+    /// registers the account all the same and credits nobody: the referral programme answers every
+    /// refusal with the same silence.
+    /// </para>
+    /// </summary>
+    public string? ReferralCode { get; init; }
 }

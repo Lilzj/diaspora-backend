@@ -353,7 +353,8 @@ public static class TrustMappers
             Points = rule.Points,
             MaxOccurrences = rule.MaxOccurrences,
             CooldownHours = rule.CooldownHours,
-            IsCountryScoped = rule.IsCountryScoped
+            IsCountryScoped = rule.IsCountryScoped,
+            CreditPoints = rule.CreditPoints
         };
 
     public static LevelBenefitsResponse ToResponse(this LevelBenefits benefits) =>
@@ -381,6 +382,7 @@ public static class TrustMappers
             SourceId = reputationEvent.SourceId,
             CountryCode = reputationEvent.CountryCode,
             Description = reputationEvent.Description,
+            RuleSetVersion = reputationEvent.RuleSetVersion,
             CreatedAt = reputationEvent.CreatedAt
         };
 

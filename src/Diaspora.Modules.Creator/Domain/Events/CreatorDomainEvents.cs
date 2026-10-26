@@ -143,3 +143,11 @@ public sealed record CreatorPointsEarnedDomainEvent(
     string Source,
     string GrantReference,
     DateTimeOffset EarnedAt) : DomainEvent;
+
+/// <summary>A course was finished, once per member and course. Pays no points (Q6).</summary>
+public sealed record CourseCompletedDomainEvent(
+    CreatorId CreatorId,
+    Guid UserId,
+    AcademyCourseId CourseId,
+    string CourseSlug,
+    DateTimeOffset CompletedAt) : DomainEvent;

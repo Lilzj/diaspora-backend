@@ -162,6 +162,12 @@ public sealed record ReputationRuleResponse
 
     /// <summary>Whether it also counts toward the member's standing in that country.</summary>
     public required bool IsCountryScoped { get; init; }
+
+    /// <summary>
+    /// The reward points it also pays (D-2). Null pays none: only confirmed outcomes pay points.
+    /// Additive.
+    /// </summary>
+    public int? CreditPoints { get; init; }
 }
 
 /// <summary>
@@ -189,6 +195,9 @@ public sealed record ReputationEventResponse
     public string? CountryCode { get; init; }
 
     public string? Description { get; init; }
+
+    /// <summary>The version of the rules that priced it. Null before the rules were versioned.</summary>
+    public int? RuleSetVersion { get; init; }
 
     public required DateTimeOffset CreatedAt { get; init; }
 }
