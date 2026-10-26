@@ -1,6 +1,9 @@
 using Diaspora.Application.Abstractions;
 using Diaspora.Contracts.Community.V1.Events;
+using Diaspora.Contracts.CommunityLife.V1.Events;
 using Diaspora.Contracts.Guides.V1.Events;
+using Diaspora.Contracts.Housing.V1.Events;
+using Diaspora.Contracts.Marketplace.V1.Events;
 using Diaspora.Contracts.Trust.V1.Events;
 using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Trust.Application.Services;
@@ -278,6 +281,105 @@ public sealed class AppealApprovedRefundConsumer
         }
 
         if (refunded > 0)
+        {
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+    }
+}
+
+/// <summary>
+/// Takes back what publishing an event earned when it is cancelled (REP-14). A cancellation withdraws
+/// it, by the organizer or by moderation; an event that simply took place is archived and keeps it.
+/// </summary>
+public sealed class EventCancelledReversalConsumer
+    : IntegrationEventHandler<EventCancelledIntegrationEvent>
+{
+    public const string Reason = "Event cancelled.";
+
+    private readonly ReputationService _reputation;
+    private readonly IUnitOfWork _unitOfWork;
+
+    public EventCancelledReversalConsumer(ReputationService reputation, IUnitOfWork unitOfWork)
+    {
+        _reputation = reputation;
+        _unitOfWork = unitOfWork;
+    }
+
+    protected override async Task HandleAsync(
+        EventCancelledIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+
+        var reversed = await _reputation.ReverseBySourceAsync(
+            null, integrationEvent.CommunityEventId.ToString(), Reason, ReversalScope.Awards,
+            cancellationToken: cancellationToken);
+
+        if (reversed > 0)
+        {
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+    }
+}
+
+/// <summary>Takes back what listing a home earned when the listing is deleted (REP-14).</summary>
+public sealed class HousingDeletedReversalConsumer
+    : IntegrationEventHandler<HousingDeletedIntegrationEvent>
+{
+    public const string Reason = "Home listing deleted.";
+
+    private readonly ReputationService _reputation;
+    private readonly IUnitOfWork _unitOfWork;
+
+    public HousingDeletedReversalConsumer(ReputationService reputation, IUnitOfWork unitOfWork)
+    {
+        _reputation = reputation;
+        _unitOfWork = unitOfWork;
+    }
+
+    protected override async Task HandleAsync(
+        HousingDeletedIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+
+        var reversed = await _reputation.ReverseBySourceAsync(
+            null, integrationEvent.ListingId.ToString(), Reason, ReversalScope.Awards,
+            cancellationToken: cancellationToken);
+
+        if (reversed > 0)
+        {
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+    }
+}
+
+/// <summary>
+/// Takes back what a marketplace listing earned when it is deleted (REP-14). A listing archived
+/// because it sold or expired keeps it.
+/// </summary>
+public sealed class ListingDeletedReversalConsumer
+    : IntegrationEventHandler<ListingDeletedIntegrationEvent>
+{
+    public const string Reason = "Listing deleted.";
+
+    private readonly ReputationService _reputation;
+    private readonly IUnitOfWork _unitOfWork;
+
+    public ListingDeletedReversalConsumer(ReputationService reputation, IUnitOfWork unitOfWork)
+    {
+        _reputation = reputation;
+        _unitOfWork = unitOfWork;
+    }
+
+    protected override async Task HandleAsync(
+        ListingDeletedIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+
+        var reversed = await _reputation.ReverseBySourceAsync(
+            null, integrationEvent.ListingId.ToString(), Reason, ReversalScope.Awards,
+            cancellationToken: cancellationToken);
+
+        if (reversed > 0)
         {
             await _unitOfWork.SaveChangesAsync(cancellationToken);
         }

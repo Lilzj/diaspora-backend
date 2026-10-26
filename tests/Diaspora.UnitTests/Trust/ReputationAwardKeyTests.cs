@@ -290,6 +290,39 @@ public sealed class ReputationAwardKeyTests
         harness.Profile.Events.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// REP-10: only a content change is a substantive update. A title, summary, SEO, visibility,
+    /// reading-time or location edit keeps nobody's guide current, and paid ten points each.
+    /// </summary>
+    [Theory]
+    [InlineData("title")]
+    [InlineData("summary", "seo")]
+    [InlineData("visibility")]
+    [InlineData("reading", "location")]
+    public async Task An_edit_that_changes_no_content_pays_nothing(params string[] changedFields)
+    {
+        var harness = new Harness();
+
+        await DeliverAsync(
+            new GuideUpdatedReputationConsumer(harness.Service, harness.Provisioner, harness.UnitOfWork),
+            GuideUpdated(AuthorGuid, isReadableByOthers: true, changedFields));
+
+        harness.Profile.GuidesUpdated.Should().Be(0);
+        harness.Profile.Events.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task An_edit_that_changes_the_content_pays_whatever_else_moved()
+    {
+        var harness = new Harness();
+
+        await DeliverAsync(
+            new GuideUpdatedReputationConsumer(harness.Service, harness.Provisioner, harness.UnitOfWork),
+            GuideUpdated(AuthorGuid, isReadableByOthers: true, ["title", "content"]));
+
+        harness.Profile.GuidesUpdated.Should().Be(1);
+    }
+
     // ── REP-20: the community post consumer ─────────────────────────────────────────────────
 
     /// <summary>
@@ -376,11 +409,12 @@ public sealed class ReputationAwardKeyTests
         PublishedAt = Now
     };
 
-    private static GuideUpdatedIntegrationEvent GuideUpdated(Guid? changedBy, bool isReadableByOthers) => new()
+    private static GuideUpdatedIntegrationEvent GuideUpdated(
+        Guid? changedBy, bool isReadableByOthers, IReadOnlyList<string>? changedFields = null) => new()
     {
         GuideId = GuideId,
         ChangedBy = changedBy,
-        ChangedFields = ["body"],
+        ChangedFields = changedFields ?? ["content"],
         ChangedAt = Now,
         AuthorUserId = AuthorGuid,
         IsReadableByOthers = isReadableByOthers

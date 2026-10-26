@@ -1,5 +1,6 @@
 using Diaspora.Application.Abstractions;
 using Diaspora.Domain.Abstractions;
+using Diaspora.Modules.Financial.Application.EventHandlers;
 using Diaspora.Modules.Financial.Application.Mapping;
 using Diaspora.Modules.Financial.Application.Services;
 using Diaspora.Modules.Financial.Contracts.V1.Responses;
@@ -361,11 +362,47 @@ public sealed class GrantRewardPointsCommandHandler
 /// hold that is not in force changes nothing and records nothing: there was no decision to make.
 /// </para>
 /// </summary>
+/// <summary>The held accounts, for staff working the review queue (CS-D4).</summary>
+public sealed class GetRewardHoldsQueryHandler
+    : IQueryHandler<GetRewardHoldsQuery, IReadOnlyList<RewardHoldResponse>>
+{
+    private readonly IRewardAccountRepository _accounts;
+
+    public GetRewardHoldsQueryHandler(IRewardAccountRepository accounts) => _accounts = accounts;
+
+    public async Task<Result<IReadOnlyList<RewardHoldResponse>>> Handle(
+        GetRewardHoldsQuery query, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var held = await _accounts.ListHeldAsync(
+            query.Before,
+            query.ExcludeIds.ToHashSet(),
+            Math.Clamp(query.Take, 1, FinancialLimits.MaxLedgerPageSize),
+            cancellationToken);
+
+        return Result.Success<IReadOnlyList<RewardHoldResponse>>([.. held.Select(account => new RewardHoldResponse
+        {
+            UserId = account.MemberUserId,
+            Balance = account.Balance,
+            PendingBalance = account.PendingBalance,
+            LatestDecision = new RewardHoldDecisionResponse
+            {
+                IsHeld = account.LatestDecision.IsHeld,
+                Reason = account.LatestDecision.Reason,
+                DecidedByUserId = account.LatestDecision.DecidedByUserId,
+                DecidedAt = account.LatestDecision.DecidedAt
+            }
+        })]);
+    }
+}
+
 public sealed class SetRewardConversionHoldCommandHandler
     : ICommandHandler<SetRewardConversionHoldCommand, RewardConversionHoldResponse>
 {
     private readonly IRewardAccountRepository _accounts;
     private readonly FinancialAuthorizationService _authorization;
+    private readonly FinancialIntegrationEventRelay _relay;
     private readonly IGuidGenerator _guids;
     private readonly IClock _clock;
     private readonly IUnitOfWork _unitOfWork;
@@ -373,12 +410,14 @@ public sealed class SetRewardConversionHoldCommandHandler
     public SetRewardConversionHoldCommandHandler(
         IRewardAccountRepository accounts,
         FinancialAuthorizationService authorization,
+        FinancialIntegrationEventRelay relay,
         IGuidGenerator guids,
         IClock clock,
         IUnitOfWork unitOfWork)
     {
         _accounts = accounts;
         _authorization = authorization;
+        _relay = relay;
         _guids = guids;
         _clock = clock;
         _unitOfWork = unitOfWork;
@@ -418,6 +457,13 @@ public sealed class SetRewardConversionHoldCommandHandler
         }
 
         _accounts.Update(account);
+
+        // A lift is the review a system hold waits for (D-13): Creator clears its shared-device flag
+        // on it. Enqueued before the save, so it commits with the decision or not at all.
+        if (!command.IsHeld)
+        {
+            await _relay.PublishHoldLiftedAsync(command.UserId, decider.Value, now, cancellationToken);
+        }
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 

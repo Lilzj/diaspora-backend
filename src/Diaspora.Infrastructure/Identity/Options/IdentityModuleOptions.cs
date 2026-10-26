@@ -25,4 +25,14 @@ public sealed class IdentityModuleOptions
     /// </para>
     /// </summary>
     public bool LogOtpCodesForDevelopment { get; set; }
+
+    /// <summary>
+    /// Says when a newly registered device is one other accounts already use, as a count (D-13).
+    /// Financial then holds the member's points for review, and Creator their referral.
+    /// <para>
+    /// Off until the privacy notice says the platform does this. Turned on, it announces devices
+    /// registered from then on; it does not look back.
+    /// </para>
+    /// </summary>
+    public bool EnableSharedDeviceSignal { get; set; }
 }

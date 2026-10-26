@@ -267,6 +267,24 @@ public sealed record RewardHoldDecisionResponse
     public required DateTimeOffset DecidedAt { get; init; }
 }
 
+/// <summary>One points account held from conversion, as the staff review queue shows it.</summary>
+public sealed record RewardHoldResponse
+{
+    public required Guid UserId { get; init; }
+
+    /// <summary>Vested points, which the hold keeps from conversion.</summary>
+    public required long Balance { get; init; }
+
+    /// <summary>Points still vesting. They vest under a hold; they do not convert.</summary>
+    public required long PendingBalance { get; init; }
+
+    /// <summary>
+    /// The decision in force: the latest hold placed. Its <c>DecidedByUserId</c> is null when the
+    /// platform placed it itself.
+    /// </summary>
+    public required RewardHoldDecisionResponse LatestDecision { get; init; }
+}
+
 /// <summary>What one currency's rewards pot can pay for conversions. Staff only.</summary>
 public sealed record RewardPotResponse
 {

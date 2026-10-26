@@ -71,6 +71,7 @@ public sealed class IdentityPolicyProvider : IIdentityPolicyProvider
                 AbsoluteSessionLifetime = TimeSpan.FromDays(refreshToken.AbsoluteSessionLifetimeDays),
                 IncludeFeaturesInAccessToken = _jwt.CurrentValue.IncludeFeatureClaims,
                 MaxDevicesPerUser = _identity.CurrentValue.MaxDevicesPerUser,
+                EnableSharedDeviceSignal = _identity.CurrentValue.EnableSharedDeviceSignal,
 
                 PasswordMaxAge = password.MaximumAgeDays > 0
                     ? TimeSpan.FromDays(password.MaximumAgeDays)

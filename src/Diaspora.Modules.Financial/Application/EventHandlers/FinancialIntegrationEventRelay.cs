@@ -788,6 +788,24 @@ public sealed class FinancialIntegrationEventRelay
     /// payment because a consumer was unreachable.
     /// </para>
     /// </summary>
+    /// <summary>
+    /// Staff lifted a hold (CS-D4): the review a system hold waits for (D-13). The hold's note stays
+    /// here, as an operator's note always does.
+    /// </summary>
+    public Task PublishHoldLiftedAsync(
+        Guid memberUserId,
+        Guid? liftedByUserId,
+        DateTimeOffset liftedAt,
+        CancellationToken cancellationToken = default) =>
+        PublishSafelyAsync(
+            new RewardConversionHoldLiftedIntegrationEvent
+            {
+                MemberUserId = memberUserId,
+                LiftedByUserId = liftedByUserId,
+                LiftedAt = liftedAt
+            },
+            cancellationToken);
+
     private async Task PublishSafelyAsync(
         IIntegrationEvent integrationEvent, CancellationToken cancellationToken)
     {

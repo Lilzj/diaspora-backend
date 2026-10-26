@@ -34,6 +34,9 @@ public sealed record IdentityPolicySet
 
     public required int MaxDevicesPerUser { get; init; }
 
+    /// <summary>Whether a device other accounts already use is announced (D-13). Off by default.</summary>
+    public bool EnableSharedDeviceSignal { get; init; }
+
     /// <summary>Null disables password expiry. Nothing enforces it in B2.</summary>
     public TimeSpan? PasswordMaxAge { get; init; }
 

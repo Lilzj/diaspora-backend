@@ -40,6 +40,11 @@ public sealed class UserDeviceConfiguration : IEntityTypeConfiguration<UserDevic
             .IsUnique()
             .HasDatabaseName("ix_user_devices_user_identifier");
 
+        // The identifier on its own, for the shared-device signal (D-13): which other accounts
+        // registered this device. Not unique, for the reason above.
+        builder.HasIndex(device => device.DeviceIdentifier)
+            .HasDatabaseName("ix_user_devices_identifier");
+
         builder.Ignore(device => device.DomainEvents);
     }
 }

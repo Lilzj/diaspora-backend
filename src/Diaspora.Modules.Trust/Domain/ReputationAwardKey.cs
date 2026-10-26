@@ -59,6 +59,14 @@ public sealed record ReputationAwardKey
     public static ReputationAwardKey Comment(Guid commentId) =>
         Of(ReputationActions.CommentWritten, "comment", commentId.ToString("N"));
 
+    /// <summary>Once per event, service, job, home, listing, insight or volunteer assignment (REP-14).</summary>
+    public static ReputationAwardKey Published(string actionType, string kind, Guid entityId) =>
+        Of(actionType, kind, entityId.ToString("N"));
+
+    /// <summary>Once per recommendation of a service.</summary>
+    public static ReputationAwardKey ProviderRecommendation(Guid recommendationId) =>
+        Of(ReputationActions.ProviderRecommendationReceived, "recommendation", recommendationId.ToString("N"));
+
     /// <summary>Once per course a member finishes.</summary>
     public static ReputationAwardKey Course(Guid courseId) =>
         Of(ReputationActions.CourseCompleted, "course", courseId.ToString("N"));

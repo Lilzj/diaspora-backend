@@ -2091,6 +2091,72 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         state.Decisions.Should().BeEmpty();
     }
 
+    // ── The review queue: every held account, with the decision in force (CS-D4) ────────────
+    //
+    // Staff could hold and lift a member they already knew about, and nothing listed who was held.
+    // A system hold has no staff member behind it, so without a list nobody would find it to lift.
+
+    [Fact]
+    public async Task Staff_see_every_held_account_newest_decision_first_with_the_note_in_force()
+    {
+        var bySystem = await AuthenticateAsync();
+        var lifted = await AuthenticateAsync();
+        var byStaff = await AuthenticateAsync();
+        await GrantPointsAsync(byStaff, 300, "grant:" + Guid.NewGuid().ToString("N"));
+        await GrantPointsAsync(bySystem, 100, "grant:" + Guid.NewGuid().ToString("N"));
+
+        await SetConversionHoldAsync(bySystem, held: true);
+
+        var (admin, _) = await SignInAsRoleAsync("Admin");
+
+        await ReadDataAsync<HoldShape>(await PutHoldAsync(lifted, true, "Under review"));
+        await ReadDataAsync<HoldShape>(await PutHoldAsync(lifted, false, "Review cleared"));
+        await ReadDataAsync<HoldShape>(await PutHoldAsync(byStaff, true, "Referral ring, case 77"));
+        await ReadDataAsync<HoldShape>(await PutHoldAsync(byStaff, true, "Referral ring, case 78"));
+
+        var queue = await ReadDataAsync<List<HeldAccountShape>>(await GetHoldsAsync());
+
+        queue.Select(row => row.UserId).Should().NotContain(lifted, "a lifted hold leaves the queue");
+        queue.Take(2).Select(row => row.UserId).Should().Equal(byStaff, bySystem);
+
+        queue[0].Balance.Should().Be(300);
+        queue[0].PendingBalance.Should().Be(0);
+        queue[0].LatestDecision.Should().BeEquivalentTo(
+            new { IsHeld = true, Reason = "Referral ring, case 78", DecidedByUserId = (Guid?)admin },
+            "the note in force is the latest hold's");
+
+        queue[1].LatestDecision.DecidedByUserId.Should().BeNull("the platform held this one itself");
+        queue[1].LatestDecision.Reason.Should().Be("Integration suite: under review.");
+    }
+
+    [Fact]
+    public async Task The_queue_pages_by_the_decisions_instant_and_the_members_already_shown()
+    {
+        var first = await AuthenticateAsync();
+        var second = await AuthenticateAsync();
+
+        await SignInAsRoleAsync("Admin");
+        await ReadDataAsync<HoldShape>(await PutHoldAsync(first, true, "Under review"));
+        await ReadDataAsync<HoldShape>(await PutHoldAsync(second, true, "Under review"));
+
+        var page = await ReadDataAsync<List<HeldAccountShape>>(await GetHoldsAsync(take: 1));
+
+        page.Should().ContainSingle().Which.UserId.Should().Be(second);
+
+        var next = await ReadDataAsync<List<HeldAccountShape>>(
+            await GetHoldsAsync(before: page[0].LatestDecision.DecidedAt, excludeIds: [second], take: 1));
+
+        next.Should().ContainSingle().Which.UserId.Should().Be(first);
+    }
+
+    [Fact]
+    public async Task A_member_cannot_read_the_queue()
+    {
+        await AuthenticateAsync();
+
+        (await GetHoldsAsync()).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
     // ── The idempotency key: required, and each member's own ────────────────────────────────
 
     /// <summary>
@@ -3168,6 +3234,30 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
             new Uri($"/api/v1/financial/operations/rewards/members/{userId}/conversion-hold", UriKind.Relative),
             new { isHeld, reason });
 
+    /// <summary>The staff review queue over HTTP, as whoever the client is signed in as.</summary>
+    private Task<HttpResponseMessage> GetHoldsAsync(
+        DateTimeOffset? before = null, IReadOnlyList<Guid>? excludeIds = null, int? take = null)
+    {
+        var query = new List<string>();
+
+        if (before is { } boundary)
+        {
+            query.Add("before=" + Uri.EscapeDataString(boundary.ToString("O", System.Globalization.CultureInfo.InvariantCulture)));
+        }
+
+        query.AddRange((excludeIds ?? []).Select(id => $"excludeIds={id}"));
+
+        if (take is { } size)
+        {
+            query.Add($"take={size}");
+        }
+
+        var path = "/api/v1/financial/operations/rewards/holds"
+            + (query.Count == 0 ? string.Empty : "?" + string.Join('&', query));
+
+        return HttpClient.GetAsync(new Uri(path, UriKind.Relative));
+    }
+
     /// <summary>Signs the client back in with a token it held earlier.</summary>
     private void UseToken(string token)
     {
@@ -3294,6 +3384,9 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
     private sealed record HoldShape(Guid UserId, bool IsHeld, string? Reason, List<HoldDecisionShape> Decisions);
 
     private sealed record HoldDecisionShape(bool IsHeld, string Reason, Guid? DecidedByUserId, DateTimeOffset DecidedAt);
+
+    private sealed record HeldAccountShape(
+        Guid UserId, long Balance, long PendingBalance, HoldDecisionShape LatestDecision);
 
     private sealed record PaymentShape(Guid PaymentIntentId, string Status, string Purpose);
 

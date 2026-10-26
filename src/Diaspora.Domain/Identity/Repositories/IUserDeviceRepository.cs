@@ -19,6 +19,15 @@ public interface IUserDeviceRepository
 
     Task<int> CountByUserAsync(UserId userId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// How many other accounts have registered this device identifier (D-13). A count: the accounts
+    /// themselves are never read out.
+    /// </summary>
+    Task<int> CountOtherAccountsAsync(
+        UserId userId,
+        string deviceIdentifier,
+        CancellationToken cancellationToken = default);
+
     Task AddAsync(UserDevice device, CancellationToken cancellationToken = default);
 
     void Update(UserDevice device);

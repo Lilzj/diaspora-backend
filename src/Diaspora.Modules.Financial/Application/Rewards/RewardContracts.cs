@@ -255,6 +255,27 @@ public sealed class FundRewardsPotCommandValidator : AbstractValidator<FundRewar
 [Authorize(Permission = FinancialPermissions.WalletReadAny)]
 public sealed record GetRewardPotsQuery : IQuery<IReadOnlyList<RewardPotResponse>>;
 
+/// <summary>
+/// Every points account held from conversion, newest decision first, with the note in force: the
+/// review queue (CS-D4). Staff.
+/// <para>
+/// <b>Without it a system hold could not be found.</b> Staff can hold and lift a member they already
+/// know about; a hold the platform places itself, with nobody behind it, would otherwise wait for
+/// ever. Holds are lifted through <see cref="SetRewardConversionHoldCommand"/>, as before.
+/// </para>
+/// </summary>
+[Authorize(Permission = FinancialPermissions.WalletReadAny)]
+public sealed record GetRewardHoldsQuery : IQuery<IReadOnlyList<RewardHoldResponse>>
+{
+    /// <summary>The decision instant the previous page ended on. Inclusive — see <see cref="ExcludeIds"/>.</summary>
+    public DateTimeOffset? Before { get; init; }
+
+    /// <summary>The members already shown at <see cref="Before"/>.</summary>
+    public IReadOnlyList<Guid> ExcludeIds { get; init; } = [];
+
+    public int Take { get; init; } = Domain.Policies.FinancialLimits.DefaultLedgerPageSize;
+}
+
 /// <summary>A staff grant must say why.</summary>
 public sealed class GrantRewardPointsCommandValidator : AbstractValidator<GrantRewardPointsCommand>
 {

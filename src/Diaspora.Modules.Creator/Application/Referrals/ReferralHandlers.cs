@@ -238,6 +238,21 @@ public sealed class ReferralQualificationService
             return false;
         }
 
+        // An invitee on a device other accounts use (D-13, C3.3) would qualify, and waits for review
+        // instead. Staff lifting the invitee's points hold is the review: it clears the flag and
+        // checks again (RewardConversionHoldLiftedCreatorConsumer).
+        if (invitee.IsSharedDeviceFlagged)
+        {
+            _logger.LogWarning(
+                "Referral qualification held for review: invitee shares a device. Referral {ReferralId}.",
+                referral.Id.Value);
+
+            referral.MarkPending(ReferralQualificationPolicy.ReviewReason, now);
+            _referrals.UpdateReferral(referral);
+
+            return false;
+        }
+
         var reference = $"referral:{referral.Id.Value:N}";
 
         var qualified = referral.Qualify(

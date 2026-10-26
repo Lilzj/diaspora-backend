@@ -205,16 +205,27 @@ public sealed class CreatorReferral : AggregateRoot<CreatorReferralId>, IAuditab
         return Result.Success();
     }
 
-    /// <summary>The invitee has started working toward the rule, and the member can see that.</summary>
+    /// <summary>
+    /// The invitee has started working toward the rule, or is still waiting on it, and the member can
+    /// see why: their first contribution, or a review (D-13). A pending referral takes the new reason,
+    /// so one that leaves review says what it waits for next.
+    /// </summary>
     public void MarkPending(string? reason, DateTimeOffset now)
     {
-        if (State != ReferralState.SignedUp)
+        if (State is not (ReferralState.SignedUp or ReferralState.Pending))
+        {
+            return;
+        }
+
+        var trimmed = Trim(reason);
+
+        if (State == ReferralState.Pending && StateReason == trimmed)
         {
             return;
         }
 
         State = ReferralState.Pending;
-        StateReason = Trim(reason);
+        StateReason = trimmed;
         Touch(now);
     }
 

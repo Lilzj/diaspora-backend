@@ -43,8 +43,8 @@ namespace Diaspora.Modules.Trust.Application.Consumers;
 //     20 Oct 2026, `EmailVerificationMirrorConsumer` submits an Email verification that
 //     auto-approves, so the award is `EmailVerificationHandler.ApprovalAward`, paid once by the
 //     approval. A consumer here that also scored it would be the fourth duplicate producer.
-//   * `ProfileCompleted` — Identity publishes no profile-completeness event, and what "complete"
-//     means is still to be decided (D-11).
+//   * `ProfileCompleted` — retired (D-11). Nothing paid it, and the email and the photo it would
+//     have rewarded pay their own awards. The rule is gone; the action name stays for history.
 //   * `ProfilePhotoAdded` and `UpdateVerified` — no longer unpaid, since 23 Oct 2026 (REP-13):
 //     `ProfilePhotoReputationConsumer` pays the first photo off `UserAvatarChangedIntegrationEvent`,
 //     and `PostVerifiedReputationConsumer` pays a post's community verification now that
@@ -133,8 +133,8 @@ public sealed class GuideReputationConsumer
 /// Pays an author for updating their own guide while others can read it.
 /// <para>
 /// Not for a draft edit, and not for somebody else's edit of it: both used to pay the author.
-/// Whether an edit was substantive enough to count is still to be defined (D-2), so a published
-/// typo fix pays like a rewrite.
+/// And only for a change to the content (REP-10): a title, summary, SEO, visibility, reading-time
+/// or location edit keeps nobody's guide current, and each used to pay like a rewrite.
 /// </para>
 /// <para>
 /// The rule carries its own cap and cooldown, so a guide edited fifty times in an afternoon pays
@@ -144,6 +144,9 @@ public sealed class GuideReputationConsumer
 public sealed class GuideUpdatedReputationConsumer
     : IntegrationEventHandler<GuideUpdatedIntegrationEvent>
 {
+    /// <summary>The changed-field name Guides gives a change to the content.</summary>
+    private const string SubstantiveField = "content";
+
     private readonly ReputationService _reputation;
     private readonly TrustProfileProvisioner _provisioner;
     private readonly IUnitOfWork _unitOfWork;
@@ -163,13 +166,14 @@ public sealed class GuideUpdatedReputationConsumer
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
 
-        // The author's own edit of a guide others can read, and nothing else (REP-10). A draft edit
-        // keeps nobody's guide current, and the event fires for those too. An edit by a contributor
-        // or a moderator is not the author's work, and one a projection made names nobody. Whether
-        // the edit was substantive is not decided yet (D-2).
+        // The author's own change to the content of a guide others can read, and nothing else
+        // (REP-10). A draft edit keeps nobody's guide current, and the event fires for those too. An
+        // edit by a contributor or a moderator is not the author's work, and one a projection made
+        // names nobody. Guides reports a content change as "content"; every other field is metadata.
         if (!integrationEvent.IsReadableByOthers
             || integrationEvent.AuthorUserId is not { } author
-            || integrationEvent.ChangedBy != author)
+            || integrationEvent.ChangedBy != author
+            || !integrationEvent.ChangedFields.Contains(SubstantiveField, StringComparer.OrdinalIgnoreCase))
         {
             return;
         }

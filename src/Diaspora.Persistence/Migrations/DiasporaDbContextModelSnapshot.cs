@@ -75,6 +75,9 @@ namespace Diaspora.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DeviceIdentifier")
+                        .HasDatabaseName("ix_user_devices_identifier");
+
                     b.HasIndex("UserId", "DeviceIdentifier")
                         .IsUnique()
                         .HasDatabaseName("ix_user_devices_user_identifier");
@@ -5986,6 +5989,9 @@ namespace Diaspora.Persistence.Migrations
                     b.Property<int>("Revision")
                         .IsConcurrencyToken()
                         .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("SharedDeviceFlaggedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("StandingReason")
                         .HasMaxLength(1000)

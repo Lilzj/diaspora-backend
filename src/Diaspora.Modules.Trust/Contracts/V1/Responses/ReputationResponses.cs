@@ -127,6 +127,11 @@ public sealed record LevelBenefitsResponse
     public required bool CanPublishImmediately { get; init; }
     public required bool CanModerate { get; init; }
     public required bool IsFeaturedEligible { get; init; }
+
+    /// <summary>
+    /// <b>Gates nothing (REP-18).</b> Conversion is gated by identity verification alone. Kept, unchanged,
+    /// because the Trust contract is frozen; a client should not show it as a benefit.
+    /// </summary>
     public required bool IsRewardsEligible { get; init; }
     public required bool HasBetaAccess { get; init; }
     public required bool HasExclusiveBadge { get; init; }
