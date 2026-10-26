@@ -86,7 +86,8 @@ public sealed record AppealApprovedDomainEvent(
     AppealType Type,
     string TargetId,
     string? Explanation,
-    DateTimeOffset At) : DomainEvent;
+    DateTimeOffset At,
+    UserId? DecidedBy = null) : DomainEvent;
 
 public sealed record AppealRejectedDomainEvent(
     AppealId AppealId,

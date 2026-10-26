@@ -301,7 +301,13 @@ public enum AppealType
     Verification = 0,
     Content = 1,
     Suspension = 2,
-    Publishing = 3
+    Publishing = 3,
+
+    /// <summary>
+    /// A hold on the member's reward points (RWD-14, CS-4a). The target is the member themselves;
+    /// an approval lifts the hold in the Financial Platform, in the reviewer's name.
+    /// </summary>
+    RewardHold = 4
 }
 
 /// <summary>

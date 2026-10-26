@@ -8,7 +8,7 @@ public sealed record AppealResponse
 {
     public required Guid AppealId { get; init; }
 
-    /// <summary>Verification, Content, Suspension, Publishing.</summary>
+    /// <summary>Verification, Content, Suspension, Publishing, RewardHold.</summary>
     public required string Type { get; init; }
 
     public required string TargetId { get; init; }

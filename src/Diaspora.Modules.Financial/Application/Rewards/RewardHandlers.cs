@@ -347,7 +347,7 @@ public sealed class RewardConversionPricer
     /// </para>
     /// </summary>
     public const string HeldMessage =
-        "Conversion is paused on your account. Contact support if you think this is a mistake.";
+        "Conversion is paused on your account. You can ask us to review it.";
 
     /// <summary>
     /// Whether this member may convert at all right now, and if so how much — before they type a

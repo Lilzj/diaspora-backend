@@ -245,7 +245,7 @@ public sealed class Appeal : AggregateRoot<AppealId>, IAuditableEntity
         ModifiedAt = at;
 
         RaiseDomainEvent(upheld
-            ? new AppealApprovedDomainEvent(Id, UserId, Type, TargetId, Explanation, at)
+            ? new AppealApprovedDomainEvent(Id, UserId, Type, TargetId, Explanation, at, reviewerId)
             : new AppealRejectedDomainEvent(Id, UserId, Type, TargetId, Explanation, at));
     }
 

@@ -106,6 +106,14 @@ public sealed class SubmitAppealCommandHandler : ICommandHandler<SubmitAppealCom
             return Result.Failure<AppealResponse>(TrustErrors.AppealAlreadyOpen);
         }
 
+        // A points hold is the appellant's own (CS-4a). Trust cannot see the hold, so it does not
+        // check one exists; it does refuse an appeal of anybody else's.
+        if (request.Type == AppealType.RewardHold
+            && (!Guid.TryParse(request.TargetId, out var heldMember) || heldMember != userId.Value))
+        {
+            return Result.Failure<AppealResponse>(TrustErrors.AppealNotAllowed);
+        }
+
         var now = _clock.UtcNow;
 
         VerificationRequest? verification = null;

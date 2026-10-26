@@ -177,6 +177,12 @@ public sealed record AppealApprovedIntegrationEvent : IntegrationEvent
     public string? Explanation { get; init; }
 
     public required DateTimeOffset DecidedAt { get; init; }
+
+    /// <summary>
+    /// The reviewer who approved it. Additive: null on approvals published before it was carried.
+    /// A consumer acting on the approval, such as lifting a points hold, acts in this name.
+    /// </summary>
+    public Guid? DecidedByUserId { get; init; }
 }
 
 public sealed record AppealRejectedIntegrationEvent : IntegrationEvent
