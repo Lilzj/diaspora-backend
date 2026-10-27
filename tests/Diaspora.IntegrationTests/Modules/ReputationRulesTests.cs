@@ -39,8 +39,9 @@ public sealed class ReputationRulesTests : PooledIdentityTestBase
         rules.Should().ContainEquivalentOf(new RuleView(
             ReputationActions.ProfilePhotoAdded, "Profile photo added", "verification", 5, 1, null, false));
 
+        // Three a day, every guide (REP-09); the hourly cooldown it replaced is gone.
         rules.Should().ContainEquivalentOf(new RuleView(
-            ReputationActions.GuidePublished, "Guides published", "contribution", 50, null, 1, true));
+            ReputationActions.GuidePublished, "Guides published", "contribution", 50, null, null, true, DailyCap: 3));
         rules.Should().ContainEquivalentOf(new RuleView(
             ReputationActions.CountryVerified, "Countries verified", "verification", 30, 1, null, true));
         rules.Should().ContainEquivalentOf(new RuleView(
@@ -101,5 +102,6 @@ public sealed class ReputationRulesTests : PooledIdentityTestBase
         int? MaxOccurrences,
         int? CooldownHours,
         bool IsCountryScoped,
-        int? CreditPoints = null);
+        int? CreditPoints = null,
+        int? DailyCap = null);
 }

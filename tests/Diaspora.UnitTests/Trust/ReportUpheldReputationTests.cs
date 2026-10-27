@@ -51,7 +51,7 @@ public sealed class ReportUpheldReputationTests
         rule.CooldownHours.Should().Be(1);
         rule.IsAwarded.Should().BeTrue();
         rule.CreditPoints.Should().BeNull("a report earns XP alone (D-2)");
-        DefaultReputationRules.Version.Should().Be(6);
+        DefaultReputationRules.Version.Should().BeGreaterThanOrEqualTo(6, "version 6 priced it");
     }
 
     [Theory]

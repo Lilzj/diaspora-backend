@@ -71,6 +71,17 @@ public sealed record ReputationRule
     /// <summary>Minimum gap between two awards of this action. Null means none.</summary>
     public int? CooldownHours { get; init; }
 
+    /// <summary>
+    /// How many awards of this action may count in any 24 hours. Null means no daily cap.
+    /// <para>
+    /// Where a cooldown is a gap after each award, this is a budget: a member who publishes two
+    /// different guides ten minutes apart is paid for both, and the fourth that day for neither. It
+    /// counts awards across every country, as the cooldown does, and a reversal does not hand a place
+    /// back, so publishing and deleting is not a way past it.
+    /// </para>
+    /// </summary>
+    public int? DailyCap { get; init; }
+
     /// <summary>Whether the points land on the country's standing as well as the global score.</summary>
     public bool IsCountryScoped { get; init; }
 
@@ -185,19 +196,23 @@ public static class DefaultReputationRules
     ///   approved neighbourhood insight, confirmed volunteer hours and a provider recommendation
     ///   (REP-14, D-3).</item>
     ///   <item>6, 2026-10-26: an upheld report pays its reporter 5 trust XP, once an hour (REP-13).</item>
+    ///   <item>7, 2026-10-27: a published guide is capped at three a day instead of one an hour, so a
+    ///   second guide inside the hour is paid (REP-09). Still 50 XP.</item>
     /// </list>
     /// </summary>
-    public const int Version = 6;
+    public const int Version = 7;
 
     public static IReadOnlyList<ReputationRule> All { get; } =
     [
         // ── Contribution ─────────────────────────────────────────────────
         new()
         {
+            // Once per guide by its award key, and three guides a day (REP-09). An hourly cooldown
+            // stood here and paid nothing for a second, different guide inside the hour.
             ActionType = ReputationActions.GuidePublished,
             Dimension = ReputationDimension.contribution,
             Points = 50,
-            CooldownHours = 1,
+            DailyCap = 3,
             IsCountryScoped = true,
             Description = "Published a community guide.",
             Label = "Guides published"

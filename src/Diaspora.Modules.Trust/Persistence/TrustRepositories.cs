@@ -351,6 +351,7 @@ public sealed class ReputationProfileRepository : IReputationProfileRepository
         UserId userId,
         string actionType,
         string? countryCode = null,
+        DateTimeOffset? awardedSince = null,
         CancellationToken cancellationToken = default)
     {
         var profileId = await Profiles
@@ -368,8 +369,8 @@ public sealed class ReputationProfileRepository : IReputationProfileRepository
         // every comment written on the platform.
         //
         // A reversal (D-9) shares its original's action type and counts against it: a comment
-        // that was removed gives its place under the cap back. The cooldown reads awards only, so
-        // a reversal does not restart it.
+        // that was removed gives its place under the cap back. The cooldown and the daily cap read
+        // awards only, so a reversal neither restarts the one nor frees a place in the other.
         var usage = await Events
             .AsNoTracking()
             .Where(item => item.ProfileId == profileId && item.ActionType == actionType)
@@ -384,13 +385,17 @@ public sealed class ReputationProfileRepository : IReputationProfileRepository
                         - group.Count(item => item.CountryCode == countryCode && item.ReversesEventId != null),
                 LastAt = group
                     .Where(item => item.ReversesEventId == null)
-                    .Max(item => (DateTimeOffset?)item.CreatedAt)
+                    .Max(item => (DateTimeOffset?)item.CreatedAt),
+                AwardedSince = awardedSince == null
+                    ? 0
+                    : group.Count(item => item.ReversesEventId == null && item.CreatedAt >= awardedSince)
             })
             .FirstOrDefaultAsync(cancellationToken);
 
         return usage is null
             ? RuleUsage.None
-            : new RuleUsage(Math.Max(0, usage.Count), Math.Max(0, usage.InCountry), usage.LastAt);
+            : new RuleUsage(
+                Math.Max(0, usage.Count), Math.Max(0, usage.InCountry), usage.LastAt, usage.AwardedSince);
     }
 
     public async Task<bool> HasAwardAsync(

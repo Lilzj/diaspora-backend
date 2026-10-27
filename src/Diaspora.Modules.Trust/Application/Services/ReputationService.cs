@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Trust.Application.Services;
 /// Applies scoring rules to a member, enforcing the caps that make reputation mean something.
 /// <para>
 /// The caps are the reason this is a service rather than a call straight into the aggregate.
-/// <c>MaxOccurrences</c> and <c>CooldownHours</c> need the member's scoring history, which
+/// <c>MaxOccurrences</c>, <c>DailyCap</c> and <c>CooldownHours</c> need the member's scoring history, which
 /// the aggregate does not hold and should not — loading every reputation event a
 /// three-year-old account has accumulated in order to award two points for a comment is not
 /// a trade worth making.
@@ -91,8 +91,12 @@ public sealed class ReputationService
         // thing to do now that a move can be recorded.
         var scope = rule.IsCountryScoped ? countryCode : null;
 
+        // A daily cap asks about the last 24 hours, not the calendar day: no time zone to choose, and
+        // the same reading the Financial Platform's staff grant ceiling uses.
+        DateTimeOffset? dayStart = rule.DailyCap is > 0 ? now.AddDays(-1) : null;
+
         var usage = await _reputations.GetRuleUsageAsync(
-            userId, rule.ActionType, scope, cancellationToken);
+            userId, rule.ActionType, scope, dayStart, cancellationToken);
 
         var counted = scope is null ? usage.Total : usage.InCountry;
 
@@ -100,6 +104,13 @@ public sealed class ReputationService
         {
             return ScoringOutcome.Skipped(
                 actionType, $"This action has already been scored its maximum {max} times.");
+        }
+
+        // Global, like the cooldown below and for the same reason.
+        if (rule.DailyCap is { } dailyCap and > 0 && usage.AwardedSince >= dailyCap)
+        {
+            return ScoringOutcome.Skipped(
+                actionType, $"This action can only be scored {dailyCap} times a day.");
         }
 
         // The cooldown stays global on purpose. A cap is about how much a thing is worth; a
