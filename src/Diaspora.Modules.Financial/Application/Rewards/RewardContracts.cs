@@ -150,8 +150,9 @@ public sealed record GetMyRewardConversionsQuery : IQuery<IReadOnlyList<RewardCo
 /// <b>Bounded by the <c>reward.grant</c> policy, and it says why.</b> This was the one route that
 /// creates points with no earning behind them, and it had no upper bound: one staff account could
 /// mint any balance. A grant now carries a reason, stored on its entry with the grantor, and is
-/// refused above the policy's per-grant maximum or past its per-grantor daily ceiling. A second
-/// approver above a threshold is still to come.
+/// refused above the policy's per-grant maximum or past its per-grantor daily ceiling. Above the
+/// policy's approval threshold it is refused too, and goes through <see cref="RequestRewardGrantCommand"/>
+/// instead, which a second Admin decides (RWD-10). Nobody grants points to their own account.
 /// </para>
 /// </summary>
 [Authorize(Permission = FinancialPermissions.CreditManage)]
@@ -169,6 +170,66 @@ public sealed record GrantRewardPointsCommand : ICommand<RewardBalanceResponse>
 
     /// <summary>Why the member is being given these points. Stored on the entry, with the grantor.</summary>
     public required string Reason { get; init; }
+}
+
+/// <summary>
+/// Asks for a staff grant that needs a second Admin (RWD-10). Grants nothing.
+/// <para>
+/// Bounded like a grant: a reason, the per-grant maximum and the asker's rolling day, checked now so
+/// a request that could never land is refused at once, and again when it is approved, because that is
+/// when it lands. A repeated grant reference replays the request.
+/// </para>
+/// </summary>
+[Authorize(Permission = FinancialPermissions.CreditManage)]
+[Transactional(Reason = "A request and its replay check are one change.")]
+[Auditable(Action = "financial.rewards.grant_request")]
+public sealed record RequestRewardGrantCommand : ICommand<RewardGrantRequestResponse>
+{
+    public required Guid UserId { get; init; }
+
+    public required long Points { get; init; }
+
+    public required string Source { get; init; }
+
+    public required string GrantReference { get; init; }
+
+    public required string Reason { get; init; }
+}
+
+/// <summary>
+/// Approves, rejects or withdraws a staff grant request (RWD-10).
+/// <para>
+/// <b>Approval needs a different Admin from the one who asked,</b> and grants the points in the same
+/// transaction, naming both. The Admin who asked may decline their own request, which withdraws it:
+/// on a deployment with one Admin nobody else could close it.
+/// </para>
+/// </summary>
+[Authorize(Permission = FinancialPermissions.CreditManage)]
+[Transactional(Reason = "Approving a request and granting its points are one change.")]
+[Auditable(Action = "financial.rewards.grant_decide")]
+public sealed record DecideRewardGrantRequestCommand : ICommand<RewardGrantRequestResponse>
+{
+    public required Guid RequestId { get; init; }
+
+    public required bool Approve { get; init; }
+
+    public string? Note { get; init; }
+}
+
+/// <summary>Staff grant requests, newest first; pending by default. Staff.</summary>
+[Authorize(Permission = FinancialPermissions.WalletReadAny)]
+public sealed record GetRewardGrantRequestsQuery : IQuery<IReadOnlyList<RewardGrantRequestResponse>>
+{
+    /// <summary><c>Pending</c> (the default), <c>Approved</c>, <c>Rejected</c>, <c>Withdrawn</c>, or <c>all</c>.</summary>
+    public string? State { get; init; }
+
+    /// <summary>The instant the previous page ended on. Inclusive — see <see cref="ExcludeIds"/>.</summary>
+    public DateTimeOffset? Before { get; init; }
+
+    /// <summary>The requests already shown at <see cref="Before"/>.</summary>
+    public IReadOnlyList<Guid> ExcludeIds { get; init; } = [];
+
+    public int Take { get; init; } = Domain.Policies.FinancialLimits.DefaultLedgerPageSize;
 }
 
 /// <summary>
@@ -289,5 +350,38 @@ public sealed class GrantRewardPointsCommandValidator : AbstractValidator<GrantR
         RuleFor(command => command.GrantReference)
             .NotEmpty()
             .MaximumLength(Domain.Policies.FinancialLimits.MaxReferenceLength);
+    }
+}
+
+/// <summary>A grant request must say why, as a grant must.</summary>
+public sealed class RequestRewardGrantCommandValidator : AbstractValidator<RequestRewardGrantCommand>
+{
+    public RequestRewardGrantCommandValidator()
+    {
+        RuleFor(command => command.Reason)
+            .NotEmpty()
+            .WithMessage("A grant needs a reason: why is this member being given points?")
+            .MaximumLength(Domain.Policies.FinancialLimits.MaxReasonLength);
+
+        RuleFor(command => command.GrantReference)
+            .NotEmpty()
+            .MaximumLength(Domain.Policies.FinancialLimits.MaxReferenceLength);
+
+        RuleFor(command => command.Points).GreaterThan(0);
+    }
+}
+
+/// <summary>Declining a grant request needs a note; approving one does not.</summary>
+public sealed class DecideRewardGrantRequestCommandValidator : AbstractValidator<DecideRewardGrantRequestCommand>
+{
+    public DecideRewardGrantRequestCommandValidator()
+    {
+        RuleFor(command => command.Note)
+            .NotEmpty()
+            .When(command => !command.Approve)
+            .WithMessage("Say why the grant is declined.");
+
+        RuleFor(command => command.Note)
+            .MaximumLength(Domain.Policies.FinancialLimits.MaxReasonLength);
     }
 }

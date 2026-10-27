@@ -18202,13 +18202,124 @@
         "tags": [
           "Financial"
         ],
-        "summary": "Awards points, once per grant reference. Staff.",
+        "summary": "Awards points, once per grant reference. Staff. Above the approval threshold, raise a grant request instead.",
         "operationId": "GrantRewardPoints",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/GrantRewardPointsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/financial/operations/rewards/grant-requests": {
+      "post": {
+        "tags": [
+          "Financial"
+        ],
+        "summary": "Asks for a staff grant that needs a second Admin. Grants nothing until approved. Staff.",
+        "operationId": "RequestRewardGrant",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GrantRewardPointsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Financial"
+        ],
+        "summary": "Staff grant requests, newest first; pending unless a state is given. Staff.",
+        "operationId": "GetRewardGrantRequests",
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "excludeIds",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "take",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/financial/operations/rewards/grant-requests/{requestId}/decide": {
+      "post": {
+        "tags": [
+          "Financial"
+        ],
+        "summary": "Approves or rejects a grant request as another Admin, or withdraws your own. Staff.",
+        "operationId": "DecideRewardGrantRequest",
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecideRewardGrantRequestRequest"
               }
             }
           },
@@ -44992,6 +45103,23 @@
             "type": "boolean"
           },
           "decisionNote": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "DecideRewardGrantRequestRequest": {
+        "required": [
+          "approve"
+        ],
+        "type": "object",
+        "properties": {
+          "approve": {
+            "type": "boolean"
+          },
+          "note": {
             "type": [
               "null",
               "string"

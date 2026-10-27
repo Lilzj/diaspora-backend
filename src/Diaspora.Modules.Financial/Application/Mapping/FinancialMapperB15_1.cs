@@ -120,6 +120,28 @@ public static class FinancialMapperExtensions
                 ]
         };
 
+    public static RewardGrantRequestResponse ToResponse(RewardGrantRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        return new RewardGrantRequestResponse
+        {
+            RequestId = request.Id.Value,
+            MemberUserId = request.MemberUserId,
+            Points = request.Points,
+            Source = request.Source,
+            GrantReference = request.GrantReference,
+            Reason = request.Reason,
+            Status = request.Status.ToString(),
+            RequestedByUserId = request.RequestedByUserId,
+            RequestedAt = request.RequestedAt,
+            DecidedByUserId = request.DecidedByUserId,
+            DecidedAt = request.DecidedAt,
+            DecisionNote = request.DecisionNote,
+            PolicyVersion = request.PolicyVersion
+        };
+    }
+
     public static RewardEntryResponse ToResponse(RewardEntry entry)
     {
         ArgumentNullException.ThrowIfNull(entry);

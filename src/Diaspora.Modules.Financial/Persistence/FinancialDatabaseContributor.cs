@@ -91,6 +91,7 @@ public sealed class FinancialDatabaseContributor : IDatabaseContributor
         // Points, which are not money, and the one place they become it.
         modelBuilder.ApplyConfiguration(new RewardAccountConfiguration());
         modelBuilder.ApplyConfiguration(new RewardConversionConfiguration());
+        modelBuilder.ApplyConfiguration(new RewardGrantRequestConfiguration());
 
         // B15.1 Giving Extension. What a settled payment bought, the fundraising programme around a
         // cause, its timeline, and the standing instruction to give again.

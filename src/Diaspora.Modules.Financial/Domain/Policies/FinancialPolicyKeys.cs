@@ -46,8 +46,9 @@ public static class FinancialPolicyKeys
     public const string RewardConversion = "reward.conversion";
 
     /// <summary>
-    /// How many points one staff grant may award (<c>maximumPoints</c>), and how many one staff
-    /// member may award in a rolling day (<c>dailyMaximumPoints</c>).
+    /// How many points one staff grant may award (<c>maximumPoints</c>), how many one staff member
+    /// may award in a rolling day (<c>dailyMaximumPoints</c>), and above how many a grant needs a
+    /// second Admin (<c>approvalThresholdPoints</c>).
     /// </summary>
     public const string RewardGrant = "reward.grant";
 }
@@ -82,6 +83,12 @@ public static class FinancialPolicyParameters
     public const string MinimumPoints = "minimumPoints";
     public const string MaximumPoints = "maximumPoints";
     public const string DailyMaximumPoints = "dailyMaximumPoints";
+
+    /// <summary>
+    /// The largest staff grant one Admin may make alone; above it a second Admin approves (RWD-10).
+    /// Absent means <c>RewardGrantLimits.DefaultApprovalThresholdPoints</c>.
+    /// </summary>
+    public const string ApprovalThresholdPoints = "approvalThresholdPoints";
 
     /// <summary>
     /// Days converted credit stays pending before it can be spent or withdrawn (D-7). Absent means

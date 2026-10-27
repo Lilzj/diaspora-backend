@@ -106,6 +106,12 @@ public sealed class RewardEntry : ValueObject
     public string? Reason { get; private set; }
 
     /// <summary>
+    /// The second Admin who approved a staff grant above the <c>reward.grant</c> threshold (RWD-10).
+    /// Null on a grant one Admin could make alone, and on everything else. Added additively.
+    /// </summary>
+    public Guid? ApprovedByUserId { get; private set; }
+
+    /// <summary>
     /// The version of the rule that decided this earning: the grantor's, carried on its event, or
     /// <c>reward.grant@N</c> for a staff grant. Null where no versioned rule decided it, which is every
     /// row written before this column existed and every grantor that does not stamp one yet.
@@ -152,7 +158,8 @@ public sealed class RewardEntry : ValueObject
         Guid? grantedByUserId = null,
         string? reason = null,
         string? policyVersion = null,
-        DateTimeOffset? vestsAt = null)
+        DateTimeOffset? vestsAt = null,
+        Guid? approvedByUserId = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(reference);
 
@@ -167,7 +174,10 @@ public sealed class RewardEntry : ValueObject
             grantedByUserId,
             string.IsNullOrWhiteSpace(reason) ? null : reason.Trim(),
             string.IsNullOrWhiteSpace(policyVersion) ? null : policyVersion.Trim(),
-            vestsAt);
+            vestsAt)
+        {
+            ApprovedByUserId = approvedByUserId
+        };
     }
 
     public static RewardEntry Converted(

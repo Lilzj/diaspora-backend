@@ -205,6 +205,18 @@ public sealed record GrantRewardPointsRequest
     public required string Reason { get; init; }
 }
 
+/// <summary>
+/// Decide a staff grant waiting for a second Admin (RWD-10). Another Admin approves or rejects; the
+/// Admin who asked may only decline, which withdraws it.
+/// </summary>
+public sealed record DecideRewardGrantRequestRequest
+{
+    public required bool Approve { get; init; }
+
+    /// <summary>Why it was declined. Required to decline; optional on an approval.</summary>
+    public string? Note { get; init; }
+}
+
 /// <summary>Top up a currency's rewards pot from the platform's Revenue. Staff.</summary>
 public sealed record FundRewardsPotRequest
 {

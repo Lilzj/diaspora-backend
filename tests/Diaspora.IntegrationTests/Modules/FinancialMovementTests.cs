@@ -1554,7 +1554,7 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
     //
     // The one route that creates points with no earning behind them had no upper bound and asked
     // nothing about why. These run against the shipped policy: 1,000 points a grant, 5,000 a day for
-    // one staff member.
+    // one staff member, and a second Admin's approval for anything above 500 (RWD-10).
 
     /// <summary>A grant must say why; a blank reason is refused before anything is awarded.</summary>
     [Fact]
@@ -1596,15 +1596,16 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
 
         await SignInAsRoleAsync("Admin");
 
-        var references = Enumerable.Range(0, 5).Select(_ => "grant:" + Guid.NewGuid().ToString("N")).ToList();
+        // 500 a grant, the most one Admin may grant alone.
+        var references = Enumerable.Range(0, 10).Select(_ => "grant:" + Guid.NewGuid().ToString("N")).ToList();
 
         foreach (var reference in references)
         {
-            (await PostGrantAsync(member, 1_000, reference)).StatusCode.Should().Be(HttpStatusCode.OK);
+            (await PostGrantAsync(member, 500, reference)).StatusCode.Should().Be(HttpStatusCode.OK);
         }
 
-        (await PostGrantAsync(member, 1_000, references[^1])).StatusCode.Should().Be(
-            HttpStatusCode.OK, "a retried grant replays; it is not a sixth grant");
+        (await PostGrantAsync(member, 500, references[^1])).StatusCode.Should().Be(
+            HttpStatusCode.OK, "a retried grant replays; it is not an eleventh grant");
 
         var over = await PostGrantAsync(member, 1, "grant:" + Guid.NewGuid().ToString("N"));
 
@@ -1639,6 +1640,233 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         entry.GrantedByUserId.Should().Be(admin);
         entry.Reason.Should().Be("Missed referral, ticket 4411");
         entry.PolicyVersion.Should().MatchRegex(@"^reward\.grant@\d+$", "the limits that allowed it are on record");
+        entry.ApprovedByUserId.Should().BeNull("a grant at or below the threshold needs one hand");
+    }
+
+    // ── Staff grants: a second Admin above the threshold (RWD-10) ───────────────────────────
+    //
+    // The per-grant and daily limits bound one staff account's hand; above 500 points the grant also
+    // needs somebody else's. The grant route refuses it and points at a request, which a different
+    // Admin approves. The Admin who asked may withdraw it, and nobody grants points to themselves.
+
+    [Fact]
+    public async Task A_staff_grant_above_the_approval_threshold_is_refused_and_moves_nothing()
+    {
+        var member = await AuthenticateAsync();
+
+        await SignInAsRoleAsync("Admin");
+
+        var response = await PostGrantAsync(member, 501, "grant:" + Guid.NewGuid().ToString("N"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict, await response.Content.ReadAsStringAsync());
+        (await CodeAsync(response)).Should().Be(FinancialErrorCodes.RewardGrantNeedsApproval);
+        (await PendingPointsOfAsync(member)).Should().Be(0);
+        (await BalanceOfAsync(member)).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task A_grant_request_lands_once_when_a_second_admin_approves_it()
+    {
+        var member = await AuthenticateAsync();
+        var (asker, askerAuth) = await SignInAsRoleAsync("Admin");
+        var (approver, approverAuth) = await SignInAsRoleAsync("Admin");
+
+        ActAs(askerAuth);
+        var requested = await PostGrantRequestAsync(member, 800, "grant:" + Guid.NewGuid().ToString("N"), "Event prize, ticket 5120");
+        requested.StatusCode.Should().Be(HttpStatusCode.OK, await requested.Content.ReadAsStringAsync());
+        var requestId = await RequestIdAsync(requested);
+        (await StatusOfAsync(requested)).Should().Be("Pending");
+        (await PendingPointsOfAsync(member)).Should().Be(0, "nothing lands on the asking");
+
+        ActAs(approverAuth);
+        var approved = await DecideGrantRequestAsync(requestId, approve: true, note: null);
+        approved.StatusCode.Should().Be(HttpStatusCode.OK, await approved.Content.ReadAsStringAsync());
+        (await StatusOfAsync(approved)).Should().Be("Approved");
+
+        (await PendingPointsOfAsync(member)).Should().Be(800, "an approved grant vests like any other (D-9)");
+
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var account = await scope.ServiceProvider
+                .GetRequiredService<IRewardAccountRepository>()
+                .FindByMemberAsync(member);
+
+            var entry = account!.Entries.Should().ContainSingle().Subject;
+
+            entry.GrantedByUserId.Should().Be(asker);
+            entry.ApprovedByUserId.Should().Be(approver);
+            entry.Reason.Should().Be("Event prize, ticket 5120");
+            entry.PolicyVersion.Should().MatchRegex(@"^reward\.grant@\d+$");
+        }
+
+        var again = await DecideGrantRequestAsync(requestId, approve: true, note: null);
+        again.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await CodeAsync(again)).Should().Be(FinancialErrorCodes.RewardGrantRequestDecided);
+        (await PendingPointsOfAsync(member)).Should().Be(800, "a request lands once");
+    }
+
+    [Fact]
+    public async Task The_admin_who_asked_cannot_approve_their_own_request()
+    {
+        var member = await AuthenticateAsync();
+        await SignInAsRoleAsync("Admin");
+
+        var requestId = await RequestIdAsync(
+            await PostGrantRequestAsync(member, 800, "grant:" + Guid.NewGuid().ToString("N")));
+
+        var approved = await DecideGrantRequestAsync(requestId, approve: true, note: null);
+
+        approved.StatusCode.Should().Be(HttpStatusCode.Forbidden, await approved.Content.ReadAsStringAsync());
+        (await CodeAsync(approved)).Should().Be(FinancialErrorCodes.RewardGrantSelfApproval);
+        (await PendingPointsOfAsync(member)).Should().Be(0);
+    }
+
+    /// <summary>With one Admin on a deployment, nobody else could ever close the request.</summary>
+    [Fact]
+    public async Task The_admin_who_asked_can_withdraw_the_request()
+    {
+        var member = await AuthenticateAsync();
+        var (_, askerAuth) = await SignInAsRoleAsync("Admin");
+        var (_, otherAuth) = await SignInAsRoleAsync("Admin");
+
+        ActAs(askerAuth);
+        var requestId = await RequestIdAsync(
+            await PostGrantRequestAsync(member, 800, "grant:" + Guid.NewGuid().ToString("N")));
+
+        var withdrawn = await DecideGrantRequestAsync(requestId, approve: false, note: "Raised against the wrong member.");
+        withdrawn.StatusCode.Should().Be(HttpStatusCode.OK, await withdrawn.Content.ReadAsStringAsync());
+        (await StatusOfAsync(withdrawn)).Should().Be("Withdrawn");
+
+        ActAs(otherAuth);
+        (await DecideGrantRequestAsync(requestId, approve: true, note: null)).StatusCode
+            .Should().Be(HttpStatusCode.Conflict, "a withdrawn request is decided");
+        (await PendingPointsOfAsync(member)).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Declining_a_request_needs_a_note()
+    {
+        var member = await AuthenticateAsync();
+        var (_, askerAuth) = await SignInAsRoleAsync("Admin");
+        var (_, otherAuth) = await SignInAsRoleAsync("Admin");
+
+        ActAs(askerAuth);
+        var requestId = await RequestIdAsync(
+            await PostGrantRequestAsync(member, 800, "grant:" + Guid.NewGuid().ToString("N")));
+
+        ActAs(otherAuth);
+        (await DecideGrantRequestAsync(requestId, approve: false, note: " ")).StatusCode
+            .Should().Be(HttpStatusCode.BadRequest);
+
+        var rejected = await DecideGrantRequestAsync(requestId, approve: false, note: "No ticket behind it.");
+        rejected.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await StatusOfAsync(rejected)).Should().Be("Rejected");
+    }
+
+    /// <summary>
+    /// The grant lands when it is approved, so the asker's day is measured then, not when they
+    /// asked: an approval cannot carry them past the ceiling.
+    /// </summary>
+    [Fact]
+    public async Task An_approval_rechecks_the_askers_daily_ceiling()
+    {
+        var member = await AuthenticateAsync();
+        var (_, askerAuth) = await SignInAsRoleAsync("Admin");
+        var (_, approverAuth) = await SignInAsRoleAsync("Admin");
+
+        ActAs(askerAuth);
+        var requestId = await RequestIdAsync(
+            await PostGrantRequestAsync(member, 800, "grant:" + Guid.NewGuid().ToString("N")));
+
+        for (var i = 0; i < 9; i++)
+        {
+            (await PostGrantAsync(member, 500, "grant:" + Guid.NewGuid().ToString("N"))).StatusCode
+                .Should().Be(HttpStatusCode.OK);
+        }
+
+        ActAs(approverAuth);
+        var approved = await DecideGrantRequestAsync(requestId, approve: true, note: null);
+
+        approved.StatusCode.Should().Be(HttpStatusCode.Conflict, await approved.Content.ReadAsStringAsync());
+        (await CodeAsync(approved)).Should().Be(FinancialErrorCodes.RewardGrantDailyLimitReached);
+        (await PendingPointsOfAsync(member)).Should().Be(4_500);
+    }
+
+    [Fact]
+    public async Task A_request_is_still_bounded_by_the_per_grant_maximum()
+    {
+        var member = await AuthenticateAsync();
+        await SignInAsRoleAsync("Admin");
+
+        var response = await PostGrantRequestAsync(member, 1_001, "grant:" + Guid.NewGuid().ToString("N"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await CodeAsync(response)).Should().Be(FinancialErrorCodes.RewardGrantAboveMaximum);
+    }
+
+    [Fact]
+    public async Task A_repeated_request_reference_replays_the_request()
+    {
+        var member = await AuthenticateAsync();
+        await SignInAsRoleAsync("Admin");
+        var reference = "grant:" + Guid.NewGuid().ToString("N");
+
+        var first = await RequestIdAsync(await PostGrantRequestAsync(member, 800, reference));
+        var second = await RequestIdAsync(await PostGrantRequestAsync(member, 800, reference));
+
+        second.Should().Be(first);
+    }
+
+    /// <summary>Q4: nobody grants points to their own account, at any size, by either route.</summary>
+    [Fact]
+    public async Task Nobody_grants_points_to_themselves()
+    {
+        var member = await AuthenticateAsync();
+        var (asker, askerAuth) = await SignInAsRoleAsync("Admin");
+        var (approver, approverAuth) = await SignInAsRoleAsync("Admin");
+
+        ActAs(askerAuth);
+
+        var direct = await PostGrantAsync(asker, 10, "grant:" + Guid.NewGuid().ToString("N"));
+        direct.StatusCode.Should().Be(HttpStatusCode.Forbidden, await direct.Content.ReadAsStringAsync());
+        (await CodeAsync(direct)).Should().Be(FinancialErrorCodes.RewardGrantToSelf);
+
+        var request = await PostGrantRequestAsync(asker, 800, "grant:" + Guid.NewGuid().ToString("N"));
+        request.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await CodeAsync(request)).Should().Be(FinancialErrorCodes.RewardGrantToSelf);
+
+        // Asked for somebody else, approved by the person it pays.
+        var requestId = await RequestIdAsync(
+            await PostGrantRequestAsync(approver, 800, "grant:" + Guid.NewGuid().ToString("N")));
+
+        ActAs(approverAuth);
+        var approved = await DecideGrantRequestAsync(requestId, approve: true, note: null);
+        approved.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await CodeAsync(approved)).Should().Be(FinancialErrorCodes.RewardGrantToSelf);
+
+        (await PendingPointsOfAsync(asker)).Should().Be(0);
+        (await PendingPointsOfAsync(approver)).Should().Be(0);
+        (await PendingPointsOfAsync(member)).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Staff_see_pending_requests_in_the_queue()
+    {
+        var member = await AuthenticateAsync();
+        await SignInAsRoleAsync("Admin");
+
+        var requestId = await RequestIdAsync(
+            await PostGrantRequestAsync(member, 800, "grant:" + Guid.NewGuid().ToString("N")));
+
+        var queue = await HttpClient.GetAsync(
+            new Uri("/api/v1/financial/operations/rewards/grant-requests?take=200", UriKind.Relative));
+
+        queue.StatusCode.Should().Be(HttpStatusCode.OK, await queue.Content.ReadAsStringAsync());
+        using var body = JsonDocument.Parse(await queue.Content.ReadAsStringAsync());
+
+        body.RootElement.GetProperty("data").EnumerateArray()
+            .Select(item => item.GetProperty("requestId").GetGuid())
+            .Should().Contain(requestId);
     }
 
     /// <summary>
@@ -3198,6 +3426,41 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         HttpClient.PostAsJsonAsync(
             new Uri("/api/v1/financial/operations/rewards/grants", UriKind.Relative),
             new { userId, points, source = "StaffAdjustment", grantReference = reference, reason });
+
+    /// <summary>Signs the client in as one of several staff members already signed in once.</summary>
+    private void ActAs(Diaspora.Contracts.Identity.V1.Responses.AuthenticationResponse auth)
+    {
+        Api.Authenticate(auth.Tokens.AccessToken);
+        HttpClient.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", auth.Tokens.AccessToken);
+    }
+
+    /// <summary>Asks for a grant that needs a second Admin, as whoever the client is signed in as.</summary>
+    private Task<HttpResponseMessage> PostGrantRequestAsync(
+        Guid userId, long points, string reference, string? reason = "Integration suite: a large missed earning.") =>
+        HttpClient.PostAsJsonAsync(
+            new Uri("/api/v1/financial/operations/rewards/grant-requests", UriKind.Relative),
+            new { userId, points, source = "StaffAdjustment", grantReference = reference, reason });
+
+    private Task<HttpResponseMessage> DecideGrantRequestAsync(Guid requestId, bool approve, string? note) =>
+        HttpClient.PostAsJsonAsync(
+            new Uri($"/api/v1/financial/operations/rewards/grant-requests/{requestId}/decide", UriKind.Relative),
+            new { approve, note });
+
+    private static async Task<Guid> RequestIdAsync(HttpResponseMessage response)
+    {
+        var body = await response.Content.ReadAsStringAsync();
+        response.IsSuccessStatusCode.Should().BeTrue($"the request should have been taken, but answered {body}");
+
+        using var json = JsonDocument.Parse(body);
+        return json.RootElement.GetProperty("data").GetProperty("requestId").GetGuid();
+    }
+
+    private static async Task<string?> StatusOfAsync(HttpResponseMessage response)
+    {
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        return json.RootElement.GetProperty("data").GetProperty("status").GetString();
+    }
 
     /// <summary>Holds or lifts a member's conversion hold through the aggregate, as a system decision.</summary>
     private async Task SetConversionHoldAsync(Guid userId, bool held)
