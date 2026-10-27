@@ -255,6 +255,16 @@ public sealed class TrustProfileRepository : ITrustProfileRepository
 
     public async Task AddAsync(TrustProfile profile, CancellationToken cancellationToken = default) =>
         await Profiles.AddAsync(profile, cancellationToken);
+
+    public async Task<IReadOnlyList<UserId>> ListAboveBaselineRiskAsync(
+        int limit, CancellationToken cancellationToken = default) =>
+        await Profiles
+            .AsNoTracking()
+            .Where(profile => profile.Risk.Score > RiskAssessment.BaseScore)
+            .OrderBy(profile => profile.Risk.AssessedAt)
+            .Select(profile => profile.UserId)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
 }
 
 public sealed class ReputationProfileRepository : IReputationProfileRepository
@@ -780,4 +790,48 @@ public sealed class CommunityContributionRepository : ICommunityContributionRepo
     public async Task AddAsync(
         CommunityContribution contribution, CancellationToken cancellationToken = default) =>
         await Contributions.AddAsync(contribution, cancellationToken);
+}
+
+public sealed class RiskSignalRepository : IRiskSignalRepository
+{
+    private readonly DiasporaDbContext _dbContext;
+
+    public RiskSignalRepository(DiasporaDbContext dbContext)
+    {
+        _dbContext = dbContext;
+    }
+
+    private DbSet<RiskSignal> Signals => _dbContext.Set<RiskSignal>();
+
+    public async Task<bool> ExistsAsync(string sourceKey, CancellationToken cancellationToken = default) =>
+        await Signals.AnyAsync(signal => signal.SourceKey == sourceKey, cancellationToken);
+
+    public async Task<IReadOnlyList<RiskSignal>> ListSinceAsync(
+        UserId userId, DateTimeOffset since, CancellationToken cancellationToken = default) =>
+        await Signals
+            .AsNoTracking()
+            .Where(signal => signal.UserId == userId && signal.OccurredAt > since)
+            .ToListAsync(cancellationToken);
+
+    public async Task AddAsync(RiskSignal signal, CancellationToken cancellationToken = default) =>
+        await Signals.AddAsync(signal, cancellationToken);
+
+    /// <summary>
+    /// A bounded read then <c>RemoveRange</c>, never <c>ExecuteDeleteAsync</c>: the platform's
+    /// persistence rule refuses a set-based delete from a vertical, and a bounded batch converges
+    /// without ever being the longest transaction on the connection.
+    /// </summary>
+    public async Task<int> RemoveOlderThanAsync(
+        DateTimeOffset cutoff, int limit, CancellationToken cancellationToken = default)
+    {
+        var expired = await Signals
+            .Where(signal => signal.OccurredAt <= cutoff)
+            .OrderBy(signal => signal.OccurredAt)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+
+        Signals.RemoveRange(expired);
+
+        return expired.Count;
+    }
 }

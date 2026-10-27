@@ -34,6 +34,8 @@
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
     <!-- For the ADR-002 trust-decision channel to Identity, which is an HTTP call by design. -->
     <PackageReference Include="Microsoft.Extensions.Http" />
+    <!-- For the risk sweep (RWD-14, CS-4b), a BackgroundService like every other module's loop. -->
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
   </ItemGroup>
 

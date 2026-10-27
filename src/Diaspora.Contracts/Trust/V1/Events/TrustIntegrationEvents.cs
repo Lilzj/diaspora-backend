@@ -315,6 +315,25 @@ public sealed record ReputationLevelChangedIntegrationEvent : IntegrationEvent
 }
 
 /// <summary>
+/// A member's risk level changed, in either direction (RWD-14, CS-4b).
+/// <para>
+/// The level only: Low, Medium, High. The score and the factors behind it are staff-only and stay in
+/// Trust, because a member, or a module, that can read the score can tune against it. The Financial
+/// Platform holds a member's points when the level becomes High; nothing acts on a fall.
+/// </para>
+/// </summary>
+public sealed record MemberRiskLevelChangedIntegrationEvent : IntegrationEvent
+{
+    public required Guid UserId { get; init; }
+
+    public required string PreviousLevel { get; init; }
+
+    public required string CurrentLevel { get; init; }
+
+    public required DateTimeOffset ChangedAt { get; init; }
+}
+
+/// <summary>
 /// A moderator decided on a piece of content.
 /// <para>
 /// The event the owning module acts on — Trust holds the queue and the decision, but only

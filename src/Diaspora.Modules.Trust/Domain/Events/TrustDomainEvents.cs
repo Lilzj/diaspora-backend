@@ -37,6 +37,17 @@ public sealed record AccountHealthChangedDomainEvent(
     AccountHealth To,
     DateTimeOffset At) : DomainEvent;
 
+/// <summary>
+/// Raised when a reassessment moves the member's risk level, in either direction (RWD-14, CS-4b).
+/// A reassessment at the same level renews the assessment and raises nothing.
+/// </summary>
+public sealed record MemberRiskLevelChangedDomainEvent(
+    TrustProfileId ProfileId,
+    UserId UserId,
+    RiskLevel From,
+    RiskLevel To,
+    DateTimeOffset At) : DomainEvent;
+
 /// <summary>Raised when a member crosses a reputation level boundary.</summary>
 public sealed record ReputationLevelChangedDomainEvent(
     ReputationProfileId ProfileId,

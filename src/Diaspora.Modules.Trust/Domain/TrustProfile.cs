@@ -318,10 +318,25 @@ public sealed class TrustProfile : AggregateRoot<TrustProfileId>, IAuditableEnti
         RederiveHealth(reason, at);
     }
 
+    /// <summary>
+    /// Replaces the cached assessment with a fresh one, and announces a change of level.
+    /// <para>
+    /// A reassessment at the same level is still stored, so <see cref="RiskAssessment.AssessedAt"/>
+    /// says when the evidence was last read; only a change of level is news (RWD-14, CS-4b).
+    /// </para>
+    /// </summary>
     public void UpdateRisk(RiskAssessment assessment)
     {
         ArgumentNullException.ThrowIfNull(assessment);
+
+        var previous = Risk.Level;
         Risk = assessment;
+
+        if (assessment.Level != previous)
+        {
+            RaiseDomainEvent(new MemberRiskLevelChangedDomainEvent(
+                Id, UserId, previous, assessment.Level, assessment.AssessedAt));
+        }
     }
 
     /// <summary>

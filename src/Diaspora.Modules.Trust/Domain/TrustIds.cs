@@ -127,3 +127,11 @@ public sealed record CommunityContributionId(Guid Value) : StronglyTypedId(Value
 
     public static CommunityContributionId From(Guid value) => new(value);
 }
+
+/// <summary>One piece of evidence counted toward a member's risk (RWD-14, CS-4b).</summary>
+public sealed record RiskSignalId(Guid Value) : StronglyTypedId(Value)
+{
+    public static RiskSignalId New() => new(Guid.NewGuid());
+
+    public static RiskSignalId From(Guid value) => new(value);
+}

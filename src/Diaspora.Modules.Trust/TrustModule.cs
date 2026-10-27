@@ -2,6 +2,8 @@ using Diaspora.Contracts.Trust.V1.Submission;
 using Diaspora.Modules.Trust.Application.Consumers;
 using Diaspora.Modules.Trust.Application.Services;
 using Diaspora.Modules.Trust.Extensibility;
+using Diaspora.Modules.Trust.Infrastructure.Hosting;
+using Diaspora.Modules.Trust.Options;
 using Diaspora.Modules.Trust.Persistence;
 using Diaspora.Platform.Modules;
 using Diaspora.Platform.Services.Abstractions;
@@ -95,6 +97,7 @@ public sealed class TrustModule : IPlatformModule
         services.AddScoped<ITrustEventRepository, TrustEventRepository>();
         services.AddScoped<IModerationItemRepository, ModerationItemRepository>();
         services.AddScoped<ICommunityContributionRepository, CommunityContributionRepository>();
+        services.AddScoped<IRiskSignalRepository, RiskSignalRepository>();
     }
 
     /// <summary>
@@ -135,6 +138,16 @@ public sealed class TrustModule : IPlatformModule
         services.AddScoped<TrustProfileProvisioner>();
         services.AddScoped<ReputationService>();
         services.AddScoped<ActivityReputationScorer>();
+
+        // RWD-14, CS-4b. Risk from evidence: recorded and reassessed when evidence arrives, and aged
+        // out by the sweep. Behind Trust:EnableRiskAssessment, off until a deployment turns it on.
+        services.AddOptions<TrustOptions>()
+            .Bind(configuration.GetSection(TrustOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services.AddScoped<MemberRiskAssessor>();
+        services.AddHostedService<TrustRiskSweep>();
 
         // B3.0.2. The workflow, and the two entry points that share it — the member's own
         // route through MediatR, and the published in-process contract below.

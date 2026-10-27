@@ -4,6 +4,7 @@ using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Trust.Application.Consumers;
 using Diaspora.Modules.Trust.Application.Services;
 using Diaspora.Modules.Trust.Domain;
+using Diaspora.Modules.Trust.Options;
 using Diaspora.Modules.Trust.Extensibility;
 using Diaspora.Modules.Trust.Persistence;
 using Diaspora.Platform.Messaging;
@@ -12,6 +13,7 @@ using Diaspora.SharedKernel.Identity;
 using FluentAssertions;
 using NSubstitute;
 using Xunit;
+using MicrosoftOptions = Microsoft.Extensions.Options.Options;
 
 namespace Diaspora.UnitTests.Trust;
 
@@ -150,7 +152,16 @@ public sealed class ReportUpheldReputationTests
                 reputations, profiles, new ReputationRuleCatalog([]), Substitute.For<IIntegrationEventPublisher>(), clock);
             var provisioner = new TrustProfileProvisioner(
                 profiles, reputations, Substitute.For<ITrustEventRepository>(), clock);
-            Consumer = new ReportUpheldReputationConsumer(new ActivityReputationScorer(Service, provisioner, UnitOfWork));
+            // Risk assessment off: these tests are about the reporter's XP (CS-4b's half is RiskHoldTests').
+            Consumer = new ReportUpheldReputationConsumer(
+                new ActivityReputationScorer(Service, provisioner, UnitOfWork),
+                new MemberRiskAssessor(
+                    Substitute.For<IRiskSignalRepository>(),
+                    profiles,
+                    provisioner,
+                    MicrosoftOptions.Create(new TrustOptions()),
+                    clock,
+                    UnitOfWork));
         }
 
         public ReputationProfile Profile { get; }
