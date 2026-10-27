@@ -140,6 +140,24 @@ primary_region = 'iad'
   Payments__Stripe__Provider = 'stripe'
   Payments__Flutterwave__Provider = 'flutterwave'
 
+  # -- The rewards checks (D-13) ---------------------------------------------
+  #
+  # Both default to off in code and waited on the privacy notice, which now
+  # describes them (diaspora-app#10). Signals flag, staff decide: neither takes
+  # anything from a member, they hold points or pause publishing for a person
+  # to review.
+  #
+  # A device another account already registered holds the new account's points,
+  # and a referral it joined through, for review. Only as good as the identifier
+  # the app sends: one per installation since diaspora-app#10, so an older build
+  # (a new id each launch) is almost never matched.
+  Identity__EnableSharedDeviceSignal = 'true'
+
+  # A fraud-like rejected verification together with upheld reports on three
+  # pieces of content in a week makes a member High: points held, publishing
+  # paused. TrustRiskSweep, which lets evidence age out, runs either way.
+  Trust__EnableRiskAssessment = 'true'
+
 [http_service]
   internal_port = 8080
   force_https = true
