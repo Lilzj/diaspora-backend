@@ -360,7 +360,11 @@ public sealed class TrustContractEvolutionTests
     }
 
     /// <summary>
-    /// The event count is unchanged. Nothing was renamed, nothing removed, nothing added.
+    /// The event count is unchanged by B3.0.1. Nothing was renamed, nothing removed, nothing added.
+    /// <para>
+    /// One event has been added since, additively, and is listed here so a later change is still
+    /// caught: <c>MemberRiskLevelChanged</c> (RWD-14, CS-4b, step 3f), the level only.
+    /// </para>
     /// </summary>
     [Fact]
     public void The_published_event_set_is_unchanged()
@@ -380,6 +384,7 @@ public sealed class TrustContractEvolutionTests
             nameof(BadgeRevokedIntegrationEvent),
             nameof(ContributorApprovedIntegrationEvent),
             nameof(GuideApprovedIntegrationEvent),
+            nameof(MemberRiskLevelChangedIntegrationEvent),
             nameof(ModerationDecisionRecordedIntegrationEvent),
             nameof(OrganizationVerifiedIntegrationEvent),
             nameof(ReputationLevelChangedIntegrationEvent),

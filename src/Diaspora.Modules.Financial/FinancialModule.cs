@@ -238,6 +238,10 @@ public sealed class FinancialModule : IPlatformModule
         services.AddScoped<Application.Rewards.RewardConversionPricer>();
         services.AddScoped<Application.Rewards.RewardVesting>();
 
+        // A hold the platform places on a signal, decided by nobody: one way to write it, for every
+        // signal that asks for one (the shared device, D-13; Trust risk, CS-4b).
+        services.AddScoped<Application.Rewards.SystemRewardHolds>();
+
         // Resolves what a member is entitled to and how much of it they have used.
         services.AddScoped<EntitlementResolver>();
 

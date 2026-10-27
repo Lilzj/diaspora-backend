@@ -264,34 +264,62 @@ public sealed class ProviderRecommendationReputationConsumer
 
 /// <summary>
 /// Pays a member 5 trust XP when a moderator upholds a report they raised, in any of the five
-/// modules that take reports (REP-13). Never for reporting their own content.
+/// modules that take reports (REP-13), and counts the report against the content's owner (RWD-14,
+/// CS-4b). Neither for a report on the reporter's own content.
 /// <para>
 /// <b>Sourced from the report, not the content.</b> Removing content takes back every award sourced
 /// from it, and an upheld report usually removes the content: an award sourced from the content
 /// would be taken back the moment it was paid.
+/// </para>
+/// <para>
+/// <b>One reaction with two halves</b>, because one module consumes one published fact once: the
+/// reporter is paid, then the owner's risk evidence is recorded, each idempotent on its own key, so a
+/// redelivery after either save completes the other. CommunityLife's reports name no owner and count
+/// against nobody.
 /// </para>
 /// </summary>
 public sealed class ReportUpheldReputationConsumer
     : IntegrationEventHandler<ContentReportUpheldIntegrationEvent>
 {
     private readonly ActivityReputationScorer _scorer;
+    private readonly MemberRiskAssessor _risk;
 
-    public ReportUpheldReputationConsumer(ActivityReputationScorer scorer) => _scorer = scorer;
+    public ReportUpheldReputationConsumer(ActivityReputationScorer scorer, MemberRiskAssessor risk)
+    {
+        _scorer = scorer;
+        _risk = risk;
+    }
 
-    protected override Task HandleAsync(
+    protected override async Task HandleAsync(
         ContentReportUpheldIntegrationEvent integrationEvent, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
 
-        return integrationEvent.ContentOwnerUserId == integrationEvent.ReporterUserId
-            ? Task.CompletedTask
-            : _scorer.ScoreAsync(
-                integrationEvent.ReporterUserId,
-                ReputationActions.ReportResolved,
-                ReputationAwardKey.Report(integrationEvent.Module, integrationEvent.ReportId),
-                "report",
-                integrationEvent.ReportId,
-                null,
+        if (integrationEvent.ContentOwnerUserId == integrationEvent.ReporterUserId)
+        {
+            return;
+        }
+
+        await _scorer.ScoreAsync(
+            integrationEvent.ReporterUserId,
+            ReputationActions.ReportResolved,
+            ReputationAwardKey.Report(integrationEvent.Module, integrationEvent.ReportId),
+            "report",
+            integrationEvent.ReportId,
+            null,
+            cancellationToken);
+
+        if (integrationEvent.ContentOwnerUserId is { } owner && owner != Guid.Empty)
+        {
+            await _risk.RecordAsync(
+                RiskSignal.ReportUpheld(
+                    UserId.From(owner),
+                    integrationEvent.Module,
+                    integrationEvent.ContentType,
+                    integrationEvent.ContentId,
+                    integrationEvent.ReportId,
+                    integrationEvent.UpheldAt),
                 cancellationToken);
+        }
     }
 }

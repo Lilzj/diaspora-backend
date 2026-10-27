@@ -17750,6 +17750,50 @@ namespace Diaspora.Persistence.Migrations
                     b.ToTable("reputation_profiles", "trust");
                 });
 
+            modelBuilder.Entity("Diaspora.Modules.Trust.Domain.RiskSignal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContentKey")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SourceKey")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("VerificationType")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OccurredAt")
+                        .HasDatabaseName("ix_risk_signals_occurred");
+
+                    b.HasIndex("SourceKey")
+                        .IsUnique()
+                        .HasDatabaseName("ix_risk_signals_source");
+
+                    b.HasIndex("UserId", "OccurredAt")
+                        .HasDatabaseName("ix_risk_signals_user_occurred");
+
+                    b.ToTable("risk_signals", "trust");
+                });
+
             modelBuilder.Entity("Diaspora.Modules.Trust.Domain.TrustEvent", b =>
                 {
                     b.Property<Guid>("Id")

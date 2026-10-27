@@ -1,9 +1,6 @@
 using Diaspora.Application.Abstractions;
 using Diaspora.Contracts.Identity.V1.Events;
-using Diaspora.Domain.Abstractions;
-using Diaspora.Modules.Financial.Domain.Identifiers;
-using Diaspora.Modules.Financial.Domain.Rewards;
-using Diaspora.Platform.Services.Abstractions;
+using Diaspora.Modules.Financial.Application.Rewards;
 
 namespace Diaspora.Modules.Financial.Application.Consumers.Rewards;
 
@@ -17,7 +14,8 @@ namespace Diaspora.Modules.Financial.Application.Consumers.Rewards;
 /// </para>
 /// <para>
 /// <b>A hold already in force is left alone.</b> A second announcement, a redelivery, or a hold staff
-/// placed for their own reason keeps the note it has: the platform never writes over a person.
+/// placed for their own reason keeps the note it has: the platform never writes over a person. Both
+/// rules are <see cref="SystemRewardHolds"/>', which every system hold goes through.
 /// </para>
 /// </summary>
 public sealed class AccountDeviceSharedRewardHoldConsumer
@@ -25,47 +23,15 @@ public sealed class AccountDeviceSharedRewardHoldConsumer
 {
     public const string Reason = "Shares a device with another account; awaiting review";
 
-    private readonly IRewardAccountRepository _accounts;
-    private readonly IGuidGenerator _guids;
-    private readonly IClock _clock;
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly SystemRewardHolds _holds;
 
-    public AccountDeviceSharedRewardHoldConsumer(
-        IRewardAccountRepository accounts, IGuidGenerator guids, IClock clock, IUnitOfWork unitOfWork)
-    {
-        _accounts = accounts;
-        _guids = guids;
-        _clock = clock;
-        _unitOfWork = unitOfWork;
-    }
+    public AccountDeviceSharedRewardHoldConsumer(SystemRewardHolds holds) => _holds = holds;
 
-    protected override async Task HandleAsync(
+    protected override Task HandleAsync(
         AccountDeviceSharedIntegrationEvent integrationEvent, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
 
-        var account = await _accounts.FindByMemberAsync(integrationEvent.UserId, cancellationToken);
-
-        if (account is { IsConversionBlocked: true })
-        {
-            return;
-        }
-
-        var now = _clock.UtcNow;
-
-        // A member with no points yet is held all the same, as a staff hold opens the account: the
-        // first points they earn must not convert before the review.
-        if (account is null)
-        {
-            account = RewardAccount.Open(
-                RewardAccountId.From(_guids.NewSequentialGuid()), integrationEvent.UserId, now);
-
-            _accounts.Add(account);
-        }
-
-        account.BlockConversion(_guids.NewSequentialGuid(), Reason, decidedByUserId: null, now);
-        _accounts.Update(account);
-
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return _holds.PlaceAsync(integrationEvent.UserId, Reason, cancellationToken);
     }
 }

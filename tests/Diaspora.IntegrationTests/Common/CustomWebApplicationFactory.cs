@@ -229,6 +229,13 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Api.Program>
                 // test needs it.
                 ["Integrations:EnableMaintenanceSweep"] = "false",
 
+                // Step 3f (RWD-14, CS-4b). Risk assessment is off in every deployment until it is
+                // turned on, and on here, so the suite proves the path a deployment takes once it is:
+                // evidence recorded, a High member's points held and publishing paused. Its sweep is
+                // off for the same two reasons every loop above is (DEBT-049), and is driven directly.
+                ["Trust:EnableRiskAssessment"] = "true",
+                ["Trust:EnableRiskSweep"] = "false",
+
                 // The OAuth allow-lists. Empty is the correct production default — a deployment
                 // that has configured neither can start no authorization and make no outbound call
                 // — and a suite that left them empty would prove only the refusal. These two

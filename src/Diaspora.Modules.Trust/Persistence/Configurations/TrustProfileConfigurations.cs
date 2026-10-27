@@ -344,3 +344,53 @@ public sealed class ReputationEventConfiguration : IEntityTypeConfiguration<Repu
         builder.Ignore(reputationEvent => reputationEvent.DomainEvents);
     }
 }
+
+/// <summary>Maps the evidence counted toward a member's risk (RWD-14, CS-4b).</summary>
+public sealed class RiskSignalConfiguration : IEntityTypeConfiguration<RiskSignal>
+{
+    public void Configure(EntityTypeBuilder<RiskSignal> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.ToTable("risk_signals", TrustModuleMetadata.Schema);
+
+        builder.HasKey(signal => signal.Id);
+
+        builder.Property(signal => signal.Id)
+            .HasConversion(new StronglyTypedIdValueConverter<RiskSignalId>());
+
+        builder.Property(signal => signal.UserId).IsRequired();
+
+        builder.Property(signal => signal.Kind)
+            .HasConversion<string>()
+            .HasMaxLength(32)
+            .IsRequired();
+
+        builder.Property(signal => signal.SourceKey)
+            .HasMaxLength(RiskSignal.MaxSourceKeyLength)
+            .IsRequired();
+
+        builder.Property(signal => signal.VerificationType)
+            .HasConversion<string>()
+            .HasMaxLength(32);
+
+        builder.Property(signal => signal.ContentKey)
+            .HasMaxLength(RiskSignal.MaxContentKeyLength);
+
+        builder.Property(signal => signal.OccurredAt).IsRequired();
+
+        // One row per source. The unique index is what makes a redelivered report count once.
+        builder.HasIndex(signal => signal.SourceKey)
+            .IsUnique()
+            .HasDatabaseName("ix_risk_signals_source");
+
+        // An assessment reads one member's recent evidence; the sweep removes the oldest.
+        builder.HasIndex(signal => new { signal.UserId, signal.OccurredAt })
+            .HasDatabaseName("ix_risk_signals_user_occurred");
+
+        builder.HasIndex(signal => signal.OccurredAt)
+            .HasDatabaseName("ix_risk_signals_occurred");
+
+        builder.Ignore(signal => signal.DomainEvents);
+    }
+}

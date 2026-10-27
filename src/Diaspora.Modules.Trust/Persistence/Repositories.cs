@@ -91,6 +91,14 @@ public interface ITrustProfileRepository
         UserId userId, CancellationToken cancellationToken = default);
 
     Task AddAsync(TrustProfile profile, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Members whose last assessment is above the baseline, the stalest first: the risk sweep's work
+    /// list (RWD-14, CS-4b). Oldest first, so a member reassessed last pass waits behind one who was
+    /// not, and a batch never starves the rest.
+    /// </summary>
+    Task<IReadOnlyList<UserId>> ListAboveBaselineRiskAsync(
+        int limit, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -268,4 +276,24 @@ public interface ICommunityContributionRepository
         string targetType, string targetId, CancellationToken cancellationToken = default);
 
     Task AddAsync(CommunityContribution contribution, CancellationToken cancellationToken = default);
+}
+
+/// <summary>Persistence contract for the evidence counted toward a member's risk (RWD-14, CS-4b).</summary>
+public interface IRiskSignalRepository
+{
+    /// <summary>Whether this evidence is already on record. Backs the one-row-per-source rule.</summary>
+    Task<bool> ExistsAsync(string sourceKey, CancellationToken cancellationToken = default);
+
+    /// <summary>The member's evidence since a moment, the window an assessment reads.</summary>
+    Task<IReadOnlyList<RiskSignal>> ListSinceAsync(
+        UserId userId, DateTimeOffset since, CancellationToken cancellationToken = default);
+
+    Task AddAsync(RiskSignal signal, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Marks up to <paramref name="limit"/> pieces of evidence older than <paramref name="cutoff"/>
+    /// for removal, oldest first, and says how many. The caller's save removes them.
+    /// </summary>
+    Task<int> RemoveOlderThanAsync(
+        DateTimeOffset cutoff, int limit, CancellationToken cancellationToken = default);
 }

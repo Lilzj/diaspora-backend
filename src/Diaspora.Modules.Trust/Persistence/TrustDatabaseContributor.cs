@@ -52,5 +52,8 @@ public sealed class TrustDatabaseContributor : IDatabaseContributor
 
         // Community confirmations
         modelBuilder.ApplyConfiguration(new CommunityContributionConfiguration());
+
+        // Risk evidence
+        modelBuilder.ApplyConfiguration(new RiskSignalConfiguration());
     }
 }

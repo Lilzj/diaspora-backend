@@ -238,6 +238,22 @@ public enum RiskFactor
 }
 
 /// <summary>
+/// The kinds of evidence Trust records toward a member's risk (RWD-14, CS-4b).
+/// <para>
+/// Evidence, not factors: one upheld report is not a spike, and a rejection only counts while it is
+/// recent and unanswered. <see cref="RiskPolicy"/> turns the evidence into <see cref="RiskFactor"/>s.
+/// </para>
+/// </summary>
+public enum RiskSignalKind
+{
+    /// <summary>A verification a reviewer rejected for a fraud-like reason.</summary>
+    VerificationRejected = 0,
+
+    /// <summary>A report upheld against a piece of the member's content.</summary>
+    ReportUpheld = 1
+}
+
+/// <summary>
 /// The member-facing reputation ladder.
 /// <para>
 /// The frontend contradicts itself here: <c>ReputationLevel</c> ends in

@@ -603,3 +603,33 @@ public sealed class VerificationStatusChangedEventHandler
             cancellationToken);
     }
 }
+
+/// <summary>
+/// Publishes a change of a member's risk level (RWD-14, CS-4b): the level, never the score or the
+/// factors, which stay staff-only. The Financial Platform holds the member's points on High.
+/// </summary>
+public sealed class MemberRiskLevelChangedEventHandler : DomainEventHandler<MemberRiskLevelChangedDomainEvent>
+{
+    private readonly IIntegrationEventPublisher _events;
+
+    public MemberRiskLevelChangedEventHandler(IIntegrationEventPublisher events)
+    {
+        _events = events;
+    }
+
+    protected override async Task HandleAsync(
+        MemberRiskLevelChangedDomainEvent domainEvent, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(domainEvent);
+
+        await _events.PublishAsync(
+            new MemberRiskLevelChangedIntegrationEvent
+            {
+                UserId = domainEvent.UserId.Value,
+                PreviousLevel = domainEvent.From.ToString(),
+                CurrentLevel = domainEvent.To.ToString(),
+                ChangedAt = domainEvent.At
+            },
+            cancellationToken);
+    }
+}
