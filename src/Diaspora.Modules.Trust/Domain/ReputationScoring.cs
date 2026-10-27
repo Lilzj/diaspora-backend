@@ -184,9 +184,10 @@ public static class DefaultReputationRules
     ///   <item>5, 2026-10-25: XP for publishing an event, a service, a job, a home and a listing, for an
     ///   approved neighbourhood insight, confirmed volunteer hours and a provider recommendation
     ///   (REP-14, D-3).</item>
+    ///   <item>6, 2026-10-26: an upheld report pays its reporter 5 trust XP, once an hour (REP-13).</item>
     /// </list>
     /// </summary>
-    public const int Version = 5;
+    public const int Version = 6;
 
     public static IReadOnlyList<ReputationRule> All { get; } =
     [
@@ -445,14 +446,14 @@ public static class DefaultReputationRules
         },
         new()
         {
+            // Paid by ReportUpheldReputationConsumer when any reporting module upholds a report
+            // (REP-13). The cooldown keeps a burst of upheld reports from being a quick climb.
             ActionType = ReputationActions.ReportResolved,
             Dimension = ReputationDimension.trust,
             Points = 5,
+            CooldownHours = 1,
             Description = "A report you raised was upheld.",
-            Label = "Reports upheld",
-
-            // Nothing scores it yet: upholding a report does not score the member who raised it.
-            IsAwarded = false
+            Label = "Reports upheld"
         },
         new()
         {

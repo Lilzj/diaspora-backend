@@ -204,6 +204,18 @@ public sealed class JobReport : AggregateRoot<JobReportId>, IAuditableEntity
         Resolution = string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
         ModifiedAt = now;
 
+        if (upheld)
+        {
+            RaiseDomainEvent(new Events.JobReportUpheldDomainEvent
+            {
+                ReportId = Id,
+                PostingId = PostingId,
+                EmployerId = EmployerId,
+                ReportedBy = ReportedBy,
+                UpheldAt = now
+            });
+        }
+
         return Result.Success();
     }
 

@@ -19,4 +19,10 @@ public sealed record ListingReportResolvedDomainEvent : DomainEvent
     public string? Resolution { get; init; }
 
     public required DateTimeOffset ResolvedAt { get; init; }
+
+    /// <summary>Who reported it. An actioned report pays them (REP-13).</summary>
+    public required UserId ReporterId { get; init; }
+
+    /// <summary>Whose listing it was, so a seller reporting their own listing is not paid.</summary>
+    public required SellerProfileId SellerId { get; init; }
 }

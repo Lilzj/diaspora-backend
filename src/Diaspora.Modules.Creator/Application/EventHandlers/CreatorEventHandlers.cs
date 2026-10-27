@@ -241,7 +241,10 @@ public sealed class CreatorIntegrationEventRelay
                 Points = domainEvent.Points,
                 Source = domainEvent.Source,
                 GrantReference = domainEvent.GrantReference,
-                GrantedAt = domainEvent.EarnedAt
+                GrantedAt = domainEvent.EarnedAt,
+
+                // The schedule that priced it (RWD-13), stored on the Financial entry.
+                PolicyVersion = domainEvent.PolicyVersion
             },
             cancellationToken);
     }

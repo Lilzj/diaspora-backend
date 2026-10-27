@@ -142,7 +142,8 @@ public sealed record CreatorPointsEarnedDomainEvent(
     long Points,
     string Source,
     string GrantReference,
-    DateTimeOffset EarnedAt) : DomainEvent;
+    DateTimeOffset EarnedAt,
+    string? PolicyVersion = null) : DomainEvent;
 
 /// <summary>A course was finished, once per member and course. Pays no points (Q6).</summary>
 public sealed record CourseCompletedDomainEvent(

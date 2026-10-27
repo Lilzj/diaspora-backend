@@ -229,12 +229,15 @@ public sealed class FrontendContractCompatibilityTests
         NamesOf<BadgeType>().Should().Contain(brief);
     }
 
-    /// <summary><c>src/types/trust.ts:153</c> and <c>:156</c>.</summary>
+    /// <summary>
+    /// <c>src/types/trust.ts:153</c> and <c>:156</c>. <c>RewardHold</c> joined both sides in step 3e
+    /// (CS-4a): a held member asks for a review from the points screen.
+    /// </summary>
     [Fact]
     public void Appeal_vocabulary_matches_the_frontend()
     {
         NamesOf<AppealType>().Should().BeEquivalentTo(
-            "Verification", "Content", "Suspension", "Publishing");
+            "Verification", "Content", "Suspension", "Publishing", "RewardHold");
 
         // The client's own union is only these three; the rest are the states its six-stage
         // workflow tracker already draws but had no data for.

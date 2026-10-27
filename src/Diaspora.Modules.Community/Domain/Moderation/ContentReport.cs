@@ -162,6 +162,18 @@ public sealed class ContentReport : AggregateRoot<ContentReportId>, IAuditableEn
         ResolutionNote = Truncate(note, MaxDescriptionLength);
         ResolvedAt = now;
 
+        if (upheld)
+        {
+            RaiseDomainEvent(new Events.ContentReportUpheldDomainEvent
+            {
+                ReportId = Id,
+                Content = Content,
+                ReporterId = ReporterId,
+                ContentAuthorId = ContentAuthorId,
+                UpheldAt = now
+            });
+        }
+
         return Result.Success();
     }
 

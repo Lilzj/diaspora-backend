@@ -76,9 +76,9 @@ public sealed class ActivityReputationTests
     }
 
     [Fact]
-    public void The_new_activities_are_rules_version_5()
+    public void The_new_activities_arrived_in_rules_version_5()
     {
-        DefaultReputationRules.Version.Should().Be(5);
+        DefaultReputationRules.Version.Should().BeGreaterThanOrEqualTo(5);
     }
 
     // ── Paying ──────────────────────────────────────────────────────────────────────────────

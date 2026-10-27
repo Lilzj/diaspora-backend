@@ -486,7 +486,8 @@ public sealed class AppealApprovedEventHandler : DomainEventHandler<AppealApprov
                 AppealType = domainEvent.Type.ToString(),
                 TargetId = domainEvent.TargetId,
                 Explanation = domainEvent.Explanation,
-                DecidedAt = domainEvent.At
+                DecidedAt = domainEvent.At,
+                DecidedByUserId = domainEvent.DecidedBy?.Value
             },
             cancellationToken);
     }

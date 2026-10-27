@@ -2,6 +2,7 @@ using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Creator.Domain.Enums;
 using Diaspora.Modules.Creator.Domain.Events;
 using Diaspora.Modules.Creator.Domain.Identifiers;
+using Diaspora.Modules.Creator.Domain.Policies;
 using Diaspora.SharedKernel.Primitives;
 using Diaspora.SharedKernel.Results;
 
@@ -147,7 +148,8 @@ public sealed class SignupBonus : AggregateRoot<SignupBonusId>, IAuditableEntity
         if (Points > 0)
         {
             RaiseDomainEvent(new CreatorPointsEarnedDomainEvent(
-                CreatorId, UserId, Points, "SignupBonus", grantReference, now));
+                CreatorId, UserId, Points, "SignupBonus", grantReference, now,
+                CreatorGrantPolicyVersions.SignupBonus(Points)));
         }
 
         return true;

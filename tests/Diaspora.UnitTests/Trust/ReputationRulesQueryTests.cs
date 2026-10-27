@@ -13,18 +13,19 @@ namespace Diaspora.UnitTests.Trust;
 /// Trust's defaults is priced and paid by nothing — <c>ReportResolved</c> — and listing it would be
 /// the hard-coded "How to earn" sentence again, just served from further away.
 /// <c>UpdateVerified</c> and <c>ProfilePhotoAdded</c> were in that list until their consumers were
-/// wired (REP-13), and <c>ProfileCompleted</c> until it was retired (D-11).
+/// wired (REP-13), <c>ProfileCompleted</c> until it was retired (D-11), and <c>ReportResolved</c>
+/// until the reporting modules said when a report was upheld (REP-13, step 3e).
 /// </para>
 /// </summary>
 public sealed class ReputationRulesQueryTests
 {
     [Fact]
-    public void The_only_rule_nothing_pays_is_report_resolved()
+    public void Every_default_rule_is_paid()
     {
         DefaultReputationRules.All
             .Where(rule => !rule.IsAwarded)
             .Select(rule => rule.ActionType)
-            .Should().BeEquivalentTo([ReputationActions.ReportResolved]);
+            .Should().BeEmpty("ReportResolved, the last unpaid rule, is paid since step 3e");
     }
 
     /// <summary>
@@ -47,16 +48,16 @@ public sealed class ReputationRulesQueryTests
         rules.Select(rule => rule.ActionType).Should()
             .NotContain(
                 [
-                    ReputationActions.ReportResolved,
                     ReputationActions.ProfileCompleted,
                     "ListingFeatured",
                     "SaleDisputed"
                 ])
             .And.Contain("SaleCompleted")
             .And.Contain(ReputationActions.UpdateVerified)
-            .And.Contain(ReputationActions.ProfilePhotoAdded);
+            .And.Contain(ReputationActions.ProfilePhotoAdded)
+            .And.Contain(ReputationActions.ReportResolved);
 
-        rules.Should().HaveCount(DefaultReputationRules.All.Count - 1 + 1);
+        rules.Should().HaveCount(DefaultReputationRules.All.Count + 1);
     }
 
     [Fact]
