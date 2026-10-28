@@ -9368,6 +9368,85 @@ namespace Diaspora.Persistence.Migrations
                     b.ToTable("financial_reward_conversions", "financial");
                 });
 
+            modelBuilder.Entity("Diaspora.Modules.Financial.Domain.Rewards.RewardGrantRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DecidedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DecisionNote")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("GrantReference")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<Guid>("MemberUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("text");
+
+                    b.Property<long>("Points")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("PolicyVersion")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<DateTimeOffset>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RequestedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GrantReference")
+                        .IsUnique()
+                        .HasDatabaseName("ix_financial_reward_grant_requests_reference");
+
+                    b.HasIndex("Status", "RequestedAt")
+                        .HasDatabaseName("ix_financial_reward_grant_requests_status");
+
+                    b.ToTable("financial_reward_grant_requests", "financial");
+                });
+
             modelBuilder.Entity("Diaspora.Modules.Financial.Domain.Subscriptions.Subscription", b =>
                 {
                     b.Property<Guid>("Id")
@@ -23669,6 +23748,9 @@ namespace Diaspora.Persistence.Migrations
                     b.OwnsMany("Diaspora.Modules.Financial.Domain.Rewards.RewardEntry", "Entries", b1 =>
                         {
                             b1.Property<Guid>("EntryId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<Guid?>("ApprovedByUserId")
                                 .HasColumnType("uuid");
 
                             b1.Property<Guid?>("GrantedByUserId")

@@ -52,6 +52,7 @@ internal static class FinancialPersistenceConstants
     public const string RewardEntriesTable = "financial_reward_entries";
     public const string RewardHoldDecisionsTable = "financial_reward_hold_decisions";
     public const string RewardConversionsTable = "financial_reward_conversions";
+    public const string RewardGrantRequestsTable = "financial_reward_grant_requests";
 
     // ── B15.1 Giving Extension ───────────────────────────────────────────────────────────────
 

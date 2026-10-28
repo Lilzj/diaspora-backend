@@ -111,7 +111,11 @@ public interface ITrustProfileRepository
 /// <param name="Total">Every occurrence, whatever country it belonged to.</param>
 /// <param name="InCountry">Occurrences within the country asked about.</param>
 /// <param name="LastAt">When it last fired, for the cooldown.</param>
-public readonly record struct RuleUsage(int Total, int InCountry, DateTimeOffset? LastAt)
+/// <param name="AwardedSince">
+/// Awards since the moment asked about, for a daily cap; zero when none was asked. Awards only: a
+/// reversal gives back a place under the lifetime cap, never one in the day.
+/// </param>
+public readonly record struct RuleUsage(int Total, int InCountry, DateTimeOffset? LastAt, int AwardedSince = 0)
 {
     public static RuleUsage None => new(0, 0, null);
 }
@@ -153,11 +157,16 @@ public interface IReputationProfileRepository
     /// belongs to a country means once <em>per country</em>: the alternative counts a member's
     /// Mauritius residency against their move to the UK, and pays them nothing for the second.
     /// </para>
+    /// <para>
+    /// <paramref name="awardedSince"/> is supplied for a rule with a daily cap, and the result then
+    /// counts the awards made since that moment, in every country, reversals ignored.
+    /// </para>
     /// </summary>
     Task<RuleUsage> GetRuleUsageAsync(
         UserId userId,
         string actionType,
         string? countryCode = null,
+        DateTimeOffset? awardedSince = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>

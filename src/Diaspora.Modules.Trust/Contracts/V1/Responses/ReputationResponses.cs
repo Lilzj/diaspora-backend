@@ -165,6 +165,11 @@ public sealed record ReputationRuleResponse
     /// <summary>The minimum gap between two awards, in hours. Null means none.</summary>
     public int? CooldownHours { get; init; }
 
+    /// <summary>
+    /// How many awards may count in any 24 hours. Null means no daily cap. Additive (REP-09).
+    /// </summary>
+    public int? DailyCap { get; init; }
+
     /// <summary>Whether it also counts toward the member's standing in that country.</summary>
     public required bool IsCountryScoped { get; init; }
 

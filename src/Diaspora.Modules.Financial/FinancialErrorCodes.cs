@@ -140,6 +140,27 @@ public static class FinancialErrorCodes
     /// <summary>No <c>reward.grant</c> policy states both limits, so no staff grant is allowed.</summary>
     public const string RewardGrantLimitsUnset = "financial.rewards.grant_limits_unset";
 
+    /// <summary>
+    /// A staff grant above the <c>reward.grant</c> policy's approval threshold: it needs a second
+    /// Admin, through a grant request (RWD-10).
+    /// </summary>
+    public const string RewardGrantNeedsApproval = "financial.rewards.grant_needs_approval";
+
+    /// <summary>The Admin who asked for a grant tried to approve it themselves.</summary>
+    public const string RewardGrantSelfApproval = "financial.rewards.grant_self_approval";
+
+    /// <summary>A staff member granting, asking for or approving points for their own account.</summary>
+    public const string RewardGrantToSelf = "financial.rewards.grant_to_self";
+
+    /// <summary>No grant request has that id.</summary>
+    public const string RewardGrantRequestNotFound = "financial.rewards.grant_request_not_found";
+
+    /// <summary>The grant request was already approved, rejected or withdrawn.</summary>
+    public const string RewardGrantRequestDecided = "financial.rewards.grant_request_decided";
+
+    /// <summary>The grant request queue was asked for a state that does not exist.</summary>
+    public const string RewardGrantRequestStateInvalid = "financial.rewards.grant_request_state_invalid";
+
     // ── Policy ───────────────────────────────────────────────────────────────────────────────
 
     public const string PolicyNotFound = "financial.policy.not_found";

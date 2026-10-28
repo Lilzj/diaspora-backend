@@ -98,6 +98,64 @@ public sealed class RewardAccountConfiguration : IEntityTypeConfiguration<Reward
     }
 }
 
+/// <summary>
+/// Maps staff grants waiting for a second Admin (RWD-10).
+/// <para>
+/// The grant reference is unique across requests, so a retried request replays and one grant cannot
+/// be asked for twice. The status index is the queue's.
+/// </para>
+/// </summary>
+public sealed class RewardGrantRequestConfiguration : IEntityTypeConfiguration<RewardGrantRequest>
+{
+    public void Configure(EntityTypeBuilder<RewardGrantRequest> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.ToTable(
+            FinancialPersistenceConstants.RewardGrantRequestsTable, FinancialModuleMetadata.Schema);
+
+        builder.HasKey(request => request.Id);
+
+        builder.Property(request => request.Id)
+            .HasConversion(FinancialValueConverters.Id<RewardGrantRequestId>());
+
+        builder.Property(request => request.Revision).IsConcurrencyToken();
+
+        builder.Property(request => request.Status)
+            .HasConversion<string>()
+            .HasMaxLength(FinancialPersistenceConstants.EnumLength)
+            .IsRequired();
+
+        builder.Property(request => request.Source)
+            .HasMaxLength(FinancialPersistenceConstants.CodeLength)
+            .IsRequired();
+
+        builder.Property(request => request.GrantReference)
+            .HasMaxLength(FinancialPersistenceConstants.ReferenceLength)
+            .IsRequired();
+
+        builder.Property(request => request.Reason)
+            .HasMaxLength(FinancialPersistenceConstants.ReasonLength)
+            .IsRequired();
+
+        builder.Property(request => request.DecisionNote)
+            .HasMaxLength(FinancialPersistenceConstants.ReasonLength);
+
+        builder.Property(request => request.PolicyVersion)
+            .HasMaxLength(FinancialPersistenceConstants.CodeLength);
+
+        builder.HasIndex(request => request.GrantReference)
+            .IsUnique()
+            .HasDatabaseName("ix_financial_reward_grant_requests_reference");
+
+        builder.HasIndex(request => new { request.Status, request.RequestedAt })
+            .HasDatabaseName("ix_financial_reward_grant_requests_status");
+
+        builder.Ignore(request => request.DomainEvents);
+        builder.Ignore(request => request.IsPending);
+    }
+}
+
 /// <summary>Maps the record of every crossing from points into money.</summary>
 public sealed class RewardConversionConfiguration : IEntityTypeConfiguration<RewardConversion>
 {

@@ -175,6 +175,7 @@ public sealed class FinancialModule : IPlatformModule
         services.AddScoped<Domain.Invoices.IInvoiceRepository, InvoiceRepository>();
         services.AddScoped<IRewardAccountRepository, RewardAccountRepository>();
         services.AddScoped<IRewardConversionRepository, RewardConversionRepository>();
+        services.AddScoped<IRewardGrantRequestRepository, RewardGrantRequestRepository>();
 
         // B15.1 Giving Extension. COMMUNITY-LIFE-GAP-003, -006, -007 and -008.
         services.AddScoped<IMembershipPaymentBindingRepository, MembershipPaymentBindingRepository>();
@@ -237,6 +238,7 @@ public sealed class FinancialModule : IPlatformModule
         // charge, and the disagreement is only ever noticed by the member it shortchanged.
         services.AddScoped<Application.Rewards.RewardConversionPricer>();
         services.AddScoped<Application.Rewards.RewardVesting>();
+        services.AddScoped<Application.Rewards.RewardGrantLimits>();
 
         // A hold the platform places on a signal, decided by nobody: one way to write it, for every
         // signal that asks for one (the shared device, D-13; Trust risk, CS-4b).

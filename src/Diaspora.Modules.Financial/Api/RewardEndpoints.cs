@@ -153,7 +153,69 @@ internal static class RewardEndpoints
                         },
                         cancellationToken)))
             .WithName("GrantRewardPoints")
-            .WithSummary("Awards points, once per grant reference. Staff.");
+            .WithSummary("Awards points, once per grant reference. Staff. Above the approval threshold, raise a grant request instead.");
+
+        // RWD-10: a grant above the reward.grant threshold needs a second Admin.
+        group.MapPost("/operations/rewards/grant-requests", async (
+                GrantRewardPointsRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new RequestRewardGrantCommand
+                        {
+                            UserId = request.UserId,
+                            Points = request.Points,
+                            Source = request.Source,
+                            GrantReference = request.GrantReference,
+                            Reason = request.Reason
+                        },
+                        cancellationToken)))
+            .WithName("RequestRewardGrant")
+            .WithSummary("Asks for a staff grant that needs a second Admin. Grants nothing until approved. Staff.");
+
+        group.MapGet("/operations/rewards/grant-requests", async (
+                [FromQuery] string? state,
+                [FromQuery] DateTimeOffset? before,
+                [FromQuery] Guid[]? excludeIds,
+                [FromQuery] int? take,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new GetRewardGrantRequestsQuery
+                        {
+                            State = state,
+                            Before = before,
+                            ExcludeIds = excludeIds ?? [],
+                            Take = take ?? Domain.Policies.FinancialLimits.DefaultLedgerPageSize
+                        },
+                        cancellationToken)))
+            .WithName("GetRewardGrantRequests")
+            .WithSummary("Staff grant requests, newest first; pending unless a state is given. Staff.");
+
+        group.MapPost("/operations/rewards/grant-requests/{requestId:guid}/decide", async (
+                Guid requestId,
+                DecideRewardGrantRequestRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new DecideRewardGrantRequestCommand
+                        {
+                            RequestId = requestId,
+                            Approve = request.Approve,
+                            Note = request.Note
+                        },
+                        cancellationToken)))
+            .WithName("DecideRewardGrantRequest")
+            .WithSummary("Approves or rejects a grant request as another Admin, or withdraws your own. Staff.");
 
         group.MapPut("/operations/rewards/members/{userId:guid}/conversion-hold", async (
                 Guid userId,

@@ -215,12 +215,16 @@ public sealed class RewardQueryHandlers
 /// this one exists only to bound the route, so a <c>reward.grant</c> policy without both limits
 /// refuses every grant rather than allowing any.
 /// </para>
+/// <para>
+/// <b>Above the approval threshold it grants nothing</b> and says to raise a grant request, which a
+/// second Admin decides (RWD-10). And nobody grants points to their own account, at any size.
+/// </para>
 /// </summary>
 public sealed class GrantRewardPointsCommandHandler
     : ICommandHandler<GrantRewardPointsCommand, RewardBalanceResponse>
 {
     private readonly IRewardAccountRepository _accounts;
-    private readonly FinancialLimitsResolver _limits;
+    private readonly RewardGrantLimits _limits;
     private readonly RewardVesting _vesting;
     private readonly FinancialAuthorizationService _authorization;
     private readonly IGuidGenerator _guids;
@@ -229,7 +233,7 @@ public sealed class GrantRewardPointsCommandHandler
 
     public GrantRewardPointsCommandHandler(
         IRewardAccountRepository accounts,
-        FinancialLimitsResolver limits,
+        RewardGrantLimits limits,
         RewardVesting vesting,
         FinancialAuthorizationService authorization,
         IGuidGenerator guids,
@@ -263,6 +267,11 @@ public sealed class GrantRewardPointsCommandHandler
             return Result.Failure<RewardBalanceResponse>(grantor.Error);
         }
 
+        if (RewardGrantLimits.RefuseSelf(grantor.Value, command.UserId) is { } self)
+        {
+            return Result.Failure<RewardBalanceResponse>(self);
+        }
+
         var account = await _accounts.FindByMemberAsync(command.UserId, cancellationToken);
 
         if (account is not null && account.HasGranted(command.GrantReference))
@@ -270,15 +279,21 @@ public sealed class GrantRewardPointsCommandHandler
             return Result.Success(FinancialMapperExtensions.ToResponse(account, _clock.UtcNow));
         }
 
-        var policy = await _limits.MostSpecificAsync(
-            FinancialPolicyKeys.RewardGrant, countryCode: null, cancellationToken);
+        var verdict = await _limits.CheckAsync(grantor.Value, command.Points, cancellationToken);
 
-        var refusal = await RefuseAsync(policy, grantor.Value, command.Points, cancellationToken);
-
-        if (refusal is not null)
+        if (verdict.Refusal is not null)
         {
-            return Result.Failure<RewardBalanceResponse>(refusal);
+            return Result.Failure<RewardBalanceResponse>(verdict.Refusal);
         }
+
+        if (verdict.NeedsApproval(command.Points))
+        {
+            return Result.Failure<RewardBalanceResponse>(Error.Conflict(
+                FinancialErrorCodes.RewardGrantNeedsApproval,
+                $"Grants above {verdict.ApprovalThreshold} points need a second Admin: raise a grant request."));
+        }
+
+        var policy = verdict.Policy;
 
         if (account is null)
         {
@@ -313,45 +328,6 @@ public sealed class GrantRewardPointsCommandHandler
         }
 
         return Result.Success(FinancialMapperExtensions.ToResponse(account, _clock.UtcNow));
-    }
-
-    /// <summary>
-    /// Why the <c>reward.grant</c> policy refuses this grant, or null when it allows it.
-    /// <para>
-    /// The daily ceiling is the grantor's, over a rolling day, and two grants racing from one staff
-    /// member can both pass it. That is a bound on one operator's hand, not a ledger invariant;
-    /// a second approver above a threshold is the stronger control, and it is still to come.
-    /// </para>
-    /// </summary>
-    private async Task<Error?> RefuseAsync(
-        FinancialPolicy? policy, Guid grantorUserId, long points, CancellationToken cancellationToken)
-    {
-        var maximum = policy?.Int64Parameter(FinancialPolicyParameters.MaximumPoints);
-        var dailyMaximum = policy?.Int64Parameter(FinancialPolicyParameters.DailyMaximumPoints);
-
-        if (maximum is not > 0 || dailyMaximum is not > 0)
-        {
-            return Error.Conflict(
-                FinancialErrorCodes.RewardGrantLimitsUnset,
-                "Staff grants are off until a reward.grant policy states a per-grant and a daily maximum.");
-        }
-
-        if (points > maximum)
-        {
-            return Error.Conflict(
-                FinancialErrorCodes.RewardGrantAboveMaximum,
-                $"The largest single grant is {maximum} points.");
-        }
-
-        var grantedToday = await _accounts.PointsGrantedBySinceAsync(
-            grantorUserId, _clock.UtcNow.AddDays(-1), cancellationToken);
-
-        return grantedToday + points > dailyMaximum
-            ? Error.Conflict(
-                FinancialErrorCodes.RewardGrantDailyLimitReached,
-                $"That would take you past the {dailyMaximum} points one person may grant in a day. "
-                + $"You have granted {grantedToday} since this time yesterday.")
-            : null;
     }
 }
 

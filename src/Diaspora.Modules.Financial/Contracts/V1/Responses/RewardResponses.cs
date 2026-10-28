@@ -285,6 +285,40 @@ public sealed record RewardHoldResponse
     public required RewardHoldDecisionResponse LatestDecision { get; init; }
 }
 
+/// <summary>A staff grant above the threshold, asked for and waiting for, or decided by, a second Admin.</summary>
+public sealed record RewardGrantRequestResponse
+{
+    public required Guid RequestId { get; init; }
+
+    public required Guid MemberUserId { get; init; }
+
+    public required long Points { get; init; }
+
+    public required string Source { get; init; }
+
+    public required string GrantReference { get; init; }
+
+    public required string Reason { get; init; }
+
+    /// <summary><c>Pending</c>, <c>Approved</c>, <c>Rejected</c> or <c>Withdrawn</c>.</summary>
+    public required string Status { get; init; }
+
+    /// <summary>The Admin who asked. The grant is theirs and counts toward their day.</summary>
+    public required Guid RequestedByUserId { get; init; }
+
+    public required DateTimeOffset RequestedAt { get; init; }
+
+    /// <summary>Who approved or rejected it. Null while pending and on a withdrawal.</summary>
+    public Guid? DecidedByUserId { get; init; }
+
+    public DateTimeOffset? DecidedAt { get; init; }
+
+    public string? DecisionNote { get; init; }
+
+    /// <summary>The <c>reward.grant</c> version that allowed the approved grant.</summary>
+    public string? PolicyVersion { get; init; }
+}
+
 /// <summary>What one currency's rewards pot can pay for conversions. Staff only.</summary>
 public sealed record RewardPotResponse
 {
