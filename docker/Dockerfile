@@ -54,7 +54,8 @@ COPY src/ src/
 # each hold a Roslyn compilation in memory. Two nodes still overlap the long projects with the
 # short ones and keep the peak inside the machine. One node since 15 Oct 2026: with the 14 Oct
 # migrations Diaspora.Persistence alone needs most of the builder's memory, and two nodes were
-# killed (137) twice running.
+# killed (137) twice running. On 30 Oct 2026 one node was killed too, so the old migration
+# designers are now trimmed: see scripts/trim-migration-designers.py.
 #
 # `UseSharedCompilation=false` for the same reason: the compiler server survives between
 # projects holding what it has already loaded, which is a saving in time and a cost in memory
