@@ -123,6 +123,12 @@ public sealed record RewardConversionTermsResponse
 
     public long? DailyRemainingPoints { get; init; }
 
+    /// <summary>
+    /// Days converted credit is held before it can be spent or withdrawn (D-7). A conversion cannot be
+    /// undone, so the app says this before the member confirms, not only on the receipt. Additive.
+    /// </summary>
+    public required int HoldDays { get; init; }
+
     /// <summary>The policy version these terms came from. <c>reward.conversion@2</c>.</summary>
     public string? PolicyVersion { get; init; }
 

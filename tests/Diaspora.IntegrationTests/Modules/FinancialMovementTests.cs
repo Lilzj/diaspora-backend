@@ -2771,6 +2771,33 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
     }
 
     /// <summary>
+    /// A conversion cannot be undone and its credit is held (D-7). The terms never said for how long,
+    /// so a member found out on the receipt, with the points already gone.
+    /// </summary>
+    [Fact]
+    public async Task Terms_state_how_long_converted_credit_is_held()
+    {
+        var userId = await AuthenticateAsync();
+        var currency = await MemberCurrencyAsync(userId);
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency, holdDays: 30);
+
+            (await MemberTermsAsync()).HoldDays.Should().Be(30);
+
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
+
+            (await MemberTermsAsync()).HoldDays.Should().Be(
+                RewardConversionPricer.DefaultHoldDays, "a version that names no hold still holds");
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
+    /// <summary>
     /// Nothing in the validator reads points, so this is the whole of what stops them. A negative
     /// number used to throw in the pricer: a 500 on both routes, whether conversion was on or off.
     /// </summary>
@@ -3728,7 +3755,7 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         bool IsEnabled, string? DisabledReason, string Currency, decimal MinorUnitsPerPoint);
 
     private sealed record MemberTermsShape(
-        bool IsEnabled, string Currency, int Exponent, string? Symbol, MemberStandingShape Member);
+        bool IsEnabled, string Currency, int Exponent, string? Symbol, int HoldDays, MemberStandingShape Member);
 
     private sealed record MemberStandingShape(
         bool CanConvert, string? ReasonCode, string? ReasonMessage, long? MaximumNow);
