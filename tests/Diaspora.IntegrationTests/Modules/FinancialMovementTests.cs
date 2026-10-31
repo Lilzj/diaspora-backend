@@ -2770,6 +2770,44 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         }
     }
 
+    /// <summary>
+    /// Nothing in the validator reads points, so this is the whole of what stops them. A negative
+    /// number used to throw in the pricer: a 500 on both routes, whether conversion was on or off.
+    /// </summary>
+    [Theory]
+    [InlineData(0L)]
+    [InlineData(-1L)]
+    public async Task No_points_or_fewer_than_none_are_refused_rather_than_failing(long points)
+    {
+        var userId = await AuthenticateAsync();
+        var currency = await MemberCurrencyAsync(userId);
+
+        try
+        {
+            await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
+            await GrantPointsAsync(userId, 1_000, "grant:" + Guid.NewGuid().ToString("N"));
+
+            var preview = await ReadDataAsync<PreviewShape>(await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions/preview", UriKind.Relative),
+                new { points }));
+
+            preview.IsPermitted.Should().BeFalse();
+            preview.RefusalCode.Should().Be(FinancialErrorCodes.RewardBelowMinimum);
+
+            var response = await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/rewards/conversions", UriKind.Relative),
+                new { points, idempotencyKey = Guid.NewGuid().ToString("N") });
+
+            response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+            (await CodeAsync(response)).Should().Be(FinancialErrorCodes.RewardBelowMinimum);
+            (await PointsAsync()).Should().Be(1_000);
+        }
+        finally
+        {
+            await ResetConversionRatesAsync();
+        }
+    }
+
     private async Task<MemberTermsShape> MemberTermsAsync() =>
         await ReadDataAsync<MemberTermsShape>(await HttpClient.GetAsync(
             new Uri("/api/v1/financial/rewards/conversion", UriKind.Relative)));
