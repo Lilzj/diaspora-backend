@@ -133,6 +133,7 @@ public sealed class RewardQueryHandlers
             MaximumPoints = terms.MaximumPoints,
             DailyMaximumPoints = terms.DailyMaximumPoints,
             DailyRemainingPoints = terms.DailyRemainingPoints,
+            HoldDays = terms.HoldDays,
             PolicyVersion = terms.PolicyVersion,
             Member = new RewardConversionMemberResponse
             {

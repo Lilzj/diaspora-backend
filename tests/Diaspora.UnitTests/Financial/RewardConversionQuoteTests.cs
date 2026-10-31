@@ -45,6 +45,25 @@ public sealed class RewardConversionQuoteTests
         quote.PointsConsumed.Should().Be(0);
     }
 
+    /// <summary>
+    /// The validator leaves points to the pricer, so nothing else stands between a request for no
+    /// points, or fewer than none, and the balance. It threw on a negative number: the check that a
+    /// conversion never takes more than was asked read 0 as more than -1, and the member got a 500.
+    /// </summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(long.MinValue)]
+    public void No_points_or_fewer_than_none_are_refused_in_the_members_terms(long points)
+    {
+        var quote = RewardConversionPricer.Quote(Terms(1m), points, balance: 1_000);
+
+        quote.IsPermitted.Should().BeFalse();
+        quote.RefusalCode.Should().Be(FinancialErrorCodes.RewardBelowMinimum);
+        quote.RefusalMessage.Should().Be("Convert at least one point.");
+        quote.PointsConsumed.Should().Be(0);
+    }
+
     /// <summary>The limits apply to what would actually leave the balance.</summary>
     [Fact]
     public void The_minimum_is_measured_on_the_points_consumed()

@@ -246,7 +246,8 @@ public sealed class RewardConversionPricer
             ? 0L
             : (long)Math.Ceiling(creditMinorUnits / terms.MinorUnitsPerPoint);
 
-        if (consumed > points)
+        // Fewer than one point consumes none, which is not more than asked: Refusal says no to that.
+        if (points > 0 && consumed > points)
         {
             // Unreachable by the argument above; refused loudly rather than debiting more than asked.
             throw new InvalidOperationException(
