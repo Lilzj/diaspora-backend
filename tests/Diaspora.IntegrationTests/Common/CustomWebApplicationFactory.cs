@@ -356,14 +356,39 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Api.Program>
         }
     }
 
+    /// <summary>
+    /// Stops the host, then closes its database, in that order.
+    /// <para>
+    /// <b>xUnit v2 disposes a fixture through <c>Dispose()</c>, and base stops the host from inside
+    /// it.</b> Closing first therefore closed the database under a running host. Some loops have no
+    /// switch to turn them off here, and <c>SqliteConnection.Close</c> walks its commands with nothing
+    /// guarding them, so a query landing on that moment threw out of the fixture's cleanup: a failed
+    /// CI job on a run reporting <c>Failed: 0</c>.
+    /// </para>
+    /// </summary>
     protected override void Dispose(bool disposing)
     {
-        if (disposing)
+        try
         {
-            _connection?.Dispose();
-            _connection = null;
+            base.Dispose(disposing);
         }
+        finally
+        {
+            if (disposing)
+            {
+                CloseDatabase();
+            }
+        }
+    }
 
-        base.Dispose(disposing);
+    /// <summary>
+    /// Releases whatever keeps this factory's database alive. Called once the host has stopped, so a
+    /// derived factory holding a connection of its own releases it here rather than in
+    /// <see cref="Dispose(bool)"/>, where it would go before the host does.
+    /// </summary>
+    protected virtual void CloseDatabase()
+    {
+        _connection?.Dispose();
+        _connection = null;
     }
 }

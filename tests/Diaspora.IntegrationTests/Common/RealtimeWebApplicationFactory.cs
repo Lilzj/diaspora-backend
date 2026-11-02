@@ -60,14 +60,11 @@ public sealed class RealtimeWebApplicationFactory : CustomWebApplicationFactory
         });
     }
 
-    protected override void Dispose(bool disposing)
+    protected override void CloseDatabase()
     {
-        if (disposing)
-        {
-            _keepAlive?.Dispose();
-            _keepAlive = null;
-        }
+        _keepAlive?.Dispose();
+        _keepAlive = null;
 
-        base.Dispose(disposing);
+        base.CloseDatabase();
     }
 }
