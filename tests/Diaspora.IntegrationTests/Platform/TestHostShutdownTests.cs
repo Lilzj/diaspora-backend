@@ -23,6 +23,13 @@ namespace Diaspora.IntegrationTests.Platform;
 /// under a loop written to provoke it. A hosted service that reads the database as it stops needs no
 /// luck: it is only answered if the database is still there.
 /// </para>
+/// <para>
+/// <b>The host is stopped twice, so there is one read and both stops wait for it.</b> The factory
+/// stops it, and <c>Program</c>'s own <c>RunAsync</c>, waiting on that same host, stops it too and
+/// then disposes it. <c>StopAsync</c> ran twice on each of fifty hosts measured. A probe that read on
+/// every call could reach <c>CreateScope</c> after that disposal, which failed this test on CI with
+/// the database untouched.
+/// </para>
 /// </summary>
 public sealed class TestHostShutdownTests
 {
@@ -73,16 +80,20 @@ public sealed class TestHostShutdownTests
 
     private sealed class ProbeOnStop(IServiceScopeFactory scopes, ShutdownProbe probe) : IHostedService
     {
+        private readonly Lazy<Task> _read = new(() => ReadAsync(scopes, probe));
+
         public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
-        public async Task StopAsync(CancellationToken cancellationToken)
+        public Task StopAsync(CancellationToken cancellationToken) => _read.Value;
+
+        private static async Task ReadAsync(IServiceScopeFactory scopes, ShutdownProbe probe)
         {
             try
             {
                 using var scope = scopes.CreateScope();
                 var database = scope.ServiceProvider.GetRequiredService<DiasporaDbContext>();
 
-                await database.Database.ExecuteSqlRawAsync("DELETE FROM shutdown_probe", cancellationToken);
+                await database.Database.ExecuteSqlRawAsync("DELETE FROM shutdown_probe");
 
                 probe.Answered = true;
             }
