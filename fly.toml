@@ -158,6 +158,15 @@ primary_region = 'iad'
   # paused. TrustRiskSweep, which lets evidence age out, runs either way.
   Trust__EnableRiskAssessment = 'true'
 
+  # -- Cash conversion (CNV-01) ----------------------------------------------
+  #
+  # Members turn vested points into wallet credit at the published
+  # reward.conversion rate. Defaults to off in code, and stayed off until the
+  # MUR rewards pot was funded, so the switch opens into a working state. An
+  # empty pot pauses conversion; it can never overdraw. To stop it fast, set this
+  # to 'false' and deploy the same image.
+  Financial__EnableRewardConversion = 'true'
+
 [http_service]
   internal_port = 8080
   force_https = true
