@@ -75,25 +75,7 @@ public class FinancialMovementWebApplicationFactory : CustomWebApplicationFactor
                 ["Financial:PayoutRouting:Capabilities:1:Country"] = "KE",
                 ["Financial:PayoutRouting:Capabilities:1:Currency"] = "GBP",
                 ["Financial:PayoutRouting:Capabilities:1:Method"] = nameof(PayoutDestinationKind.MobileMoney),
-                ["Financial:PayoutRouting:Capabilities:1:Support"] = nameof(CapabilitySupport.Supported),
-
-                // Every B15.1 sweep is off for the reason every other background loop in this suite
-                // is: one shared in-memory SQLite connection, and a loop querying it mid-command is a
-                // concurrent use SQLite will not allow. Tests drive RunOnceAsync directly.
-                ["Financial:EnableWithdrawalSweep"] = "false",
-                ["Financial:EnableRewardConversionReleaseSweep"] = "false",
-                ["Financial:EnableRewardVestingSweep"] = "false",
-                ["Financial:EnableExpiryNoticeSweep"] = "false",
-                ["Financial:EnableReconciliationSweep"] = "false",
-                ["Financial:EnablePaymentExpirySweep"] = "false",
-                ["Financial:EnablePlacementSweep"] = "false",
-                ["Financial:EnableSubscriptionSweep"] = "false",
-                ["Financial:EnableCreditExpirySweep"] = "false",
-                ["Financial:EnableRevenueRollupSweep"] = "false",
-                ["Financial:EnableGivingReconciliationSweep"] = "false",
-                ["Financial:EnableCampaignSweep"] = "false",
-                ["Financial:EnableRecurringDonationSweep"] = "false",
-                ["Financial:EnableMembershipBindingReconciliation"] = "false"
+                ["Financial:PayoutRouting:Capabilities:1:Support"] = nameof(CapabilitySupport.Supported)
             }));
 
         builder.ConfigureServices(services =>

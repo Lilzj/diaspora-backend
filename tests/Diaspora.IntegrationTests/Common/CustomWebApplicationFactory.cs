@@ -236,6 +236,38 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Api.Program>
                 ["Trust:EnableRiskAssessment"] = "true",
                 ["Trust:EnableRiskSweep"] = "false",
 
+                // The loops that were left, found by measuring rather than by reading. A host left idle
+                // for twenty minutes was still querying the shared connection: Automation six times
+                // every thirty seconds, Guides every minute, Marketplace, Housing and Financial every
+                // ten or fifteen, and Creator, Providers and Conversations shortly after start. The
+                // same two reasons as every loop above (DEBT-049). Automation had no switch at all;
+                // Every_background_loop_can_be_switched_off had been fooled by the word "Runnable".
+                //
+                // Left on: the Operations workers, which queried nothing in those twenty minutes.
+                ["AutomationDefinition:EnableSweep"] = "false",
+                ["Conversations:EnableAttentionSweep"] = "false",
+                ["Creator:EnableLifecycleSweep"] = "false",
+                ["Guides:EnableScheduledPublisher"] = "false",
+                ["Housing:EnableBackgroundSweeps"] = "false",
+                ["Marketplace:EnableBackgroundSweeps"] = "false",
+                ["Providers:EnableSweeper"] = "false",
+
+                // Every other Financial sweep, for every host rather than only the money-movement
+                // one. FinancialSweep has a switch on each of them for exactly this reason, and tests
+                // drive RunOnceAsync directly, which the switches do not touch.
+                ["Financial:EnableWithdrawalSweep"] = "false",
+                ["Financial:EnableRewardConversionReleaseSweep"] = "false",
+                ["Financial:EnableRewardVestingSweep"] = "false",
+                ["Financial:EnableExpiryNoticeSweep"] = "false",
+                ["Financial:EnableReconciliationSweep"] = "false",
+                ["Financial:EnablePayoutReconciliationSweep"] = "false",
+                ["Financial:EnablePaymentExpirySweep"] = "false",
+                ["Financial:EnablePlacementSweep"] = "false",
+                ["Financial:EnableSubscriptionSweep"] = "false",
+                ["Financial:EnableCreditExpirySweep"] = "false",
+                ["Financial:EnableRevenueRollupSweep"] = "false",
+                ["Financial:EnableGivingReconciliationSweep"] = "false",
+
                 // The OAuth allow-lists. Empty is the correct production default — a deployment
                 // that has configured neither can start no authorization and make no outbound call
                 // — and a suite that left them empty would prove only the refusal. These two

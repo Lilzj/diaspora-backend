@@ -111,21 +111,18 @@ public sealed class PlatformCertificationArchitectureTests
         {
             foreach (var type in file.Root.DescendantNodes().OfType<TypeDeclarationSyntax>())
             {
-                var constructsTimer = type.DescendantNodes()
+                var timers = type.DescendantNodes()
                     .OfType<ObjectCreationExpressionSyntax>()
-                    .Any(creation => creation.Type.ToString().Contains(
-                        "PeriodicTimer", StringComparison.Ordinal));
+                    .Where(creation => creation.Type.ToString().Contains(
+                        "PeriodicTimer", StringComparison.Ordinal))
+                    .ToList();
 
-                if (!constructsTimer)
+                if (timers.Count == 0)
                 {
                     continue;
                 }
 
-                var guarded = type.DescendantNodes()
-                    .OfType<IfStatementSyntax>()
-                    .Any(statement => IsEnableGuard(statement.Condition.ToString()));
-
-                if (!guarded)
+                if (!timers.All(IsGuardedBeforeItStarts))
                 {
                     unswitchable.Add($"{file.Locate(type)} ({type.Identifier.ValueText})");
                 }
@@ -140,13 +137,29 @@ public sealed class PlatformCertificationArchitectureTests
     }
 
     /// <summary>
+    /// A guard counts only ahead of the timer, in the method that starts it.
+    /// <para>
+    /// <b>Anywhere in the type was not enough, and "nable" matched too much.</b>
+    /// <c>AutomationSchedulerWorker</c> had no switch and passed this rule on the strength of
+    /// <c>!automation.IsRunnable(now)</c>, a check about one automation that has nothing to do with
+    /// whether the loop runs, in a method other than the one that starts the timer.
+    /// </para>
+    /// </summary>
+    private static bool IsGuardedBeforeItStarts(ObjectCreationExpressionSyntax timer) =>
+        timer.FirstAncestorOrSelf<MethodDeclarationSyntax>() is { } method
+        && method.DescendantNodes()
+            .OfType<IfStatementSyntax>()
+            .Any(statement => statement.SpanStart < timer.SpanStart
+                && IsEnableGuard(statement.Condition.ToString()));
+
+    /// <summary>
     /// The guard shapes the platform actually uses: <c>!_options.EnableExpirySweep</c>,
     /// <c>!options.EnableRetentionSweep</c>, <c>!IsEnabled</c>, <c>!Enabled</c>,
     /// <c>!_options.Enabled || !dispatch.Enabled</c>.
     /// </summary>
     private static bool IsEnableGuard(string condition) =>
         condition.Contains('!', StringComparison.Ordinal)
-        && condition.Contains("nable", StringComparison.Ordinal);
+        && condition.Contains("Enable", StringComparison.Ordinal);
 
     // ── Retired framework scaffolding ────────────────────────────────────
 
