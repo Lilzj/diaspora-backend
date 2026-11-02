@@ -72,6 +72,11 @@ public sealed class AutomationSchedulerWorker : BackgroundService
     /// </summary>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        if (!_options.Value.EnableSweep)
+        {
+            return;
+        }
+
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(_options.Value.SweepIntervalSeconds));
 
         // A short pause before the first sweep. A host that has just started is still opening

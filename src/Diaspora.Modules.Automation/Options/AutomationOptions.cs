@@ -89,6 +89,16 @@ public sealed class AutomationOptions
     [Range(1, 20)]
     public int MaximumOccurrenceAttempts { get; set; } = 5;
 
+    /// <summary>
+    /// Whether the sweeper runs at all.
+    /// <para>
+    /// On by default, because nothing else moves a due occurrence, a reminder or a stale run. The
+    /// switch exists for a host that must not have a loop querying its database, which is the
+    /// integration suite's one shared SQLite connection (DEBT-049).
+    /// </para>
+    /// </summary>
+    public bool EnableSweep { get; set; } = true;
+
     /// <summary>How often the sweeper looks for due work.</summary>
     [Range(5, 3600)]
     public int SweepIntervalSeconds { get; set; } = 30;
