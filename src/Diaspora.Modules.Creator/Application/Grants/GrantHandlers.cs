@@ -58,7 +58,7 @@ public static class GrantEligibility
 
             CreatorRequirement.Flag(
                 "creator-status",
-                $"Be at least a {grant.MinimumStatus}",
+                $"Be at least {CreatorStatusWords.WithArticle(grant.MinimumStatus)}",
                 creator is not null && creator.EarnedStatus >= grant.MinimumStatus,
                 actionRoute: "/creator/profile",
                 actionLabel: "See your status"),
@@ -93,6 +93,30 @@ public static class GrantEligibility
         var unmet = requirements.Find(requirement => !requirement.IsMet);
 
         return (unmet is null, unmet?.Label, requirements);
+    }
+}
+
+/// <summary>
+/// A creator status in a sentence: "a verified creator", "an emerging creator". The requirement used
+/// to print the enum's name — "Be at least a VerifiedCreator" (UAT, 3 Nov 2026).
+/// </summary>
+public static class CreatorStatusWords
+{
+    public static string WithArticle(CreatorStatus status)
+    {
+        var words = status switch
+        {
+            CreatorStatus.NotACreator => "member",
+            CreatorStatus.Contributor => "contributor",
+            CreatorStatus.EmergingCreator => "emerging creator",
+            CreatorStatus.VerifiedCreator => "verified creator",
+            CreatorStatus.EstablishedCreator => "established creator",
+            CreatorStatus.TopCreator => "top creator",
+            CreatorStatus.PendingVerification => "creator pending verification",
+            _ => status.ToString().ToLowerInvariant()
+        };
+
+        return "aeiou".Contains(words[0], StringComparison.Ordinal) ? $"an {words}" : $"a {words}";
     }
 }
 
@@ -154,12 +178,18 @@ public sealed class ListGrantsQueryHandler
             : (await _applications.ListForCreatorAsync(creator.Id, cancellationToken))
                 .ToDictionary(application => application.GrantId);
 
-        var wanted = Enum.TryParse<CommunityGrantState>(query.State, ignoreCase: true, out var state)
-            ? state
-            : (CommunityGrantState?)null;
+        // One state or several, comma-separated: the app's Open tab asks for "Open,ClosingSoon",
+        // the grants taking applications, where it used to list every published grant.
+        var wanted = (query.State ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(value => Enum.TryParse<CommunityGrantState>(value, ignoreCase: true, out var parsed)
+                ? parsed
+                : (CommunityGrantState?)null)
+            .OfType<CommunityGrantState>()
+            .ToHashSet();
 
         var response = grants
-            .Where(grant => wanted is null || grant.StateAt(now) == wanted)
+            .Where(grant => wanted.Count == 0 || wanted.Contains(grant.StateAt(now)))
             .Select(grant =>
             {
                 mine.TryGetValue(grant.Id, out var application);

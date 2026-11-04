@@ -8,11 +8,13 @@ using Diaspora.Modules.Creator.Domain.Milestones;
 using Diaspora.Modules.Creator.Domain.Policies;
 using Diaspora.Modules.Creator.Domain.Repositories;
 using Diaspora.Modules.Creator.Domain.Rewards;
+using Diaspora.Modules.Creator.Options;
 using Diaspora.Platform.Modules.Seeding;
 using Diaspora.Platform.Services.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Diaspora.Modules.Creator.Infrastructure.Hosting;
 
@@ -71,7 +73,13 @@ public sealed class CreatorCatalogueSeeder : BackgroundService, IReferenceDataSe
             await SeedRewardsAsync(scope.ServiceProvider, cancellationToken);
             await SeedMilestonesAsync(scope.ServiceProvider, cancellationToken);
             await SeedChallengesAsync(scope.ServiceProvider, cancellationToken);
-            await SeedGrantsAsync(scope.ServiceProvider, cancellationToken);
+
+            // Sample grants only where a host asks for them. See CreatorOptions.SeedSampleGrants.
+            if (scope.ServiceProvider.GetRequiredService<IOptions<CreatorOptions>>().Value.SeedSampleGrants)
+            {
+                await SeedGrantsAsync(scope.ServiceProvider, cancellationToken);
+            }
+
             await SeedAcademyAsync(scope.ServiceProvider, cancellationToken);
         }
         catch (OperationCanceledException)

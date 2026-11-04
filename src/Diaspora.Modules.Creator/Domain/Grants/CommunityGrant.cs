@@ -229,6 +229,80 @@ public sealed class CommunityGrant : AggregateRoot<CommunityGrantId>, IAuditable
         return this;
     }
 
+    /// <summary>Takes the grant off every member's list. Its applications are kept.</summary>
+    public void Unpublish() => IsPublished = false;
+
+    /// <summary>
+    /// Ends the window now: the deadline moves to just before <paramref name="now"/>, so the grant
+    /// reads Closed at once (<see cref="StateAt"/> closes a grant once its deadline is past, and a
+    /// deadline of exactly now is not yet past) and stops taking applications. A grant whose
+    /// deadline has already passed is left as it is.
+    /// </summary>
+    public void CloseAt(DateTimeOffset now)
+    {
+        if (DeadlineAt is { } deadline && deadline < now)
+        {
+            return;
+        }
+
+        var closed = now.AddTicks(-1);
+        DeadlineAt = closed;
+
+        if (OpensAt is { } opens && opens > closed)
+        {
+            OpensAt = closed;
+        }
+    }
+
+    /// <summary>
+    /// An administrator's edit of what the grant offers and to whom. The application form, the
+    /// declarations and the deliverables are left alone, so an application already in progress
+    /// answers the same questions it started with.
+    /// </summary>
+    public void Revise(
+        string title,
+        string summary,
+        string description,
+        string category,
+        long fundingMinorUnits,
+        long? fundingMinimumMinorUnits,
+        string currency,
+        DateTimeOffset? opensAt,
+        DateTimeOffset? deadlineAt,
+        CreatorStatus minimumStatus,
+        bool requiresVerifiedCreator,
+        IEnumerable<string> countryCodes)
+    {
+        ArgumentNullException.ThrowIfNull(countryCodes);
+
+        Title = title.Trim();
+        Summary = summary.Trim();
+        Description = description.Trim();
+        Category = category.Trim();
+        FundingMinorUnits = fundingMinorUnits;
+        FundingMinimumMinorUnits = fundingMinimumMinorUnits;
+        FundingMaximumMinorUnits = fundingMinimumMinorUnits is null ? null : fundingMinorUnits;
+        AllowsAmountRequest = fundingMinimumMinorUnits is not null;
+        Currency = currency.Trim().ToUpperInvariant();
+        OpensAt = opensAt;
+        DeadlineAt = deadlineAt;
+        MinimumStatus = minimumStatus;
+        RequiresVerifiedCreator = requiresVerifiedCreator;
+
+        var wanted = countryCodes
+            .Where(code => !string.IsNullOrWhiteSpace(code))
+            .Select(code => code.Trim().ToUpperInvariant())
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        _countries.RemoveAll(country => !wanted.Contains(country.CountryCode));
+
+        foreach (var code in wanted.Where(code => _countries.TrueForAll(country => country.CountryCode != code)))
+        {
+            _countries.Add(GrantCountry.Create(code));
+        }
+    }
+
     /// <summary>Rewrites the definition in place, for a re-run of the seeder.</summary>
     public void Redefine(
         string title,

@@ -15413,6 +15413,166 @@
         }
       }
     },
+    "/api/v1/grants/admin": {
+      "get": {
+        "tags": [
+          "Community Grants"
+        ],
+        "summary": "Every grant, published or not. Administrators only.",
+        "operationId": "ListGrantsForAdmin",
+        "parameters": [
+          {
+            "name": "take",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Community Grants"
+        ],
+        "summary": "Posts a grant in the currency and countries the administrator chooses, or prepares one unpublished.",
+        "operationId": "CreateGrant",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveGrantRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/grants/admin/{grantId}": {
+      "put": {
+        "tags": [
+          "Community Grants"
+        ],
+        "summary": "Edits what a grant offers and to whom. Its application form is left alone.",
+        "operationId": "UpdateGrant",
+        "parameters": [
+          {
+            "name": "grantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveGrantRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/grants/admin/{grantId}/publish": {
+      "post": {
+        "tags": [
+          "Community Grants"
+        ],
+        "summary": "Puts a grant on members' lists.",
+        "operationId": "PublishGrant",
+        "parameters": [
+          {
+            "name": "grantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/grants/admin/{grantId}/unpublish": {
+      "post": {
+        "tags": [
+          "Community Grants"
+        ],
+        "summary": "Takes a grant off members' lists. Its applications are kept.",
+        "operationId": "UnpublishGrant",
+        "parameters": [
+          {
+            "name": "grantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/grants/admin/{grantId}/close": {
+      "post": {
+        "tags": [
+          "Community Grants"
+        ],
+        "summary": "Ends a grant's window now, so it stops taking applications.",
+        "operationId": "CloseGrant",
+        "parameters": [
+          {
+            "name": "grantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/grants/applications/me": {
       "get": {
         "tags": [
@@ -50773,6 +50933,93 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "SaveGrantRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "summary": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "category": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "fundingMinorUnits": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "fundingMinimumMinorUnits": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "currency": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "countryCodes": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "opensAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "deadlineAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "minimumStatus": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "requiresVerifiedCreator": {
+            "type": "boolean"
+          },
+          "publish": {
+            "type": "boolean"
           }
         }
       },
