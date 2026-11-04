@@ -68,6 +68,13 @@ public sealed class GuideReadComposer
             guide.ApplyCommentCount(count);
         }
 
+        // The same for saves: the reader sees the count as of now, not as of the last
+        // delivered save, and a guide saved before its count was kept reads right at once.
+        if (await _bookmarks.CountAsync(guide.Id, cancellationToken) is { } saves)
+        {
+            guide.ApplyBookmarkCount(saves);
+        }
+
         var isAuthor = _authorization.IsStaff
             || (_authorization.CallerId is { } caller && guide.AuthorId == caller);
 

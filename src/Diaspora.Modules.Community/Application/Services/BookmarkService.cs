@@ -137,4 +137,8 @@ public sealed class BookmarkService : ICommunityBookmarkService
         IReadOnlyCollection<ContentReference> contents,
         CancellationToken cancellationToken = default) =>
         _bookmarks.FindSavedAsync(userId, contents, cancellationToken);
+
+    public Task<int> CountAsync(
+        ContentReference content, CancellationToken cancellationToken = default) =>
+        _bookmarks.CountAsync(content, cancellationToken);
 }

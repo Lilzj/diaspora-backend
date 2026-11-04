@@ -28,13 +28,16 @@ public static class GuideEngagementService
         analytics?.ApplyVoteDelta(helpfulDelta, notHelpfulDelta);
     }
 
-    /// <summary>A bookmark was saved (+1) or removed (−1), as Community reported it.</summary>
-    public static void ApplyBookmark(Guide guide, GuideAnalytics? analytics, int delta)
+    /// <summary>
+    /// Community's count of saves, replaced rather than incremented. Delivery is at-least-once,
+    /// so a +1 per message would climb each time one was redelivered; a recount cannot.
+    /// </summary>
+    public static void ApplyBookmarkCount(Guide guide, GuideAnalytics? analytics, int count)
     {
         ArgumentNullException.ThrowIfNull(guide);
 
-        guide.ApplyBookmarkDelta(delta);
-        analytics?.ApplyBookmarkDelta(delta);
+        guide.ApplyBookmarkCount(count);
+        analytics?.ApplyBookmarkCount(count);
     }
 
     /// <summary>
