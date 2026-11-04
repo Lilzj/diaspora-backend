@@ -54,7 +54,8 @@ public sealed class MemberParticipantDirectory : IConversationParticipantDirecto
             entry => new ConversationParticipantProfile
             {
                 UserId = entry.Key,
-                DisplayName = entry.Value.DisplayName
+                DisplayName = entry.Value.DisplayName,
+                AvatarUrl = entry.Value.AvatarUrl
             });
     }
 }

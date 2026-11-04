@@ -231,7 +231,7 @@ public sealed class GetConversationQueryHandler
                 .. history.Items
                     .OrderBy(message => message.SentAt)
                     .ThenBy(message => message.Id.Value)
-                    .Select(ConversationMapper.ToResponse)
+                    .Select(message => ConversationMapper.ToResponse(message, context))
             ],
             NextCursor = history.NextCursor,
             HasMore = history.HasMore
@@ -258,12 +258,14 @@ public sealed class ListMessagesQueryHandler
 {
     private readonly IConversationMessageRepository _messages;
     private readonly ConversationAccessService _access;
+    private readonly ConversationMapper _mapper;
 
     public ListMessagesQueryHandler(
-        IConversationMessageRepository messages, ConversationAccessService access)
+        IConversationMessageRepository messages, ConversationAccessService access, ConversationMapper mapper)
     {
         _messages = messages;
         _access = access;
+        _mapper = mapper;
     }
 
     public async Task<Result<MessagePageResponse>> Handle(
@@ -287,6 +289,10 @@ public sealed class ListMessagesQueryHandler
             },
             cancellationToken);
 
+        // The participants, resolved once, so each bubble carries its sender's name and photo.
+        var context = await _mapper.BuildContextAsync(
+            _access.RequireCaller().Value, [loaded.Value], cancellationToken);
+
         return Result.Success(new MessagePageResponse
         {
             Items =
@@ -294,7 +300,7 @@ public sealed class ListMessagesQueryHandler
                 .. history.Items
                     .OrderBy(message => message.SentAt)
                     .ThenBy(message => message.Id.Value)
-                    .Select(ConversationMapper.ToResponse)
+                    .Select(message => ConversationMapper.ToResponse(message, context))
             ],
             NextCursor = history.NextCursor,
             HasMore = history.HasMore

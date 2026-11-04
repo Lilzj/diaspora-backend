@@ -39,6 +39,7 @@ public static class AuthorMapper
         {
             UserId = post.AuthorId.Value,
             Name = NameOf(post.AuthorId.Value, names),
+            AvatarUrl = AvatarOf(post.AuthorId.Value, names),
             IsFollowedByUser = viewer.FollowedMemberIds.Contains(post.AuthorId.Value),
             OrganizationId = post.Publisher.OrganizationId,
             OrganizationName = post.Publisher.DisplayName,
@@ -58,6 +59,7 @@ public static class AuthorMapper
         {
             UserId = comment.AuthorId.Value,
             Name = NameOf(comment.AuthorId.Value, names),
+            AvatarUrl = AvatarOf(comment.AuthorId.Value, names),
             IsFollowedByUser = viewer.FollowedMemberIds.Contains(comment.AuthorId.Value)
         };
     }
@@ -68,4 +70,10 @@ public static class AuthorMapper
     /// </summary>
     public static string? NameOf(Guid userId, IReadOnlyDictionary<Guid, string>? names) =>
         names is not null && names.TryGetValue(userId, out var name) ? name : null;
+
+    /// <summary>
+    /// The member's photo, when the lookup is <see cref="CommunityAuthorNames"/>' own and knows it.
+    /// </summary>
+    public static string? AvatarOf(Guid userId, IReadOnlyDictionary<Guid, string>? names) =>
+        names is CommunityAuthorDirectory directory ? directory.AvatarOf(userId) : null;
 }

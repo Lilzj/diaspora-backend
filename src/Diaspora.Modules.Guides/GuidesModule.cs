@@ -173,6 +173,7 @@ public sealed class GuidesModule : IPlatformModule
         services.AddScoped<GuideReportService>();
         services.AddScoped<GuideProviderResolver>();
         services.AddScoped<GuideAuthorNames>();
+        services.AddScoped<GuideReadComposer>();
     }
 
     /// <summary>

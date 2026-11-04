@@ -100,6 +100,12 @@ public sealed record ConversationParticipantProfile
 
     public Guid? AvatarMediaId { get; init; }
 
+    /// <summary>
+    /// Their profile photo, an address an image can load (added 4 Nov 2026). Every thread showed
+    /// initials, the photo a member had set included.
+    /// </summary>
+    public string? AvatarUrl { get; init; }
+
     public bool IsVerified { get; init; }
 
     public string? VerificationLabel { get; init; }

@@ -53,11 +53,10 @@ public interface IMemberProfileService
 /// <summary>
 /// What the kernel is willing to say about a member to a module that did not create them.
 /// <para>
-/// Deliberately thin: a name to address them by, which is what a list of threads or a page of
-/// comments needs, and whether their account is verified. No avatar, because identity stores one
-/// as a storage key rather than a B5 media identifier and a field nothing can fill is worse than a
-/// field that is not there. Anything more belongs to the module that owns the question — standing
-/// to <see cref="ITrustService"/>, reputation to Trust's own contracts.
+/// Deliberately thin: a name to address them by and their photo, which is what a list of threads
+/// or a page of comments needs, and whether their account is verified. Anything more belongs to
+/// the module that owns the question — standing to <see cref="ITrustService"/>, reputation to
+/// Trust's own contracts.
 /// </para>
 /// </summary>
 public sealed record MemberProfile
@@ -66,6 +65,17 @@ public sealed record MemberProfile
 
     /// <summary>What to call them. Never empty for a member that exists.</summary>
     public required string DisplayName { get; init; }
+
+    /// <summary>
+    /// Their profile photo, an absolute address an image tag can load. Null when they have none.
+    /// <para>
+    /// Added 4 Nov 2026. A member who set a photo still showed as initials beside every post,
+    /// comment, guide and message, because the name travelled here and the photo did not. It
+    /// once could not: Identity stored a free-text key. Since 20 Oct 2026 it stores a Media
+    /// asset, and the host turns that into the address <c>/auth/me</c> already serves.
+    /// </para>
+    /// </summary>
+    public string? AvatarUrl { get; init; }
 
     /// <summary>
     /// Whether their account is verified right now — the access tier the platform gates verified

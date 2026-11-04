@@ -29,6 +29,11 @@ public sealed class CommunityAuthorNames
         _members = members;
     }
 
+    /// <summary>
+    /// The authors' names, keyed by user identifier. The dictionary is a
+    /// <see cref="CommunityAuthorDirectory"/>, which also holds each author's photo; the mappers
+    /// read it through <c>AuthorMapper.AvatarOf</c>.
+    /// </summary>
     public async Task<IReadOnlyDictionary<Guid, string>> ResolveAsync(
         IEnumerable<UserId> authorIds, CancellationToken cancellationToken)
     {
@@ -43,6 +48,53 @@ public sealed class CommunityAuthorNames
 
         var profiles = await _members.ResolveAsync(distinct, cancellationToken);
 
-        return profiles.ToDictionary(pair => pair.Key, pair => pair.Value.DisplayName);
+        return new CommunityAuthorDirectory(profiles);
     }
+}
+
+/// <summary>
+/// The authors' names, and their photos alongside.
+/// <para>
+/// <b>Why a dictionary that knows more.</b> Twenty call sites resolve a page's authors once and
+/// hand the name lookup down to <c>AuthorMapper</c>. A member who set a profile photo still showed
+/// as initials beside every post and comment (UAT, 3 Nov 2026), and threading a second lookup
+/// through all twenty would be twenty chances to forget it. So the lookup they already pass is this
+/// one, which answers names exactly as before and carries the photos with it. A lookup built some
+/// other way simply has no photos, and the author's photo stays null.
+/// </para>
+/// </summary>
+public sealed class CommunityAuthorDirectory : IReadOnlyDictionary<Guid, string>
+{
+    private readonly Dictionary<Guid, string> _names;
+    private readonly Dictionary<Guid, string> _avatars;
+
+    public CommunityAuthorDirectory(IReadOnlyDictionary<Guid, MemberProfile> profiles)
+    {
+        ArgumentNullException.ThrowIfNull(profiles);
+
+        _names = profiles.ToDictionary(pair => pair.Key, pair => pair.Value.DisplayName);
+        _avatars = profiles
+            .Where(pair => !string.IsNullOrWhiteSpace(pair.Value.AvatarUrl))
+            .ToDictionary(pair => pair.Key, pair => pair.Value.AvatarUrl!);
+    }
+
+    /// <summary>The member's photo address, or null when they have none.</summary>
+    public string? AvatarOf(Guid userId) => _avatars.TryGetValue(userId, out var url) ? url : null;
+
+    public string this[Guid key] => _names[key];
+
+    public IEnumerable<Guid> Keys => _names.Keys;
+
+    public IEnumerable<string> Values => _names.Values;
+
+    public int Count => _names.Count;
+
+    public bool ContainsKey(Guid key) => _names.ContainsKey(key);
+
+    public bool TryGetValue(Guid key, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out string value) =>
+        _names.TryGetValue(key, out value);
+
+    public IEnumerator<KeyValuePair<Guid, string>> GetEnumerator() => _names.GetEnumerator();
+
+    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
 }

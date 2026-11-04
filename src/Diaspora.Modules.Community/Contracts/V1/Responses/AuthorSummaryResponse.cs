@@ -16,6 +16,12 @@ public sealed record AuthorSummaryResponse
     /// <summary>A Media reference, not a URL. The client resolves it through Media.</summary>
     public Guid? AvatarMediaId { get; init; }
 
+    /// <summary>
+    /// The author's profile photo, an address an image can load. Null when they have none.
+    /// Added 4 Nov 2026: authors showed as initials whatever photo they had set.
+    /// </summary>
+    public string? AvatarUrl { get; init; }
+
     /// <summary>From Trust. Never computed here.</summary>
     public string? ReputationLevel { get; init; }
 
