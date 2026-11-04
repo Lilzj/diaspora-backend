@@ -661,6 +661,13 @@ public sealed class CommunityEventRepository : ICommunityEventRepository
             query = query.Where(communityEvent => communityEvent.CommunityId == communityId);
         }
 
+        if (filter.CommunityIds is { } communityIds)
+        {
+            var wanted = communityIds.Distinct().ToList();
+            query = query.Where(communityEvent =>
+                communityEvent.CommunityId != null && wanted.Contains(communityEvent.CommunityId.Value));
+        }
+
         if (!string.IsNullOrWhiteSpace(filter.CountryCode))
         {
             var country = filter.CountryCode.Trim().ToUpperInvariant();

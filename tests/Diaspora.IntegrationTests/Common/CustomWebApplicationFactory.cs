@@ -268,6 +268,11 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Api.Program>
                 ["Financial:EnableRevenueRollupSweep"] = "false",
                 ["Financial:EnableGivingReconciliationSweep"] = "false",
 
+                // The two sample grant programmes. Off by default since 4 Nov 2026, because a
+                // deployment's grants are the ones its administrators post; the suite's grant
+                // application tests are written against these two.
+                ["Creator:SeedSampleGrants"] = "true",
+
                 // The OAuth allow-lists. Empty is the correct production default — a deployment
                 // that has configured neither can start no authorization and make no outbound call
                 // — and a suite that left them empty would prove only the refusal. These two

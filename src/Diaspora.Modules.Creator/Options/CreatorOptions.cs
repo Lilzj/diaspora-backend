@@ -57,4 +57,12 @@ public sealed class CreatorOptions
     /// <summary>How often the lifecycle sweep runs.</summary>
     [Range(1, 1440)]
     public int LifecycleSweepMinutes { get; set; } = 60;
+
+    /// <summary>
+    /// Whether the catalogue seeder writes its two sample grant programmes. Off by default since
+    /// 4 Nov 2026: members took the two the seeder wrote at every startup, in every environment, for
+    /// the platform's own, in pounds wherever they lived. A deployment's grants are the ones its
+    /// administrators post through <c>/grants/admin</c>. A test or demo host turns this on.
+    /// </summary>
+    public bool SeedSampleGrants { get; set; }
 }

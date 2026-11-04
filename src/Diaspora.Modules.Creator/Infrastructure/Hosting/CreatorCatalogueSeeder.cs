@@ -8,11 +8,13 @@ using Diaspora.Modules.Creator.Domain.Milestones;
 using Diaspora.Modules.Creator.Domain.Policies;
 using Diaspora.Modules.Creator.Domain.Repositories;
 using Diaspora.Modules.Creator.Domain.Rewards;
+using Diaspora.Modules.Creator.Options;
 using Diaspora.Platform.Modules.Seeding;
 using Diaspora.Platform.Services.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Diaspora.Modules.Creator.Infrastructure.Hosting;
 
@@ -71,7 +73,13 @@ public sealed class CreatorCatalogueSeeder : BackgroundService, IReferenceDataSe
             await SeedRewardsAsync(scope.ServiceProvider, cancellationToken);
             await SeedMilestonesAsync(scope.ServiceProvider, cancellationToken);
             await SeedChallengesAsync(scope.ServiceProvider, cancellationToken);
-            await SeedGrantsAsync(scope.ServiceProvider, cancellationToken);
+
+            // Sample grants only where a host asks for them. See CreatorOptions.SeedSampleGrants.
+            if (scope.ServiceProvider.GetRequiredService<IOptions<CreatorOptions>>().Value.SeedSampleGrants)
+            {
+                await SeedGrantsAsync(scope.ServiceProvider, cancellationToken);
+            }
+
             await SeedAcademyAsync(scope.ServiceProvider, cancellationToken);
         }
         catch (OperationCanceledException)
@@ -104,7 +112,7 @@ public sealed class CreatorCatalogueSeeder : BackgroundService, IReferenceDataSe
         {
             ("guide-published", CreatorActivityTypes.GuidePublished,
                 "Publish a guide", "Write something that helps somebody settle in.", 50,
-                "/knowledge/create", null, "knowledge", null, null),
+                "/guide/create", null, "knowledge", null, null),
 
             ("guide-featured", CreatorActivityTypes.GuideFeatured,
                 "Have a guide featured", "The platform features guides it thinks everyone should read.",
@@ -120,7 +128,7 @@ public sealed class CreatorCatalogueSeeder : BackgroundService, IReferenceDataSe
 
             ("event-published", CreatorActivityTypes.EventPublished,
                 "List an event", "Put something on for people near you.", 30,
-                "/community-life/events/create", null, "events", null, null),
+                "/community-life/event/create", null, "events", null, null),
 
             ("event-hosted", CreatorActivityTypes.EventHosted,
                 "Host an event", "Run it, and check people in.", 75, null, null, "events", null, null),
@@ -460,7 +468,7 @@ public sealed class CreatorCatalogueSeeder : BackgroundService, IReferenceDataSe
                     "Publish three guides",
                     CreatorActivityTypes.GuidePublished,
                     target: 3,
-                    actionRoute: "/knowledge/create",
+                    actionRoute: "/guide/create",
                     actionLabel: "Write a guide")
                 .WithTask(
                     CreatorChallengeTaskId.From(guids.NewSequentialGuid()),
@@ -496,7 +504,7 @@ public sealed class CreatorCatalogueSeeder : BackgroundService, IReferenceDataSe
                     "List an event",
                     CreatorActivityTypes.EventPublished,
                     target: 1,
-                    actionRoute: "/community-life/events/create",
+                    actionRoute: "/community-life/event/create",
                     actionLabel: "List an event")
                 .WithTask(
                     CreatorChallengeTaskId.From(guids.NewSequentialGuid()),
@@ -836,7 +844,7 @@ public sealed class CreatorCatalogueSeeder : BackgroundService, IReferenceDataSe
                 "A community moderator",
                 3))
             .WithBlock(LessonBlock.Action(
-                "Report something", "/community/report", "It takes about a minute.", 4));
+                "Trading safely", "/safety/trading", "How to meet, pay and check a member before you trade.", 4));
 
         repository.AddLesson(lesson);
 

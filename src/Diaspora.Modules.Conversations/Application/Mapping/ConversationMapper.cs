@@ -131,6 +131,22 @@ public sealed class ConversationMapper
     }
 
     /// <summary>One message. Needs nothing from outside the module.</summary>
+    /// <summary>
+    /// A message with its sender's name and photo, from the participants the context resolved.
+    /// Added 4 Nov 2026: a bubble showed initials whatever photo its sender had set.
+    /// </summary>
+    public static MessageResponse ToResponse(ConversationMessage message, ConversationRenderContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        var response = ToResponse(message);
+        var sender = message.SenderId is { } senderId ? context.ProfileFor(senderId) : null;
+
+        return sender is null
+            ? response
+            : response with { SenderName = sender.DisplayName, SenderAvatarUrl = sender.AvatarUrl };
+    }
+
     public static MessageResponse ToResponse(ConversationMessage message)
     {
         ArgumentNullException.ThrowIfNull(message);
@@ -206,7 +222,7 @@ public sealed class ConversationMapper
         {
             UserId = block.BlockedUserId.Value,
             DisplayName = profile?.DisplayName,
-            AvatarUrl = null,
+            AvatarUrl = profile?.AvatarUrl,
             BlockedAt = block.BlockedAt,
             Reason = block.Reason
         };
@@ -292,7 +308,7 @@ public sealed class ConversationMapper
         {
             UserId = participant.UserId.Value,
             DisplayName = profile?.DisplayName,
-            AvatarUrl = null,
+            AvatarUrl = profile?.AvatarUrl,
             AvatarMediaId = profile?.AvatarMediaId,
             Trust = new ConversationTrustProfileResponse
             {

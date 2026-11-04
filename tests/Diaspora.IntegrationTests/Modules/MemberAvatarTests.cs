@@ -170,6 +170,92 @@ public sealed class MemberAvatarTests : PooledIdentityTestBase
             .StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
+    /// <summary>
+    /// <b>A member's photo travels with their name</b> (UAT, 3 Nov 2026). A member who added a
+    /// photo still saw their initials beside every post, comment, guide and message: each module
+    /// resolved the author's name through <c>IMemberProfileService</c>, which carried no photo.
+    /// </summary>
+    [Fact]
+    public async Task A_members_photo_travels_with_their_name_to_posts_comments_guides_and_messages()
+    {
+        var (_, author) = await RegisterVerifiedMemberAsync();
+        await Factory.DrainOutboxAsync();
+        Api.Authenticate(author.Tokens.AccessToken);
+
+        var mediaId = await UploadAsync();
+        var avatarUrl = await DataAsync(
+            await HttpClient.PutAsJsonAsync(Avatar, new { mediaId }),
+            data => data.GetProperty("avatarUrl").GetString());
+        avatarUrl.Should().NotBeNullOrEmpty();
+
+        var post = await HttpClient.PostAsJsonAsync(
+            "/api/v1/community/posts",
+            new { body = "Whose face is this?", category = "Traffic", urgency = "Normal", publish = true });
+        post.IsSuccessStatusCode.Should().BeTrue(await post.Content.ReadAsStringAsync());
+        var postId = await DataAsync(post, data => data.GetProperty("postId").GetGuid());
+
+        (await DataAsync(await HttpClient.GetAsync($"/api/v1/community/posts/{postId}"),
+                data => AvatarOf(data.GetProperty("author"))))
+            .Should().Be(avatarUrl, "a post's author shows their photo");
+
+        (await DataAsync(
+                await HttpClient.PostAsJsonAsync(
+                    $"/api/v1/community/posts/{postId}/comments", new { body = "Mine, as it happens." }),
+                data => AvatarOf(data.GetProperty("author"))))
+            .Should().Be(avatarUrl, "a comment's author shows their photo");
+
+        var guideId = await DataAsync(
+            await HttpClient.PostAsJsonAsync(
+                "/api/v1/guides",
+                new { title = "Renewing a passport abroad", categoryKey = "immigration", language = "en", countryCode = "NG" }),
+            data => data.GetProperty("guideId").GetGuid());
+
+        (await DataAsync(await HttpClient.GetAsync($"/api/v1/guides/{guideId}"),
+                data => AvatarOf(data.GetProperty("author"))))
+            .Should().Be(avatarUrl, "a guide's byline shows its author's photo");
+
+        var (_, reader) = await RegisterVerifiedMemberAsync();
+        Api.Authenticate(reader.Tokens.AccessToken);
+
+        var opened = await HttpClient.PostAsJsonAsync(
+            "/api/v1/conversations",
+            new
+            {
+                recipientId = author.User.Id,
+                context = new { type = "MarketplaceListing", entityId = "listing-avatar", entityTitle = "A lamp" }
+            });
+        opened.IsSuccessStatusCode.Should().BeTrue(await opened.Content.ReadAsStringAsync());
+        var conversationId = await DataAsync(opened, data => data.GetProperty("conversationId").GetGuid());
+
+        (await DataAsync(opened, data => data.GetProperty("participants").EnumerateArray()
+                .Where(participant => participant.GetProperty("userId").GetGuid() == author.User.Id)
+                .Select(AvatarOf)
+                .Single()))
+            .Should().Be(avatarUrl, "the other member sees the photo of who they are writing to");
+
+        Api.Authenticate(author.Tokens.AccessToken);
+        (await HttpClient.PostAsJsonAsync(
+                $"/api/v1/conversations/{conversationId}/messages", new { text = "Still available.", localId = "a-1" }))
+            .IsSuccessStatusCode.Should().BeTrue();
+
+        Api.Authenticate(reader.Tokens.AccessToken);
+        var sender = await DataAsync(
+            await HttpClient.GetAsync($"/api/v1/conversations/{conversationId}/messages"),
+            data => (data.ValueKind == JsonValueKind.Array ? data : data.GetProperty("items"))
+                .EnumerateArray()
+                .Single(message => message.GetProperty("senderId").GetGuid() == author.User.Id)
+                .Clone());
+
+        sender.GetProperty("senderAvatarUrl").GetString()
+            .Should().Be(avatarUrl, "a message shows its sender's photo");
+        sender.GetProperty("senderName").GetString().Should().NotBeNullOrEmpty("and their name");
+    }
+
+    private static string? AvatarOf(JsonElement person) =>
+        person.TryGetProperty("avatarUrl", out var url) && url.ValueKind == JsonValueKind.String
+            ? url.GetString()
+            : null;
+
     private async Task SignInAsync()
     {
         var (_, auth) = await RegisterVerifiedMemberAsync();

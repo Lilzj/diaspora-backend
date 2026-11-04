@@ -510,6 +510,48 @@ public sealed record CommunityGrantResponse
     public required IReadOnlyList<string> CountryCodes { get; init; }
 }
 
+/// <summary>
+/// A grant as its administrator sees it (added 4 Nov 2026): published or not, with its form, and
+/// without anybody's eligibility.
+/// </summary>
+public sealed record AdminGrantResponse
+{
+    public required Guid GrantId { get; init; }
+
+    public required string Key { get; init; }
+
+    public required string Title { get; init; }
+
+    public required string Summary { get; init; }
+
+    public required string Description { get; init; }
+
+    public required string Category { get; init; }
+
+    /// <summary>Upcoming, Open, ClosingSoon or Closed. An unpublished grant reads Upcoming.</summary>
+    public required string State { get; init; }
+
+    public required bool IsPublished { get; init; }
+
+    public required MoneyResponse FundingAmount { get; init; }
+
+    public MoneyResponse? FundingMinimum { get; init; }
+
+    public DateTimeOffset? OpensAt { get; init; }
+
+    public DateTimeOffset? DeadlineAt { get; init; }
+
+    public required string MinimumStatus { get; init; }
+
+    public required bool RequiresVerifiedCreator { get; init; }
+
+    public required int ApplicantCount { get; init; }
+
+    public required IReadOnlyList<string> CountryCodes { get; init; }
+
+    public required IReadOnlyList<GrantApplicationFieldResponse> Fields { get; init; }
+}
+
 public sealed record GrantFieldOptionResponse(string Value, string Label);
 
 /// <summary>One question on a served grant form.</summary>

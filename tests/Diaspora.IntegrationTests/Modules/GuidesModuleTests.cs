@@ -581,6 +581,69 @@ public sealed class GuidesModuleTests : IdentityTestBase
             card => card.GuideId == guide.GuideId, "the guide left the saved list");
     }
 
+    /// <summary>
+    /// <b>The guide read tells its reader what they did to it</b> (UAT, 3 Nov 2026). Saving a
+    /// guide left the button reading "Save guide", because nothing on the read said the reader
+    /// had saved it; the helpful vote was a flag that reset when the screen closed.
+    /// </summary>
+    [Fact]
+    public async Task The_guide_read_tells_its_reader_whether_they_saved_it_and_how_they_voted()
+    {
+        var guide = await PublishNewGuideAsync("Registering a child at a Lagos school", "education", "NG");
+
+        var (_, readerAuth) = await RegisterVerifiedMemberAsync();
+        Api.Authenticate(readerAuth.Tokens.AccessToken);
+
+        var before = await ViewerOfAsync($"{Root}/{guide.GuideId}");
+        before.Should().NotBeNull("a signed-in reader has a state, even an empty one");
+        before!.Value.GetProperty("isSaved").GetBoolean().Should().BeFalse();
+        VoteOf(before.Value).Should().BeNull();
+
+        (await HttpClient.PutAsync($"{Root}/{guide.GuideId}/bookmark", content: null))
+            .IsSuccessStatusCode.Should().BeTrue();
+        (await HttpClient.PostAsJsonAsync(
+                $"{Root}/{guide.GuideId}/vote", new { kind = "Helpful" }, JsonOptions))
+            .IsSuccessStatusCode.Should().BeTrue();
+
+        var after = (await ViewerOfAsync($"{Root}/{guide.GuideId}"))!.Value;
+        after.GetProperty("isSaved").GetBoolean().Should().BeTrue("the reader saved it");
+        VoteOf(after).Should().Be("Helpful", "the reader marked it helpful");
+
+        var bySlug = (await ViewerOfAsync($"{Root}/slug/{guide.Slug}"))!.Value;
+        bySlug.GetProperty("isSaved").GetBoolean().Should().BeTrue("a deep link reads the same guide");
+
+        (await HttpClient.DeleteAsync($"{Root}/{guide.GuideId}/bookmark"))
+            .IsSuccessStatusCode.Should().BeTrue();
+
+        (await ViewerOfAsync($"{Root}/{guide.GuideId}"))!.Value
+            .GetProperty("isSaved").GetBoolean().Should().BeFalse("the reader removed the save");
+
+        Api.ClearAuthentication();
+
+        (await ViewerOfAsync($"{Root}/{guide.GuideId}"))
+            .Should().BeNull("a signed-out reader has nothing of their own on the guide");
+    }
+
+    /// <summary>The guide read's <c>viewer</c>, or null when it is null or absent.</summary>
+    private async Task<JsonElement?> ViewerOfAsync(string url)
+    {
+        var response = await HttpClient.GetAsync(url);
+        var body = await response.Content.ReadAsStringAsync();
+        response.StatusCode.Should().Be(HttpStatusCode.OK, body);
+
+        using var document = JsonDocument.Parse(body);
+        var data = document.RootElement.GetProperty("data");
+
+        return data.TryGetProperty("viewer", out var viewer) && viewer.ValueKind == JsonValueKind.Object
+            ? viewer.Clone()
+            : null;
+    }
+
+    private static string? VoteOf(JsonElement viewer) =>
+        viewer.TryGetProperty("vote", out var vote) && vote.ValueKind == JsonValueKind.String
+            ? vote.GetString()
+            : null;
+
     [Fact]
     public async Task A_helpful_vote_moves_the_count_and_recasting_changes_it_rather_than_adding_one()
     {

@@ -180,6 +180,9 @@ public interface ICommunityGrantRepository
         string? countryCode,
         int take,
         CancellationToken cancellationToken = default);
+
+    /// <summary>Every grant, published or not, newest first. For the administrators' list.</summary>
+    Task<IReadOnlyList<CommunityGrant>> ListAllAsync(int take, CancellationToken cancellationToken = default);
 }
 
 public interface IGrantApplicationRepository

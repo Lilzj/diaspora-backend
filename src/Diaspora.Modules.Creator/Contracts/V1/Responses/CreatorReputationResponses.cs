@@ -71,9 +71,10 @@ public sealed record CreatorReputationDimensionResponse
 /// <summary>
 /// A badge — the app's <c>CreatorBadge</c>.
 /// <para>
-/// Two sources, named in <see cref="Source"/>: <c>trust</c> (an active award, always earned) and
-/// <c>milestone</c> (a creator milestone whose reward is a badge; earned once claimed, otherwise
-/// served with its progress on the creator's own read).
+/// Two sources, named in <see cref="Source"/>: <c>trust</c> (an active award, earned; on the
+/// creator's own read also each badge still to earn, with how to earn it as its
+/// <see cref="Description"/>) and <c>milestone</c> (a creator milestone whose reward is a badge;
+/// earned once claimed, otherwise served with its progress on the creator's own read).
 /// </para>
 /// </summary>
 public sealed record CreatorReputationBadgeResponse

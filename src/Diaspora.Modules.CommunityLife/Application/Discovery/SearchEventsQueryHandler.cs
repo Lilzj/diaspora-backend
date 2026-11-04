@@ -8,6 +8,8 @@ using Diaspora.Modules.CommunityLife.Domain.Identifiers;
 using Diaspora.Modules.CommunityLife.Domain.Policies;
 using Diaspora.Modules.CommunityLife.Extensibility.Search;
 using Diaspora.Modules.CommunityLife.Observability;
+using Diaspora.Contracts.CommunityProgramme.V1.Directory;
+using Diaspora.SharedKernel.Geography;
 using Diaspora.SharedKernel.Results;
 
 namespace Diaspora.Modules.CommunityLife.Application.Discovery;
@@ -40,6 +42,7 @@ public sealed class SearchEventsQueryHandler
     private readonly CommunityLifeAuthorizationService _authorization;
     private readonly CommunityLifeGeographicScopeAdapter _geography;
     private readonly CommunityEventReadContext _read;
+    private readonly IReadOnlyList<IMemberCommunityDirectory> _communities;
 
     public SearchEventsQueryHandler(
         ICommunityEventRepository events,
@@ -48,8 +51,10 @@ public sealed class SearchEventsQueryHandler
         CommunityLifeNeighborhoodResolver neighborhoods,
         CommunityLifeAuthorizationService authorization,
         CommunityLifeGeographicScopeAdapter geography,
-        CommunityEventReadContext read)
+        CommunityEventReadContext read,
+        IEnumerable<IMemberCommunityDirectory> communities)
     {
+        _communities = [.. communities];
         _geography = geography;
         _events = events;
         _engine = engine;
@@ -135,9 +140,41 @@ public sealed class SearchEventsQueryHandler
             filter = narrowed.Value;
         }
 
+        // "My communities" (4 Nov 2026): the communities the caller belongs to, asked of the module
+        // that owns them. Nobody signed in, or a member of none, is an empty page, not every event.
+        if (query.JoinedCommunitiesOnly)
+        {
+            var mine = _authorization.CallerId is { } caller
+                ? await CommunitiesOfAsync(caller.Value, cancellationToken)
+                : [];
+
+            if (mine.Count == 0)
+            {
+                return Result.Success(Empty());
+            }
+
+            filter = filter with { CommunityIds = mine };
+        }
+
+        // Around a point with a radius in kilometres (UAT, 3 Nov 2026): the geography narrowed to
+        // the circle's bounding box above; here each event is measured, the box's corners are
+        // dropped, and Nearest sorts by the measurement.
+        var circle = AroundPoint(query);
+
+        if (circle is not null && filter.SortOrder == EventSortOrder.Nearest)
+        {
+            return Result.Success(await NearestAsync(filter, circle, cancellationToken));
+        }
+
         var result = await _engine.SearchAsync(filter, cancellationToken);
 
         var events = await HydrateAsync(result, cancellationToken);
+        var distances = circle is null ? null : Measure(events, circle);
+
+        if (circle is not null)
+        {
+            events = [.. events.Where(communityEvent => Keeps(communityEvent, circle, distances!))];
+        }
 
         CommunityLifeTelemetry.SearchesRun.Add(
             1,
@@ -146,7 +183,7 @@ public sealed class SearchEventsQueryHandler
 
         return Result.Success(new EventSearchResultResponse
         {
-            Items = await _read.ToSummariesAsync(events, cancellationToken: cancellationToken),
+            Items = await _read.ToSummariesAsync(events, distances, cancellationToken),
             NextCursor = result.NextCursor,
             HasMore = result.HasMore,
             TotalCount = result.TotalCount,
@@ -154,6 +191,119 @@ public sealed class SearchEventsQueryHandler
             Engine = _engine.EngineName
         });
     }
+
+    /// <summary>The most events a Nearest page is chosen from: the soonest, five pages of them.</summary>
+    private const int NearestCandidatePages = 5;
+
+    /// <summary>
+    /// Nearest first. The database has no distance to sort by (venues are two decimal columns, not
+    /// a geography), so the soonest events in the box are read — at most five pages — measured,
+    /// kept to the circle, sorted by distance and then time, and paged here by offset. An event
+    /// with no venue coordinates, the same-town ones the box admits, sorts last.
+    /// </summary>
+    private async Task<EventSearchResultResponse> NearestAsync(
+        EventQueryFilter filter, CircleArea circle, CancellationToken cancellationToken)
+    {
+        var candidates = new List<CommunityEvent>();
+        var page = filter with { SortOrder = EventSortOrder.Soonest, Cursor = null, Limit = CommunityLifeLimits.MaxPageSize };
+
+        for (var read = 0; read < NearestCandidatePages; read++)
+        {
+            var result = await _engine.SearchAsync(page, cancellationToken);
+            candidates.AddRange(await HydrateAsync(result, cancellationToken));
+
+            if (!result.HasMore || result.NextCursor is null)
+            {
+                break;
+            }
+
+            page = page with { Cursor = result.NextCursor };
+        }
+
+        var distances = Measure(candidates, circle);
+
+        var ordered = candidates
+            .Where(communityEvent => Keeps(communityEvent, circle, distances))
+            .OrderBy(communityEvent => distances.TryGetValue(communityEvent.Id, out var km) ? km : double.MaxValue)
+            .ThenBy(communityEvent => communityEvent.Schedule.StartsAt)
+            .ToList();
+
+        var offset = NearestOffset(filter.Cursor);
+        var slice = ordered.Skip(offset).Take(filter.Limit).ToList();
+        var hasMore = offset + slice.Count < ordered.Count;
+
+        return new EventSearchResultResponse
+        {
+            Items = await _read.ToSummariesAsync(slice, distances, cancellationToken),
+            NextCursor = hasMore ? $"nearest:{offset + slice.Count}" : null,
+            HasMore = hasMore,
+            TotalCount = null,
+            Engine = _engine.EngineName
+        };
+    }
+
+    private static int NearestOffset(string? cursor) =>
+        cursor is not null
+        && cursor.StartsWith("nearest:", StringComparison.Ordinal)
+        && int.TryParse(cursor["nearest:".Length..], System.Globalization.NumberStyles.None,
+            System.Globalization.CultureInfo.InvariantCulture, out var offset)
+            ? offset
+            : 0;
+
+    /// <summary>The circle a point and a positive radius describe; null for a town or a country.</summary>
+    private static CircleArea? AroundPoint(SearchEventsQuery query) =>
+        query.Latitude is { } latitude
+        && query.Longitude is { } longitude
+        && query.RadiusKm is { } radius
+        && radius > 0
+        && latitude is >= -90 and <= 90
+        && longitude is >= -180 and <= 180
+        && string.IsNullOrWhiteSpace(query.Bounds)
+            ? CircleArea.Around(latitude, longitude, radius)
+            : null;
+
+    private static Dictionary<CommunityEventId, double> Measure(
+        IEnumerable<CommunityEvent> events, CircleArea circle)
+    {
+        var distances = new Dictionary<CommunityEventId, double>();
+
+        foreach (var communityEvent in events)
+        {
+            if (communityEvent.Venue?.Latitude is { } latitude && communityEvent.Venue.Longitude is { } longitude)
+            {
+                distances[communityEvent.Id] = Math.Round(
+                    circle.DistanceKm(latitude, longitude), 2);
+            }
+        }
+
+        return distances;
+    }
+
+    /// <summary>Inside the circle, or without coordinates (a same-town event the box admitted).</summary>
+    private static bool Keeps(
+        CommunityEvent communityEvent, CircleArea circle, Dictionary<CommunityEventId, double> distances) =>
+        !distances.TryGetValue(communityEvent.Id, out var km) || km <= circle.RadiusKm;
+
+    private async Task<IReadOnlyCollection<Guid>> CommunitiesOfAsync(Guid memberId, CancellationToken cancellationToken)
+    {
+        var ids = new HashSet<Guid>();
+
+        foreach (var directory in _communities)
+        {
+            ids.UnionWith(await directory.CommunitiesOfAsync(memberId, cancellationToken));
+        }
+
+        return ids;
+    }
+
+    private EventSearchResultResponse Empty() => new()
+    {
+        Items = [],
+        NextCursor = null,
+        HasMore = false,
+        TotalCount = 0,
+        Engine = _engine.EngineName
+    };
 
     /// <summary>
     /// The category keys to filter on: whatever the caller named, plus whatever the facet expands to.

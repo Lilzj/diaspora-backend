@@ -48,6 +48,25 @@ public sealed class GuideAuthorNames
         return profiles.ToDictionary(pair => pair.Key, pair => pair.Value.DisplayName);
     }
 
+    /// <summary>
+    /// One author's profile — name and photo — or null when it cannot be resolved. The byline
+    /// shows the photo beside the name (UAT, 3 Nov 2026: a member who added one still saw their
+    /// initials).
+    /// </summary>
+    public async Task<MemberProfile?> ProfileOfAsync(UserId authorId, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(authorId);
+
+        if (!_members.IsAvailable)
+        {
+            return null;
+        }
+
+        var profiles = await _members.ResolveAsync([authorId], cancellationToken);
+
+        return profiles.GetValueOrDefault(authorId.Value);
+    }
+
     /// <summary>One author's display name, or null when it cannot be resolved.</summary>
     public async Task<string?> NameOfAsync(UserId authorId, CancellationToken cancellationToken)
     {

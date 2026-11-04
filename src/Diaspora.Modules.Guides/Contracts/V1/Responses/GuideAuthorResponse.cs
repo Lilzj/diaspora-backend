@@ -13,6 +13,9 @@ public sealed record GuideAuthorResponse
     /// </summary>
     public string? Name { get; init; }
 
+    /// <summary>The author's profile photo, an address an image can load. Null when they have none.</summary>
+    public string? AvatarUrl { get; init; }
+
     public required bool IsApprovedContributor { get; init; }
 
     public required bool IsCommunityGuide { get; init; }

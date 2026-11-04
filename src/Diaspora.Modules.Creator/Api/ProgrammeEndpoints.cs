@@ -130,6 +130,52 @@ internal static class GrantEndpoints
             .WithName("ListGrants")
             .WithSummary("Grant discovery. ClosingSoon is the server's decision, never a device's.");
 
+        // ── The administrators' grants (4 Nov 2026). creator:programme:manage. ──────────────────
+        // "admin" is a literal no grant id matches, so these sit beside /{grantId:guid} safely.
+        group.MapGet("/admin", async (
+                [FromQuery] int? take, ISender sender, HttpContext context, CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context, await sender.Send(new ListGrantsForAdminQuery { Take = take }, cancellationToken)))
+            .WithName("ListGrantsForAdmin")
+            .WithSummary("Every grant, published or not. Administrators only.");
+
+        group.MapPost("/admin", async (
+                SaveGrantRequest request, ISender sender, HttpContext context, CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context, await sender.Send(new CreateGrantCommand { Request = request }, cancellationToken)))
+            .WithName("CreateGrant")
+            .WithSummary("Posts a grant in the currency and countries the administrator chooses, or prepares one unpublished.");
+
+        group.MapPut("/admin/{grantId:guid}", async (
+                Guid grantId,
+                SaveGrantRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new UpdateGrantCommand { GrantId = grantId, Request = request }, cancellationToken)))
+            .WithName("UpdateGrant")
+            .WithSummary("Edits what a grant offers and to whom. Its application form is left alone.");
+
+        foreach (var (segment, action, name, summary) in new[]
+        {
+            ("publish", GrantWindowAction.Publish, "PublishGrant", "Puts a grant on members' lists."),
+            ("unpublish", GrantWindowAction.Unpublish, "UnpublishGrant", "Takes a grant off members' lists. Its applications are kept."),
+            ("close", GrantWindowAction.Close, "CloseGrant", "Ends a grant's window now, so it stops taking applications.")
+        })
+        {
+            group.MapPost($"/admin/{{grantId:guid}}/{segment}", async (
+                    Guid grantId, ISender sender, HttpContext context, CancellationToken cancellationToken) =>
+                    PlatformResults.Ok(
+                        context,
+                        await sender.Send(
+                            new SetGrantWindowCommand { GrantId = grantId, Action = action }, cancellationToken)))
+                .WithName(name)
+                .WithSummary(summary);
+        }
+
         // Literal before parameterised: /grants/applications/me must not be read as a grant id.
         group.MapGet("/applications/me", async (
                 ISender sender, HttpContext context, CancellationToken cancellationToken) =>

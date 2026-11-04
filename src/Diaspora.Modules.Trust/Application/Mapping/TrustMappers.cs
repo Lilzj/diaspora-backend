@@ -503,6 +503,35 @@ public static class TrustMappers
 }
 
 /// <summary>
+/// How a member earns each badge, in the words the badge sheet shows under a badge still to earn.
+/// <para>
+/// <b>Null means nobody works toward it</b>, so it is listed only once held: a mandate the
+/// platform gives (moderator, community guide), a join date (early member), and a badge no rule
+/// awards (profile photo). Each sentence restates its rule in <c>BadgeRules</c>; change both.
+/// </para>
+/// </summary>
+public static class BadgeGuidance
+{
+    public static string? HowToEarn(BadgeType badge) => badge switch
+    {
+        BadgeType.VerifiedMember => "Complete Diaspora verification.",
+        BadgeType.PhoneVerified => "Verify your phone number.",
+        BadgeType.EmailVerified => "Verify your email address.",
+        BadgeType.GovernmentIdVerified => "Verify your identity with a government ID and a selfie.",
+        BadgeType.CountryVerified => "Verify that you live in your country of residence.",
+        BadgeType.ProviderVerified => "Have a professional credential or your employment verified.",
+        BadgeType.VerifiedBusiness => "Have a business you run verified.",
+        BadgeType.VerifiedOrganization => "Have an organisation you represent verified.",
+        BadgeType.TrustedContributor =>
+            "Reach Trusted Contributor, have three guides approved and keep a clean record.",
+        BadgeType.TopContributor =>
+            "Reach Community Expert, have ten guides approved, receive 100 helpful votes " +
+            "and go a year without a violation.",
+        _ => null
+    };
+}
+
+/// <summary>
 /// Display text for badges.
 /// <para>
 /// Composed server-side because the frontend's <c>ReputationBadge.label</c> already arrives

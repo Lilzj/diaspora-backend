@@ -1,6 +1,7 @@
 using Diaspora.Contracts.Trust.V1.Reputation;
 using Diaspora.Modules.Trust.Application.Mapping;
 using Diaspora.Modules.Trust.Domain;
+using Diaspora.Modules.Trust.Extensibility;
 using Diaspora.Modules.Trust.Persistence;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Identity;
@@ -8,8 +9,8 @@ using Diaspora.SharedKernel.Identity;
 namespace Diaspora.Modules.Trust.Application.Services;
 
 /// <summary>
-/// Trust's answer to <see cref="IMemberReputationReader"/>: the reputation record and the active
-/// badge awards, read without tracking.
+/// Trust's answer to <see cref="IMemberReputationReader"/>: the reputation record, the active
+/// badge awards and the badges still to earn, read without tracking.
 /// <para>
 /// <b>The same two reads the member's own routes make</b> — <c>GET /trust/reputation/me</c> and
 /// <c>GET /trust/badges/me</c> — so a creator's reputation screen and the member's trust screen
@@ -21,13 +22,18 @@ public sealed class MemberReputationReader : IMemberReputationReader
     private readonly ITrustProfileRepository _profiles;
     private readonly IReputationProfileRepository _reputations;
     private readonly IClock _clock;
+    private readonly BadgeRuleCatalog _rules;
 
     public MemberReputationReader(
-        ITrustProfileRepository profiles, IReputationProfileRepository reputations, IClock clock)
+        ITrustProfileRepository profiles,
+        IReputationProfileRepository reputations,
+        IClock clock,
+        BadgeRuleCatalog rules)
     {
         _profiles = profiles;
         _reputations = reputations;
         _clock = clock;
+        _rules = rules;
     }
 
     public async Task<MemberReputationSnapshot> GetAsync(
@@ -58,6 +64,24 @@ public sealed class MemberReputationReader : IMemberReputationReader
                 })
                 .ToList();
 
+        // Every badge a rule awards that the member holds in no country, and can act on.
+        var held = badges.Select(badge => badge.Type).ToHashSet(StringComparer.Ordinal);
+
+        var unearned = _rules.All
+            .Select(rule => rule.Badge)
+            .Distinct()
+            .Where(badge => !held.Contains(badge.ToString()))
+            .Select(badge => (Badge: badge, HowToEarn: BadgeGuidance.HowToEarn(badge)))
+            .Where(goal => goal.HowToEarn is not null)
+            .OrderBy(goal => (int)goal.Badge)
+            .Select(goal => new MemberBadgeGoal
+            {
+                Type = goal.Badge.ToString(),
+                Label = BadgeLabels.For(goal.Badge, null),
+                HowToEarn = goal.HowToEarn!
+            })
+            .ToList();
+
         var next = reputation.NextLevel;
 
         var figures = new MemberReputationFigures
@@ -80,7 +104,8 @@ public sealed class MemberReputationReader : IMemberReputationReader
         {
             UserId = memberUserId,
             Reputation = figures,
-            Badges = badges
+            Badges = badges,
+            Unearned = unearned
         };
     }
 }

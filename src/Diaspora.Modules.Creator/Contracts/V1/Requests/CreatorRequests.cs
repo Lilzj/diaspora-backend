@@ -228,3 +228,42 @@ public sealed record SetCreatorCoverRequest
 {
     public required Guid MediaId { get; init; }
 }
+
+/// <summary>
+/// An administrator's grant: what it offers, in which currency, to whom and where (added 4 Nov 2026).
+/// Amounts are minor units of <see cref="Currency"/>. A minimum makes the grant a range, from the
+/// minimum up to <see cref="FundingMinorUnits"/>, and lets an applicant ask for an amount in it.
+/// </summary>
+public sealed record SaveGrantRequest
+{
+    public string? Title { get; init; }
+
+    public string? Summary { get; init; }
+
+    public string? Description { get; init; }
+
+    /// <summary>A short key such as <c>community</c> or <c>creators</c>.</summary>
+    public string? Category { get; init; }
+
+    public long FundingMinorUnits { get; init; }
+
+    public long? FundingMinimumMinorUnits { get; init; }
+
+    /// <summary>ISO 4217, e.g. <c>NGN</c>.</summary>
+    public string? Currency { get; init; }
+
+    /// <summary>ISO 3166-1 alpha-2 codes. Empty means everywhere.</summary>
+    public IReadOnlyList<string>? CountryCodes { get; init; }
+
+    public DateTimeOffset? OpensAt { get; init; }
+
+    public DateTimeOffset? DeadlineAt { get; init; }
+
+    /// <summary>The lowest creator status that may apply: <c>NotACreator</c> to <c>TopCreator</c>.</summary>
+    public string? MinimumStatus { get; init; }
+
+    public bool RequiresVerifiedCreator { get; init; }
+
+    /// <summary>On creation only: post it now, or keep it unpublished to finish later.</summary>
+    public bool Publish { get; init; }
+}

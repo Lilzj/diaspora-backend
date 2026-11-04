@@ -1,3 +1,4 @@
+using Diaspora.Application.Identity.Abstractions;
 using Diaspora.Application.Identity.Authorization;
 using Diaspora.Contracts.Authorization;
 using Diaspora.Domain.Identity.Repositories;
@@ -23,10 +24,16 @@ namespace Diaspora.Infrastructure.Services;
 public sealed class MemberProfileService : IMemberProfileService
 {
     private readonly IUserRepository _users;
+    private readonly IAvatarUrlResolver? _avatars;
 
-    public MemberProfileService(IUserRepository users)
+    /// <param name="avatars">
+    /// The host's Media address for a stored photo. Optional: a composition without Media
+    /// answers names alone, and a photo it cannot address is left null rather than guessed.
+    /// </param>
+    public MemberProfileService(IUserRepository users, IAvatarUrlResolver? avatars = null)
     {
         _users = users;
+        _avatars = avatars;
     }
 
     public bool IsAvailable => true;
@@ -49,6 +56,8 @@ public sealed class MemberProfileService : IMemberProfileService
             {
                 UserId = user.Id.Value,
                 DisplayName = user.FullName.Value,
+
+                AvatarUrl = _avatars?.Resolve(user.Avatar?.StorageKey),
 
                 // Through the one function that projects Identity's states onto tiers, so a
                 // suspended or locked member — Limited there — is never reported verified.

@@ -159,6 +159,10 @@ internal sealed record EventSearchParameters
     [FromQuery(Name = "communityId")]
     public Guid? CommunityId { get; init; }
 
+    /// <summary>Events from the caller's own communities — 4 Nov 2026.</summary>
+    [FromQuery(Name = "joinedCommunities")]
+    public bool? JoinedCommunitiesOnly { get; init; }
+
     [FromQuery(Name = "countryCode")]
     public string? CountryCode { get; init; }
 
@@ -233,6 +237,7 @@ internal sealed record EventSearchParameters
             Facet = Facet,
             OrganizationId = OrganizationId,
             CommunityId = CommunityId,
+            JoinedCommunitiesOnly = JoinedCommunitiesOnly ?? false,
             CountryCode = CountryCode,
             CityName = CityName,
 

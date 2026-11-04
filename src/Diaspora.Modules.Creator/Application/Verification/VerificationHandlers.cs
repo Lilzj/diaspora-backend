@@ -77,7 +77,7 @@ public sealed class CreatorVerificationRequirements
                 "Publish three pieces of content",
                 creator.TotalContentPublished,
                 RequiredPublications,
-                actionRoute: "/knowledge/create",
+                actionRoute: "/guide/create",
                 actionLabel: "Write a guide"),
 
             Domain.ValueObjects.CreatorRequirement.Counted(

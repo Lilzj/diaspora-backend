@@ -173,6 +173,11 @@ public sealed class CommunityProgrammeModule : IPlatformModule
         services.AddScoped<
             Diaspora.Contracts.CommunityProgramme.V1.Directory.ICommunityEventPostingAuthority,
             Extensibility.Publishing.CommunityEventPostingAuthority>();
+
+        // 4 Nov 2026. The communities a member belongs to, for "events from my communities".
+        services.AddScoped<
+            Diaspora.Contracts.CommunityProgramme.V1.Directory.IMemberCommunityDirectory,
+            Extensibility.Publishing.MemberCommunityDirectory>();
     }
 
     private static void RegisterHostedServices(IServiceCollection services)

@@ -113,4 +113,20 @@ public sealed record GuideResponse
     public required GuideEngagementResponse Engagement { get; init; }
 
     public GuideSeoResponse? Seo { get; init; }
+
+    /// <summary>
+    /// What the signed-in reader has done to this guide: saved it, voted on it. Null when signed
+    /// out. Added 4 Nov 2026: the Save button could not say it was saved, and the helpful vote
+    /// forgot itself when the screen closed.
+    /// </summary>
+    public GuideViewerResponse? Viewer { get; init; }
+}
+
+/// <summary>The reader's own state on a guide.</summary>
+public sealed record GuideViewerResponse
+{
+    public required bool IsSaved { get; init; }
+
+    /// <summary><c>Helpful</c>, <c>NotHelpful</c>, or null when they have not voted.</summary>
+    public string? Vote { get; init; }
 }

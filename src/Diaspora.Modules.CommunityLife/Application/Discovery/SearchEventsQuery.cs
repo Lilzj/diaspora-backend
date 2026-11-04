@@ -17,6 +17,12 @@ public sealed record SearchEventsQuery : IQuery<EventSearchResultResponse>
     /// <summary>Only events posted into this Community Programme community — 21 Oct 2026.</summary>
     public Guid? CommunityId { get; init; }
 
+    /// <summary>
+    /// Only events posted into the communities the caller belongs to — 4 Nov 2026, the events
+    /// screen's "My communities". A signed-out caller belongs to none and gets an empty page.
+    /// </summary>
+    public bool JoinedCommunitiesOnly { get; init; }
+
     public string? CountryCode { get; init; }
 
     public string? CityName { get; init; }

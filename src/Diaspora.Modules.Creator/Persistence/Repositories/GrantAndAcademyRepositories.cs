@@ -74,6 +74,14 @@ public sealed class CommunityGrantRepository : ICommunityGrantRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<CommunityGrant>> ListAllAsync(
+        int take, CancellationToken cancellationToken = default) =>
+        await Loaded()
+            .OrderByDescending(grant => grant.CreatedAt)
+            .ThenBy(grant => grant.Title)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+
     private IQueryable<CommunityGrant> Loaded() =>
         Grants
             .Include(grant => grant.Fields)

@@ -355,6 +355,21 @@ public sealed class CreatorReputationComposer
             CountryCode = award.CountryCode
         }));
 
+        // The creator's own read adds what is still to earn, and how; a public read does not, for
+        // the reason the milestone badges below give.
+        if (isSelf)
+        {
+            badges.AddRange(snapshot.Unearned.Select(goal => new CreatorReputationBadgeResponse
+            {
+                BadgeId = $"trust:{goal.Type}",
+                Key = goal.Type,
+                Label = goal.Label,
+                Description = goal.HowToEarn,
+                IsEarned = false,
+                Source = "trust"
+            }));
+        }
+
         badges.AddRange(await MilestoneBadgesAsync(creator.Id, isSelf, cancellationToken));
 
         return new CreatorReputationResponse
