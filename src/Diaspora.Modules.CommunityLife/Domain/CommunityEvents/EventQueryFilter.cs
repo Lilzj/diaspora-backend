@@ -25,6 +25,12 @@ public sealed record EventQueryFilter
     /// <summary>Only events posted into this community — 21 Oct 2026.</summary>
     public Guid? CommunityId { get; init; }
 
+    /// <summary>
+    /// Only events posted into one of these communities — 4 Nov 2026, the member's own
+    /// ("events from my communities"). Empty matches nothing; null does not narrow.
+    /// </summary>
+    public IReadOnlyCollection<Guid>? CommunityIds { get; init; }
+
     public UserId? OrganizerUserId { get; init; }
 
     public string? CountryCode { get; init; }

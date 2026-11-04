@@ -6990,6 +6990,13 @@
             }
           },
           {
+            "name": "joinedCommunities",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "name": "countryCode",
             "in": "query",
             "schema": {
