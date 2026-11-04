@@ -169,6 +169,7 @@ public sealed class GuidesModule : IPlatformModule
         services.AddScoped<GuideGeographicScopeAdapter>();
         services.AddScoped<GuideMediaClaimer>();
         services.AddScoped<GuideBookmarkService>();
+        services.AddScoped<Application.EventHandlers.GuideSavedCount>();
         services.AddScoped<GuideDiscussionService>();
         services.AddScoped<GuideReportService>();
         services.AddScoped<GuideProviderResolver>();

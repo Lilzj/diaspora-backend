@@ -21,4 +21,7 @@ public interface ICommunityBookmarkService
         UserId userId,
         IReadOnlyCollection<ContentReference> contents,
         CancellationToken cancellationToken = default);
+
+    /// <summary>How many members have this content saved now. Community owns the number.</summary>
+    Task<int> CountAsync(ContentReference content, CancellationToken cancellationToken = default);
 }

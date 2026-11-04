@@ -1228,8 +1228,11 @@ public sealed class Guide
     public void ApplyVoteDelta(int helpfulDelta, int notHelpfulDelta) =>
         Engagement = Engagement.WithVoteDelta(helpfulDelta, notHelpfulDelta);
 
-    /// <summary>Community's bookmark count, applied as a delta by the bookmark handler.</summary>
+    /// <summary>Moves the saved count by a delta. The save handlers recount instead, with <see cref="ApplyBookmarkCount"/>.</summary>
     public void ApplyBookmarkDelta(int delta) => Engagement = Engagement.WithBookmarkDelta(delta);
+
+    /// <summary>Community's count of saves, replaced rather than incremented — Community owns it.</summary>
+    public void ApplyBookmarkCount(int count) => Engagement = Engagement.WithBookmarkCount(count);
 
     /// <summary>Community's comment count, replaced rather than incremented — Community owns it.</summary>
     public void ApplyCommentCount(int count) => Engagement = Engagement.WithCommentCount(count);

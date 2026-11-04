@@ -624,6 +624,56 @@ public sealed class GuidesModuleTests : IdentityTestBase
             .Should().BeNull("a signed-out reader has nothing of their own on the guide");
     }
 
+    /// <summary>
+    /// <b>A guide counts the members who saved it</b> (seen on the emulator, 4 Nov 2026). The
+    /// guide read said "Saved" beside "0 saved": Community announced every save, and nothing in
+    /// the Guides module listened, so the count stored on the guide never moved. The read now
+    /// asks Community, and the stored count, which cards, trending and author stats use,
+    /// follows each save and unsave once they are delivered.
+    /// </summary>
+    [Fact]
+    public async Task A_guides_saved_count_follows_the_members_who_save_and_unsave_it()
+    {
+        var guide = await PublishNewGuideAsync("Opening a bank account in Lagos", "education", "NG");
+
+        var (_, firstAuth) = await RegisterVerifiedMemberAsync();
+        var (_, secondAuth) = await RegisterVerifiedMemberAsync();
+
+        Api.Authenticate(firstAuth.Tokens.AccessToken);
+        (await HttpClient.PutAsync($"{Root}/{guide.GuideId}/bookmark", content: null))
+            .IsSuccessStatusCode.Should().BeTrue();
+
+        Api.Authenticate(secondAuth.Tokens.AccessToken);
+        (await HttpClient.PutAsync($"{Root}/{guide.GuideId}/bookmark", content: null))
+            .IsSuccessStatusCode.Should().BeTrue();
+
+        (await SavedCountOnReadAsync(guide.GuideId)).Should().Be(2, "two members saved the guide");
+
+        await Factory.DrainOutboxAsync();
+        (await SavedCountOnCardAsync(guide.GuideId)).Should().Be(
+            2, "the count stored on the guide follows the saves Community announced");
+
+        Api.Authenticate(firstAuth.Tokens.AccessToken);
+        (await HttpClient.DeleteAsync($"{Root}/{guide.GuideId}/bookmark"))
+            .IsSuccessStatusCode.Should().BeTrue();
+
+        Api.Authenticate(secondAuth.Tokens.AccessToken);
+        (await SavedCountOnReadAsync(guide.GuideId)).Should().Be(1, "one member took their save back");
+
+        await Factory.DrainOutboxAsync();
+        (await SavedCountOnCardAsync(guide.GuideId)).Should().Be(
+            1, "an unsave is announced and counted too");
+    }
+
+    private async Task<int> SavedCountOnReadAsync(Guid guideId) =>
+        (await ReadDataAsync<GuideDto>(await HttpClient.GetAsync($"{Root}/{guideId}")))
+            .Engagement.BookmarkCount;
+
+    /// <summary>The stored count, from the caller's own saved list (a card reads the rollup).</summary>
+    private async Task<int> SavedCountOnCardAsync(Guid guideId) =>
+        (await ReadDataAsync<CardPageDto>(await HttpClient.GetAsync($"{Root}/bookmarked")))
+            .Items.Single(card => card.GuideId == guideId).BookmarkCount;
+
     /// <summary>The guide read's <c>viewer</c>, or null when it is null or absent.</summary>
     private async Task<JsonElement?> ViewerOfAsync(string url)
     {
@@ -1104,7 +1154,8 @@ public sealed class GuidesModuleTests : IdentityTestBase
         Guid AuthorId,
         long Views,
         int HelpfulCount,
-        IReadOnlyList<string> Tags);
+        IReadOnlyList<string> Tags,
+        int BookmarkCount = 0);
 
     private sealed record CategoryDto(
         Guid CategoryId,

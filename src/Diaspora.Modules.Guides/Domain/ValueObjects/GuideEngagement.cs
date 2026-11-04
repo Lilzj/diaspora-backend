@@ -91,6 +91,16 @@ public sealed class GuideEngagement : ValueObject
         ShareCount + 1,
         CommentCount);
 
+    /// <summary>Replaced, not incremented — Community owns the saves and is recounted, not trusted to delta.</summary>
+    public GuideEngagement WithBookmarkCount(int count) => new(
+        Views,
+        UniqueViews,
+        HelpfulCount,
+        NotHelpfulCount,
+        Math.Max(0, count),
+        ShareCount,
+        CommentCount);
+
     /// <summary>Replaced, not incremented — Community owns the count and is recounted, not trusted to delta.</summary>
     public GuideEngagement WithCommentCount(int count) => new(
         Views,

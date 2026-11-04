@@ -85,7 +85,8 @@ public sealed class GuideAnalytics : AggregateRoot<GuideAnalyticsId>
     public void RecordReadTime(long readSeconds) =>
         TotalReadSeconds += Math.Max(0, readSeconds);
 
-    public void ApplyBookmarkDelta(int delta) => Bookmarks = Math.Max(0, Bookmarks + delta);
+    /// <summary>The members who have the guide saved now, as Community counted them.</summary>
+    public void ApplyBookmarkCount(int count) => Bookmarks = Math.Max(0, count);
 
     public void RecordShare() => Shares++;
 

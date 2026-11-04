@@ -103,6 +103,31 @@ public sealed class GuideBookmarkService
     }
 
     /// <summary>
+    /// How many members have the guide saved, as Community counts them. Null when Community
+    /// could not answer, so a caller never mistakes an outage for nobody and writes the zero back.
+    /// </summary>
+    public async Task<int?> CountAsync(GuideId guideId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _bookmarks.CountAsync(ReferenceFor(guideId), cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+#pragma warning disable CA1031
+        catch (Exception exception)
+        {
+            _logger.LogWarning(
+                exception, "Counting saves for guide {GuideId} failed.", guideId.Value);
+
+            return null;
+        }
+#pragma warning restore CA1031
+    }
+
+    /// <summary>
     /// Which of these guides the member has saved.
     /// <para>
     /// Batched, because a discovery page renders a bookmark icon on every card. B6 answers
