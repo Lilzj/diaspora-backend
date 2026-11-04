@@ -158,7 +158,7 @@ public static class CreatorStatusPolicy
                         creator.RecognisedActions,
                         ContributorActions,
                         "Publishing a guide, answering a question or hosting an event all count.",
-                        "/knowledge/create",
+                        "/guide/create",
                         "Write a guide")
                 ]),
 
@@ -171,7 +171,7 @@ public static class CreatorStatusPolicy
                         "Publish five pieces of content",
                         creator.TotalContentPublished,
                         EmergingPublications,
-                        actionRoute: "/knowledge/create",
+                        actionRoute: "/guide/create",
                         actionLabel: "Write a guide"),
                     CreatorRequirement.Counted(
                         "followers",
@@ -272,7 +272,7 @@ public static class CreatorStatusPolicy
             CreatorRequirement.Flag(
                 "first-contribution", "Publish something",
                 creator.TotalContentPublished > 0,
-                actionRoute: "/knowledge/create", actionLabel: "Write a guide")
+                actionRoute: "/guide/create", actionLabel: "Write a guide")
         };
 
         var met = checks.Count(check => check.IsMet);
