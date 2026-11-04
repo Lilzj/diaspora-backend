@@ -37,6 +37,27 @@ public sealed record MemberReputationSnapshot
 
     /// <summary>Active badge awards, oldest first. Revoked awards are absent.</summary>
     public required IReadOnlyList<MemberBadgeAward> Badges { get; init; }
+
+    /// <summary>
+    /// The badges the member does not hold and could work toward, each with how to earn it
+    /// (added 4 Nov 2026). Only badges a rule awards and a member can act on: a mandate
+    /// (moderator, community guide), a join date and a badge with no rule are absent until held.
+    /// A caller decides who may see this; Trust does not.
+    /// </summary>
+    public IReadOnlyList<MemberBadgeGoal> Unearned { get; init; } = [];
+}
+
+/// <summary>A badge the member has not earned yet.</summary>
+public sealed record MemberBadgeGoal
+{
+    /// <summary>Trust's badge type, e.g. <c>PhoneVerified</c>.</summary>
+    public required string Type { get; init; }
+
+    /// <summary>Trust's display text, already emoji-prefixed.</summary>
+    public required string Label { get; init; }
+
+    /// <summary>What the member does to earn it, in one sentence.</summary>
+    public required string HowToEarn { get; init; }
 }
 
 /// <summary>The ledger's running totals, as Trust holds them.</summary>

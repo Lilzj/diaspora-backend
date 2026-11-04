@@ -383,6 +383,55 @@ public sealed class CreatorDirectReadAndReputationTests : IdentityTestBase
     }
 
     /// <summary>
+    /// <b>A member's own read lists the Trust badges still to earn, and how</b> (UAT, 3 Nov 2026).
+    /// The shelf had dropped from a hand-written 32 to the awards a member already held, so a new
+    /// member saw five badges and nothing to aim for. A badge is either earned or still to earn,
+    /// never both, and the ones nobody works toward (a mandate, a join date, a badge with no rule)
+    /// are listed only once held.
+    /// </summary>
+    [Fact]
+    public async Task A_members_own_read_lists_the_trust_badges_still_to_earn_and_how()
+    {
+        var (_, member) = await RegisterVerifiedMemberAsync();
+        Api.Authenticate(member.Tokens.AccessToken);
+
+        await VerifyIdentityWithTrustAsync();
+        Api.Authenticate(member.Tokens.AccessToken);
+        await Factory.DrainOutboxAsync();
+
+        var mine = await ReadDataAsync<ReputationDto>(
+            await HttpClient.GetAsync($"{Creators}/me/reputation"));
+
+        var trust = mine.Badges.Where(badge => badge.Source == "trust").ToList();
+        var earned = trust.Where(badge => badge.IsEarned).Select(badge => badge.Key).ToList();
+        var toEarn = trust.Where(badge => !badge.IsEarned).ToList();
+
+        earned.Should().Contain("GovernmentIdVerified", "the approved identity check awarded it");
+
+        toEarn.Select(badge => badge.Key).Should().Contain(
+            ["VerifiedBusiness", "VerifiedOrganization", "TrustedContributor", "TopContributor"]);
+        toEarn.Select(badge => badge.Key).Should().NotIntersectWith(earned,
+            "a badge is earned or still to earn, never both");
+        toEarn.Select(badge => badge.Key).Should().OnlyHaveUniqueItems();
+        toEarn.Select(badge => badge.Key).Should().NotContain(
+            ["Moderator", "CommunityGuide", "EarlyMember", "ProfilePhoto"],
+            "a mandate, a join date and a badge no rule awards are nothing a member can work toward");
+        toEarn.Should().OnlyContain(badge => !string.IsNullOrWhiteSpace(badge.Description),
+            "each badge still to earn says how");
+        toEarn.Should().OnlyContain(badge => badge.Progress == null);
+
+        var other = await AuthenticateAsync();
+        other.Should().NotBeNullOrEmpty();
+
+        var me = mine.CreatorId;
+        var theirs = await ReadDataAsync<ReputationDto>(
+            await HttpClient.GetAsync($"{Creators}/{me}/reputation"));
+
+        theirs.Badges.Should().OnlyContain(badge => badge.IsEarned,
+            "what somebody has not yet earned is theirs to look at");
+    }
+
+    /// <summary>
     /// <b>The directory's visibility rule.</b> A creator who opted out is a 404 to everybody else and
     /// still themselves to themselves; an unknown creator is the same 404.
     /// </summary>
@@ -670,7 +719,13 @@ public sealed class CreatorDirectReadAndReputationTests : IdentityTestBase
     private sealed record DimensionDto(string Key, string Label, int Score, int? MaxScore);
 
     private sealed record BadgeDto(
-        string BadgeId, string Key, string Label, bool IsEarned, string Source, ProgressDto? Progress);
+        string BadgeId,
+        string Key,
+        string Label,
+        bool IsEarned,
+        string Source,
+        ProgressDto? Progress,
+        string? Description = null);
 
     private sealed record SignalDto(string Key, string Label, long Value, string Source);
 
