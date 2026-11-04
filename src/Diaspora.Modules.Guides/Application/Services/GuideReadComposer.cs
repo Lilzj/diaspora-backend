@@ -2,6 +2,7 @@ using Diaspora.Modules.Guides.Application.Mapping;
 using Diaspora.Modules.Guides.Contracts.V1.Responses;
 using Diaspora.Modules.Guides.Domain.Authors;
 using Diaspora.Modules.Guides.Domain.Guides;
+using Diaspora.Modules.Guides.Domain.Votes;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Identity;
 
@@ -9,7 +10,7 @@ namespace Diaspora.Modules.Guides.Application.Services;
 
 /// <summary>
 /// Composes the guide detail read: the guide, its providers, its author's standing, name and
-/// photo, and the live comment count.
+/// photo, the live comment count, and the reader's own save and vote.
 /// <para>
 /// <b>One composer for both doors.</b> <c>GET /guides/{id}</c> and <c>GET /guides/slug/{slug}</c>
 /// each built this response themselves, line for line, so a field added to one was missing from
@@ -23,19 +24,25 @@ public sealed class GuideReadComposer
     private readonly GuideProviderResolver _providers;
     private readonly GuideDiscussionService _discussion;
     private readonly GuideAuthorNames _authorNames;
+    private readonly GuideBookmarkService _bookmarks;
+    private readonly IGuideVoteRepository _votes;
 
     public GuideReadComposer(
         IGuideAuthorStandingRepository standings,
         GuideAuthorizationService authorization,
         GuideProviderResolver providers,
         GuideDiscussionService discussion,
-        GuideAuthorNames authorNames)
+        GuideAuthorNames authorNames,
+        GuideBookmarkService bookmarks,
+        IGuideVoteRepository votes)
     {
         _standings = standings;
         _authorization = authorization;
         _providers = providers;
         _discussion = discussion;
         _authorNames = authorNames;
+        _bookmarks = bookmarks;
+        _votes = votes;
     }
 
     /// <summary>The response for a guide the caller may already see.</summary>
@@ -64,8 +71,28 @@ public sealed class GuideReadComposer
         var isAuthor = _authorization.IsStaff
             || (_authorization.CallerId is { } caller && guide.AuthorId == caller);
 
-        return GuideMapper.ToResponse(
+        var response = GuideMapper.ToResponse(
             guide, summaries, ToAuthor(guide.AuthorId, standing, profile), isAuthor);
+
+        return response with { Viewer = await ViewerAsync(guide, cancellationToken) };
+    }
+
+    /// <summary>The caller's save and vote, or null for a signed-out reader.</summary>
+    private async Task<GuideViewerResponse?> ViewerAsync(Guide guide, CancellationToken cancellationToken)
+    {
+        if (_authorization.CallerId is not { } caller)
+        {
+            return null;
+        }
+
+        var saved = await _bookmarks.FilterSavedAsync(caller, [guide.Id], cancellationToken);
+        var vote = await _votes.GetByGuideAndVoterAsync(guide.Id, caller, cancellationToken);
+
+        return new GuideViewerResponse
+        {
+            IsSaved = saved.Contains(guide.Id.Value),
+            Vote = vote?.Kind.ToString()
+        };
     }
 
     /// <summary>
