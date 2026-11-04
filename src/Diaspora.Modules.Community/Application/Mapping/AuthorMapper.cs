@@ -75,5 +75,5 @@ public static class AuthorMapper
     /// The member's photo, when the lookup is <see cref="CommunityAuthorNames"/>' own and knows it.
     /// </summary>
     public static string? AvatarOf(Guid userId, IReadOnlyDictionary<Guid, string>? names) =>
-        names is CommunityAuthorDirectory directory ? directory.AvatarOf(userId) : null;
+        names is CommunityAuthorDictionary directory ? directory.AvatarOf(userId) : null;
 }

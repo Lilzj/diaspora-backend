@@ -178,7 +178,7 @@ public sealed class CreateGrantCommandHandler : ICommandHandler<CreateGrantComma
         var request = command.Request;
         var id = _guids.NewSequentialGuid();
 
-        GrantAdmin.TryParseStatus(request.MinimumStatus, out var minimumStatus);
+        var minimumStatus = GrantAdmin.StatusOrContributor(request.MinimumStatus);
 
         var grant = CommunityGrant
             .Define(
@@ -247,7 +247,7 @@ public sealed class UpdateGrantCommandHandler : ICommandHandler<UpdateGrantComma
         }
 
         var request = command.Request;
-        GrantAdmin.TryParseStatus(request.MinimumStatus, out var minimumStatus);
+        var minimumStatus = GrantAdmin.StatusOrContributor(request.MinimumStatus);
 
         grant.Revise(
             request.Title!,
@@ -348,6 +348,10 @@ public static class GrantAdmin
 
         return false;
     }
+
+    /// <summary>The status the validator accepted, or Contributor when none was sent.</summary>
+    public static CreatorStatus StatusOrContributor(string? value) =>
+        TryParseStatus(value, out var status) ? status : CreatorStatus.Contributor;
 
     /// <summary>"Lagos newcomers fund" → <c>lagos-newcomers-fund-1a2b3c</c>: readable, and unique.</summary>
     public static string KeyFor(string title, Guid id)

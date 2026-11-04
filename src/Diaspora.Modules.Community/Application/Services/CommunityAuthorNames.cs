@@ -31,7 +31,7 @@ public sealed class CommunityAuthorNames
 
     /// <summary>
     /// The authors' names, keyed by user identifier. The dictionary is a
-    /// <see cref="CommunityAuthorDirectory"/>, which also holds each author's photo; the mappers
+    /// <see cref="CommunityAuthorDictionary"/>, which also holds each author's photo; the mappers
     /// read it through <c>AuthorMapper.AvatarOf</c>.
     /// </summary>
     public async Task<IReadOnlyDictionary<Guid, string>> ResolveAsync(
@@ -48,7 +48,7 @@ public sealed class CommunityAuthorNames
 
         var profiles = await _members.ResolveAsync(distinct, cancellationToken);
 
-        return new CommunityAuthorDirectory(profiles);
+        return new CommunityAuthorDictionary(profiles);
     }
 }
 
@@ -63,12 +63,12 @@ public sealed class CommunityAuthorNames
 /// other way simply has no photos, and the author's photo stays null.
 /// </para>
 /// </summary>
-public sealed class CommunityAuthorDirectory : IReadOnlyDictionary<Guid, string>
+public sealed class CommunityAuthorDictionary : IReadOnlyDictionary<Guid, string>
 {
     private readonly Dictionary<Guid, string> _names;
     private readonly Dictionary<Guid, string> _avatars;
 
-    public CommunityAuthorDirectory(IReadOnlyDictionary<Guid, MemberProfile> profiles)
+    public CommunityAuthorDictionary(IReadOnlyDictionary<Guid, MemberProfile> profiles)
     {
         ArgumentNullException.ThrowIfNull(profiles);
 

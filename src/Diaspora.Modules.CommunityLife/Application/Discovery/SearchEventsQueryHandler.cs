@@ -281,7 +281,7 @@ public sealed class SearchEventsQueryHandler
 
     /// <summary>Inside the circle, or without coordinates (a same-town event the box admitted).</summary>
     private static bool Keeps(
-        CommunityEvent communityEvent, CircleArea circle, IReadOnlyDictionary<CommunityEventId, double> distances) =>
+        CommunityEvent communityEvent, CircleArea circle, Dictionary<CommunityEventId, double> distances) =>
         !distances.TryGetValue(communityEvent.Id, out var km) || km <= circle.RadiusKm;
 
     private async Task<IReadOnlyCollection<Guid>> CommunitiesOfAsync(Guid memberId, CancellationToken cancellationToken)
