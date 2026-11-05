@@ -41,10 +41,17 @@ public sealed record ProviderQueryFilter
     public ServiceCategoryId? CategoryId { get; init; }
 
     /// <summary>
-    /// The materialised category path of a subtree root. Prefix-matched, so choosing
-    /// "Food &amp; Restaurants" returns everything beneath it without B7 walking the tree.
+    /// A category and everything beneath it, by id: choosing "Food &amp; Restaurants" returns
+    /// the restaurants filed under it. The path prefix this replaced was set and never read, so
+    /// a category search returned every provider (5 Nov 2026).
     /// </summary>
-    public string? CategoryPathPrefix { get; init; }
+    public IReadOnlyCollection<ServiceCategoryId>? CategoryIds { get; init; }
+
+    /// <summary>The meaningful words of the text search (<c>SearchWords</c>); any one matching is enough.</summary>
+    public IReadOnlyList<string>? QueryWords { get; init; }
+
+    /// <summary>The categories a word of the search names, by name, alias or keyword; their providers match too.</summary>
+    public IReadOnlyCollection<ServiceCategoryId>? QueryCategoryIds { get; init; }
 
     /// <summary>Tag slugs. A provider matching any of them qualifies.</summary>
     public IReadOnlyCollection<string>? TagSlugs { get; init; }

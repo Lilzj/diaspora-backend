@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Linq.Expressions;
 using Diaspora.Modules.Jobs.Domain.Employers;
 using Diaspora.Modules.Jobs.Domain.Enums;
 using Diaspora.Modules.Jobs.Domain.Identifiers;
@@ -8,6 +9,7 @@ using Diaspora.Modules.Jobs.Domain.ValueObjects;
 using Diaspora.Persistence;
 using Diaspora.Persistence.Querying;
 using Diaspora.SharedKernel.Pagination;
+using Diaspora.SharedKernel.Search;
 using Microsoft.EntityFrameworkCore;
 
 namespace Diaspora.Modules.Jobs.Persistence.Repositories;
@@ -252,6 +254,21 @@ public sealed class JobPostingRepository : IJobPostingRepository
             "The StringComparison overloads have no translation on either provider, so they would "
             + "move the search into memory. Lowering both sides is what makes the match "
             + "case-insensitive on Postgres, where = is not.")]
+    [SuppressMessage(
+        "Globalization", "CA1304:Specify CultureInfo",
+        Justification =
+            "The ToLower calls are inside an expression tree. They are never executed in .NET: EF "
+            + "translates them to SQL lower(), which runs under the database collation. There is no "
+            + "CultureInfo to specify, and passing one would fail to translate.")]
+    [SuppressMessage(
+        "Globalization", "CA1311:Specify a culture or use an invariant version",
+        Justification = "See CA1304. ToLowerInvariant translates identically; neither is executed.")]
+    [SuppressMessage(
+        "Globalization", "CA1862:Use the StringComparison method overloads",
+        Justification =
+            "The StringComparison overloads have no translation on either provider, so they would "
+            + "move the search into memory. Lowering both sides is what makes the match "
+            + "case-insensitive on Postgres, where LIKE is not.")]
     private IQueryable<JobPosting> Apply(
         IQueryable<JobPosting> query, JobQueryFilter filter)
     {
@@ -454,17 +471,20 @@ public sealed class JobPostingRepository : IJobPostingRepository
 
         query = ApplySalary(query, filter);
 
-        if (!string.IsNullOrWhiteSpace(filter.Text))
+        if (SearchWords.From(filter.Text) is { Count: > 0 } words)
         {
-            // A LIKE-style match over the write model. Honest and adequate until a real engine
+            // A contains-match over the write model. Honest and adequate until a real engine
             // arrives; IJobSearchEngine is the seam that replaces it without a domain change.
-            var term = filter.Text.Trim();
+            //
+            // Since 5 Nov 2026 (plain-language search): any meaningful word, lowered on both
+            // sides. LIKE is case-sensitive on Postgres, so "Cleaner" did not find "cleaner", and
+            // "cleaner for one day" was one phrase no title contained.
+            var terms = words.Select(word => (Expression<Func<JobPosting, bool>>)(posting =>
+                posting.Title.Value.ToLower().Contains(word)
+                || posting.Description.Summary.ToLower().Contains(word)
+                || posting.Skills.Any(skill => skill.DisplayName.ToLower().Contains(word))));
 
-            query = query.Where(posting =>
-                EF.Functions.Like(posting.Title.Value, $"%{term}%")
-                || EF.Functions.Like(posting.Description.Summary, $"%{term}%")
-                || posting.Skills.Any(skill =>
-                    EF.Functions.Like(skill.DisplayName, $"%{term}%")));
+            query = query.Where(SearchWords.AnyOf(terms)!);
         }
 
         return query;

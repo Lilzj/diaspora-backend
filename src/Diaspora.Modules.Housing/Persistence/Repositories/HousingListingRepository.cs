@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Linq.Expressions;
 using Diaspora.Modules.Housing.Domain.Catalog;
 using Diaspora.Modules.Housing.Domain.Enums;
 using Diaspora.Modules.Housing.Domain.Identifiers;
@@ -10,6 +11,7 @@ using Diaspora.Modules.Housing.Domain.ValueObjects;
 using Diaspora.Persistence;
 using Diaspora.Persistence.Querying;
 using Diaspora.SharedKernel.Pagination;
+using Diaspora.SharedKernel.Search;
 using Microsoft.EntityFrameworkCore;
 
 namespace Diaspora.Modules.Housing.Persistence.Repositories;
@@ -520,7 +522,7 @@ public sealed class HousingListingRepository : IHousingListingRepository
             query = query.Where(listing => listing.PublishedAt > publishedAfter);
         }
 
-        if (!string.IsNullOrWhiteSpace(filter.Text))
+        if (SearchWords.From(filter.Text) is { Count: > 0 } words)
         {
             // A contains-match over the write model. Honest and adequate until a real engine
             // arrives; IHousingSearchEngine is the seam that replaces it without a domain change.
@@ -528,15 +530,18 @@ public sealed class HousingListingRepository : IHousingListingRepository
             // Lowered on both sides since 15 Sep 2026. LIKE is case-sensitive on Postgres, so a
             // member typing "rose hill" did not find the flat in "Rose Hill". The same lesson the
             // community directory learned; ILike would not translate on the SQLite test host.
-            var term = filter.Text.Trim().ToLowerInvariant();
-
-            query = query.Where(listing =>
-                listing.Title.Value.ToLower().Contains(term)
-                || listing.Description.Summary.ToLower().Contains(term)
+            //
+            // Any meaningful word since 5 Nov 2026 (plain-language search): "a sunny flat by the
+            // sea" was one phrase no title contained.
+            var terms = words.Select(word => (Expression<Func<HousingListing, bool>>)(listing =>
+                listing.Title.Value.ToLower().Contains(word)
+                || listing.Description.Summary.ToLower().Contains(word)
                 || (listing.Location.NeighborhoodName != null
-                    && listing.Location.NeighborhoodName.ToLower().Contains(term))
+                    && listing.Location.NeighborhoodName.ToLower().Contains(word))
                 || (listing.Location.CityName != null
-                    && listing.Location.CityName.ToLower().Contains(term)));
+                    && listing.Location.CityName.ToLower().Contains(word))));
+
+            query = query.Where(SearchWords.AnyOf(terms)!);
         }
 
         return query;
