@@ -28760,6 +28760,31 @@
         }
       }
     },
+    "/api/v1/jobs/{jobId}/places/fill": {
+      "post": {
+        "tags": [
+          "Jobs"
+        ],
+        "summary": "Count one place on a job as taken; the last one fills the job.",
+        "operationId": "FillJobPlace",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/jobs/{jobId}/archive": {
       "post": {
         "tags": [
@@ -43645,6 +43670,34 @@
           },
           "offersRelocationAssistance": {
             "type": "boolean"
+          },
+          "postingMode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "startsOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "lengthAmount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "lengthUnit": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -55806,6 +55859,28 @@
               "string"
             ],
             "format": "int32"
+          },
+          "startsOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "lengthAmount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "lengthUnit": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
