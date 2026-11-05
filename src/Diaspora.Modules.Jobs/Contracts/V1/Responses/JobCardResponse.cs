@@ -71,6 +71,23 @@ public sealed record JobCardResponse
 
     public DateTimeOffset? ClosingAt { get; init; }
 
+    /// <summary>"Simple" (short one-off work, answered with "I'm interested") or "Standard".</summary>
+    public string PostingMode { get; init; } = "Standard";
+
+    /// <summary>The day the work starts, for a job with a schedule.</summary>
+    public DateOnly? StartsOn { get; init; }
+
+    /// <summary>How long the work lasts, in <see cref="LengthUnit"/>.</summary>
+    public int? LengthAmount { get; init; }
+
+    /// <summary>"Hours" or "Days".</summary>
+    public string? LengthUnit { get; init; }
+
+    /// <summary>Places advertised, and those still open: "1 of 2 places left".</summary>
+    public int VacancyCount { get; init; } = 1;
+
+    public int RemainingVacancies { get; init; } = 1;
+
     public required int ApplicationCount { get; init; }
 
     /// <summary>Whether this viewer has applied. Null when anonymous.</summary>

@@ -16,7 +16,8 @@ public sealed record JobPostingVacancyFilledDomainEvent : DomainEvent
 {
     public required JobPostingId PostingId { get; init; }
 
-    public required JobApplicationId ApplicationId { get; init; }
+    /// <summary>The accepted offer's application, or null when the poster filled a place by hand.</summary>
+    public JobApplicationId? ApplicationId { get; init; }
 
     /// <summary>Seats taken so far, this one included.</summary>
     public required int FilledCount { get; init; }

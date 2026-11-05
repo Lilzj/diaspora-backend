@@ -92,6 +92,22 @@ public sealed class JobPostingConfiguration : IEntityTypeConfiguration<JobPostin
         builder.Property(posting => posting.Latitude).HasColumnName("latitude");
         builder.Property(posting => posting.Longitude).HasColumnName("longitude");
 
+        // Simple jobs (4 Nov 2026). Every posting before them is Standard, which the migration
+        // writes as the column default so existing rows read back as what they were.
+        builder.Property(posting => posting.Mode)
+            .HasColumnName("posting_mode")
+            .HasConversion<string>()
+            .HasMaxLength(JobPersistenceConstants.EnumLength)
+            .IsRequired();
+
+        builder.Property(posting => posting.StartsOn).HasColumnName("starts_on");
+        builder.Property(posting => posting.LengthAmount).HasColumnName("length_amount");
+
+        builder.Property(posting => posting.LengthUnit)
+            .HasColumnName("length_unit")
+            .HasConversion<string>()
+            .HasMaxLength(JobPersistenceConstants.EnumLength);
+
         builder.Property(posting => posting.ClosureReason)
             .HasMaxLength(JobLimits.MaxBulletLength);
 
@@ -125,6 +141,7 @@ public sealed class JobPostingConfiguration : IEntityTypeConfiguration<JobPostin
         builder.Ignore(posting => posting.IsPublishable);
         builder.Ignore(posting => posting.IsDiscoverable);
         builder.Ignore(posting => posting.RemainingVacancies);
+        builder.Ignore(posting => posting.ScheduleEndsAt);
         builder.Ignore(posting => posting.Responsibilities);
         builder.Ignore(posting => posting.Requirements);
         builder.Ignore(posting => posting.Benefits);

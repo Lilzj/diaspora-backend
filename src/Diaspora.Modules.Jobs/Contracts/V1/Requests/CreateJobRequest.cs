@@ -62,4 +62,16 @@ public sealed record CreateJobRequest
     public bool OffersVisaSponsorship { get; init; }
 
     public bool OffersRelocationAssistance { get; init; }
+
+    /// <summary>"Simple" for short one-off work answered with "I'm interested"; absent or "Standard" otherwise.</summary>
+    public string? PostingMode { get; init; }
+
+    /// <summary>The day the work starts (simple jobs). Sent with a length, or not at all.</summary>
+    public DateOnly? StartsOn { get; init; }
+
+    /// <summary>How long the work lasts: 1–24 hours or 1–365 days.</summary>
+    public int? LengthAmount { get; init; }
+
+    /// <summary>"Hours" or "Days".</summary>
+    public string? LengthUnit { get; init; }
 }

@@ -188,6 +188,10 @@ public static class JobErrors
         JobErrorCodes.NoVacanciesRemaining,
         "Every vacancy on this job has been filled.");
 
+    public static readonly Error ScheduleInvalid = Error.Validation(
+        JobErrorCodes.ScheduleInvalid,
+        "A job starts today or later and lasts 1 to 24 hours, or 1 to 365 days.");
+
     // ── Posting content ─────────────────────────────────────────────────────────────────────
 
     public static readonly Error TitleInvalid = Error.Validation(

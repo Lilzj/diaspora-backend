@@ -86,6 +86,18 @@ internal static class JobPostingEndpoints
             .WithName("CloseJob")
             .WithSummary("Close a job posting to applications.");
 
+        group.MapPost("/{jobId:guid}/places/fill", async (
+                Guid jobId,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(new FillJobPlaceCommand { JobId = jobId }, cancellationToken)))
+            .RequireAuthorization(JobPolicies.PostClose)
+            .WithName("FillJobPlace")
+            .WithSummary("Count one place on a job as taken; the last one fills the job.");
+
         group.MapPost("/{jobId:guid}/archive", async (
                 Guid jobId,
                 ISender sender,

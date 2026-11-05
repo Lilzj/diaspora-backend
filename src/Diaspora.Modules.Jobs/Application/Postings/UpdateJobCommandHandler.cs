@@ -147,6 +147,31 @@ public sealed class UpdateJobCommandHandler : ICommandHandler<UpdateJobCommand, 
             }
         }
 
+        var now = _clock.UtcNow;
+
+        var scheduled = JobScheduleRequest.Apply(
+            posting, request.StartsOn, request.LengthAmount, request.LengthUnit, now);
+
+        if (scheduled.IsFailure)
+        {
+            return Result.Failure<JobResponse>(scheduled.Error);
+        }
+
+        // A live simple job stops taking interest when its work is over, so moving the work
+        // moves that too.
+        if (request.StartsOn is not null
+            && posting.Mode == JobPostingMode.Simple
+            && posting.PublishedAt is not null
+            && posting.ScheduleEndsAt is { } endsAt)
+        {
+            var closing = posting.SetClosingDate(endsAt, now, baseRevision: null);
+
+            if (closing.IsFailure)
+            {
+                return Result.Failure<JobResponse>(closing.Error);
+            }
+        }
+
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Result.Success(JobMapper.ToResponse(

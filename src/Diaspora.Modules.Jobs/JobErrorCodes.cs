@@ -59,6 +59,7 @@ public static class JobErrorCodes
     public const string PostingNotDeleted = "jobs.posting.not-deleted";
     public const string ClosingDateInPast = "jobs.posting.closing-date.in-past";
     public const string NoVacanciesRemaining = "jobs.posting.no-vacancies";
+    public const string ScheduleInvalid = "jobs.posting.schedule-invalid";
 
     // ── Posting content ─────────────────────────────────────────────────────────────────────
 
