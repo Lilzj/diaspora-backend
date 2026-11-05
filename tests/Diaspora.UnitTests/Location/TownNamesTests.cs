@@ -30,6 +30,31 @@ public sealed class TownNamesTests
     }
 
     [Theory]
+    [InlineData("rose hill", "beau bassin rose hill", 1.0)]
+    [InlineData("vacoas", "vacoas phoenix", 1.0)]
+    [InlineData("phenix", "vacoas phoenix", 0.85)]
+    public void Words_inside_a_name_can_be_the_town(string typed, string name, double atLeast)
+    {
+        TownNames.PartCloseness(typed, name).Should().BeGreaterThanOrEqualTo(atLeast);
+    }
+
+    [Fact]
+    public void The_whole_name_is_not_a_part_of_itself()
+    {
+        // The whole name is Closeness's to judge; its own words alone are not close to it.
+        TownNames.PartCloseness("grand baie", "grand baie").Should().BeLessThan(TownNames.CloseEnough);
+    }
+
+    [Theory]
+    [InlineData("la", "la gaulette")]
+    [InlineData("bay", "grand bay")]
+    public void A_short_word_is_never_compared_with_parts(string typed, string name)
+    {
+        // A word of three letters or fewer ("la", "st", "bay") would find a town in every country.
+        TownNames.PartCloseness(typed, name).Should().Be(0);
+    }
+
+    [Theory]
     [InlineData("grand baie", true)]
     [InlineData("порт луи", false)]
     [InlineData("x", false)]

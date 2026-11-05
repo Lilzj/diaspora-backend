@@ -31,6 +31,12 @@ public static class TownNames
 
     public const int MaxNameLength = 60;
 
+    /// <summary>
+    /// The shortest typed name compared with the words inside a town's name: "la", "st" or "bay"
+    /// would find a town in every country.
+    /// </summary>
+    public const int MinPartLength = 4;
+
     /// <summary>The longest <see cref="WorldTown.SearchNames"/> the column holds.</summary>
     public const int MaxSearchNamesLength = 1000;
 
@@ -107,6 +113,46 @@ public static class TownNames
         return Math.Max(
             Ratio(typed, name),
             Ratio(typed.Replace(" ", string.Empty, StringComparison.Ordinal), name.Replace(" ", string.Empty, StringComparison.Ordinal)));
+    }
+
+    /// <summary>
+    /// How close what was typed is to a run of whole words inside a name, from 0 to 1 (5 Nov 2026):
+    /// GeoNames files Rose Hill as "Beau Bassin-Rose Hill" and Vacoas as "Vacoas-Phoenix", and a
+    /// member types the part they call it. The whole name is <see cref="Closeness"/>'s to judge, and
+    /// a typed name shorter than <see cref="MinPartLength"/> is never compared with parts.
+    /// </summary>
+    public static double PartCloseness(string typed, string name)
+    {
+        ArgumentNullException.ThrowIfNull(typed);
+        ArgumentNullException.ThrowIfNull(name);
+
+        if (typed.Replace(" ", string.Empty, StringComparison.Ordinal).Length < MinPartLength)
+        {
+            return 0;
+        }
+
+        var words = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var best = 0d;
+
+        for (var start = 0; start < words.Length; start++)
+        {
+            for (var length = 1; start + length <= words.Length; length++)
+            {
+                if (length == words.Length)
+                {
+                    continue;
+                }
+
+                var part = string.Join(' ', words, start, length);
+
+                if (part.Replace(" ", string.Empty, StringComparison.Ordinal).Length >= MinPartLength)
+                {
+                    best = Math.Max(best, Closeness(typed, part));
+                }
+            }
+        }
+
+        return best;
     }
 
     private static double Ratio(string left, string right)
