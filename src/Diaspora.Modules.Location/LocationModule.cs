@@ -95,6 +95,7 @@ public sealed class LocationModule : IPlatformModule
         services.AddScoped<IVerifiedResidencyRepository, VerifiedResidencyRepository>();
         services.AddScoped<
             Domain.Presence.IMemberPresenceRepository, MemberPresenceRepository>();
+        services.AddScoped<Domain.Towns.IWorldTownRepository, WorldTownRepository>();
     }
 
     /// <summary>

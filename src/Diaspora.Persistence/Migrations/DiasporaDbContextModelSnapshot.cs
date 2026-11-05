@@ -14350,6 +14350,50 @@ namespace Diaspora.Persistence.Migrations
                     b.ToTable("verified_residencies", "location");
                 });
 
+            modelBuilder.Entity("Diaspora.Modules.Location.Domain.Towns.WorldTown", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CountryCode")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)");
+
+                    b.Property<int>("GeoNameId")
+                        .HasColumnType("integer");
+
+                    b.Property<double>("Latitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("Longitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<long>("Population")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("SearchNames")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GeoNameId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_world_towns_geoname");
+
+                    b.HasIndex("CountryCode", "Population")
+                        .HasDatabaseName("ix_world_towns_country_population");
+
+                    b.ToTable("world_towns", "location");
+                });
+
             modelBuilder.Entity("Diaspora.Modules.Marketplace.Domain.Analytics.ListingAnalytics", b =>
                 {
                     b.Property<Guid>("Id")

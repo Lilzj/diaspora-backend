@@ -22,6 +22,12 @@ public static class LocationPersistenceConstants
     /// <summary>21 Oct 2026. The "when the app is open" setting and the last area — no history.</summary>
     public const string MemberPresenceTable = "member_presence";
 
+    /// <summary>5 Nov 2026. The world list of towns (GeoNames), for reading a place out of a search.</summary>
+    public const string WorldTownsTable = "world_towns";
+
+    public const int TownNameLength = 200;
+    public const int TownSearchNamesLength = Domain.Towns.TownNames.MaxSearchNamesLength;
+
     public const int CountryCodeLength = 2;
     public const int CurrencyCodeLength = 3;
     public const int LanguageCodeLength = 2;
