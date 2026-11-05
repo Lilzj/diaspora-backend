@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -34,7 +35,7 @@ public sealed class JobsSimplePostingTests : PooledIdentityTestBase
         var read = await ReadJsonAsync(await HttpClient.GetAsync($"{Root}/{job.JobId}"));
 
         read.GetProperty("postingMode").GetString().Should().Be("Simple");
-        read.GetProperty("startsOn").GetString().Should().Be(startsOn.ToString("yyyy-MM-dd"));
+        read.GetProperty("startsOn").GetString().Should().Be(startsOn.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
         read.GetProperty("lengthAmount").GetInt32().Should().Be(2);
         read.GetProperty("lengthUnit").GetString().Should().Be("Days");
         read.GetProperty("vacancyCount").GetInt32().Should().Be(2);
@@ -47,7 +48,7 @@ public sealed class JobsSimplePostingTests : PooledIdentityTestBase
             .Single(item => item.GetProperty("jobId").GetGuid() == job.JobId);
 
         card.GetProperty("postingMode").GetString().Should().Be("Simple", "a card is told it is a simple job");
-        card.GetProperty("startsOn").GetString().Should().Be(startsOn.ToString("yyyy-MM-dd"));
+        card.GetProperty("startsOn").GetString().Should().Be(startsOn.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
         card.GetProperty("remainingVacancies").GetInt32().Should().Be(2, "a card says how many places are left");
     }
 
@@ -147,7 +148,7 @@ public sealed class JobsSimplePostingTests : PooledIdentityTestBase
 
         var read = await ReadJsonAsync(await HttpClient.GetAsync($"{Root}/{job.JobId}"));
 
-        read.GetProperty("startsOn").GetString().Should().Be(startsOn.ToString("yyyy-MM-dd"));
+        read.GetProperty("startsOn").GetString().Should().Be(startsOn.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
         read.GetProperty("lengthAmount").GetInt32().Should().Be(4);
         read.GetProperty("lengthUnit").GetString().Should().Be("Hours");
         read.GetProperty("postingMode").GetString().Should().Be("Simple");
@@ -180,7 +181,7 @@ public sealed class JobsSimplePostingTests : PooledIdentityTestBase
             countryCode = "MU",
             cityName = "Port Louis",
             postingMode = "Simple",
-            startsOn = startsOn.ToString("yyyy-MM-dd"),
+            startsOn = startsOn.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             lengthAmount,
             lengthUnit
         };
@@ -209,7 +210,7 @@ public sealed class JobsSimplePostingTests : PooledIdentityTestBase
             salaryCurrency = "MUR",
             salaryPeriod = "Daily",
             vacancyCount = people,
-            startsOn = startsOn.ToString("yyyy-MM-dd"),
+            startsOn = startsOn.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             lengthAmount,
             lengthUnit
         });
