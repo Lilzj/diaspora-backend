@@ -59,6 +59,43 @@ public sealed class WorldTownMatchTests : PooledIdentityTestBase
         match.GetProperty("found").GetBoolean().Should().BeTrue();
     }
 
+    /// <summary>
+    /// Found on production data, 5 Nov 2026: GeoNames files Rose Hill as "Beau Bassin-Rose Hill",
+    /// so "salon in Rose Hill" from Mauritius found no town at home, then Rose Hill in the United
+    /// States, and the app told the member it was outside Mauritius.
+    /// </summary>
+    [Theory]
+    [InlineData("rose hill", "Beau Bassin-Rose Hill")]
+    [InlineData("Rose-Hill", "Beau Bassin-Rose Hill")]
+    [InlineData("vacoas", "Vacoas-Phoenix")]
+    [InlineData("phoenix", "Vacoas-Phoenix")]
+    public async Task A_town_at_home_is_found_by_the_words_inside_its_name(string typed, string expected)
+    {
+        await SignInAndSeedAsync();
+
+        var match = await MatchAsync(typed, "MU");
+
+        match.GetProperty("found").GetBoolean().Should().BeTrue();
+        match.GetProperty("name").GetString().Should().Be(expected);
+        match.GetProperty("countryCode").GetString().Should().Be("MU");
+        match.GetProperty("exact").GetBoolean().Should().BeFalse("part of a name is not the name as the list spells it");
+    }
+
+    [Fact]
+    public async Task Words_inside_a_name_count_only_at_home()
+    {
+        await SignInAndSeedAsync();
+
+        var inTheStates = await MatchAsync("rose hill", "US");
+
+        inTheStates.GetProperty("name").GetString().Should().Be("Rose Hill");
+        inTheStates.GetProperty("countryCode").GetString().Should().Be("US");
+        inTheStates.GetProperty("exact").GetBoolean().Should().BeTrue();
+
+        // From a country with neither, the world is asked by whole names only.
+        (await MatchAsync("bassin rose", "NG")).GetProperty("found").GetBoolean().Should().BeFalse();
+    }
+
     [Theory]
     [InlineData("zzqx town")]
     [InlineData("granby")]
@@ -86,7 +123,10 @@ public sealed class WorldTownMatchTests : PooledIdentityTestBase
             WorldTown.Create(NewId(), "Grand Baie", ["Grand Bay", "Grand-Baie"], "MU", -20.01, 57.58, 11_000),
             WorldTown.Create(NewId(), "Port Louis", ["Port-Louis"], "MU", -20.16, 57.50, 150_000),
             WorldTown.Create(NewId(), "Mahébourg", ["Mahebourg"], "MU", -20.41, 57.70, 17_000),
-            WorldTown.Create(NewId(), "Grand Bay", [], "US", 30.48, -88.34, 3_600));
+            WorldTown.Create(NewId(), "Grand Bay", [], "US", 30.48, -88.34, 3_600),
+            WorldTown.Create(NewId(), "Beau Bassin-Rose Hill", ["Beau Bassin"], "MU", -20.23, 57.47, 111_355),
+            WorldTown.Create(NewId(), "Vacoas-Phoenix", [], "MU", -20.30, 57.48, 105_000),
+            WorldTown.Create(NewId(), "Rose Hill", ["Rosehill"], "US", 38.79, -77.11, 20_226));
 
         await dbContext.SaveChangesAsync();
     }

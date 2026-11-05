@@ -14,17 +14,20 @@ public sealed class WorldTownRepository : IWorldTownRepository
         string start,
         string? countryCode,
         int limit,
+        bool anyWord = false,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(start);
 
-        // The names are stored normalised (lower case, plain letters) between bars, so the start
-        // of any one of them is found without lowering anything here.
+        // The names are stored normalised (lower case, plain letters, one space between words)
+        // between bars, so the start of a name, or of a word inside one, is found without lowering
+        // anything here.
         var marker = $"|{start}";
+        var wordMarker = $" {start}";
 
         var query = _dbContext.Set<WorldTown>()
             .AsNoTracking()
-            .Where(town => town.SearchNames.Contains(marker));
+            .Where(town => town.SearchNames.Contains(marker) || (anyWord && town.SearchNames.Contains(wordMarker)));
 
         if (!string.IsNullOrWhiteSpace(countryCode))
         {
