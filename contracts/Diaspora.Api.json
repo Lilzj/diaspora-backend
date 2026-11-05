@@ -30221,6 +30221,36 @@
         }
       }
     },
+    "/api/v1/location/towns/match": {
+      "get": {
+        "tags": [
+          "Location"
+        ],
+        "summary": "Which town a typed place name means, from the world list. Close spellings count.",
+        "operationId": "MatchTown",
+        "parameters": [
+          {
+            "name": "text",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "countryCode",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/location/reverse-geocode": {
       "get": {
         "tags": [

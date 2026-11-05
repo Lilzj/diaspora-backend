@@ -384,6 +384,69 @@ public sealed class ProvidersModuleTests : IdentityTestBase
     }
 
     [Fact]
+    public async Task Choosing_a_category_leaves_out_providers_filed_elsewhere()
+    {
+        var (_, auth) = await RegisterVerifiedMemberAsync();
+        Api.Authenticate(auth.Tokens.AccessToken);
+
+        var restaurant = await RegisterProviderAsync("Peckham Grill", "Restaurants");
+        var store = await RegisterProviderAsync("Peckham Hardware", "General Store");
+        await PublishAsync(restaurant.ProviderId);
+        await PublishAsync(store.ProviderId);
+
+        var page = await ReadDataAsync<ProviderPageDto>(
+            await HttpClient.GetAsync("/api/v1/providers?category=food-restaurants&limit=100"));
+
+        page.Items.Should().Contain(item => item.ProviderId == restaurant.ProviderId);
+        page.Items.Should().NotContain(
+            item => item.ProviderId == store.ProviderId,
+            "a category is a filter, not a suggestion: the hardware shop is not food");
+    }
+
+    // ── Plain-language search (owner, 5 Nov 2026) ──────────────────────────────────────────
+    //
+    // "Where to braid my hair in Grand Baie" should find Zoe Hair Saloon. The text used to be
+    // one case-sensitive phrase, so a sentence matched nothing; it now matches any word that
+    // says something, in any case, and a word naming a category (its name or the keywords it
+    // is known by) finds the providers filed under it.
+
+    [Fact]
+    public async Task A_sentence_finds_a_provider_by_any_of_its_words_in_any_case()
+    {
+        var (_, auth) = await RegisterVerifiedMemberAsync();
+        Api.Authenticate(auth.Tokens.AccessToken);
+
+        // Filed under the wrong category on purpose, as on production: the name still finds it.
+        var salon = await RegisterProviderAsync("Zoe Hair Saloon", "General Store");
+        var shop = await RegisterProviderAsync("Brixton Paint Shop", "General Store");
+        await PublishAsync(salon.ProviderId);
+        await PublishAsync(shop.ProviderId);
+
+        var page = await ReadDataAsync<ProviderPageDto>(
+            await HttpClient.GetAsync("/api/v1/providers?query=where%20to%20braid%20my%20HAIR&limit=100"));
+
+        page.Items.Should().Contain(item => item.ProviderId == salon.ProviderId);
+        page.Items.Should().NotContain(
+            item => item.ProviderId == shop.ProviderId, "no word of the sentence is about paint");
+    }
+
+    [Fact]
+    public async Task A_word_finds_the_providers_filed_under_the_category_it_names()
+    {
+        var (_, auth) = await RegisterVerifiedMemberAsync();
+        Api.Authenticate(auth.Tokens.AccessToken);
+
+        // Nothing in the name says braid; the category is known by "box braids".
+        var braider = await RegisterProviderAsync("Ama Studio", "Hair Braiding");
+        await PublishAsync(braider.ProviderId);
+
+        var page = await ReadDataAsync<ProviderPageDto>(
+            await HttpClient.GetAsync("/api/v1/providers?query=braid&limit=100"));
+
+        page.Items.Should().Contain(item => item.ProviderId == braider.ProviderId);
+    }
+
+    [Fact]
     public async Task The_verified_filter_excludes_providers_holding_no_current_verification()
     {
         var (_, auth) = await RegisterVerifiedMemberAsync();

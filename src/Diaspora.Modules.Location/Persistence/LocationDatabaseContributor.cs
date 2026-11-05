@@ -39,5 +39,8 @@ public sealed class LocationDatabaseContributor : IDatabaseContributor
 
         // The "when the app is open" setting and the last area it resolved to (21 Oct 2026)
         modelBuilder.ApplyConfiguration(new MemberPresenceConfiguration());
+
+        // The world list of towns, for reading a place out of a search (5 Nov 2026)
+        modelBuilder.ApplyConfiguration(new WorldTownConfiguration());
     }
 }

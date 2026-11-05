@@ -1,3 +1,4 @@
+using Diaspora.SharedKernel.Search;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
@@ -292,6 +293,33 @@ public sealed class SearchProvidersQueryHandler
             IncludeTotalCount = request.IncludeTotalCount ?? false
         };
 
+        // Plain-language search (owner, 5 Nov 2026): the words that say something, and the
+        // categories they name. "braid" finds Hair Braiding by its keyword "box braids";
+        // "hair" finds all of Hair & Beauty, its children included.
+        var words = SearchWords.From(request.Query);
+        filter = filter with { QueryWords = words };
+
+        if (words.Count > 0)
+        {
+            var catalogue = await _categories.ListAsync(cancellationToken);
+
+            var named = catalogue
+                .Where(candidate =>
+                    SearchWords.StartsAWordOf(candidate.Name, words)
+                    || candidate.Aliases.Any(alias => SearchWords.StartsAWordOf(alias.Value, words))
+                    || candidate.Keywords.Any(keyword => SearchWords.StartsAWordOf(keyword.Value, words)))
+                .Select(candidate => candidate.Path.Value)
+                .ToList();
+
+            filter = filter with
+            {
+                QueryCategoryIds = catalogue
+                    .Where(candidate => named.Any(path => candidate.Path.Value.StartsWith(path, StringComparison.Ordinal)))
+                    .Select(candidate => candidate.Id)
+                    .ToList()
+            };
+        }
+
         if (string.IsNullOrWhiteSpace(request.Category))
         {
             return Result.Success(filter);
@@ -307,9 +335,18 @@ public sealed class SearchProvidersQueryHandler
         // A subtree filter by default: choosing "Food & Restaurants" should return the
         // restaurants filed under it, not only the providers filed against the parent node
         // itself. A caller that genuinely wants one node says so.
-        return Result.Success(request.IncludeSubcategories ?? true
-            ? filter with { CategoryPathPrefix = category.Value.Path.Value }
-            : filter with { CategoryId = category.Value.Id });
+        if (!(request.IncludeSubcategories ?? true))
+        {
+            return Result.Success(filter with { CategoryId = category.Value.Id });
+        }
+
+        var root = category.Value.Path.Value;
+        var subtree = (await _categories.ListAsync(cancellationToken))
+            .Where(candidate => candidate.Path.Value.StartsWith(root, StringComparison.Ordinal))
+            .Select(candidate => candidate.Id)
+            .ToList();
+
+        return Result.Success(filter with { CategoryIds = subtree.Count > 0 ? subtree : [category.Value.Id] });
     }
 
     /// <summary>

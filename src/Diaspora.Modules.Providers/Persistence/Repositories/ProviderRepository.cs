@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Linq.Expressions;
 using Diaspora.Modules.Providers.Domain.Enums;
 using Diaspora.Modules.Providers.Domain.Identifiers;
 using Diaspora.Modules.Providers.Domain.Providers;
@@ -6,6 +7,7 @@ using Diaspora.Modules.Providers.Domain.ValueObjects;
 using Diaspora.Persistence;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Pagination;
+using Diaspora.SharedKernel.Search;
 using Microsoft.EntityFrameworkCore;
 
 namespace Diaspora.Modules.Providers.Persistence.Repositories;
@@ -404,20 +406,44 @@ public sealed class ProviderRepository : IProviderRepository
         return query;
     }
 
+    [SuppressMessage(
+        "Globalization", "CA1304:Specify CultureInfo",
+        Justification =
+            "The ToLower calls are inside an expression tree. They are never executed in .NET: EF "
+            + "translates them to SQL lower(), which runs under the database collation. There is no "
+            + "CultureInfo to specify, and passing one would fail to translate.")]
+    [SuppressMessage(
+        "Globalization", "CA1311:Specify a culture or use an invariant version",
+        Justification = "See CA1304. ToLowerInvariant translates identically; neither is executed.")]
+    [SuppressMessage(
+        "Globalization", "CA1862:Use the StringComparison method overloads",
+        Justification =
+            "The StringComparison overloads have no translation on either provider, so they would "
+            + "move the search into memory. Lowering both sides is what makes the match "
+            + "case-insensitive on Postgres, where LIKE is not.")]
     private static IQueryable<Provider> ApplyClassification(
         IQueryable<Provider> query, ProviderQueryFilter filter)
     {
-        if (!string.IsNullOrWhiteSpace(filter.Query))
+        if (filter.QueryWords is { Count: > 0 } words)
         {
-            // Naive substring matching, and deliberately so — B15 owns real search. Matching the
-            // summary rather than the whole body keeps the scan off an eight-thousand-character
-            // column on every row.
-            var term = filter.Query.Trim();
+            // Any meaningful word of the search, lower-cased on both sides (PostgreSQL's LIKE is
+            // case-sensitive), in the name, the summary or a tag, or a category the search names.
+            // Matching the summary rather than the whole body keeps the scan off an
+            // eight-thousand-character column on every row.
+            var terms = words
+                .Select(word => (Expression<Func<Provider, bool>>)(provider =>
+                    provider.Name.Value.ToLower().Contains(word)
+                    || provider.Profile.Description.Summary.ToLower().Contains(word)
+                    || provider.Tags.Any(tag => tag.Label.ToLower().Contains(word))))
+                .ToList();
 
-            query = query.Where(provider =>
-                provider.Name.Value.Contains(term)
-                || provider.Profile.Description.Summary.Contains(term)
-                || provider.Tags.Any(tag => tag.Label.Contains(term)));
+            if (filter.QueryCategoryIds is { Count: > 0 } named)
+            {
+                var namedIds = named.ToList();
+                terms.Add(provider => namedIds.Contains(provider.CategoryId));
+            }
+
+            query = query.Where(SearchWords.AnyOf(terms)!);
         }
 
         if (filter.ProviderTypes is { Count: > 0 })
@@ -429,6 +455,12 @@ public sealed class ProviderRepository : IProviderRepository
         if (filter.CategoryId is { } categoryId)
         {
             query = query.Where(provider => provider.CategoryId == categoryId);
+        }
+
+        if (filter.CategoryIds is { Count: > 0 } subtree)
+        {
+            var subtreeIds = subtree.ToList();
+            query = query.Where(provider => subtreeIds.Contains(provider.CategoryId));
         }
 
         if (filter.TagSlugs is { Count: > 0 })

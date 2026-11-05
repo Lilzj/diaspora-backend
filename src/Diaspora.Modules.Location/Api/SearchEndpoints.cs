@@ -1,4 +1,5 @@
 using Diaspora.Modules.Location.Application.Search;
+using Diaspora.Modules.Location.Application.Towns;
 using Diaspora.Platform.Http;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
@@ -50,6 +51,21 @@ internal static class SearchEndpoints
             .RequireAuthorization(LocationPolicies.Search)
             .WithName("SearchLocations")
             .WithSummary("Find a place by name. Accepts ?query= and ?q=.");
+
+        group.MapGet("/towns/match", async (
+                string? text,
+                string? countryCode,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new MatchTownQuery { Text = text ?? string.Empty, CountryCode = countryCode },
+                        cancellationToken)))
+            .RequireAuthorization(LocationPolicies.Search)
+            .WithName("MatchTown")
+            .WithSummary("Which town a typed place name means, from the world list. Close spellings count.");
 
         group.MapGet("/reverse-geocode", async (
                 double latitude,
