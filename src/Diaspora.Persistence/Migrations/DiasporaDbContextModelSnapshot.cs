@@ -13765,9 +13765,24 @@ namespace Diaspora.Persistence.Migrations
                         .HasColumnType("double precision")
                         .HasColumnName("latitude");
 
+                    b.Property<int?>("LengthAmount")
+                        .HasColumnType("integer")
+                        .HasColumnName("length_amount");
+
+                    b.Property<string>("LengthUnit")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("length_unit");
+
                     b.Property<double?>("Longitude")
                         .HasColumnType("double precision")
                         .HasColumnName("longitude");
+
+                    b.Property<string>("Mode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("posting_mode");
 
                     b.Property<string>("ModerationState")
                         .IsRequired()
@@ -13789,6 +13804,10 @@ namespace Diaspora.Persistence.Migrations
                     b.Property<int>("Revision")
                         .IsConcurrencyToken()
                         .HasColumnType("integer");
+
+                    b.Property<DateOnly?>("StartsOn")
+                        .HasColumnType("date")
+                        .HasColumnName("starts_on");
 
                     b.Property<string>("Status")
                         .IsRequired()
