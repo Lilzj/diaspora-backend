@@ -89,14 +89,17 @@ public sealed class GetJobQueryHandler : IQueryHandler<GetJobQuery, JobResponse>
 
         var (hasApplied, isSaved) = await ResolveViewerStateAsync(posting, cancellationToken);
 
-        var canManage = await _authorization.IsMemberOfAsync(
+        var isOnTeam = await _authorization.IsMemberOfAsync(
             posting.EmployerId, cancellationToken);
 
+        // Staff may manage any job; only the team owns it. Both are sent, because a client that
+        // reads "may manage" as "is mine" tells an Admin the job is theirs and hides "Apply".
         return Result.Success(JobMapper.ToResponse(
             posting,
             employer,
             _clock.UtcNow,
-            canManage || _authorization.IsStaff,
+            canManage: isOnTeam || _authorization.IsStaff,
+            isOnEmployerTeam: isOnTeam,
             hasApplied,
             isSaved,
             providers,

@@ -79,6 +79,7 @@ public sealed class CloseJobCommandHandler : ICommandHandler<CloseJobCommand, Jo
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Result.Success(JobMapper.ToResponse(
-            posting, employer.Value, now, canManage: true));
+            posting, employer.Value, now, canManage: true,
+            isOnEmployerTeam: _authorization.BelongsTo(employer.Value)));
     }
 }

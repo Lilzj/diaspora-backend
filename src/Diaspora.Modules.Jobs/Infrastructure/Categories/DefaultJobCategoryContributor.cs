@@ -3,7 +3,13 @@ using Diaspora.Modules.Jobs.Extensibility.Categories;
 namespace Diaspora.Modules.Jobs.Infrastructure.Categories;
 
 /// <summary>
-/// The employment domains the platform ships with — the brief's fourteen.
+/// The employment domains the platform ships with — the brief's fourteen, and Cleaning.
+/// <para>
+/// <b>Cleaning was added on 6 Nov 2026</b>, for simple jobs: the form's own example is "Two
+/// cleaners needed", and the nearest category was Hospitality. The seeder inserts a key it has
+/// not seen and leaves the rest alone, so on a database seeded before this it arrives with the
+/// same order number as Construction and sorts ahead of it by name, which is where it is here.
+/// </para>
 /// <para>
 /// <b>An ordinary implementation of <see cref="IJobCategoryContributor"/> and nothing more
 /// privileged than one.</b> That is the architectural claim: the shipped taxonomy arrives
@@ -40,6 +46,15 @@ public sealed class DefaultJobCategoryContributor : IJobCategoryContributor
             Name = "Hospitality",
             Description = "Hotels, catering, food service and tourism.",
             IconKey = "utensils",
+            Order = order++
+        };
+
+        yield return new JobCategorySeed
+        {
+            Key = "cleaning",
+            Name = "Cleaning",
+            Description = "Home and office cleaning, housekeeping and laundry.",
+            IconKey = "sparkles",
             Order = order++
         };
 

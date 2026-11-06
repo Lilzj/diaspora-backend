@@ -187,6 +187,18 @@ public sealed class JobAuthorizationService
             && posting.Visibility is JobVisibility.Public or JobVisibility.Unlisted;
     }
 
+    /// <summary>
+    /// Whether the caller belongs to an employer already loaded, in any role. A write handler has
+    /// the employer from <see cref="RequirePostingAccessAsync"/>, which staff pass without being
+    /// on the team, so "allowed to do this" is not "one of theirs".
+    /// </summary>
+    public bool BelongsTo(EmployerProfile employer)
+    {
+        ArgumentNullException.ThrowIfNull(employer);
+
+        return _currentUser.UserId is { } userId && employer.RoleOf(userId) is not null;
+    }
+
     /// <summary>Whether the caller belongs to an employer in any role.</summary>
     public async Task<bool> IsMemberOfAsync(
         EmployerProfileId employerId, CancellationToken cancellationToken = default)
