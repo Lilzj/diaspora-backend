@@ -30,6 +30,7 @@ public static class JobMapper
         EmployerProfile employer,
         DateTimeOffset now,
         bool canManage,
+        bool isOnEmployerTeam,
         bool? hasApplied = null,
         bool? isSaved = null,
         IReadOnlyDictionary<Guid, ProviderSummary>? providers = null,
@@ -111,7 +112,8 @@ public static class JobMapper
             HasApplied = hasApplied,
             IsSaved = isSaved,
             CanApply = posting.AcceptsApplications(now),
-            CanManage = canManage
+            CanManage = canManage,
+            IsOnEmployerTeam = isOnEmployerTeam
         };
     }
 

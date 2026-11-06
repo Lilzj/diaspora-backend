@@ -96,6 +96,64 @@ public sealed class JobsSimplePostingTests : PooledIdentityTestBase
             .IsSuccessStatusCode.Should().BeFalse("only the poster can count places off");
     }
 
+    /// <summary>
+    /// Found on production, 6 Nov 2026: an Admin's card offered "I'm interested" and the page
+    /// said "YOUR JOB — You manage this job for Zoe" with the button gone. The page read
+    /// <c>canManage</c>, which is true for staff on every job, as "this is mine".
+    /// </summary>
+    [Fact]
+    public async Task Staff_may_manage_any_job_but_it_is_not_theirs_and_they_can_still_say_they_are_interested()
+    {
+        Factory.EnsureDatabaseCreated();
+
+        var job = await PostSimpleJobAsync(
+            "Two cleaners for a day", DateOnly.FromDateTime(DateTime.UtcNow.Date.AddDays(2)), 1, "Days");
+
+        Api.Authenticate(job.PosterToken);
+        var asPoster = await ReadJsonAsync(await HttpClient.GetAsync($"{Root}/{job.JobId}"));
+        asPoster.GetProperty("canManage").GetBoolean().Should().BeTrue();
+        asPoster.GetProperty("isOnEmployerTeam").GetBoolean().Should().BeTrue("the poster is the employer's team");
+
+        var filled = await ReadJsonAsync(await HttpClient.PostAsync($"{Root}/{job.JobId}/places/fill", content: null));
+        filled.GetProperty("isOnEmployerTeam").GetBoolean().Should().BeTrue("a write answers the same question as a read");
+
+        await SignInAsRoleAsync("Moderator");
+        var asStaff = await ReadJsonAsync(await HttpClient.GetAsync($"{Root}/{job.JobId}"));
+        asStaff.GetProperty("canManage").GetBoolean().Should().BeTrue("staff moderate every job");
+        asStaff.GetProperty("isOnEmployerTeam").GetBoolean().Should().BeFalse("staff are not the employer");
+        asStaff.GetProperty("canApply").GetBoolean().Should().BeTrue();
+
+        (await HttpClient.PostAsJsonAsync($"{Root}/{job.JobId}/apply", new { }))
+            .StatusCode.Should().Be(HttpStatusCode.Created, "the server lets staff say they are interested");
+
+        var (_, member) = await RegisterVerifiedMemberAsync();
+        Api.Authenticate(member.Tokens.AccessToken);
+        var asMember = await ReadJsonAsync(await HttpClient.GetAsync($"{Root}/{job.JobId}"));
+        asMember.GetProperty("canManage").GetBoolean().Should().BeFalse();
+        asMember.GetProperty("isOnEmployerTeam").GetBoolean().Should().BeFalse();
+    }
+
+    /// <summary>The form's own example is "Two cleaners needed", and there was no Cleaning to file it under.</summary>
+    [Fact]
+    public async Task A_simple_job_can_be_filed_under_cleaning()
+    {
+        Factory.EnsureDatabaseCreated();
+        Api.ClearAuthentication();
+
+        var categories = await ReadJsonAsync(await HttpClient.GetAsync($"{Root}/categories"));
+        var keys = categories.EnumerateArray().Select(category => category.GetProperty("key").GetString()).ToList();
+
+        keys.Should().Contain("cleaning");
+        keys.IndexOf("cleaning").Should().Be(keys.IndexOf("hospitality") + 1, "it sits with the other everyday work");
+
+        var job = await PostSimpleJobAsync(
+            "Two cleaners needed", DateOnly.FromDateTime(DateTime.UtcNow.Date.AddDays(1)), 1, "Days",
+            categoryKey: "cleaning");
+
+        var read = await ReadJsonAsync(await HttpClient.GetAsync($"{Root}/{job.JobId}"));
+        read.GetProperty("categoryKey").GetString().Should().Be("cleaning");
+    }
+
     [Theory]
     [InlineData(0, "Days")]
     [InlineData(25, "Hours")]
@@ -170,12 +228,13 @@ public sealed class JobsSimplePostingTests : PooledIdentityTestBase
     }
 
     private static object SimpleCreateBody(
-        Guid employerId, string title, DateOnly startsOn, int lengthAmount, string lengthUnit) => new
+        Guid employerId, string title, DateOnly startsOn, int lengthAmount, string lengthUnit,
+        string categoryKey = "hospitality") => new
         {
             employerId,
             title,
             description = $"{title} in Port Louis. Paid on the day.",
-            categoryKey = "hospitality",
+            categoryKey,
             jobType = "Temporary",
             experienceLevel = "Entry",
             countryCode = "MU",
@@ -188,12 +247,13 @@ public sealed class JobsSimplePostingTests : PooledIdentityTestBase
 
     /// <summary>Posts a simple job the way the app does: create, set the pay and places, publish.</summary>
     private async Task<SimpleJob> PostSimpleJobAsync(
-        string title, DateOnly startsOn, int lengthAmount, string lengthUnit, int people = 2)
+        string title, DateOnly startsOn, int lengthAmount, string lengthUnit, int people = 2,
+        string categoryKey = "hospitality")
     {
         var (employerId, token) = await RegisterIndividualPosterAsync();
 
         var created = await HttpClient.PostAsJsonAsync(
-            $"{Root}/", SimpleCreateBody(employerId, title, startsOn, lengthAmount, lengthUnit));
+            $"{Root}/", SimpleCreateBody(employerId, title, startsOn, lengthAmount, lengthUnit, categoryKey));
         created.StatusCode.Should().Be(HttpStatusCode.Created, await created.Content.ReadAsStringAsync());
 
         var jobId = (await ReadJsonAsync(created)).GetProperty("jobId").GetGuid();

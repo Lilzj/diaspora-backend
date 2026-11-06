@@ -75,6 +75,8 @@ public sealed class FillJobPlaceCommandHandler : ICommandHandler<FillJobPlaceCom
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return Result.Success(JobMapper.ToResponse(posting, employer.Value, now, canManage: true));
+        return Result.Success(JobMapper.ToResponse(
+            posting, employer.Value, now, canManage: true,
+            isOnEmployerTeam: _authorization.BelongsTo(employer.Value)));
     }
 }

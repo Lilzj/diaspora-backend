@@ -175,6 +175,7 @@ public sealed class UpdateJobCommandHandler : ICommandHandler<UpdateJobCommand, 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Result.Success(JobMapper.ToResponse(
-            posting, employer.Value, _clock.UtcNow, canManage: true));
+            posting, employer.Value, _clock.UtcNow, canManage: true,
+            isOnEmployerTeam: _authorization.BelongsTo(employer.Value)));
     }
 }
