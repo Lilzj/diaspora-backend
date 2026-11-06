@@ -189,6 +189,19 @@ public sealed class CreateJobCommandHandler : ICommandHandler<CreateJobCommand, 
             return Result.Failure<JobResponse>(pinned.Error);
         }
 
+        if (JobWireNames.ParsePostingMode(request.PostingMode) == JobPostingMode.Simple)
+        {
+            posting.Value.MarkSimple();
+        }
+
+        var scheduled = JobScheduleRequest.Apply(
+            posting.Value, request.StartsOn, request.LengthAmount, request.LengthUnit, now);
+
+        if (scheduled.IsFailure)
+        {
+            return Result.Failure<JobResponse>(scheduled.Error);
+        }
+
         await _postings.AddAsync(posting.Value, cancellationToken);
 
         // Created eagerly rather than on first use: "create it if missing" is a race two

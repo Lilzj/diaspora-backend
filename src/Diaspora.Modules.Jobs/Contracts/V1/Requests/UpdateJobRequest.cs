@@ -85,4 +85,14 @@ public sealed record UpdateJobRequest
 
     /// <summary>The concurrency token from the posting the client loaded.</summary>
     public int? BaseRevision { get; init; }
+
+    /// <summary>
+    /// The schedule (simple jobs). All three absent leaves it as it is, so an app build from
+    /// before simple jobs, which edits the whole posting, cannot wipe one.
+    /// </summary>
+    public DateOnly? StartsOn { get; init; }
+
+    public int? LengthAmount { get; init; }
+
+    public string? LengthUnit { get; init; }
 }

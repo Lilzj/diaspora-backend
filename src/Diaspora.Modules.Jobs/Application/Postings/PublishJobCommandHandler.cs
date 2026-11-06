@@ -64,7 +64,11 @@ public sealed class PublishJobCommandHandler : ICommandHandler<PublishJobCommand
 
         // Before publication, deliberately. Publishing then expiring would fire every matching
         // alert for a vacancy nobody can apply to.
-        if (command.Request.ClosingAt is { } closingAt)
+        // A simple job sent with no closing date closes when its work is over.
+        var closingAt = command.Request.ClosingAt
+            ?? (posting.ClosingAt is null ? posting.ScheduleEndsAt : null);
+
+        if (closingAt is not null)
         {
             var scheduled = posting.SetClosingDate(closingAt, now, baseRevision: null);
 

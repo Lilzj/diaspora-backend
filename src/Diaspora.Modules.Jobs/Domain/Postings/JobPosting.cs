@@ -156,6 +156,17 @@ public sealed class JobPosting
     /// <summary>Whether an application without a résumé is refused.</summary>
     public bool RequiresResume { get; private set; }
 
+    /// <summary>Simple (short one-off work, "I'm interested") or the full posting. Set at creation.</summary>
+    public JobPostingMode Mode { get; private set; }
+
+    /// <summary>The day the work starts, for a job that has one (a simple job does).</summary>
+    public DateOnly? StartsOn { get; private set; }
+
+    /// <summary>How long the work lasts, counted in <see cref="LengthUnit"/>.</summary>
+    public int? LengthAmount { get; private set; }
+
+    public JobLengthUnit? LengthUnit { get; private set; }
+
     // ── Lifecycle & audience ────────────────────────────────────────────────────────────────
 
     public JobStatus Status { get; private set; }
@@ -283,6 +294,17 @@ public sealed class JobPosting
         && JobStatusTransitions.AcceptsApplications(Status)
         && RemainingVacancies > 0
         && (ClosingAt is not { } closing || closing > now);
+
+    /// <summary>
+    /// When the scheduled work is over, in UTC: the end of the last day for a job counted in
+    /// days, the end of the start day for one counted in hours. Null for a job with no schedule.
+    /// </summary>
+    public DateTimeOffset? ScheduleEndsAt =>
+        StartsOn is { } startsOn && LengthAmount is { } amount && LengthUnit is { } unit
+            ? new DateTimeOffset(
+                startsOn.AddDays(unit == JobLengthUnit.Days ? amount : 1).ToDateTime(TimeOnly.MinValue),
+                TimeSpan.Zero)
+            : null;
 
     /// <summary>Whether the closing date has passed. Drives the expiry sweep.</summary>
     public bool HasClosingDatePassed(DateTimeOffset now) =>
@@ -752,6 +774,31 @@ public sealed class JobPosting
         return Result.Success();
     }
 
+    /// <summary>Marks the posting as a simple job. Called once, at creation.</summary>
+    public void MarkSimple() => Mode = JobPostingMode.Simple;
+
+    /// <summary>
+    /// When the work is and how long it lasts. A day of slack on "today" covers a poster whose
+    /// date is already tomorrow somewhere UTC is not; anything earlier is a job in the past.
+    /// </summary>
+    public Result SetSchedule(DateOnly startsOn, int lengthAmount, JobLengthUnit lengthUnit, DateTimeOffset now)
+    {
+        var today = DateOnly.FromDateTime(now.UtcDateTime);
+        var longest = lengthUnit == JobLengthUnit.Hours ? 24 : 365;
+
+        if (startsOn < today.AddDays(-1) || lengthAmount < 1 || lengthAmount > longest)
+        {
+            return Result.Failure(JobErrors.ScheduleInvalid);
+        }
+
+        StartsOn = startsOn;
+        LengthAmount = lengthAmount;
+        LengthUnit = lengthUnit;
+        Touch();
+
+        return Result.Success();
+    }
+
     /// <summary>
     /// Sets or clears the closing date.
     /// <para>
@@ -1179,6 +1226,17 @@ public sealed class JobPosting
     {
         ArgumentNullException.ThrowIfNull(applicationId);
 
+        return FillSeat(applicationId, now);
+    }
+
+    /// <summary>
+    /// The poster counts one place off by hand: "1 place filled" on a simple job, where people
+    /// are taken in a conversation rather than through an offer. The last one fills the job.
+    /// </summary>
+    public Result FillPlace(DateTimeOffset now) => FillSeat(applicationId: null, now);
+
+    private Result FillSeat(JobApplicationId? applicationId, DateTimeOffset now)
+    {
         if (IsDeleted)
         {
             return Result.Failure(JobErrors.PostingDeleted);

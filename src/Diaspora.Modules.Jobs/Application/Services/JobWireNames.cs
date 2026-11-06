@@ -85,6 +85,10 @@ public static class JobWireNames
 
     public static WorkplaceType? ParseWorkplaceType(string? value) => Parse<WorkplaceType>(value);
 
+    public static JobPostingMode? ParsePostingMode(string? value) => Parse<JobPostingMode>(value);
+
+    public static JobLengthUnit? ParseLengthUnit(string? value) => Parse<JobLengthUnit>(value);
+
     public static ExperienceLevel? ParseExperienceLevel(string? value) =>
         Parse<ExperienceLevel>(value);
 

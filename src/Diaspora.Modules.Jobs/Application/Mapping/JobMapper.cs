@@ -71,6 +71,10 @@ public static class JobMapper
             RequiresResume = posting.RequiresResume,
             PublishedAt = posting.PublishedAt,
             ClosingAt = posting.ClosingAt,
+            PostingMode = posting.Mode.ToString(),
+            StartsOn = posting.StartsOn,
+            LengthAmount = posting.LengthAmount,
+            LengthUnit = posting.LengthUnit?.ToString(),
             ClosureReason = posting.ClosureReason,
 
             Media = [.. posting.MediaReferences.Select(reference =>
@@ -162,6 +166,12 @@ public static class JobMapper
             IsVerified = posting.TrustMark.IsVerified,
             PublishedAt = posting.PublishedAt,
             ClosingAt = posting.ClosingAt,
+            PostingMode = posting.Mode.ToString(),
+            StartsOn = posting.StartsOn,
+            LengthAmount = posting.LengthAmount,
+            LengthUnit = posting.LengthUnit?.ToString(),
+            VacancyCount = posting.VacancyCount,
+            RemainingVacancies = posting.RemainingVacancies,
             ApplicationCount = posting.Engagement.ApplicationCount,
 
             HasApplied = appliedPostingIds?.Contains(posting.Id.Value),

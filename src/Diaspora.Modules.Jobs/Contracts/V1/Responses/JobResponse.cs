@@ -77,6 +77,18 @@ public sealed record JobResponse
 
     public DateTimeOffset? ClosingAt { get; init; }
 
+    /// <summary>"Simple" (short one-off work, answered with "I'm interested") or "Standard".</summary>
+    public string PostingMode { get; init; } = "Standard";
+
+    /// <summary>The day the work starts, for a job with a schedule.</summary>
+    public DateOnly? StartsOn { get; init; }
+
+    /// <summary>How long the work lasts, in <see cref="LengthUnit"/>.</summary>
+    public int? LengthAmount { get; init; }
+
+    /// <summary>"Hours" or "Days".</summary>
+    public string? LengthUnit { get; init; }
+
     /// <summary>Why the employer closed it. Applicants are owed an explanation.</summary>
     public string? ClosureReason { get; init; }
 
