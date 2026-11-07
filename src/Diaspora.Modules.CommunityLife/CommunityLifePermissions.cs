@@ -38,7 +38,6 @@ public static class CommunityLifePermissions
     public const string OrganizationCreate = "organizations:create";
 
     public const string OrganizationEditOwn = "community-life:organization:edit:own";
-    public const string OrganizationEditAny = "community-life:organization:edit:any";
     public const string OrganizationPublish = "community-life:organization:publish";
     public const string OrganizationArchive = "community-life:organization:archive";
     public const string OrganizationRestore = "community-life:organization:restore";
@@ -58,7 +57,6 @@ public static class CommunityLifePermissions
 
     public const string EventCreate = "community-life:event:create";
     public const string EventEditOwn = "community-life:event:edit:own";
-    public const string EventEditAny = "community-life:event:edit:any";
     public const string EventDeleteOwn = "community-life:event:delete:own";
     public const string EventPublish = "community-life:event:publish";
     public const string EventCancel = "community-life:event:cancel";

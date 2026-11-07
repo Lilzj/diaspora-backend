@@ -93,14 +93,6 @@ public sealed class CommunityLifePermissionContributor : IPermissionContributor
         };
 
         yield return new PermissionDefinition(
-            CommunityLifePermissions.OrganizationEditAny, CommunityLifeModuleMetadata.Name,
-            "Edit any organization.")
-        {
-            MinimumTier = AccessTier.Limited,
-            Roles = StaffRoles
-        };
-
-        yield return new PermissionDefinition(
             CommunityLifePermissions.OrganizationPublish, CommunityLifeModuleMetadata.Name,
             "Publish an organization.")
         {
@@ -200,14 +192,6 @@ public sealed class CommunityLifePermissionContributor : IPermissionContributor
 
             // A wrong time or a wrong venue on a live event wastes every attendee's evening.
             GrantedWhenRestricted = true
-        };
-
-        yield return new PermissionDefinition(
-            CommunityLifePermissions.EventEditAny, CommunityLifeModuleMetadata.Name,
-            "Edit any event.")
-        {
-            MinimumTier = AccessTier.Limited,
-            Roles = StaffRoles
         };
 
         yield return new PermissionDefinition(

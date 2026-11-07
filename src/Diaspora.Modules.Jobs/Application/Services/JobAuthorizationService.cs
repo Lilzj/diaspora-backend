@@ -34,9 +34,9 @@ namespace Diaspora.Modules.Jobs.Application.Services;
 /// report, no reason and no word to the employer.
 /// </para>
 /// <para>
-/// Staff <em>reading</em> is unchanged: <see cref="CanSeeAsync"/> still shows them hidden and
-/// unpublished postings so they can review them, and <see cref="RequireEmployerReadAsync"/> keeps
-/// the two employer read routes open to them.
+/// Staff <em>reading</em> a posting is unchanged: <see cref="CanSeeAsync"/> still shows them hidden
+/// and unpublished postings so they can review them. An employer's applicants, dashboard and
+/// private records are the team's alone: moderation never needs them.
 /// </para>
 /// </summary>
 public sealed class JobAuthorizationService
@@ -83,36 +83,14 @@ public sealed class JobAuthorizationService
     /// second is a forbidden the caller can act on by asking to be added.
     /// </para>
     /// <para>
-    /// No staff bypass: this is the write check, and staff are refused here like any other
-    /// non-member. See the class summary.
+    /// No staff bypass, for reads as for writes: staff are refused here like any other
+    /// non-member, including on the applicant list and the dashboard. See the class summary.
     /// </para>
     /// </summary>
-    public Task<Result<EmployerProfile>> RequireEmployerAsync(
+    public async Task<Result<EmployerProfile>> RequireEmployerAsync(
         EmployerProfileId employerId,
         EmployerMemberRole minimumRole,
-        CancellationToken cancellationToken = default) =>
-        RequireEmployerCoreAsync(employerId, minimumRole, staffMayRead: false, cancellationToken);
-
-    /// <summary>
-    /// The read-only form of <see cref="RequireEmployerAsync"/>, for the employer's dashboard and
-    /// applicant list.
-    /// <para>
-    /// Staff pass it without being on the team, as they did before the owner check was closed to
-    /// them; it never authorises a change. A handler that writes must use
-    /// <see cref="RequireEmployerAsync"/>.
-    /// </para>
-    /// </summary>
-    public Task<Result<EmployerProfile>> RequireEmployerReadAsync(
-        EmployerProfileId employerId,
-        EmployerMemberRole minimumRole,
-        CancellationToken cancellationToken = default) =>
-        RequireEmployerCoreAsync(employerId, minimumRole, staffMayRead: true, cancellationToken);
-
-    private async Task<Result<EmployerProfile>> RequireEmployerCoreAsync(
-        EmployerProfileId employerId,
-        EmployerMemberRole minimumRole,
-        bool staffMayRead,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(employerId);
 
@@ -128,11 +106,6 @@ public sealed class JobAuthorizationService
         if (employer is null)
         {
             return Result.Failure<EmployerProfile>(JobErrors.EmployerNotFound);
-        }
-
-        if (staffMayRead && IsStaff)
-        {
-            return Result.Success(employer);
         }
 
         if (!employer.HasAtLeast(caller.Value, minimumRole))

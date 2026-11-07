@@ -125,12 +125,19 @@ public sealed record JobResponse
     public required bool CanApply { get; init; }
 
     /// <summary>
-    /// Whether this viewer may manage the job: a member of the employer's team, or platform staff,
-    /// who moderate every job. <see cref="IsOnEmployerTeam"/> tells the two apart. Staff who are
-    /// not on the team moderate only through <c>/jobs/moderation/*</c>; the owner's routes refuse
-    /// them (7 Nov 2026).
+    /// Whether this viewer may manage the job through the owner's routes: edit, publish, close,
+    /// remove, decide applicants. Only the employer's team. Platform staff are not included since
+    /// 7 Nov 2026, when the owner's routes stopped letting them through; see
+    /// <see cref="CanModerate"/>.
     /// </summary>
     public required bool CanManage { get; init; }
+
+    /// <summary>
+    /// Whether this viewer is platform staff, who act on the job only through moderation and never
+    /// through the owner's routes. A client draws its staff view from this, not from
+    /// <see cref="CanManage"/>.
+    /// </summary>
+    public bool CanModerate { get; init; }
 
     /// <summary>
     /// Whether this viewer belongs to the employer's team. Staff who are not on it moderate the

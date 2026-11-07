@@ -92,22 +92,20 @@ public sealed class GetJobQueryHandler : IQueryHandler<GetJobQuery, JobResponse>
         var isOnTeam = await _authorization.IsMemberOfAsync(
             posting.EmployerId, cancellationToken);
 
-        // `canManage` is true for staff on every job, and the app reads it that way: staff + not
-        // on the team draws the "Diaspora staff" panel and hides "Report". It does not mean staff
-        // may edit, close or remove the job through the owner's routes, which refuse them since
-        // 7 Nov 2026; they act through /jobs/moderation/*. Only the team owns it, and both flags
-        // are sent, because a client that reads "may manage" as "is mine" tells an Admin the job
-        // is theirs and hides "Apply".
+        // Only the team manages the job. Staff are told apart by `canModerate`: since 7 Nov 2026
+        // the owner's routes refuse them, so a `canManage` that said yes to staff would draw edit
+        // and close controls that fail on press.
         return Result.Success(JobMapper.ToResponse(
             posting,
             employer,
             _clock.UtcNow,
-            canManage: isOnTeam || _authorization.IsStaff,
+            canManage: isOnTeam,
             isOnEmployerTeam: isOnTeam,
             hasApplied,
             isSaved,
             providers,
-            guides));
+            guides,
+            canModerate: _authorization.IsStaff));
     }
 
     private async Task<JobPosting?> ResolveAsync(

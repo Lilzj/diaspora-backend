@@ -27,15 +27,12 @@ public sealed class HousingPolicyContributor : IPolicyContributor
         yield return Policy(HousingPolicies.LandlordCreate, HousingPermissions.LandlordCreate);
         yield return Policy(HousingPolicies.LandlordManage, HousingPermissions.LandlordManage);
         yield return Policy(
-            HousingPolicies.LandlordManageAny, HousingPermissions.LandlordManageAny);
-        yield return Policy(
             HousingPolicies.LandlordSubmitVerification,
             HousingPermissions.LandlordSubmitVerification);
 
         // Listing authoring and lifecycle
         yield return Policy(HousingPolicies.ListingCreate, HousingPermissions.ListingCreate);
         yield return Policy(HousingPolicies.ListingEditOwn, HousingPermissions.ListingEditOwn);
-        yield return Policy(HousingPolicies.ListingEditAny, HousingPermissions.ListingEditAny);
         yield return Policy(
             HousingPolicies.ListingDeleteOwn, HousingPermissions.ListingDeleteOwn);
         yield return Policy(HousingPolicies.ListingPublish, HousingPermissions.ListingPublish);

@@ -18795,6 +18795,41 @@
         }
       }
     },
+    "/api/v1/financial/giving/campaigns/{campaignId}/moderation": {
+      "post": {
+        "tags": [
+          "Financial"
+        ],
+        "summary": "Suspends a live fundraiser, or lifts a suspension. Staff only; a reason is required, and nobody moderates a campaign they run.",
+        "operationId": "ModerateFundraisingCampaign",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModerateCampaignRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/financial/campaigns": {
       "post": {
         "tags": [
@@ -33766,6 +33801,41 @@
         }
       }
     },
+    "/api/v1/media/{mediaId}/moderation": {
+      "post": {
+        "tags": [
+          "Media"
+        ],
+        "summary": "Hide or remove a member's file. Staff only; a reason is required and kept on the file.",
+        "operationId": "ModerateMedia",
+        "parameters": [
+          {
+            "name": "mediaId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModerateMediaRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/media/capabilities": {
       "get": {
         "tags": [
@@ -35369,7 +35439,7 @@
         "tags": [
           "Providers"
         ],
-        "summary": "Publish, pause, close, suspend, reinstate or archive.",
+        "summary": "Publish, pause, close or archive. The owner's route: staff suspend and reinstate through POST /providers/moderation/{providerId}.",
         "operationId": "ChangeProviderStatus",
         "parameters": [
           {
@@ -35387,6 +35457,41 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ProviderStatusRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/providers/moderation/{providerId}": {
+      "post": {
+        "tags": [
+          "Providers"
+        ],
+        "summary": "Suspend a provider, or lift its suspension. Staff only, and a reason is required.",
+        "operationId": "ModerateProvider",
+        "parameters": [
+          {
+            "name": "providerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModerateProviderRequest"
               }
             }
           },
@@ -47358,6 +47463,21 @@
           }
         }
       },
+      "ModerateCampaignRequest": {
+        "required": [
+          "action",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
       "ModerateHousingRequest": {
         "required": [
           "action"
@@ -47393,6 +47513,38 @@
         }
       },
       "ModerateListingRequest": {
+        "required": [
+          "action"
+        ],
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ModerateMediaRequest": {
+        "required": [
+          "action",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "ModerateProviderRequest": {
         "required": [
           "action"
         ],

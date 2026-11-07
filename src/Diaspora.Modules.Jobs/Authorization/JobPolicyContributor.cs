@@ -26,14 +26,12 @@ public sealed class JobPolicyContributor : IPolicyContributor
         // Employer
         yield return Policy(JobPolicies.EmployerCreate, JobPermissions.EmployerCreate);
         yield return Policy(JobPolicies.EmployerManage, JobPermissions.EmployerManage);
-        yield return Policy(JobPolicies.EmployerManageAny, JobPermissions.EmployerManageAny);
         yield return Policy(
             JobPolicies.EmployerSubmitVerification, JobPermissions.EmployerSubmitVerification);
 
         // Posting authoring & lifecycle
         yield return Policy(JobPolicies.PostCreate, JobPermissions.PostCreate);
         yield return Policy(JobPolicies.PostEditOwn, JobPermissions.PostEditOwn);
-        yield return Policy(JobPolicies.PostEditAny, JobPermissions.PostEditAny);
         yield return Policy(JobPolicies.PostDeleteOwn, JobPermissions.PostDeleteOwn);
         yield return Policy(JobPolicies.PostPublish, JobPermissions.PostPublish);
         yield return Policy(JobPolicies.PostClose, JobPermissions.PostClose);

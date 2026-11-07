@@ -27,8 +27,6 @@ public sealed class GuidePolicyContributor : IPolicyContributor
         yield return PolicyDefinition.ForPermission(
             GuidePolicies.EditOwn, Module, GuidePermissions.EditOwn);
 
-        yield return PolicyDefinition.ForPermission(
-            GuidePolicies.EditAny, Module, GuidePermissions.EditAny);
 
         yield return PolicyDefinition.ForPermission(
             GuidePolicies.DeleteOwn, Module, GuidePermissions.DeleteOwn);

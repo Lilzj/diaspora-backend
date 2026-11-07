@@ -54,13 +54,6 @@ public sealed class GuidePermissionContributor : IPermissionContributor
         };
 
         yield return new PermissionDefinition(
-            GuidePermissions.EditAny, Module, "Edit any guide.")
-        {
-            MinimumTier = AccessTier.Limited,
-            Roles = StaffRoles
-        };
-
-        yield return new PermissionDefinition(
             GuidePermissions.DeleteOwn, Module, "Delete a guide you wrote.")
         {
             MinimumTier = AccessTier.Limited

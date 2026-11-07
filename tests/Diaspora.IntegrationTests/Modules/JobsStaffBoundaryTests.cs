@@ -115,7 +115,15 @@ public sealed class JobsStaffBoundaryTests : PooledIdentityTestBase
         decided.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await decided.Content.ReadAsStringAsync()).Should().Contain(NotEmployer);
 
+        // The applicants are the employer's to see. Moderating the advert never needs their names.
+        var applicants = await HttpClient.GetAsync($"{Root}/applications?employerId={job.EmployerId}");
+        applicants.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await applicants.Content.ReadAsStringAsync()).Should().Contain(NotEmployer);
+
         Api.Authenticate(job.OwnerToken);
+
+        (await HttpClient.GetAsync($"{Root}/applications?employerId={job.EmployerId}")).StatusCode
+            .Should().Be(HttpStatusCode.OK, "the employer still reads its own applicants");
 
         var ownerDecided = await HttpClient.PostAsJsonAsync(
             $"{Root}/applications/{application.ApplicationId}/decide",

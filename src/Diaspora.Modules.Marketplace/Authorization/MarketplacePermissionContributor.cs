@@ -84,14 +84,6 @@ public sealed class MarketplacePermissionContributor : IPermissionContributor
         };
 
         yield return new PermissionDefinition(
-            MarketplacePermissions.SellerManageAny, MarketplaceModuleMetadata.Name,
-            "Manage any seller profile.")
-        {
-            MinimumTier = AccessTier.Limited,
-            Roles = StaffRoles
-        };
-
-        yield return new PermissionDefinition(
             MarketplacePermissions.SellerSubmitVerification, MarketplaceModuleMetadata.Name,
             "Submit a seller profile for verification.")
         {
@@ -118,14 +110,6 @@ public sealed class MarketplacePermissionContributor : IPermissionContributor
             // Correcting a live listing is never the thing to withhold: a wrong price or a wrong
             // collection address wastes buyers' journeys, not the restricted seller's.
             GrantedWhenRestricted = true
-        };
-
-        yield return new PermissionDefinition(
-            MarketplacePermissions.ListingEditAny, MarketplaceModuleMetadata.Name,
-            "Edit any listing.")
-        {
-            MinimumTier = AccessTier.Limited,
-            Roles = StaffRoles
         };
 
         yield return new PermissionDefinition(

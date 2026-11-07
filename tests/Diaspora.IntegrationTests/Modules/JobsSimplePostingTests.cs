@@ -99,10 +99,12 @@ public sealed class JobsSimplePostingTests : PooledIdentityTestBase
     /// <summary>
     /// Found on production, 6 Nov 2026: an Admin's card offered "I'm interested" and the page
     /// said "YOUR JOB — You manage this job for Zoe" with the button gone. The page read
-    /// <c>canManage</c>, which is true for staff on every job, as "this is mine".
+    /// <c>canManage</c>, which was then true for staff on every job, as "this is mine". Since
+    /// 7 Nov 2026 staff no longer pass the owner's routes, so <c>canManage</c> is the team's alone
+    /// and staff are told apart by <c>canModerate</c>.
     /// </summary>
     [Fact]
-    public async Task Staff_may_manage_any_job_but_it_is_not_theirs_and_they_can_still_say_they_are_interested()
+    public async Task Staff_moderate_any_job_but_do_not_manage_it_and_can_still_say_they_are_interested()
     {
         Factory.EnsureDatabaseCreated();
 
@@ -112,6 +114,7 @@ public sealed class JobsSimplePostingTests : PooledIdentityTestBase
         Api.Authenticate(job.PosterToken);
         var asPoster = await ReadJsonAsync(await HttpClient.GetAsync($"{Root}/{job.JobId}"));
         asPoster.GetProperty("canManage").GetBoolean().Should().BeTrue();
+        asPoster.GetProperty("canModerate").GetBoolean().Should().BeFalse("the poster is not staff");
         asPoster.GetProperty("isOnEmployerTeam").GetBoolean().Should().BeTrue("the poster is the employer's team");
 
         var filled = await ReadJsonAsync(await HttpClient.PostAsync($"{Root}/{job.JobId}/places/fill", content: null));
@@ -119,7 +122,8 @@ public sealed class JobsSimplePostingTests : PooledIdentityTestBase
 
         await SignInAsRoleAsync("Moderator");
         var asStaff = await ReadJsonAsync(await HttpClient.GetAsync($"{Root}/{job.JobId}"));
-        asStaff.GetProperty("canManage").GetBoolean().Should().BeTrue("staff moderate every job");
+        asStaff.GetProperty("canManage").GetBoolean().Should().BeFalse("the owner's routes refuse staff");
+        asStaff.GetProperty("canModerate").GetBoolean().Should().BeTrue("staff moderate every job");
         asStaff.GetProperty("isOnEmployerTeam").GetBoolean().Should().BeFalse("staff are not the employer");
         asStaff.GetProperty("canApply").GetBoolean().Should().BeTrue();
 
@@ -130,6 +134,7 @@ public sealed class JobsSimplePostingTests : PooledIdentityTestBase
         Api.Authenticate(member.Tokens.AccessToken);
         var asMember = await ReadJsonAsync(await HttpClient.GetAsync($"{Root}/{job.JobId}"));
         asMember.GetProperty("canManage").GetBoolean().Should().BeFalse();
+        asMember.GetProperty("canModerate").GetBoolean().Should().BeFalse();
         asMember.GetProperty("isOnEmployerTeam").GetBoolean().Should().BeFalse();
     }
 
