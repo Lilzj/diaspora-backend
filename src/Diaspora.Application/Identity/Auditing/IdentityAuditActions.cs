@@ -23,6 +23,7 @@ public static class IdentityAuditActions
     public const string AccountReinstated = "identity.user.reinstated";
     public const string AccountDisabled = "identity.user.disabled";
     public const string AccessStateChanged = "identity.user.access-state-changed";
+    public const string RoleChanged = "identity.user.role-changed";
     public const string VerificationRequested = "identity.user.verification-requested";
     public const string TrustDecisionApplied = "identity.user.trust-decision-applied";
     public const string DeviceRegistered = "identity.device.registered";

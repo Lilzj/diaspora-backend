@@ -33,6 +33,7 @@ public static class AdminMemberMapper
             CreatedAt = user.CreatedAt,
             LastLoginAt = user.LastLoginAt,
             StatusReason = user.StatusReason,
+            StatusReasonCode = user.StatusReasonCode,
             SuspendedUntil = user.SuspendedUntil
         };
     }

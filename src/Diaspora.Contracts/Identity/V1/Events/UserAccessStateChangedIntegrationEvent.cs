@@ -24,6 +24,12 @@ public sealed record UserAccessStateChangedIntegrationEvent : IntegrationEvent
 
     /// <summary>When a suspension ends, if it was given an end.</summary>
     public DateTimeOffset? Until { get; init; }
+
+    /// <summary>
+    /// The moderation reason code staff chose for a suspension or closure (a <c>ModerationReasonCode</c>
+    /// name), when they chose one. Null for every other move.
+    /// </summary>
+    public string? ReasonCode { get; init; }
 }
 
 /// <summary>

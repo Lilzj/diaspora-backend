@@ -125,6 +125,37 @@ public class AccessGatewayTests
     }
 
     [Fact]
+    public void A_suspended_member_is_told_the_reason_code_its_label_and_the_note()
+    {
+        var user = IdentityTestData.VerifiedUser();
+        user.Suspend("Asked buyers to pay outside the platform.", null, IdentityTestData.Now, "FraudOrScam");
+
+        var decision = Gateway.Resolve(user, IdentityTestData.Now);
+
+        decision.ReasonCode.Should().Be("FraudOrScam");
+        decision.ReasonLabel.Should().Be("a fraud or scam");
+        decision.Note.Should().Be("Asked buyers to pay outside the platform.");
+        decision.RestrictedUntil.Should().BeNull("an indefinite suspension has no end to show");
+    }
+
+    [Fact]
+    public void A_closed_member_is_told_why_and_an_active_member_carries_no_reason()
+    {
+        var closed = IdentityTestData.LimitedAccessUser();
+        closed.Disable("Posing as the consulate.", IdentityTestData.Now, "Impersonation");
+
+        var decision = Gateway.Resolve(closed, IdentityTestData.Now);
+        decision.ReasonCode.Should().Be("Impersonation");
+        decision.ReasonLabel.Should().Be("impersonating a person or organisation");
+        decision.Note.Should().Be("Posing as the consulate.");
+
+        var active = Gateway.Resolve(IdentityTestData.VerifiedUser(), IdentityTestData.Now);
+        active.ReasonCode.Should().BeNull();
+        active.ReasonLabel.Should().BeNull();
+        active.Note.Should().BeNull();
+    }
+
+    [Fact]
     public void A_locked_member_is_sent_to_account_recovery()
     {
         var user = IdentityTestData.LimitedAccessUser();

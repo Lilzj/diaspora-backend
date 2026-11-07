@@ -93,6 +93,9 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(user => user.StatusReason)
             .HasMaxLength(User.MaxStatusReasonLength);
 
+        builder.Property(user => user.StatusReasonCode)
+            .HasMaxLength(User.MaxStatusReasonCodeLength);
+
         builder.OwnsOne(user => user.Security, security =>
         {
             security.Property(profile => profile.FailedLoginAttempts)

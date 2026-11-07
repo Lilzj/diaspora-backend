@@ -1,11 +1,10 @@
 using System.Globalization;
 using Diaspora.Application.Abstractions;
 using Diaspora.Application.Identity.Abstractions;
+using Diaspora.Application.Identity.Administration;
 using Diaspora.Application.Identity.Models;
 using Diaspora.Contracts.Identity.V1.Responses;
 using Diaspora.Domain.Abstractions;
-using Diaspora.Domain.Identity.Errors;
-using Diaspora.Domain.Identity.Repositories;
 using Diaspora.Domain.Identity.Security;
 using Diaspora.Domain.Identity.Sessions;
 using Diaspora.Platform.Services.Abstractions;
@@ -17,25 +16,22 @@ namespace Diaspora.Application.Identity.Commands.Administration.RevokeMemberSess
 public sealed class RevokeMemberSessionsCommandHandler
     : ICommandHandler<RevokeMemberSessionsCommand, OperationAcknowledgedResponse>
 {
-    private readonly IUserRepository _users;
+    private readonly StaffAuthority _authority;
     private readonly ISessionRevocationService _revocation;
     private readonly ISecurityEventWriter _securityEvents;
-    private readonly ICurrentIdentityContext _currentIdentity;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
 
     public RevokeMemberSessionsCommandHandler(
-        IUserRepository users,
+        StaffAuthority authority,
         ISessionRevocationService revocation,
         ISecurityEventWriter securityEvents,
-        ICurrentIdentityContext currentIdentity,
         IUnitOfWork unitOfWork,
         IClock clock)
     {
-        _users = users;
+        _authority = authority;
         _revocation = revocation;
         _securityEvents = securityEvents;
-        _currentIdentity = currentIdentity;
         _unitOfWork = unitOfWork;
         _clock = clock;
     }
@@ -46,15 +42,15 @@ public sealed class RevokeMemberSessionsCommandHandler
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var userId = UserId.From(request.UserId);
-
-        var user = await _users.GetByIdAsync(userId, cancellationToken);
-        if (user is null)
+        var resolved = await _authority.ResolveAsync(UserId.From(request.UserId), cancellationToken);
+        if (resolved.IsFailure)
         {
-            return Result.Failure<OperationAcknowledgedResponse>(UserErrors.NotFound);
+            return Result.Failure<OperationAcknowledgedResponse>(resolved.Error);
         }
 
+        var (actor, user) = resolved.Value;
         var now = _clock.UtcNow;
+        var reason = request.Reason!.Trim();
 
         var revoked = await _revocation.RevokeAllAsync(
             user.Id, SessionRevocationReason.AdministrativeAction, now, cancellationToken);
@@ -64,13 +60,12 @@ public sealed class RevokeMemberSessionsCommandHandler
             UserId = user.Id,
             Type = SecurityEventType.AllSessionsRevoked,
             Severity = SecurityEventSeverity.Warning,
-            Description = string.IsNullOrWhiteSpace(request.Reason)
-                ? "Signed out of every device by staff."
-                : $"Signed out of every device by staff: {request.Reason}",
+            Description = $"Signed out of every device by staff: {reason}",
             Metadata = new Dictionary<string, string>
             {
                 ["sessionsRevoked"] = revoked.ToString(CultureInfo.InvariantCulture),
-                ["revokedBy"] = _currentIdentity.UserId?.Value.ToString() ?? "unknown"
+                ["revokedBy"] = actor.Id.Value.ToString(),
+                ["reason"] = reason
             }
         }, cancellationToken);
 

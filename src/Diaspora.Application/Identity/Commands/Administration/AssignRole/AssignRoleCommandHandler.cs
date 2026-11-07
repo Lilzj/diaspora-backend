@@ -1,13 +1,9 @@
 using Diaspora.Application.Abstractions;
-using Diaspora.Application.Identity.Abstractions;
+using Diaspora.Application.Identity.Administration;
 using Diaspora.Application.Identity.Mapping;
-using Diaspora.Application.Identity.Models;
 using Diaspora.Contracts.Identity.V1.Responses;
 using Diaspora.Domain.Abstractions;
 using Diaspora.Domain.Identity.Errors;
-using Diaspora.Domain.Identity.Repositories;
-using Diaspora.Domain.Identity.Security;
-using Diaspora.Domain.Identity.Sessions;
 using Diaspora.Domain.Identity.Users;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Identity;
@@ -27,38 +23,33 @@ namespace Diaspora.Application.Identity.Commands.Administration.AssignRole;
 /// permissions only exist once a new token is issued.
 /// </para>
 /// <para>
-/// <b>Two things this refuses.</b> Nobody may change their own role — an admin cannot
-/// promote themselves to SuperAdmin, and cannot lock themselves out by accident either. And
-/// only a SuperAdmin may grant or remove SuperAdmin, so the highest rung is not reachable
-/// from the one below it.
+/// <b>What this refuses.</b> Nobody may change their own role — an admin cannot promote
+/// themselves to SuperAdmin, and cannot lock themselves out by accident either. Nobody acts on an
+/// account at or above their own rank (7 Nov 2026). Only a SuperAdmin may remove SuperAdmin. And
+/// granting Admin or SuperAdmin is not done here at all: it is a proposal a second member of staff
+/// confirms.
 /// </para>
 /// </summary>
 public sealed class AssignRoleCommandHandler : ICommandHandler<AssignRoleCommand, AdminMemberResponse>
 {
-    private readonly IUserRepository _users;
-    private readonly ISessionRevocationService _revocation;
-    private readonly ISecurityEventWriter _securityEvents;
+    private readonly StaffAuthority _authority;
+    private readonly AccountActionExecutor _executor;
     private readonly ICurrentUser _currentUser;
-    private readonly ICurrentIdentityContext _currentIdentity;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
     private readonly ILogger<AssignRoleCommandHandler> _logger;
 
     public AssignRoleCommandHandler(
-        IUserRepository users,
-        ISessionRevocationService revocation,
-        ISecurityEventWriter securityEvents,
+        StaffAuthority authority,
+        AccountActionExecutor executor,
         ICurrentUser currentUser,
-        ICurrentIdentityContext currentIdentity,
         IUnitOfWork unitOfWork,
         IClock clock,
         ILogger<AssignRoleCommandHandler> logger)
     {
-        _users = users;
-        _revocation = revocation;
-        _securityEvents = securityEvents;
+        _authority = authority;
+        _executor = executor;
         _currentUser = currentUser;
-        _currentIdentity = currentIdentity;
         _unitOfWork = unitOfWork;
         _clock = clock;
         _logger = logger;
@@ -70,33 +61,34 @@ public sealed class AssignRoleCommandHandler : ICommandHandler<AssignRoleCommand
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var role = UserRole.All.FirstOrDefault(
-            candidate => string.Equals(candidate.Name, request.Role, StringComparison.OrdinalIgnoreCase));
-
-        if (role is null)
+        if (RoleGrants.Parse(request.Role) is not { } role)
         {
             return Result.Failure<AdminMemberResponse>(IdentityAdministrationErrors.UnknownRole(request.Role));
         }
 
         var targetId = UserId.From(request.UserId);
 
-        if (_currentIdentity.UserId is { } callerId && callerId == targetId)
+        if (_authority.CallerId is { } callerId && callerId == targetId)
         {
             return Result.Failure<AdminMemberResponse>(IdentityAdministrationErrors.CannotChangeOwnRole);
         }
 
-        var user = await _users.GetByIdAsync(targetId, cancellationToken);
-        if (user is null)
+        if (RoleGrants.NeedsSecondStaff(role))
         {
-            return Result.Failure<AdminMemberResponse>(UserErrors.NotFound);
+            return Result.Failure<AdminMemberResponse>(IdentityAdministrationErrors.RoleGrantNeedsSecondStaff);
         }
 
-        // Granting or removing the highest rung is the one thing an Admin cannot do, in
-        // either direction: a platform where Admin can appoint SuperAdmin has no top.
-        var touchesSuperAdmin = role == UserRole.SuperAdmin || user.Role == UserRole.SuperAdmin;
+        var resolved = await _authority.ResolveAsync(targetId, cancellationToken);
+        if (resolved.IsFailure)
+        {
+            return Result.Failure<AdminMemberResponse>(resolved.Error);
+        }
 
-        if (touchesSuperAdmin
-            && !string.Equals(_currentUser.Role, UserRole.SuperAdmin.Name, StringComparison.Ordinal))
+        var (actor, user) = resolved.Value;
+
+        // Removing the highest rung is the one thing an Admin cannot do: a platform where Admin can
+        // unmake SuperAdmin has no top. (The rank rule already refuses it; this says why.)
+        if (user.Role == UserRole.SuperAdmin && actor.Role != UserRole.SuperAdmin)
         {
             return Result.Failure<AdminMemberResponse>(IdentityAdministrationErrors.SuperAdminOnly);
         }
@@ -111,36 +103,18 @@ public sealed class AssignRoleCommandHandler : ICommandHandler<AssignRoleCommand
         var previous = user.Role;
         var now = _clock.UtcNow;
 
-        user.AssignRole(role);
-        _users.Update(user);
-
-        var revoked = await _revocation.RevokeAllAsync(
-            user.Id, SessionRevocationReason.AccountStateChanged, now, cancellationToken);
-
-        await _securityEvents.WriteAsync(new SecurityEventDraft
-        {
-            UserId = user.Id,
-            Type = SecurityEventType.RoleAssigned,
-            Severity = SecurityEventSeverity.Warning,
-            Description = $"Role changed from {previous.Name} to {role.Name}"
-                + (string.IsNullOrWhiteSpace(request.Reason) ? "." : $": {request.Reason}"),
-            Metadata = new Dictionary<string, string>
-            {
-                ["previousRole"] = previous.Name,
-                ["newRole"] = role.Name,
-                ["sessionsRevoked"] = revoked.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                ["changedBy"] = _currentIdentity.UserId?.Value.ToString() ?? "unknown"
-            }
-        }, cancellationToken);
+        var revoked = await _executor.ChangeRoleAsync(
+            user, role, request.Reason!.Trim(), new StaffAttribution(actor.Id), now, cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         _logger.LogWarning(
-            "Role for user {UserId} changed from {PreviousRole} to {NewRole} by {ChangedBy}; {Revoked} sessions revoked.",
-            user.Id,
+            "Role for user {UserId} changed from {PreviousRole} to {NewRole} by {ChangedBy} ({ChangedByRole}); {Revoked} sessions revoked.",
+            user.Id.Value,
             previous.Name,
             role.Name,
-            _currentIdentity.UserId,
+            actor.Id.Value,
+            _currentUser.Role,
             revoked);
 
         return Result.Success(AdminMemberMapper.ToResponse(user));

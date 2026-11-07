@@ -22,7 +22,10 @@ public static class AccessDecisionMapper
             GrantedFeatures = decision.Features.Granted,
             BlockedFeatures = decision.Features.Blocked.Select(b => b.Feature).ToArray(),
             Permissions = decision.Permissions,
-            RestrictedUntil = decision.RestrictedUntil
+            RestrictedUntil = decision.RestrictedUntil,
+            ReasonCode = decision.ReasonCode,
+            ReasonLabel = decision.ReasonLabel,
+            Note = decision.Note
         };
     }
 

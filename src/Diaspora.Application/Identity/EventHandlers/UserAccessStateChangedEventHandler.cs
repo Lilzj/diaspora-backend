@@ -71,7 +71,8 @@ public sealed class UserAccessStateChangedEventHandler : DomainEventHandler<User
                 or AccessStateChangeReason.AccountReactivated
                 ? domainEvent.Notes
                 : null,
-            Until = domainEvent.Until
+            Until = domainEvent.Until,
+            ReasonCode = domainEvent.ReasonCode
         }, cancellationToken);
     }
 }

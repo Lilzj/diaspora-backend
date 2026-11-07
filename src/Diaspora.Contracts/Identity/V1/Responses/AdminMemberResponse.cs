@@ -50,6 +50,9 @@ public sealed record AdminMemberResponse
     /// <summary>Why the account is suspended or closed, when it is.</summary>
     public string? StatusReason { get; init; }
 
+    /// <summary>The moderation reason code of a suspension or closure by staff (7 Nov 2026).</summary>
+    public string? StatusReasonCode { get; init; }
+
     /// <summary>When a suspension lifts. Null on an indefinite one, which is heavier.</summary>
     public DateTimeOffset? SuspendedUntil { get; init; }
 }

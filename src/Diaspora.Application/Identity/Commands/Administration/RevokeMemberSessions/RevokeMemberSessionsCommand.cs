@@ -12,12 +12,17 @@ namespace Diaspora.Application.Identity.Commands.Administration.RevokeMemberSess
 /// able to use it. It is deliberately not a suspension — the member can sign back in — so
 /// it is the safe move while a report is still being looked at.
 /// </para>
+/// <para>
+/// Since 7 Nov 2026 it needs a reason, is recorded in the audit trail, and is refused on the
+/// caller's own account or one at or above their rank.
+/// </para>
 /// </summary>
+[Auditable(Action = "identity.user.sessions-revoked")]
 [Authorize(Permission = IdentityPermissions.RevokeAnySession)]
 public sealed record RevokeMemberSessionsCommand : ICommand<OperationAcknowledgedResponse>
 {
     public required Guid UserId { get; init; }
 
-    /// <summary>Why. Recorded in the member's security history.</summary>
+    /// <summary>Why. Required; recorded in the member's security history.</summary>
     public string? Reason { get; init; }
 }
