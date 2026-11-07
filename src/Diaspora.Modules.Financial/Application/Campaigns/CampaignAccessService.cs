@@ -24,6 +24,14 @@ namespace Diaspora.Modules.Financial.Application.Campaigns;
 /// it, which is what losing the capability means. The check is made on every write rather than
 /// captured at creation.
 /// </para>
+/// <para>
+/// <b>Staff never pass the owner check.</b> Holding <c>financial:giving:manage</c> makes nobody the
+/// organiser of a campaign, and the organiser's routes — edit, submit, pause, resume, close, cancel,
+/// updates, milestones, fund usage — answer staff exactly as they answer any other member who does
+/// not run it. Staff act on a campaign through two doors only: the review decision on a submitted
+/// campaign (<see cref="IsReviewer"/>), and the moderation route that suspends and restores a live
+/// one.
+/// </para>
 /// </summary>
 public sealed class CampaignAccessService
 {
@@ -44,7 +52,7 @@ public sealed class CampaignAccessService
     }
 
     /// <summary>
-    /// Whether this caller may publish or reject a submitted campaign.
+    /// Whether the people who run a campaign may publish or reject their own submission.
     /// <para>
     /// <b>The review policy, answered once and served.</b> Publication is the review decision: where
     /// a deployment reviews campaigns it belongs to staff, and an organizer who could publish their
@@ -59,10 +67,25 @@ public sealed class CampaignAccessService
     /// capability the platform has and the client denies, and a capability the platform refuses and
     /// the client offers, are the same defect pointing in two directions.
     /// </para>
+    /// <para>
+    /// <b>Holding the staff permission no longer changes the answer.</b> Transitions are listed only
+    /// for somebody who runs the campaign, and a member of staff who runs one is its organiser, not
+    /// its reviewer: under review they submit and wait like anybody else.
+    /// </para>
     /// </summary>
-    public bool CanDecideReview() =>
-        !_options.RequireCampaignReview
-        || _authorization.Has(FinancialPermissions.GivingManage);
+    public bool CanDecideReview() => !_options.RequireCampaignReview;
+
+    /// <summary>
+    /// Whether this caller makes the review decision on campaigns other people submit.
+    /// <para>
+    /// True only where the deployment reviews campaigns and the caller holds the giving-management
+    /// permission. It opens exactly two moves — a submitted campaign to published or to rejected —
+    /// and never on a campaign the caller runs themselves.
+    /// </para>
+    /// </summary>
+    public bool IsReviewer() =>
+        _options.RequireCampaignReview
+        && _authorization.Has(FinancialPermissions.GivingManage);
 
     public Result<Guid> RequireCaller() => _authorization.RequireUserId();
 

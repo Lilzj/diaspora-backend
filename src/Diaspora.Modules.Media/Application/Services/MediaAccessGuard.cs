@@ -40,12 +40,21 @@ namespace Diaspora.Modules.Media.Application.Services;
 /// <list type="number">
 /// <item>Deleted or quarantined: refused outright. Nothing overrides this — not a staff role,
 /// not a vertical's policy, not a signed link.</item>
-/// <item>Staff with <c>media:administer</c>: allowed, so a moderator can look at what was
-/// flagged. Deliberately after the quarantine check for reading <em>content</em>: staff read
-/// quarantined metadata, never quarantined bytes.</item>
+/// <item>Staff with <c>media:administer</c>: allowed to read a record, so a moderator can look at
+/// what was flagged. Deliberately after the quarantine check for reading <em>content</em>: staff
+/// read quarantined metadata, never quarantined bytes.</item>
 /// <item>Media's own rules: uploader, explicit grant, visibility, readiness.</item>
 /// <item>The owning vertical's policy, which may deny, or widen a read.</item>
 /// </list>
+/// <para>
+/// <b>Staff never pass the management check.</b> <c>media:administer</c> widens what a moderator
+/// may <em>see</em>, and nothing else: editing, deleting, attaching and arranging a member's files
+/// are the member's alone, and <see cref="CanManageAsync"/> answers a moderator exactly as it
+/// answers any other member who did not upload the file. Until 7 Nov 2026 it let anyone holding the
+/// permission delete, edit, re-attach or reorder any member's files through the member's own
+/// routes, with no reason and no notice. Staff now take a file down through
+/// <c>POST /media/{id}/moderation</c>, which requires a reason and records it.
+/// </para>
 /// </summary>
 public sealed class MediaAccessGuard
 {
@@ -68,7 +77,9 @@ public sealed class MediaAccessGuard
         _options = options.Value;
     }
 
-    /// <summary>Whether the caller is staff who may see any asset.</summary>
+    /// <summary>
+    /// Whether the caller is staff who may <em>see</em> any asset's record. Grants no management.
+    /// </summary>
     public bool IsAdministrator =>
         _currentUser.Permissions.Contains(MediaPermissions.Administer, StringComparer.Ordinal);
 
@@ -196,7 +207,14 @@ public sealed class MediaAccessGuard
         return await EvaluateAsync(asset, MediaAccessLevel.Read, cancellationToken);
     }
 
-    /// <summary>Whether the caller may change or delete this asset.</summary>
+    /// <summary>
+    /// Whether the caller may change or delete this asset.
+    /// <para>
+    /// The uploader, or somebody the uploader granted management to. Never staff on the strength
+    /// of a staff permission: a moderator acts on a member's file through the moderation route,
+    /// which takes a reason, and not through the member's own edit and delete routes.
+    /// </para>
+    /// </summary>
     public async Task<Result> CanManageAsync(
         MediaAsset asset, CancellationToken cancellationToken = default)
     {
@@ -205,11 +223,6 @@ public sealed class MediaAccessGuard
         if (asset.Status is MediaAssetStatus.Deleted)
         {
             return Result.Failure(MediaErrors.AssetDeleted);
-        }
-
-        if (IsAdministrator)
-        {
-            return Result.Success();
         }
 
         // Ownership is checked here as well as inside `EvaluateAsync`, and deliberately so: this

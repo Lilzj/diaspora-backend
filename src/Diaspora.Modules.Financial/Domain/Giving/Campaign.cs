@@ -152,7 +152,13 @@ public sealed class Campaign : AggregateRoot<CampaignId>, IAuditableEntity
 
     public CampaignStatus Status { get; private set; }
 
-    /// <summary>Surfaced to the organizer verbatim when the campaign is rejected.</summary>
+    /// <summary>
+    /// Surfaced to the organizer verbatim when the campaign is rejected, or suspended by moderation.
+    /// <para>
+    /// Only ever set in a state nobody else can see, and cleared on the way out of it — a reviewer's
+    /// or a moderator's reason is the organiser's to read, never the public's.
+    /// </para>
+    /// </summary>
     public string? ReviewNote { get; private set; }
 
     public DateTimeOffset? SubmittedAt { get; private set; }
@@ -468,6 +474,13 @@ public sealed class Campaign : AggregateRoot<CampaignId>, IAuditableEntity
 
         Status = target;
 
+        if (previous == CampaignStatus.Suspended)
+        {
+            // Leaving a suspension: the moderator's reason was the organiser's to read while nobody
+            // else could see the campaign, and must not follow it back into public view.
+            ReviewNote = null;
+        }
+
         switch (target)
         {
             case CampaignStatus.PendingReview:
@@ -476,6 +489,7 @@ public sealed class Campaign : AggregateRoot<CampaignId>, IAuditableEntity
                 break;
 
             case CampaignStatus.Rejected:
+            case CampaignStatus.Suspended:
                 ReviewNote = Clip(reason);
                 break;
 
@@ -559,6 +573,65 @@ public sealed class Campaign : AggregateRoot<CampaignId>, IAuditableEntity
         });
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Takes a live campaign down on a moderator's decision.
+    /// <para>
+    /// <b>A reason or nothing.</b> The organiser reads it as the campaign's review note, and the
+    /// status event carries it, so there is no suspension without a recorded why. The caller closes
+    /// the cause in the same unit of work, which is what makes "suspended" mean the money stops.
+    /// </para>
+    /// </summary>
+    public Result Suspend(string reason, DateTimeOffset now)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return Result.Failure(Error.Validation(
+                FinancialErrorCodes.CampaignModerationInvalid,
+                "A campaign is suspended with a reason, or not at all."));
+        }
+
+        if (Status != CampaignStatus.Suspended
+            && !CampaignTransitions.CanTransition(Status, CampaignStatus.Suspended))
+        {
+            return Result.Failure(Error.Conflict(
+                FinancialErrorCodes.CampaignTransitionInvalid,
+                $"A {Status} campaign cannot be suspended."));
+        }
+
+        return MoveTo(CampaignStatus.Suspended, now, reason);
+    }
+
+    /// <summary>
+    /// Lifts a suspension.
+    /// <para>
+    /// <b>Restored, not resumed.</b> The campaign comes back paused — or past its deadline, where
+    /// that has gone by while it was down — and it is its organiser who decides whether it collects
+    /// again. A moderator turning donations back on would be acting for the organiser, which staff
+    /// never do.
+    /// </para>
+    /// </summary>
+    public Result Restore(string reason, DateTimeOffset now)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return Result.Failure(Error.Validation(
+                FinancialErrorCodes.CampaignModerationInvalid,
+                "A suspension is lifted with a reason, or not at all."));
+        }
+
+        if (Status != CampaignStatus.Suspended)
+        {
+            return Result.Failure(Error.Conflict(
+                FinancialErrorCodes.CampaignTransitionInvalid,
+                $"A {Status} campaign is not suspended."));
+        }
+
+        return MoveTo(
+            IsPastDeadline(now) ? CampaignStatus.DeadlineReached : CampaignStatus.Paused,
+            now,
+            reason);
     }
 
     /// <summary>Whether the campaign's deadline has passed as at the given moment.</summary>

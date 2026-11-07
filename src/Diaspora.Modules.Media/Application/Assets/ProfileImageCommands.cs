@@ -28,9 +28,9 @@ namespace Diaspora.Modules.Media.Application.Assets;
 /// <summary>
 /// Claims one of the caller's own image uploads for their profile and makes it public.
 /// <para>
-/// <b>Stricter than attaching.</b> Attaching admits staff with <c>media:administer</c> and anyone
-/// the uploader granted management to; a profile image must be the caller's own upload, because
-/// it is about to be shown to everyone under the caller's name.
+/// <b>Stricter than attaching.</b> Attaching admits anyone the uploader granted management to; a
+/// profile image must be the caller's own upload, because it is about to be shown to everyone under
+/// the caller's name. Neither admits staff on a staff permission.
 /// </para>
 /// </summary>
 [Auditable]

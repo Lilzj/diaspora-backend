@@ -44,6 +44,9 @@ public sealed class FinancialEndpointContributor : IEndpointContributor
         // GivingExtensionEndpoints for why.
         GivingExtensionEndpoints.Map(group);
 
+        // The staff door onto a running fundraiser. The organiser's routes refuse staff.
+        CampaignModerationEndpoints.Map(group);
+
         // B16. `/campaigns` here is *advertising*; B15.1's fundraising campaigns are at
         // /api/v1/communities/campaigns. Two entities, one noun, two prefixes.
         AdCampaignEndpoints.Map(group);

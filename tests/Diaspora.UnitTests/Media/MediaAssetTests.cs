@@ -154,6 +154,55 @@ public sealed class MediaAssetTests
         asset.MarkReady().IsFailure.Should().BeTrue();
     }
 
+    // ── Moderation (7 Nov 2026) ──────────────────────────────────────────
+
+    [Fact]
+    public void A_withheld_file_is_unreadable_and_keeps_the_moderators_reason()
+    {
+        var asset = Record()!;
+        asset.RecordScan(VirusScanResult.Clean("clam", DateTimeOffset.UtcNow));
+        asset.ChangeVisibility(MediaVisibility.Public);
+        asset.MarkReady();
+
+        asset.Withhold("Shows a weapon being pointed at a named person.").IsSuccess.Should().BeTrue();
+
+        asset.Status.Should().Be(MediaAssetStatus.Quarantined);
+        asset.FailureReason.Should().Be("Shows a weapon being pointed at a named person.");
+        asset.CanBeReadBy(null, DateTimeOffset.UtcNow).Should().BeFalse();
+        asset.CanBeReadBy(Uploader, DateTimeOffset.UtcNow).Should().BeFalse();
+
+        // Not a finding about malware, and not a change of audience: a release puts it back.
+        asset.ScanResult.Status.Should().Be(VirusScanStatus.Clean);
+        asset.Visibility.Should().Be(MediaVisibility.Public);
+    }
+
+    [Fact]
+    public void A_file_is_not_withheld_or_removed_without_a_reason()
+    {
+        var asset = Record()!;
+
+        asset.Withhold("  ").Error.Code.Should().Be(MediaErrorCodes.ModerationReasonRequired);
+        asset.Remove(UserId.New(), "").Error.Code.Should().Be(MediaErrorCodes.ModerationReasonRequired);
+
+        asset.Status.Should().Be(MediaAssetStatus.Pending);
+    }
+
+    [Fact]
+    public void A_removed_file_is_deleted_by_the_moderator_with_the_reason_kept()
+    {
+        var asset = Record()!;
+        var moderator = UserId.New();
+        asset.ClearDomainEvents();
+
+        asset.Remove(moderator, "Copyrighted photograph, owner complained.").IsSuccess.Should().BeTrue();
+
+        asset.Status.Should().Be(MediaAssetStatus.Deleted);
+        asset.FailureReason.Should().Be("Copyrighted photograph, owner complained.");
+        asset.DomainEvents.Should().ContainSingle()
+            .Which.Should().BeOfType<MediaAssetDeletedDomainEvent>()
+            .Which.DeletedBy.Should().Be(moderator);
+    }
+
     // ── Access ───────────────────────────────────────────────────────────
 
     /// <summary>

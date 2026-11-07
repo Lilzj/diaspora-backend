@@ -302,6 +302,66 @@ public sealed class MediaAsset : AggregateRoot<MediaId>, IAuditableEntity, ISoft
         return Result.Success();
     }
 
+    /// <summary>
+    /// Staff take-down: withholds the file from everyone, on a moderator's decision.
+    /// <para>
+    /// <b>The quarantine floor, reached by a person instead of a scanner.</b> The bytes are served
+    /// to nobody — the guard's state check runs before every credential, signed links included —
+    /// and the file joins the quarantine queue, where the existing release route is how it comes
+    /// back. The scan verdict is left alone, because it is a fact about malware and this is not a
+    /// finding about malware; visibility is left alone, so a release puts the file back as it was.
+    /// </para>
+    /// <para>
+    /// <b>The reason is the record.</b> It is kept in <see cref="FailureReason"/>, the field this
+    /// aggregate already uses to answer a member asking why their file does not show, and the
+    /// quarantine queue reads it back to staff.
+    /// </para>
+    /// </summary>
+    public Result Withhold(string reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return Result.Failure(MediaErrors.ModerationReasonRequired);
+        }
+
+        if (Status is MediaAssetStatus.Deleted)
+        {
+            return Result.Failure(MediaErrors.AssetDeleted);
+        }
+
+        Status = MediaAssetStatus.Quarantined;
+        FailureReason = Truncate(reason, MaxCaptionLength);
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Staff removal: deletes the file on a moderator's decision, with the reason kept on the row.
+    /// <para>
+    /// The same soft delete a member's own deletion is — the row survives for the record and the
+    /// bytes go on the sweeper's schedule — with the moderator as the one who deleted it and the
+    /// reason in <see cref="FailureReason"/>.
+    /// </para>
+    /// </summary>
+    public Result Remove(UserId removedBy, string reason)
+    {
+        ArgumentNullException.ThrowIfNull(removedBy);
+
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return Result.Failure(MediaErrors.ModerationReasonRequired);
+        }
+
+        if (Status is MediaAssetStatus.Deleted)
+        {
+            return Result.Failure(MediaErrors.AssetDeleted);
+        }
+
+        FailureReason = Truncate(reason, MaxCaptionLength);
+
+        return Delete(removedBy);
+    }
+
     public Result Delete(UserId deletedBy)
     {
         ArgumentNullException.ThrowIfNull(deletedBy);

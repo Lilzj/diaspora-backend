@@ -60,7 +60,9 @@ public sealed class ModifyCollectionCommandHandler
             return Result.Failure<MediaCollectionResponse>(MediaErrors.CollectionNotFound);
         }
 
-        if (collection.CreatedByUser != userId && !_guard.IsAdministrator)
+        // The member who made it, and nobody else. A staff permission is not a reason to rearrange
+        // a member's gallery; until 7 Nov 2026 `media:administer` was, with no reason or notice.
+        if (collection.CreatedByUser != userId)
         {
             return Result.Failure<MediaCollectionResponse>(MediaErrors.OwnershipRequired);
         }
