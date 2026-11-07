@@ -1,6 +1,4 @@
-using Diaspora.Modules.Media.Application.Assets;
 using Diaspora.Modules.Media.Application.Processing;
-using Diaspora.Modules.Media.Contracts.V1.Requests;
 using Diaspora.Platform.Http;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
@@ -82,28 +80,13 @@ internal static class MediaProcessingEndpoints
             })
             .RequireAuthorization(MediaPolicies.ManageProcessing)
             .WithName("ReleaseMediaQuarantine")
-            .WithSummary("Release a file a scanner flagged. Admins only, always audited.");
-
-        // The staff take-down. The member's own edit and delete routes refuse staff, so an illegal
-        // or abusive file comes down here, with a reason, and a hidden one joins the quarantine
-        // queue above — where the release route is how it comes back.
-        group.MapPost("/{mediaId:guid}/moderation", async (
-                Guid mediaId,
-                ModerateMediaRequest request,
-                ISender sender,
-                HttpContext context,
-                CancellationToken cancellationToken) =>
-            {
-                var result = await sender.Send(
-                    new ModerateMediaCommand { MediaId = mediaId, Request = request },
-                    cancellationToken);
-
-                return PlatformResults.Ok(context, result);
-            })
-            .RequireAuthorization(MediaPolicies.Administer)
-            .WithName("ModerateMedia")
             .WithSummary(
-                "Hide or remove a member's file. Staff only; a reason is required and kept on the "
-                + "file.");
+                "Release a file a scanner flagged. Admins only, always audited. A file a moderation "
+                + "decision withheld comes back by a restore on its case instead.");
+
+        // No staff take-down here (7 Nov 2026). The member's own edit and delete routes refuse
+        // staff, and a file is taken down only by a decision on a Trust moderation case, carried out
+        // by Infrastructure/Moderation/MediaModerationTarget; a withheld file joins the quarantine
+        // queue above, and a restore on its case is how it comes back.
     }
 }

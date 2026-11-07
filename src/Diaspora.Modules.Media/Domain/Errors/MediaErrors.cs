@@ -52,12 +52,10 @@ public static class MediaErrors
     public static readonly Error ModerationReasonRequired = Error.Validation(
         MediaErrorCodes.ModerationReasonRequired, "A file is taken down with a reason, or not at all.");
 
-    public static readonly Error ModerationActionUnknown = Error.Validation(
-        MediaErrorCodes.ModerationActionUnknown, "That is not a moderation action. Hide or Remove.");
-
-    public static readonly Error ModerationOfOwnFile = Error.Forbidden(
-        MediaErrorCodes.ModerationOfOwnFile,
-        "A file you uploaded is moderated by somebody else at Diaspora.");
+    public static readonly Error WithheldByModeration = Error.Conflict(
+        MediaErrorCodes.WithheldByModeration,
+        "A moderation decision withheld this file, not a scanner. It comes back by a restore on its "
+        + "moderation case, not by a release.");
 
     // ── Upload sessions ──────────────────────────────────────────────────
 
