@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Identity.V1;
 using Diaspora.Infrastructure.Identity.EmailVerification;
 using Diaspora.Application.Identity.Abstractions;
 using Diaspora.Application.Identity.Access;
@@ -60,6 +61,9 @@ public static class IdentityInfrastructureRegistration
         services.AddScoped<StaffAuthority>();
         services.AddScoped<AccountActionExecutor>();
         services.AddScoped<AccountActionProposals>();
+
+        // Trust asks who suspended a member when they appeal it (7 Nov 2026).
+        services.AddScoped<IAccountSuspensionRecord, AccountSuspensionRecord>();
 
         // Ends dated suspensions when their date passes; nothing did before 7 Nov 2026.
         services.AddHostedService<SuspensionExpirySweep>();

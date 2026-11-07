@@ -120,6 +120,15 @@ public static class IdentityAdministrationErrors
         "Identity.Administration.OnlyProposerWithdraws",
         "Only the member of staff who proposed this can withdraw it.");
 
+    /// <summary>A suspension the platform raised is taken up by one member of staff before a second confirms it.</summary>
+    public static readonly Error ProposalNeedsProposer = Error.Conflict(
+        "Identity.Administration.ProposalNeedsProposer",
+        "The platform raised this after a third strike. A member of staff must take it up as their proposal before a second can confirm it.");
+
+    public static readonly Error ProposalAlreadyHasProposer = Error.Conflict(
+        "Identity.Administration.ProposalAlreadyHasProposer",
+        "A member of staff has already taken this up. Confirm or decline it instead.");
+
     /// <summary>The decider does not hold the permission the proposed action itself needs.</summary>
     public static Error MissingPermission(string permission) => Error.Forbidden(
         "Identity.Administration.MissingPermission",

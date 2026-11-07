@@ -192,6 +192,54 @@ public class StaffActionRulesTests
         closure.Role.Should().BeNull();
     }
 
+    [Fact]
+    public void A_suspension_the_platform_raises_needs_a_member_of_staff_to_take_it_up_before_another_confirms()
+    {
+        var caseId = Guid.NewGuid();
+        var raised = AccountActionProposal.Raise(
+            UserId.New(), caseId, "FraudOrScam", "Third strike in jobs.", Now);
+
+        raised.Kind.Should().Be(AccountActionKind.Suspend);
+        raised.ProposedBy.Should().BeNull();
+        raised.AwaitsProposer.Should().BeTrue();
+        raised.RaisedByCaseId.Should().Be(caseId);
+        raised.Until.Should().BeNull("a third strike suspends until reviewed");
+
+        // The platform is not one of the two people.
+        raised.Confirm(UserId.New(), null, Now).Error.Code
+            .Should().Be("Identity.Administration.ProposalNeedsProposer");
+
+        var first = UserId.New();
+        raised.Adopt(first, "Three adverts asked for visa fees.", Now).IsSuccess.Should().BeTrue();
+
+        raised.ProposedBy.Should().Be(first);
+        raised.AwaitsProposer.Should().BeFalse();
+        raised.Note.Should().Be("Three adverts asked for visa fees.", "the member reads the proposer's note");
+
+        raised.Adopt(UserId.New(), "Me too.", Now).Error.Code
+            .Should().Be("Identity.Administration.ProposalAlreadyHasProposer");
+        raised.Confirm(first, null, Now).Error.Code
+            .Should().Be("Identity.Administration.ProposerCannotDecide");
+
+        raised.Confirm(UserId.New(), "Agreed.", Now).IsSuccess.Should().BeTrue();
+        raised.Status.Should().Be(AccountActionProposalStatus.Confirmed);
+    }
+
+    [Fact]
+    public void A_suspension_the_platform_raises_can_be_declined_before_anybody_takes_it_up()
+    {
+        var raised = AccountActionProposal.Raise(
+            UserId.New(), Guid.NewGuid(), "Spam", "Third strike in community.", Now);
+
+        raised.Decline(UserId.New(), "The removals were overturned.", Now).IsSuccess.Should().BeTrue();
+        raised.Status.Should().Be(AccountActionProposalStatus.Declined);
+
+        // Nobody proposed it, so nobody withdraws it.
+        AccountActionProposal.Raise(UserId.New(), Guid.NewGuid(), "Spam", "Third strike.", Now)
+            .Withdraw(UserId.New(), null, Now).Error.Code
+            .Should().Be("Identity.Administration.OnlyProposerWithdraws");
+    }
+
     private static AccountActionProposal Propose(UserId proposer) =>
         AccountActionProposal.Propose(
             AccountActionKind.Suspend,

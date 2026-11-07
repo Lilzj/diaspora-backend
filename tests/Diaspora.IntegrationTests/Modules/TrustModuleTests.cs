@@ -393,11 +393,14 @@ public sealed class TrustModuleTests : IdentityTestBase
         var (_, auth) = await RegisterAndVerifyAsync();
         Api.Authenticate(auth.Tokens.AccessToken);
 
+        // A publishing restriction, whose target Trust does not check. Until 7 Nov 2026 this used a
+        // suspension with the made-up target "suspension-1"; a suspension appeal now names the
+        // appellant's own account and is refused unless they are suspended (AccountAdministrationTests).
         var body = new
         {
-            type = "Suspension",
-            targetId = "suspension-1",
-            reason = "I was suspended in error and would like this reviewed."
+            type = "Publishing",
+            targetId = "publishing-1",
+            reason = "I was restricted in error and would like this reviewed."
         };
 
         var first = await HttpClient.PostAsJsonAsync("/api/v1/trust/appeals", body, JsonOptions);

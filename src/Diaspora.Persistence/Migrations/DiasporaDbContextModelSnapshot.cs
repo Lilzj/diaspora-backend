@@ -52,7 +52,10 @@ namespace Diaspora.Persistence.Migrations
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)");
 
-                    b.Property<Guid>("ProposedBy")
+                    b.Property<Guid?>("ProposedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("RaisedByCaseId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("ReasonCode")

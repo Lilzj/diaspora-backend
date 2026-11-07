@@ -133,6 +133,76 @@ public sealed class AccountActionProposals
         return Result.Success(await DescribeAsync(proposal, cancellationToken));
     }
 
+    /// <summary>
+    /// A member of staff takes up a suspension the platform raised after a third strike, as their
+    /// own proposal, so that a second member of staff can confirm it. They need what proposing it
+    /// themselves would need: the permission, a higher rank, and an account that can still be
+    /// suspended.
+    /// </summary>
+    public async Task<Result<AccountActionProposalResponse>> AdoptAsync(
+        Guid proposalId, string note, CancellationToken cancellationToken)
+    {
+        var proposal = await _proposals.GetByIdAsync(AccountActionProposalId.From(proposalId), cancellationToken);
+        if (proposal is null)
+        {
+            return Result.Failure<AccountActionProposalResponse>(IdentityAdministrationErrors.ProposalNotFound);
+        }
+
+        if (!proposal.IsPending)
+        {
+            return Result.Failure<AccountActionProposalResponse>(IdentityAdministrationErrors.ProposalNotPending);
+        }
+
+        if (proposal.ProposedBy is not null)
+        {
+            return Result.Failure<AccountActionProposalResponse>(IdentityAdministrationErrors.ProposalAlreadyHasProposer);
+        }
+
+        var permission = PermissionFor(proposal.Kind);
+        if (!await _authority.HoldsAsync(permission, cancellationToken))
+        {
+            return Result.Failure<AccountActionProposalResponse>(IdentityAdministrationErrors.MissingPermission(permission));
+        }
+
+        var resolved = await _authority.ResolveAsync(proposal.TargetUserId, cancellationToken);
+        if (resolved.IsFailure)
+        {
+            return Result.Failure<AccountActionProposalResponse>(resolved.Error);
+        }
+
+        var (actor, target) = resolved.Value;
+        var now = _clock.UtcNow;
+
+        var allowed = CanBeProposed(
+            new AccountActionDraft
+            {
+                Kind = proposal.Kind,
+                TargetUserId = target.Id.Value,
+                ReasonCode = proposal.ReasonCode,
+                Note = note,
+                Until = proposal.Until
+            },
+            actor,
+            target,
+            now);
+
+        if (allowed.IsFailure)
+        {
+            return Result.Failure<AccountActionProposalResponse>(allowed.Error);
+        }
+
+        var adopted = proposal.Adopt(actor.Id, note, now);
+        if (adopted.IsFailure)
+        {
+            return Result.Failure<AccountActionProposalResponse>(adopted.Error);
+        }
+
+        _proposals.Update(proposal);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return Result.Success(await DescribeAsync(proposal, cancellationToken));
+    }
+
     /// <summary>A second member of staff agrees, and the action is carried out.</summary>
     public async Task<Result<AccountActionProposalResponse>> ConfirmAsync(
         Guid proposalId, string? note, CancellationToken cancellationToken)

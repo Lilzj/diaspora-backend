@@ -3,6 +3,8 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Diaspora.Contracts.Identity.V1.Requests;
 using Diaspora.Contracts.Identity.V1.Responses;
+using Diaspora.Platform.Messaging;
+using Diaspora.Contracts.Moderation.V1.Events;
 using Diaspora.Domain.Identity.Repositories;
 using Diaspora.Domain.Identity.Users;
 using Diaspora.Infrastructure.Identity.Hosting;
@@ -577,6 +579,195 @@ public sealed class AccountAdministrationTests : PooledIdentityTestBase
     // ── Plumbing ─────────────────────────────────────────────────────────────
 
     private const string SuspensionNote = "Asked three buyers to pay outside the platform.";
+
+    [Fact]
+    public async Task A_third_strike_raises_a_suspension_that_one_member_of_staff_takes_up_and_a_second_confirms()
+    {
+        var (_, auth) = await RegisterVerifiedMemberAsync();
+        var member = auth.User.Id;
+        var caseId = Guid.NewGuid();
+
+        await AnnounceThirdStrikeAsync(member, caseId);
+
+        // Delivered again, as at-least-once delivery may: it raises nothing more.
+        await AnnounceThirdStrikeAsync(member, caseId);
+
+        var first = await SignInAsStaffAsync(UserRole.Moderator);
+
+        var queue = await IdentityApiClient.ReadDataAsync<List<AccountActionProposalResponse>>(
+            await HttpClient.GetAsync($"{Actions}?status=Pending&userId={member}"));
+
+        var raised = queue.Should().ContainSingle("one third strike raises one suspension").Subject;
+        raised.Kind.Should().Be("Suspend");
+        raised.ProposedBy.Should().BeNull("the platform raised it; no member of staff has proposed it");
+        raised.AwaitsProposer.Should().BeTrue();
+        raised.RaisedByCaseId.Should().Be(caseId);
+        raised.ReasonCode.Should().Be("FraudOrScam");
+        raised.Until.Should().BeNull("a third strike suspends until reviewed");
+
+        // Nobody has proposed it, so nobody can confirm it: the platform is not one of the two.
+        var early = await ConfirmAsync(raised.Id);
+        early.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await CodeOfAsync(early)).Should().Be("Identity.Administration.ProposalNeedsProposer");
+        (await MemberAsync(member)).AccountStatus.Should().Be("Active");
+
+        // Taking it up needs a note, because the member reads it.
+        (await AdoptAsync(raised.Id, null)).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        var adopted = await AdoptAsync(raised.Id, ThirdStrikeNote);
+        adopted.StatusCode.Should().Be(HttpStatusCode.OK, await adopted.Content.ReadAsStringAsync());
+
+        var taken = await IdentityApiClient.ReadDataAsync<AccountActionProposalResponse>(adopted);
+        taken.ProposedBy.Should().Be(first);
+        taken.AwaitsProposer.Should().BeFalse();
+        taken.Note.Should().Be(ThirdStrikeNote, "the member reads the note of the person who proposed it");
+        taken.RaisedByCaseId.Should().Be(caseId, "where it came from stays on the record");
+
+        // Once taken up, it is that person's proposal: they cannot confirm it, and nobody takes it up twice.
+        (await ConfirmAsync(raised.Id)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+
+        await SignInAsStaffAsync(UserRole.Moderator);
+        (await AdoptAsync(raised.Id, ThirdStrikeNote)).StatusCode.Should().Be(HttpStatusCode.Conflict);
+
+        var confirmed = await ConfirmAsync(raised.Id, "Read the three removals. Agreed.");
+        confirmed.StatusCode.Should().Be(HttpStatusCode.OK, await confirmed.Content.ReadAsStringAsync());
+
+        var suspended = await MemberAsync(member);
+        suspended.AccessState.Should().Be("Suspended");
+        suspended.StatusReasonCode.Should().Be("FraudOrScam");
+        suspended.StatusReason.Should().Be(ThirdStrikeNote);
+        suspended.SuspendedUntil.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task A_suspension_the_platform_raised_can_be_declined_by_one_member_of_staff()
+    {
+        var (_, auth) = await RegisterVerifiedMemberAsync();
+        var member = auth.User.Id;
+
+        await AnnounceThirdStrikeAsync(member, Guid.NewGuid());
+
+        await SignInAsStaffAsync(UserRole.Moderator);
+
+        var raised = (await IdentityApiClient.ReadDataAsync<List<AccountActionProposalResponse>>(
+            await HttpClient.GetAsync($"{Actions}?status=Pending&userId={member}"))).Single();
+
+        // Declining sanctions nobody, so it does not wait for a second person.
+        var declined = await HttpClient.PostAsJsonAsync(
+            $"{Actions}/{raised.Id}/decline",
+            new { note = "Two of the three removals were overturned on appeal." },
+            JsonOptions);
+
+        declined.StatusCode.Should().Be(HttpStatusCode.OK, await declined.Content.ReadAsStringAsync());
+        (await MemberAsync(member)).AccountStatus.Should().Be("Active");
+    }
+
+    [Fact]
+    public async Task An_upheld_appeal_lifts_a_suspension_and_neither_member_of_staff_behind_it_may_decide_it()
+    {
+        var (phone, auth) = await RegisterVerifiedMemberAsync();
+        var member = auth.User.Id;
+
+        using var memberClient = Factory.CreateClient();
+        memberClient.WithBearer(auth.Tokens.AccessToken);
+
+        // A member who is not suspended has no suspension to appeal.
+        (await AppealSuspensionAsync(memberClient, member)).StatusCode.Should().Be(HttpStatusCode.Conflict);
+
+        // Verified moderators: each of them could review an appeal, so a refusal below is the bar
+        // on the two people behind the suspension and not a missing permission.
+        var (proposer, _) = await SignInAsRoleAsync(nameof(UserRole.Moderator));
+        var proposal = await IdentityApiClient.ReadDataAsync<AccountActionProposalResponse>(
+            await ProposeSuspensionAsync(member));
+        var proposerToken = HttpClient.DefaultRequestHeaders.Authorization;
+
+        await SignInAsRoleAsync(nameof(UserRole.Moderator));
+        (await ConfirmAsync(proposal.Id, "Agreed on the reports.")).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await MemberAsync(member)).AccessState.Should().Be("Suspended");
+
+        // Signed out by the suspension, the member signs in again and appeals from the screen that tells them.
+        var session = await IdentityApiClient.ReadDataAsync<AuthenticationResponse>(
+            await new IdentityApiClient(memberClient).LoginAsync(
+                new LoginRequest { Email = EmailFor(phone), Password = ValidPassword }));
+        memberClient.WithBearer(session.Tokens.AccessToken);
+
+        // Only their own account.
+        (await AppealSuspensionAsync(memberClient, proposer)).StatusCode.Should().Be(HttpStatusCode.Conflict);
+
+        var filed = await AppealSuspensionAsync(memberClient, member);
+        filed.StatusCode.Should().Be(HttpStatusCode.Created, await filed.Content.ReadAsStringAsync());
+        var appealId = await AppealIdOfAsync(filed);
+
+        // The confirmer is the caller now; then the proposer. Neither may decide the appeal.
+        var byConfirmer = await ReviewAppealAsync(appealId);
+        (await byConfirmer.Content.ReadAsStringAsync()).Should().Contain("trust.review.self-forbidden");
+
+        HttpClient.DefaultRequestHeaders.Authorization = proposerToken;
+        var byProposer = await ReviewAppealAsync(appealId);
+        (await byProposer.Content.ReadAsStringAsync()).Should().Contain("trust.review.self-forbidden");
+
+        (await MemberAsync(member)).AccessState.Should().Be("Suspended");
+
+        await SignInAsRoleAsync(nameof(UserRole.Moderator));
+        var upheld = await ReviewAppealAsync(appealId);
+        upheld.StatusCode.Should().Be(HttpStatusCode.OK, await upheld.Content.ReadAsStringAsync());
+
+        await Factory.DrainOutboxAsync();
+
+        var lifted = await MemberAsync(member);
+        lifted.AccessState.Should().NotBe("Suspended", "an upheld appeal is carried out, not only recorded");
+        lifted.AccountStatus.Should().Be("Active");
+    }
+
+    private const string ThirdStrikeNote = "Three adverts removed for asking candidates to pay visa fees.";
+
+    private const string AppealReason = "The adverts were posted by somebody else who had my password at the time.";
+
+    /// <summary>Announces a third strike as Trust does, and delivers it.</summary>
+    private async Task AnnounceThirdStrikeAsync(Guid member, Guid caseId)
+    {
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var events = scope.ServiceProvider.GetRequiredService<IIntegrationEventPublisher>();
+            var context = scope.ServiceProvider.GetRequiredService<DiasporaDbContext>();
+
+            await events.PublishAsync(new MemberReachedThirdStrikeIntegrationEvent
+            {
+                UserId = member,
+                CaseId = caseId,
+                Area = "jobs",
+                ReasonCode = "FraudOrScam",
+                At = DateTimeOffset.UtcNow
+            });
+
+            await context.SaveChangesAsync();
+        }
+
+        await Factory.DrainOutboxAsync();
+    }
+
+    private Task<HttpResponseMessage> AdoptAsync(Guid proposalId, string? note) =>
+        HttpClient.PostAsJsonAsync($"{Actions}/{proposalId}/adopt", new { note }, JsonOptions);
+
+    private static Task<HttpResponseMessage> AppealSuspensionAsync(HttpClient client, Guid targetId) =>
+        client.PostAsJsonAsync(
+            "/api/v1/trust/appeals",
+            new { type = "Suspension", targetId = targetId.ToString(), reason = AppealReason },
+            JsonOptions);
+
+    private Task<HttpResponseMessage> ReviewAppealAsync(Guid appealId) =>
+        HttpClient.PostAsJsonAsync(
+            $"/api/v1/trust/appeals/{appealId}/review",
+            new { decision = "Approve", explanation = "The account was taken over; the member has secured it since." },
+            JsonOptions);
+
+    private static async Task<Guid> AppealIdOfAsync(HttpResponseMessage response)
+    {
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = document.RootElement.TryGetProperty("data", out var data) ? data : document.RootElement;
+
+        return root.GetProperty("appealId").GetGuid();
+    }
 
     private Task<HttpResponseMessage> ProposeSuspensionAsync(Guid member, DateTimeOffset? until = null) =>
         HttpClient.PostAsJsonAsync(

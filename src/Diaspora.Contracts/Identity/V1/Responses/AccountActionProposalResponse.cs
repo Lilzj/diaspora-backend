@@ -19,9 +19,22 @@ public sealed record AccountActionProposalResponse
     /// <summary>The account's role now.</summary>
     public string? TargetRole { get; init; }
 
-    public required Guid ProposedBy { get; init; }
+    /// <summary>
+    /// Who proposed it. Null while a suspension the platform raised after a third strike waits for
+    /// a member of staff to take it up (see <see cref="AwaitsProposer"/>).
+    /// </summary>
+    public Guid? ProposedBy { get; init; }
 
     public string? ProposedByName { get; init; }
+
+    /// <summary>The moderation case whose third strike raised it; null when staff proposed it.</summary>
+    public Guid? RaisedByCaseId { get; init; }
+
+    /// <summary>
+    /// True while the platform's proposal has no member of staff behind it: it can be taken up
+    /// (<c>POST …/adopt</c>) or declined, not confirmed.
+    /// </summary>
+    public bool AwaitsProposer { get; init; }
 
     /// <summary>A moderation reason code's name. Null for a role grant.</summary>
     public string? ReasonCode { get; init; }

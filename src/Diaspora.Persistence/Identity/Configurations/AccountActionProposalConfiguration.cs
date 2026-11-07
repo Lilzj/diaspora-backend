@@ -29,7 +29,10 @@ public sealed class AccountActionProposalConfiguration : IEntityTypeConfiguratio
             .IsRequired();
 
         builder.Property(proposal => proposal.TargetUserId).IsRequired();
-        builder.Property(proposal => proposal.ProposedBy).IsRequired();
+        // Null while a suspension the platform raised after a third strike waits for a member of
+        // staff to take it up.
+        builder.Property(proposal => proposal.ProposedBy);
+        builder.Property(proposal => proposal.RaisedByCaseId);
 
         builder.Property(proposal => proposal.ReasonCode)
             .HasMaxLength(AccountActionProposal.MaxReasonCodeLength);
@@ -60,6 +63,7 @@ public sealed class AccountActionProposalConfiguration : IEntityTypeConfiguratio
             .HasDatabaseName("ix_account_action_proposals_target_kind_status");
 
         builder.Ignore(proposal => proposal.IsPending);
+        builder.Ignore(proposal => proposal.AwaitsProposer);
         builder.Ignore(proposal => proposal.DomainEvents);
     }
 }

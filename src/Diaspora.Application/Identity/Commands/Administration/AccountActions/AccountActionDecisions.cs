@@ -40,6 +40,21 @@ public sealed record DeclineAccountActionCommand : ICommand<AccountActionProposa
     public required string Note { get; init; }
 }
 
+/// <summary>
+/// A member of staff takes up, as their own proposal, a suspension the platform raised after a
+/// member's third strike (7 Nov 2026), writing the note the member will read. A second member of
+/// staff then confirms or declines it. Taking it up needs what proposing a suspension needs.
+/// </summary>
+[Auditable(Action = "identity.account-action.adopted")]
+[Authorize(Permission = IdentityPermissions.ReadAnyUser)]
+public sealed record AdoptAccountActionCommand : ICommand<AccountActionProposalResponse>
+{
+    public required Guid ProposalId { get; init; }
+
+    /// <summary>Why, in the member of staff's words. The member reads it if it is confirmed.</summary>
+    public required string Note { get; init; }
+}
+
 /// <summary>The proposer takes back an account action nobody has decided yet.</summary>
 [Auditable(Action = "identity.account-action.withdrawn")]
 [Authorize(Permission = IdentityPermissions.ReadAnyUser)]
@@ -67,6 +82,14 @@ public sealed class DeclineAccountActionCommandValidator : IdentityValidator<Dec
             .Cascade(CascadeMode.Stop)
             .NotEmpty().WithMessage(Message(IdentityMessageKeys.NoteRequired))
             .MaximumLength(1000).WithMessage(Message(IdentityMessageKeys.NotesLength));
+    }
+}
+
+public sealed class AdoptAccountActionCommandValidator : IdentityValidator<AdoptAccountActionCommand>
+{
+    public AdoptAccountActionCommandValidator(ILocalizedMessageProvider messages) : base(messages)
+    {
+        RuleFor(command => (string?)command.Note).MustBeStaffNote(Message);
     }
 }
 
@@ -114,6 +137,25 @@ public sealed class DeclineAccountActionCommandHandler
         ArgumentNullException.ThrowIfNull(request);
 
         return _proposals.DeclineAsync(request.ProposalId, request.Note, cancellationToken);
+    }
+}
+
+public sealed class AdoptAccountActionCommandHandler
+    : ICommandHandler<AdoptAccountActionCommand, AccountActionProposalResponse>
+{
+    private readonly AccountActionProposals _proposals;
+
+    public AdoptAccountActionCommandHandler(AccountActionProposals proposals)
+    {
+        _proposals = proposals;
+    }
+
+    public Task<Result<AccountActionProposalResponse>> Handle(
+        AdoptAccountActionCommand request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        return _proposals.AdoptAsync(request.ProposalId, request.Note, cancellationToken);
     }
 }
 

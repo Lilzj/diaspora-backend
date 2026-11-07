@@ -1,4 +1,5 @@
 using Diaspora.Application.Abstractions;
+using Diaspora.Contracts.Identity.V1;
 using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Trust.Application.Mapping;
 using Diaspora.Modules.Trust.Application.Services;
@@ -66,6 +67,7 @@ public sealed class SubmitAppealCommandHandler : ICommandHandler<SubmitAppealCom
     private readonly IModerationItemRepository _cases;
     private readonly TrustProfileProvisioner _provisioner;
     private readonly ITrustEventRepository _timeline;
+    private readonly IAccountSuspensionRecord _suspensions;
     private readonly ICurrentUser _currentUser;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
@@ -76,6 +78,7 @@ public sealed class SubmitAppealCommandHandler : ICommandHandler<SubmitAppealCom
         IModerationItemRepository cases,
         TrustProfileProvisioner provisioner,
         ITrustEventRepository timeline,
+        IAccountSuspensionRecord suspensions,
         ICurrentUser currentUser,
         IUnitOfWork unitOfWork,
         IClock clock)
@@ -85,6 +88,7 @@ public sealed class SubmitAppealCommandHandler : ICommandHandler<SubmitAppealCom
         _cases = cases;
         _provisioner = provisioner;
         _timeline = timeline;
+        _suspensions = suspensions;
         _currentUser = currentUser;
         _unitOfWork = unitOfWork;
         _clock = clock;
@@ -188,6 +192,27 @@ public sealed class SubmitAppealCommandHandler : ICommandHandler<SubmitAppealCom
                 .OrderByDescending(decision => decision.DecidedAt)
                 .Select(decision => decision.ModeratorId)
                 .FirstOrDefault();
+        }
+
+        // A suspension appeal is the appellant's own account, and only while it is suspended
+        // (7 Nov 2026). Until now any member could appeal any account's "suspension", and the
+        // members of staff who suspended them could review it. An upheld appeal reinstates the
+        // member (Identity consumes the approval).
+        if (request.Type == AppealType.Suspension)
+        {
+            if (!Guid.TryParse(request.TargetId, out var suspendedMember) || suspendedMember != userId.Value)
+            {
+                return Result.Failure<AppealResponse>(TrustErrors.AppealNotAllowed);
+            }
+
+            var suspension = await _suspensions.GetCurrentAsync(userId.Value, cancellationToken);
+            if (suspension is null)
+            {
+                return Result.Failure<AppealResponse>(TrustErrors.AppealNotAllowed);
+            }
+
+            originalDecider = suspension.ConfirmedBy is { } confirmer ? UserId.From(confirmer) : null;
+            secondDecider = suspension.ProposedBy is { } proposer ? UserId.From(proposer) : null;
         }
 
         Appeal appeal;

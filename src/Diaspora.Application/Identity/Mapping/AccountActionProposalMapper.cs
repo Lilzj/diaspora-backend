@@ -24,8 +24,12 @@ public static class AccountActionProposalMapper
             TargetUserId = proposal.TargetUserId.Value,
             TargetFullName = target?.FullName.Value,
             TargetRole = target?.Role.Name,
-            ProposedBy = proposal.ProposedBy.Value,
-            ProposedByName = people.GetValueOrDefault(proposal.ProposedBy)?.FullName.Value,
+            ProposedBy = proposal.ProposedBy?.Value,
+            ProposedByName = proposal.ProposedBy is { } proposer
+                ? people.GetValueOrDefault(proposer)?.FullName.Value
+                : null,
+            RaisedByCaseId = proposal.RaisedByCaseId,
+            AwaitsProposer = proposal.AwaitsProposer,
             ReasonCode = proposal.ReasonCode,
             ReasonLabel = ModerationReasons.TryParse(proposal.ReasonCode, out var code)
                 ? ModerationReasons.Label(code)

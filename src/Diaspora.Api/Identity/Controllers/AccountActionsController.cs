@@ -115,6 +115,34 @@ public sealed class AccountActionsController : ApiController
         return HandleResult(result);
     }
 
+    /// <summary>
+    /// A member of staff takes up a suspension the platform raised after a third strike, as their
+    /// own proposal, so a second member of staff can confirm it.
+    /// </summary>
+    /// <remarks>
+    /// 200 with the proposal, now in the caller's name. <c>note</c> is required and replaces the
+    /// platform's: it is what the member reads. 403 without the suspend permission or a higher rank;
+    /// 409 when somebody has already taken it up or it is no longer pending.
+    /// </remarks>
+    [HttpPost("{proposalId:guid}/adopt")]
+    [Authorize(Policy = DiasporaPolicies.ReadAnyUser)]
+    [ProducesResponseType<ApiResponse<AccountActionProposalResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> AdoptAsync(
+        Guid proposalId,
+        [FromBody] DecideAccountActionRequest? request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(
+            new AdoptAccountActionCommand { ProposalId = proposalId, Note = request?.Note ?? string.Empty },
+            cancellationToken);
+
+        return HandleResult(result);
+    }
+
     /// <summary>The proposer takes it back before anybody has decided.</summary>
     /// <remarks>200 with the withdrawn proposal; 403 for anyone but the proposer.</remarks>
     [HttpPost("{proposalId:guid}/withdraw")]
