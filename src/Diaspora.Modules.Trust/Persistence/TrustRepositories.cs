@@ -687,6 +687,24 @@ public sealed class ModerationItemRepository : IModerationItemRepository
                     && item.Status != ModerationQueueStatus.Resolved,
                 cancellationToken);
 
+    public async Task<IReadOnlyList<ModerationItem>> ListConsequencesDueAsync(
+        DateTimeOffset asOf, int take, CancellationToken cancellationToken = default)
+    {
+        var candidates = await Items
+            .Include(item => item.Decisions)
+            .Include(item => item.Reports)
+            .AsSplitQuery()
+            .Where(item => item.CurrentOutcome == Diaspora.Contracts.Moderation.V1.ModerationOutcome.Remove
+                && item.ConsequencesAppliedAt == null
+                && item.Status != ModerationQueueStatus.Appealed
+                && item.AppealDeadline != null
+                && item.AppealDeadline <= asOf)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+
+        return candidates;
+    }
+
     public async Task<ModerationItem?> GetLatestForTargetAsync(
         string targetType, string contentId, CancellationToken cancellationToken = default)
     {

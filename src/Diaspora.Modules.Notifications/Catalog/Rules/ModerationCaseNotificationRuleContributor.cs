@@ -105,6 +105,19 @@ public sealed class ModerationCaseNotificationRuleContributor : INotificationRul
             DeduplicationWindow = null
         };
 
+        // A removal stood: what it cost, by email too (7 Nov 2026).
+        yield return new NotificationRuleSeed
+        {
+            Key = NotificationTemplateKeys.ModerationCaseStood,
+            EventName = typeof(ModerationDecisionStoodIntegrationEvent).FullName!,
+            Audience = ModerationDecisionStoodConsumer.Owner,
+            TemplateKey = NotificationTemplateKeys.ModerationCaseStood,
+            CategoryKey = NotificationCategoryKeys.Moderation,
+            Priority = NotificationPriority.Critical,
+            Channels = Everywhere,
+            DeduplicationWindow = null
+        };
+
         // Appeal outcomes: the member hears the answer and the reviewer's explanation, by email
         // too (7 Nov 2026: nobody was told; the answer sat on their timeline).
         yield return new NotificationRuleSeed

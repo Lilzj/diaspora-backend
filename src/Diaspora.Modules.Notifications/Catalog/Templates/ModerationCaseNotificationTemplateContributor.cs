@@ -141,6 +141,33 @@ public sealed class ModerationCaseNotificationTemplateContributor : INotificatio
 
         yield return new NotificationTemplateSeed
         {
+            Key = NotificationTemplateKeys.ModerationCaseStood,
+            CategoryKey = NotificationCategoryKeys.Moderation,
+            Priority = NotificationPriority.Critical,
+            RouteTemplate = "/profile/moderation/{caseid}",
+            Description = "A removal of a member's content stood: the warning or strike and the points it cost.",
+            Variables =
+            [
+                new TemplateVariableSeed { Name = "title", Sample = "Care Assistant" },
+                new TemplateVariableSeed { Name = "standstext", Sample = "The time to appeal has passed, so the removal stands." },
+                new TemplateVariableSeed { Name = "striketext", IsRequired = false, Sample = "This is a warning." },
+                new TemplateVariableSeed { Name = "pointstext", IsRequired = false, Sample = "Your reputation went down by 25 points." },
+                new TemplateVariableSeed { Name = "caseid", Sample = "9d1f9a6e-0000-0000-0000-000000000000" }
+            ],
+            Localizations =
+            [
+                new TemplateLocalizationSeed
+                {
+                    Language = "en",
+                    Title = "What the removal of \"{title}\" means for you",
+                    Body = "{standstext} {striketext} {pointstext}",
+                    ShortBody = "The removal of \"{title}\" stands."
+                }
+            ]
+        };
+
+        yield return new NotificationTemplateSeed
+        {
             Key = NotificationTemplateKeys.AppealUpheld,
             CategoryKey = NotificationCategoryKeys.Moderation,
             Priority = NotificationPriority.Critical,

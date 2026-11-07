@@ -124,6 +124,12 @@ public sealed class ModerationItem : AggregateRoot<ModerationItemId>, IAuditable
     /// </summary>
     public bool HiddenAutomatically { get; private set; }
 
+    /// <summary>
+    /// When a removal's consequences were applied: the window closed with no appeal, or the appeal
+    /// was refused. Null until then; consequences never land earlier (7 Nov 2026).
+    /// </summary>
+    public DateTimeOffset? ConsequencesAppliedAt { get; private set; }
+
     // ── Automated pre-screen ─────────────────────────────────────────────
 
     public bool? AiReviewClean { get; private set; }
@@ -798,6 +804,102 @@ public sealed class ModerationItem : AggregateRoot<ModerationItemId>, IAuditable
         ResolvedAt = null;
         ModifiedAt = at;
     }
+
+    /// <summary>
+    /// Whether a removal now stands and its consequences are due: confirmed, the appeal window
+    /// closed, no appeal open, and nothing applied yet.
+    /// </summary>
+    public bool ConsequencesDue(DateTimeOffset asOf) =>
+        CurrentOutcome is ModerationOutcome.Remove
+        && ConsequencesAppliedAt is null
+        && Status is not ModerationQueueStatus.Appealed
+        && AppealDeadline is { } deadline
+        && deadline <= asOf;
+
+    public void MarkConsequencesApplied(DateTimeOffset at)
+    {
+        ConsequencesAppliedAt = at;
+        ModifiedAt = at;
+    }
+
+    /// <summary>Whether the owner may still appeal: something taken down, within the window, no appeal yet.</summary>
+    public bool AppealableBy(UserId ownerId, DateTimeOffset asOf)
+    {
+        ArgumentNullException.ThrowIfNull(ownerId);
+
+        if (ownerId != AuthorId || ConsequencesAppliedAt is not null || Status is ModerationQueueStatus.Appealed)
+        {
+            return false;
+        }
+
+        return CurrentOutcome switch
+        {
+            ModerationOutcome.Remove => AppealDeadline is { } deadline && asOf <= deadline,
+            ModerationOutcome.HidePendingReview => LastEffectiveDecisionAt() is { } decided
+                && asOf <= decided.Add(ModerationPolicy.AppealWindow),
+            _ => false
+        };
+    }
+
+    /// <summary>
+    /// The appeal on this case was upheld by a member of staff who had no part in the decision: the
+    /// content comes back, and the owner is told. Returns the outcome the content's module must apply.
+    /// </summary>
+    public ModerationOutcome UpholdAppeal(UserId reviewerId, string explanation, DateTimeOffset at)
+    {
+        ArgumentNullException.ThrowIfNull(reviewerId);
+
+        if (Status is not ModerationQueueStatus.Appealed)
+        {
+            throw new DomainException("There is no appeal open on this case.", "trust.case.no-appeal");
+        }
+
+        var previous = Status;
+        CurrentOutcome = ModerationOutcome.Restore;
+        AppealDeadline = null;
+        Close(at);
+
+        var decision = ModerationDecision.Record(
+            Id, reviewerId, ModerationDecisionKind.Overruled, ModerationOutcome.Restore,
+            ReasonCode ?? ModerationReasonCode.Other, Truncate(explanation, MaxReasonLength) ?? "Appeal upheld.",
+            previous, Status, at);
+
+        _decisions.Add(decision);
+        ModifiedAt = at;
+
+        RaiseActionTaken(decision, ModerationOutcome.Restore, reviewerId, confirmedBy: null, at);
+
+        return ModerationOutcome.Restore;
+    }
+
+    /// <summary>
+    /// The appeal on this case was not upheld. A removal now stands at once: its consequences no longer
+    /// wait for the window.
+    /// </summary>
+    public void RefuseAppeal(DateTimeOffset at)
+    {
+        if (Status is not ModerationQueueStatus.Appealed)
+        {
+            throw new DomainException("There is no appeal open on this case.", "trust.case.no-appeal");
+        }
+
+        Status = ModerationQueueStatus.Rejected;
+        ResolvedAt = at;
+
+        if (CurrentOutcome is ModerationOutcome.Remove && (AppealDeadline is null || AppealDeadline > at))
+        {
+            AppealDeadline = at;
+        }
+
+        ModifiedAt = at;
+    }
+
+    private DateTimeOffset? LastEffectiveDecisionAt() =>
+        _decisions
+            .Where(decision => decision.Kind is not ModerationDecisionKind.Proposal)
+            .OrderByDescending(decision => decision.DecidedAt)
+            .Select(decision => (DateTimeOffset?)decision.DecidedAt)
+            .FirstOrDefault();
 
     /// <summary>Reopens the item because the author appealed the decision.</summary>
     public void MarkAppealed(DateTimeOffset at)

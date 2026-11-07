@@ -31,6 +31,8 @@ public static class DependencyInjection
             cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(RequestTelemetryBehavior<,>));
             cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
             cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(AuthorizationBehavior<,>));
+            // After the permission check, before anything is written: a strike's posting block (7 Nov 2026).
+            cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(PostingStandingBehavior<,>));
             cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(TransactionBehavior<,>));
             cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(AuditBehavior<,>));
         });

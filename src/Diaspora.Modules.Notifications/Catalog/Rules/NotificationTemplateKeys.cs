@@ -193,6 +193,7 @@ public static class NotificationTemplateKeys
     public const string ModerationCaseRemoved = "moderation.case.removed";
     public const string ModerationCaseRestored = "moderation.case.restored";
     public const string ModerationReportOutcome = "moderation.report.outcome";
+    public const string ModerationCaseStood = "moderation.case.stood";
 
     // ── Appeals (7 Nov 2026) ─────────────────────────────────────────────
     public const string AppealUpheld = "trust.appeal.upheld";

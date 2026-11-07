@@ -260,6 +260,10 @@ public interface IModerationItemRepository
     Task<ModerationItem?> GetOpenForTargetAsync(
         string targetType, string contentId, CancellationToken cancellationToken = default);
 
+    /// <summary>Removals whose appeal window has closed with no appeal, and nothing yet applied.</summary>
+    Task<IReadOnlyList<ModerationItem>> ListConsequencesDueAsync(
+        DateTimeOffset asOf, int take, CancellationToken cancellationToken = default);
+
     /// <summary>The most recent case about this content, open or not.</summary>
     Task<ModerationItem?> GetLatestForTargetAsync(
         string targetType, string contentId, CancellationToken cancellationToken = default);

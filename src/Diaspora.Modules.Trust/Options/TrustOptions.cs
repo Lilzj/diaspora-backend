@@ -39,4 +39,14 @@ public sealed class TrustOptions
     /// <summary>How often the risk sweep runs.</summary>
     [Range(1, 1440)]
     public int RiskSweepMinutes { get; set; } = 60;
+
+    /// <summary>
+    /// Whether removals whose appeal window has closed get their consequences (7 Nov 2026). Off, a
+    /// removal never costs the owner anything, which is safe but not the rule.
+    /// </summary>
+    public bool EnableConsequenceSweep { get; set; } = true;
+
+    /// <summary>How often the consequence sweep runs. Hourly is plenty against a 14-day window.</summary>
+    [Range(1, 1440)]
+    public int ConsequenceSweepMinutes { get; set; } = 60;
 }

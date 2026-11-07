@@ -309,17 +309,8 @@ public sealed class ReportUpheldReputationConsumer
             null,
             cancellationToken);
 
-        if (integrationEvent.ContentOwnerUserId is { } owner && owner != Guid.Empty)
-        {
-            await _risk.RecordAsync(
-                RiskSignal.ReportUpheld(
-                    UserId.From(owner),
-                    integrationEvent.Module,
-                    integrationEvent.ContentType,
-                    integrationEvent.ContentId,
-                    integrationEvent.ReportId,
-                    integrationEvent.UpheldAt),
-                cancellationToken);
-        }
+        // The owner's risk signal is no longer recorded here (7 Nov 2026). A report is upheld when a
+        // moderator hides or proposes removing the content, which is before the owner has had a
+        // chance to appeal. The signal is recorded when a removal stands, by ModerationConsequences.
     }
 }

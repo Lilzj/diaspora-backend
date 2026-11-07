@@ -44,6 +44,7 @@ public sealed class AppealConfiguration : IEntityTypeConfiguration<Appeal>
             .HasMaxLength(Appeal.MaxExplanationLength);
 
         builder.Property(appeal => appeal.OriginalDeciderId);
+        builder.Property(appeal => appeal.SecondDeciderId);
         builder.Property(appeal => appeal.AssignedReviewerId);
 
         builder.Property(appeal => appeal.SubmittedAt).IsRequired();
@@ -429,5 +430,40 @@ public sealed class ModerationCaseReportConfiguration : IEntityTypeConfiguration
             .HasDatabaseName("ux_moderation_case_reports_reporter");
 
         builder.Ignore(report => report.DomainEvents);
+    }
+}
+
+/// <summary>A member's strikes (7 Nov 2026): one per removal that stood.</summary>
+public sealed class StrikeConfiguration : IEntityTypeConfiguration<Strike>
+{
+    public void Configure(EntityTypeBuilder<Strike> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.ToTable("strikes", TrustModuleMetadata.Schema);
+
+        builder.HasKey(strike => strike.Id);
+
+        builder.Property(strike => strike.Id)
+            .HasConversion(new StronglyTypedIdValueConverter<StrikeId>())
+            .ValueGeneratedNever();
+
+        builder.Property(strike => strike.CaseId)
+            .HasConversion(new StronglyTypedIdValueConverter<ModerationItemId>())
+            .IsRequired();
+
+        builder.Property(strike => strike.MemberId).IsRequired();
+        builder.Property(strike => strike.Area).HasMaxLength(Strike.MaxAreaLength).IsRequired();
+        builder.Property(strike => strike.Level).HasConversion<string>().HasMaxLength(16).IsRequired();
+        builder.Property(strike => strike.IssuedAt).IsRequired();
+        builder.Property(strike => strike.ExpiresAt).IsRequired();
+        builder.Property(strike => strike.RevokedReason).HasMaxLength(500);
+
+        builder.HasIndex(strike => strike.MemberId).HasDatabaseName("ix_strikes_member");
+
+        // One strike per case: a decision that stands is counted once.
+        builder.HasIndex(strike => strike.CaseId).IsUnique().HasDatabaseName("ux_strikes_case");
+
+        builder.Ignore(strike => strike.DomainEvents);
     }
 }

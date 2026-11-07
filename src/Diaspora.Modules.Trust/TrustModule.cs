@@ -98,6 +98,9 @@ public sealed class TrustModule : IPlatformModule
         services.AddScoped<IModerationItemRepository, ModerationItemRepository>();
         // Every module's IModerationTarget, by content type (7 Nov 2026).
         services.AddScoped<Diaspora.Modules.Trust.Application.Moderation.ModerationTargetRegistry>();
+        services.AddScoped<IStrikeRepository, StrikeRepository>();
+        // Every module asks this before letting a member post: a strike blocks one area for a while.
+        services.AddScoped<Diaspora.Contracts.Moderation.V1.IPostingStanding, StrikePostingStanding>();
         services.AddScoped<ICommunityContributionRepository, CommunityContributionRepository>();
         services.AddScoped<IRiskSignalRepository, RiskSignalRepository>();
     }
@@ -150,6 +153,9 @@ public sealed class TrustModule : IPlatformModule
 
         services.AddScoped<MemberRiskAssessor>();
         services.AddHostedService<TrustRiskSweep>();
+        services.AddScoped<Diaspora.Modules.Trust.Application.Moderation.ModerationConsequences>();
+        services.AddSingleton<TrustConsequenceSweep>();
+        services.AddHostedService(provider => provider.GetRequiredService<TrustConsequenceSweep>());
 
         // B3.0.2. The workflow, and the two entry points that share it — the member's own
         // route through MediatR, and the published in-process contract below.

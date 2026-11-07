@@ -17368,6 +17368,9 @@ namespace Diaspora.Persistence.Migrations
                     b.Property<DateTimeOffset?>("ReviewDueAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("SecondDeciderId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -17717,6 +17720,9 @@ namespace Diaspora.Persistence.Migrations
                     b.Property<Guid>("AuthorId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTimeOffset?>("ConsequencesAppliedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("ContentId")
                         .IsRequired()
                         .HasMaxLength(128)
@@ -18052,6 +18058,55 @@ namespace Diaspora.Persistence.Migrations
                         .HasDatabaseName("ix_risk_signals_user_occurred");
 
                     b.ToTable("risk_signals", "trust");
+                });
+
+            modelBuilder.Entity("Diaspora.Modules.Trust.Domain.Strike", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Area")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTimeOffset?>("BlockedUntil")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("IssuedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Level")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RevokedReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CaseId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_strikes_case");
+
+                    b.HasIndex("MemberId")
+                        .HasDatabaseName("ix_strikes_member");
+
+                    b.ToTable("strikes", "trust");
                 });
 
             modelBuilder.Entity("Diaspora.Modules.Trust.Domain.TrustEvent", b =>

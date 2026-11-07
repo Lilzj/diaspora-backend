@@ -62,6 +62,12 @@ public sealed class Appeal : AggregateRoot<AppealId>, IAuditableEntity
     /// <summary>Who made the decision under appeal. Barred from reviewing it.</summary>
     public UserId? OriginalDeciderId { get; private set; }
 
+    /// <summary>
+    /// The second member of staff behind the decision, for a removal they confirmed (7 Nov 2026).
+    /// Neither of the two may decide the appeal.
+    /// </summary>
+    public UserId? SecondDeciderId { get; private set; }
+
     public UserId? AssignedReviewerId { get; private set; }
 
     public DateTimeOffset SubmittedAt { get; private set; }
@@ -144,6 +150,12 @@ public sealed class Appeal : AggregateRoot<AppealId>, IAuditableEntity
     public Appeal WithOriginalDecider(UserId? deciderId)
     {
         OriginalDeciderId = deciderId;
+        return this;
+    }
+
+    public Appeal WithSecondDecider(UserId? deciderId)
+    {
+        SecondDeciderId = deciderId;
         return this;
     }
 
@@ -277,7 +289,8 @@ public sealed class Appeal : AggregateRoot<AppealId>, IAuditableEntity
                 "A member cannot review their own appeal.", "trust.review.self-forbidden");
         }
 
-        if (OriginalDeciderId is not null && reviewerId == OriginalDeciderId)
+        if ((OriginalDeciderId is not null && reviewerId == OriginalDeciderId)
+            || (SecondDeciderId is not null && reviewerId == SecondDeciderId))
         {
             throw new DomainException(
                 "The reviewer whose decision is under appeal cannot decide the appeal.",
