@@ -17,6 +17,13 @@ namespace Diaspora.Modules.Financial.Domain.Policies;
 /// gone out.
 /// </para>
 /// <para>
+/// <b>Moves into and out of <see cref="CampaignStatus.Suspended"/> are in the table and are
+/// moderation's alone.</b> The table says what the machine permits; who may make a move is the
+/// handler's question, exactly as publication under review is a legal move only a reviewer makes.
+/// <see cref="IsModerationMove"/> names them, so the organiser's transition handler refuses them and
+/// the response never offers them.
+/// </para>
+/// <para>
 /// <b><see cref="CampaignStatus.GoalReached"/> still collects.</b> People give past a target
 /// deliberately, and a platform that stopped taking money at 100% would be refusing gifts somebody
 /// meant to make. <see cref="CampaignStatus.DeadlineReached"/> does not, because a deadline is a
@@ -36,23 +43,37 @@ public static class CampaignTransitions
             [CampaignStatus.Published] =
             [
                 CampaignStatus.Active, CampaignStatus.Paused, CampaignStatus.Cancelled,
-                CampaignStatus.Closed
+                CampaignStatus.Closed, CampaignStatus.Suspended
             ],
             [CampaignStatus.Active] =
             [
                 CampaignStatus.Paused, CampaignStatus.GoalReached, CampaignStatus.DeadlineReached,
-                CampaignStatus.Closed, CampaignStatus.Refunding, CampaignStatus.Cancelled
+                CampaignStatus.Closed, CampaignStatus.Refunding, CampaignStatus.Cancelled,
+                CampaignStatus.Suspended
             ],
             [CampaignStatus.Paused] =
-                [CampaignStatus.Active, CampaignStatus.Closed, CampaignStatus.Cancelled],
+            [
+                CampaignStatus.Active, CampaignStatus.Closed, CampaignStatus.Cancelled,
+                CampaignStatus.Suspended
+            ],
             [CampaignStatus.GoalReached] =
-                [CampaignStatus.Active, CampaignStatus.Completed, CampaignStatus.Closed],
+            [
+                CampaignStatus.Active, CampaignStatus.Completed, CampaignStatus.Closed,
+                CampaignStatus.Suspended
+            ],
             [CampaignStatus.DeadlineReached] =
-                [CampaignStatus.Completed, CampaignStatus.Closed, CampaignStatus.Refunding],
+            [
+                CampaignStatus.Completed, CampaignStatus.Closed, CampaignStatus.Refunding,
+                CampaignStatus.Suspended
+            ],
             [CampaignStatus.Completed] = [],
             [CampaignStatus.Refunding] = [CampaignStatus.Closed],
             [CampaignStatus.Cancelled] = [],
-            [CampaignStatus.Closed] = []
+            [CampaignStatus.Closed] = [],
+
+            // Restored campaigns come back not collecting: paused, or past their deadline where it
+            // has gone by. Whether one collects again is its organiser's decision, never staff's.
+            [CampaignStatus.Suspended] = [CampaignStatus.Paused, CampaignStatus.DeadlineReached]
         };
 
     /// <summary>Whether the machine permits this move. Same state to same state is not asked here.</summary>
@@ -95,5 +116,18 @@ public static class CampaignTransitions
 
     /// <summary>Whether a campaign in this state should be visible to somebody who does not run it.</summary>
     public static bool IsPubliclyVisible(CampaignStatus status) =>
-        status is not (CampaignStatus.Draft or CampaignStatus.PendingReview or CampaignStatus.Rejected);
+        status is not (CampaignStatus.Draft
+            or CampaignStatus.PendingReview
+            or CampaignStatus.Rejected
+            or CampaignStatus.Suspended);
+
+    /// <summary>
+    /// Whether this move is moderation's: into <see cref="CampaignStatus.Suspended"/>, or out of it.
+    /// <para>
+    /// No organiser route makes either, and the organiser's transition handler refuses both, so a
+    /// suspended campaign cannot be resumed by the person it was suspended from.
+    /// </para>
+    /// </summary>
+    public static bool IsModerationMove(CampaignStatus from, CampaignStatus to) =>
+        from == CampaignStatus.Suspended || to == CampaignStatus.Suspended;
 }

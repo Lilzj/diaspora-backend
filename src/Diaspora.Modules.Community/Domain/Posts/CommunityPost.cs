@@ -663,6 +663,45 @@ public sealed class CommunityPost
         return Result.Success();
     }
 
+    // ── Decisions on a Trust moderation case (7 Nov 2026) ───────────────────────────────────
+    //
+    // Staff act on a member's post only by deciding its Trust case, and these three carry the
+    // decision out. None of them deletes: a removal here raises no PostDeletedDomainEvent, which
+    // would take back what the post earned before the decision stands. A hidden post is still the
+    // author's to fix (it can be edited, and the author asks for a review); a removed one is not.
+
+    /// <summary>Takes the post out of public view while the author can fix it and ask again.</summary>
+    public Result HidePendingReview() => MoveByModeration(PostStatus.Hidden);
+
+    /// <summary>Takes the post down until an appeal succeeds. Not a deletion.</summary>
+    public Result RemoveByModeration() => MoveByModeration(PostStatus.Removed);
+
+    /// <summary>Puts a hidden or removed post back. Anything else is left as it is.</summary>
+    public Result RestoreFromModeration() =>
+        Status is PostStatus.Hidden or PostStatus.Removed
+            ? MoveByModeration(PublishedAt is null ? PostStatus.Draft : PostStatus.Published)
+            : Result.Success();
+
+    private Result MoveByModeration(PostStatus to)
+    {
+        // The author deleted it: there is nothing left to take down or to put back.
+        if (Status is PostStatus.Deleted || IsDeleted)
+        {
+            return Result.Failure(CommunityErrors.PostRemoved);
+        }
+
+        if (Status == to)
+        {
+            return Result.Success();
+        }
+
+        Status = to;
+
+        RaiseDomainEvent(new PostModeratedDomainEvent { PostId = Id, Status = to });
+
+        return Result.Success();
+    }
+
     /// <summary>
     /// Marks the post deleted by its author.
     /// <para>

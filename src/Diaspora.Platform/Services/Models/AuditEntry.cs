@@ -7,6 +7,8 @@ public sealed record AuditEntry
     public required string EntityId { get; init; }
     public string? ActorId { get; init; }
     public string? ActorRole { get; init; }
+    /// <summary>The reason the actor gave, when the action takes one.</summary>
+    public string? Reason { get; init; }
     public Dictionary<string, object?>? OldValues { get; init; }
     public Dictionary<string, object?>? NewValues { get; init; }
     public Dictionary<string, string>? Metadata { get; init; }

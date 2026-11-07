@@ -18,6 +18,7 @@ public static class IdentityPersistenceRegistration
         services.AddScoped<IUserDeviceRepository, UserDeviceRepository>();
         services.AddScoped<IOtpChallengeRepository, OtpChallengeRepository>();
         services.AddScoped<ISecurityEventRepository, SecurityEventRepository>();
+        services.AddScoped<IAccountActionProposalRepository, AccountActionProposalRepository>();
 
         return services;
     }

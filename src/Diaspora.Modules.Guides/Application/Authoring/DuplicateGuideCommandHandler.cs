@@ -93,8 +93,8 @@ public sealed class DuplicateGuideCommandHandler
             return Result.Failure<GuideResponse>(GuideErrors.NotFound);
         }
 
-        // Owner only. RequireAuthor also admits staff, which is right for moderation and wrong
-        // here: a moderator duplicating somebody's guide would author a copy under their own name.
+        // Owner only, like every author route: staff never pass the author check, and a
+        // moderator duplicating somebody's guide would author a copy under their own name.
         if (source.AuthorId != caller.Value)
         {
             return Result.Failure<GuideResponse>(GuideErrors.NotAuthor);

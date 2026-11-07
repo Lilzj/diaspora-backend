@@ -34,25 +34,3 @@ public sealed record ListJobReportsQuery : IQuery<IReadOnlyList<JobReportRespons
 
     public int? Limit { get; init; }
 }
-
-/// <summary>Closes a report, and optionally takes the advert down with it. Staff.</summary>
-[Authorize(Permission = JobPermissions.Moderate)]
-[Transactional]
-[Auditable]
-public sealed record ResolveJobReportCommand : ICommand<JobReportResponse>
-{
-    public required Guid ReportId { get; init; }
-
-    public required ResolveJobReportRequest Request { get; init; }
-}
-
-/// <summary>Acts on the advert itself, separately from closing any report. Staff.</summary>
-[Authorize(Permission = JobPermissions.Moderate)]
-[Transactional]
-[Auditable]
-public sealed record ModerateJobPostingCommand : ICommand
-{
-    public required Guid PostingId { get; init; }
-
-    public required ModerateJobPostingRequest Request { get; init; }
-}

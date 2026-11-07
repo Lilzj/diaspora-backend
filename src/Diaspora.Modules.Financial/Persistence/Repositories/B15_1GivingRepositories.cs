@@ -152,19 +152,23 @@ public sealed class CampaignRepository : ICampaignRepository
         }
         else if (filter.ViewerUserId is { } viewer)
         {
-            // Public campaigns, plus the viewer's own whatever state they are in.
+            // Public campaigns, plus the viewer's own whatever state they are in. The hidden states
+            // are CampaignTransitions.IsPubliclyVisible's, spelled out because EF cannot translate
+            // a call into it.
             query = query.Where(campaign =>
                 campaign.OrganizerUserId == viewer
                 || (campaign.Status != CampaignStatus.Draft
                     && campaign.Status != CampaignStatus.PendingReview
-                    && campaign.Status != CampaignStatus.Rejected));
+                    && campaign.Status != CampaignStatus.Rejected
+                    && campaign.Status != CampaignStatus.Suspended));
         }
         else
         {
             query = query.Where(campaign =>
                 campaign.Status != CampaignStatus.Draft
                 && campaign.Status != CampaignStatus.PendingReview
-                && campaign.Status != CampaignStatus.Rejected);
+                && campaign.Status != CampaignStatus.Rejected
+                && campaign.Status != CampaignStatus.Suspended);
         }
 
         if (filter.Status is { } status)

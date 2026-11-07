@@ -1,4 +1,5 @@
 using Diaspora.Application.Abstractions;
+using Diaspora.Contracts.Identity.V1;
 using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Trust.Application.Mapping;
 using Diaspora.Modules.Trust.Application.Services;
@@ -63,8 +64,10 @@ public sealed class SubmitAppealCommandHandler : ICommandHandler<SubmitAppealCom
 {
     private readonly IAppealRepository _appeals;
     private readonly IVerificationRequestRepository _verifications;
+    private readonly IModerationItemRepository _cases;
     private readonly TrustProfileProvisioner _provisioner;
     private readonly ITrustEventRepository _timeline;
+    private readonly IAccountSuspensionRecord _suspensions;
     private readonly ICurrentUser _currentUser;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
@@ -72,16 +75,20 @@ public sealed class SubmitAppealCommandHandler : ICommandHandler<SubmitAppealCom
     public SubmitAppealCommandHandler(
         IAppealRepository appeals,
         IVerificationRequestRepository verifications,
+        IModerationItemRepository cases,
         TrustProfileProvisioner provisioner,
         ITrustEventRepository timeline,
+        IAccountSuspensionRecord suspensions,
         ICurrentUser currentUser,
         IUnitOfWork unitOfWork,
         IClock clock)
     {
         _appeals = appeals;
         _verifications = verifications;
+        _cases = cases;
         _provisioner = provisioner;
         _timeline = timeline;
+        _suspensions = suspensions;
         _currentUser = currentUser;
         _unitOfWork = unitOfWork;
         _clock = clock;
@@ -146,6 +153,68 @@ public sealed class SubmitAppealCommandHandler : ICommandHandler<SubmitAppealCom
                 .FirstOrDefault(reviewer => reviewer is not null);
         }
 
+        // A content appeal is against a moderation decision on the member's own content (7 Nov 2026).
+        // Until now its target was free text that nothing checked, the moderator who decided could
+        // review the appeal, and an upheld appeal restored nothing. Now the target is the case: it
+        // must be the appellant's, something must have been taken down, the window (14 days) must be
+        // open, and neither member of staff behind the decision may review it.
+        ModerationItem? moderationCase = null;
+        UserId? secondDecider = null;
+
+        if (request.Type == AppealType.Content)
+        {
+            if (!Guid.TryParse(request.TargetId, out var caseId))
+            {
+                return Result.Failure<AppealResponse>(TrustErrors.AppealNotAllowed);
+            }
+
+            moderationCase = await _cases.GetAsync(ModerationItemId.From(caseId), cancellationToken);
+
+            if (moderationCase is null || moderationCase.AuthorId != userId)
+            {
+                return Result.Failure<AppealResponse>(TrustErrors.QueueItemNotFound);
+            }
+
+            if (!moderationCase.AppealableBy(userId, now))
+            {
+                return Result.Failure<AppealResponse>(TrustErrors.AppealWindowClosed);
+            }
+
+            originalDecider = moderationCase.FirstDeciderId
+                ?? moderationCase.Decisions
+                    .Where(decision => decision.ModeratorId is not null)
+                    .OrderByDescending(decision => decision.DecidedAt)
+                    .Select(decision => decision.ModeratorId)
+                    .FirstOrDefault();
+
+            secondDecider = moderationCase.Decisions
+                .Where(decision => decision.Kind == ModerationDecisionKind.Confirmation)
+                .OrderByDescending(decision => decision.DecidedAt)
+                .Select(decision => decision.ModeratorId)
+                .FirstOrDefault();
+        }
+
+        // A suspension appeal is the appellant's own account, and only while it is suspended
+        // (7 Nov 2026). Until now any member could appeal any account's "suspension", and the
+        // members of staff who suspended them could review it. An upheld appeal reinstates the
+        // member (Identity consumes the approval).
+        if (request.Type == AppealType.Suspension)
+        {
+            if (!Guid.TryParse(request.TargetId, out var suspendedMember) || suspendedMember != userId.Value)
+            {
+                return Result.Failure<AppealResponse>(TrustErrors.AppealNotAllowed);
+            }
+
+            var suspension = await _suspensions.GetCurrentAsync(userId.Value, cancellationToken);
+            if (suspension is null)
+            {
+                return Result.Failure<AppealResponse>(TrustErrors.AppealNotAllowed);
+            }
+
+            originalDecider = suspension.ConfirmedBy is { } confirmer ? UserId.From(confirmer) : null;
+            secondDecider = suspension.ProposedBy is { } proposer ? UserId.From(proposer) : null;
+        }
+
         Appeal appeal;
         try
         {
@@ -163,7 +232,9 @@ public sealed class SubmitAppealCommandHandler : ICommandHandler<SubmitAppealCom
             return Result.Failure<AppealResponse>(TrustErrors.AppealWindowClosed);
         }
 
-        appeal.WithOriginalDecider(originalDecider).AsCorrectionRequest(request.IsCorrectionRequest);
+        appeal.WithOriginalDecider(originalDecider)
+            .WithSecondDecider(secondDecider)
+            .AsCorrectionRequest(request.IsCorrectionRequest);
 
         foreach (var key in request.EvidenceKeys ?? [])
         {
@@ -175,6 +246,9 @@ public sealed class SubmitAppealCommandHandler : ICommandHandler<SubmitAppealCom
         // The verification moves to Appealed so it cannot be decided again underneath the
         // appeal, and so the member's own view shows the appeal in progress.
         verification?.MarkAppealed(now);
+
+        // The case waits for the appeal: its consequences cannot land while it is open.
+        moderationCase?.MarkAppealed(now);
 
         var profile = await _provisioner.GetOrCreateAsync(userId, cancellationToken);
         profile.AppealOpened(now);
@@ -239,6 +313,9 @@ public sealed class ReviewAppealCommandHandler : ICommandHandler<ReviewAppealCom
 {
     private readonly IAppealRepository _appeals;
     private readonly IVerificationRequestRepository _verifications;
+    private readonly IModerationItemRepository _cases;
+    private readonly Moderation.ModerationTargetRegistry _targets;
+    private readonly Moderation.ModerationConsequences _consequences;
     private readonly TrustProfileProvisioner _provisioner;
     private readonly ITrustEventRepository _timeline;
     private readonly BadgeEvaluator _badges;
@@ -249,6 +326,9 @@ public sealed class ReviewAppealCommandHandler : ICommandHandler<ReviewAppealCom
     public ReviewAppealCommandHandler(
         IAppealRepository appeals,
         IVerificationRequestRepository verifications,
+        IModerationItemRepository cases,
+        Moderation.ModerationTargetRegistry targets,
+        Moderation.ModerationConsequences consequences,
         TrustProfileProvisioner provisioner,
         ITrustEventRepository timeline,
         BadgeEvaluator badges,
@@ -258,6 +338,9 @@ public sealed class ReviewAppealCommandHandler : ICommandHandler<ReviewAppealCom
     {
         _appeals = appeals;
         _verifications = verifications;
+        _cases = cases;
+        _targets = targets;
+        _consequences = consequences;
         _provisioner = provisioner;
         _timeline = timeline;
         _badges = badges;
@@ -328,6 +411,46 @@ public sealed class ReviewAppealCommandHandler : ICommandHandler<ReviewAppealCom
                         verification.Type,
                         verification.TargetCountry ?? verification.ResidenceCountry,
                         now);
+                }
+            }
+        }
+
+        // A content appeal writes its outcome back to the case (7 Nov 2026). Upheld, the content
+        // comes back through its module and the owner is told; refused, a removal stands at once and
+        // its consequences land now rather than waiting for the window.
+        if (appeal.Type == AppealType.Content && Guid.TryParse(appeal.TargetId, out var caseId))
+        {
+            var moderationCase = await _cases.GetAsync(ModerationItemId.From(caseId), cancellationToken);
+
+            if (moderationCase is not null && moderationCase.Status == ModerationQueueStatus.Appealed)
+            {
+                if (request.Upheld)
+                {
+                    moderationCase.UpholdAppeal(reviewerId, request.Explanation, now);
+
+                    if (_targets.Find(moderationCase.TargetType) is { } target
+                        && Guid.TryParse(moderationCase.ContentId, out var contentId))
+                    {
+                        var restored = await target.ApplyAsync(
+                            contentId,
+                            Diaspora.Contracts.Moderation.V1.ModerationOutcome.Restore,
+                            new Diaspora.Contracts.Moderation.V1.ModerationActor(
+                                reviewerId.Value,
+                                moderationCase.Id.Value,
+                                moderationCase.ReasonCode ?? Diaspora.Contracts.Moderation.V1.ModerationReasonCode.Other,
+                                request.Explanation),
+                            cancellationToken);
+
+                        if (restored.IsFailure)
+                        {
+                            return Result.Failure<AppealResponse>(restored.Error);
+                        }
+                    }
+                }
+                else
+                {
+                    moderationCase.RefuseAppeal(now);
+                    await _consequences.ApplyAsync(moderationCase, afterAppeal: true, now, cancellationToken);
                 }
             }
         }

@@ -22,7 +22,7 @@ public sealed class UserLoggedOutEventHandler : DomainEventHandler<UserLoggedOut
         {
             Action = IdentityAuditActions.UserLoggedOut,
             EntityType = IdentityAuditActions.EntityTypes.Session,
-            EntityId = domainEvent.SessionId.ToString(),
+            EntityId = domainEvent.SessionId.Value.ToString(),
             SubjectUserId = domainEvent.UserId
         }, cancellationToken);
 }

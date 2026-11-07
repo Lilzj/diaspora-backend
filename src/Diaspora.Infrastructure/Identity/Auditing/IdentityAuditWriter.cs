@@ -43,7 +43,7 @@ public sealed class IdentityAuditWriter : IIdentityAuditWriter
             // The subject is recorded separately from the actor: an administrator
             // suspending a member produces one record naming both, and conflating them
             // would make the trail useless for exactly the cases it exists for.
-            metadata["subjectUserId"] = draft.SubjectUserId.ToString();
+            metadata["subjectUserId"] = draft.SubjectUserId.Value.ToString();
         }
 
         return _auditService.RecordAsync(
@@ -52,7 +52,7 @@ public sealed class IdentityAuditWriter : IIdentityAuditWriter
                 Action = draft.Action,
                 EntityType = draft.EntityType,
                 EntityId = draft.EntityId,
-                ActorId = _currentUser.UserId?.ToString(),
+                ActorId = _currentUser.UserId?.Value.ToString(),
                 ActorRole = _currentUser.Role,
                 Metadata = metadata,
                 CorrelationId = _requestContext.CorrelationId

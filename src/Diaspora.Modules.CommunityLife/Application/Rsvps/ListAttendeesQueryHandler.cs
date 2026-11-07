@@ -71,6 +71,8 @@ public sealed class ListAttendeesQueryHandler
             return Result.Failure<AttendeePageResponse>(readable.Error);
         }
 
+        // The write check, deliberately, and not a management read: staff never pass it, so who is
+        // coming to a private list stays the organizer's to see. See the authorization service.
         var organizer = await _authorization.RequireEventWriteAsync(
             communityEvent, cancellationToken);
 

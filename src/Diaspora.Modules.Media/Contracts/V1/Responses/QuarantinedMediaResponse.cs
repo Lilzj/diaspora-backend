@@ -1,7 +1,7 @@
 namespace Diaspora.Modules.Media.Contracts.V1.Responses;
 
 /// <summary>
-/// One file a scanner refused, as a staff queue needs to see it.
+/// One file a scanner refused or a moderator withheld, as a staff queue needs to see it.
 /// <para>
 /// <b>Deliberately not <see cref="MediaAssetResponse"/>.</b> That record carries a URL, and a
 /// quarantined file has nothing servable behind one — handing a moderator a link that is
@@ -34,6 +34,14 @@ public sealed record QuarantinedMediaResponse
     public string? ThreatName { get; init; }
 
     public DateTimeOffset? ScannedAt { get; init; }
+
+    /// <summary>
+    /// The reason recorded on the file: the moderator's note, when a decision on a Trust moderation
+    /// case withheld it. Such a file's scan status is whatever the scanner said, usually clean,
+    /// because a take-down is not a finding about malware, and the release route refuses it: it
+    /// comes back by a restore on its case.
+    /// </summary>
+    public string? Reason { get; init; }
 
     /// <summary>What the file was attached to, so a moderator can see what breaks either way.</summary>
     public required string OwnerType { get; init; }

@@ -1,9 +1,9 @@
 namespace Diaspora.Modules.Guides.Contracts.V1.Requests;
 
 /// <summary>
-/// Reports the guide. The report goes to Community's moderation workflow — the reason
-/// catalogue, the duplicate rule, the auto-hide threshold and the appeal trail all come from
-/// there, and this module implements none of them.
+/// Reports the guide. The report goes to Community's reporting workflow — the reason catalogue
+/// and the duplicate rule come from there — and on to the guide's Trust moderation case, where
+/// staff decide. This module implements none of it.
 /// </summary>
 public sealed record ReportGuideRequest
 {

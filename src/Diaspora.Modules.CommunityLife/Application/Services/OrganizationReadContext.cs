@@ -51,9 +51,13 @@ public sealed class OrganizationReadContext
         var membership = await _authorization.FindMembershipAsync(
             organization.Id, cancellationToken);
 
-        var isAdministrator = _authorization.IsStaff
-            || organization.CreatedByUserId == _authorization.CallerId
+        var isAdministrator = organization.CreatedByUserId == _authorization.CallerId
             || membership?.HasAtLeast(MembershipRole.Administrator) == true;
+
+        // The administrators' figures (the pending-request count) are also shown to staff reviewing
+        // the body. A read detail only: it tells nobody they may administer the page, and staff
+        // may not.
+        var seesAdministratorFigures = isAdministrator || _authorization.IsStaff;
 
         // **Who a message to this organization reaches.**
         //
@@ -70,7 +74,7 @@ public sealed class OrganizationReadContext
             organization,
             type.IsSuccess ? type.Value : null,
             membership,
-            isAdministrator,
+            seesAdministratorFigures,
             owner?.MemberUserId.Value);
     }
 }

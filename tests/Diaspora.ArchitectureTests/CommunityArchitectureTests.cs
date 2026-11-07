@@ -293,7 +293,10 @@ public class CommunityArchitectureTests
             typeof(IRankingStrategy),
             typeof(Diaspora.Modules.Community.Extensibility.Reactions.IReactionCatalogContributor),
             typeof(IContentReviewProvider),
-            typeof(IModerationPolicyProvider),
+
+            // IModerationPolicyProvider is gone (7 Nov 2026): it turned a report count or a review
+            // into an automatic hide outside any case. Nothing is hidden without a person now except
+            // by Trust's moderation case, which records why and tells the owner.
             typeof(Diaspora.Modules.Community.Extensibility.Hashtags.IHashtagProcessor),
             typeof(Diaspora.Modules.Community.Extensibility.Mentions.IMentionResolver),
             typeof(IVisibilityEvaluator),

@@ -27,4 +27,16 @@ public sealed record AccessDecisionResponse
 
     /// <summary>Set when the member is suspended for a fixed period.</summary>
     public DateTimeOffset? RestrictedUntil { get; init; }
+
+    /// <summary>
+    /// Why staff suspended or closed the account: a moderation reason code's name (7 Nov 2026).
+    /// Null for any other state, and for a restriction placed before reasons were coded.
+    /// </summary>
+    public string? ReasonCode { get; init; }
+
+    /// <summary>The reason as the member reads it, for example "a fraud or scam".</summary>
+    public string? ReasonLabel { get; init; }
+
+    /// <summary>What the member of staff wrote, for a suspended or closed account.</summary>
+    public string? Note { get; init; }
 }

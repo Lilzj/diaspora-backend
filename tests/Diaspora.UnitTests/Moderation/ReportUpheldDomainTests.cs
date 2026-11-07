@@ -99,7 +99,7 @@ public sealed class ReportUpheldDomainTests
         var landlord = LandlordProfileId.New();
         var report = HousingReport.File(
             HousingReportId.New(), HousingListingId.New(), landlord, Reporter,
-            HousingReportReason.Scam, null, Now).Value;
+            HousingReportReason.Scam, null, 1, Now).Value;
 
         report.Resolve(Moderator, upheld, null, Now);
 

@@ -40,7 +40,7 @@ public sealed class UserPhoneVerifiedEventHandler : DomainEventHandler<UserPhone
         {
             Action = IdentityAuditActions.PhoneVerified,
             EntityType = IdentityAuditActions.EntityTypes.User,
-            EntityId = domainEvent.UserId.ToString(),
+            EntityId = domainEvent.UserId.Value.ToString(),
             SubjectUserId = domainEvent.UserId
         }, cancellationToken);
 

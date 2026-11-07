@@ -71,16 +71,14 @@ public sealed class RemoveMemberCommandHandler
             return Result.Failure<MembershipResponse>(caller.Error);
         }
 
-        if (!_authorization.IsStaff)
-        {
-            var callerMembership = await _authorization.FindMembershipAsync(
-                membership.OrganizationId, cancellationToken);
+        // Staff are held to this too: a member of staff who belongs to the body is a member with a
+        // role there, and one who does not was refused above.
+        var callerMembership = await _authorization.FindMembershipAsync(
+            membership.OrganizationId, cancellationToken);
 
-            if (callerMembership is null || membership.Role > callerMembership.Role)
-            {
-                return Result.Failure<MembershipResponse>(
-                    CommunityLifeErrors.RoleNotAssignable);
-            }
+        if (callerMembership is null || membership.Role > callerMembership.Role)
+        {
+            return Result.Failure<MembershipResponse>(CommunityLifeErrors.RoleNotAssignable);
         }
 
         var removed = membership.Remove(

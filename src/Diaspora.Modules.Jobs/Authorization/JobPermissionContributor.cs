@@ -85,14 +85,6 @@ public sealed class JobPermissionContributor : IPermissionContributor
         };
 
         yield return new PermissionDefinition(
-            JobPermissions.EmployerManageAny, JobsModuleMetadata.Name,
-            "Manage any employer profile.")
-        {
-            MinimumTier = AccessTier.Limited,
-            Roles = StaffRoles
-        };
-
-        yield return new PermissionDefinition(
             JobPermissions.EmployerSubmitVerification, JobsModuleMetadata.Name,
             "Submit an employer for verification.")
         {
@@ -117,13 +109,6 @@ public sealed class JobPermissionContributor : IPermissionContributor
             // Correcting a live advert is never the thing to withhold: a wrong salary or a
             // wrong closing date wastes candidates' time, not the restricted recruiter's.
             GrantedWhenRestricted = true
-        };
-
-        yield return new PermissionDefinition(
-            JobPermissions.PostEditAny, JobsModuleMetadata.Name, "Edit any job posting.")
-        {
-            MinimumTier = AccessTier.Limited,
-            Roles = StaffRoles
         };
 
         yield return new PermissionDefinition(

@@ -3,6 +3,7 @@ using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Media.Application.Mapping;
 using Diaspora.Modules.Media.Contracts.V1.Responses;
 using Diaspora.Modules.Media.Domain.Assets;
+using Diaspora.Modules.Media.Domain.Enums;
 using Diaspora.Modules.Media.Domain.Errors;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Identity;
@@ -46,6 +47,14 @@ public sealed class ReleaseQuarantineCommandHandler
             return Result.Failure<MediaAssetResponse>(MediaErrors.AssetNotFound);
         }
 
+        // A release overrules a scanner. A file in quarantine that the scanner did not flag was
+        // withheld by a moderation decision, and only a decision on its case brings it back: a
+        // release here would undo a removal two staff confirmed, with no case, note or notice.
+        if (asset.Status is MediaAssetStatus.Quarantined && !asset.ScanResult.RequiresQuarantine)
+        {
+            return Result.Failure<MediaAssetResponse>(MediaErrors.WithheldByModeration);
+        }
+
         // The releasing member's identifier becomes the scan result's "scanner", so the record
         // says a human made this call rather than presenting it as a clean machine verdict.
         var released = asset.ReleaseFromQuarantine(
@@ -56,7 +65,9 @@ public sealed class ReleaseQuarantineCommandHandler
             return Result.Failure<MediaAssetResponse>(released.Error);
         }
 
-        var ready = asset.MarkReady();
+        // Only a file safe to serve becomes ready; anything else stays in processing for the scan
+        // pipeline to finish.
+        var ready = asset.ScanResult.IsSafeToServe ? asset.MarkReady() : Result.Success();
 
         if (ready.IsFailure)
         {

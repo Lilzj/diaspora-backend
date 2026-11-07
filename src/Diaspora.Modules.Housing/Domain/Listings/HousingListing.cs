@@ -1229,6 +1229,22 @@ public sealed class HousingListing
         ChangeModeration(HousingModerationState.Clear, moderatorId, null, now);
 
     /// <summary>
+    /// Clears an automatic flag, and nothing stronger.
+    /// <para>
+    /// What dismissing a report does. Dismissing used <see cref="Clear"/>, which also lifted a hide
+    /// or a suspension that had nothing to do with the report (7 Nov 2026): a moderator dismissing a
+    /// weak report on a suspended scam put the scam back in search.
+    /// </para>
+    /// </summary>
+    public void ClearFlag(UserId? moderatorId, DateTimeOffset now)
+    {
+        if (ModerationState == HousingModerationState.Flagged)
+        {
+            ChangeModeration(HousingModerationState.Clear, moderatorId, null, now);
+        }
+    }
+
+    /// <summary>
     /// Adds a note to the editorial trail.
     /// <para>
     /// Deliberately not a content edit: it raises no update event and does not bump the revision,

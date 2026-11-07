@@ -94,6 +94,9 @@ public sealed class ReportHousingCommandHandler : ICommandHandler<ReportHousingC
 
         var now = _clock.UtcNow;
 
+        // Including this one: the number the published report contract carries.
+        var total = await _reports.CountForListingAsync(listing.Id, cancellationToken) + 1;
+
         var report = HousingReport.File(
             HousingReportId.From(_guids.NewSequentialGuid()),
             listing.Id,
@@ -101,6 +104,7 @@ public sealed class ReportHousingCommandHandler : ICommandHandler<ReportHousingC
             caller.Value,
             reason,
             command.Request.Detail,
+            total,
             now);
 
         if (report.IsFailure)
@@ -115,7 +119,10 @@ public sealed class ReportHousingCommandHandler : ICommandHandler<ReportHousingC
             ? 1
             : _options.Value.ReportsBeforeAutoFlag;
 
-        listing.RecordReport(threshold, now, caller.Value);
+        // The flag is the system's act on a count of reports, not the reporter's: recording the
+        // reporter as the one who changed the listing's moderation put a member's name on a
+        // staff-style action (7 Nov 2026).
+        listing.RecordReport(threshold, now, reportedBy: null);
 
         var analytics = await _analytics.GetByListingAsync(listing.Id, cancellationToken);
 

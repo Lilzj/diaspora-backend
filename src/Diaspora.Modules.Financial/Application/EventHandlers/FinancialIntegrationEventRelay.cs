@@ -206,7 +206,8 @@ public sealed class FinancialIntegrationEventRelay
                 Reason = domainEvent.Reason.ToString(),
                 SubjectType = domainEvent.SubjectType?.ToString(),
                 SubjectId = domainEvent.SubjectId,
-                IssuedAt = domainEvent.IssuedAt
+                IssuedAt = domainEvent.IssuedAt,
+                PayeeUserId = domainEvent.PayeeUserId
             },
             cancellationToken);
     }

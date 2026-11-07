@@ -671,7 +671,52 @@ public sealed class ModerationItemRepository : IModerationItemRepository
         ModerationItemId id, CancellationToken cancellationToken = default) =>
         await Items
             .Include(item => item.Decisions)
+            .Include(item => item.Reports)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
+
+    public async Task<ModerationItem?> GetOpenForTargetAsync(
+        string targetType, string contentId, CancellationToken cancellationToken = default) =>
+        await Items
+            .Include(item => item.Decisions)
+            .Include(item => item.Reports)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(
+                item => item.TargetType == targetType
+                    && item.ContentId == contentId
+                    && item.Status != ModerationQueueStatus.Resolved,
+                cancellationToken);
+
+    public async Task<IReadOnlyList<ModerationItem>> ListConsequencesDueAsync(
+        DateTimeOffset asOf, int take, CancellationToken cancellationToken = default)
+    {
+        var candidates = await Items
+            .Include(item => item.Decisions)
+            .Include(item => item.Reports)
+            .AsSplitQuery()
+            .Where(item => item.CurrentOutcome == Diaspora.Contracts.Moderation.V1.ModerationOutcome.Remove
+                && item.ConsequencesAppliedAt == null
+                && item.Status != ModerationQueueStatus.Appealed
+                && item.AppealDeadline != null
+                && item.AppealDeadline <= asOf)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+
+        return candidates;
+    }
+
+    public async Task<ModerationItem?> GetLatestForTargetAsync(
+        string targetType, string contentId, CancellationToken cancellationToken = default)
+    {
+        var cases = await Items
+            .Include(item => item.Decisions)
+            .Include(item => item.Reports)
+            .AsSplitQuery()
+            .Where(item => item.TargetType == targetType && item.ContentId == contentId)
+            .ToListAsync(cancellationToken);
+
+        return cases.OrderByDescending(item => item.CreatedAt).FirstOrDefault();
+    }
 
     public async Task<ModerationItem?> GetOpenForContentAsync(
         ModerationContentType contentType, string contentId, CancellationToken cancellationToken = default)
@@ -693,17 +738,37 @@ public sealed class ModerationItemRepository : IModerationItemRepository
         UserId? assignedTo = null,
         bool overdueOnly = false,
         DateTimeOffset? asOf = null,
+        string? targetType = null,
+        bool awaitingSecondReview = false,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(pagination);
 
         var open = OpenStatuses();
 
-        var query = Items.AsNoTracking().AsQueryable();
+        // Only listed cases: a single non-fraud report does not put something in front of staff.
+        var query = Items
+            .AsNoTracking()
+            .Include(item => item.Decisions)
+            .Include(item => item.Reports)
+            .AsSplitQuery()
+            .Where(item => item.IsListed);
 
+        // Open, or decided and waiting for a second member of staff: an emergency hide is decided
+        // and still somebody's work.
         query = status is { } requestedStatus
             ? query.Where(item => item.Status == requestedStatus)
-            : query.Where(item => open.Contains(item.Status));
+            : query.Where(item => open.Contains(item.Status) || item.SecondReview != SecondReviewKind.None);
+
+        if (awaitingSecondReview)
+        {
+            query = query.Where(item => item.SecondReview != SecondReviewKind.None);
+        }
+
+        if (!string.IsNullOrWhiteSpace(targetType))
+        {
+            query = query.Where(item => item.TargetType == targetType);
+        }
 
         if (contentType is { } requestedType)
         {
@@ -725,7 +790,9 @@ public sealed class ModerationItemRepository : IModerationItemRepository
 
         if (overdueOnly && asOf is { } now)
         {
-            query = query.Where(item => item.DueAt != null && item.DueAt < now);
+            query = query.Where(item =>
+                (item.DueAt != null && item.DueAt < now)
+                || (item.SecondReviewDueAt != null && item.SecondReviewDueAt < now));
         }
 
         var total = await query.CountAsync(cancellationToken);

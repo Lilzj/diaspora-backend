@@ -9,6 +9,10 @@ namespace Diaspora.Modules.Financial.Application.Operations;
 /// <b>Transactional: it writes the grant and posts the ledger entries that give it a balance.</b> A
 /// grant with no entries behind it is a promise the wallet cannot see.
 /// </para>
+/// <para>
+/// <b>Bounded by <see cref="CreditGrantPolicy"/> (7 Nov 2026):</b> not to yourself, a reason, at most
+/// 100 of the currency, and above 50 a second Admin through <see cref="RequestCreditGrantCommand"/>.
+/// </para>
 /// </summary>
 [Authorize(Permission = FinancialPermissions.CreditManage)]
 [Transactional(Reason = "A grant writes the grant record and posts the ledger entries behind it.")]

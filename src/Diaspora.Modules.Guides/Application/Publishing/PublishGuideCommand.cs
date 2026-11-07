@@ -22,6 +22,7 @@ namespace Diaspora.Modules.Guides.Application.Publishing;
 [Authorize(Permission = GuidePermissions.Publish)]
 [Transactional(Reason = "The guide's publication and its immutable version snapshot must commit together.")]
 [Auditable]
+[Diaspora.Application.Behaviors.PostsInArea(Diaspora.Contracts.Moderation.V1.ModerationAreas.Guides)]
 public sealed record PublishGuideCommand : ICommand<GuideResponse>
 {
     public required Guid GuideId { get; init; }

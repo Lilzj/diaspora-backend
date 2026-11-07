@@ -136,19 +136,22 @@ public sealed class TrustProfileTests
         profile.DomainEvents.OfType<BadgeRevokedDomainEvent>().Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Violations no longer restrict or suspend the account (7 Nov 2026). One violation used to
+    /// restrict the whole account and three suspended it for good, with nothing to lower the count.
+    /// The strike ladder replaces it; a violation now only costs "excellent" standing.
+    /// </summary>
     [Fact]
-    public void Three_violations_suspend_the_account()
+    public void Violations_no_longer_restrict_or_suspend_the_account()
     {
         var profile = NewProfile();
         profile.RecordGrant(VerificationType.Diaspora, "GB", Now);
 
         profile.RecordViolation("Spam.", Now);
-        profile.Health.Should().Be(AccountHealth.Restricted);
-
         profile.RecordViolation("Spam again.", Now);
         profile.RecordViolation("And again.", Now);
 
-        profile.Health.Should().Be(AccountHealth.Suspended);
+        profile.Health.Should().Be(AccountHealth.Good);
     }
 
     /// <summary>

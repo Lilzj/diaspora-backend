@@ -110,6 +110,21 @@ public sealed class Placement : AggregateRoot<PlacementId>, IAuditableEntity
     public TimeSpan PausedDuration { get; private set; }
 
     /// <summary>
+    /// The moderation case whose decision paused this placement. Null for a buyer's own pause and
+    /// for a placement no decision has paused; cleared when a decision resumes it.
+    /// <para>
+    /// <b>What keeps the two pauses apart (7 Nov 2026).</b> A decision that takes the subject out of
+    /// view pauses its placements, and a restore resumes exactly those: a placement the buyer paused
+    /// stays paused whatever a moderator decides, and a placement a decision paused is not the
+    /// buyer's to resume while the subject is hidden.
+    /// </para>
+    /// </summary>
+    public Guid? ModerationCaseId { get; private set; }
+
+    /// <summary>Whether a moderation decision, not the buyer, paused this placement.</summary>
+    public bool IsPausedForModeration => Status == PlacementStatus.Paused && ModerationCaseId is not null;
+
+    /// <summary>
     /// The window end this placement has already announced as approaching.
     /// <para>
     /// Stored so the sweep announces once per window rather than once per sweep. A member warned
@@ -306,6 +321,67 @@ public sealed class Placement : AggregateRoot<PlacementId>, IAuditableEntity
                 FinancialErrorCodes.PlacementNotPaused);
         }
 
+        if (ModerationCaseId is not null)
+        {
+            throw new DomainException(
+                "That placement was paused while Diaspora's moderators review what it promotes. It "
+                + "resumes, with the days it has left, if the decision is reversed.",
+                FinancialErrorCodes.PlacementHeldByModeration);
+        }
+
+        ResumeClock(now);
+    }
+
+    /// <summary>
+    /// Pauses the placement because a moderation decision took its subject out of view.
+    /// <para>
+    /// The ordinary pause, so the remaining time is banked exactly as a buyer's pause banks it, with
+    /// the case recorded so that only a decision reverses it. A placement that is not running is
+    /// left alone: one the buyer already paused stays the buyer's, and one that has ended has nothing
+    /// to pause. Returns whether it paused anything.
+    /// </para>
+    /// </summary>
+    public bool PauseForModeration(Guid caseId, DateTimeOffset now)
+    {
+        if (caseId == Guid.Empty)
+        {
+            throw new ArgumentException("A moderation pause names its case.", nameof(caseId));
+        }
+
+        if (Status is not (PlacementStatus.Active or PlacementStatus.Scheduled))
+        {
+            return false;
+        }
+
+        Pause(now);
+        ModerationCaseId = caseId;
+
+        return true;
+    }
+
+    /// <summary>
+    /// Resumes a placement a moderation decision paused, with the days it had left.
+    /// <para>
+    /// Only a moderation pause: a buyer's own pause is never lifted by a moderator. Returns whether
+    /// it resumed anything, so a repeated decision is a no-op.
+    /// </para>
+    /// </summary>
+    public bool ResumeAfterModeration(DateTimeOffset now)
+    {
+        if (!IsPausedForModeration)
+        {
+            return false;
+        }
+
+        ModerationCaseId = null;
+        ResumeClock(now);
+
+        return true;
+    }
+
+    /// <summary>Starts delivery again and gives back the paused days. Both resumes end here.</summary>
+    private void ResumeClock(DateTimeOffset now)
+    {
         var paused = PausedAt is { } from && now > from ? now - from : TimeSpan.Zero;
 
         PausedDuration += paused;

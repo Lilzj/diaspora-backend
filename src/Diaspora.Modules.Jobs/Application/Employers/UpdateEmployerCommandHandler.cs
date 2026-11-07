@@ -122,11 +122,12 @@ public sealed class UpdateEmployerCommandHandler
 
         var openJobs = await _postings.CountOpenByEmployerAsync(employerId, cancellationToken);
 
+        // Only the employer's own administrators reach this line (staff are refused by the owner
+        // check like any outsider), so the viewer's role alone decides the insider view.
         return Result.Success(EmployerMapper.ToResponse(
             employer.Value,
             openJobs,
-            EmployerMapper.ViewerRole(employer.Value, _authorization.CallerId),
-            _authorization.IsStaff));
+            EmployerMapper.ViewerRole(employer.Value, _authorization.CallerId)));
     }
 
     private async Task ClaimNewBrandingAsync(

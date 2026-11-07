@@ -60,6 +60,20 @@ public sealed class User : AggregateRoot<UserId>, IAuditableEntity, ISoftDeletab
     public AccessState? PreviousAccessState { get; private set; }
 
     public string? StatusReason { get; private set; }
+
+    /// <summary>
+    /// Why staff restricted the account, as a reason code's name (the platform's moderation reasons),
+    /// beside the note in <see cref="StatusReason"/>. Set for a suspension or a closure by staff;
+    /// null once the account is no longer restricted (7 Nov 2026).
+    /// <para>
+    /// A string rather than the code itself because the domain does not reference the contracts
+    /// the list lives in; the application layer checks it is one.
+    /// </para>
+    /// </summary>
+    public string? StatusReasonCode { get; private set; }
+
+    public const int MaxStatusReasonCodeLength = 64;
+
     public DateTimeOffset? SuspendedUntil { get; private set; }
 
     /// <summary>Coarse status projected from <see cref="AccessState"/>; never stored separately.</summary>
@@ -469,10 +483,32 @@ public sealed class User : AggregateRoot<UserId>, IAuditableEntity, ISoftDeletab
         return Result.Success();
     }
 
-    public void AssignRole(UserRole role)
+    /// <summary>
+    /// Gives the member a platform role, and says so.
+    /// <para>
+    /// The member is told (7 Nov 2026): a role changed with nobody told was how staff accounts were
+    /// made and unmade until then. Giving the role a member already holds changes nothing and says
+    /// nothing.
+    /// </para>
+    /// </summary>
+    public void AssignRole(UserRole role, string? reason = null, DateTimeOffset? now = null)
     {
         ArgumentNullException.ThrowIfNull(role);
+
+        if (Role == role)
+        {
+            return;
+        }
+
+        var previous = Role;
         Role = role;
+
+        RaiseDomainEvent(new UserRoleChangedDomainEvent(
+            Id,
+            previous.Name,
+            role.Name,
+            string.IsNullOrWhiteSpace(reason) ? null : reason.Trim(),
+            now ?? DateTimeOffset.UtcNow));
     }
 
     // ─── Verification (Trust Engine boundary) ───────────────────────────
@@ -565,16 +601,24 @@ public sealed class User : AggregateRoot<UserId>, IAuditableEntity, ISoftDeletab
 
     // ─── Account lifecycle ──────────────────────────────────────────────
 
-    public Result Suspend(string reason, DateTimeOffset? until, DateTimeOffset now)
+    /// <summary>
+    /// Suspends the account, with the note staff wrote and, when they gave one, the reason code and
+    /// the date it ends.
+    /// </summary>
+    public Result Suspend(string reason, DateTimeOffset? until, DateTimeOffset now, string? reasonCode = null)
     {
+        // Set before the move, so the state-change event can tell the member when it ends
+        // (7 Nov 2026: the notice said "Suspended" and nothing about how long).
+        var previousUntil = SuspendedUntil;
+        SuspendedUntil = until;
+
         var transition = TransitionTo(
-            AccessState.Suspended, AccessStateChangeReason.ModerationSuspension, now, reason);
+            AccessState.Suspended, AccessStateChangeReason.ModerationSuspension, now, reason, reasonCode);
         if (transition.IsFailure)
         {
+            SuspendedUntil = previousUntil;
             return transition;
         }
-
-        SuspendedUntil = until;
         RaiseDomainEvent(new UserAccountSuspendedDomainEvent(Id, StatusReason ?? string.Empty, until, now));
 
         return Result.Success();
@@ -583,8 +627,13 @@ public sealed class User : AggregateRoot<UserId>, IAuditableEntity, ISoftDeletab
     /// <summary>
     /// Lifts a suspension or a hard lock, returning the member to the rung they were on
     /// when the enforcement action landed.
+    /// <para>
+    /// <paramref name="note"/> is what the member is told about the lifting. Until 7 Nov 2026 the
+    /// notice for a reinstatement repeated the suspension's own reason, because the reason was still
+    /// on the account when the move was announced.
+    /// </para>
     /// </summary>
-    public Result Reinstate(DateTimeOffset now, AccessStateChangeReason reason)
+    public Result Reinstate(DateTimeOffset now, AccessStateChangeReason reason, string? note = null)
     {
         if (AccessState != AccessState.Suspended && AccessState != AccessState.Locked)
         {
@@ -597,9 +646,13 @@ public sealed class User : AggregateRoot<UserId>, IAuditableEntity, ISoftDeletab
             target = AccessState.LimitedAccess;
         }
 
-        var transition = TransitionTo(target, reason, now);
+        var restrictionReason = StatusReason;
+        StatusReason = null;
+
+        var transition = TransitionTo(target, reason, now, note);
         if (transition.IsFailure)
         {
+            StatusReason = restrictionReason;
             return transition;
         }
 
@@ -630,10 +683,10 @@ public sealed class User : AggregateRoot<UserId>, IAuditableEntity, ISoftDeletab
         return Result.Success();
     }
 
-    public Result Disable(string reason, DateTimeOffset now)
+    public Result Disable(string reason, DateTimeOffset now, string? reasonCode = null)
     {
         var transition = TransitionTo(
-            AccessState.Disabled, AccessStateChangeReason.AccountDisabled, now, reason);
+            AccessState.Disabled, AccessStateChangeReason.AccountDisabled, now, reason, reasonCode);
         if (transition.IsFailure)
         {
             return transition;
@@ -648,13 +701,26 @@ public sealed class User : AggregateRoot<UserId>, IAuditableEntity, ISoftDeletab
     /// <summary>
     /// Reopens a disabled account. Re-entry is always at limited access — trust has to
     /// be earned again through the Trust Engine.
+    /// <para>
+    /// Nothing called this until 7 Nov 2026: a closed member's appeal had no way to be honoured. An
+    /// erased account is never reopened (see <see cref="Anonymize"/>).
+    /// </para>
     /// </summary>
-    public Result Reactivate(DateTimeOffset now)
+    public Result Reactivate(DateTimeOffset now, string? note = null)
     {
+        if (IsAnonymized)
+        {
+            return Result.Failure(UserErrors.InvalidStateTransition(AccessState, AccessState.LimitedAccess));
+        }
+
+        var closureReason = StatusReason;
+        StatusReason = null;
+
         var transition = TransitionTo(
-            AccessState.LimitedAccess, AccessStateChangeReason.AccountReactivated, now);
+            AccessState.LimitedAccess, AccessStateChangeReason.AccountReactivated, now, note);
         if (transition.IsFailure)
         {
+            StatusReason = closureReason;
             return transition;
         }
 
@@ -677,7 +743,8 @@ public sealed class User : AggregateRoot<UserId>, IAuditableEntity, ISoftDeletab
         AccessState target,
         AccessStateChangeReason reason,
         DateTimeOffset now,
-        string? notes = null)
+        string? notes = null,
+        string? reasonCode = null)
     {
         ArgumentNullException.ThrowIfNull(target);
 
@@ -709,8 +776,18 @@ public sealed class User : AggregateRoot<UserId>, IAuditableEntity, ISoftDeletab
                 : trimmed[..MaxStatusReasonLength];
         }
 
+        // A reason code describes a restriction staff placed, and only the move that places it
+        // supplies one: a lock, or any move back off the restricted rungs, leaves none behind.
+        StatusReasonCode = target.IsRestricted && !string.IsNullOrWhiteSpace(reasonCode)
+            ? reasonCode.Trim()
+            : null;
+
         RaiseDomainEvent(new UserAccessStateChangedDomainEvent(
-            Id, from.Name, target.Name, reason, StatusReason, now));
+            Id, from.Name, target.Name, reason, StatusReason, now)
+        {
+            Until = target.Name == AccessState.Suspended.Name ? SuspendedUntil : null,
+            ReasonCode = StatusReasonCode
+        });
 
         return Result.Success();
     }

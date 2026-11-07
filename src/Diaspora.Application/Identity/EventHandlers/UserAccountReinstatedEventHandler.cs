@@ -22,7 +22,7 @@ public sealed class UserAccountReinstatedEventHandler : DomainEventHandler<UserA
         {
             Action = IdentityAuditActions.AccountReinstated,
             EntityType = IdentityAuditActions.EntityTypes.User,
-            EntityId = domainEvent.UserId.ToString(),
+            EntityId = domainEvent.UserId.Value.ToString(),
             SubjectUserId = domainEvent.UserId,
             Metadata = new Dictionary<string, string> { ["restoredState"] = domainEvent.RestoredState }
         }, cancellationToken);

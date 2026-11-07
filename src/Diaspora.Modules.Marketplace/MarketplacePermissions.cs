@@ -32,14 +32,12 @@ public static class MarketplacePermissions
 
     public const string SellerCreate = "marketplace:seller:create";
     public const string SellerManage = "marketplace:seller:manage";
-    public const string SellerManageAny = "marketplace:seller:manage:any";
     public const string SellerSubmitVerification = "marketplace:seller:verify:submit";
 
     // ── Listing authoring and lifecycle ─────────────────────────────────────────────────
 
     public const string ListingCreate = "marketplace:listings:create";
     public const string ListingEditOwn = "marketplace:listing:edit:own";
-    public const string ListingEditAny = "marketplace:listing:edit:any";
     public const string ListingDeleteOwn = "marketplace:listing:delete:own";
     public const string ListingPublish = "marketplace:listing:publish";
     public const string ListingArchive = "marketplace:listing:archive";

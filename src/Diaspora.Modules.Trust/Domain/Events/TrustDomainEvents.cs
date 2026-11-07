@@ -108,10 +108,21 @@ public sealed record AppealRejectedDomainEvent(
     string? Explanation,
     DateTimeOffset At) : DomainEvent;
 
-public sealed record ModerationDecisionRecordedDomainEvent(
+/// <summary>A moderation decision took effect, or a person decided; Trust publishes it for the owner, reporters and modules.</summary>
+public sealed record ModerationActionTakenDomainEvent(
     ModerationItemId ItemId,
-    UserId ModeratorId,
-    ModerationContentType ContentType,
+    ModerationDecisionId DecisionId,
+    string TargetType,
     string ContentId,
-    ModerationActionType Action,
+    string? Title,
+    string Area,
+    UserId OwnerId,
+    Diaspora.Contracts.Moderation.V1.ModerationOutcome Outcome,
+    Diaspora.Contracts.Moderation.V1.ModerationReasonCode ReasonCode,
+    string Note,
+    UserId? DecidedBy,
+    UserId? ConfirmedBy,
+    DateTimeOffset? AppealDeadline,
+    IReadOnlyList<Guid> ReporterIds,
+    IReadOnlyList<Guid> ModuleReportIds,
     DateTimeOffset At) : DomainEvent;

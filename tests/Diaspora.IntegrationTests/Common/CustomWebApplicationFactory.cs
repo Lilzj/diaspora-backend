@@ -71,6 +71,9 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Api.Program>
                 // Faster hashing; the algorithm is exercised by the unit suite.
                 ["Identity:Password:HashIterations"] = "10000",
 
+                // Tests end suspensions by running SuspensionExpirySweep.RunOnceAsync directly.
+                ["Identity:EnableSuspensionExpirySweep"] = "false",
+
                 // The suite drives dozens of sign-ins from one client in a second — the
                 // exact shape the limiter exists to refuse. It is exercised in isolation by
                 // the rate-limiting tests; here it would only make the identity tests flaky.

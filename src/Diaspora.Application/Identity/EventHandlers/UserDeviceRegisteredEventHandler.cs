@@ -46,7 +46,7 @@ public sealed class UserDeviceRegisteredEventHandler : DomainEventHandler<UserDe
         {
             Action = IdentityAuditActions.DeviceRegistered,
             EntityType = IdentityAuditActions.EntityTypes.Device,
-            EntityId = domainEvent.DeviceId.ToString(),
+            EntityId = domainEvent.DeviceId.Value.ToString(),
             SubjectUserId = domainEvent.UserId,
             Metadata = new Dictionary<string, string> { ["platform"] = domainEvent.Platform.ToString() }
         }, cancellationToken);

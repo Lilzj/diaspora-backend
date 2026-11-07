@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Moderation.V1;
 using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Trust.Domain;
 using Diaspora.SharedKernel.Identity;
@@ -180,7 +181,8 @@ public sealed class ModerationItemTests
     {
         var item = Queued();
 
-        var decide = () => item.Decide(Moderator, ModerationActionType.Approve, null, Now);
+        var decide = () => item.Decide(
+            Moderator, ModerationOutcome.NoAction, ModerationReasonCode.Other, "Looked at it: nothing wrong.", Now);
 
         decide.Should().Throw<DomainException>()
             .Which.Code.Should().Be("trust.queue.not-assigned");
@@ -193,7 +195,8 @@ public sealed class ModerationItemTests
         item.Assign(Moderator, Now);
 
         var other = UserId.From(Guid.Parse("44444444-4444-4444-4444-444444444444"));
-        var decide = () => item.Decide(other, ModerationActionType.Approve, null, Now);
+        var decide = () => item.Decide(
+            other, ModerationOutcome.NoAction, ModerationReasonCode.Other, "Looked at it: nothing wrong.", Now);
 
         decide.Should().Throw<DomainException>();
     }
@@ -204,12 +207,16 @@ public sealed class ModerationItemTests
         var item = Queued();
         item.Assign(Moderator, Now);
 
-        var decision = item.Decide(Moderator, ModerationActionType.Reject, "Spam.", Now);
+        var (decision, apply) = item.Decide(
+            Moderator, ModerationOutcome.HidePendingReview, ModerationReasonCode.Spam,
+            "Posted the same advert forty times.", Now);
 
+        apply.Should().Be(ModerationOutcome.HidePendingReview);
         item.Status.Should().Be(ModerationQueueStatus.Rejected);
         item.ResolvedAt.Should().Be(Now);
         decision.PreviousStatus.Should().Be(ModerationQueueStatus.PendingReview);
         decision.NewStatus.Should().Be(ModerationQueueStatus.Rejected);
+        decision.Reason.Should().Be("Posted the same advert forty times.");
     }
 
     [Fact]
@@ -256,7 +263,9 @@ public sealed class ModerationItemTests
     {
         var item = Queued();
         item.Assign(Moderator, Now);
-        item.Decide(Moderator, ModerationActionType.Reject, "Spam.", Now);
+        item.Decide(
+            Moderator, ModerationOutcome.HidePendingReview, ModerationReasonCode.Spam,
+            "Posted the same advert forty times.", Now);
 
         item.MarkAppealed(Now);
 

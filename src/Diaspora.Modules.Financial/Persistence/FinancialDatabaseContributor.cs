@@ -93,6 +93,9 @@ public sealed class FinancialDatabaseContributor : IDatabaseContributor
         modelBuilder.ApplyConfiguration(new RewardConversionConfiguration());
         modelBuilder.ApplyConfiguration(new RewardGrantRequestConfiguration());
 
+        // Credit grants above the one-Admin threshold, waiting for a second Admin (7 Nov 2026).
+        modelBuilder.ApplyConfiguration(new CreditGrantRequestConfiguration());
+
         // B15.1 Giving Extension. What a settled payment bought, the fundraising programme around a
         // cause, its timeline, and the standing instruction to give again.
         modelBuilder.ApplyConfiguration(new MembershipPaymentBindingConfiguration());

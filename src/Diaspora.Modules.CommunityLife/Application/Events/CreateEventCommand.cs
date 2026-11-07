@@ -14,6 +14,7 @@ namespace Diaspora.Modules.CommunityLife.Application.Events;
 [Authorize(Permission = CommunityLifePermissions.EventCreate)]
 [Transactional(Reason = "Writes the event and its analytics record.")]
 [Auditable]
+[Diaspora.Application.Behaviors.PostsInArea(Diaspora.Contracts.Moderation.V1.ModerationAreas.Events)]
 public sealed record CreateEventCommand : ICommand<EventResponse>
 {
     public required CreateEventRequest Request { get; init; }

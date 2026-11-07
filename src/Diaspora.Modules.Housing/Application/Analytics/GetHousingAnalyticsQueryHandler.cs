@@ -49,11 +49,17 @@ public sealed class GetHousingAnalyticsQueryHandler
             return Result.Failure<HousingAnalyticsResponse>(HousingErrors.ListingNotFound);
         }
 
-        var access = await _authorization.RequireListingAccessAsync(listing, cancellationToken);
-
-        if (access.IsFailure)
+        // A read, so staff keep it: the owner check no longer lets them through (it answers "may
+        // you change this"), and reading a property's figures changes nothing. Marketplace's
+        // analytics read draws the same line.
+        if (!_authorization.IsStaff)
         {
-            return Result.Failure<HousingAnalyticsResponse>(access.Error);
+            var access = await _authorization.RequireListingAccessAsync(listing, cancellationToken);
+
+            if (access.IsFailure)
+            {
+                return Result.Failure<HousingAnalyticsResponse>(access.Error);
+            }
         }
 
         var analytics = await _analytics.GetByListingForReadAsync(

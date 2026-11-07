@@ -63,6 +63,7 @@ public sealed class ListMyVerificationsQueryHandler
 /// gets neither — which is decided in the mapper rather than by two endpoints.
 /// </para>
 /// </summary>
+[Auditable(Action = "trust.verification.read", OnlyForStaff = true)]
 [Authorize(Permission = TrustPermissions.ReadSelf)]
 public sealed record GetVerificationQuery : IQuery<VerificationDetailResponse>
 {

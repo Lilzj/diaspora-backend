@@ -23,6 +23,17 @@ public static class AccountMail
         "trust.verification.approved",
         "trust.verification.rejected",
         "trust.verification.expired",
+        // A reviewer asking for more (7 Nov 2026): without it the verification waits forever.
+        "trust.verification.more-information",
+        // Content put back after a moderation decision (7 Nov 2026). The takedown was Critical and
+        // reached email; the owner hears it was undone the same way.
+        "moderation.case.restored",
+        // Staff decisions about a member's money (7 Nov 2026): a freeze or closure of their wallet,
+        // money taken back from it by a refund, and the answer to a refund they asked for. Each is
+        // something the member has to know and may need to appeal, so it reaches their mailbox.
+        "billing.wallet.status",
+        "billing.refund.payee",
+        "billing.refund-request.decided",
     };
 
     /// <summary>Whether a rule's email ignores the member's general email switch.</summary>

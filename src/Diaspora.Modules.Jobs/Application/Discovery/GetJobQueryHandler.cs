@@ -92,18 +92,20 @@ public sealed class GetJobQueryHandler : IQueryHandler<GetJobQuery, JobResponse>
         var isOnTeam = await _authorization.IsMemberOfAsync(
             posting.EmployerId, cancellationToken);
 
-        // Staff may manage any job; only the team owns it. Both are sent, because a client that
-        // reads "may manage" as "is mine" tells an Admin the job is theirs and hides "Apply".
+        // Only the team manages the job. Staff are told apart by `canModerate`: since 7 Nov 2026
+        // the owner's routes refuse them, so a `canManage` that said yes to staff would draw edit
+        // and close controls that fail on press.
         return Result.Success(JobMapper.ToResponse(
             posting,
             employer,
             _clock.UtcNow,
-            canManage: isOnTeam || _authorization.IsStaff,
+            canManage: isOnTeam,
             isOnEmployerTeam: isOnTeam,
             hasApplied,
             isSaved,
             providers,
-            guides));
+            guides,
+            canModerate: _authorization.IsStaff));
     }
 
     private async Task<JobPosting?> ResolveAsync(

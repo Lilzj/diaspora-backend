@@ -15,8 +15,8 @@ namespace Diaspora.Modules.Guides.Application.Suggestions;
 /// Applies the guide author's answer to a suggestion.
 /// <para>
 /// The guide is loaded to answer the question the suggestion cannot: whose guide is this. Only
-/// its author — or staff — decides, and that is the whole of the authorization; the suggester
-/// gets the note either way.
+/// its author decides — staff never answer for them — and that is the whole of the
+/// authorization; the suggester gets the note either way.
 /// </para>
 /// </summary>
 public sealed class DecideGuideSuggestionCommandHandler

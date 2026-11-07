@@ -49,6 +49,8 @@ public sealed class TrustDatabaseContributor : IDatabaseContributor
         // Moderation
         modelBuilder.ApplyConfiguration(new ModerationItemConfiguration());
         modelBuilder.ApplyConfiguration(new ModerationDecisionConfiguration());
+        modelBuilder.ApplyConfiguration(new ModerationCaseReportConfiguration());
+        modelBuilder.ApplyConfiguration(new StrikeConfiguration());
 
         // Community confirmations
         modelBuilder.ApplyConfiguration(new CommunityContributionConfiguration());

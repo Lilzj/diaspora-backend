@@ -21,7 +21,6 @@ public static class GuidePermissions
     // Authoring
     public const string Create = "guides:create";
     public const string EditOwn = "guides:edit:own";
-    public const string EditAny = "guides:edit:any";
     public const string DeleteOwn = "guides:delete:own";
     public const string ViewDrafts = "guides:drafts:view";
 

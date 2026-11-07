@@ -1,6 +1,5 @@
 using System.Net.Http.Json;
 using System.Text.Json;
-using Diaspora.Contracts.Content.V1.Events;
 using Diaspora.Contracts.Identity.V1.Responses;
 using Diaspora.Contracts.Trust.V1.Events;
 using Diaspora.Domain.Abstractions;
@@ -23,10 +22,17 @@ namespace Diaspora.IntegrationTests.Modules;
 /// <summary>
 /// A member whose Trust risk becomes High has their points held and publishing paused (RWD-14, CS-4b).
 /// <para>
-/// End to end through the outbox: the evidence arrives as Trust and the reporting modules announce
-/// it, Trust records it and reassesses the member, announces the level, and the Financial Platform
-/// holds the points, decided by nobody. Risk assessment is switched on in this host, as a deployment
-/// turns it on; the sweep is driven by hand, as every module's is here.
+/// End to end through the outbox: the evidence arrives, Trust records it and reassesses the member,
+/// announces the level, and the Financial Platform holds the points, decided by nobody. Risk
+/// assessment is switched on in this host, as a deployment turns it on; the sweep is driven by hand,
+/// as every module's is here.
+/// </para>
+/// <para>
+/// <b>Since 7 Nov 2026 a report counts against the owner only once its removal stands</b> — after the
+/// 14-day appeal window, or a refused appeal — and <c>ModerationConsequences</c> records it then.
+/// Before, it counted the moment a moderator upheld the report, before the owner could appeal. The
+/// tests record that evidence as the consequences do (<see cref="RemovalsStandAsync"/>); the path
+/// from a decision to the consequences is <c>ModerationConsequenceTests</c>'.
 /// </para>
 /// </summary>
 [Collection(AssortedCollection.Name)]
@@ -41,8 +47,8 @@ public sealed class RiskHoldTests : PooledIdentityTestBase
     {
         var (member, auth) = await MemberAsync();
 
-        await AnnounceAsync(
-            Rejection(member, "SUSPECTED_FRAUD"), Upheld(member), Upheld(member), Upheld(member));
+        await AnnounceAsync(Rejection(member, "SUSPECTED_FRAUD"));
+        await RemovalsStandAsync(Removal(member), Removal(member), Removal(member));
 
         var risk = await RiskOfAsync(member);
         risk.Level.Should().Be(RiskLevel.High);
@@ -66,8 +72,8 @@ public sealed class RiskHoldTests : PooledIdentityTestBase
         var (rejected, _) = await MemberAsync();
         var (reported, _) = await MemberAsync();
 
-        await AnnounceAsync(
-            Rejection(rejected, "FACE_MATCH_FAILED"), Upheld(reported), Upheld(reported), Upheld(reported));
+        await AnnounceAsync(Rejection(rejected, "FACE_MATCH_FAILED"));
+        await RemovalsStandAsync(Removal(reported), Removal(reported), Removal(reported));
 
         (await RiskOfAsync(rejected)).Level.Should().Be(RiskLevel.Medium);
         (await RiskOfAsync(reported)).Level.Should().Be(RiskLevel.Medium);
@@ -81,9 +87,8 @@ public sealed class RiskHoldTests : PooledIdentityTestBase
         var (member, _) = await MemberAsync();
         var post = Guid.NewGuid();
 
-        await AnnounceAsync(
-            Rejection(member, "ILLEGIBLE_DOCUMENT"),
-            Upheld(member, post), Upheld(member, post), Upheld(member, post));
+        await AnnounceAsync(Rejection(member, "ILLEGIBLE_DOCUMENT"));
+        await RemovalsStandAsync(Removal(member, post), Removal(member, post), Removal(member, post));
 
         (await RiskOfAsync(member)).Should().Match<RiskAssessment>(risk =>
             risk.Level == RiskLevel.Low && risk.Score == RiskAssessment.BaseScore);
@@ -97,15 +102,12 @@ public sealed class RiskHoldTests : PooledIdentityTestBase
     public async Task A_report_delivered_three_times_counts_once()
     {
         var (member, _) = await MemberAsync();
-        var report = Upheld(member);
+        var report = Removal(member);
 
-        // Three announcements of one report, each its own outbox message, as a relay that published
-        // again after a failed save would send.
-        await AnnounceAsync(
-            Rejection(member, "DUPLICATE_SUBMISSION"),
-            report,
-            Upheld(member, report.ContentId) with { ReportId = report.ReportId },
-            Upheld(member, report.ContentId) with { ReportId = report.ReportId });
+        // One report's removal recorded three times, each in its own transaction, as a consequence
+        // run retried after a failed save would record it.
+        await AnnounceAsync(Rejection(member, "DUPLICATE_SUBMISSION"));
+        await RemovalsStandAsync(report, report, report);
 
         (await RiskOfAsync(member)).Level.Should().Be(RiskLevel.Medium);
         (await EvidenceOfAsync(member)).Should().HaveCount(2);
@@ -165,16 +167,29 @@ public sealed class RiskHoldTests : PooledIdentityTestBase
         RejectedAt = DateTimeOffset.UtcNow
     };
 
-    private static ContentReportUpheldIntegrationEvent Upheld(Guid owner, Guid? contentId = null) => new()
+    /// <summary>A reported job of the owner's whose removal stood.</summary>
+    private static (Guid Owner, Guid ContentId, Guid ReportId) Removal(Guid owner, Guid? contentId = null) =>
+        (owner, contentId ?? Guid.NewGuid(), Guid.NewGuid());
+
+    /// <summary>
+    /// Records each removal against its owner as <c>ModerationConsequences</c> does once it stands,
+    /// each in its own transaction, then delivers the level Trust announces and the hold.
+    /// </summary>
+    private async Task RemovalsStandAsync(params (Guid Owner, Guid ContentId, Guid ReportId)[] removals)
     {
-        ReportId = Guid.NewGuid(),
-        Module = "Jobs",
-        ContentType = "job",
-        ContentId = contentId ?? Guid.NewGuid(),
-        ReporterUserId = Guid.NewGuid(),
-        ContentOwnerUserId = owner,
-        UpheldAt = DateTimeOffset.UtcNow
-    };
+        foreach (var (owner, contentId, reportId) in removals)
+        {
+            using var scope = Factory.Services.CreateScope();
+
+            await scope.ServiceProvider.GetRequiredService<MemberRiskAssessor>().RecordAsync(
+                RiskSignal.ReportUpheld(UserId.From(owner), "Jobs", "job", contentId, reportId, DateTimeOffset.UtcNow),
+                CancellationToken.None);
+
+            await scope.ServiceProvider.GetRequiredService<IUnitOfWork>().SaveChangesAsync();
+        }
+
+        await DrainAsync();
+    }
 
     /// <summary>Publishes through the outbox as their modules would, and delivers everything that follows.</summary>
     private async Task AnnounceAsync(params Diaspora.Contracts.Events.IIntegrationEvent[] announcements)

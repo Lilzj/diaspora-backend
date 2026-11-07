@@ -32,14 +32,12 @@ public static class HousingPermissions
 
     public const string LandlordCreate = "housing:landlord:create";
     public const string LandlordManage = "housing:landlord:manage";
-    public const string LandlordManageAny = "housing:landlord:manage:any";
     public const string LandlordSubmitVerification = "housing:landlord:verify:submit";
 
     // ── Listing authoring and lifecycle ─────────────────────────────────────────────────
 
     public const string ListingCreate = "housing:listings:create";
     public const string ListingEditOwn = "housing:listing:edit:own";
-    public const string ListingEditAny = "housing:listing:edit:any";
     public const string ListingDeleteOwn = "housing:listing:delete:own";
     public const string ListingPublish = "housing:listing:publish";
     public const string ListingArchive = "housing:listing:archive";

@@ -31,7 +31,7 @@ public sealed class UserAccountLockedEventHandler : DomainEventHandler<UserAccou
         {
             Action = IdentityAuditActions.AccountLocked,
             EntityType = IdentityAuditActions.EntityTypes.User,
-            EntityId = domainEvent.UserId.ToString(),
+            EntityId = domainEvent.UserId.Value.ToString(),
             SubjectUserId = domainEvent.UserId,
             Metadata = new Dictionary<string, string> { ["reason"] = domainEvent.Reason }
         }, cancellationToken);

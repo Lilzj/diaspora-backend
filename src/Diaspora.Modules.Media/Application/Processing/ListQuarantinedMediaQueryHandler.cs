@@ -52,6 +52,7 @@ public sealed class ListQuarantinedMediaQueryHandler
             Scanner = asset.ScanResult.Scanner,
             ThreatName = asset.ScanResult.ThreatName,
             ScannedAt = asset.ScanResult.ScannedAt,
+            Reason = asset.FailureReason,
             OwnerType = asset.Owner.Type.ToString(),
             OwnerId = asset.Owner.Type == MediaOwnerType.Unassigned ? null : asset.Owner.Id,
             CreatedAt = asset.CreatedAt

@@ -26,11 +26,17 @@ namespace Diaspora.Modules.Jobs.Application.Services;
 /// on another company's applicants.
 /// </para>
 /// <para>
-/// <b>Staff bypass is deliberate and narrow.</b> A moderator or administrator may act on any
-/// employer, because moderation would otherwise require membership of everything they touch. It
-/// is checked through the kernel's <c>ICurrentUser.Role</c> rather than through a permission,
-/// because the permission catalogue already gated the endpoint and this is the second question:
-/// not "may you moderate" but "is this yours".
+/// <b>Staff never pass the owner check (7 Nov 2026).</b> A moderator or administrator who is not
+/// on an employer's team cannot edit, publish, close or archive its postings, edit its profile,
+/// or decide, interview or make offers on its applications. Staff act on a member's job only
+/// through the moderation routes (<c>/jobs/moderation/*</c>). Before this, every write here began
+/// with "if the caller is staff, allow", and one tap in the app took a member's job down with no
+/// report, no reason and no word to the employer.
+/// </para>
+/// <para>
+/// Staff <em>reading</em> a posting is unchanged: <see cref="CanSeeAsync"/> still shows them hidden
+/// and unpublished postings so they can review them. An employer's applicants, dashboard and
+/// private records are the team's alone: moderation never needs them.
 /// </para>
 /// </summary>
 public sealed class JobAuthorizationService
@@ -76,6 +82,10 @@ public sealed class JobAuthorizationService
     /// not a member of are deliberately different answers: the first is a not-found, and the
     /// second is a forbidden the caller can act on by asking to be added.
     /// </para>
+    /// <para>
+    /// No staff bypass, for reads as for writes: staff are refused here like any other
+    /// non-member, including on the applicant list and the dashboard. See the class summary.
+    /// </para>
     /// </summary>
     public async Task<Result<EmployerProfile>> RequireEmployerAsync(
         EmployerProfileId employerId,
@@ -96,11 +106,6 @@ public sealed class JobAuthorizationService
         if (employer is null)
         {
             return Result.Failure<EmployerProfile>(JobErrors.EmployerNotFound);
-        }
-
-        if (IsStaff)
-        {
-            return Result.Success(employer);
         }
 
         if (!employer.HasAtLeast(caller.Value, minimumRole))
@@ -142,8 +147,9 @@ public sealed class JobAuthorizationService
             return employer;
         }
 
-        // Staff work the moderation queue on suspended employers by definition.
-        if (!IsStaff && !employer.Value.CanRecruit)
+        // No exception for staff: they act on a suspended employer's postings through the
+        // moderation routes, which do not come through here.
+        if (!employer.Value.CanRecruit)
         {
             return Result.Failure<EmployerProfile>(JobErrors.EmployerSuspended);
         }
@@ -188,9 +194,9 @@ public sealed class JobAuthorizationService
     }
 
     /// <summary>
-    /// Whether the caller belongs to an employer already loaded, in any role. A write handler has
-    /// the employer from <see cref="RequirePostingAccessAsync"/>, which staff pass without being
-    /// on the team, so "allowed to do this" is not "one of theirs".
+    /// Whether the caller belongs to an employer already loaded, in any role. Kept as its own
+    /// question because "allowed to do this" and "one of theirs" are different answers, and a
+    /// response that carries the second must not be computed from the first.
     /// </summary>
     public bool BelongsTo(EmployerProfile employer)
     {
@@ -266,10 +272,9 @@ public sealed class JobAuthorizationService
     /// <summary>
     /// Confirms the caller owns something, by the member identifier stored on it.
     /// <para>
-    /// Staff are deliberately <b>not</b> given a bypass here. Employer-scoped moderation is a
-    /// legitimate staff activity; reading or altering a named person's own application, résumé or
-    /// saved list is a different thing, and it should require a deliberate support tool rather
-    /// than fall out of a role check in a general-purpose helper.
+    /// Staff are <b>not</b> given a bypass here, as they are given none on the employer checks.
+    /// Reading or altering a named person's own application, résumé or saved list would need a
+    /// deliberate support tool rather than fall out of a role check in a general-purpose helper.
     /// </para>
     /// </summary>
     public Result<UserId> RequireOwner(UserId ownerId)

@@ -963,6 +963,7 @@ public sealed class HousingScaleTests : IntegrationTestBase
                     seekerId,
                     HousingReportReason.Scam,
                     "Asked for a deposit before any viewing.",
+                    1,
                     now).Value);
 
             dbContext.Set<NeighborhoodProfile>().Add(profile);

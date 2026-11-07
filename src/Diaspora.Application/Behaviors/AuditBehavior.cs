@@ -2,6 +2,7 @@ using System.Reflection;
 using Diaspora.Application.Abstractions;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.Platform.Services.Models;
+using Diaspora.SharedKernel.Results;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -38,14 +39,30 @@ public sealed class AuditBehavior<TRequest, TResponse> : IPipelineBehavior<TRequ
 
         var response = await next();
 
+        // Only what happened is recorded. A refused or failed action changed nothing, and an entry
+        // for it would read as something that happened (7 Nov 2026: every attempt was logged).
+        if (response is Result { IsFailure: true })
+        {
+            return response;
+        }
+
+        if (auditAttribute.OnlyForStaff && !IsStaff(_currentUser.Role))
+        {
+            return response;
+        }
+
         try
         {
             var auditEntry = new AuditEntry
             {
                 Action = auditAttribute.Action ?? typeof(TRequest).Name,
                 EntityType = typeof(TRequest).Name,
-                EntityId = string.Empty,
-                ActorId = _currentUser.UserId?.ToString(),
+                // The request names its target; a create names nothing yet, and its answer does.
+                EntityId = AuditSubject.EntityIdOf(request)
+                    ?? AuditSubject.EntityIdOfResult(response)
+                    ?? string.Empty,
+                Reason = AuditSubject.ReasonOf(request),
+                ActorId = _currentUser.UserId?.Value.ToString(),
                 ActorRole = _currentUser.Role,
                 CorrelationId = _requestContext.CorrelationId
             };
@@ -59,4 +76,7 @@ public sealed class AuditBehavior<TRequest, TResponse> : IPipelineBehavior<TRequ
 
         return response;
     }
+
+    private static bool IsStaff(string? role) =>
+        role is "Moderator" or "Admin" or "SuperAdmin";
 }

@@ -22,7 +22,7 @@ public sealed class UserSessionRevokedEventHandler : DomainEventHandler<UserSess
         {
             Action = IdentityAuditActions.SessionRevoked,
             EntityType = IdentityAuditActions.EntityTypes.Session,
-            EntityId = domainEvent.SessionId.ToString(),
+            EntityId = domainEvent.SessionId.Value.ToString(),
             SubjectUserId = domainEvent.UserId,
             Metadata = new Dictionary<string, string> { ["reason"] = domainEvent.Reason.ToString() }
         }, cancellationToken);

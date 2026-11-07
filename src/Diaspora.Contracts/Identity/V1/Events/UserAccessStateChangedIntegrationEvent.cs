@@ -15,6 +15,21 @@ public sealed record UserAccessStateChangedIntegrationEvent : IntegrationEvent
     public required string ToState { get; init; }
 
     public required string Reason { get; init; }
+
+    /// <summary>
+    /// The reason staff gave, for a suspension, reinstatement, closure or reopening. The member is
+    /// told it (7 Nov 2026). Null for every other move on the ladder.
+    /// </summary>
+    public string? Note { get; init; }
+
+    /// <summary>When a suspension ends, if it was given an end.</summary>
+    public DateTimeOffset? Until { get; init; }
+
+    /// <summary>
+    /// The moderation reason code staff chose for a suspension or closure (a <c>ModerationReasonCode</c>
+    /// name), when they chose one. Null for every other move.
+    /// </summary>
+    public string? ReasonCode { get; init; }
 }
 
 /// <summary>

@@ -118,11 +118,11 @@ public sealed class JobModerationTests : PooledIdentityTestBase
 
         await SignInAsRoleAsync("Moderator");
 
-        var resolved = await HttpClient.PostAsJsonAsync(
-            $"{Root}/moderation/reports/{reportId}/resolve",
-            new { upheld = true, resolution = "No such business.", hidePosting = true });
+        // Since 7 Nov 2026 the takedown is a decision on the Trust case, carried out here.
+        var resolved = await DecideThroughCaseAsync(
+            posting, "HidePendingReview", "FraudOrScam", "No such business at that address.");
 
-        resolved.StatusCode.Should().Be(HttpStatusCode.OK);
+        resolved.StatusCode.Should().Be(HttpStatusCode.OK, await resolved.Content.ReadAsStringAsync());
 
         (await IsPubliclyFindableAsync(posting)).Should().BeFalse();
 
@@ -151,9 +151,11 @@ public sealed class JobModerationTests : PooledIdentityTestBase
 
         await SignInAsRoleAsync("Moderator");
 
-        await HttpClient.PostAsJsonAsync(
-            $"{Root}/moderation/reports/{reportId}/resolve",
-            new { upheld = false, resolution = "Checked the company register. It is real." });
+        (await DecideThroughCaseAsync(
+                posting, "NoAction", "Other", "Checked the company register. It is real."))
+            .StatusCode.Should().Be(HttpStatusCode.OK);
+
+        await Factory.DrainOutboxAsync();
 
         var queue = await ReadDataAsync<List<ReportRow>>(
             await HttpClient.GetAsync($"{Root}/moderation/reports?openOnly=false"));
@@ -178,9 +180,11 @@ public sealed class JobModerationTests : PooledIdentityTestBase
 
         await SignInAsRoleAsync("Moderator");
 
-        await HttpClient.PostAsJsonAsync(
-            $"{Root}/moderation/reports/{first}/resolve",
-            new { upheld = true, resolution = "Advert corrected." });
+        (await DecideThroughCaseAsync(
+                posting, "HidePendingReview", "FalseOrMisleading", "Hours and status were both wrong."))
+            .StatusCode.Should().Be(HttpStatusCode.OK);
+
+        await Factory.DrainOutboxAsync();
 
         var queue = await ReadDataAsync<List<ReportRow>>(
             await HttpClient.GetAsync($"{Root}/moderation/reports?openOnly=false"));
@@ -242,20 +246,22 @@ public sealed class JobModerationTests : PooledIdentityTestBase
     }
 
     /// <summary>
-    /// A moderation verb the module cannot read is refused rather than ignored. Answering an
-    /// unknown word with success is how a moderator comes to believe they hid an advert they did
-    /// not — the defect this platform has already had once, in community life.
+    /// A decision the platform cannot read is refused rather than ignored. Answering an unknown
+    /// word with success is how a moderator comes to believe they hid an advert they did not — the
+    /// defect this platform has already had once, in community life. Since 7 Nov 2026 the decision
+    /// is made on the Trust case, so that is where the unknown word is refused.
     /// </summary>
     [Fact]
     public async Task An_action_the_module_cannot_read_is_refused()
     {
         var posting = await PublishedPostingAsync("Forklift Driver");
 
+        await ReportAsAnotherMemberAsync(posting, "Scam", "The address is a car park.");
+
         await SignInAsRoleAsync("Moderator");
 
-        var response = await HttpClient.PostAsJsonAsync(
-            $"{Root}/moderation/postings/{posting}",
-            new { action = "Suspend", reason = "Not a verb this module has." });
+        var response = await DecideThroughCaseAsync(
+            posting, "Suspend", "FraudOrScam", "Not an outcome the platform has.");
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
@@ -327,6 +333,27 @@ public sealed class JobModerationTests : PooledIdentityTestBase
 
         return await ReadDataAsync<Guid>(response);
     }
+
+    /// <summary>
+    /// A moderator's decision on the advert's Trust case: the report reaches the case through the
+    /// outbox, then the moderator takes the case and decides it.
+    /// </summary>
+    private async Task<HttpResponseMessage> DecideThroughCaseAsync(
+        Guid postingId, string outcome, string reasonCode, string note)
+    {
+        await Factory.DrainOutboxAsync();
+
+        var item = await ReadDataAsync<CaseRow>(
+            await HttpClient.GetAsync($"/api/v1/trust/moderation/cases?contentType=job&contentId={postingId}"));
+
+        (await HttpClient.PostAsync($"/api/v1/trust/moderation/queue/{item.ItemId}/assign", content: null))
+            .EnsureSuccessStatusCode();
+
+        return await HttpClient.PostAsJsonAsync(
+            $"/api/v1/trust/moderation/queue/{item.ItemId}/decision", new { outcome, reasonCode, note });
+    }
+
+    private sealed record CaseRow(Guid ItemId);
 
     /// <summary>Whether an anonymous reader can still find the advert.</summary>
     private async Task<bool> IsPubliclyFindableAsync(Guid postingId)

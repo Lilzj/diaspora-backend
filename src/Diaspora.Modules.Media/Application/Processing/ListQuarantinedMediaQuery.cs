@@ -4,7 +4,7 @@ using Diaspora.Modules.Media.Contracts.V1.Responses;
 namespace Diaspora.Modules.Media.Application.Processing;
 
 /// <summary>
-/// Every file a scanner refused, oldest first.
+/// Every file a scanner refused or a moderator withheld, oldest first.
 /// <para>
 /// <b>The queue that releasing a quarantine has always needed and never had.</b> The release and
 /// requeue routes both take a media identifier, and nothing in the platform produced one: a

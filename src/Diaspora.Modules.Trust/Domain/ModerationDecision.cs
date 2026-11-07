@@ -1,14 +1,31 @@
+using Diaspora.Contracts.Moderation.V1;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Primitives;
 
 namespace Diaspora.Modules.Trust.Domain;
 
+/// <summary>What a recorded decision was, in the life of a case.</summary>
+public enum ModerationDecisionKind
+{
+    /// <summary>A moderator decided the case.</summary>
+    Decision = 0,
+
+    /// <summary>A moderator proposed removal; it waits for a second member of staff.</summary>
+    Proposal = 1,
+
+    /// <summary>A second member of staff confirmed the first one's decision.</summary>
+    Confirmation = 2,
+
+    /// <summary>A second member of staff did not, and put their own choice in its place.</summary>
+    Overruled = 3,
+
+    /// <summary>The system acted: the automatic hide after many serious reports.</summary>
+    System = 4
+}
+
 /// <summary>
-/// One moderator's recorded action on a queue item.
-/// <para>
-/// Append-only. The decision history is what an appeal is argued against, so a reversed
-/// decision must leave both rows behind — the original and the reversal.
-/// </para>
+/// One decision on a case. Append-only: a case's history is every one of these, in order, with who
+/// made it, what they chose, the reason code and the note the owner reads.
 /// </summary>
 public sealed class ModerationDecision : Entity<ModerationDecisionId>
 {
@@ -16,11 +33,20 @@ public sealed class ModerationDecision : Entity<ModerationDecisionId>
 
     public ModerationItemId ItemId { get; private set; } = default!;
 
-    public UserId ModeratorId { get; private set; } = default!;
+    /// <summary>Null when the system acted.</summary>
+    public UserId? ModeratorId { get; private set; }
 
-    public ModerationActionType Action { get; private set; }
+    public ModerationDecisionKind Kind { get; private set; }
 
+    public ModerationOutcome? Outcome { get; private set; }
+
+    public ModerationReasonCode? ReasonCode { get; private set; }
+
+    /// <summary>The note: what the owner reads.</summary>
     public string? Reason { get; private set; }
+
+    /// <summary>Kept for the decisions recorded before outcomes existed.</summary>
+    public ModerationActionType Action { get; private set; }
 
     public ModerationQueueStatus PreviousStatus { get; private set; }
 
@@ -30,43 +56,45 @@ public sealed class ModerationDecision : Entity<ModerationDecisionId>
 
     private ModerationDecision() { }
 
-    private ModerationDecision(
-        ModerationDecisionId id,
-        ModerationItemId itemId,
-        UserId moderatorId,
-        ModerationActionType action,
-        string? reason,
-        ModerationQueueStatus previousStatus,
-        ModerationQueueStatus newStatus,
-        DateTimeOffset decidedAt) : base(id)
-    {
-        ItemId = itemId;
-        ModeratorId = moderatorId;
-        Action = action;
-        Reason = reason;
-        PreviousStatus = previousStatus;
-        NewStatus = newStatus;
-        DecidedAt = decidedAt;
-    }
-
     internal static ModerationDecision Record(
         ModerationItemId itemId,
-        UserId moderatorId,
-        ModerationActionType action,
-        string? reason,
+        UserId? moderatorId,
+        ModerationDecisionKind kind,
+        ModerationOutcome outcome,
+        ModerationReasonCode reasonCode,
+        string? note,
         ModerationQueueStatus previousStatus,
         ModerationQueueStatus newStatus,
         DateTimeOffset decidedAt)
     {
         ArgumentNullException.ThrowIfNull(itemId);
-        ArgumentNullException.ThrowIfNull(moderatorId);
 
-        var trimmed = string.IsNullOrWhiteSpace(reason)
+        var trimmed = string.IsNullOrWhiteSpace(note)
             ? null
-            : reason.Trim().Length <= MaxReasonLength ? reason.Trim() : reason.Trim()[..MaxReasonLength];
+            : note.Trim().Length <= MaxReasonLength ? note.Trim() : note.Trim()[..MaxReasonLength];
 
-        return new ModerationDecision(
-            ModerationDecisionId.New(), itemId, moderatorId, action, trimmed,
-            previousStatus, newStatus, decidedAt);
+        return new ModerationDecision
+        {
+            Id = ModerationDecisionId.New(),
+            ItemId = itemId,
+            ModeratorId = moderatorId,
+            Kind = kind,
+            Outcome = outcome,
+            ReasonCode = reasonCode,
+            Reason = trimmed,
+            Action = LegacyActionFor(outcome),
+            PreviousStatus = previousStatus,
+            NewStatus = newStatus,
+            DecidedAt = decidedAt
+        };
     }
+
+    private static ModerationActionType LegacyActionFor(ModerationOutcome outcome) => outcome switch
+    {
+        ModerationOutcome.NoAction => ModerationActionType.Approve,
+        ModerationOutcome.HidePendingReview => ModerationActionType.Hide,
+        ModerationOutcome.Remove => ModerationActionType.Reject,
+        ModerationOutcome.Restore => ModerationActionType.Restore,
+        _ => ModerationActionType.Escalate
+    };
 }

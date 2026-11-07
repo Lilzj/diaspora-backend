@@ -14,10 +14,7 @@ namespace Diaspora.Modules.Community.Observability;
 /// The instruments answer the questions this module will actually be asked in production, and
 /// they are not the obvious ones. "How many posts" is a vanity metric. <see cref="FeedLatency"/>
 /// tagged by feed key tells you <em>which</em> feed is slow, which is the only version of that
-/// question anybody can act on. <see cref="AutoHides"/> should be a small number and a spike in
-/// it is either an abuse wave or a brigading campaign — two opposite responses, and an
-/// undifferentiated moderation counter tells you neither. And
-/// <see cref="UnreviewedContent"/> is the honest measure of a deployment with no review provider
+/// question anybody can act on. And <see cref="UnreviewedContent"/> is the honest measure of a deployment with no review provider
 /// registered: it should be zero in production and will not be until somebody registers one.
 /// </para>
 /// </summary>
@@ -78,19 +75,6 @@ public static class CommunityTelemetry
             "diaspora.community.reports_filed",
             unit: "{report}",
             description: "Reports filed, tagged by reason.");
-
-    /// <summary>
-    /// Content hidden automatically by the report threshold.
-    /// <para>
-    /// Should be small. A spike is either a genuine abuse wave or a brigading campaign, and the
-    /// two need opposite responses — which is why this is separate from the moderation counter.
-    /// </para>
-    /// </summary>
-    public static readonly Counter<long> AutoHides =
-        Meter.CreateCounter<long>(
-            "diaspora.community.auto_hides",
-            unit: "{content}",
-            description: "Content hidden automatically by the report threshold.");
 
     /// <summary>Moderator decisions, tagged by action and source.</summary>
     public static readonly Counter<long> ModerationDecisions =

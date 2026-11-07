@@ -1,12 +1,15 @@
+using Diaspora.Contracts.Identity.V1;
 using Diaspora.Infrastructure.Identity.EmailVerification;
 using Diaspora.Application.Identity.Abstractions;
 using Diaspora.Application.Identity.Access;
+using Diaspora.Application.Identity.Administration;
 using Diaspora.Application.Identity.Authorization;
 using Diaspora.Application.Identity.Services;
 using Diaspora.Infrastructure.Identity.Auditing;
 using Diaspora.Infrastructure.Identity.Authorization;
 using Diaspora.Infrastructure.Identity.Events;
 using Diaspora.Infrastructure.Identity.FeatureGates;
+using Diaspora.Infrastructure.Identity.Hosting;
 using Diaspora.Infrastructure.Identity.Localization;
 using Diaspora.Infrastructure.Identity.Options;
 using Diaspora.Infrastructure.Identity.Otp;
@@ -52,6 +55,18 @@ public static class IdentityInfrastructureRegistration
         services.AddScoped<ITokenIssuanceService, TokenIssuanceService>();
         services.AddScoped<ISessionRevocationService, SessionRevocationService>();
         services.AddScoped<IDeviceRegistrationService, DeviceRegistrationService>();
+
+        // Staff acting on accounts (7 Nov 2026): who may act on whom, what an action does, and the
+        // actions a second member of staff confirms.
+        services.AddScoped<StaffAuthority>();
+        services.AddScoped<AccountActionExecutor>();
+        services.AddScoped<AccountActionProposals>();
+
+        // Trust asks who suspended a member when they appeal it (7 Nov 2026).
+        services.AddScoped<IAccountSuspensionRecord, AccountSuspensionRecord>();
+
+        // Ends dated suspensions when their date passes; nothing did before 7 Nov 2026.
+        services.AddHostedService<SuspensionExpirySweep>();
 
         // ─── Infrastructure adapters ────────────────────────────────────────
         services.AddSingleton<IPasswordHasher, PbkdfPasswordHasher>();

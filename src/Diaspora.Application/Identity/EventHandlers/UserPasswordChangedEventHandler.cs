@@ -24,7 +24,7 @@ public sealed class UserPasswordChangedEventHandler : DomainEventHandler<UserPas
                 ? IdentityAuditActions.PasswordResetCompleted
                 : IdentityAuditActions.PasswordChanged,
             EntityType = IdentityAuditActions.EntityTypes.User,
-            EntityId = domainEvent.UserId.ToString(),
+            EntityId = domainEvent.UserId.Value.ToString(),
             SubjectUserId = domainEvent.UserId
         }, cancellationToken);
 }

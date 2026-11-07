@@ -81,10 +81,12 @@ public sealed class CommunityNotificationRuleContributor : INotificationRuleCont
             Key = "moderation.decision",
             EventName = typeof(CommunityModerationDecidedIntegrationEvent).FullName!,
             Audience = "content-author",
-            TemplateKey = NotificationTemplateKeys.CommunityModeration,
+            TemplateKey = NotificationTemplateKeys.CommunityModerationWithReason,
             CategoryKey = NotificationCategoryKeys.Moderation,
-            Priority = NotificationPriority.High,
-            Channels = InAppAndPush,
+            // Critical, and by email too (7 Nov 2026): somebody's content was taken down, and the
+            // owner's rule is that they are told every time, wherever they are.
+            Priority = NotificationPriority.Critical,
+            Channels = [NotificationChannelKind.InApp, NotificationChannelKind.Push, NotificationChannelKind.Email],
             DeduplicationWindow = null
         };
 

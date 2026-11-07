@@ -14,13 +14,11 @@ public static class JobPolicies
     // Employer
     public const string EmployerCreate = "jobs.employer.create";
     public const string EmployerManage = "jobs.employer.manage";
-    public const string EmployerManageAny = "jobs.employer.manage.any";
     public const string EmployerSubmitVerification = "jobs.employer.verify.submit";
 
     // Posting authoring & lifecycle
     public const string PostCreate = "jobs.post.create";
     public const string PostEditOwn = "jobs.post.edit.own";
-    public const string PostEditAny = "jobs.post.edit.any";
     public const string PostDeleteOwn = "jobs.post.delete.own";
     public const string PostPublish = "jobs.post.publish";
     public const string PostClose = "jobs.post.close";

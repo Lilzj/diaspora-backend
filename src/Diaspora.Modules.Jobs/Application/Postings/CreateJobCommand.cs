@@ -20,6 +20,7 @@ namespace Diaspora.Modules.Jobs.Application.Postings;
 [Authorize(Permission = JobPermissions.PostCreate)]
 [Auditable]
 [Transactional(Reason = "Writes the posting and its default hiring pipeline together.")]
+[Diaspora.Application.Behaviors.PostsInArea(Diaspora.Contracts.Moderation.V1.ModerationAreas.Jobs)]
 public sealed record CreateJobCommand : ICommand<JobResponse>
 {
     public required CreateJobRequest Request { get; init; }

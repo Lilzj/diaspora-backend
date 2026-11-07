@@ -521,32 +521,55 @@ public sealed class AppealRejectedEventHandler : DomainEventHandler<AppealReject
     }
 }
 
-public sealed class ModerationDecisionRecordedEventHandler
-    : DomainEventHandler<ModerationDecisionRecordedDomainEvent>
+/// <summary>
+/// Tells the platform a moderation decision took effect (7 Nov 2026): the owner hears it with the
+/// reason and how to appeal, reporters hear the outcome, the owning module resolves its reports and
+/// paid placements pause or resume.
+/// <para>
+/// Replaces the decision event that carried no reason and no owner, which only Guides listened to,
+/// and on which every hide failed for want of the reason it required.
+/// </para>
+/// </summary>
+public sealed class ModerationActionTakenEventHandler
+    : DomainEventHandler<ModerationActionTakenDomainEvent>
 {
     private readonly IIntegrationEventPublisher _events;
 
-    public ModerationDecisionRecordedEventHandler(IIntegrationEventPublisher events)
+    public ModerationActionTakenEventHandler(IIntegrationEventPublisher events)
     {
         _events = events;
     }
 
     protected override Task HandleAsync(
-        ModerationDecisionRecordedDomainEvent domainEvent, CancellationToken cancellationToken)
+        ModerationActionTakenDomainEvent domainEvent, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(domainEvent);
 
-        // The event the owning module acts on. Trust holds the decision; only the module that
-        // published a guide knows how to unpublish one.
+        if (!Guid.TryParse(domainEvent.ContentId, out var contentId))
+        {
+            return Task.CompletedTask;
+        }
+
         return _events.PublishAsync(
-            new ModerationDecisionRecordedIntegrationEvent
+            new Diaspora.Contracts.Moderation.V1.Events.ModerationActionTakenIntegrationEvent
             {
-                ItemId = domainEvent.ItemId.Value,
-                ModeratorId = domainEvent.ModeratorId.Value,
-                ContentType = domainEvent.ContentType.ToString(),
-                ContentId = domainEvent.ContentId,
-                Action = domainEvent.Action.ToString(),
-                DecidedAt = domainEvent.At
+                CaseId = domainEvent.ItemId.Value,
+                DecisionId = domainEvent.DecisionId.Value,
+                ContentType = domainEvent.TargetType,
+                ContentId = contentId,
+                ContentTitle = domainEvent.Title,
+                Area = domainEvent.Area,
+                OwnerUserId = domainEvent.OwnerId.Value,
+                Outcome = domainEvent.Outcome.ToString(),
+                ReasonCode = domainEvent.ReasonCode.ToString(),
+                ReasonLabel = Diaspora.Contracts.Moderation.V1.ModerationReasons.Label(domainEvent.ReasonCode),
+                Note = domainEvent.Note,
+                DecidedByUserId = domainEvent.DecidedBy?.Value,
+                ConfirmedByUserId = domainEvent.ConfirmedBy?.Value,
+                AppealDeadline = domainEvent.AppealDeadline,
+                ReporterUserIds = domainEvent.ReporterIds,
+                ModuleReportIds = domainEvent.ModuleReportIds,
+                TakenAt = domainEvent.At
             },
             cancellationToken);
     }
@@ -629,6 +652,35 @@ public sealed class MemberRiskLevelChangedEventHandler : DomainEventHandler<Memb
                 PreviousLevel = domainEvent.From.ToString(),
                 CurrentLevel = domainEvent.To.ToString(),
                 ChangedAt = domainEvent.At
+            },
+            cancellationToken);
+    }
+}
+
+/// <summary>Tells the platform a reviewer asked for more, so the member hears what (7 Nov 2026).</summary>
+public sealed class VerificationMoreInformationRequestedEventHandler
+    : DomainEventHandler<VerificationMoreInformationRequestedDomainEvent>
+{
+    private readonly IIntegrationEventPublisher _events;
+
+    public VerificationMoreInformationRequestedEventHandler(IIntegrationEventPublisher events)
+    {
+        _events = events;
+    }
+
+    protected override Task HandleAsync(
+        VerificationMoreInformationRequestedDomainEvent domainEvent, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(domainEvent);
+
+        return _events.PublishAsync(
+            new VerificationMoreInformationRequestedIntegrationEvent
+            {
+                VerificationId = domainEvent.RequestId.Value,
+                UserId = domainEvent.UserId.Value,
+                VerificationType = domainEvent.Type.ToString(),
+                Details = domainEvent.Details,
+                RequestedAt = domainEvent.At
             },
             cancellationToken);
     }

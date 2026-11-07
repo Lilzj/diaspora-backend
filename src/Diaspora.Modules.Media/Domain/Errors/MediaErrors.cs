@@ -33,7 +33,7 @@ public static class MediaErrors
 
     public static readonly Error AssetQuarantined = Error.Forbidden(
         MediaErrorCodes.AssetQuarantined,
-        "That file was flagged during a security scan and cannot be opened.");
+        "That file was withheld after a security scan or a moderation review and cannot be opened.");
 
     public static readonly Error AssetDeleted = Error.NotFound(
         MediaErrorCodes.AssetDeleted, "That file has been deleted.");
@@ -46,6 +46,16 @@ public static class MediaErrors
 
     public static readonly Error ProfileImageNotAnImage = Error.Validation(
         MediaErrorCodes.ProfileImageNotAnImage, "A profile photo or cover must be an image.");
+
+    // ── Moderation ───────────────────────────────────────────────────────
+
+    public static readonly Error ModerationReasonRequired = Error.Validation(
+        MediaErrorCodes.ModerationReasonRequired, "A file is taken down with a reason, or not at all.");
+
+    public static readonly Error WithheldByModeration = Error.Conflict(
+        MediaErrorCodes.WithheldByModeration,
+        "A moderation decision withheld this file, not a scanner. It comes back by a restore on its "
+        + "moderation case, not by a release.");
 
     // ── Upload sessions ──────────────────────────────────────────────────
 

@@ -2,6 +2,7 @@ using Diaspora.Application.Abstractions;
 using Diaspora.Modules.Housing.Domain.Enums;
 using Diaspora.Modules.Housing.Domain.Events;
 using Diaspora.Modules.Housing.Domain.Listings;
+using Diaspora.Modules.Housing.Domain.Reports;
 
 namespace Diaspora.Modules.Housing.Application.EventHandlers;
 
@@ -18,18 +19,27 @@ namespace Diaspora.Modules.Housing.Application.EventHandlers;
 /// never become identifiable to the person they reported, and this is the boundary where that would
 /// otherwise leak.
 /// </para>
+/// <para>
+/// <b>Every report also goes to Trust's moderation cases (7 Nov 2026)</b>, where staff decide it.
+/// That contract is the one exception to the rule above and is read by Trust alone: the reporter is
+/// read from the report row here, never carried on the domain event.
+/// </para>
 /// </summary>
 public sealed class HousingReportedEventHandler
     : DomainEventHandler<HousingReportedDomainEvent>
 {
     private readonly HousingIntegrationEventRelay _relay;
     private readonly IHousingListingRepository _listings;
+    private readonly IHousingReportRepository _reports;
 
     public HousingReportedEventHandler(
-        HousingIntegrationEventRelay relay, IHousingListingRepository listings)
+        HousingIntegrationEventRelay relay,
+        IHousingListingRepository listings,
+        IHousingReportRepository reports)
     {
         _relay = relay;
         _listings = listings;
+        _reports = reports;
     }
 
     protected override async Task HandleAsync(
@@ -43,5 +53,12 @@ public sealed class HousingReportedEventHandler
             or HousingModerationState.Suspended;
 
         await _relay.PublishAsync(domainEvent, wasFlagged, cancellationToken);
+
+        var report = await _reports.GetAsync(domainEvent.ReportId, cancellationToken);
+
+        if (report is not null)
+        {
+            await _relay.PublishReportFiledAsync(domainEvent, report, cancellationToken);
+        }
     }
 }

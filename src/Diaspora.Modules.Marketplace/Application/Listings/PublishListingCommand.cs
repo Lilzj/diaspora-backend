@@ -14,6 +14,7 @@ namespace Diaspora.Modules.Marketplace.Application.Listings;
 /// </summary>
 [Authorize(Permission = MarketplacePermissions.ListingPublish)]
 [Auditable]
+[Diaspora.Application.Behaviors.PostsInArea(Diaspora.Contracts.Moderation.V1.ModerationAreas.Marketplace)]
 public sealed record PublishListingCommand : ICommand<ListingResponse>
 {
     public required Guid ListingId { get; init; }

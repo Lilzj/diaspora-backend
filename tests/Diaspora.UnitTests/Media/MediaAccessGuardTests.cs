@@ -217,13 +217,51 @@ public sealed class MediaAccessGuardTests
         refused.IsFailure.Should().BeTrue();
     }
 
+    // ── Staff (7 Nov 2026) ──────────────────────────────────────────────────
+
+    [Fact]
+    public async Task A_moderator_cannot_manage_a_members_file()
+    {
+        // `media:administer` used to pass this check outright, so a moderator could delete, edit,
+        // re-attach or reorder any member's file through the member's own routes. Staff now act
+        // through the moderation route, and the management check answers them as it answers anyone
+        // who did not upload the file.
+        var guard = Guard(caller: Stranger, permissions: [MediaPermissions.Administer]);
+
+        var result = await guard.CanManageAsync(AttachedAsset());
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be(MediaErrorCodes.AssetOwnershipRequired);
+    }
+
+    [Fact]
+    public async Task A_moderator_still_reads_a_members_file_record()
+    {
+        // The read half stays: a moderator investigating a report has to see what was uploaded,
+        // by whom and when.
+        var guard = Guard(caller: Stranger, permissions: [MediaPermissions.Administer]);
+
+        var result = await guard.CanReadMetadataAsync(AttachedAsset());
+
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task The_uploader_still_manages_their_own_file()
+    {
+        var result = await Guard(caller: Uploader).CanManageAsync(AttachedAsset());
+
+        result.IsSuccess.Should().BeTrue();
+    }
+
     // ── Helpers ─────────────────────────────────────────────────────────────
 
-    private static MediaAccessGuard Guard(UserId? caller, IMediaAccessPolicy? policy = null)
+    private static MediaAccessGuard Guard(
+        UserId? caller, IMediaAccessPolicy? policy = null, string[]? permissions = null)
     {
         var currentUser = Substitute.For<ICurrentUser>();
         currentUser.UserId.Returns(caller);
-        currentUser.Permissions.Returns([]);
+        currentUser.Permissions.Returns(permissions ?? []);
 
         var clock = Substitute.For<IClock>();
         clock.UtcNow.Returns(DateTimeOffset.UnixEpoch.AddYears(56));

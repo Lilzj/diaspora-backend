@@ -27,6 +27,11 @@ public static class MediaErrorCodes
     public const string AssetOwnershipRequired = "media.asset.ownership-required";
     public const string ProfileImageNotAnImage = "media.profile-image.not-an-image";
 
+    // Moderation
+    public const string ModerationReasonRequired = "media.moderation.reason-required";
+    public const string ModerationActionUnknown = "media.moderation.action-unknown";
+    public const string WithheldByModeration = "media.moderation.withheld";
+
     // Upload lifecycle
     public const string UploadSessionNotFound = "media.upload.not-found";
     public const string UploadSessionExpired = "media.upload.expired";

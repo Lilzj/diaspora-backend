@@ -134,8 +134,9 @@ public sealed class InviteMemberCommandHandler
     /// <summary>
     /// Whether the caller may grant this role.
     /// <para>
-    /// Staff may grant anything. Everybody else is capped at their own role, which is what stops a
-    /// moderator manufacturing an owner. See the class summary.
+    /// Everybody is capped at their own role, which is what stops a moderator manufacturing an
+    /// owner — staff included: being staff grants no role in somebody's organization. See the class
+    /// summary.
     /// </para>
     /// </summary>
     private async Task<Result> CanGrantAsync(
@@ -144,11 +145,6 @@ public sealed class InviteMemberCommandHandler
         MembershipRole role,
         CancellationToken cancellationToken)
     {
-        if (_authorization.IsStaff)
-        {
-            return Result.Success();
-        }
-
         var membership = await _memberships.FindCurrentAsync(
             organizationId, caller, cancellationToken);
 

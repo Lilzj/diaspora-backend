@@ -27,8 +27,6 @@ public sealed class MarketplacePolicyContributor : IPolicyContributor
         yield return Policy(MarketplacePolicies.SellerCreate, MarketplacePermissions.SellerCreate);
         yield return Policy(MarketplacePolicies.SellerManage, MarketplacePermissions.SellerManage);
         yield return Policy(
-            MarketplacePolicies.SellerManageAny, MarketplacePermissions.SellerManageAny);
-        yield return Policy(
             MarketplacePolicies.SellerSubmitVerification,
             MarketplacePermissions.SellerSubmitVerification);
 
@@ -37,8 +35,6 @@ public sealed class MarketplacePolicyContributor : IPolicyContributor
             MarketplacePolicies.ListingCreate, MarketplacePermissions.ListingCreate);
         yield return Policy(
             MarketplacePolicies.ListingEditOwn, MarketplacePermissions.ListingEditOwn);
-        yield return Policy(
-            MarketplacePolicies.ListingEditAny, MarketplacePermissions.ListingEditAny);
         yield return Policy(
             MarketplacePolicies.ListingDeleteOwn, MarketplacePermissions.ListingDeleteOwn);
         yield return Policy(

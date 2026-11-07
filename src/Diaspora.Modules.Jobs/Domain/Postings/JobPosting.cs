@@ -1467,10 +1467,9 @@ public sealed class JobPosting
     /// Removes the posting from every public surface, reversibly. The posting's own state is
     /// untouched — lifting the decision restores exactly what was there.
     /// </summary>
-    public Result Hide(string? reason, UserId moderatorId, DateTimeOffset now)
+    public Result Hide(string? reason, UserId? moderatorId, DateTimeOffset now)
     {
-        ArgumentNullException.ThrowIfNull(moderatorId);
-
+        // A null moderator is the system: the automatic hide after many serious reports.
         var trimmed = reason?.Trim();
 
         if (string.IsNullOrEmpty(trimmed) || trimmed.Length > JobLimits.MaxModerationNote)

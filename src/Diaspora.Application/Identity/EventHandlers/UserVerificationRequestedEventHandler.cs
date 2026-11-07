@@ -38,7 +38,7 @@ public sealed class UserVerificationRequestedEventHandler
         {
             Action = IdentityAuditActions.VerificationRequested,
             EntityType = IdentityAuditActions.EntityTypes.User,
-            EntityId = domainEvent.UserId.ToString(),
+            EntityId = domainEvent.UserId.Value.ToString(),
             SubjectUserId = domainEvent.UserId
         }, cancellationToken);
 

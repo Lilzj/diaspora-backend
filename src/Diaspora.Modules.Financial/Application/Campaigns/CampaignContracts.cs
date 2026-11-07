@@ -22,6 +22,7 @@ namespace Diaspora.Modules.Financial.Application.Campaigns;
 [Authorize(Permission = FinancialPermissions.GivingCreate)]
 [Transactional(Reason = "A campaign is created and its idempotency key recorded together.")]
 [Auditable(Action = "financial.campaign.create")]
+[Diaspora.Application.Behaviors.PostsInArea(Diaspora.Contracts.Moderation.V1.ModerationAreas.Fundraisers)]
 public sealed record CreateCampaignCommand : ICommand<CampaignResponse>
 {
     public required CreateCampaignRequest Request { get; init; }

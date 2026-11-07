@@ -190,8 +190,15 @@ internal static class ProviderEndpoints
                         cancellationToken)))
             .RequireAuthorization(ProviderPolicies.ManageStatus)
             .WithName("ChangeProviderStatus")
-            .WithSummary("Publish, pause, close, suspend, reinstate or archive.");
+            .WithSummary(
+                "Publish, pause, close or archive. The owner's route: staff act on a provider only " +
+                "through its Trust moderation case.");
 
+        // Staff suspended and reinstated a provider through POST /providers/moderation/{providerId},
+        // added by stage 2 of the owner's staff rule (7 Nov 2026). Since stage 5 they act on a
+        // member's provider only by deciding its Trust moderation case
+        // (/trust/moderation/queue/{id}/decision), which carries the decision out through
+        // ProviderModerationTarget. Featuring, below, is curation and stays here.
         group.MapPut("/{providerId:guid}/featured", async (
                 Guid providerId,
                 SetProviderFeaturedRequest request,

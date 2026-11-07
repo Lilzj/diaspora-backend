@@ -325,6 +325,225 @@ public sealed class CampaignLifecycleTests : CampaignTestBase<CustomWebApplicati
             .StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
+    // ── Staff (7 Nov 2026) ───────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// <b>Staff are refused on the organiser's own routes, and the organiser is not.</b>
+    /// <para>
+    /// Until 7 Nov 2026 holding <c>financial:giving:manage</c> skipped the organiser check, so a
+    /// moderator could pause, close or cancel anybody's fundraiser with no reason recorded. The
+    /// owner's rule is that staff act only through moderation routes.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [InlineData("Moderator")]
+    [InlineData("Admin")]
+    public async Task Staff_cannot_edit_or_move_a_members_campaign_through_the_organisers_routes(
+        string role)
+    {
+        var (_, organiser) = await SignedInMemberAsync();
+
+        var campaign = await PublishedCampaignAsync();
+
+        await SignInAsRoleAsync(role);
+
+        (await EditAsync(campaign.CampaignId, "Edited by staff")).StatusCode
+            .Should().Be(HttpStatusCode.Forbidden);
+
+        foreach (var verb in new[] { "pause", "close", "cancel" })
+        {
+            (await TransitionAsync(campaign.CampaignId, verb)).StatusCode
+                .Should().Be(HttpStatusCode.Forbidden, "staff cannot {0} a member's campaign", verb);
+        }
+
+        ActAs(organiser);
+
+        var untouched = await GetCampaignAsync(campaign.CampaignId);
+
+        untouched.Status.Should().Be("Published");
+        untouched.Title.Should().Be("Help Ada travel home");
+
+        (await EditAsync(campaign.CampaignId, "Help Ada get home")).StatusCode
+            .Should().Be(HttpStatusCode.OK);
+
+        (await TransitionAsync(campaign.CampaignId, "pause")).StatusCode
+            .Should().Be(HttpStatusCode.OK);
+    }
+
+    /// <summary>
+    /// <b>What replaces it: a moderator hides a live fundraiser by deciding a Trust case.</b> The
+    /// stage-2 suspend route is gone (stage 5); the decision is carried out on the campaign in the
+    /// same transaction. The campaign leaves public view, stops collecting and tells its organiser
+    /// why — and the organiser cannot resume it. When the organiser asks for a review, a restore on
+    /// the case brings it back paused, for the organiser to resume.
+    /// </summary>
+    [Fact]
+    public async Task A_moderator_hides_a_live_campaign_through_a_case_and_a_restore_brings_it_back_paused()
+    {
+        var (_, organiser) = await SignedInMemberAsync();
+
+        var campaign = await PublishedCampaignAsync();
+
+        await SignInAsRoleAsync("Moderator");
+
+        var opened = await OpenFundraiserCaseAsync(
+            campaign.CampaignId, "Duplicate", "Reported as a copy of another member's appeal.");
+        opened.StatusCode.Should().Be(HttpStatusCode.Created, await opened.Content.ReadAsStringAsync());
+
+        var item = await ReadDataAsync<CaseShape>(opened);
+        await AssignCaseAsync(item.ItemId);
+
+        var hidden = await DecideCaseAsync(
+            item.ItemId, "HidePendingReview", "Duplicate", "Reported as a copy of another member's appeal.");
+        hidden.StatusCode.Should().Be(HttpStatusCode.OK, await hidden.Content.ReadAsStringAsync());
+        (await ReadDataAsync<CaseShape>(hidden)).CurrentOutcome.Should().Be("HidePendingReview");
+
+        // A stranger can neither see it nor give to it.
+        await MemberAsync();
+
+        (await HttpClient.GetAsync(
+                new Uri($"{Communities}/campaigns/{campaign.CampaignId}", UriKind.Relative)))
+            .StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        (await PostDonationAsync(campaign.CauseCode!, 10m)).StatusCode
+            .Should().Be(HttpStatusCode.Conflict);
+
+        // The organiser sees why, and cannot lift it or edit around it.
+        ActAs(organiser);
+
+        var seen = await HttpClient.GetAsync(
+            new Uri($"{Communities}/campaigns/{campaign.CampaignId}", UriKind.Relative));
+
+        (await ReviewNoteAsync(seen)).Should().Be("Reported as a copy of another member's appeal.");
+        (await GetCampaignAsync(campaign.CampaignId)).Status.Should().Be("Suspended");
+        (await GetCampaignAsync(campaign.CampaignId)).AvailableTransitions.Should().BeEmpty();
+
+        (await TransitionAsync(campaign.CampaignId, "resume")).StatusCode
+            .Should().Be(HttpStatusCode.Conflict);
+
+        (await EditAsync(campaign.CampaignId, "Nothing to see here")).StatusCode
+            .Should().Be(HttpStatusCode.Conflict);
+
+        // The organiser asks for a review, and a moderator restores it on the case.
+        (await RequestCaseReviewAsync(item.ItemId)).StatusCode.Should().Be(HttpStatusCode.OK);
+
+        await SignInAsRoleAsync("Moderator");
+        await AssignCaseAsync(item.ItemId);
+
+        var restored = await DecideCaseAsync(
+            item.ItemId, "Restore", "Other", "The organiser sent the hospital's letter.");
+
+        restored.StatusCode.Should().Be(HttpStatusCode.OK, await restored.Content.ReadAsStringAsync());
+        (await ReadDataAsync<CaseShape>(restored)).CurrentOutcome.Should().Be("Restore");
+
+        ActAs(organiser);
+
+        var paused = await GetCampaignAsync(campaign.CampaignId);
+
+        paused.Status.Should().Be("Paused", "restored, not resumed: collecting again is the organiser's call");
+        paused.CanDonate.Should().BeFalse();
+
+        var resumed = await ReadDataAsync<CampaignShape>(
+            await TransitionAsync(campaign.CampaignId, "resume"));
+
+        resumed.Status.Should().Be("Active");
+        resumed.CanDonate.Should().BeTrue();
+    }
+
+    /// <summary>
+    /// A removal is a proposal: the fundraiser is hidden meanwhile, and it is removed only when a
+    /// second member of staff confirms it. It stays suspended — never closed, cancelled or refunded —
+    /// so an appeal can still bring it back.
+    /// </summary>
+    [Fact]
+    public async Task A_fundraiser_removal_takes_effect_when_a_second_member_of_staff_confirms_it()
+    {
+        var (_, organiser) = await SignedInMemberAsync();
+
+        var campaign = await PublishedCampaignAsync();
+
+        await SignInAsRoleAsync("Moderator");
+
+        var item = await ReadDataAsync<CaseShape>(await OpenFundraiserCaseAsync(
+            campaign.CampaignId, "FraudOrScam", "The beneficiary named says they never asked for this."));
+        await AssignCaseAsync(item.ItemId);
+
+        var proposed = await DecideCaseAsync(
+            item.ItemId, "Remove", "FraudOrScam", "The beneficiary confirmed in writing it is not theirs.");
+        proposed.StatusCode.Should().Be(HttpStatusCode.OK, await proposed.Content.ReadAsStringAsync());
+
+        var pending = await ReadDataAsync<CaseShape>(proposed);
+        pending.CurrentOutcome.Should().Be("HidePendingReview", "until it is confirmed, it is only hidden");
+        pending.SecondReview.Should().Be("RemovalProposal");
+
+        await SignInAsRoleAsync("Moderator");
+
+        var confirmed = await SecondReviewCaseAsync(
+            item.ItemId, confirm: true, "Read the beneficiary's letter. Agreed.");
+        confirmed.StatusCode.Should().Be(HttpStatusCode.OK, await confirmed.Content.ReadAsStringAsync());
+
+        var removed = await ReadDataAsync<CaseShape>(confirmed);
+        removed.CurrentOutcome.Should().Be("Remove");
+        removed.AppealDeadline.Should().NotBeNull();
+
+        await MemberAsync();
+
+        (await HttpClient.GetAsync(
+                new Uri($"{Communities}/campaigns/{campaign.CampaignId}", UriKind.Relative)))
+            .StatusCode.Should().Be(HttpStatusCode.NotFound, "a removed fundraiser stays out of view");
+
+        (await PostDonationAsync(campaign.CauseCode!, 10m)).StatusCode
+            .Should().Be(HttpStatusCode.Conflict);
+
+        ActAs(organiser);
+
+        (await GetCampaignAsync(campaign.CampaignId)).Status
+            .Should().Be("Suspended", "suspended rather than closed, so an appeal can restore it");
+
+        (await TransitionAsync(campaign.CampaignId, "resume")).StatusCode
+            .Should().Be(HttpStatusCode.Conflict);
+    }
+
+    /// <summary>
+    /// <b>Changed by design (stage 5).</b> This asserted that the stage-2 moderation route was
+    /// staff's, needed a reason and was never used on one's own campaign. The route is gone, and the
+    /// same three rules now hold on the Trust case: members cannot open one, a case needs a real
+    /// note, and nobody opens a case on their own fundraiser.
+    /// </summary>
+    [Fact]
+    public async Task A_fundraiser_is_taken_down_only_through_a_case_staff_open_with_a_note_and_never_on_their_own()
+    {
+        await MemberAsync();
+
+        var campaign = await PublishedCampaignAsync();
+
+        // The organiser cannot open a case, and neither can any other member.
+        (await OpenFundraiserCaseAsync(campaign.CampaignId, "Spam", "Hiding it myself, thank you.")).StatusCode
+            .Should().Be(HttpStatusCode.Forbidden);
+
+        await MemberAsync();
+
+        (await OpenFundraiserCaseAsync(campaign.CampaignId, "Spam", "I do not like this one at all.")).StatusCode
+            .Should().Be(HttpStatusCode.Forbidden);
+
+        await SignInAsRoleAsync("Moderator");
+
+        // The stage-2 staff route no longer exists.
+        (await HttpClient.PostAsJsonAsync(
+                new Uri($"{Financial}/giving/campaigns/{campaign.CampaignId}/moderation", UriKind.Relative),
+                new { action = "Suspend", reason = "Reported as a duplicate appeal." }))
+            .StatusCode.Should().BeOneOf(HttpStatusCode.NotFound, HttpStatusCode.MethodNotAllowed);
+
+        (await OpenFundraiserCaseAsync(campaign.CampaignId, "Spam", "Because.")).StatusCode
+            .Should().Be(HttpStatusCode.BadRequest, "a case needs a note the organiser can read");
+
+        // A moderator's own campaign is moderated by somebody else.
+        var own = await PublishedCampaignAsync();
+
+        (await OpenFundraiserCaseAsync(own.CampaignId, "Spam", "Taking my own appeal down.")).StatusCode
+            .Should().Be(HttpStatusCode.Forbidden);
+    }
+
     /// <summary>
     /// A campaign nobody has published is visible only to the person who wrote it.
     /// <para>

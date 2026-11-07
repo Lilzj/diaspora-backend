@@ -125,4 +125,10 @@ public static class IdentityMessageKeys
     public const string TrustOutcomeUnknown = "identity.validation.trust.outcomeUnknown";
     public const string UserIdRequired = "identity.validation.userId.required";
     public const string NotesLength = "identity.validation.notes.length";
+
+    // Staff actions on an account need a reason the member can be told (7 Nov 2026).
+    public const string ReasonCodeRequired = "identity.validation.reasonCode.required";
+    public const string ReasonCodeUnknown = "identity.validation.reasonCode.unknown";
+    public const string ReasonTooShort = "identity.validation.reason.tooShort";
+    public const string NoteRequired = "identity.validation.note.required";
 }

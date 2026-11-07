@@ -22,7 +22,7 @@ public sealed class UserLoggedInEventHandler : DomainEventHandler<UserLoggedInDo
         {
             Action = IdentityAuditActions.UserLoggedIn,
             EntityType = IdentityAuditActions.EntityTypes.Session,
-            EntityId = domainEvent.SessionId.ToString(),
+            EntityId = domainEvent.SessionId.Value.ToString(),
             SubjectUserId = domainEvent.UserId,
             Metadata = new Dictionary<string, string> { ["accessState"] = domainEvent.AccessState }
         }, cancellationToken);

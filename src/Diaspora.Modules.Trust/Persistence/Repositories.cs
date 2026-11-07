@@ -254,6 +254,21 @@ public interface IModerationItemRepository
         ModerationContentType contentType, string contentId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// The case a new report about this content joins: any case not yet closed. A case closed with
+    /// no action, or restored, takes no more reports; a new one opens.
+    /// </summary>
+    Task<ModerationItem?> GetOpenForTargetAsync(
+        string targetType, string contentId, CancellationToken cancellationToken = default);
+
+    /// <summary>Removals whose appeal window has closed with no appeal, and nothing yet applied.</summary>
+    Task<IReadOnlyList<ModerationItem>> ListConsequencesDueAsync(
+        DateTimeOffset asOf, int take, CancellationToken cancellationToken = default);
+
+    /// <summary>The most recent case about this content, open or not.</summary>
+    Task<ModerationItem?> GetLatestForTargetAsync(
+        string targetType, string contentId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// The queue, ordered by priority then age — an urgent item that arrived a minute ago
     /// outranks a low-priority one from yesterday, which is the point of having priorities.
     /// </summary>
@@ -265,6 +280,8 @@ public interface IModerationItemRepository
         UserId? assignedTo = null,
         bool overdueOnly = false,
         DateTimeOffset? asOf = null,
+        string? targetType = null,
+        bool awaitingSecondReview = false,
         CancellationToken cancellationToken = default);
 
     Task AddAsync(ModerationItem item, CancellationToken cancellationToken = default);

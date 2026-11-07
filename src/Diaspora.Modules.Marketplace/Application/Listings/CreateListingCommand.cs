@@ -21,6 +21,7 @@ namespace Diaspora.Modules.Marketplace.Application.Listings;
 [Authorize(Permission = MarketplacePermissions.ListingCreate)]
 [Auditable]
 [Transactional(Reason = "Writes the listing and its analytics rollup together.")]
+[Diaspora.Application.Behaviors.PostsInArea(Diaspora.Contracts.Moderation.V1.ModerationAreas.Marketplace)]
 public sealed record CreateListingCommand : ICommand<ListingResponse>
 {
     public required CreateListingRequest Request { get; init; }

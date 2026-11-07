@@ -141,5 +141,65 @@ public sealed class PlatformNotificationTemplateContributor : INotificationTempl
                 }
             ]
         };
+
+        // The same notice with the reason and the end date (7 Nov 2026). The one above said
+        // "Your account is now Suspended" and nothing else: not why, not for how long.
+        yield return new NotificationTemplateSeed
+        {
+            Key = NotificationTemplateKeys.AccessStateChangedWithReason,
+            CategoryKey = NotificationCategoryKeys.Security,
+            Priority = NotificationPriority.Critical,
+            RouteTemplate = "/profile/trust-center",
+            Description = "An account was suspended, restricted, disabled or reinstated, with the reason given and when it ends.",
+            RetentionPeriod = null,
+            Variables =
+            [
+                new TemplateVariableSeed { Name = "currentstate", Sample = "Suspended" },
+                new TemplateVariableSeed { Name = "previousstate", IsRequired = false },
+                new TemplateVariableSeed { Name = "reasontext", IsRequired = false, Sample = "The reason Diaspora gave: repeated scam adverts. " },
+                new TemplateVariableSeed { Name = "untiltext", IsRequired = false, Sample = "It ends on 21 November 2026. " },
+                new TemplateVariableSeed { Name = "nextsteps", IsRequired = false, Sample = "If you think this is a mistake, open Diaspora and appeal from the screen you see." }
+            ],
+            Localizations =
+            [
+                new TemplateLocalizationSeed
+                {
+                    Language = "en",
+                    Title = "Your account status changed",
+                    Body = "Your Diaspora account is now {currentstate}. {reasontext}{untiltext}{nextsteps}",
+                    ShortBody = "Your account is now {currentstate}."
+                }
+            ]
+        };
+
+        // A role changed by staff, with the reason they gave (7 Nov 2026). Nothing told the member
+        // before; they found out from what the app let them do.
+        yield return new NotificationTemplateSeed
+        {
+            Key = NotificationTemplateKeys.RoleChanged,
+            CategoryKey = NotificationCategoryKeys.Security,
+            Priority = NotificationPriority.Critical,
+            RouteTemplate = "/profile",
+            Description = "Staff changed a member's platform role, with the reason given.",
+
+            // Never expires: the record of who the member is on the platform, and since when.
+            RetentionPeriod = null,
+            Variables =
+            [
+                new TemplateVariableSeed { Name = "newrole", Sample = "a moderator" },
+                new TemplateVariableSeed { Name = "previousrole", IsRequired = false, Sample = "a member" },
+                new TemplateVariableSeed { Name = "reasontext", IsRequired = false, Sample = "The reason Diaspora gave: joining the moderation team. " }
+            ],
+            Localizations =
+            [
+                new TemplateLocalizationSeed
+                {
+                    Language = "en",
+                    Title = "Your role on Diaspora changed",
+                    Body = "You are now {newrole} on Diaspora, no longer {previousrole}. {reasontext}You have been signed out, so sign in again to continue. If you did not expect this, contact Diaspora support.",
+                    ShortBody = "You are now {newrole} on Diaspora."
+                }
+            ]
+        };
     }
 }

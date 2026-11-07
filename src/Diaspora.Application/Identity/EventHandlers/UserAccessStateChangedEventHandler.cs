@@ -1,3 +1,4 @@
+using Diaspora.Domain.Identity.AccessStates;
 using Diaspora.Application.Abstractions;
 using Diaspora.Application.Identity.Abstractions;
 using Diaspora.Application.Identity.Auditing;
@@ -45,7 +46,7 @@ public sealed class UserAccessStateChangedEventHandler : DomainEventHandler<User
         {
             Action = IdentityAuditActions.AccessStateChanged,
             EntityType = IdentityAuditActions.EntityTypes.User,
-            EntityId = domainEvent.UserId.ToString(),
+            EntityId = domainEvent.UserId.Value.ToString(),
             SubjectUserId = domainEvent.UserId,
             Metadata = new Dictionary<string, string>
             {
@@ -61,7 +62,17 @@ public sealed class UserAccessStateChangedEventHandler : DomainEventHandler<User
             UserId = domainEvent.UserId.Value,
             FromState = domainEvent.FromState,
             ToState = domainEvent.ToState,
-            Reason = domainEvent.Reason.ToString()
+            Reason = domainEvent.Reason.ToString(),
+            // Only what staff wrote about a staff action reaches the member; the ladder's own
+            // moves (registration, verification) carry no note.
+            Note = domainEvent.Reason is AccessStateChangeReason.ModerationSuspension
+                or AccessStateChangeReason.ModerationReinstatement
+                or AccessStateChangeReason.AccountDisabled
+                or AccessStateChangeReason.AccountReactivated
+                ? domainEvent.Notes
+                : null,
+            Until = domainEvent.Until,
+            ReasonCode = domainEvent.ReasonCode
         }, cancellationToken);
     }
 }

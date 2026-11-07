@@ -10,16 +10,20 @@ namespace Diaspora.Modules.Guides.Application.Services;
 /// Answers "may this caller do this to this guide?".
 /// <para>
 /// <b>One implementation, used by every write handler.</b> Dozens of commands mutate a guide,
-/// and each needs the same check: is there a caller, is the guide theirs, or are they staff.
-/// Written dozens of times it would be written most times correctly, and the exception would
-/// be a reader who can publish somebody else's guide.
+/// and each needs the same check: is there a caller, and is the guide theirs. Written dozens of
+/// times it would be written most times correctly, and the exception would be a reader who can
+/// publish somebody else's guide.
 /// </para>
 /// <para>
-/// <b>Staff bypass is deliberate and narrow.</b> A moderator or an administrator may act on any
-/// guide, because moderation would otherwise require co-authorship of everything they touch.
-/// It is checked through the kernel's <c>ICurrentUser.Role</c>, not through a permission,
-/// because the permission catalogue already gates the endpoint and this is the second
-/// question: not "may you moderate" but "is this guide yours".
+/// <b>Staff never pass the author check.</b> A moderator or an administrator does not edit,
+/// draft, publish, schedule, archive, restore, delete or otherwise change a member's guide
+/// through the author's own routes: there are no support edits on a member's behalf. Staff act
+/// on somebody else's guide only through the moderation routes — hide, unhide, moderation notes,
+/// featuring and the queue — which are gated on their own permission and never come through
+/// <see cref="RequireAuthor"/>; and Trust's decisions and Community's moderation hook apply to
+/// the aggregate directly. What staff keep is <em>sight</em>: <see cref="CanSee"/> and the
+/// staff audience on the query filters, because a moderator must see a hidden or unpublished
+/// guide to review it.
 /// </para>
 /// </summary>
 public sealed class GuideAuthorizationService
@@ -34,7 +38,10 @@ public sealed class GuideAuthorizationService
     /// <summary>The caller, or null when the request is anonymous.</summary>
     public UserId? CallerId => _currentUser.UserId;
 
-    /// <summary>Whether the caller holds a platform staff role.</summary>
+    /// <summary>
+    /// Whether the caller holds a platform staff role. Decides what a caller may <em>see</em>,
+    /// never what they may change.
+    /// </summary>
     public bool IsStaff => _currentUser.Role is { } role && StaffRoles.Contains(role);
 
     /// <summary>The caller, or a failure. The first line of every write handler.</summary>
@@ -44,7 +51,7 @@ public sealed class GuideAuthorizationService
             : Result.Failure<UserId>(GuideErrors.NotAuthenticated);
 
     /// <summary>
-    /// Confirms the caller is the guide's author, or staff.
+    /// Confirms the caller is the guide's author. Staff are refused like anybody else.
     /// <para>
     /// Returns the caller's identifier on success, so a handler that needs both — which is
     /// nearly all of them, for the event payload — makes one call rather than two.
@@ -61,7 +68,7 @@ public sealed class GuideAuthorizationService
             return caller;
         }
 
-        if (IsStaff || guide.AuthorId == caller.Value)
+        if (guide.AuthorId == caller.Value)
         {
             return caller;
         }
@@ -70,12 +77,35 @@ public sealed class GuideAuthorizationService
     }
 
     /// <summary>
+    /// Confirms the caller may read what only the author reads about a guide — its analytics, its
+    /// verification status: the author, or staff reviewing it.
+    /// <para>
+    /// <b>A read, and only a read.</b> Nothing that changes a guide may use this; a write goes
+    /// through <see cref="RequireAuthor"/>, which staff never pass.
+    /// </para>
+    /// </summary>
+    public Result<UserId> RequireAuthorOrStaffToRead(Guide guide)
+    {
+        ArgumentNullException.ThrowIfNull(guide);
+
+        var caller = RequireCaller();
+
+        if (caller.IsFailure)
+        {
+            return caller;
+        }
+
+        return IsStaff ? caller : RequireAuthor(guide);
+    }
+
+    /// <summary>
     /// Whether the caller may read this guide at all.
     /// <para>
     /// The author and staff see everything of theirs, including drafts and hidden guides —
-    /// an author locked out of their own moderated guide cannot fix it. Everyone else sees
-    /// published, unhidden guides: public and unlisted alike, because unlisted means
-    /// "reachable by link", and the caller evidently has the link.
+    /// an author locked out of their own moderated guide cannot fix it, and a moderator who
+    /// cannot see a hidden guide cannot review it. Everyone else sees published, unhidden
+    /// guides: public and unlisted alike, because unlisted means "reachable by link", and the
+    /// caller evidently has the link.
     /// </para>
     /// </summary>
     public bool CanSee(Guide guide)

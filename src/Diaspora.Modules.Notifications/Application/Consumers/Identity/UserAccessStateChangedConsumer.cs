@@ -48,6 +48,17 @@ public sealed class UserAccessStateChangedConsumer
         values["reason"] = integrationEvent.Reason;
         values["changedAt"] = integrationEvent.OccurredAt;
 
+        // The reason staff gave, and when it ends, in the words the member reads (7 Nov 2026).
+        values["reasontext"] = string.IsNullOrWhiteSpace(integrationEvent.Note)
+            ? string.Empty
+            : $"The reason Diaspora gave: {integrationEvent.Note.Trim().TrimEnd('.')}. ";
+        values["untiltext"] = integrationEvent.Until is { } until
+            ? $"It ends on {until.UtcDateTime.ToString("d MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture)}. "
+            : string.Empty;
+        values["nextsteps"] = integrationEvent.ToState is "Suspended" or "Disabled"
+            ? "If you think this is a mistake, open Diaspora and appeal from the screen you see."
+            : string.Empty;
+
         yield return Trigger(
             UserId.From(integrationEvent.UserId),
             "member",

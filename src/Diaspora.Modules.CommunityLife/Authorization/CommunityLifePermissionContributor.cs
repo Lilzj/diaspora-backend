@@ -93,14 +93,6 @@ public sealed class CommunityLifePermissionContributor : IPermissionContributor
         };
 
         yield return new PermissionDefinition(
-            CommunityLifePermissions.OrganizationEditAny, CommunityLifeModuleMetadata.Name,
-            "Edit any organization.")
-        {
-            MinimumTier = AccessTier.Limited,
-            Roles = StaffRoles
-        };
-
-        yield return new PermissionDefinition(
             CommunityLifePermissions.OrganizationPublish, CommunityLifeModuleMetadata.Name,
             "Publish an organization.")
         {
@@ -203,14 +195,6 @@ public sealed class CommunityLifePermissionContributor : IPermissionContributor
         };
 
         yield return new PermissionDefinition(
-            CommunityLifePermissions.EventEditAny, CommunityLifeModuleMetadata.Name,
-            "Edit any event.")
-        {
-            MinimumTier = AccessTier.Limited,
-            Roles = StaffRoles
-        };
-
-        yield return new PermissionDefinition(
             CommunityLifePermissions.EventDeleteOwn, CommunityLifeModuleMetadata.Name,
             "Delete an event you organize.")
         {
@@ -306,7 +290,7 @@ public sealed class CommunityLifePermissionContributor : IPermissionContributor
 
         yield return new PermissionDefinition(
             CommunityLifePermissions.Moderate, CommunityLifeModuleMetadata.Name,
-            "Hide, suspend and annotate any event or organization.")
+            "Read the reports members filed about events and organizations. Staff act on one only by deciding its Trust moderation case.")
         {
             MinimumTier = AccessTier.Limited,
             Roles = StaffRoles

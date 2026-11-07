@@ -80,6 +80,13 @@ internal static class MediaProcessingEndpoints
             })
             .RequireAuthorization(MediaPolicies.ManageProcessing)
             .WithName("ReleaseMediaQuarantine")
-            .WithSummary("Release a file a scanner flagged. Admins only, always audited.");
+            .WithSummary(
+                "Release a file a scanner flagged. Admins only, always audited. A file a moderation "
+                + "decision withheld comes back by a restore on its case instead.");
+
+        // No staff take-down here (7 Nov 2026). The member's own edit and delete routes refuse
+        // staff, and a file is taken down only by a decision on a Trust moderation case, carried out
+        // by Infrastructure/Moderation/MediaModerationTarget; a withheld file joins the quarantine
+        // queue above, and a restore on its case is how it comes back.
     }
 }

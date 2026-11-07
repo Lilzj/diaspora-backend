@@ -36,6 +36,7 @@ internal static class FinancialPersistenceConstants
     public const string PromotionsTable = "financial_promotions";
     public const string RedemptionsTable = "financial_promotion_redemptions";
     public const string CreditGrantsTable = "financial_credit_grants";
+    public const string CreditGrantRequestsTable = "financial_credit_grant_requests";
     public const string CausesTable = "financial_donation_causes";
     public const string DonationsTable = "financial_donations";
     public const string FundsTable = "financial_contribution_funds";

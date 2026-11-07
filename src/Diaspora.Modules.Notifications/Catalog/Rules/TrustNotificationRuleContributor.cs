@@ -28,6 +28,20 @@ public sealed class TrustNotificationRuleContributor : INotificationRuleContribu
 
     public IEnumerable<NotificationRuleSeed> GetRules()
     {
+        // A reviewer asked for more (7 Nov 2026). Nothing handled this before: the member's
+        // verification sat waiting for something nobody had told them about.
+        yield return new NotificationRuleSeed
+        {
+            Key = NotificationTemplateKeys.VerificationMoreInformation,
+            EventName = typeof(VerificationMoreInformationRequestedIntegrationEvent).FullName!,
+            Audience = "member",
+            TemplateKey = NotificationTemplateKeys.VerificationMoreInformation,
+            CategoryKey = NotificationCategoryKeys.Trust,
+            Priority = NotificationPriority.High,
+            Channels = [NotificationChannelKind.InApp, NotificationChannelKind.Push, NotificationChannelKind.Email],
+            DeduplicationWindow = null
+        };
+
         yield return new NotificationRuleSeed
         {
             Key = "trust.verification.approved",
@@ -45,7 +59,7 @@ public sealed class TrustNotificationRuleContributor : INotificationRuleContribu
             Key = "trust.verification.rejected",
             EventName = typeof(VerificationRejectedIntegrationEvent).FullName!,
             Audience = "member",
-            TemplateKey = NotificationTemplateKeys.VerificationRejected,
+            TemplateKey = NotificationTemplateKeys.VerificationRejectedWithReason,
             CategoryKey = NotificationCategoryKeys.Trust,
             Priority = NotificationPriority.High,
             Channels = Everywhere,
@@ -68,7 +82,7 @@ public sealed class TrustNotificationRuleContributor : INotificationRuleContribu
             Key = "trust.verification.revoked",
             EventName = typeof(VerificationRevokedIntegrationEvent).FullName!,
             Audience = "member",
-            TemplateKey = NotificationTemplateKeys.VerificationRevoked,
+            TemplateKey = NotificationTemplateKeys.VerificationRevokedWithReason,
             CategoryKey = NotificationCategoryKeys.Trust,
 
             // Critical, and the only Trust rule that is. A revocation removes capabilities the member

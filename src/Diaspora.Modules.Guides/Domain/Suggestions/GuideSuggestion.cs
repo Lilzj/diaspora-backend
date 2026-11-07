@@ -132,13 +132,13 @@ public sealed class GuideSuggestion : AggregateRoot<GuideSuggestionId>, IAuditab
     }
 
     /// <summary>
-    /// The guide's author (or staff) accepts. The guide itself is untouched — applying the
+    /// The guide's author accepts. The guide itself is untouched — applying the
     /// text is a separate, ordinary edit.
     /// </summary>
     public Result Accept(UserId decidedBy, DateTimeOffset now, string? note = null) =>
         Decide(GuideSuggestionStatus.Accepted, decidedBy, now, note);
 
-    /// <summary>The guide's author (or staff) declines, with an optional explanation.</summary>
+    /// <summary>The guide's author declines, with an optional explanation.</summary>
     public Result Reject(UserId decidedBy, DateTimeOffset now, string? note = null) =>
         Decide(GuideSuggestionStatus.Rejected, decidedBy, now, note);
 

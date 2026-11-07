@@ -92,6 +92,7 @@ public sealed class PlatformIntegrationArchitectureTests
     [InlineData("DonationCompletedIntegrationEvent")]
     [InlineData("CommunityContributionCompletedIntegrationEvent")]
     [InlineData("WalletStatusChangedIntegrationEvent")]
+    [InlineData("RefundRequestDecidedIntegrationEvent")]
     public void Communication_consumes_the_financial_contracts_it_was_given(string contract) =>
         ConsumedBy(typeof(NotificationsModuleMetadata).Assembly, contract)
             .Should().BeTrue($"{contract} carries a fact a member is entitled to hear about their money");

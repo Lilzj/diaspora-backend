@@ -5,7 +5,7 @@ using Diaspora.Contracts.Identity.V1.Events;
 using Diaspora.Domain.Abstractions;
 using Diaspora.IntegrationTests.Common;
 using Diaspora.Modules.Creator.Domain.Repositories;
-using Diaspora.Modules.Financial.Application.Consumers.Rewards;
+using Diaspora.Modules.Financial.Application.Consumers.Appeals;
 using Diaspora.Modules.Financial.Domain.Rewards;
 using Diaspora.Platform.Messaging;
 using FluentAssertions;
@@ -50,7 +50,7 @@ public sealed class RewardHoldAppealTests : PooledIdentityTestBase
             .Should().BeEquivalentTo(new
             {
                 IsHeld = false,
-                Reason = AppealApprovedRewardHoldConsumer.Reason,
+                Reason = FinancialAppealApprovedConsumer.Reason,
                 DecidedByUserId = (Guid?)moderator
             });
 

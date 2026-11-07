@@ -334,27 +334,19 @@ public sealed record MemberRiskLevelChangedIntegrationEvent : IntegrationEvent
 }
 
 /// <summary>
-/// A moderator decided on a piece of content.
-/// <para>
-/// The event the owning module acts on — Trust holds the queue and the decision, but only
-/// the module that published a guide can actually hide it.
-/// </para>
+/// A reviewer asked a member for more before deciding their verification (7 Nov 2026). The domain
+/// event was raised and nothing handled it, so the member was never told what was missing.
 /// </summary>
-public sealed record ModerationDecisionRecordedIntegrationEvent : IntegrationEvent
+public sealed record VerificationMoreInformationRequestedIntegrationEvent : IntegrationEvent
 {
-    public required Guid ItemId { get; init; }
+    public required Guid VerificationId { get; init; }
 
-    public required Guid ModeratorId { get; init; }
+    public required Guid UserId { get; init; }
 
-    /// <summary>Guide, CommunityUpdate, Comment, Listing, Profile, Organization.</summary>
-    public required string ContentType { get; init; }
+    public required string VerificationType { get; init; }
 
-    public required string ContentId { get; init; }
+    /// <summary>What the reviewer asked for, in their words.</summary>
+    public required string Details { get; init; }
 
-    /// <summary>Approve, Reject, Hide, Archive, Pin, Unpin, Suspend, Restore, Escalate.</summary>
-    public required string Action { get; init; }
-
-    public string? Reason { get; init; }
-
-    public required DateTimeOffset DecidedAt { get; init; }
+    public required DateTimeOffset RequestedAt { get; init; }
 }

@@ -34,7 +34,8 @@ public static class JobMapper
         bool? hasApplied = null,
         bool? isSaved = null,
         IReadOnlyDictionary<Guid, ProviderSummary>? providers = null,
-        IReadOnlyDictionary<Guid, GuideSummary>? guides = null)
+        IReadOnlyDictionary<Guid, GuideSummary>? guides = null,
+        bool canModerate = false)
     {
         ArgumentNullException.ThrowIfNull(posting);
         ArgumentNullException.ThrowIfNull(employer);
@@ -113,7 +114,8 @@ public static class JobMapper
             IsSaved = isSaved,
             CanApply = posting.AcceptsApplications(now),
             CanManage = canManage,
-            IsOnEmployerTeam = isOnEmployerTeam
+            IsOnEmployerTeam = isOnEmployerTeam,
+            CanModerate = canModerate
         };
     }
 

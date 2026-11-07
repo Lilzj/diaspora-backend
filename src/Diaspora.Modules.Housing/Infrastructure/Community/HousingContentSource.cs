@@ -94,61 +94,9 @@ public sealed class HousingContentSource : ICommunityContentSource
         return described;
     }
 
-    /// <summary>
-    /// Applies a moderation outcome to the property itself.
-    /// <para>
-    /// Optional on the interface, and implemented here because a moderator hiding a listing's
-    /// questions and leaving the listing in discovery is a half-measure that satisfies nobody — and
-    /// on a housing platform it leaves a possible rental fraud advertised. Community records the
-    /// decision and publishes its event either way; this is B11 acting on its own row, which only
-    /// B11 can do.
-    /// </para>
-    /// <para>
-    /// The caller is Community's own moderation pipeline, which owns the unit of work — this
-    /// mutates the aggregate and does not save.
-    /// </para>
-    /// </summary>
-    public async Task ApplyModerationAsync(
-        Guid contentId,
-        ModerationActionType action,
-        CancellationToken cancellationToken = default)
-    {
-        var listing = await _listings.GetAsync(
-            HousingListingId.From(contentId), cancellationToken);
-
-        if (listing is null)
-        {
-            return;
-        }
-
-        var now = DateTimeOffset.UtcNow;
-
-        switch (action)
-        {
-            case ModerationActionType.Hide:
-                listing.Hide("Hidden following moderation.", listing.CreatedByUserId, now);
-                break;
-
-            case ModerationActionType.Suspend:
-                listing.Suspend("Suspended following moderation.", listing.CreatedByUserId, now);
-                break;
-
-            case ModerationActionType.Restore:
-            case ModerationActionType.Approve:
-                listing.Clear(null, now);
-                break;
-
-            case ModerationActionType.Archive:
-            case ModerationActionType.Reject:
-                listing.Archive(now, null, "Archived following moderation.");
-                break;
-
-            default:
-                // Pin, Unpin and Escalate say nothing about a property's lifecycle. Community has
-                // already recorded them; there is nothing for B11 to do.
-                break;
-        }
-    }
+    // ApplyModerationAsync is deliberately not implemented (7 Nov 2026). Staff act on a property
+    // only through a Trust moderation case, carried out by HousingListingModerationTarget with the
+    // real moderator recorded; this hook recorded the listing's creator as the moderator.
 
     private static ContentDescriptor Describe(
         HousingListing listing, LandlordProfile? landlord) => new()

@@ -74,43 +74,10 @@ internal static class HousingModerationEndpoints
             .WithName("ListHousingReports")
             .WithSummary("The housing moderation queue. Scams first.");
 
-        group.MapPost("/moderation/reports/{reportId:guid}/resolve", async (
-                Guid reportId,
-                [FromBody] ResolveHousingReportRequest request,
-                ISender sender,
-                HttpContext context,
-                CancellationToken cancellationToken) =>
-                PlatformResults.Ok(
-                    context,
-                    await sender.Send(
-                        new ResolveHousingReportCommand
-                        {
-                            ReportId = reportId,
-                            Request = request
-                        },
-                        cancellationToken)))
-            .RequireAuthorization(HousingPolicies.Moderate)
-            .WithName("ResolveHousingReport")
-            .WithSummary("Uphold or dismiss a report.");
-
-        group.MapPost("/moderation/listings/{listingId:guid}", async (
-                Guid listingId,
-                [FromBody] ModerateHousingRequest request,
-                ISender sender,
-                HttpContext context,
-                CancellationToken cancellationToken) =>
-                PlatformResults.Ok(
-                    context,
-                    await sender.Send(
-                        new ModerateHousingCommand
-                        {
-                            ListingId = listingId,
-                            Request = request
-                        },
-                        cancellationToken)))
-            .RequireAuthorization(HousingPolicies.Moderate)
-            .WithName("ModerateHousingListing")
-            .WithSummary("Hide, suspend, clear, archive or annotate a property.");
+        // Resolving a report and hiding, suspending, clearing or archiving a property were actions
+        // here until 7 Nov 2026. A property is now decided only on the Trust moderation case
+        // (/trust/moderation/queue/{id}/decision), which carries the decision out through
+        // HousingListingModerationTarget and closes these reports.
 
         group.MapGet("/listings/{listingId:guid}/analytics", async (
                 Guid listingId,

@@ -49,8 +49,9 @@ public static class CommunityLifeTelemetry
             "diaspora.community-life.events.published", "event", "Events published.");
 
     /// <summary>
-    /// Events called off, tagged by whether the organizer or a moderator did it. The number that
-    /// tells an operator whether the platform is advertising things that do not happen.
+    /// Events called off, tagged by whether anybody had said they were coming.
+    /// The number that tells an operator whether the platform is advertising things that do not
+    /// happen.
     /// </summary>
     public static Counter<long> EventsCancelled { get; } =
         Meter.CreateCounter<long>(

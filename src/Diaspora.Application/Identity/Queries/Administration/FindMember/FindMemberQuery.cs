@@ -15,6 +15,7 @@ namespace Diaspora.Application.Identity.Queries.Administration.FindMember;
 /// it should be asked for deliberately rather than arrive as a side effect of this.
 /// </para>
 /// </summary>
+[Auditable(Action = "identity.member.looked-up", OnlyForStaff = true)]
 [Authorize(Permission = IdentityPermissions.ReadAnyUser)]
 public sealed record FindMemberQuery : IQuery<AdminMemberResponse>
 {

@@ -6,5 +6,6 @@ namespace Diaspora.Contracts.Identity.V1.Requests;
 /// </summary>
 public sealed record ReinstateAccountRequest
 {
+    /// <summary>Why it is lifted. Required since 7 Nov 2026; the member is told it.</summary>
     public string? Notes { get; init; }
 }

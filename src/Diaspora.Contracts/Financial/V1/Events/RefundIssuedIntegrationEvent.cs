@@ -29,4 +29,15 @@ public sealed record RefundIssuedIntegrationEvent : IntegrationEvent
     public Guid? SubjectId { get; init; }
 
     public required DateTimeOffset IssuedAt { get; init; }
+
+    /// <summary>
+    /// The member the money was taken back from, when it was a member (7 Nov 2026).
+    /// <para>
+    /// A refund debits whichever wallet the capture credited. For a purchase that is the platform's
+    /// revenue and this is null; for a deposit it is the depositor's own wallet, so the payee is the
+    /// payer. The payer was told and the payee, who loses the balance, was not. Appended last and
+    /// nullable: an event from before this carries none, and a consumer treats that as "no member".
+    /// </para>
+    /// </summary>
+    public Guid? PayeeUserId { get; init; }
 }

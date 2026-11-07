@@ -46,6 +46,7 @@ public sealed class ReportSubjectCommandHandler
     private readonly IOrganizationAnalyticsRepository _organizationAnalytics;
     private readonly IUnitOfWork _unitOfWork;
     private readonly CommunityLifeAuthorizationService _authorization;
+    private readonly CommunityLifeContentOwners _owners;
     private readonly IOptions<CommunityLifeOptions> _options;
     private readonly IGuidGenerator _guids;
     private readonly IClock _clock;
@@ -58,6 +59,7 @@ public sealed class ReportSubjectCommandHandler
         IOrganizationAnalyticsRepository organizationAnalytics,
         IUnitOfWork unitOfWork,
         CommunityLifeAuthorizationService authorization,
+        CommunityLifeContentOwners owners,
         IOptions<CommunityLifeOptions> options,
         IGuidGenerator guids,
         IClock clock)
@@ -69,6 +71,7 @@ public sealed class ReportSubjectCommandHandler
         _organizationAnalytics = organizationAnalytics;
         _unitOfWork = unitOfWork;
         _authorization = authorization;
+        _owners = owners;
         _options = options;
         _guids = guids;
         _clock = clock;
@@ -136,6 +139,13 @@ public sealed class ReportSubjectCommandHandler
 
         await RecordAgainstSubjectAsync(report.Value, caller.Value, now, cancellationToken);
 
+        // Counted before this one is saved, so the new report is added rather than assumed. The
+        // announcement is what sends the report to Trust's moderation case (7 Nov 2026).
+        var total = await _reports.CountForSubjectAsync(
+            subjectType, command.SubjectId, cancellationToken) + 1;
+
+        report.Value.Announce(total, now);
+
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         CommunityLifeTelemetry.SubjectsReported.Add(
@@ -147,7 +157,10 @@ public sealed class ReportSubjectCommandHandler
             report.Value, includeReporter: false));
     }
 
-    /// <summary>Who owns the subject, and whether it exists at all.</summary>
+    /// <summary>
+    /// Who owns the subject, and whether it exists at all. The same owner Trust's case names, so a
+    /// report the module accepts is never one Trust drops as the owner reporting themselves.
+    /// </summary>
     private async Task<Result<UserId>> ResolveOwnerAsync(
         ReportSubjectType subjectType, Guid subjectId, CancellationToken cancellationToken)
     {
@@ -158,7 +171,7 @@ public sealed class ReportSubjectCommandHandler
 
             return organization is null
                 ? Result.Failure<UserId>(CommunityLifeErrors.OrganizationNotFound)
-                : Result.Success(organization.CreatedByUserId);
+                : Result.Success(await _owners.OfOrganizationAsync(organization, cancellationToken));
         }
 
         var communityEvent = await _events.GetAsync(
@@ -166,7 +179,7 @@ public sealed class ReportSubjectCommandHandler
 
         return communityEvent is null
             ? Result.Failure<UserId>(CommunityLifeErrors.EventNotFound)
-            : Result.Success(communityEvent.OrganizerUserId);
+            : Result.Success(CommunityLifeContentOwners.OfEvent(communityEvent));
     }
 
     /// <summary>
@@ -191,7 +204,8 @@ public sealed class ReportSubjectCommandHandler
             var organization = await _organizations.GetAsync(
                 OrganizationId.From(report.SubjectId), cancellationToken);
 
-            organization?.RecordReport(threshold, now, reportedBy);
+            // The system flags on a count; the reporter did not change the moderation (7 Nov 2026).
+            organization?.RecordReport(threshold, now, reportedBy: null);
 
             var analytics = await _organizationAnalytics.FindByOrganizationAsync(
                 OrganizationId.From(report.SubjectId), cancellationToken);
@@ -204,7 +218,8 @@ public sealed class ReportSubjectCommandHandler
         var communityEvent = await _events.GetAsync(
             CommunityEventId.From(report.SubjectId), cancellationToken);
 
-        communityEvent?.RecordReport(threshold, now, reportedBy);
+        // The system flags on a count; the reporter did not change the moderation (7 Nov 2026).
+        communityEvent?.RecordReport(threshold, now, reportedBy: null);
 
         var eventAnalytics = await _eventAnalytics.FindByEventAsync(
             CommunityEventId.From(report.SubjectId), cancellationToken);

@@ -13,8 +13,8 @@ namespace Diaspora.Modules.Guides.Application.Engagement;
 /// <para>
 /// Nothing is written in this module — the guide is read only to confirm it exists and the
 /// reporter can see it, so a report cannot be used to probe for hidden or deleted content.
-/// The guide is not flagged here either: whether a report warrants a flag is the moderation
-/// workflow's judgement, arriving back as a decision event.
+/// The guide is not flagged here either: what a report warrants is decided on the guide's Trust
+/// moderation case, and carried out by <c>GuideModerationTarget</c>.
 /// </para>
 /// </summary>
 public sealed class ReportGuideCommandHandler : ICommandHandler<ReportGuideCommand>

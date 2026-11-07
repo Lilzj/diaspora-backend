@@ -288,7 +288,17 @@ public sealed class MediaAsset : AggregateRoot<MediaId>, IAuditableEntity, ISoft
         });
     }
 
-    /// <summary>Staff override: a confirmed false positive.</summary>
+    /// <summary>
+    /// Staff release from quarantine: a scanner's false positive, or a moderation withhold lifted by
+    /// a restore on its case.
+    /// <para>
+    /// <b>Only a scanner's verdict is overruled.</b> When the scanner put the file here, the release
+    /// is a person's call that it was a false positive, recorded as a clean result under their name.
+    /// When a moderator withheld it, the scan verdict was never the question, and it is left as it
+    /// was (7 Nov 2026: a release wrote "clean" over a file that had never been scanned). A file
+    /// that has not been scanned goes back to processing to be scanned, not straight to members.
+    /// </para>
+    /// </summary>
     public Result ReleaseFromQuarantine(DateTimeOffset at, string releasedBy)
     {
         if (Status is not MediaAssetStatus.Quarantined)
@@ -296,8 +306,49 @@ public sealed class MediaAsset : AggregateRoot<MediaId>, IAuditableEntity, ISoft
             return Result.Success();
         }
 
-        ScanResult = VirusScanResult.Clean(releasedBy, at);
+        if (ScanResult.RequiresQuarantine)
+        {
+            ScanResult = VirusScanResult.Clean(releasedBy, at);
+        }
+
         Status = MediaAssetStatus.Processing;
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Staff take-down: withholds the file from everyone, on a moderation decision.
+    /// <para>
+    /// <b>The quarantine floor, reached by a person instead of a scanner.</b> The bytes are served
+    /// to nobody — the guard's state check runs before every credential, signed links included —
+    /// and the file joins the quarantine queue. A restore on its moderation case is how it comes
+    /// back. The scan verdict is left alone, because it is a fact about malware and this is not a
+    /// finding about malware; visibility is left alone, so a restore puts the file back as it was.
+    /// </para>
+    /// <para>
+    /// <b>Both a hide and a removal end here (7 Nov 2026).</b> A decision never deletes a file: a
+    /// deletion starts the byte sweeper, and a removal has to be reversible on appeal.
+    /// </para>
+    /// <para>
+    /// <b>The reason is the record.</b> It is kept in <see cref="FailureReason"/>, the field this
+    /// aggregate already uses to answer a member asking why their file does not show, and the
+    /// quarantine queue reads it back to staff.
+    /// </para>
+    /// </summary>
+    public Result Withhold(string reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return Result.Failure(MediaErrors.ModerationReasonRequired);
+        }
+
+        if (Status is MediaAssetStatus.Deleted)
+        {
+            return Result.Failure(MediaErrors.AssetDeleted);
+        }
+
+        Status = MediaAssetStatus.Quarantined;
+        FailureReason = Truncate(reason, MaxCaptionLength);
 
         return Result.Success();
     }

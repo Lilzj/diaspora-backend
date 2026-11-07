@@ -123,6 +123,9 @@ public sealed class MarketplaceModule : IPlatformModule
         // a sponsored item's title. Resolved as collections by Analytics and Creator.
         services.AddScoped<Diaspora.Contracts.Content.V1.IPlatformInventorySource, Persistence.ListingPublishedContentSource>();
         services.AddScoped<Diaspora.Contracts.Content.V1.IContentTitleSource, Persistence.ListingPublishedContentSource>();
+
+        // How a Trust moderation case carries its decision out on a listing (7 Nov 2026).
+        services.AddScoped<Diaspora.Contracts.Moderation.V1.IModerationTarget, Infrastructure.Moderation.MarketplaceListingModerationTarget>();
         services.AddScoped<SellerReviewSummaryService>();
         services.AddScoped<ListingCategoryResolver>();
         services.AddScoped<ListingAttributeValidator>();

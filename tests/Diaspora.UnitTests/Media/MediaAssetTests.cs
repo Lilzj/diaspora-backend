@@ -154,6 +154,92 @@ public sealed class MediaAssetTests
         asset.MarkReady().IsFailure.Should().BeTrue();
     }
 
+    // ── Moderation (7 Nov 2026) ──────────────────────────────────────────
+
+    [Fact]
+    public void A_withheld_file_is_unreadable_and_keeps_the_moderators_reason()
+    {
+        var asset = Record()!;
+        asset.RecordScan(VirusScanResult.Clean("clam", DateTimeOffset.UtcNow));
+        asset.ChangeVisibility(MediaVisibility.Public);
+        asset.MarkReady();
+
+        asset.Withhold("Shows a weapon being pointed at a named person.").IsSuccess.Should().BeTrue();
+
+        asset.Status.Should().Be(MediaAssetStatus.Quarantined);
+        asset.FailureReason.Should().Be("Shows a weapon being pointed at a named person.");
+        asset.CanBeReadBy(null, DateTimeOffset.UtcNow).Should().BeFalse();
+        asset.CanBeReadBy(Uploader, DateTimeOffset.UtcNow).Should().BeFalse();
+
+        // Not a finding about malware, and not a change of audience: a release puts it back.
+        asset.ScanResult.Status.Should().Be(VirusScanStatus.Clean);
+        asset.Visibility.Should().Be(MediaVisibility.Public);
+    }
+
+    /// <summary>
+    /// Lifting a moderator's withhold leaves the scan verdict alone (7 Nov 2026). It used to write a
+    /// manual "clean" over a file the scanner had never seen.
+    /// </summary>
+    [Fact]
+    public void Releasing_a_withheld_file_that_was_never_scanned_does_not_call_it_clean()
+    {
+        var asset = Record()!;
+
+        asset.Withhold("Reported as somebody else's photograph.").IsSuccess.Should().BeTrue();
+
+        asset.ReleaseFromQuarantine(DateTimeOffset.UtcNow, "manual:moderator").IsSuccess.Should().BeTrue();
+
+        asset.ScanResult.Status.Should().Be(VirusScanStatus.NotScanned);
+        asset.Status.Should().Be(MediaAssetStatus.Processing, "it goes back to be scanned");
+        asset.MarkReady().IsFailure.Should().BeTrue("an unscanned file is not served");
+    }
+
+    /// <summary>The other release: a person overrules the scanner, and the record says so.</summary>
+    [Fact]
+    public void Releasing_a_scanner_quarantine_records_a_persons_clean_verdict()
+    {
+        var asset = Record()!;
+        asset.RecordScan(VirusScanResult.Infected("clam", "EICAR", DateTimeOffset.UtcNow));
+
+        asset.ReleaseFromQuarantine(DateTimeOffset.UtcNow, "manual:admin").IsSuccess.Should().BeTrue();
+
+        asset.ScanResult.Status.Should().Be(VirusScanStatus.Clean);
+        asset.MarkReady().IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public void A_file_is_not_withheld_without_a_reason()
+    {
+        var asset = Record()!;
+
+        asset.Withhold("  ").Error.Code.Should().Be(MediaErrorCodes.ModerationReasonRequired);
+
+        asset.Status.Should().Be(MediaAssetStatus.Pending);
+    }
+
+    /// <summary>
+    /// <b>Changed by design (stage 5, 7 Nov 2026).</b> A staff removal used to soft-delete the file,
+    /// which started the byte sweeper and made a removal impossible to reverse on appeal. A removal
+    /// is now a decision on a Trust case, carried out as a withhold: the row and the bytes stay, the
+    /// reason is kept, and nothing announces a deletion.
+    /// </summary>
+    [Fact]
+    public void A_removed_file_is_withheld_with_the_reason_kept_and_is_not_deleted()
+    {
+        var asset = Ready();
+        asset.ClearDomainEvents();
+
+        asset.Withhold("Copyrighted photograph, owner complained.").IsSuccess.Should().BeTrue();
+
+        asset.Status.Should().Be(MediaAssetStatus.Quarantined);
+        asset.IsDeleted.Should().BeFalse();
+        asset.FailureReason.Should().Be("Copyrighted photograph, owner complained.");
+        asset.DomainEvents.OfType<MediaAssetDeletedDomainEvent>().Should().BeEmpty();
+
+        typeof(MediaAsset).GetMethod("Remove").Should().BeNull(
+            "there is no staff deletion: a decision withholds, and only the uploader deletes");
+    }
+
     // ── Access ───────────────────────────────────────────────────────────
 
     /// <summary>

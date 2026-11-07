@@ -14,13 +14,15 @@ using Diaspora.SharedKernel.Results;
 namespace Diaspora.Modules.Providers.Application.Management;
 
 /// <summary>
-/// Moves a provider through its lifecycle.
+/// Moves a provider through its lifecycle, for the provider's own managers.
 /// <para>
-/// <b>Two transitions are staff-only, and the check is here rather than on the endpoint.</b>
-/// A suspension and its reversal are decisions made <em>about</em> a provider by somebody who is
-/// not part of it; the endpoint's policy gates who may call the route at all, and this decides
-/// which transitions each caller may ask for. Splitting them would mean either a second route
-/// for staff or a manager who can lift their own suspension.
+/// <b>The owner's route, and only the owner's (7 Nov 2026).</b> Publish, pause, close and
+/// archive. Suspending and lifting a suspension are decisions made <em>about</em> a provider by
+/// somebody who is not part of it, so they are not reachable here by anybody: staff decide the
+/// provider's Trust moderation case, with a reason and a note, and the decision is carried out by
+/// <c>ProviderModerationTarget</c>. Staff who are not
+/// members of the provider are refused by the owner check like any outsider, and a manager who
+/// happens to hold a staff role cannot lift their own suspension here.
 /// </para>
 /// </summary>
 public sealed class ChangeProviderStatusCommandHandler
@@ -81,17 +83,16 @@ public sealed class ChangeProviderStatusCommandHandler
 
         var moved = status.Value switch
         {
-            ProviderStatus.Active when provider.Status == ProviderStatus.Suspended =>
-                RequireStaff(() => provider.Reinstate(now, caller.Value)),
-
+            // Publishing a suspended provider is refused by the aggregate; only staff lift a
+            // suspension, by restoring it on its Trust moderation case.
             ProviderStatus.Active => Publish(provider, now, caller.Value),
 
             ProviderStatus.Paused => provider.Pause(now, reason, caller.Value),
 
             ProviderStatus.Closed => provider.Close(now, reason, caller.Value),
 
-            ProviderStatus.Suspended =>
-                RequireStaff(() => provider.Suspend(now, reason ?? "Suspended by staff.", caller.Value)),
+            // A staff decision, never the owner's. See the class summary.
+            ProviderStatus.Suspended => Result.Failure(ProviderErrors.Forbidden),
 
             ProviderStatus.Archived => provider.Archive(now, reason, caller.Value),
 
@@ -129,7 +130,4 @@ public sealed class ChangeProviderStatusCommandHandler
 
         return published;
     }
-
-    private Result RequireStaff(Func<Result> action) =>
-        _authorization.IsStaff ? action() : Result.Failure(ProviderErrors.Forbidden);
 }

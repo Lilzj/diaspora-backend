@@ -20,5 +20,9 @@ public sealed record UpdateWalletStatusCommand : ICommand<WalletResponse>
     /// <summary><c>Active</c>, <c>Frozen</c> or <c>Closed</c>.</summary>
     public required string Status { get; init; }
 
+    /// <summary>
+    /// Why. Required, at least 10 characters, to freeze or close (7 Nov 2026); optional to unfreeze.
+    /// Kept on the wallet and shown to the member in the notice and in the app.
+    /// </summary>
     public string? Reason { get; init; }
 }

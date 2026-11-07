@@ -88,14 +88,6 @@ public sealed class HousingPermissionContributor : IPermissionContributor
         };
 
         yield return new PermissionDefinition(
-            HousingPermissions.LandlordManageAny, HousingModuleMetadata.Name,
-            "Manage any landlord profile.")
-        {
-            MinimumTier = AccessTier.Limited,
-            Roles = StaffRoles
-        };
-
-        yield return new PermissionDefinition(
             HousingPermissions.LandlordSubmitVerification, HousingModuleMetadata.Name,
             "Submit a landlord profile for verification.")
         {
@@ -121,14 +113,6 @@ public sealed class HousingPermissionContributor : IPermissionContributor
             // Correcting a live listing is never the thing to withhold: a wrong rent or a wrong
             // available-from date wastes members' journeys, not the restricted landlord's.
             GrantedWhenRestricted = true
-        };
-
-        yield return new PermissionDefinition(
-            HousingPermissions.ListingEditAny, HousingModuleMetadata.Name,
-            "Edit any listing.")
-        {
-            MinimumTier = AccessTier.Limited,
-            Roles = StaffRoles
         };
 
         yield return new PermissionDefinition(

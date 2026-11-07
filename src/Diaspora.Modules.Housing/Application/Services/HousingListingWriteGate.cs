@@ -14,8 +14,10 @@ namespace Diaspora.Modules.Housing.Application.Services;
 /// editing somebody else's property.
 /// </para>
 /// <para>
-/// A missing listing and a listing belonging to somebody else both answer not-found, deliberately:
-/// a forbidden on a listing the caller cannot see would confirm it exists.
+/// A missing listing answers not-found; a listing belonging to somebody else answers forbidden
+/// with the not-owned code, from <see cref="HousingAuthorizationService.RequireListingAccessAsync"/>.
+/// That includes platform staff, who act on a member's listing only through the moderation routes
+/// (7 Nov 2026).
 /// </para>
 /// </summary>
 public sealed class HousingListingWriteGate

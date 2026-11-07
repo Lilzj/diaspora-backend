@@ -7,6 +7,7 @@ namespace Diaspora.Modules.CommunityLife.Application.Events;
 /// <summary>Makes an event discoverable.</summary>
 [Authorize(Permission = CommunityLifePermissions.EventPublish)]
 [Auditable]
+[Diaspora.Application.Behaviors.PostsInArea(Diaspora.Contracts.Moderation.V1.ModerationAreas.Events)]
 public sealed record PublishEventCommand : ICommand<EventResponse>
 {
     public required Guid EventId { get; init; }

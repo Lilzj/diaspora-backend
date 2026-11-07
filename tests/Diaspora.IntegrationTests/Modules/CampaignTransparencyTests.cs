@@ -34,17 +34,74 @@ public abstract class CampaignTestBase<TFactory> : IdentityTestBase<TFactory>
         HttpClient.DefaultRequestHeaders.Authorization =
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
 
-    protected async Task<Guid> MemberAsync()
+    protected async Task<Guid> MemberAsync() => (await SignedInMemberAsync()).UserId;
+
+    /// <summary>
+    /// A verified member with an active financial identity, signed in, with the token kept so a test
+    /// that signs somebody else in can come back to them.
+    /// </summary>
+    protected async Task<(Guid UserId, string Token)> SignedInMemberAsync()
     {
         var (_, auth) = await RegisterVerifiedMemberAsync();
 
-        Api.Authenticate(auth.Tokens.AccessToken);
-        Authorize(auth.Tokens.AccessToken);
+        ActAs(auth.Tokens.AccessToken);
 
         await Factory.DrainOutboxAsync();
         await ActivateFinancialIdentityAsync(auth.User.Id);
 
-        return auth.User.Id;
+        return (auth.User.Id, auth.Tokens.AccessToken);
+    }
+
+    protected void ActAs(string accessToken)
+    {
+        Api.Authenticate(accessToken);
+        Authorize(accessToken);
+    }
+
+    // ── Staff: a fundraiser is moderated only through a Trust case (7 Nov 2026) ─────────────
+
+    protected const string Trust = "/api/v1/trust";
+
+    /// <summary>A member of staff opens a case about a fundraiser, with no report behind it.</summary>
+    protected Task<HttpResponseMessage> OpenFundraiserCaseAsync(
+        Guid campaignId, string reasonCode, string note) =>
+        HttpClient.PostAsJsonAsync(
+            new Uri($"{Trust}/moderation/cases", UriKind.Relative),
+            new { contentType = "fundraiser", contentId = campaignId, reasonCode, note });
+
+    protected async Task AssignCaseAsync(Guid itemId) =>
+        (await HttpClient.PostAsync(
+                new Uri($"{Trust}/moderation/queue/{itemId}/assign", UriKind.Relative), content: null))
+            .StatusCode.Should().Be(HttpStatusCode.OK);
+
+    protected Task<HttpResponseMessage> DecideCaseAsync(
+        Guid itemId, string outcome, string reasonCode, string note) =>
+        HttpClient.PostAsJsonAsync(
+            new Uri($"{Trust}/moderation/queue/{itemId}/decision", UriKind.Relative),
+            new { outcome, reasonCode, note });
+
+    protected Task<HttpResponseMessage> SecondReviewCaseAsync(Guid itemId, bool confirm, string note) =>
+        HttpClient.PostAsJsonAsync(
+            new Uri($"{Trust}/moderation/queue/{itemId}/second-review", UriKind.Relative),
+            new { confirm, note });
+
+    protected Task<HttpResponseMessage> RequestCaseReviewAsync(Guid itemId) =>
+        HttpClient.PostAsync(
+            new Uri($"{Trust}/moderation/cases/{itemId}/review-request", UriKind.Relative), content: null);
+
+    protected Task<HttpResponseMessage> EditAsync(Guid campaignId, string title) =>
+        HttpClient.PutAsJsonAsync(
+            new Uri($"{Communities}/campaigns/{campaignId}", UriKind.Relative),
+            new { title });
+
+    protected static async Task<string?> ReviewNoteAsync(HttpResponseMessage response)
+    {
+        var payload = await response.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
+
+        return payload.GetProperty("data").TryGetProperty("reviewNote", out var note)
+            && note.ValueKind == JsonValueKind.String
+                ? note.GetString()
+                : null;
     }
 
     protected async Task ActivateFinancialIdentityAsync(Guid userId)
@@ -264,6 +321,14 @@ public abstract class CampaignTestBase<TFactory> : IdentityTestBase<TFactory>
         int SupporterCount);
 
     protected sealed record PageShape<T>(List<T> Items, string? NextCursor, bool HasMore);
+
+    protected sealed record CaseShape(
+        Guid ItemId,
+        string ContentId,
+        string? CurrentOutcome,
+        string SecondReview,
+        DateTimeOffset? AppealDeadline,
+        bool StaffInitiated);
 }
 
 /// <summary>
@@ -881,6 +946,78 @@ public sealed class CampaignReviewGateTests : CampaignTestBase<CampaignReviewWeb
                     $"{Communities}/campaigns/{campaign.CampaignId}/cancel", UriKind.Relative),
                 new { reason = "Changed my mind" }))
             .StatusCode.Should().Be(HttpStatusCode.OK, "cancelling their own campaign is theirs");
+    }
+
+    /// <summary>
+    /// <b>The review decision is the one thing staff still do through the transition handler</b> —
+    /// and it is exactly two moves on a submitted campaign. Once published, the campaign is its
+    /// organiser's: a moderator who could pause or cancel it here would be acting in their name.
+    /// </summary>
+    [Fact]
+    public async Task A_moderator_publishes_a_submitted_campaign_and_can_do_nothing_else_to_it()
+    {
+        var (_, organiser) = await SignedInMemberAsync();
+
+        var campaign = await CreateCampaignAsync();
+
+        (await TransitionAsync(campaign.CampaignId, "submit")).StatusCode
+            .Should().Be(HttpStatusCode.OK);
+
+        await SignInAsRoleAsync("Moderator");
+
+        var published = await TransitionAsync(campaign.CampaignId, "publish");
+
+        published.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var decided = await ReadDataAsync<CampaignShape>(published);
+
+        decided.Status.Should().Be("Published");
+        decided.CauseCode.Should().NotBeNull("publishing creates the cause, whoever decides it");
+        decided.CanManage.Should().BeFalse("the reviewer is not the organiser");
+        decided.AvailableTransitions.Should().BeEmpty();
+
+        foreach (var verb in new[] { "pause", "close", "cancel" })
+        {
+            (await TransitionAsync(campaign.CampaignId, verb)).StatusCode
+                .Should().Be(HttpStatusCode.Forbidden, "a reviewer cannot {0} a member's campaign", verb);
+        }
+
+        ActAs(organiser);
+
+        (await TransitionAsync(campaign.CampaignId, "pause")).StatusCode
+            .Should().Be(HttpStatusCode.OK, "running it is the organiser's");
+    }
+
+    /// <summary>A reviewer does not reach a draft, which nobody has submitted for a decision.</summary>
+    [Fact]
+    public async Task A_moderator_cannot_publish_a_draft_nobody_submitted()
+    {
+        await MemberAsync();
+
+        var campaign = await CreateCampaignAsync();
+
+        await SignInAsRoleAsync("Moderator");
+
+        (await TransitionAsync(campaign.CampaignId, "publish")).StatusCode
+            .Should().Be(HttpStatusCode.Conflict);
+    }
+
+    /// <summary>A moderator who runs a campaign is its organiser, and waits for somebody else.</summary>
+    [Fact]
+    public async Task A_moderator_cannot_publish_their_own_campaign_when_review_is_required()
+    {
+        await SignInAsRoleAsync("Moderator");
+
+        var campaign = await CreateCampaignAsync();
+
+        (await TransitionAsync(campaign.CampaignId, "submit")).StatusCode
+            .Should().Be(HttpStatusCode.OK);
+
+        (await TransitionAsync(campaign.CampaignId, "publish")).StatusCode
+            .Should().Be(HttpStatusCode.Forbidden);
+
+        (await GetCampaignAsync(campaign.CampaignId)).AvailableTransitions
+            .Should().NotContain("Published");
     }
 }
 

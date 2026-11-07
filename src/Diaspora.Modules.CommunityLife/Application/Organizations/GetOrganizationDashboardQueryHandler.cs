@@ -73,7 +73,7 @@ public sealed class GetOrganizationDashboardQueryHandler
                 CommunityLifeErrors.OrganizationNotFound);
         }
 
-        var caller = await _authorization.RequireOrganizationWriteAsync(
+        var caller = await _authorization.RequireOrganizationManagementReadAsync(
             organization, cancellationToken);
 
         if (caller.IsFailure)

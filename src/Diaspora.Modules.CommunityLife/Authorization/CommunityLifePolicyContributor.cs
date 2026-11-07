@@ -32,9 +32,6 @@ public sealed class CommunityLifePolicyContributor : IPolicyContributor
             CommunityLifePolicies.OrganizationEditOwn,
             CommunityLifePermissions.OrganizationEditOwn);
         yield return Policy(
-            CommunityLifePolicies.OrganizationEditAny,
-            CommunityLifePermissions.OrganizationEditAny);
-        yield return Policy(
             CommunityLifePolicies.OrganizationPublish,
             CommunityLifePermissions.OrganizationPublish);
         yield return Policy(
@@ -68,8 +65,6 @@ public sealed class CommunityLifePolicyContributor : IPolicyContributor
             CommunityLifePolicies.EventCreate, CommunityLifePermissions.EventCreate);
         yield return Policy(
             CommunityLifePolicies.EventEditOwn, CommunityLifePermissions.EventEditOwn);
-        yield return Policy(
-            CommunityLifePolicies.EventEditAny, CommunityLifePermissions.EventEditAny);
         yield return Policy(
             CommunityLifePolicies.EventDeleteOwn, CommunityLifePermissions.EventDeleteOwn);
         yield return Policy(

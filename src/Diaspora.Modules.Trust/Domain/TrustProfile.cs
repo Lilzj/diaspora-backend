@@ -404,7 +404,17 @@ public sealed class TrustProfile : AggregateRoot<TrustProfileId>, IAuditableEnti
         RaiseDomainEvent(new TrustLevelChangedDomainEvent(Id, UserId, previous, next, Truncate(reason)!, at));
     }
 
-    /// <summary>Recomputes health from the violation counters.</summary>
+    /// <summary>
+    /// Recomputes health from the counters.
+    /// <para>
+    /// <b>Violations no longer restrict or suspend the account (7 Nov 2026).</b> One violation used to
+    /// restrict the whole account and three suspended it for good, with nothing to lower the count:
+    /// one moderator, deciding one case three times, could end a member. The owner's strike ladder
+    /// replaces it (Strike, IPostingStanding): a warning, then a week without posting in one area,
+    /// then a month, then a suspension two staff must confirm, and strikes expire. A violation still
+    /// counts against "excellent" standing, nothing more.
+    /// </para>
+    /// </summary>
     private void RederiveHealth(string reason, DateTimeOffset at)
     {
         if (Health == AccountHealth.Suspended)
@@ -414,8 +424,6 @@ public sealed class TrustProfile : AggregateRoot<TrustProfileId>, IAuditableEnti
 
         var next = this switch
         {
-            { ViolationCount: >= 3 } => AccountHealth.Suspended,
-            { ViolationCount: >= 1 } => AccountHealth.Restricted,
             { SpamReportCount: >= 3 } => AccountHealth.Restricted,
             { ActiveAppealCount: > 0 } => AccountHealth.UnderReview,
             { WarningCount: >= 2 } => AccountHealth.UnderReview,

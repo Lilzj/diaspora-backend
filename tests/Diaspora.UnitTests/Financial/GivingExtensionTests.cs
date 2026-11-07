@@ -114,6 +114,7 @@ public sealed class GivingExtensionTests
     [InlineData(CampaignStatus.Refunding, false)]
     [InlineData(CampaignStatus.Cancelled, false)]
     [InlineData(CampaignStatus.Closed, false)]
+    [InlineData(CampaignStatus.Suspended, false)]
     public void Only_three_states_accept_donations(CampaignStatus status, bool accepts) =>
         CampaignTransitions.AcceptsDonations(status).Should().Be(accepts);
 
@@ -279,6 +280,118 @@ public sealed class GivingExtensionTests
         revised.IsFailure.Should().BeTrue();
         revised.Error.Code.Should().Be(FinancialErrorCodes.CampaignNotEditable);
         campaign.Title.Should().Be("Help Ada travel home");
+    }
+
+    // ── Moderation (7 Nov 2026) ─────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// A suspended campaign is hidden, takes no money, cannot be edited, and tells its organiser why.
+    /// </summary>
+    [Fact]
+    public void A_suspended_campaign_is_hidden_frozen_and_carries_the_reason()
+    {
+        var campaign = PublishedCampaign();
+
+        campaign.Suspend("Reported as a copy of another member's appeal.", Now).IsSuccess
+            .Should().BeTrue();
+
+        campaign.Status.Should().Be(CampaignStatus.Suspended);
+        campaign.IsPubliclyVisible.Should().BeFalse();
+        campaign.AcceptsDonations.Should().BeFalse();
+        campaign.IsEditable.Should().BeFalse();
+        campaign.ReviewNote.Should().Be("Reported as a copy of another member's appeal.");
+
+        campaign.DomainEvents.OfType<CampaignStatusChangedDomainEvent>().Last().Reason
+            .Should().Be("Reported as a copy of another member's appeal.");
+    }
+
+    [Fact]
+    public void A_campaign_is_not_suspended_without_a_reason()
+    {
+        var campaign = PublishedCampaign();
+
+        var suspended = campaign.Suspend(" ", Now);
+
+        suspended.IsFailure.Should().BeTrue();
+        suspended.Error.Code.Should().Be(FinancialErrorCodes.CampaignModerationInvalid);
+        campaign.Status.Should().Be(CampaignStatus.Published);
+    }
+
+    /// <summary>Only a live campaign is suspended; a draft has nothing public to take down.</summary>
+    [Fact]
+    public void A_draft_cannot_be_suspended()
+    {
+        var campaign = Open().Value;
+
+        campaign.Suspend("Anything", Now).Error.Code
+            .Should().Be(FinancialErrorCodes.CampaignTransitionInvalid);
+    }
+
+    /// <summary>
+    /// Restored, not resumed: the organiser decides whether it collects again, and the moderator's
+    /// reason does not follow the campaign back into public view.
+    /// </summary>
+    [Fact]
+    public void A_restored_campaign_comes_back_paused_without_the_moderators_note()
+    {
+        var campaign = PublishedCampaign();
+        campaign.Suspend("Reported as fraudulent.", Now);
+
+        campaign.Restore("The organiser sent the hospital's letter.", Now).IsSuccess
+            .Should().BeTrue();
+
+        campaign.Status.Should().Be(CampaignStatus.Paused);
+        campaign.AcceptsDonations.Should().BeFalse();
+        campaign.IsPubliclyVisible.Should().BeTrue();
+        campaign.ReviewNote.Should().BeNull();
+    }
+
+    [Fact]
+    public void A_campaign_restored_after_its_deadline_comes_back_past_it()
+    {
+        var campaign = PublishedCampaign(deadline: Now.AddDays(1));
+        campaign.Suspend("Reported as fraudulent.", Now);
+
+        campaign.Restore("Cleared.", Now.AddDays(2)).IsSuccess.Should().BeTrue();
+
+        campaign.Status.Should().Be(CampaignStatus.DeadlineReached);
+    }
+
+    /// <summary>The moves in and out of a suspension are moderation's, and named as such.</summary>
+    [Fact]
+    public void Suspending_and_restoring_are_moderation_moves()
+    {
+        CampaignTransitions.IsModerationMove(CampaignStatus.Active, CampaignStatus.Suspended)
+            .Should().BeTrue();
+        CampaignTransitions.IsModerationMove(CampaignStatus.Suspended, CampaignStatus.Paused)
+            .Should().BeTrue();
+        CampaignTransitions.IsModerationMove(CampaignStatus.Active, CampaignStatus.Paused)
+            .Should().BeFalse();
+    }
+
+    private static Campaign PublishedCampaign(DateTimeOffset? deadline = null)
+    {
+        var campaign = Campaign.Open(
+            CampaignId.New(),
+            Guid.NewGuid(),
+            "Ada Nwosu",
+            "Help Ada travel home",
+            "A short summary of why.",
+            "The whole story, at length.",
+            CampaignCategory.Repatriation,
+            BeneficiaryType.Member,
+            "Ada Nwosu",
+            "GBP",
+            2,
+            true,
+            Now,
+            target: Money.FromAmount(100m, "GBP"),
+            deadline: deadline).Value;
+
+        campaign.MoveTo(CampaignStatus.PendingReview, Now);
+        campaign.Publish(Cause(), Now);
+
+        return campaign;
     }
 
     // ════════════════════════════════════════════════════════════════════════════════════════

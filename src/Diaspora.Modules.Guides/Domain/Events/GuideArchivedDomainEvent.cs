@@ -15,7 +15,7 @@ public sealed record GuideArchivedDomainEvent : DomainEvent
     public required DateTimeOffset ArchivedAt { get; init; }
 
     /// <summary>
-    /// The person who archived it: the author or staff, through the archive command. Null when
+    /// The person who archived it: the author, through the archive command. Null when
     /// moderation archived it, which names no person here.
     /// </summary>
     public UserId? ArchivedBy { get; init; }

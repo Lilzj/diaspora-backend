@@ -71,35 +71,8 @@ internal static class JobModerationEndpoints
             .WithName("ListJobReports")
             .WithSummary("The jobs moderation queue. The reports about money come first.");
 
-        group.MapPost("/moderation/reports/{reportId:guid}/resolve", async (
-                Guid reportId,
-                ResolveJobReportRequest request,
-                ISender sender,
-                HttpContext context,
-                CancellationToken cancellationToken) =>
-                PlatformResults.Ok(
-                    context,
-                    await sender.Send(
-                        new ResolveJobReportCommand { ReportId = reportId, Request = request },
-                        cancellationToken)))
-            .RequireAuthorization(JobPolicies.Moderate)
-            .WithName("ResolveJobReport")
-            .WithSummary(
-                "Close a report, and every other open report about the same advert with it.");
-
-        group.MapPost("/moderation/postings/{postingId:guid}", async (
-                Guid postingId,
-                ModerateJobPostingRequest request,
-                ISender sender,
-                HttpContext context,
-                CancellationToken cancellationToken) =>
-                PlatformResults.Ok(
-                    context,
-                    await sender.Send(
-                        new ModerateJobPostingCommand { PostingId = postingId, Request = request },
-                        cancellationToken)))
-            .RequireAuthorization(JobPolicies.Moderate)
-            .WithName("ModerateJobPosting")
-            .WithSummary("Hide, unhide, flag or annotate an advert, without closing a report.");
+        // Resolving a report and hiding an advert were actions here until 7 Nov 2026. They now happen
+        // only as decisions on the Trust moderation case (/trust/moderation/queue/{id}/decision),
+        // which carries the decision out through JobModerationTarget and closes these reports.
     }
 }

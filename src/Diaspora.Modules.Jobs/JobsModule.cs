@@ -112,6 +112,8 @@ public sealed class JobsModule : IPlatformModule
     private static void RegisterServices(IServiceCollection services)
     {
         services.AddScoped<JobAuthorizationService>();
+        // A job advert as Trust's moderation cases see it: the only way staff act on one (7 Nov 2026).
+        services.AddScoped<Diaspora.Contracts.Moderation.V1.IModerationTarget, Infrastructure.Moderation.JobModerationTarget>();
 
         // Cross-module content seams in Diaspora.Contracts: the platform overview's counts and
         // a sponsored item's title. Resolved as collections by Analytics and Creator.
