@@ -1,5 +1,6 @@
 using Diaspora.Modules.Financial.Application.Services;
 using Diaspora.Modules.Financial.Contracts.V1.Responses;
+using Diaspora.Modules.Financial.Domain.Credits;
 using Diaspora.Modules.Financial.Domain.Payments;
 using Diaspora.Modules.Financial.Domain.Rewards;
 using Diaspora.Modules.Financial.Domain.ValueObjects;
@@ -75,7 +76,8 @@ public static class FinancialMapperExtensions
             DecisionNote = request.DecisionNote,
             RefundId = request.RefundId,
             RequestedAt = request.RequestedAt,
-            DecidedAt = request.DecidedAt
+            DecidedAt = request.DecidedAt,
+            ReopenedAt = request.ReopenedAt
         };
     }
 
@@ -139,6 +141,28 @@ public static class FinancialMapperExtensions
             DecidedAt = request.DecidedAt,
             DecisionNote = request.DecisionNote,
             PolicyVersion = request.PolicyVersion
+        };
+    }
+
+    public static CreditGrantRequestResponse ToResponse(CreditGrantRequest request, string? symbol = null)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        return new CreditGrantRequestResponse
+        {
+            RequestId = request.Id.Value,
+            MemberUserId = request.MemberUserId,
+            Amount = FinancialMapper.ToResponse(request.Amount, symbol),
+            Kind = request.Kind.ToString(),
+            Reason = request.Reason,
+            ExpiresAt = request.ExpiresAt,
+            Status = request.Status.ToString(),
+            RequestedByUserId = request.RequestedByUserId,
+            RequestedAt = request.RequestedAt,
+            DecidedByUserId = request.DecidedByUserId,
+            DecidedAt = request.DecidedAt,
+            DecisionNote = request.DecisionNote,
+            CreditGrantId = request.CreditGrantId?.Value
         };
     }
 

@@ -187,6 +187,20 @@ public static class NotificationTemplateKeys
     public const string ContributionReceipt = "billing.contribution.receipt";
     public const string WalletStatusChanged = "billing.wallet.status";
 
+    // ── Money due process (7 Nov 2026) ───────────────────────────────────
+
+    /// <summary>
+    /// The wallet notice with the reason in the push line too, and what the member can do. A new
+    /// key, because the seeder never updates a template that already exists.
+    /// </summary>
+    public const string WalletStatusChangedWithReason = "billing.wallet.status.v2";
+
+    /// <summary>The member a refund took money back from. Until now only the payer was told.</summary>
+    public const string RefundPayee = "billing.refund.payee";
+
+    /// <summary>A staff answer to a member's refund request, with the note. Nobody was told before.</summary>
+    public const string RefundRequestDecided = "billing.refund-request.decided";
+
     // ── Moderation cases (7 Nov 2026) ────────────────────────────────────
     public const string ModerationCaseHidden = "moderation.case.hidden";
     public const string ModerationCaseHiddenAutomatically = "moderation.case.hidden-automatically";

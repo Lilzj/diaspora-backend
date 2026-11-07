@@ -39,6 +39,12 @@ public static class FinancialErrorCodes
     public const string WalletHasHeldFunds = "financial.wallet.has_held_funds";
     public const string InsufficientFunds = "financial.wallet.insufficient_funds";
 
+    /// <summary>
+    /// A freeze or a closure with no reason, or one too short to explain anything (7 Nov 2026). The
+    /// member reads the reason.
+    /// </summary>
+    public const string WalletStatusReasonRequired = "financial.wallet.reason_required";
+
     // ── Money ────────────────────────────────────────────────────────────────────────────────
 
     public const string AmountInvalid = "financial.amount.invalid";
@@ -101,6 +107,47 @@ public static class FinancialErrorCodes
     public const string RefundRequestExists = "financial.refund_request.already_open";
     public const string RefundRequestNotDecidable = "financial.refund_request.not_decidable";
     public const string RefundWindowClosed = "financial.refund_request.window_closed";
+
+    /// <summary>
+    /// Turning a refund request down with no note, or one too short to explain anything (7 Nov 2026).
+    /// The member reads the note.
+    /// </summary>
+    public const string RefundDecisionNoteRequired = "financial.refund_request.note_required";
+
+    /// <summary>
+    /// The member of staff who turned a request down tried to decide it again after the member's
+    /// appeal reopened it. Somebody else has to.
+    /// </summary>
+    public const string RefundRequestSameDecider = "financial.refund_request.same_decider";
+
+    // ── Promotional credit (7 Nov 2026) ──────────────────────────────────────────────────────
+
+    /// <summary>A staff member granting, asking for or approving credit for their own account.</summary>
+    public const string CreditGrantToSelf = "financial.credit.grant_to_self";
+
+    /// <summary>A grant larger than one grant may ever be. See <c>CreditGrantPolicy</c>.</summary>
+    public const string CreditGrantAboveMaximum = "financial.credit.grant_above_maximum";
+
+    /// <summary>A grant above the approval threshold: it needs a second Admin, through a grant request.</summary>
+    public const string CreditGrantNeedsApproval = "financial.credit.grant_needs_approval";
+
+    /// <summary>A grant with no reason, or one too short to explain anything.</summary>
+    public const string CreditGrantReasonRequired = "financial.credit.reason_required";
+
+    /// <summary>The Admin who asked for a grant tried to approve it themselves.</summary>
+    public const string CreditGrantSelfApproval = "financial.credit.grant_self_approval";
+
+    /// <summary>No credit grant request has that id.</summary>
+    public const string CreditGrantRequestNotFound = "financial.credit.grant_request_not_found";
+
+    /// <summary>The credit grant request was already approved, rejected or withdrawn.</summary>
+    public const string CreditGrantRequestDecided = "financial.credit.grant_request_decided";
+
+    /// <summary>The credit grant request queue was asked for a state that does not exist.</summary>
+    public const string CreditGrantRequestStateInvalid = "financial.credit.grant_request_state_invalid";
+
+    /// <summary>Declining a credit grant request with no note.</summary>
+    public const string CreditGrantDecisionNoteRequired = "financial.credit.decision_note_required";
 
     // ── Invoices and saved payment methods ───────────────────────────────────────────────────
 

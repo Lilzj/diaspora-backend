@@ -1,4 +1,5 @@
 using Diaspora.Application.Abstractions;
+using Diaspora.Contracts.Moderation.V1;
 using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Financial.Application.EventHandlers;
 using Diaspora.Modules.Financial.Application.Mapping;
@@ -237,6 +238,27 @@ public sealed class RefundRequestHandlers
         {
             return Result.Failure<RefundRequestResponse>(Error.NotFound(
                 FinancialErrorCodes.RefundRequestNotFound, "That request does not exist."));
+        }
+
+        // A request the member's appeal reopened is decided by somebody other than whoever refused
+        // it (7 Nov 2026): the appeal is a second look.
+        if (request.WasRefusedBy(caller.Value))
+        {
+            return Result.Failure<RefundRequestResponse>(Error.Forbidden(
+                FinancialErrorCodes.RefundRequestSameDecider,
+                "You turned this request down before the member's appeal reopened it. "
+                + "Another member of staff has to decide it."));
+        }
+
+        // A refusal says why, in words the member reads (7 Nov 2026). It reaches them in the notice.
+        var note = command.DecisionNote?.Trim();
+
+        if (!command.Approve && (note is null || note.Length < ModerationPolicy.MinimumNoteLength))
+        {
+            return Result.Failure<RefundRequestResponse>(Error.Validation(
+                FinancialErrorCodes.RefundDecisionNoteRequired,
+                $"Say why the refund is turned down, in at least {ModerationPolicy.MinimumNoteLength} "
+                + "characters. The member reads this note."));
         }
 
         var symbol = await _currencies.SymbolAsync(request.Currency, cancellationToken);

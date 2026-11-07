@@ -33,6 +33,12 @@ public sealed record RefundRequestResponse
     public required DateTimeOffset RequestedAt { get; init; }
 
     public DateTimeOffset? DecidedAt { get; init; }
+
+    /// <summary>
+    /// When the member's appeal against a refusal reopened the request for a new decision. Null for
+    /// a request nobody appealed (7 Nov 2026).
+    /// </summary>
+    public DateTimeOffset? ReopenedAt { get; init; }
 }
 
 /// <summary>

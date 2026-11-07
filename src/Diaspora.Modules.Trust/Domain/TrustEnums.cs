@@ -323,7 +323,16 @@ public enum AppealType
     /// A hold on the member's reward points (RWD-14, CS-4a). The target is the member themselves;
     /// an approval lifts the hold in the Financial Platform, in the reviewer's name.
     /// </summary>
-    RewardHold = 4
+    RewardHold = 4,
+
+    /// <summary>
+    /// A staff decision about the member's money (7 Nov 2026): a freeze of their own wallet
+    /// (<c>TargetId</c> = the wallet id) or the refusal of a refund they asked for (<c>TargetId</c> =
+    /// the refund request id). Trust cannot see either, so it does not check the target; the Financial
+    /// Platform acts on an upheld appeal only when the target is the appellant's, and ignores it
+    /// otherwise. Upheld: the wallet is unfrozen, or the refund request is reopened for a new decision.
+    /// </summary>
+    Money = 5
 }
 
 /// <summary>

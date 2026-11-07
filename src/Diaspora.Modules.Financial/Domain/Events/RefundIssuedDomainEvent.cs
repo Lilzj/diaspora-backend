@@ -27,4 +27,11 @@ public sealed record RefundIssuedDomainEvent : DomainEvent
     public Guid? SubjectId { get; init; }
 
     public required DateTimeOffset IssuedAt { get; init; }
+
+    /// <summary>
+    /// The member the money was taken back from: the owner of the debited wallet when that wallet is
+    /// a person's. Null when it is the platform's (a purchase). See
+    /// <c>RefundIssuedIntegrationEvent.PayeeUserId</c>.
+    /// </summary>
+    public Guid? PayeeUserId { get; init; }
 }

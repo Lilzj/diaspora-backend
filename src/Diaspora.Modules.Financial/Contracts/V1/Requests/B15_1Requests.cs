@@ -157,7 +157,10 @@ public sealed record DecideRefundRequestRequest
     /// <summary>True to approve, which refunds the payer.</summary>
     public required bool Approve { get; init; }
 
-    /// <summary>A member-safe explanation. It is shown to them.</summary>
+    /// <summary>
+    /// A member-safe explanation. It is shown to them, in the notice and in the app. Required, at
+    /// least 10 characters, to turn a request down (7 Nov 2026); optional on an approval.
+    /// </summary>
     public string? DecisionNote { get; init; }
 }
 

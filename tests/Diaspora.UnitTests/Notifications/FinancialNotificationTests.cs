@@ -180,7 +180,7 @@ public sealed class FinancialNotificationTests
         triggers.Should().ContainSingle();
         triggers[0].RecipientUserId.Value.Should().Be(Member);
         triggers[0].Values["status"].Should().Be("Frozen");
-        triggers[0].GroupKey.Should().NotBeNull("a retry storm must collapse into one message");
+        triggers[0].GroupKey.Should().NotBeNull("the inbox groups one wallet's notices");
     }
 
     // ── Renewals ─────────────────────────────────────────────────────────
@@ -373,22 +373,181 @@ public sealed class FinancialNotificationTests
     }
 
     /// <summary>
-    /// <b>Money never deduplicates, with one stated exception.</b> Two failed payments are two facts
-    /// about a member's money and the second is not a repeat of the first — unlike six reactions in
-    /// an evening, which are one conversation. The wallet freeze is the exception because a retrying
-    /// sweep can raise one cause several times.
+    /// <b>Only the rules whose subject repeats set a window, and it is short.</b> A rule with no
+    /// window collapses one subject's messages for the platform default (an hour), harmless where
+    /// every message has its own subject. The wallet and the refund request repeat: a freeze then an
+    /// unfreeze, a refusal then a new decision after an appeal. Ten minutes on the wallet swallowed the
+    /// unfreeze (7 Nov 2026), so the wallet has none; the refund request has one minute, which
+    /// collapses a redelivery and nothing else.
     /// </summary>
     [Fact]
-    public void Only_the_wallet_freeze_deduplicates()
+    public void Only_the_rules_whose_subject_repeats_set_a_short_window()
     {
-        var deduplicating = new FinancialNotificationRuleContributor()
+        var windows = new FinancialNotificationRuleContributor()
             .GetRules()
             .Where(rule => rule.DeduplicationWindow is not null)
-            .Select(rule => rule.Key)
-            .ToList();
+            .ToDictionary(rule => rule.Key, rule => rule.DeduplicationWindow!.Value);
 
-        deduplicating.Should().Equal("billing.wallet.status");
+        windows.Should().BeEquivalentTo(new Dictionary<string, TimeSpan>
+        {
+            ["billing.wallet.status"] = TimeSpan.Zero,
+            ["billing.refund-request.decided"] = TimeSpan.FromMinutes(1)
+        });
     }
+
+    // ── Money due process (7 Nov 2026) ───────────────────────────────────
+
+    /// <summary>
+    /// The member a refund takes money from is told, with the amount and the reason in words. When
+    /// that is a third party, the payer still gets their receipt.
+    /// </summary>
+    [Fact]
+    public void A_refund_tells_the_payee_it_took_money_from()
+    {
+        var payee = Guid.NewGuid();
+
+        var triggers = Translate(
+            dispatcher => new RefundIssuedConsumer(dispatcher), Refund(payeeUserId: payee, reason: "Duplicate"));
+
+        triggers.Select(trigger => trigger.Audience).Should().BeEquivalentTo("payer", "payee");
+
+        var told = triggers.Single(trigger => trigger.Audience == "payee");
+        told.RecipientUserId.Value.Should().Be(payee);
+        told.Values["amount"].Should().Be("1200.00 NGN");
+        told.Values["reasonlabel"].Should().Be("the payment was a duplicate");
+        told.SubjectId.Should().NotBe(Subject.ToString(), "each refund is its own withdrawal from the balance");
+    }
+
+    /// <summary>
+    /// A deposit refund takes the money out of the depositor's own wallet: payer and payee are one
+    /// member, who gets one notice saying both things rather than two notices about one refund.
+    /// </summary>
+    [Fact]
+    public void A_deposit_refund_tells_the_depositor_once()
+    {
+        var triggers = Translate(
+            dispatcher => new RefundIssuedConsumer(dispatcher), Refund(payeeUserId: Member, reason: "RequestedByPayer"));
+
+        var told = triggers.Should().ContainSingle().Subject;
+        told.Audience.Should().Be("payee");
+        told.RecipientUserId.Value.Should().Be(Member);
+        told.Values["reasonlabel"].Should().Be("you asked for it back");
+        told.Values["returnedto"].Should().Be("the card or account you paid it in from");
+    }
+
+    /// <summary>A refund of a purchase debits the platform; there is no member payee to tell.</summary>
+    [Fact]
+    public void A_purchase_refund_tells_only_the_payer()
+    {
+        var triggers = Translate(
+            dispatcher => new RefundIssuedConsumer(dispatcher), Refund(payeeUserId: null, reason: "Goodwill"));
+
+        triggers.Should().ContainSingle().Which.Audience.Should().Be("payer");
+    }
+
+    /// <summary>A refusal reaches the requester with the note and the way to appeal.</summary>
+    [Fact]
+    public void A_refused_refund_request_tells_the_requester_why_and_how_to_appeal()
+    {
+        var triggers = Translate(
+            dispatcher => new RefundRequestDecidedConsumer(dispatcher),
+            Decision("Rejected", "The boost ran for its full seven days."));
+
+        var told = triggers.Should().ContainSingle().Subject;
+        told.RecipientUserId.Value.Should().Be(Member);
+        told.Audience.Should().Be("requester");
+        told.Values["outcome"].Should().Be("turned down");
+        told.Values["notetext"].Should().Be("Diaspora's note: The boost ran for its full seven days. ");
+        ((string)told.Values["nexttext"]!).Should().Contain("Profile, Appeals");
+    }
+
+    [Fact]
+    public void An_approved_refund_request_tells_the_requester_the_money_is_coming()
+    {
+        var triggers = Translate(
+            dispatcher => new RefundRequestDecidedConsumer(dispatcher), Decision("Approved", null));
+
+        var told = triggers.Should().ContainSingle().Subject;
+        told.Values["outcome"].Should().Be("approved");
+        told.Values["notetext"].Should().Be(string.Empty);
+        ((string)told.Values["nexttext"]!).Should().Contain("on its way back");
+    }
+
+    [Fact]
+    public void Anything_but_an_approval_or_a_refusal_is_not_announced()
+    {
+        Translate(dispatcher => new RefundRequestDecidedConsumer(dispatcher), Decision("Withdrawn", null))
+            .Should().BeEmpty();
+    }
+
+    /// <summary>
+    /// A wallet opening is not news. Every wallet is activated as it is opened, and each one used to
+    /// send "Your wallet is now active: no reason was recorded" (found 7 Nov 2026: four at sign-up).
+    /// </summary>
+    [Fact]
+    public void Opening_a_wallet_tells_nobody()
+    {
+        var opened = Wallet("Personal") with { PreviousStatus = "Pending", Status = "Active", Reason = null };
+
+        Translate(dispatcher => new WalletStatusChangedConsumer(dispatcher), opened).Should().BeEmpty();
+    }
+
+    /// <summary>Lifting a freeze is a decision, and the member hears it with the reason.</summary>
+    [Fact]
+    public void Lifting_a_freeze_tells_the_member_why()
+    {
+        var lifted = Wallet("Personal") with
+        {
+            PreviousStatus = "Frozen",
+            Status = "Active",
+            Reason = "The issuer confirmed both deposits were genuine."
+        };
+
+        var told = Translate(dispatcher => new WalletStatusChangedConsumer(dispatcher), lifted)
+            .Should().ContainSingle().Subject;
+
+        told.Values["statuslabel"].Should().Be("active");
+        told.Values["reason"].Should().Be("The issuer confirmed both deposits were genuine");
+    }
+
+    /// <summary>The wallet notice carries the reason without a doubled full stop, and the way to appeal.</summary>
+    [Fact]
+    public void A_freeze_notice_carries_the_reason_and_the_way_to_appeal()
+    {
+        var triggers = Translate(
+            dispatcher => new WalletStatusChangedConsumer(dispatcher), Wallet("Personal"));
+
+        var told = triggers.Should().ContainSingle().Subject;
+        told.Values["statuslabel"].Should().Be("frozen");
+        told.Values["reason"].Should().Be("Under review");
+        ((string)told.Values["nexttext"]!).Should().Contain("Profile, Appeals");
+    }
+
+    /// <summary>The wallet rule is pointed at the template whose push line carries the reason.</summary>
+    [Fact]
+    public void The_wallet_rule_uses_the_template_with_the_reason_in_the_push_line()
+    {
+        var rule = new FinancialNotificationRuleContributor().GetRules()
+            .Single(candidate => candidate.Key == "billing.wallet.status");
+
+        rule.TemplateKey.Should().Be(NotificationTemplateKeys.WalletStatusChangedWithReason);
+
+        var template = new FinancialNotificationTemplateContributor().GetTemplates()
+            .Single(candidate => candidate.Key == rule.TemplateKey);
+
+        template.Localizations.Should().OnlyContain(localization => localization.ShortBody!.Contains("{reason}"));
+    }
+
+    /// <summary>
+    /// Staff decisions about a member's money reach their mailbox even with email off, which it is by
+    /// default. Without this the "email" channel on these rules reached nobody.
+    /// </summary>
+    [Theory]
+    [InlineData("billing.wallet.status")]
+    [InlineData("billing.refund.payee")]
+    [InlineData("billing.refund-request.decided")]
+    public void Money_decisions_are_account_mail(string ruleKey) =>
+        Diaspora.Modules.Notifications.Application.Dispatch.AccountMail.Covers(ruleKey).Should().BeTrue();
 
     // ── Harness ──────────────────────────────────────────────────────────
 
@@ -425,19 +584,14 @@ public sealed class FinancialNotificationTests
                 FailedAt = Now
             }));
 
+        // A third-party payee, so both the payer receipt and the payee notice are produced.
         Collect(Translate(
             dispatcher => new RefundIssuedConsumer(dispatcher),
-            new RefundIssuedIntegrationEvent
-            {
-                RefundId = Guid.NewGuid(),
-                PaymentIntentId = Subject,
-                PayerUserId = Member,
-                AmountMinorUnits = 120_000,
-                Currency = "NGN",
-                IsFullRefund = true,
-                Reason = "Order cancelled",
-                IssuedAt = Now
-            }));
+            Refund(payeeUserId: Guid.NewGuid(), reason: "Order cancelled")));
+
+        Collect(Translate(
+            dispatcher => new RefundRequestDecidedConsumer(dispatcher),
+            Decision("Rejected", "The boost ran for its full seven days.")));
 
         Collect(Translate(
             dispatcher => new SubscriptionActivatedConsumer(dispatcher),
@@ -553,6 +707,33 @@ public sealed class FinancialNotificationTests
             PeriodStartsAt = Now,
             PeriodEndsAt = Now.AddMonths(1),
             ActivatedAt = Now
+        };
+
+    private static RefundIssuedIntegrationEvent Refund(Guid? payeeUserId, string reason) =>
+        new()
+        {
+            RefundId = Guid.NewGuid(),
+            PaymentIntentId = Subject,
+            PayerUserId = Member,
+            AmountMinorUnits = 120_000,
+            Currency = "NGN",
+            IsFullRefund = true,
+            Reason = reason,
+            IssuedAt = Now,
+            PayeeUserId = payeeUserId
+        };
+
+    private static RefundRequestDecidedIntegrationEvent Decision(string decision, string? note) =>
+        new()
+        {
+            RefundRequestId = Guid.NewGuid(),
+            PaymentIntentId = Subject,
+            RequestedByUserId = Member,
+            Decision = decision,
+            AmountMinorUnits = 120_000,
+            Currency = "NGN",
+            DecisionNote = note,
+            DecidedAt = Now
         };
 
     private static WalletStatusChangedIntegrationEvent Wallet(string? ownerType) =>

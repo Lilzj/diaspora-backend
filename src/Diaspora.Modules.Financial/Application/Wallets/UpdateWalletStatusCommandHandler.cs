@@ -1,4 +1,5 @@
 using Diaspora.Application.Abstractions;
+using Diaspora.Contracts.Moderation.V1;
 using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Financial.Application.Mapping;
 using Diaspora.Modules.Financial.Application.Services;
@@ -59,18 +60,31 @@ public sealed class UpdateWalletStatusCommandHandler
                 "A wallet may be set to Active, Frozen or Closed."));
         }
 
+        // Freezing or closing somebody's money needs a reason they can read (7 Nov 2026). It used to
+        // default to "Frozen by an operator." and a closure threw the reason away.
+        var reason = command.Reason?.Trim();
+
+        if (status is WalletStatus.Frozen or WalletStatus.Closed
+            && (reason is null || reason.Length < ModerationPolicy.MinimumNoteLength))
+        {
+            return Result.Failure<WalletResponse>(Error.Validation(
+                FinancialErrorCodes.WalletStatusReasonRequired,
+                $"Say why, in at least {ModerationPolicy.MinimumNoteLength} characters. "
+                + "The member reads this reason."));
+        }
+
         try
         {
             switch (status)
             {
                 case WalletStatus.Active:
-                    wallet.Activate(_clock.UtcNow);
+                    wallet.Activate(_clock.UtcNow, reason);
                     break;
                 case WalletStatus.Frozen:
-                    wallet.Freeze(command.Reason ?? "Frozen by an operator.", _clock.UtcNow);
+                    wallet.Freeze(reason!, _clock.UtcNow);
                     break;
                 default:
-                    wallet.Close(_clock.UtcNow);
+                    wallet.Close(_clock.UtcNow, reason);
                     break;
             }
         }

@@ -96,7 +96,10 @@ public sealed class Wallet : AggregateRoot<WalletId>, IAuditableEntity
 
     public DateTimeOffset? LastEntryAt { get; private set; }
 
-    /// <summary>Why the wallet is frozen, when it is.</summary>
+    /// <summary>
+    /// Why the wallet is in its current status: why it was frozen or closed, or why a freeze was
+    /// lifted. Null when nobody needed to say (a wallet simply opened).
+    /// </summary>
     public string? StatusReason { get; private set; }
 
     /// <summary>Bumped on every change. The optimistic-concurrency token.</summary>
@@ -179,7 +182,14 @@ public sealed class Wallet : AggregateRoot<WalletId>, IAuditableEntity
         return wallet;
     }
 
-    public void Activate(DateTimeOffset now)
+    /// <summary>
+    /// Makes the wallet usable.
+    /// <para>
+    /// <b>The reason is kept when one is given (7 Nov 2026).</b> Opening a wallet needs none; lifting a
+    /// freeze, by staff or because the member's appeal was upheld, says why, and the member reads it.
+    /// </para>
+    /// </summary>
+    public void Activate(DateTimeOffset now, string? reason = null)
     {
         if (Status == WalletStatus.Active)
         {
@@ -193,7 +203,7 @@ public sealed class Wallet : AggregateRoot<WalletId>, IAuditableEntity
                 FinancialErrorCodes.WalletClosed);
         }
 
-        Transition(WalletStatus.Active, null, now);
+        Transition(WalletStatus.Active, string.IsNullOrWhiteSpace(reason) ? null : reason.Trim(), now);
     }
 
     public void Freeze(string reason, DateTimeOffset now)
@@ -218,7 +228,11 @@ public sealed class Wallet : AggregateRoot<WalletId>, IAuditableEntity
     /// guard prevents.
     /// </para>
     /// </summary>
-    public void Close(DateTimeOffset now)
+    /// <remarks>
+    /// The reason is kept (7 Nov 2026). It used to be discarded, so a member whose wallet was closed
+    /// by staff could never learn why.
+    /// </remarks>
+    public void Close(DateTimeOffset now, string? reason = null)
     {
         if (ReservedMinorUnits > 0 || PendingMinorUnits > 0)
         {
@@ -227,7 +241,7 @@ public sealed class Wallet : AggregateRoot<WalletId>, IAuditableEntity
                 FinancialErrorCodes.WalletHasHeldFunds);
         }
 
-        Transition(WalletStatus.Closed, null, now);
+        Transition(WalletStatus.Closed, string.IsNullOrWhiteSpace(reason) ? null : reason.Trim(), now);
     }
 
     /// <summary>
