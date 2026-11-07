@@ -1,11 +1,15 @@
 using Diaspora.Contracts.Content.V1.Events;
 using Diaspora.Contracts.Events;
 using Diaspora.Contracts.Housing.V1.Events;
+using Diaspora.Contracts.Moderation.V1;
+using Diaspora.Contracts.Moderation.V1.Events;
 using Diaspora.Modules.Housing.Domain.Enums;
 using Diaspora.Modules.Housing.Domain.Events;
 using Diaspora.Modules.Housing.Domain.Landlords;
 using Diaspora.Modules.Housing.Domain.Listings;
 using Diaspora.Modules.Housing.Domain.Neighborhoods;
+using Diaspora.Modules.Housing.Domain.Policies;
+using Diaspora.Modules.Housing.Domain.Reports;
 using Diaspora.Platform.Messaging;
 using Microsoft.Extensions.Logging;
 
@@ -483,6 +487,50 @@ public sealed class HousingIntegrationEventRelay
                 TotalReports = domainEvent.TotalReports,
                 WasFlagged = wasFlagged,
                 ReportedAt = domainEvent.ReportedAt
+            },
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// The same report, sent to Trust's moderation cases (7 Nov 2026), where staff decide it.
+    /// <para>
+    /// <b>The one published contract that names the reporter, and it is read by Trust alone</b>, which
+    /// needs it to count each member once and to tell them the outcome. The landlord is never given
+    /// it. The listing and landlord are read back from the identity map for the owner and the title;
+    /// a listing that is gone by now has no case to open.
+    /// </para>
+    /// </summary>
+    public async Task PublishReportFiledAsync(
+        HousingReportedDomainEvent domainEvent,
+        HousingReport report,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(domainEvent);
+        ArgumentNullException.ThrowIfNull(report);
+
+        var listing = await _listings.GetAsync(domainEvent.ListingId, cancellationToken);
+
+        if (listing is null)
+        {
+            return;
+        }
+
+        var landlord = await _landlords.GetAsync(domainEvent.LandlordId, cancellationToken);
+
+        await PublishSafelyAsync(
+            new ContentReportFiledIntegrationEvent
+            {
+                Module = "housing",
+                ContentType = ModerationContentTypes.HousingListing,
+                ContentId = domainEvent.ListingId.Value,
+                ContentOwnerUserId = landlord?.OwnerUserId.Value ?? listing.CreatedByUserId.Value,
+                ReporterUserId = report.ReportedBy.Value,
+                ReasonCode = HousingModerationReasons.Map(report.Reason).ToString(),
+                ModuleReason = report.Reason.ToString(),
+                Detail = report.Detail,
+                ModuleReportId = report.Id.Value,
+                ContentTitle = listing.Title.Value,
+                FiledAt = domainEvent.ReportedAt
             },
             cancellationToken);
     }

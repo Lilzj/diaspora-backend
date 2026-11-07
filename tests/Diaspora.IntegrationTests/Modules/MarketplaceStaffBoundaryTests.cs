@@ -15,7 +15,8 @@ namespace Diaspora.IntegrationTests.Modules;
 /// member's listing through the seller's own routes, with no report, reason or notice — and the
 /// change looked exactly like the seller's own. The owner's rule is that staff never act on a
 /// member's content through the member's routes; they act through moderation, which is recorded as
-/// moderation.
+/// moderation. Since 7 Nov 2026 that moderation is a Trust case: the marketplace moderation routes no
+/// longer act on a listing.
 /// </para>
 /// <para>
 /// Each refusal asserts the module's not-owned code as well as the status. A staff member is a
@@ -27,6 +28,8 @@ namespace Diaspora.IntegrationTests.Modules;
 public sealed class MarketplaceStaffBoundaryTests : PooledIdentityTestBase
 {
     private const string Root = "/api/v1/marketplace";
+
+    private const string Trust = "/api/v1/trust";
 
     private const string NotOwned = "marketplace.listing.not-owned";
 
@@ -102,19 +105,50 @@ public sealed class MarketplaceStaffBoundaryTests : PooledIdentityTestBase
     }
 
     /// <summary>
-    /// What replaces the back door: the moderation route, which a moderator still holds.
+    /// What replaces the back door: a Trust moderation case, here one staff open with no report.
+    /// Until 7 Nov 2026 the marketplace moderation route hid a listing on one moderator's word; it is
+    /// gone, and the decision on the case is carried out on the listing by the marketplace module.
     /// </summary>
     [Fact]
-    public async Task A_moderator_still_hides_a_listing_through_the_moderation_route()
+    public async Task A_moderator_hides_a_listing_only_through_a_trust_case()
     {
         var (_, listingId) = await SellerWithDraftAsync();
 
         await SignInAsRoleAsync("Moderator");
 
-        var hidden = await HttpClient.PostAsJsonAsync(
+        var oldRoute = await HttpClient.PostAsJsonAsync(
             $"{Root}/moderation/listings/{listingId}",
             new { action = "hide", reason = "Reported as counterfeit; under review." },
             JsonOptions);
+
+        oldRoute.StatusCode.Should().BeOneOf(
+            [HttpStatusCode.NotFound, HttpStatusCode.MethodNotAllowed], "the module route no longer acts");
+        (await ReadListingAsync(listingId)).ModerationState.Should().NotBe("Hidden");
+
+        var opened = await HttpClient.PostAsJsonAsync(
+            $"{Trust}/moderation/cases",
+            new
+            {
+                contentType = "marketplace-listing",
+                contentId = listingId,
+                reasonCode = "FraudOrScam",
+                note = "The photographs show a counterfeit of a branded frame."
+            });
+        opened.StatusCode.Should().Be(HttpStatusCode.Created, await opened.Content.ReadAsStringAsync());
+
+        var item = await IdentityApiClient.ReadDataAsync<CaseShape>(opened);
+
+        (await HttpClient.PostAsync($"{Trust}/moderation/queue/{item.ItemId}/assign", content: null))
+            .EnsureSuccessStatusCode();
+
+        var hidden = await HttpClient.PostAsJsonAsync(
+            $"{Trust}/moderation/queue/{item.ItemId}/decision",
+            new
+            {
+                outcome = "HidePendingReview",
+                reasonCode = "FraudOrScam",
+                note = "Reported as counterfeit; under review."
+            });
 
         hidden.StatusCode.Should().Be(HttpStatusCode.OK, await hidden.Content.ReadAsStringAsync());
 
@@ -180,5 +214,10 @@ public sealed class MarketplaceStaffBoundaryTests : PooledIdentityTestBase
         public List<string> Tags { get; init; } = [];
 
         public string? ModerationState { get; init; }
+    }
+
+    private sealed record CaseShape
+    {
+        public Guid ItemId { get; init; }
     }
 }

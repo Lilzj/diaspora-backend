@@ -82,61 +82,9 @@ public sealed class MarketplaceContentSource : ICommunityContentSource
         return described;
     }
 
-    /// <summary>
-    /// Applies a moderation outcome to the listing itself.
-    /// <para>
-    /// Optional on the interface, and implemented here because a moderator hiding a listing's
-    /// questions and leaving the listing itself in discovery is a half-measure that satisfies
-    /// nobody — and on a marketplace it leaves a possible fraud advertised. Community records the
-    /// decision and publishes its event either way; this is B10 acting on its own row, which only
-    /// B10 can do.
-    /// </para>
-    /// <para>
-    /// The caller is Community's own moderation pipeline, which owns the unit of work — this mutates
-    /// the aggregate and does not save.
-    /// </para>
-    /// </summary>
-    public async Task ApplyModerationAsync(
-        Guid contentId,
-        ModerationActionType action,
-        CancellationToken cancellationToken = default)
-    {
-        var listing = await _listings.GetAsync(
-            MarketplaceListingId.From(contentId), cancellationToken);
-
-        if (listing is null)
-        {
-            return;
-        }
-
-        var now = DateTimeOffset.UtcNow;
-
-        switch (action)
-        {
-            case ModerationActionType.Hide:
-                listing.Hide("Hidden following moderation.", listing.CreatedByUserId, now);
-                break;
-
-            case ModerationActionType.Suspend:
-                listing.Suspend("Suspended following moderation.", listing.CreatedByUserId, now);
-                break;
-
-            case ModerationActionType.Restore:
-            case ModerationActionType.Approve:
-                listing.Unhide(null, now);
-                break;
-
-            case ModerationActionType.Archive:
-            case ModerationActionType.Reject:
-                listing.MoveTo(ListingStatus.Archived, now, null, "Archived following moderation.");
-                break;
-
-            default:
-                // Pin, Unpin and Escalate say nothing about a listing's lifecycle. Community has
-                // already recorded them; there is nothing for B10 to do.
-                break;
-        }
-    }
+    // ApplyModerationAsync is deliberately not implemented (7 Nov 2026). Staff act on a listing only
+    // through a Trust moderation case, carried out by MarketplaceListingModerationTarget with the real
+    // moderator recorded; this hook recorded the listing's creator as the moderator.
 
     private async Task<ContentDescriptor> DescribeAsync(
         MarketplaceListing listing, CancellationToken cancellationToken)
