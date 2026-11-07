@@ -202,7 +202,7 @@ public sealed class GuideIntegrationEventRelay
             {
                 GuideId = domainEvent.GuideId.Value,
 
-                // The person, when the archive command ran: the author or staff. Null when the
+                // The person, when the archive command ran: the author. Null when the
                 // moderation projection archived it, which names nobody, and attributing it to
                 // the wrong person would be worse than attributing it to nobody.
                 ArchivedBy = domainEvent.ArchivedBy?.Value,

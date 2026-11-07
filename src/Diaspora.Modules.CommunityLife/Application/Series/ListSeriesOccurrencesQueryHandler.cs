@@ -64,8 +64,8 @@ public sealed class ListSeriesOccurrencesQueryHandler
             return Result.Failure<EventOccurrencePageResponse>(readable.Error);
         }
 
-        var manages = await _authorization.RequireSeriesWriteAsync(series, cancellationToken);
-        var isManager = manages.IsSuccess;
+        var isManager = await _authorization.CanReadSeriesAsOrganizerAsync(
+            series, cancellationToken);
         var now = _clock.UtcNow;
 
         // The window's left edge. A manager may ask for the whole history; everybody else starts at

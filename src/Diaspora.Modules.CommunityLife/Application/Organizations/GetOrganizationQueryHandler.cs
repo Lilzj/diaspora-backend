@@ -99,7 +99,8 @@ public sealed class GetOrganizationQueryHandler
     /// Whether the caller may see this page at all.
     /// <para>
     /// A published or active body is public. Anything else — a draft, an archived page, one a
-    /// moderator has hidden — resolves only for somebody who could write to it.
+    /// moderator has hidden — resolves only for somebody who could write to it, or for staff
+    /// reviewing it: a moderator who cannot open a page they hid cannot decide whether to lift it.
     /// </para>
     /// </summary>
     private async Task<bool> CanReadAsync(
@@ -113,10 +114,10 @@ public sealed class GetOrganizationQueryHandler
             return true;
         }
 
-        var write = await _authorization.RequireOrganizationWriteAsync(
+        var manager = await _authorization.RequireOrganizationManagementReadAsync(
             organization, cancellationToken);
 
-        return write.IsSuccess;
+        return manager.IsSuccess;
     }
 
     /// <summary>

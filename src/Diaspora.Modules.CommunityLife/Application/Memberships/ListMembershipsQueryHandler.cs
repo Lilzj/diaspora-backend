@@ -61,6 +61,9 @@ public sealed class ListMembershipsQueryHandler
 
         var viewer = await _authorization.FindMembershipAsync(organizationId, cancellationToken);
 
+        // Staff read the list as its administrators do, so a moderator can review a body they were
+        // asked about. A read only: every change to a membership goes through the role checks,
+        // which staff never pass.
         var isAdministrator = _authorization.IsStaff
             || organization.CreatedByUserId == _authorization.CallerId
             || viewer?.HasAtLeast(MembershipRole.Administrator) == true;

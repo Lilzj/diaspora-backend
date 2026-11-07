@@ -58,7 +58,7 @@ public sealed class GetGuideAnalyticsQueryHandler
             return Result.Failure<GuideAnalyticsResponse>(GuideErrors.NotFound);
         }
 
-        var author = _authorization.RequireAuthor(guide);
+        var author = _authorization.RequireAuthorOrStaffToRead(guide);
 
         if (author.IsFailure)
         {

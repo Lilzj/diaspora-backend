@@ -49,7 +49,7 @@ public sealed class GetGuideVerificationStatusQueryHandler
             return Result.Failure<GuideVerificationStatusResponse>(GuideErrors.NotFound);
         }
 
-        var author = _authorization.RequireAuthor(guide);
+        var author = _authorization.RequireAuthorOrStaffToRead(guide);
 
         if (author.IsFailure)
         {
