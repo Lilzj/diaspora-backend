@@ -41,6 +41,13 @@ public sealed class PinCommentCommandHandler : ICommandHandler<PinCommentCommand
     {
         ArgumentNullException.ThrowIfNull(request);
 
+        var userId = _currentUser.UserId;
+
+        if (userId is null)
+        {
+            return Result.Failure(CommunityErrors.NotAuthenticated);
+        }
+
         var comment = await _comments.GetAsync(
             CommentId.From(request.CommentId), cancellationToken);
 
@@ -49,15 +56,28 @@ public sealed class PinCommentCommandHandler : ICommandHandler<PinCommentCommand
             return Result.Failure(CommunityErrors.CommentNotFound);
         }
 
-        comment.Pin(request.Pinned);
+        CommunityPost? post = null;
 
         if (comment.Content.Type == CommunityContentType.Post)
         {
-            var post = await _posts.GetAsync(
+            post = await _posts.GetAsync(
                 CommunityPostId.From(comment.Content.Id), cancellationToken);
-
-            post?.PinComment(request.Pinned ? comment.Id : null);
         }
+
+        // The rule in the summary above, enforced since 6 Nov 2026; before then any verified
+        // member could pin any comment anywhere. The owner of other kinds of content (a guide, an
+        // event) is another module's to say, so on those only a moderator may pin.
+        var ownsThread = post is not null && post.AuthorId == userId;
+        var isModerator = _currentUser.Permissions.Contains(
+            CommunityPermissions.Moderate, StringComparer.Ordinal);
+
+        if (!ownsThread && !isModerator)
+        {
+            return Result.Failure(CommunityErrors.Forbidden);
+        }
+
+        comment.Pin(request.Pinned);
+        post?.PinComment(request.Pinned ? comment.Id : null);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 

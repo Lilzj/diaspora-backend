@@ -4,6 +4,7 @@ using System.Text.Json;
 using Diaspora.Contracts.Identity.V1.Responses;
 using Diaspora.IntegrationTests.Common;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Diaspora.IntegrationTests.Modules;
@@ -214,6 +215,62 @@ public sealed class CommunityModuleTests : PooledIdentityTestBase
             $"/api/v1/community/posts/{created.PostId}", new { body = "Not yours." });
 
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    // ── Pinning (6 Nov 2026) ─────────────────────────────────────────────────────────────
+    //
+    // `community:pin` is held by every verified member and neither handler checked who was
+    // asking, so anyone could pin or unpin anyone's post or comment.
+
+    [Fact]
+    public async Task Only_a_moderator_can_pin_a_post_not_its_author_or_anyone_else()
+    {
+        var (_, authorAuth) = await RegisterVerifiedMemberAsync();
+        Api.Authenticate(authorAuth.Tokens.AccessToken);
+        var post = await ReadDataAsync<PostDto>(await CreatePostAsync("Road closed at the market."));
+
+        (await PinPostAsync(post.PostId, pinned: true)).StatusCode
+            .Should().Be(HttpStatusCode.Forbidden, "a pinned post leads a feed everybody reads");
+
+        var (_, otherAuth) = await RegisterVerifiedMemberAsync();
+        Api.Authenticate(otherAuth.Tokens.AccessToken);
+        (await PinPostAsync(post.PostId, pinned: true)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+
+        (await IsPostPinnedAsync(post.PostId)).Should().BeFalse();
+
+        var (_, moderatorAuth) = await SignInAsRoleAsync("Moderator");
+        Api.Authenticate(moderatorAuth.Tokens.AccessToken);
+        (await PinPostAsync(post.PostId, pinned: true)).IsSuccessStatusCode.Should().BeTrue();
+
+        (await IsPostPinnedAsync(post.PostId)).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Only_the_threads_author_or_a_moderator_can_pin_a_comment_in_it()
+    {
+        var (_, authorAuth) = await RegisterVerifiedMemberAsync();
+        Api.Authenticate(authorAuth.Tokens.AccessToken);
+        var post = await ReadDataAsync<PostDto>(await CreatePostAsync("Who has a ladder to lend?"));
+
+        var (_, commenterAuth) = await RegisterVerifiedMemberAsync();
+        Api.Authenticate(commenterAuth.Tokens.AccessToken);
+        var comment = await ReadDataAsync<CommentDto>(
+            await HttpClient.PostAsJsonAsync(
+                $"/api/v1/community/posts/{post.PostId}/comments", new { body = "I have one." }));
+
+        // Not the commenter's thread, so not theirs to pin, even their own comment.
+        (await PinCommentAsync(comment.CommentId, pinned: true)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+
+        var (_, strangerAuth) = await RegisterVerifiedMemberAsync();
+        Api.Authenticate(strangerAuth.Tokens.AccessToken);
+        (await PinCommentAsync(comment.CommentId, pinned: true)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+
+        Api.Authenticate(authorAuth.Tokens.AccessToken);
+        (await PinCommentAsync(comment.CommentId, pinned: true)).IsSuccessStatusCode.Should().BeTrue();
+
+        var (_, moderatorAuth) = await SignInAsRoleAsync("Moderator");
+        Api.Authenticate(moderatorAuth.Tokens.AccessToken);
+        (await PinCommentAsync(comment.CommentId, pinned: false)).IsSuccessStatusCode.Should().BeTrue();
     }
 
     // ── Feeds ────────────────────────────────────────────────────────────────────────────
@@ -741,6 +798,24 @@ public sealed class CommunityModuleTests : PooledIdentityTestBase
         HttpClient.PostAsJsonAsync(
             "/api/v1/community/posts",
             new { body, category = "Traffic", urgency = "Normal", publish });
+
+    private Task<HttpResponseMessage> PinPostAsync(Guid postId, bool pinned) =>
+        HttpClient.PutAsJsonAsync($"/api/v1/community/posts/{postId}/pin", new { pinned });
+
+    private Task<HttpResponseMessage> PinCommentAsync(Guid commentId, bool pinned) =>
+        HttpClient.PutAsJsonAsync($"/api/v1/community/comments/{commentId}/pin", new { pinned });
+
+    private async Task<bool> IsPostPinnedAsync(Guid postId)
+    {
+        using var scope = Factory.Services.CreateScope();
+        var posts = scope.ServiceProvider
+            .GetRequiredService<Diaspora.Modules.Community.Domain.Posts.ICommunityPostRepository>();
+
+        var post = await posts.GetAsync(
+            Diaspora.Modules.Community.Domain.Identifiers.CommunityPostId.From(postId));
+
+        return post!.IsPinned;
+    }
 
     private static async Task<T> ReadDataAsync<T>(HttpResponseMessage response)
     {
