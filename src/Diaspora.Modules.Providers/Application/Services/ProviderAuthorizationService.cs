@@ -16,12 +16,17 @@ namespace Diaspora.Modules.Providers.Application.Services;
 /// correctly, and the thirtieth would be an editor who can transfer ownership.
 /// </para>
 /// <para>
-/// <b>Staff bypass is deliberate and narrow.</b> A moderator or an administrator may act on any
-/// provider, because moderation would otherwise require them to be added as a member of every
-/// provider they touch — which is both absurd and an audit disaster. It is checked through the
-/// kernel's <c>ICurrentUser.Role</c>, not through a permission, because the permission catalogue
-/// already gates the endpoint and this is the second question: not "may you moderate" but "is
-/// this provider yours".
+/// <b>Staff never pass the owner check (7 Nov 2026).</b> A moderator or an administrator who is
+/// not a member of a provider cannot edit its profile, contacts, prices, photos, services or
+/// hours, or move its status, through the owner's routes. Staff act on a provider only through
+/// the staff routes: <c>POST /providers/moderation/{providerId}</c> to suspend or reinstate, with
+/// a reason, and <c>PUT /providers/{providerId}/featured</c> for the carousel. Before this,
+/// <see cref="RequireRole"/> began with "if the caller is staff, allow", so any moderator could
+/// rewrite a member's business with no report, no reason and no word to the owner.
+/// </para>
+/// <para>
+/// Staff <em>reading</em> is unchanged: <see cref="CanSeeUnpublished"/> still shows them
+/// drafts, suspended and archived providers so they can review them.
 /// </para>
 /// </summary>
 public sealed class ProviderAuthorizationService
@@ -51,6 +56,9 @@ public sealed class ProviderAuthorizationService
     /// Returns the caller's identifier on success, so a handler that needs both — which is
     /// nearly all of them, for the event payload — makes one call rather than two.
     /// </para>
+    /// <para>
+    /// No staff bypass: staff are refused here like any other non-member. See the class summary.
+    /// </para>
     /// </summary>
     public Result<UserId> RequireRole(Provider provider, ProviderRole minimumRole)
     {
@@ -59,11 +67,6 @@ public sealed class ProviderAuthorizationService
         var caller = RequireCaller();
 
         if (caller.IsFailure)
-        {
-            return caller;
-        }
-
-        if (IsStaff)
         {
             return caller;
         }
