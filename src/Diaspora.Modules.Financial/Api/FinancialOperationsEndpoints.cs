@@ -129,7 +129,71 @@ internal static class FinancialOperationsEndpoints
                         },
                         cancellationToken)))
             .WithName("GrantCredit")
-            .WithSummary("Grants platform credit into a promotional wallet. Staff.");
+            .WithSummary("Grants platform credit into a promotional wallet. Staff. Not to yourself; "
+                + "at most 100 of the currency; above 50, raise a grant request instead.");
+
+        // 7 Nov 2026: a credit grant above the one-Admin threshold needs a second Admin.
+        group.MapPost("/operations/credit/grant-requests", async (
+                GrantCreditRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new RequestCreditGrantCommand
+                        {
+                            UserId = request.UserId,
+                            Amount = request.Amount,
+                            Currency = request.Currency,
+                            Kind = request.Kind,
+                            Reason = request.Reason,
+                            ExpiresAt = request.ExpiresAt
+                        },
+                        cancellationToken)))
+            .WithName("RequestCreditGrant")
+            .WithSummary("Asks for a credit grant that needs a second Admin. Grants nothing until approved. Staff.");
+
+        group.MapGet("/operations/credit/grant-requests", async (
+                [FromQuery] string? state,
+                [FromQuery] DateTimeOffset? before,
+                [FromQuery] Guid[]? excludeIds,
+                [FromQuery] int? take,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new GetCreditGrantRequestsQuery
+                        {
+                            State = state,
+                            Before = before,
+                            ExcludeIds = excludeIds ?? [],
+                            Take = take ?? Domain.Policies.FinancialLimits.DefaultLedgerPageSize
+                        },
+                        cancellationToken)))
+            .WithName("GetCreditGrantRequests")
+            .WithSummary("Credit grant requests, newest first; pending unless a state is given. Staff.");
+
+        group.MapPost("/operations/credit/grant-requests/{requestId:guid}/decide", async (
+                Guid requestId,
+                DecideCreditGrantRequestRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new DecideCreditGrantRequestCommand
+                        {
+                            RequestId = requestId,
+                            Approve = request.Approve,
+                            Note = request.Note
+                        },
+                        cancellationToken)))
+            .WithName("DecideCreditGrantRequest")
+            .WithSummary("Approves or rejects a credit grant request as another Admin, or withdraws your own. Staff.");
 
         group.MapGet("/operations/dashboard", async (
                 [FromQuery] DateTimeOffset? from,

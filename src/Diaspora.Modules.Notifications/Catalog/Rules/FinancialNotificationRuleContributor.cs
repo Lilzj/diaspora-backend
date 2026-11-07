@@ -22,7 +22,11 @@ namespace Diaspora.Modules.Notifications.Catalog.Rules;
 /// <b>Money messages do not deduplicate and do not batch.</b> Every other category on the platform
 /// collapses a burst into one line, because six reactions in an evening are one conversation. Two
 /// failed payments are two facts about a member's money and the second is not a repeat of the first.
-/// The one exception is the wallet freeze, which a retry storm can raise repeatedly for one cause.
+/// A rule with no window still collapses one subject's messages for the platform default (an hour),
+/// which is harmless where each message has its own subject (a payment, a refund). The two rules
+/// whose subject repeats set their own (7 Nov 2026): the refund request one minute, enough to
+/// collapse a redelivery and too little to swallow a second decision; the wallet none at all, because
+/// a freeze and its lifting can come within the same minute.
 /// </para>
 /// </summary>
 public sealed class FinancialNotificationRuleContributor : INotificationRuleContributor
@@ -75,6 +79,36 @@ public sealed class FinancialNotificationRuleContributor : INotificationRuleCont
             CategoryKey = NotificationCategoryKeys.Billing,
             Priority = NotificationPriority.High,
             Channels = Everywhere
+        };
+
+        // The other side of a refund (7 Nov 2026): whoever the money was taken back from. Its email
+        // reaches the member even with email off (AccountMail). One refund, one subject, so the
+        // default window can only ever collapse a redelivery.
+        yield return new NotificationRuleSeed
+        {
+            Key = NotificationTemplateKeys.RefundPayee,
+            EventName = typeof(RefundIssuedIntegrationEvent).FullName!,
+            Audience = "payee",
+            TemplateKey = NotificationTemplateKeys.RefundPayee,
+            CategoryKey = NotificationCategoryKeys.Billing,
+            Priority = NotificationPriority.High,
+            Channels = Everywhere
+        };
+
+        // A staff answer to a member's refund request (7 Nov 2026). The event was published from the
+        // start and had no consumer, so the member never heard. A one-minute window: long enough to
+        // collapse a redelivery, short enough that a request reopened on appeal and decided again
+        // is not swallowed by the first answer.
+        yield return new NotificationRuleSeed
+        {
+            Key = NotificationTemplateKeys.RefundRequestDecided,
+            EventName = typeof(RefundRequestDecidedIntegrationEvent).FullName!,
+            Audience = "requester",
+            TemplateKey = NotificationTemplateKeys.RefundRequestDecided,
+            CategoryKey = NotificationCategoryKeys.Billing,
+            Priority = NotificationPriority.High,
+            Channels = Everywhere,
+            DeduplicationWindow = TimeSpan.FromMinutes(1)
         };
 
         // ── Subscriptions ────────────────────────────────────────────────
@@ -160,16 +194,19 @@ public sealed class FinancialNotificationRuleContributor : INotificationRuleCont
             Key = "billing.wallet.status",
             EventName = typeof(WalletStatusChangedIntegrationEvent).FullName!,
             Audience = "wallet-owner",
-            TemplateKey = NotificationTemplateKeys.WalletStatusChanged,
+
+            // Repointed 7 Nov 2026: the reason is in the push line too, with what the member can do.
+            TemplateKey = NotificationTemplateKeys.WalletStatusChangedWithReason,
             CategoryKey = NotificationCategoryKeys.Billing,
             Priority = NotificationPriority.High,
             Channels = Everywhere,
 
-            // The one deduplicating rule here. A freeze applied by a sweep that then retries can
-            // raise the same transition several times in a minute, and a member does not need to be
-            // told three times that their wallet is frozen. The window is short enough that a
-            // genuine freeze-then-unfreeze-then-freeze still produces three messages.
-            DeduplicationWindow = TimeSpan.FromMinutes(10)
+            // No window (7 Nov 2026). The key is the wallet, not the transition, so the ten minutes
+            // this had swallowed a genuine unfreeze that followed a freeze, and the member was left
+            // believing their money was still frozen. Every transition that reaches a member is now a
+            // staff decision (an opening is not announced), and a rare duplicate of a true notice is
+            // better than a missing one. Zero, not null: null means the platform's hour.
+            DeduplicationWindow = TimeSpan.Zero
         };
     }
 }

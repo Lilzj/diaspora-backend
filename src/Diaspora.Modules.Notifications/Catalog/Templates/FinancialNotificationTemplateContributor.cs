@@ -267,5 +267,110 @@ public sealed class FinancialNotificationTemplateContributor : INotificationTemp
                 }
             ]
         };
+
+        // ── Money due process (7 Nov 2026) ───────────────────────────────
+        //
+        // Everything the member needs is in the body and the push line: email variants are never
+        // rendered and template actions are shown nowhere. Staff are never named.
+
+        yield return new NotificationTemplateSeed
+        {
+            Key = NotificationTemplateKeys.WalletStatusChangedWithReason,
+            CategoryKey = NotificationCategoryKeys.Billing,
+            Priority = NotificationPriority.High,
+            RouteTemplate = "/wallet",
+            Description = "A member's wallet was frozen, closed or reactivated, with the reason and what they can do.",
+            Variables =
+            [
+                new TemplateVariableSeed { Name = "statuslabel", Sample = "frozen" },
+                new TemplateVariableSeed { Name = "reason", Sample = "Two deposits were reversed by the card issuer" },
+                new TemplateVariableSeed
+                {
+                    Name = "nexttext",
+                    IsRequired = false,
+                    Sample = "Money can still arrive, but none can leave. If you think this is wrong, you can appeal from Profile, Appeals."
+                }
+            ],
+            Localizations =
+            [
+                new TemplateLocalizationSeed
+                {
+                    Language = "en",
+                    Title = "Your wallet is now {statuslabel}",
+                    Body = "Diaspora has made your wallet {statuslabel}. The reason: {reason}. {nexttext}",
+                    ShortBody = "Your wallet is now {statuslabel}: {reason}."
+                }
+            ]
+        };
+
+        yield return new NotificationTemplateSeed
+        {
+            Key = NotificationTemplateKeys.RefundPayee,
+            CategoryKey = NotificationCategoryKeys.Billing,
+            Priority = NotificationPriority.High,
+            RouteTemplate = "/wallet",
+            Description = "A refund took money back out of a member's wallet.",
+            Variables =
+            [
+                new TemplateVariableSeed
+                {
+                    Name = "amount", Format = TemplateVariable.CurrencyFormat, Sample = "25.00 GBP"
+                },
+                new TemplateVariableSeed { Name = "reasonlabel", Sample = "the payment was a duplicate" },
+                new TemplateVariableSeed { Name = "returnedto", Sample = "the card or account you paid it in from" }
+            ],
+            Localizations =
+            [
+                new TemplateLocalizationSeed
+                {
+                    Language = "en",
+                    Title = "{amount} was taken out of your wallet",
+                    Body = "{amount} has been taken out of your wallet and returned to {returnedto}, because the "
+                        + "payment that put it there was refunded. The reason: {reasonlabel}. "
+                        + "Your wallet's statement shows the entry.",
+                    ShortBody = "{amount} was taken out of your wallet: {reasonlabel}."
+                }
+            ]
+        };
+
+        yield return new NotificationTemplateSeed
+        {
+            Key = NotificationTemplateKeys.RefundRequestDecided,
+            CategoryKey = NotificationCategoryKeys.Billing,
+            Priority = NotificationPriority.High,
+            RouteTemplate = "/wallet/payments/{paymentintentid}",
+            Description = "Staff answered a member's refund request, with their note.",
+            Variables =
+            [
+                new TemplateVariableSeed
+                {
+                    Name = "amount", Format = TemplateVariable.CurrencyFormat, Sample = "25.00 GBP"
+                },
+                new TemplateVariableSeed { Name = "outcome", Sample = "turned down" },
+                new TemplateVariableSeed
+                {
+                    Name = "notetext",
+                    IsRequired = false,
+                    Sample = "Diaspora's note: the boost ran for its full seven days. "
+                },
+                new TemplateVariableSeed
+                {
+                    Name = "nexttext",
+                    IsRequired = false,
+                    Sample = "If you think this is wrong, you can appeal from Profile, Appeals."
+                },
+                new TemplateVariableSeed { Name = "paymentintentid", Sample = "8f2c" }
+            ],
+            Localizations =
+            [
+                new TemplateLocalizationSeed
+                {
+                    Language = "en",
+                    Title = "Your refund request was {outcome}",
+                    Body = "Diaspora {outcome} your request for a refund of {amount}. {notetext}{nexttext}",
+                    ShortBody = "Your refund request for {amount} was {outcome}."
+                }
+            ]
+        };
     }
 }

@@ -231,13 +231,14 @@ public sealed class FrontendContractCompatibilityTests
 
     /// <summary>
     /// <c>src/types/trust.ts:153</c> and <c>:156</c>. <c>RewardHold</c> joined both sides in step 3e
-    /// (CS-4a): a held member asks for a review from the points screen.
+    /// (CS-4a): a held member asks for a review from the points screen. <c>Money</c> joined the API on
+    /// 7 Nov 2026 (a wallet freeze, a refused refund request); the app's union must add it.
     /// </summary>
     [Fact]
     public void Appeal_vocabulary_matches_the_frontend()
     {
         NamesOf<AppealType>().Should().BeEquivalentTo(
-            "Verification", "Content", "Suspension", "Publishing", "RewardHold");
+            "Verification", "Content", "Suspension", "Publishing", "RewardHold", "Money");
 
         // The client's own union is only these three; the rest are the states its six-stage
         // workflow tracker already draws but had no data for.

@@ -96,6 +96,18 @@ public sealed class RefundRequest : AggregateRoot<RefundRequestId>, IAuditableEn
     /// <summary>The refund that resulted, once one was actually issued.</summary>
     public Guid? RefundId { get; private set; }
 
+    /// <summary>
+    /// When the member's appeal against a refusal reopened this request (7 Nov 2026). Null for a
+    /// request nobody appealed.
+    /// </summary>
+    public DateTimeOffset? ReopenedAt { get; private set; }
+
+    /// <summary>
+    /// Who turned the request down before the appeal reopened it. They may not decide it again: the
+    /// appeal is a second look, and the same person looking twice is not one.
+    /// </summary>
+    public Guid? PreviousDecidedByUserId { get; private set; }
+
     /// <summary>Bumped on every change. The optimistic-concurrency token.</summary>
     public int Revision { get; private set; }
 
@@ -164,6 +176,33 @@ public sealed class RefundRequest : AggregateRoot<RefundRequestId>, IAuditableEn
         Status = RefundRequestStatus.Withdrawn;
         Settle(decidedByUserId: null, decisionNote: null, now);
     }
+
+    /// <summary>
+    /// Opens a refused request again for a new decision, because the member's appeal against the
+    /// refusal was upheld (7 Nov 2026).
+    /// <para>
+    /// Only a refusal can be reopened: an approval moved money, and a withdrawal was the member's own
+    /// choice. The earlier decider is kept so that somebody else decides this time. The caller checks
+    /// that no other request is open on the payment, because only one may be.
+    /// </para>
+    /// </summary>
+    public void ReopenOnAppeal(DateTimeOffset now)
+    {
+        Require(RefundRequestStatus.Rejected);
+
+        PreviousDecidedByUserId = DecidedByUserId;
+        Status = RefundRequestStatus.Requested;
+        DecidedByUserId = null;
+        DecisionNote = null;
+        DecidedAt = null;
+        OpenForPaymentIntentId = PaymentIntentId.Value;
+        ReopenedAt = now;
+        Revision++;
+        ModifiedAt = now;
+    }
+
+    /// <summary>Whether this person turned the request down before an appeal reopened it.</summary>
+    public bool WasRefusedBy(Guid userId) => PreviousDecidedByUserId == userId;
 
     /// <summary>Records which refund an approval eventually produced.</summary>
     public void AttachRefund(Guid refundId, DateTimeOffset now)

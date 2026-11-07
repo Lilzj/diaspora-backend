@@ -71,6 +71,7 @@ internal static class AppealValues
         "Suspension" => "suspension",
         "Publishing" => "publishing",
         "RewardHold" => "reward",
+        "Money" => "wallet or refund",
         _ => appealType.ToLowerInvariant()
     };
 }

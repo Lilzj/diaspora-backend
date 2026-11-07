@@ -456,7 +456,8 @@ public sealed class PaymentIntent : AggregateRoot<PaymentIntentId>, IAuditableEn
         DateTimeOffset now,
         Guid? issuedByUserId = null,
         string? note = null,
-        string? externalReference = null)
+        string? externalReference = null,
+        Guid? payeeUserId = null)
     {
         ArgumentNullException.ThrowIfNull(amount);
 
@@ -509,7 +510,8 @@ public sealed class PaymentIntent : AggregateRoot<PaymentIntentId>, IAuditableEn
             Reason = reason,
             SubjectType = Subject?.SubjectType,
             SubjectId = Subject?.SubjectId,
-            IssuedAt = now
+            IssuedAt = now,
+            PayeeUserId = payeeUserId
         });
 
         return record;

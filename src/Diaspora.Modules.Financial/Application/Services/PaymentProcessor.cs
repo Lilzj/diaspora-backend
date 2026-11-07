@@ -316,6 +316,8 @@ public sealed class PaymentProcessor
         ArgumentNullException.ThrowIfNull(intent);
         ArgumentNullException.ThrowIfNull(amount);
 
+        var payee = await PayeeAsync(intent, amount.Currency, cancellationToken);
+
         intent.Refund(
             _guids.NewSequentialGuid(),
             amount,
@@ -323,7 +325,8 @@ public sealed class PaymentProcessor
             _clock.UtcNow,
             issuedByUserId: null,
             note: "Confirmed by the provider.",
-            externalReference: externalReference);
+            externalReference: externalReference,
+            payeeUserId: payee);
 
         var posted = await PostRefundAsync(intent, amount, reason, cancellationToken);
 
@@ -363,8 +366,11 @@ public sealed class PaymentProcessor
             }
         }
 
+        var payee = await PayeeAsync(intent, amount.Currency, cancellationToken);
+
         var record = intent.Refund(
-            _guids.NewSequentialGuid(), amount, reason, _clock.UtcNow, issuedByUserId, note);
+            _guids.NewSequentialGuid(), amount, reason, _clock.UtcNow, issuedByUserId, note,
+            payeeUserId: payee);
 
         var posted = await PostRefundAsync(intent, amount, reason, cancellationToken);
 
@@ -467,6 +473,26 @@ public sealed class PaymentProcessor
             cancellationToken);
 
         return posting.IsSuccess ? Result.Success() : Result.Failure(posting.Error);
+    }
+
+    /// <summary>
+    /// The member a refund takes money back from, if it is a member (7 Nov 2026).
+    /// <para>
+    /// A refund debits the counterparty the capture credited, so the payee is that wallet's owner
+    /// when the wallet is a person's: the depositor, for a deposit. The platform's revenue wallet has
+    /// no person behind it, and the answer is null. Resolved here, where the debit is decided, rather
+    /// than guessed later from the payer: the two are the same person today only because a deposit is
+    /// the one purpose that credits a member.
+    /// </para>
+    /// </summary>
+    private async Task<Guid?> PayeeAsync(
+        PaymentIntent intent, string currency, CancellationToken cancellationToken)
+    {
+        var counterparty = await CounterpartyAsync(intent, currency, cancellationToken);
+
+        return counterparty.IsSuccess && counterparty.Value.OwnerType == FinancialAccountType.Personal
+            ? counterparty.Value.OwnerId
+            : null;
     }
 
     private async Task<Result> PostRefundAsync(

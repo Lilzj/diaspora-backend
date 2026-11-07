@@ -29,6 +29,9 @@ public sealed class WalletStatusChangedConsumer
     /// </summary>
     private const string PersonalOwnerType = "Personal";
 
+    /// <summary>The status a wallet is opened in. Leaving it is the wallet opening, not a decision.</summary>
+    private const string PendingStatus = "Pending";
+
     public WalletStatusChangedConsumer(INotificationDispatcher dispatcher) : base(dispatcher) { }
 
     protected override string SourceModule => FinancialConsumerConstants.SourceModule;
@@ -41,13 +44,26 @@ public sealed class WalletStatusChangedConsumer
             yield break;
         }
 
+        // A wallet opening is not news (7 Nov 2026). Every wallet is activated the moment it is
+        // opened, so registering, depositing in a new currency or receiving a first credit each sent
+        // "Your wallet is now active: no reason was recorded", several at once. This notice is for a
+        // decision about the member's money: a freeze, a closure, or a freeze lifted.
+        if (string.Equals(integrationEvent.PreviousStatus, PendingStatus, StringComparison.OrdinalIgnoreCase))
+        {
+            yield break;
+        }
+
         var values = Values();
         values["status"] = integrationEvent.Status;
         values["previousStatus"] = integrationEvent.PreviousStatus;
         values["currency"] = integrationEvent.Currency;
 
+        // Trailing full stops trimmed: the template ends the sentence, and staff often end theirs.
         values["reason"] = FinancialConsumerConstants.FirstNonEmpty(
-            integrationEvent.Reason, "no reason was recorded");
+            integrationEvent.Reason, "no reason was recorded").TrimEnd('.', ' ');
+
+        values["statuslabel"] = integrationEvent.Status.ToLowerInvariant();
+        values["nexttext"] = NextStep(integrationEvent.Status);
 
         values["walletId"] = integrationEvent.WalletId;
 
@@ -59,8 +75,23 @@ public sealed class WalletStatusChangedConsumer
             subjectType: "wallet",
             subjectId: integrationEvent.WalletId.ToString(),
 
-            // Grouped on the wallet so the ten-minute deduplication window in the rule collapses a
-            // retry storm rather than a genuine sequence of different transitions.
+            // Grouped on the wallet. The rule no longer deduplicates (7 Nov 2026): its key could not
+            // tell a freeze from the unfreeze that followed it.
             groupKey: integrationEvent.WalletId.ToString());
     }
+
+    /// <summary>
+    /// What the member can do now (7 Nov 2026). Actions are rendered nowhere, so this is in the body:
+    /// a freeze is a staff decision about their money, and they can appeal it.
+    /// </summary>
+    private static string NextStep(string status) => status switch
+    {
+        "Frozen" => "Money can still arrive, but none can leave until the freeze is lifted. "
+            + "If you think this is wrong, you can appeal from Profile, Appeals.",
+        // No appeal is offered: a closed wallet cannot be reopened, so an upheld appeal could change
+        // nothing, and a notice must not promise what the platform cannot do.
+        "Closed" => "No money can move in or out of it any more.",
+        "Active" => "You can use it as normal again.",
+        _ => string.Empty
+    };
 }
