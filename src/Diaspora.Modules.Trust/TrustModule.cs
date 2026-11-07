@@ -96,6 +96,8 @@ public sealed class TrustModule : IPlatformModule
         services.AddScoped<IAppealRepository, AppealRepository>();
         services.AddScoped<ITrustEventRepository, TrustEventRepository>();
         services.AddScoped<IModerationItemRepository, ModerationItemRepository>();
+        // Every module's IModerationTarget, by content type (7 Nov 2026).
+        services.AddScoped<Diaspora.Modules.Trust.Application.Moderation.ModerationTargetRegistry>();
         services.AddScoped<ICommunityContributionRepository, CommunityContributionRepository>();
         services.AddScoped<IRiskSignalRepository, RiskSignalRepository>();
     }

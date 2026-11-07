@@ -30,19 +30,40 @@ public sealed class AuditTrailTests : PooledIdentityTestBase
     {
         var job = await PublishedJobAsync("Night Porter");
 
+        var (_, reporter) = await RegisterVerifiedMemberAsync();
+        Api.Authenticate(reporter.Tokens.AccessToken);
+        (await HttpClient.PostAsJsonAsync(
+                $"{Jobs}/postings/{job.JobId}/reports",
+                new { reason = "FeeRequested", detail = "Asked for a registration fee." }))
+            .StatusCode.Should().Be(HttpStatusCode.Created);
+
+        await Factory.DrainOutboxAsync();
+
         var (moderatorId, _) = await SignInAsRoleAsync("Moderator");
 
+        var item = await ReadDataAsync<CaseShape>(
+            await HttpClient.GetAsync($"/api/v1/trust/moderation/cases?contentType=job&contentId={job.JobId}"));
+
+        (await HttpClient.PostAsync($"/api/v1/trust/moderation/queue/{item.ItemId}/assign", content: null))
+            .EnsureSuccessStatusCode();
+
+        // Since stage 5 a hide is a decision on the Trust case, and it is recorded against the case.
         var hidden = await HttpClient.PostAsJsonAsync(
-            $"{Jobs}/moderation/postings/{job.JobId}",
-            new { action = "Hide", reason = "Asks candidates for a registration fee." });
+            $"/api/v1/trust/moderation/queue/{item.ItemId}/decision",
+            new
+            {
+                outcome = "HidePendingReview",
+                reasonCode = "AsksForFees",
+                note = "Asks candidates for a registration fee."
+            });
         hidden.StatusCode.Should().Be(HttpStatusCode.OK, await hidden.Content.ReadAsStringAsync());
 
         await SignInAsRoleAsync("Admin");
 
-        var trail = await ReadTrailAsync($"{Audit}?entityId={job.JobId}");
+        var trail = await ReadTrailAsync($"{Audit}?entityId={item.ItemId}");
 
-        var entry = trail.Should().ContainSingle(record => record.EntityType == "ModerateJobPostingCommand").Subject;
-        entry.EntityId.Should().Be(job.JobId.ToString());
+        var entry = trail.Should().ContainSingle(record => record.Action == "trust.case.decided").Subject;
+        entry.EntityId.Should().Be(item.ItemId.ToString());
         entry.ActorUserId.Should().Be(moderatorId.ToString());
         entry.ActorRole.Should().Be("Moderator");
         entry.Reason.Should().Be("Asks candidates for a registration fee.");
@@ -176,6 +197,8 @@ public sealed class AuditTrailTests : PooledIdentityTestBase
     private sealed record EmployerShape(Guid EmployerId);
 
     private sealed record JobShape(Guid JobId);
+
+    private sealed record CaseShape(Guid ItemId);
 
     private sealed record AuditShape(
         Guid Id,

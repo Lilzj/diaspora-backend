@@ -100,10 +100,39 @@ public sealed record AssignQueueItemRequest
 /// <summary>Records a moderator's decision on a queue item.</summary>
 public sealed record RecordModerationDecisionRequest
 {
-    /// <summary>Approve, Reject, Hide, Archive, Pin, Unpin, Suspend, Restore, Escalate.</summary>
-    public required string Action { get; init; }
+    /// <summary>NoAction, HidePendingReview, Remove (a proposal a second member of staff confirms), Restore.</summary>
+    public required string Outcome { get; init; }
 
-    public string? Reason { get; init; }
+    /// <summary>A reason code: FalseOrMisleading, FraudOrScam, AsksForFees, and so on.</summary>
+    public required string ReasonCode { get; init; }
+
+    /// <summary>What the owner reads. At least ten characters.</summary>
+    public required string Note { get; init; }
+}
+
+/// <summary>A second member of staff checks the first one's decision.</summary>
+public sealed record ModerationSecondReviewRequest
+{
+    /// <summary>True to confirm the decision; false to put your own choice in its place.</summary>
+    public required bool Confirm { get; init; }
+
+    /// <summary>When declining a removal: HidePendingReview, NoAction or Restore.</summary>
+    public string? Instead { get; init; }
+
+    public required string Note { get; init; }
+}
+
+/// <summary>Staff open a case with no report, because they found the problem first.</summary>
+public sealed record OpenModerationCaseRequest
+{
+    public required string ContentType { get; init; }
+
+    public required Guid ContentId { get; init; }
+
+    public required string ReasonCode { get; init; }
+
+    /// <summary>What was found, and where. A second member of staff checks it within 7 days.</summary>
+    public required string Note { get; init; }
 }
 
 /// <summary>Awards or revokes a badge outside the automatic rules. Admin only.</summary>

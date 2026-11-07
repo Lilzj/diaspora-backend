@@ -333,28 +333,4 @@ public sealed record MemberRiskLevelChangedIntegrationEvent : IntegrationEvent
     public required DateTimeOffset ChangedAt { get; init; }
 }
 
-/// <summary>
-/// A moderator decided on a piece of content.
-/// <para>
-/// The event the owning module acts on — Trust holds the queue and the decision, but only
-/// the module that published a guide can actually hide it.
-/// </para>
-/// </summary>
-public sealed record ModerationDecisionRecordedIntegrationEvent : IntegrationEvent
-{
-    public required Guid ItemId { get; init; }
 
-    public required Guid ModeratorId { get; init; }
-
-    /// <summary>Guide, CommunityUpdate, Comment, Listing, Profile, Organization.</summary>
-    public required string ContentType { get; init; }
-
-    public required string ContentId { get; init; }
-
-    /// <summary>Approve, Reject, Hide, Archive, Pin, Unpin, Suspend, Restore, Escalate.</summary>
-    public required string Action { get; init; }
-
-    public string? Reason { get; init; }
-
-    public required DateTimeOffset DecidedAt { get; init; }
-}

@@ -4,8 +4,6 @@ using Diaspora.Modules.CommunityLife.Application.Moderation;
 using Diaspora.Modules.CommunityLife.Contracts.V1.Requests;
 using Diaspora.Modules.Housing.Application.Moderation;
 using Diaspora.Modules.Housing.Contracts.V1.Requests;
-using Diaspora.Modules.Jobs.Application.Moderation;
-using Diaspora.Modules.Jobs.Contracts.V1.Requests;
 using Diaspora.Modules.Marketplace.Application.Moderation;
 using Diaspora.Modules.Marketplace.Contracts.V1.Requests;
 using FluentAssertions;
@@ -17,7 +15,8 @@ namespace Diaspora.UnitTests.Moderation;
 /// <summary>
 /// Every module's moderation route needs a reason for every action, including lifting one
 /// (7 Nov 2026). Housing never asked; community life and Community's cross-module route took it as
-/// optional; jobs and marketplace asked only to take something down.
+/// optional; marketplace asked only to take something down. Jobs moderation is a Trust case decision
+/// since stage 5, where the note is required by the case itself.
 /// </summary>
 public sealed class ModerationReasonRequiredTests
 {
@@ -54,15 +53,6 @@ public sealed class ModerationReasonRequiredTests
                 Action = "hide",
                 Reason = reason
             }
-        });
-
-    [Theory]
-    [MemberData(nameof(Blank))]
-    public void Jobs_refuses_even_an_unhide_with_no_reason(string? reason) =>
-        Refuses(new ModerateJobPostingCommandValidator(), new ModerateJobPostingCommand
-        {
-            PostingId = Guid.NewGuid(),
-            Request = new ModerateJobPostingRequest { Action = "Unhide", Reason = reason }
         });
 
     [Theory]

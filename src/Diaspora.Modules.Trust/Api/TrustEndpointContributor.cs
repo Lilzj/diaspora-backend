@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Moderation.V1;
 ﻿using Diaspora.Modules.Trust.Application.Appeals;
 using Diaspora.Modules.Trust.Application.Eligibility;
 using Diaspora.Modules.Trust.Application.Moderation;
@@ -672,9 +673,11 @@ public sealed class TrustEndpointContributor : IEndpointContributor
         group.MapGet("/moderation/queue", async (
                 string? status,
                 string? contentType,
+                string? targetType,
                 string? minimumPriority,
                 Guid? assignedTo,
                 bool? overdueOnly,
+                bool? awaitingSecondReview,
                 int? page,
                 int? pageSize,
                 ISender sender,
@@ -687,9 +690,11 @@ public sealed class TrustEndpointContributor : IEndpointContributor
                         Pagination = Paginate(page, pageSize),
                         Status = TryParse<ModerationQueueStatus>(status),
                         ContentType = TryParse<ModerationContentType>(contentType),
+                        TargetType = targetType,
                         MinimumPriority = TryParse<ModerationPriority>(minimumPriority),
                         AssignedTo = assignedTo,
-                        OverdueOnly = overdueOnly ?? false
+                        OverdueOnly = overdueOnly ?? false,
+                        AwaitingSecondReview = awaitingSecondReview ?? false
                     },
                     cancellationToken);
 
@@ -697,7 +702,60 @@ public sealed class TrustEndpointContributor : IEndpointContributor
             })
             .RequireAuthorization(TrustPolicies.Moderate)
             .WithName("ListModerationQueue")
-            .WithSummary("The moderation queue, priority first.");
+            .WithSummary("The moderation queue: listed cases, priority first.");
+
+        group.MapGet("/moderation/cases/{itemId:guid}", async (
+                Guid itemId,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await sender.Send(new GetModerationCaseQuery { ItemId = itemId }, cancellationToken);
+
+                return PlatformResults.Ok(context, result);
+            })
+            .RequireAuthorization(TrustPolicies.Moderate)
+            .WithName("GetModerationCase")
+            .WithSummary("One case in full: its reports, without reporters, and every decision.");
+
+        group.MapGet("/moderation/cases", async (
+                string contentType,
+                Guid contentId,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await sender.Send(
+                    new GetModerationCaseQuery { TargetType = contentType, ContentId = contentId },
+                    cancellationToken);
+
+                return PlatformResults.Ok(context, result);
+            })
+            .RequireAuthorization(TrustPolicies.Moderate)
+            .WithName("FindModerationCase")
+            .WithSummary("The latest case about a piece of content.");
+
+        group.MapPost("/moderation/cases", async (
+                OpenModerationCaseRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await sender.Send(
+                    new OpenModerationCaseCommand
+                    {
+                        TargetType = request.ContentType,
+                        ContentId = request.ContentId,
+                        ReasonCode = ParseReasonCode(request.ReasonCode),
+                        Note = request.Note
+                    },
+                    cancellationToken);
+
+                return PlatformResults.Created(context, result);
+            })
+            .RequireAuthorization(TrustPolicies.Moderate)
+            .WithName("OpenModerationCase")
+            .WithSummary("Open a case with no report. A second member of staff checks it within 7 days.");
 
         group.MapPost("/moderation/queue/{itemId:guid}/assign", async (
                 Guid itemId,
@@ -718,7 +776,7 @@ public sealed class TrustEndpointContributor : IEndpointContributor
             })
             .RequireAuthorization(TrustPolicies.Moderate)
             .WithName("AssignModerationItem")
-            .WithSummary("Take a queue item, or release it.");
+            .WithSummary("Take a case, or release it.");
 
         group.MapPost("/moderation/queue/{itemId:guid}/decision", async (
                 Guid itemId,
@@ -731,8 +789,9 @@ public sealed class TrustEndpointContributor : IEndpointContributor
                     new RecordModerationDecisionCommand
                     {
                         ItemId = itemId,
-                        Action = ParseModerationAction(request.Action),
-                        Reason = request.Reason
+                        Outcome = ParseOutcome(request.Outcome),
+                        ReasonCode = ParseReasonCode(request.ReasonCode),
+                        Note = request.Note
                     },
                     cancellationToken);
 
@@ -740,7 +799,44 @@ public sealed class TrustEndpointContributor : IEndpointContributor
             })
             .RequireAuthorization(TrustPolicies.Moderate)
             .WithName("RecordModerationDecision")
-            .WithSummary("Record a moderator's decision on a queue item.");
+            .WithSummary("Decide a case: no action, hide pending review, remove (needs a second member of staff), or restore.");
+
+        group.MapPost("/moderation/queue/{itemId:guid}/second-review", async (
+                Guid itemId,
+                ModerationSecondReviewRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await sender.Send(
+                    new CompleteSecondReviewCommand
+                    {
+                        ItemId = itemId,
+                        Confirm = request.Confirm,
+                        Instead = string.IsNullOrWhiteSpace(request.Instead) ? null : ParseOutcome(request.Instead),
+                        Note = request.Note
+                    },
+                    cancellationToken);
+
+                return PlatformResults.Ok(context, result);
+            })
+            .RequireAuthorization(TrustPolicies.Moderate)
+            .WithName("CompleteModerationSecondReview")
+            .WithSummary("A second member of staff confirms or overrules a removal, an emergency hide, or a staff-opened case.");
+
+        group.MapPost("/moderation/cases/{itemId:guid}/review-request", async (
+                Guid itemId,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await sender.Send(new RequestCaseReviewCommand { ItemId = itemId }, cancellationToken);
+
+                return PlatformResults.Ok(context, result);
+            })
+            .RequireAuthorization(TrustPolicies.ReadSelf)
+            .WithName("RequestModerationReview")
+            .WithSummary("The owner asks for something of theirs that was hidden to be looked at again.");
     }
 
     // ── Parsing ──────────────────────────────────────────────────────────
@@ -821,6 +917,13 @@ public sealed class TrustEndpointContributor : IEndpointContributor
     /// Defaults to <see cref="ModerationActionType.Escalate"/> for the same reason: an
     /// unrecognised action sends the item to a human rather than removing content.
     /// </summary>
-    private static ModerationActionType ParseModerationAction(string value) =>
-        TryParse<ModerationActionType>(value) ?? ModerationActionType.Escalate;
+    // An outcome or a reason code that does not parse becomes a value outside the enum, which the
+    // validator refuses: a malformed decision must fail, never fall back to some default action.
+    private static ModerationOutcome ParseOutcome(string? value) =>
+        TryParse<ModerationOutcome>(value) is { } outcome && Enum.IsDefined(outcome)
+            ? outcome
+            : (ModerationOutcome)(-1);
+
+    private static ModerationReasonCode ParseReasonCode(string? value) =>
+        ModerationReasons.TryParse(value, out var code) ? code : (ModerationReasonCode)(-1);
 }

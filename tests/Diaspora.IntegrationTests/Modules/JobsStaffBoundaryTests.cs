@@ -145,9 +145,32 @@ public sealed class JobsStaffBoundaryTests : PooledIdentityTestBase
 
         await SignInAsRoleAsync("Moderator");
 
+        // Since 7 Nov 2026 staff act on a member's job only through a Trust case: here one staff
+        // open with no report, then decide.
+        var opened = await HttpClient.PostAsJsonAsync(
+            "/api/v1/trust/moderation/cases",
+            new
+            {
+                contentType = "job",
+                contentId = job.JobId,
+                reasonCode = "AsksForFees",
+                note = "Asks candidates for a registration fee in the description."
+            });
+        opened.StatusCode.Should().Be(HttpStatusCode.Created, await opened.Content.ReadAsStringAsync());
+
+        var item = await ReadDataAsync<CaseShape>(opened);
+
+        (await HttpClient.PostAsync($"/api/v1/trust/moderation/queue/{item.ItemId}/assign", content: null))
+            .EnsureSuccessStatusCode();
+
         var hidden = await HttpClient.PostAsJsonAsync(
-            $"{Root}/moderation/postings/{job.JobId}",
-            new { action = "Hide", reason = "Asks candidates for a registration fee." });
+            $"/api/v1/trust/moderation/queue/{item.ItemId}/decision",
+            new
+            {
+                outcome = "HidePendingReview",
+                reasonCode = "AsksForFees",
+                note = "Asks candidates for a registration fee."
+            });
         hidden.StatusCode.Should().Be(HttpStatusCode.OK, await hidden.Content.ReadAsStringAsync());
 
         using var anonymous = Factory.CreateClient();
@@ -248,6 +271,8 @@ public sealed class JobsStaffBoundaryTests : PooledIdentityTestBase
     private sealed record EmployerShape(Guid EmployerId);
 
     private sealed record JobShape(Guid JobId, string Status);
+
+    private sealed record CaseShape(Guid ItemId);
 
     private sealed record ApplicationShape(Guid ApplicationId, string Status);
 }

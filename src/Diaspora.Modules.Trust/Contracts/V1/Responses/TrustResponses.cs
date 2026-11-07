@@ -149,6 +149,64 @@ public sealed record ModerationQueueItemResponse
     public required bool IsOverdue { get; init; }
 
     public required DateTimeOffset CreatedAt { get; init; }
+
+    // ── The case (7 Nov 2026) ───────────────────────────────────────────
+
+    /// <summary>Which module's content: job, housing-listing, guide, and so on.</summary>
+    public string? TargetType { get; init; }
+
+    public string? Area { get; init; }
+
+    public string? ReasonCode { get; init; }
+
+    public string? ReasonLabel { get; init; }
+
+    public bool StaffInitiated { get; init; }
+
+    public string? OpeningNote { get; init; }
+
+    /// <summary>What has been done to the content so far. Null until somebody decides.</summary>
+    public string? CurrentOutcome { get; init; }
+
+    /// <summary>None, EmergencyHide, StaffInitiated or RemovalProposal.</summary>
+    public string SecondReview { get; init; } = "None";
+
+    public DateTimeOffset? SecondReviewDueAt { get; init; }
+
+    /// <summary>Who must not do the second review.</summary>
+    public Guid? FirstDeciderId { get; init; }
+
+    public string? ProposedReasonCode { get; init; }
+
+    public string? ProposedNote { get; init; }
+
+    public DateTimeOffset? AppealDeadline { get; init; }
+
+    public DateTimeOffset? ReviewRequestedAt { get; init; }
+
+    public bool HiddenAutomatically { get; init; }
+
+    /// <summary>Whether a moderator may decide it now.</summary>
+    public bool AwaitsDecision { get; init; }
+
+    /// <summary>The reports, without who made them.</summary>
+    public IReadOnlyList<ModerationCaseReportResponse> Reports { get; init; } = [];
+
+    public IReadOnlyList<ModerationDecisionResponse> Decisions { get; init; } = [];
+}
+
+/// <summary>One report on a case, as staff read it: the reason and words, not the reporter.</summary>
+public sealed record ModerationCaseReportResponse
+{
+    public required string ReasonCode { get; init; }
+
+    public required string ModuleReason { get; init; }
+
+    public string? Detail { get; init; }
+
+    public required string Module { get; init; }
+
+    public required DateTimeOffset FiledAt { get; init; }
 }
 
 /// <summary>An automated pre-screen. Matches the frontend's <c>AIReview</c>.</summary>
@@ -171,7 +229,15 @@ public sealed record ModerationDecisionResponse
 {
     public required Guid ActionId { get; init; }
 
-    public required Guid ModeratorId { get; init; }
+    /// <summary>Null when the system acted.</summary>
+    public Guid? ModeratorId { get; init; }
+
+    /// <summary>Decision, Proposal, Confirmation, Overruled or System.</summary>
+    public string? Kind { get; init; }
+
+    public string? Outcome { get; init; }
+
+    public string? ReasonCode { get; init; }
 
     public required string ContentType { get; init; }
 

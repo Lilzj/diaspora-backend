@@ -234,6 +234,20 @@ public sealed class ModerationItemConfiguration : IEntityTypeConfiguration<Moder
 
         builder.Ignore(item => item.AiFlags);
         builder.Ignore(item => item.IsOpen);
+        builder.Ignore(item => item.AwaitsDecision);
+        builder.Ignore(item => item.AcceptsReports);
+
+        // ── The case (7 Nov 2026) ──────────────────────────────────────
+        builder.Property(item => item.TargetType).HasMaxLength(ModerationItem.MaxTargetTypeLength);
+        builder.Property(item => item.Area).HasMaxLength(ModerationItem.MaxAreaLength);
+        builder.Property(item => item.ReasonCode).HasConversion<string>().HasMaxLength(32);
+        builder.Property(item => item.OpenedById);
+        builder.Property(item => item.OpeningNote).HasMaxLength(ModerationItem.MaxReasonLength);
+        builder.Property(item => item.CurrentOutcome).HasConversion<string>().HasMaxLength(32);
+        builder.Property(item => item.SecondReview).HasConversion<string>().HasMaxLength(32).IsRequired();
+        builder.Property(item => item.FirstDeciderId);
+        builder.Property(item => item.ProposedReasonCode).HasConversion<string>().HasMaxLength(32);
+        builder.Property(item => item.ProposedNote).HasMaxLength(ModerationItem.MaxReasonLength);
 
         builder.HasMany(item => item.Decisions)
             .WithOne()
@@ -243,6 +257,19 @@ public sealed class ModerationItemConfiguration : IEntityTypeConfiguration<Moder
         builder.Navigation(item => item.Decisions)
             .UsePropertyAccessMode(PropertyAccessMode.Field)
             .HasField("_decisions");
+
+        builder.HasMany(item => item.Reports)
+            .WithOne()
+            .HasForeignKey(report => report.ItemId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(item => item.Reports)
+            .UsePropertyAccessMode(PropertyAccessMode.Field)
+            .HasField("_reports");
+
+        // A new report finds the case for its content: one module content type, one id.
+        builder.HasIndex(item => new { item.TargetType, item.ContentId, item.Status })
+            .HasDatabaseName("ix_moderation_items_target_status");
 
         // One open item per piece of content — reporting the same guide twice adds a report
         // to the existing item rather than queueing it again.
@@ -274,7 +301,12 @@ public sealed class ModerationDecisionConfiguration : IEntityTypeConfiguration<M
             .HasConversion(new StronglyTypedIdValueConverter<ModerationItemId>())
             .IsRequired();
 
-        builder.Property(decision => decision.ModeratorId).IsRequired();
+        // Null when the system acted: the automatic hide after many serious reports.
+        builder.Property(decision => decision.ModeratorId);
+
+        builder.Property(decision => decision.Kind).HasConversion<string>().HasMaxLength(32).IsRequired();
+        builder.Property(decision => decision.Outcome).HasConversion<string>().HasMaxLength(32);
+        builder.Property(decision => decision.ReasonCode).HasConversion<string>().HasMaxLength(32);
 
         builder.Property(decision => decision.Action)
             .HasConversion<string>()
@@ -352,5 +384,50 @@ public sealed class CommunityContributionConfiguration
             .HasDatabaseName("ix_community_contributions_target");
 
         builder.Ignore(contribution => contribution.DomainEvents);
+    }
+}
+
+/// <summary>One member's report on a moderation case (7 Nov 2026). One per reporter per case.</summary>
+public sealed class ModerationCaseReportConfiguration : IEntityTypeConfiguration<ModerationCaseReport>
+{
+    public void Configure(EntityTypeBuilder<ModerationCaseReport> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.ToTable("moderation_case_reports", TrustModuleMetadata.Schema);
+
+        builder.HasKey(report => report.Id);
+
+        builder.Property(report => report.Id)
+            .HasConversion(new StronglyTypedIdValueConverter<ModerationCaseReportId>())
+            .ValueGeneratedNever();
+
+        builder.Property(report => report.ItemId)
+            .HasConversion(new StronglyTypedIdValueConverter<ModerationItemId>())
+            .IsRequired();
+
+        builder.Property(report => report.ReporterId).IsRequired();
+
+        builder.Property(report => report.ReasonCode).HasConversion<string>().HasMaxLength(32).IsRequired();
+
+        builder.Property(report => report.ModuleReason)
+            .HasMaxLength(ModerationCaseReport.MaxModuleReasonLength)
+            .IsRequired();
+
+        builder.Property(report => report.Detail).HasMaxLength(ModerationCaseReport.MaxDetailLength);
+
+        builder.Property(report => report.Module)
+            .HasMaxLength(ModerationCaseReport.MaxModuleLength)
+            .IsRequired();
+
+        builder.Property(report => report.ModuleReportId).IsRequired();
+
+        builder.Property(report => report.FiledAt).IsRequired();
+
+        builder.HasIndex(report => new { report.ItemId, report.ReporterId })
+            .IsUnique()
+            .HasDatabaseName("ux_moderation_case_reports_reporter");
+
+        builder.Ignore(report => report.DomainEvents);
     }
 }

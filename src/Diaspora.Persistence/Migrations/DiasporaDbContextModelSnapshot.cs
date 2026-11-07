@@ -17587,6 +17587,51 @@ namespace Diaspora.Persistence.Migrations
                     b.ToTable("country_standings", "trust");
                 });
 
+            modelBuilder.Entity("Diaspora.Modules.Trust.Domain.ModerationCaseReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Detail")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTimeOffset>("FiledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Module")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("ModuleReason")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("ModuleReportId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReasonCode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<Guid>("ReporterId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ItemId", "ReporterId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_moderation_case_reports_reporter");
+
+                    b.ToTable("moderation_case_reports", "trust");
+                });
+
             modelBuilder.Entity("Diaspora.Modules.Trust.Domain.ModerationDecision", b =>
                 {
                     b.Property<Guid>("Id")
@@ -17603,11 +17648,20 @@ namespace Diaspora.Persistence.Migrations
                     b.Property<Guid>("ItemId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("ModeratorId")
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<Guid?>("ModeratorId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("NewStatus")
                         .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Outcome")
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
@@ -17619,6 +17673,10 @@ namespace Diaspora.Persistence.Migrations
                     b.Property<string>("Reason")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("ReasonCode")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
 
                     b.HasKey("Id");
 
@@ -17642,6 +17700,13 @@ namespace Diaspora.Persistence.Migrations
 
                     b.Property<DateTimeOffset?>("AiReviewedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("AppealDeadline")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Area")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
 
                     b.Property<DateTimeOffset?>("AssignedAt")
                         .HasColumnType("timestamp with time zone");
@@ -17668,8 +17733,21 @@ namespace Diaspora.Persistence.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
 
+                    b.Property<string>("CurrentOutcome")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
                     b.Property<DateTimeOffset?>("DueAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("FirstDeciderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("HiddenAutomatically")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsListed")
+                        .HasColumnType("boolean");
 
                     b.Property<DateTimeOffset?>("ModifiedAt")
                         .HasColumnType("timestamp with time zone");
@@ -17677,10 +17755,29 @@ namespace Diaspora.Persistence.Migrations
                     b.Property<string>("ModifiedBy")
                         .HasColumnType("text");
 
+                    b.Property<Guid?>("OpenedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("OpeningNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
                     b.Property<string>("Priority")
                         .IsRequired()
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)");
+
+                    b.Property<string>("ProposedNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("ProposedReasonCode")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("ReasonCode")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
 
                     b.Property<int>("ReportCount")
                         .HasColumnType("integer");
@@ -17688,8 +17785,26 @@ namespace Diaspora.Persistence.Migrations
                     b.Property<DateTimeOffset?>("ResolvedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTimeOffset?>("ReviewRequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SecondReview")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTimeOffset?>("SecondReviewDueAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("StaffInitiated")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Status")
                         .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("TargetType")
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
@@ -17710,6 +17825,9 @@ namespace Diaspora.Persistence.Migrations
 
                     b.HasIndex("Status", "Priority", "CreatedAt")
                         .HasDatabaseName("ix_moderation_items_status_priority_created");
+
+                    b.HasIndex("TargetType", "ContentId", "Status")
+                        .HasDatabaseName("ix_moderation_items_target_status");
 
                     b.ToTable("moderation_items", "trust");
                 });
@@ -33631,6 +33749,15 @@ namespace Diaspora.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Diaspora.Modules.Trust.Domain.ModerationCaseReport", b =>
+                {
+                    b.HasOne("Diaspora.Modules.Trust.Domain.ModerationItem", null)
+                        .WithMany("Reports")
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Diaspora.Modules.Trust.Domain.ModerationDecision", b =>
                 {
                     b.HasOne("Diaspora.Modules.Trust.Domain.ModerationItem", null)
@@ -33735,6 +33862,8 @@ namespace Diaspora.Persistence.Migrations
             modelBuilder.Entity("Diaspora.Modules.Trust.Domain.ModerationItem", b =>
                 {
                     b.Navigation("Decisions");
+
+                    b.Navigation("Reports");
                 });
 
             modelBuilder.Entity("Diaspora.Modules.Trust.Domain.ReputationProfile", b =>

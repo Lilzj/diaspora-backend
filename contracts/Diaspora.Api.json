@@ -29160,76 +29160,6 @@
         }
       }
     },
-    "/api/v1/jobs/moderation/reports/{reportId}/resolve": {
-      "post": {
-        "tags": [
-          "Jobs"
-        ],
-        "summary": "Close a report, and every other open report about the same advert with it.",
-        "operationId": "ResolveJobReport",
-        "parameters": [
-          {
-            "name": "reportId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ResolveJobReportRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/jobs/moderation/postings/{postingId}": {
-      "post": {
-        "tags": [
-          "Jobs"
-        ],
-        "summary": "Hide, unhide, flag or annotate an advert, without closing a report.",
-        "operationId": "ModerateJobPosting",
-        "parameters": [
-          {
-            "name": "postingId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ModerateJobPostingRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
     "/api/v1/jobs/employers": {
       "post": {
         "tags": [
@@ -38279,7 +38209,7 @@
         "tags": [
           "Trust"
         ],
-        "summary": "The moderation queue, priority first.",
+        "summary": "The moderation queue: listed cases, priority first.",
         "operationId": "ListModerationQueue",
         "parameters": [
           {
@@ -38291,6 +38221,13 @@
           },
           {
             "name": "contentType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "targetType",
             "in": "query",
             "schema": {
               "type": "string"
@@ -38313,6 +38250,13 @@
           },
           {
             "name": "overdueOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "awaitingSecondReview",
             "in": "query",
             "schema": {
               "type": "boolean"
@@ -38350,12 +38294,92 @@
         }
       }
     },
+    "/api/v1/trust/moderation/cases/{itemId}": {
+      "get": {
+        "tags": [
+          "Trust"
+        ],
+        "summary": "One case in full: its reports, without reporters, and every decision.",
+        "operationId": "GetModerationCase",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/trust/moderation/cases": {
+      "get": {
+        "tags": [
+          "Trust"
+        ],
+        "summary": "The latest case about a piece of content.",
+        "operationId": "FindModerationCase",
+        "parameters": [
+          {
+            "name": "contentType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contentId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Trust"
+        ],
+        "summary": "Open a case with no report. A second member of staff checks it within 7 days.",
+        "operationId": "OpenModerationCase",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenModerationCaseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/trust/moderation/queue/{itemId}/assign": {
       "post": {
         "tags": [
           "Trust"
         ],
-        "summary": "Take a queue item, or release it.",
+        "summary": "Take a case, or release it.",
         "operationId": "AssignModerationItem",
         "parameters": [
           {
@@ -38387,7 +38411,7 @@
         "tags": [
           "Trust"
         ],
-        "summary": "Record a moderator's decision on a queue item.",
+        "summary": "Decide a case: no action, hide pending review, remove (needs a second member of staff), or restore.",
         "operationId": "RecordModerationDecision",
         "parameters": [
           {
@@ -38410,6 +38434,66 @@
           },
           "required": true
         },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/trust/moderation/queue/{itemId}/second-review": {
+      "post": {
+        "tags": [
+          "Trust"
+        ],
+        "summary": "A second member of staff confirms or overrules a removal, an emergency hide, or a staff-opened case.",
+        "operationId": "CompleteModerationSecondReview",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModerationSecondReviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/trust/moderation/cases/{itemId}/review-request": {
+      "post": {
+        "tags": [
+          "Trust"
+        ],
+        "summary": "The owner asks for something of theirs that was hidden to be looked at again.",
+        "operationId": "RequestModerationReview",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -47664,23 +47748,6 @@
           }
         }
       },
-      "ModerateJobPostingRequest": {
-        "required": [
-          "action"
-        ],
-        "type": "object",
-        "properties": {
-          "action": {
-            "type": "string"
-          },
-          "reason": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
       "ModerateListingRequest": {
         "required": [
           "action"
@@ -47777,6 +47844,27 @@
               "string"
             ],
             "format": "uuid"
+          }
+        }
+      },
+      "ModerationSecondReviewRequest": {
+        "required": [
+          "confirm",
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "confirm": {
+            "type": "boolean"
+          },
+          "instead": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "note": {
+            "type": "string"
           }
         }
       },
@@ -47962,6 +48050,30 @@
           },
           "isClosed": {
             "type": "boolean"
+          }
+        }
+      },
+      "OpenModerationCaseRequest": {
+        "required": [
+          "contentType",
+          "contentId",
+          "reasonCode",
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "contentType": {
+            "type": "string"
+          },
+          "contentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reasonCode": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
           }
         }
       },
@@ -49642,18 +49754,20 @@
       },
       "RecordModerationDecisionRequest": {
         "required": [
-          "action"
+          "outcome",
+          "reasonCode",
+          "note"
         ],
         "type": "object",
         "properties": {
-          "action": {
+          "outcome": {
             "type": "string"
           },
-          "reason": {
-            "type": [
-              "null",
-              "string"
-            ]
+          "reasonCode": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
           }
         }
       },
@@ -50874,26 +50988,6 @@
             ]
           },
           "hideListing": {
-            "type": "boolean"
-          }
-        }
-      },
-      "ResolveJobReportRequest": {
-        "required": [
-          "upheld"
-        ],
-        "type": "object",
-        "properties": {
-          "upheld": {
-            "type": "boolean"
-          },
-          "resolution": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "hidePosting": {
             "type": "boolean"
           }
         }

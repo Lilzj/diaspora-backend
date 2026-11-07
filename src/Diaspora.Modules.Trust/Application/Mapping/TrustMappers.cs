@@ -453,18 +453,52 @@ public static class TrustMappers
             AssignedModeratorId = item.AssignedModeratorId?.Value,
             DueAt = item.DueAt,
             IsOverdue = item.IsOverdue(asOf),
-            CreatedAt = item.CreatedAt
+            CreatedAt = item.CreatedAt,
+            TargetType = item.TargetType,
+            Area = item.Area,
+            ReasonCode = item.ReasonCode?.ToString(),
+            ReasonLabel = item.ReasonCode is { } code
+                ? Diaspora.Contracts.Moderation.V1.ModerationReasons.Label(code)
+                : null,
+            StaffInitiated = item.StaffInitiated,
+            OpeningNote = item.OpeningNote,
+            CurrentOutcome = item.CurrentOutcome?.ToString(),
+            SecondReview = item.SecondReview.ToString(),
+            SecondReviewDueAt = item.SecondReviewDueAt,
+            FirstDeciderId = item.FirstDeciderId?.Value,
+            ProposedReasonCode = item.ProposedReasonCode?.ToString(),
+            ProposedNote = item.ProposedNote,
+            AppealDeadline = item.AppealDeadline,
+            ReviewRequestedAt = item.ReviewRequestedAt,
+            HiddenAutomatically = item.HiddenAutomatically,
+            AwaitsDecision = item.AwaitsDecision,
+            Reports = [.. item.Reports
+                .OrderBy(report => report.FiledAt)
+                .Select(report => new ModerationCaseReportResponse
+                {
+                    ReasonCode = report.ReasonCode.ToString(),
+                    ModuleReason = report.ModuleReason,
+                    Detail = report.Detail,
+                    Module = report.Module,
+                    FiledAt = report.FiledAt
+                })],
+            Decisions = [.. item.Decisions
+                .OrderBy(decision => decision.DecidedAt)
+                .Select(decision => decision.ToResponse(item.TargetType ?? item.ContentType.ToString(), item.ContentId))]
         };
 
     public static ModerationDecisionResponse ToResponse(
         this ModerationDecision decision,
-        ModerationContentType contentType,
+        string contentType,
         string contentId) =>
         new()
         {
             ActionId = decision.Id.Value,
-            ModeratorId = decision.ModeratorId.Value,
-            ContentType = contentType.ToString(),
+            ModeratorId = decision.ModeratorId?.Value,
+            Kind = decision.Kind.ToString(),
+            Outcome = decision.Outcome?.ToString(),
+            ReasonCode = decision.ReasonCode?.ToString(),
+            ContentType = contentType,
             ContentId = contentId,
             ActionType = decision.Action.ToString(),
             Reason = decision.Reason,

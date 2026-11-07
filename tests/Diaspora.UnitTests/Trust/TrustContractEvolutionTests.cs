@@ -385,7 +385,8 @@ public sealed class TrustContractEvolutionTests
             nameof(ContributorApprovedIntegrationEvent),
             nameof(GuideApprovedIntegrationEvent),
             nameof(MemberRiskLevelChangedIntegrationEvent),
-            nameof(ModerationDecisionRecordedIntegrationEvent),
+            // ModerationDecisionRecordedIntegrationEvent was retired on 7 Nov 2026: it carried no reason
+            // and no owner. Decisions now publish Moderation.V1.Events.ModerationActionTakenIntegrationEvent.
             nameof(OrganizationVerifiedIntegrationEvent),
             nameof(ReputationLevelChangedIntegrationEvent),
             nameof(TrustLevelChangedIntegrationEvent),
