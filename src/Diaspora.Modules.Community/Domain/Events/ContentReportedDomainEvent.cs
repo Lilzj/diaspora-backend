@@ -9,9 +9,9 @@ namespace Diaspora.Modules.Community.Domain.Events;
 /// <summary>
 /// Raised when a member reports content.
 /// <para>
-/// Carries the running open-report count, because the count is the thing anybody downstream
-/// actually acts on: one report is a queue item, ten is an auto-hide, and a consumer that only
-/// learns a report happened has to go and count them itself.
+/// Carries the running open-report count, so a consumer that only learns a report happened need
+/// not go and count them itself. Since 7 Nov 2026 the report also goes to Trust as a moderation
+/// case, and Trust, not this module, decides what many reports mean.
 /// </para>
 /// </summary>
 public sealed record ContentReportedDomainEvent : DomainEvent
@@ -27,4 +27,7 @@ public sealed record ContentReportedDomainEvent : DomainEvent
     public required int OpenReportCount { get; init; }
 
     public Guid? ContentAuthorId { get; init; }
+
+    /// <summary>What the reported content is called, for the moderation case. Never the reporter.</summary>
+    public string? ContentTitle { get; init; }
 }

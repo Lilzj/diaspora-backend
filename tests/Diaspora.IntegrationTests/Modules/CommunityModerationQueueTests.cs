@@ -150,6 +150,50 @@ public sealed class CommunityModerationQueueTests : PooledIdentityTestBase
     }
 
     /// <summary>
+    /// <b>A community moderator's dismissal does not lift a platform hide</b> (7 Nov 2026). Hidden is
+    /// only ever a Trust case's decision now, pending a staff review; dismissing a later report used
+    /// to republish the post through the shared Approve, overruling the case from a community queue.
+    /// </summary>
+    [Fact]
+    public async Task Dismissing_a_report_leaves_a_post_hidden_by_its_trust_case_hidden()
+    {
+        var community = await SeedAsync("Queue platform hide");
+        var (moderator, _) = await ModeratorOfAsync(community);
+        var (author, _) = await PublisherOfAsync(community);
+        var (first, _) = await MemberClientAsync();
+        var (second, _) = await MemberClientAsync();
+
+        var post = await PostAsync(author, "Buy a guaranteed work permit, DM me.", community.Id);
+        await ReportAsync(first, post);
+        await Factory.DrainOutboxAsync();
+
+        await SignInAsRoleAsync("Moderator");
+
+        var item = await ReadDataAsync<CaseDto>(await HttpClient.GetAsync(
+            $"/api/v1/trust/moderation/cases?contentType=community-post&contentId={post}"));
+
+        (await HttpClient.PostAsync($"/api/v1/trust/moderation/queue/{item.ItemId}/assign", content: null))
+            .EnsureSuccessStatusCode();
+
+        (await HttpClient.PostAsJsonAsync(
+                $"/api/v1/trust/moderation/queue/{item.ItemId}/decision",
+                new { outcome = "HidePendingReview", reasonCode = "Spam", note = "Selling work permits in a community feed." }))
+            .EnsureSuccessStatusCode();
+
+        (await PostStatusAsync(post)).Should().Be(PostStatus.Hidden);
+
+        var laterReport = await ReportAsync(second, post);
+
+        var decided = await ReadDataAsync<ReportDto>(
+            await moderator.PostAsJsonAsync(
+                $"{Root}/{community.Slug}/reports/{laterReport}/decision", new { decision = "dismiss" }));
+
+        decided.Status.Should().Be("Dismissed", "the community moderator answered their report");
+        (await PostStatusAsync(post)).Should().Be(
+            PostStatus.Hidden, "only the Trust case, by a restore, puts a hidden post back");
+    }
+
+    /// <summary>
     /// Escalating hands the report to the platform's moderators: it reads Escalated here, and the
     /// community can no longer decide it.
     /// </summary>
@@ -418,6 +462,8 @@ public sealed class CommunityModerationQueueTests : PooledIdentityTestBase
     private sealed record PostDto(Guid PostId);
 
     private sealed record FiledReportDto(Guid ReportId);
+
+    private sealed record CaseDto(Guid ItemId);
 
     // The client's CommunityReport, re-declared by hand so a renamed field fails here.
     private sealed record ReportDto(

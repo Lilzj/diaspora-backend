@@ -17,10 +17,10 @@ namespace Diaspora.Modules.Community.Application.Services;
 /// Community's answer to <see cref="IPublisherReportQueue"/>: the reports about one publisher's
 /// content, and a moderator's decision on one of them (21 Oct 2026).
 /// <para>
-/// <b>The decision goes through <see cref="ModerationService.DecideAsync"/></b> — the same call the
-/// platform's <c>POST /community/moderation/decisions</c> makes — so a community moderator's removal
-/// is recorded in the same append-only history, publishes the same events and adjusts the same
-/// counters as a staff one.
+/// <b>The decision goes through <see cref="ModerationService.DecideAsync"/></b>, so a community
+/// moderator's removal is recorded in the same append-only history, publishes the same events and
+/// adjusts the same counters. Staff no longer decide here: since 7 Nov 2026 they decide on the Trust
+/// moderation case, which every one of these reports also reached.
 /// </para>
 /// <para>
 /// <b>Three things this adds around it, each because the shared call would do harm here.</b>
@@ -29,9 +29,10 @@ namespace Diaspora.Modules.Community.Application.Services;
 /// <item><b>Every open report on the content is answered, not just the one named.</b> A decision is
 /// about the content; leaving the other reports open would put the same post back in the queue for
 /// a second, possibly different, decision.</item>
-/// <item><b>Dismissing never brings content back that is not merely hidden.</b> The shared call's
-/// <c>Approve</c> republishes an expired, archived or removed post. Dismissing a report about one
-/// answers the report and leaves the content where it is.</item>
+/// <item><b>Dismissing never brings content back.</b> The shared call's <c>Approve</c> republishes
+/// an expired, archived, removed or hidden post. Hidden is now only ever Trust's decision (staff, or
+/// the system on many serious reports), and a community moderator dismissing one report must not
+/// lift it. Dismissing answers the report and leaves the content where it is.</item>
 /// <item><b>Removing content that is already gone answers the reports without a second removal</b>,
 /// which would publish a second deletion event for one post.</item>
 /// </list>
@@ -179,9 +180,11 @@ public sealed class PublisherReportQueue : IPublisherReportQueue
         var upheld = parsed == Decision.RemoveContent;
         var state = await ReadStateAsync(report.Content, cancellationToken);
 
+        // A dismissal touches only content that is up. Hidden content is Trust's decision, pending
+        // a staff review, and a community moderator's dismissal must not lift it (7 Nov 2026).
         var applies = upheld
             ? state is ContentState.Live or ContentState.Hidden or ContentState.Dormant
-            : state is ContentState.Live or ContentState.Hidden;
+            : state is ContentState.Live;
 
         var answered = siblings.Count;
 
@@ -416,7 +419,9 @@ public sealed class PublisherReportQueue : IPublisherReportQueue
         /// <summary>Published, or a comment that is up.</summary>
         Live,
 
-        /// <summary>Hidden, by the report threshold or a moderator. Dismissing brings it back.</summary>
+        /// <summary>
+        /// Hidden pending review by a Trust case. A removal still applies; dismissing leaves it hidden.
+        /// </summary>
         Hidden,
 
         /// <summary>A draft, expired or archived post. Dismissing must not republish it.</summary>
