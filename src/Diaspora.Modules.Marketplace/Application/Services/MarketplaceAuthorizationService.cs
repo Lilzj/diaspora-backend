@@ -23,17 +23,19 @@ namespace Diaspora.Modules.Marketplace.Application.Services;
 /// listing.
 /// </para>
 /// <para>
-/// <b>Staff bypass is deliberate and narrow.</b> A moderator or administrator may act on any
-/// listing, because moderation would otherwise require owning everything they touch. It is checked
-/// through the kernel's <c>ICurrentUser.Role</c> rather than through a permission, because the
-/// permission catalogue already gated the endpoint and this is the second question: not "may you
-/// moderate" but "is this yours".
+/// <b>Staff never pass an owner check.</b> A moderator or administrator is not the owner of a
+/// listing, a seller profile, an offer or a reservation, and is refused here exactly as any other
+/// member is. The owner's decision of 7 Nov 2026: staff never act on a member's content through the
+/// member's own routes, and there are no "support edits" made in a seller's name. Staff act on a
+/// listing or a seller only through the moderation routes (<c>/marketplace/moderation/*</c>, gated
+/// by <see cref="MarketplacePolicies.Moderate"/>), whose handlers do not come through
+/// <see cref="RequireListingAccessAsync"/> and which record the decision as moderation.
 /// </para>
 /// <para>
-/// <b>There is deliberately no staff bypass on a buyer's own things.</b> Reading or altering a
-/// named person's watchlist, their offers or their reservations is a different act from moderating
-/// a public listing, and it should require a deliberate support tool rather than fall out of a role
-/// check in a general-purpose helper. B9's authorisation service draws the same line.
+/// <b><see cref="IsStaff"/> is for reading, not writing.</b> It lets staff see hidden, draft and
+/// deleted listings in <see cref="CanSeeAsync"/> and <see cref="ApplyAudienceAsync"/>, because a
+/// moderator has to see what they are reviewing. A buyer's own things — a named person's
+/// watchlist, offers and reservations — have no staff path at all, not even to read.
 /// </para>
 /// </summary>
 public sealed class MarketplaceAuthorizationService
@@ -54,7 +56,10 @@ public sealed class MarketplaceAuthorizationService
     /// <summary>The caller, or null when the request is anonymous.</summary>
     public UserId? CallerId => _currentUser.UserId;
 
-    /// <summary>Whether the caller holds a platform staff role.</summary>
+    /// <summary>
+    /// Whether the caller holds a platform staff role. Widens what they may see and gates the
+    /// moderation handlers; it never makes a listing theirs.
+    /// </summary>
     public bool IsStaff => _currentUser.Role is { } role && StaffRoles.Contains(role);
 
     /// <summary>The caller, or a failure. The first line of every write handler.</summary>
@@ -122,6 +127,10 @@ public sealed class MarketplaceAuthorizationService
     /// suspended seller's listings stay valid objects, but nobody may work them. Putting the check
     /// at every call site would mean forgetting it at one.
     /// </para>
+    /// <para>
+    /// Staff are not exempt from either half: a moderator who does not own the listing is refused,
+    /// and moderates it through the moderation routes instead (see the class summary).
+    /// </para>
     /// </summary>
     public async Task<Result<SellerProfile>> RequireListingAccessAsync(
         MarketplaceListing listing, CancellationToken cancellationToken = default)
@@ -140,11 +149,6 @@ public sealed class MarketplaceAuthorizationService
         if (seller is null)
         {
             return Result.Failure<SellerProfile>(MarketplaceErrors.SellerNotFound);
-        }
-
-        if (IsStaff)
-        {
-            return Result.Success(seller);
         }
 
         if (seller.OwnerUserId != caller.Value)

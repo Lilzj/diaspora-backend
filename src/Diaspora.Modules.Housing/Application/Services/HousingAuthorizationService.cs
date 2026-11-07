@@ -17,18 +17,24 @@ namespace Diaspora.Modules.Housing.Application.Services;
 /// and no token can carry it. Every write handler in the module comes through here to ask.
 /// </para>
 /// <para>
-/// <b>Staff bypass is deliberate and narrow.</b> A moderator may act on any listing, because
-/// moderation would otherwise require owning everything they touch. It is checked through the
-/// kernel's <c>ICurrentUser.Role</c> rather than through a permission, because the permission
-/// catalogue already gated the endpoint and this is the second question: not "may you moderate" but
-/// "is this yours".
+/// <b>Staff never pass an owner check.</b> A moderator or administrator is not the landlord of a
+/// property, and is refused here exactly as any other member is. The owner's decision of 7 Nov
+/// 2026: staff never act on a member's content through the member's own routes, and there are no
+/// "support edits" made in a landlord's name. Staff act on a property only through the moderation
+/// routes (<c>/housing/moderation/*</c>, gated by <see cref="HousingPolicies.Moderate"/>), whose
+/// handlers load the listing themselves rather than through <see cref="RequireListingAccessAsync"/>
+/// and record the decision on the moderation trail.
 /// </para>
 /// <para>
-/// <b>There is deliberately no staff bypass on a member's own viewings or reservations.</b> Reading
-/// a named person's appointments — where they are going, and when the property will be empty — is a
-/// different act from moderating a public listing, and it should require a deliberate support tool
-/// rather than fall out of a role check in a general-purpose helper. B9 and B10 draw the same line;
-/// here it protects a member's physical whereabouts rather than their shopping.
+/// <b><see cref="IsStaff"/> is for reading, not writing.</b> It lets staff see hidden, draft and
+/// deleted properties in <see cref="CanSeeAsync"/> and <see cref="ApplyAudienceAsync"/>, because a
+/// moderator has to see what they are reviewing.
+/// </para>
+/// <para>
+/// <b>There is no staff path at all to a member's own viewings or reservations.</b> Reading a named
+/// person's appointments — where they are going, and when the property will be empty — is a
+/// different act from moderating a public listing. B9 and B10 draw the same line; here it protects
+/// a member's physical whereabouts rather than their shopping.
 /// </para>
 /// </summary>
 public sealed class HousingAuthorizationService
@@ -52,7 +58,10 @@ public sealed class HousingAuthorizationService
     /// <summary>Whether anybody is signed in at all. Read by the address-disclosure rule.</summary>
     public bool IsAuthenticated => _currentUser.UserId is not null;
 
-    /// <summary>Whether the caller holds a platform staff role.</summary>
+    /// <summary>
+    /// Whether the caller holds a platform staff role. Widens what they may see; it never makes a
+    /// property theirs.
+    /// </summary>
     public bool IsStaff => _currentUser.Role is { } role && StaffRoles.Contains(role);
 
     /// <summary>The caller, or a failure. The first line of every write handler.</summary>
@@ -121,6 +130,10 @@ public sealed class HousingAuthorizationService
     /// suspended landlord's listings stay valid objects, but nobody may work them. Putting the check
     /// at every call site would mean forgetting it at one.
     /// </para>
+    /// <para>
+    /// Staff are not exempt from either half: a moderator who is not the landlord is refused, and
+    /// moderates the property through the moderation routes instead (see the class summary).
+    /// </para>
     /// </summary>
     public async Task<Result<LandlordProfile>> RequireListingAccessAsync(
         HousingListing listing, CancellationToken cancellationToken = default)
@@ -139,11 +152,6 @@ public sealed class HousingAuthorizationService
         if (landlord is null)
         {
             return Result.Failure<LandlordProfile>(HousingErrors.LandlordNotFound);
-        }
-
-        if (IsStaff)
-        {
-            return Result.Success(landlord);
         }
 
         if (landlord.OwnerUserId != caller.Value)
