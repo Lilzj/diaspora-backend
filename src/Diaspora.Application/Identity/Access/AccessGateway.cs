@@ -1,5 +1,6 @@
 using Diaspora.Application.Identity.Abstractions;
 using Diaspora.Application.Identity.Models;
+using Diaspora.Contracts.Moderation.V1;
 using Diaspora.Domain.Identity.AccessStates;
 using Diaspora.Domain.Identity.Users;
 
@@ -40,6 +41,13 @@ public sealed class AccessGateway : IAccessGateway
 
         var (destination, message, actions) = RouteFor(user, state);
 
+        // A suspended or closed member is told why, in the words staff used and the reason they
+        // chose (7 Nov 2026). The screen said only "suspended pending review".
+        var staffRestriction = state == AccessState.Suspended || state == AccessState.Disabled;
+        var reasonCode = staffRestriction && ModerationReasons.TryParse(user.StatusReasonCode, out var code)
+            ? code
+            : (ModerationReasonCode?)null;
+
         return new AccessDecision
         {
             AccessState = state,
@@ -49,7 +57,10 @@ public sealed class AccessGateway : IAccessGateway
             RequiredActions = actions,
             Features = features,
             Permissions = permissions,
-            RestrictedUntil = state == AccessState.Suspended ? user.SuspendedUntil : null
+            RestrictedUntil = state == AccessState.Suspended ? user.SuspendedUntil : null,
+            ReasonCode = reasonCode?.ToString(),
+            ReasonLabel = reasonCode is { } known ? ModerationReasons.Label(known) : null,
+            Note = staffRestriction ? user.StatusReason : null
         };
     }
 

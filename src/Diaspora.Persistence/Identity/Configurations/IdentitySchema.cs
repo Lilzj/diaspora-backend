@@ -19,4 +19,5 @@ public static class IdentitySchema
     public const string Devices = "user_devices";
     public const string OtpChallenges = "otp_challenges";
     public const string SecurityEvents = "security_events";
+    public const string AccountActionProposals = "account_action_proposals";
 }

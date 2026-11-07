@@ -1,5 +1,6 @@
 ﻿using Diaspora.Contracts.Identity.V1.Requests;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Diaspora.Contracts.Identity.V1.Responses;
 using Diaspora.Domain.Identity.Verification;
@@ -210,7 +211,7 @@ public abstract class IdentityTestCore<TFactory> : IDisposable
     }
 
     /// <summary>
-    /// A real member, given a platform role through the platform's own route, signed in again.
+    /// A real member, given a platform role in the test database, signed in again.
     /// <para>
     /// <b>The way to test a staff path over HTTP.</b> A token assembled in the test process carries
     /// a session identifier that belongs to no session, and every authenticated request is checked
@@ -219,37 +220,23 @@ public abstract class IdentityTestCore<TFactory> : IDisposable
     /// the <c>rol</c> and <c>perm</c> claims its role actually earns.
     /// </para>
     /// <para>
-    /// The elevation goes through <c>AssignRoleCommand</c> inside a scope rather than over HTTP,
-    /// because assigning a role needs a staff caller and that is the thing being created. A second
-    /// account does the assigning: the platform refuses anybody changing their own role, which is
-    /// the point of that guard and not an obstacle to route around.
+    /// <b>The role is written straight onto the account (since 7 Nov 2026).</b> It used to go through
+    /// <c>AssignRoleCommand</c>, with a second member holding a borrowed permission as the appointer.
+    /// The platform's route now reads the appointer's rank from their account and refuses anybody not
+    /// above the member, and granting Admin needs a second member of staff to confirm it — two staff
+    /// accounts the suite does not have before this makes its first. The route itself, rank, proposal
+    /// and confirmation, is proved in <c>AccountAdministrationTests</c>; this only seats a caller.
+    /// The write raises no event, so the seated member is not sent a role notice either.
     /// </para>
     /// </summary>
     protected async Task<(Guid UserId, AuthenticationResponse Auth)> SignInAsRoleAsync(string role)
     {
         var (phone, member) = await RegisterVerifiedMemberAsync();
-        var (_, appointer) = await RegisterVerifiedMemberAsync();
 
-        using (var scope = Factory.Services.CreateScope())
-        {
-            ScopedCurrentUser.Apply(
-                scope.ServiceProvider,
-                appointer.Tokens.AccessToken,
-                Diaspora.Application.Identity.Authorization.IdentityPermissions.AssignRoles);
+        await SeatRoleAsync(member.User.Id, role);
 
-            var assigned = await scope.ServiceProvider.GetRequiredService<MediatR.ISender>().Send(
-                new Diaspora.Application.Identity.Commands.Administration.AssignRole.AssignRoleCommand
-                {
-                    UserId = member.User.Id,
-                    Role = role,
-                    Reason = $"Integration suite: a {role} to act as."
-                });
-
-            assigned.IsSuccess.Should().BeTrue($"the suite cannot test a {role} path without one");
-        }
-
-        // Assigning a role revokes every session the member had, so the token above is already
-        // dead and a fresh sign-in is the only way to hold the new claims.
+        // The token from registration carries the role the member had then; a fresh sign-in is the
+        // only way to hold the new claims.
         var signedIn = await Api.LoginAsync(new LoginRequest
         {
             Email = EmailFor(phone),
@@ -264,6 +251,25 @@ public abstract class IdentityTestCore<TFactory> : IDisposable
                 "Bearer", refreshed.Tokens.AccessToken);
 
         return (member.User.Id, refreshed);
+    }
+
+    /// <summary>
+    /// Writes a platform role onto an account in the test database, with no event and no notice.
+    /// The caller signs the member in again to hold the role's claims.
+    /// </summary>
+    protected async Task SeatRoleAsync(Guid userId, string role)
+    {
+        var userRole = Diaspora.Domain.Identity.Users.UserRole.All.Single(candidate => candidate.Name == role);
+        var id = Diaspora.SharedKernel.Identity.UserId.From(userId);
+
+        using var scope = Factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<Diaspora.Persistence.DiasporaDbContext>();
+
+        var updated = await context.Set<Diaspora.Domain.Identity.Users.User>()
+            .Where(user => user.Id == id)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(user => user.Role, userRole));
+
+        updated.Should().Be(1, $"the suite cannot test a {role} path without one");
     }
 
     /// <summary>

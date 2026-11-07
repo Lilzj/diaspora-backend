@@ -171,5 +171,35 @@ public sealed class PlatformNotificationTemplateContributor : INotificationTempl
                 }
             ]
         };
+
+        // A role changed by staff, with the reason they gave (7 Nov 2026). Nothing told the member
+        // before; they found out from what the app let them do.
+        yield return new NotificationTemplateSeed
+        {
+            Key = NotificationTemplateKeys.RoleChanged,
+            CategoryKey = NotificationCategoryKeys.Security,
+            Priority = NotificationPriority.Critical,
+            RouteTemplate = "/profile",
+            Description = "Staff changed a member's platform role, with the reason given.",
+
+            // Never expires: the record of who the member is on the platform, and since when.
+            RetentionPeriod = null,
+            Variables =
+            [
+                new TemplateVariableSeed { Name = "newrole", Sample = "a moderator" },
+                new TemplateVariableSeed { Name = "previousrole", IsRequired = false, Sample = "a member" },
+                new TemplateVariableSeed { Name = "reasontext", IsRequired = false, Sample = "The reason Diaspora gave: joining the moderation team. " }
+            ],
+            Localizations =
+            [
+                new TemplateLocalizationSeed
+                {
+                    Language = "en",
+                    Title = "Your role on Diaspora changed",
+                    Body = "You are now {newrole} on Diaspora, no longer {previousrole}. {reasontext}You have been signed out, so sign in again to continue. If you did not expect this, contact Diaspora support.",
+                    ShortBody = "You are now {newrole} on Diaspora."
+                }
+            ]
+        };
     }
 }

@@ -62,6 +62,13 @@ public interface IUserRepository
 
     Task<bool> ExistsByEmailAsync(EmailAddress email, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Suspended members whose suspension had an end date that has now passed, oldest first, for the
+    /// sweep that reinstates them (7 Nov 2026: nothing ended a dated suspension).
+    /// </summary>
+    Task<IReadOnlyList<User>> ListEndedSuspensionsAsync(
+        DateTimeOffset now, int limit, CancellationToken cancellationToken = default);
+
     Task AddAsync(User user, CancellationToken cancellationToken = default);
 
     void Update(User user);

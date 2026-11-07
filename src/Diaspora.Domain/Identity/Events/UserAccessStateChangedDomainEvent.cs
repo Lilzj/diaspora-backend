@@ -18,4 +18,9 @@ public sealed record UserAccessStateChangedDomainEvent(
 {
     /// <summary>When a suspension ends, if it was given an end. Null otherwise.</summary>
     public DateTimeOffset? Until { get; init; }
+
+    /// <summary>
+    /// The reason code staff chose for a suspension or closure (7 Nov 2026). Null for every other move.
+    /// </summary>
+    public string? ReasonCode { get; init; }
 }

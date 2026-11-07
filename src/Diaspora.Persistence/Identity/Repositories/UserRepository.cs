@@ -1,3 +1,4 @@
+using Diaspora.Domain.Identity.AccessStates;
 using Diaspora.Domain.Identity.Repositories;
 using Diaspora.Domain.Identity.Users;
 using Diaspora.SharedKernel.Identity;
@@ -111,6 +112,16 @@ public sealed class UserRepository : IUserRepository
 
         return await Users.AnyAsync(user => user.Email == email, cancellationToken);
     }
+
+    public async Task<IReadOnlyList<User>> ListEndedSuspensionsAsync(
+        DateTimeOffset now, int limit, CancellationToken cancellationToken = default) =>
+        await Users
+            .Where(user => user.AccessState == AccessState.Suspended
+                && user.SuspendedUntil != null
+                && user.SuspendedUntil <= now)
+            .OrderBy(user => user.SuspendedUntil)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
 
     public async Task AddAsync(User user, CancellationToken cancellationToken = default) =>
         await Users.AddAsync(user, cancellationToken);

@@ -123,7 +123,11 @@ public static class IdentityMessageCatalog
             [IdentityMessageKeys.ReasonLength] = "The reason is too long.",
             [IdentityMessageKeys.TrustOutcomeUnknown] = "That trust decision outcome is not recognised.",
             [IdentityMessageKeys.UserIdRequired] = "A user identifier is required.",
-            [IdentityMessageKeys.NotesLength] = "The notes are too long."
+            [IdentityMessageKeys.NotesLength] = "The notes are too long.",
+            [IdentityMessageKeys.ReasonCodeRequired] = "Choose a reason from the list.",
+            [IdentityMessageKeys.ReasonCodeUnknown] = "That reason is not one on the list.",
+            [IdentityMessageKeys.ReasonTooShort] = "Write at least 10 characters about why.",
+            [IdentityMessageKeys.NoteRequired] = "A note is required."
         };
 
         var french = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -187,7 +191,11 @@ public static class IdentityMessageCatalog
             [IdentityMessageKeys.ReasonLength] = "Le motif est trop long.",
             [IdentityMessageKeys.TrustOutcomeUnknown] = "Ce résultat de décision de confiance n'est pas reconnu.",
             [IdentityMessageKeys.UserIdRequired] = "Un identifiant d'utilisateur est requis.",
-            [IdentityMessageKeys.NotesLength] = "Les notes sont trop longues."
+            [IdentityMessageKeys.NotesLength] = "Les notes sont trop longues.",
+            [IdentityMessageKeys.ReasonCodeRequired] = "Choisissez un motif dans la liste.",
+            [IdentityMessageKeys.ReasonCodeUnknown] = "Ce motif ne figure pas dans la liste.",
+            [IdentityMessageKeys.ReasonTooShort] = "Expliquez pourquoi en au moins 10 caractères.",
+            [IdentityMessageKeys.NoteRequired] = "Une note est requise."
         };
 
         var portuguese = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -251,7 +259,11 @@ public static class IdentityMessageCatalog
             [IdentityMessageKeys.ReasonLength] = "O motivo é demasiado longo.",
             [IdentityMessageKeys.TrustOutcomeUnknown] = "Esse resultado de decisão de confiança não é reconhecido.",
             [IdentityMessageKeys.UserIdRequired] = "É necessário um identificador de utilizador.",
-            [IdentityMessageKeys.NotesLength] = "As notas são demasiado longas."
+            [IdentityMessageKeys.NotesLength] = "As notas são demasiado longas.",
+            [IdentityMessageKeys.ReasonCodeRequired] = "Escolha um motivo da lista.",
+            [IdentityMessageKeys.ReasonCodeUnknown] = "Esse motivo não consta da lista.",
+            [IdentityMessageKeys.ReasonTooShort] = "Explique o porquê em pelo menos 10 caracteres.",
+            [IdentityMessageKeys.NoteRequired] = "É necessária uma nota."
         };
 
         var arabic = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -313,7 +325,11 @@ public static class IdentityMessageCatalog
             [IdentityMessageKeys.ReasonLength] = "السبب طويل جدًا.",
             [IdentityMessageKeys.TrustOutcomeUnknown] = "نتيجة قرار الثقة هذه غير معروفة.",
             [IdentityMessageKeys.UserIdRequired] = "معرّف المستخدم مطلوب.",
-            [IdentityMessageKeys.NotesLength] = "الملاحظات طويلة جدًا."
+            [IdentityMessageKeys.NotesLength] = "الملاحظات طويلة جدًا.",
+            [IdentityMessageKeys.ReasonCodeRequired] = "اختر سببًا من القائمة.",
+            [IdentityMessageKeys.ReasonCodeUnknown] = "هذا السبب ليس من القائمة.",
+            [IdentityMessageKeys.ReasonTooShort] = "اكتب 10 أحرف على الأقل لتوضيح السبب.",
+            [IdentityMessageKeys.NoteRequired] = "الملاحظة مطلوبة."
         };
 
         return new Dictionary<string, FrozenDictionary<string, string>>(StringComparer.Ordinal)

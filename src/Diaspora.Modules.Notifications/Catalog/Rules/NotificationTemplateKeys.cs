@@ -32,6 +32,9 @@ public static class NotificationTemplateKeys
     /// </summary>
     public const string AccessStateChangedWithReason = "security.access.changed.v2";
 
+    /// <summary>A member's platform role changed, with the reason given (7 Nov 2026).</summary>
+    public const string RoleChanged = "security.role.changed";
+
     public const string JobApplicationReceived = "jobs.application.received";
 
     /// <summary>The employer side of an application. Possible only since B13.1.</summary>

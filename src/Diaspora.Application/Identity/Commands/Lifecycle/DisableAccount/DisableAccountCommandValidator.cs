@@ -11,8 +11,8 @@ public sealed class DisableAccountCommandValidator : IdentityValidator<DisableAc
         RuleFor(command => command.UserId)
             .NotEmpty().WithMessage(Message(IdentityMessageKeys.UserIdRequired));
 
-        RuleFor(command => command.Reason)
-            .NotEmpty().WithMessage(Message(IdentityMessageKeys.ReasonRequired))
-            .MaximumLength(512).WithMessage(Message(IdentityMessageKeys.ReasonLength));
+        RuleFor(command => command.ReasonCode).MustBeReasonCode(Message);
+
+        RuleFor(command => (string?)command.Reason).MustBeStaffNote(Message);
     }
 }

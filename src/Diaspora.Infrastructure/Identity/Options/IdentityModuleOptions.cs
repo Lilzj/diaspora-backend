@@ -35,4 +35,17 @@ public sealed class IdentityModuleOptions
     /// </para>
     /// </summary>
     public bool EnableSharedDeviceSignal { get; set; }
+
+    /// <summary>
+    /// Reinstates suspended members whose suspension's end date has passed (7 Nov 2026: nothing did,
+    /// so a suspension "until 21 November" lasted until somebody remembered).
+    /// </summary>
+    public bool EnableSuspensionExpirySweep { get; set; } = true;
+
+    /// <summary>
+    /// How often the sweep looks. A member reinstated up to this late is the cost of letting the
+    /// database sleep; production sets an hour.
+    /// </summary>
+    [Range(1, 1440)]
+    public int SuspensionExpirySweepMinutes { get; set; } = 15;
 }

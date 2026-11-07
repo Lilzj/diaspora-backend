@@ -26,4 +26,13 @@ public sealed record AccessDecision
 
     /// <summary>Set when a restriction lifts on a known date.</summary>
     public DateTimeOffset? RestrictedUntil { get; init; }
+
+    /// <summary>The moderation reason code staff chose, for a suspended or closed account.</summary>
+    public string? ReasonCode { get; init; }
+
+    /// <summary>That reason as the member reads it.</summary>
+    public string? ReasonLabel { get; init; }
+
+    /// <summary>What staff wrote, for a suspended or closed account.</summary>
+    public string? Note { get; init; }
 }

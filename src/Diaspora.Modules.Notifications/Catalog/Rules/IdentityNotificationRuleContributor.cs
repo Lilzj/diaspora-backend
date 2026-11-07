@@ -62,5 +62,26 @@ public sealed class IdentityNotificationRuleContributor : INotificationRuleContr
             // an hour means something is happening the member needs to see both halves of.
             DeduplicationWindow = null
         };
+
+        // A role changed by staff (7 Nov 2026). Critical like the access notice: it is a change
+        // staff made to the member's account, and the member is told whatever their settings say.
+        yield return new NotificationRuleSeed
+        {
+            Key = "security.role.changed",
+            EventName = typeof(UserRoleChangedIntegrationEvent).FullName!,
+            Audience = "member",
+            TemplateKey = NotificationTemplateKeys.RoleChanged,
+            CategoryKey = NotificationCategoryKeys.Security,
+            Priority = NotificationPriority.Critical,
+            Channels =
+            [
+                NotificationChannelKind.InApp,
+                NotificationChannelKind.Push,
+                NotificationChannelKind.Email
+            ],
+
+            // A role given and taken back within the hour is two changes, and the member reads both.
+            DeduplicationWindow = null
+        };
     }
 }
