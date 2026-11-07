@@ -567,14 +567,18 @@ public sealed class User : AggregateRoot<UserId>, IAuditableEntity, ISoftDeletab
 
     public Result Suspend(string reason, DateTimeOffset? until, DateTimeOffset now)
     {
+        // Set before the move, so the state-change event can tell the member when it ends
+        // (7 Nov 2026: the notice said "Suspended" and nothing about how long).
+        var previousUntil = SuspendedUntil;
+        SuspendedUntil = until;
+
         var transition = TransitionTo(
             AccessState.Suspended, AccessStateChangeReason.ModerationSuspension, now, reason);
         if (transition.IsFailure)
         {
+            SuspendedUntil = previousUntil;
             return transition;
         }
-
-        SuspendedUntil = until;
         RaiseDomainEvent(new UserAccountSuspendedDomainEvent(Id, StatusReason ?? string.Empty, until, now));
 
         return Result.Success();
@@ -710,7 +714,10 @@ public sealed class User : AggregateRoot<UserId>, IAuditableEntity, ISoftDeletab
         }
 
         RaiseDomainEvent(new UserAccessStateChangedDomainEvent(
-            Id, from.Name, target.Name, reason, StatusReason, now));
+            Id, from.Name, target.Name, reason, StatusReason, now)
+        {
+            Until = target.Name == AccessState.Suspended.Name ? SuspendedUntil : null
+        });
 
         return Result.Success();
     }

@@ -333,4 +333,20 @@ public sealed record MemberRiskLevelChangedIntegrationEvent : IntegrationEvent
     public required DateTimeOffset ChangedAt { get; init; }
 }
 
+/// <summary>
+/// A reviewer asked a member for more before deciding their verification (7 Nov 2026). The domain
+/// event was raised and nothing handled it, so the member was never told what was missing.
+/// </summary>
+public sealed record VerificationMoreInformationRequestedIntegrationEvent : IntegrationEvent
+{
+    public required Guid VerificationId { get; init; }
 
+    public required Guid UserId { get; init; }
+
+    public required string VerificationType { get; init; }
+
+    /// <summary>What the reviewer asked for, in their words.</summary>
+    public required string Details { get; init; }
+
+    public required DateTimeOffset RequestedAt { get; init; }
+}

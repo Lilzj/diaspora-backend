@@ -141,5 +141,35 @@ public sealed class PlatformNotificationTemplateContributor : INotificationTempl
                 }
             ]
         };
+
+        // The same notice with the reason and the end date (7 Nov 2026). The one above said
+        // "Your account is now Suspended" and nothing else: not why, not for how long.
+        yield return new NotificationTemplateSeed
+        {
+            Key = NotificationTemplateKeys.AccessStateChangedWithReason,
+            CategoryKey = NotificationCategoryKeys.Security,
+            Priority = NotificationPriority.Critical,
+            RouteTemplate = "/profile/trust-center",
+            Description = "An account was suspended, restricted, disabled or reinstated, with the reason given and when it ends.",
+            RetentionPeriod = null,
+            Variables =
+            [
+                new TemplateVariableSeed { Name = "currentstate", Sample = "Suspended" },
+                new TemplateVariableSeed { Name = "previousstate", IsRequired = false },
+                new TemplateVariableSeed { Name = "reasontext", IsRequired = false, Sample = "The reason Diaspora gave: repeated scam adverts. " },
+                new TemplateVariableSeed { Name = "untiltext", IsRequired = false, Sample = "It ends on 21 November 2026. " },
+                new TemplateVariableSeed { Name = "nextsteps", IsRequired = false, Sample = "If you think this is a mistake, open Diaspora and appeal from the screen you see." }
+            ],
+            Localizations =
+            [
+                new TemplateLocalizationSeed
+                {
+                    Language = "en",
+                    Title = "Your account status changed",
+                    Body = "Your Diaspora account is now {currentstate}. {reasontext}{untiltext}{nextsteps}",
+                    ShortBody = "Your account is now {currentstate}."
+                }
+            ]
+        };
     }
 }

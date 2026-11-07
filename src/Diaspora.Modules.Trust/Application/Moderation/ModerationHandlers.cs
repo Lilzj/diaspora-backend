@@ -619,6 +619,75 @@ public sealed class RequestCaseReviewCommandHandler : ICommandHandler<RequestCas
     }
 }
 
+/// <summary>A decision about the caller's own content, as they read it. Somebody else's answers as missing.</summary>
+[Authorize(Permission = TrustPermissions.ReadSelf)]
+public sealed record GetMyModerationCaseQuery : IQuery<MyModerationCaseResponse>
+{
+    public required Guid ItemId { get; init; }
+}
+
+public sealed class GetMyModerationCaseQueryHandler
+    : IQueryHandler<GetMyModerationCaseQuery, MyModerationCaseResponse>
+{
+    private readonly IModerationItemRepository _queue;
+    private readonly ICurrentUser _currentUser;
+
+    public GetMyModerationCaseQueryHandler(IModerationItemRepository queue, ICurrentUser currentUser)
+    {
+        _queue = queue;
+        _currentUser = currentUser;
+    }
+
+    public async Task<Result<MyModerationCaseResponse>> Handle(
+        GetMyModerationCaseQuery request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var ownerId = _currentUser.UserId;
+        if (ownerId is null)
+        {
+            return Result.Failure<MyModerationCaseResponse>(TrustErrors.NotAuthenticated);
+        }
+
+        var item = await _queue.GetAsync(ModerationItemId.From(request.ItemId), cancellationToken);
+
+        if (item is null || item.AuthorId != ownerId)
+        {
+            return Result.Failure<MyModerationCaseResponse>(TrustErrors.QueueItemNotFound);
+        }
+
+        // The decision in force: the latest one that changed or confirmed the outcome. A removal
+        // still waiting for a second member of staff is not in force; the owner sees the hide.
+        var inForce = item.Decisions
+            .Where(decision => decision.Kind is not ModerationDecisionKind.Proposal)
+            .OrderByDescending(decision => decision.DecidedAt)
+            .FirstOrDefault();
+
+        var code = inForce?.ReasonCode ?? item.ReasonCode;
+
+        return Result.Success(new MyModerationCaseResponse
+        {
+            CaseId = item.Id.Value,
+            ContentType = item.TargetType ?? item.ContentType.ToString(),
+            ContentId = item.ContentId,
+            Title = item.Title,
+            Outcome = item.CurrentOutcome?.ToString(),
+            ReasonCode = code?.ToString(),
+            ReasonLabel = code is { } known ? ModerationReasons.Label(known) : null,
+            Note = inForce?.Kind is ModerationDecisionKind.Confirmation ? item.ProposedNote : inForce?.Reason,
+            DecidedAt = inForce?.DecidedAt,
+            HiddenAutomatically = item.HiddenAutomatically,
+            RemovalPending = item.SecondReview is SecondReviewKind.RemovalProposal,
+            AppealDeadline = item.AppealDeadline,
+            CanRequestReview = item.CurrentOutcome is ModerationOutcome.HidePendingReview
+                && item.SecondReview is not SecondReviewKind.RemovalProposal
+                && item.ReviewRequestedAt is null
+                && !item.HiddenAutomatically,
+            ReviewRequestedAt = item.ReviewRequestedAt
+        });
+    }
+}
+
 // ── Shared ─────────────────────────────────────────────────────────────────────────────────────
 
 internal static class ModerationNoteRules

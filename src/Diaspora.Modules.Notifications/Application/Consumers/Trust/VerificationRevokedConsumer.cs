@@ -26,6 +26,9 @@ public sealed class VerificationRevokedConsumer
         values["verificationType"] = integrationEvent.VerificationType;
         values["reason"] = integrationEvent.Reason;
         values["revokedAt"] = integrationEvent.RevokedAt;
+        values["reasontext"] = string.IsNullOrWhiteSpace(integrationEvent.Reason)
+            ? string.Empty
+            : $"The reason given: {integrationEvent.Reason.Trim().TrimEnd('.')}. ";
 
         yield return Trigger(
             UserId.From(integrationEvent.UserId),

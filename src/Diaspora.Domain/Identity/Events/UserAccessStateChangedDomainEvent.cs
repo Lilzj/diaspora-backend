@@ -14,4 +14,8 @@ public sealed record UserAccessStateChangedDomainEvent(
     string ToState,
     AccessStateChangeReason Reason,
     string? Notes,
-    DateTimeOffset ChangedAt) : DomainEvent;
+    DateTimeOffset ChangedAt) : DomainEvent
+{
+    /// <summary>When a suspension ends, if it was given an end. Null otherwise.</summary>
+    public DateTimeOffset? Until { get; init; }
+}

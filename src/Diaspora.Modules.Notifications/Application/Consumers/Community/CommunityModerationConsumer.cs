@@ -33,11 +33,30 @@ public sealed class CommunityModerationConsumer
             yield break;
         }
 
+        // What happened, in words (7 Nov 2026: the notice read "Your post was reject"). Approving,
+        // pinning and unpinning change nothing the author needs telling about.
+        var happened = integrationEvent.Action.ToLowerInvariant() switch
+        {
+            "reject" or "archive" => "removed",
+            "hide" => "hidden",
+            "suspend" => "suspended",
+            "restore" => "put back",
+            _ => null
+        };
+
+        if (happened is null)
+        {
+            yield break;
+        }
+
         var values = Values();
-        values["contentType"] = integrationEvent.ContentType;
+        values["contentType"] = integrationEvent.ContentType.ToLowerInvariant();
         values["contentId"] = integrationEvent.ContentId;
-        values["action"] = integrationEvent.Action;
+        values["action"] = happened;
         values["reason"] = integrationEvent.Reason ?? string.Empty;
+        values["reasontext"] = string.IsNullOrWhiteSpace(integrationEvent.Reason)
+            ? string.Empty
+            : $"The reason given: {integrationEvent.Reason.Trim().TrimEnd('.')}. ";
 
         yield return Trigger(
             UserId.From(author),

@@ -824,6 +824,20 @@ public sealed class TrustEndpointContributor : IEndpointContributor
             .WithName("CompleteModerationSecondReview")
             .WithSummary("A second member of staff confirms or overrules a removal, an emergency hide, or a staff-opened case.");
 
+        group.MapGet("/moderation/cases/{itemId:guid}/mine", async (
+                Guid itemId,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await sender.Send(new GetMyModerationCaseQuery { ItemId = itemId }, cancellationToken);
+
+                return PlatformResults.Ok(context, result);
+            })
+            .RequireAuthorization(TrustPolicies.ReadSelf)
+            .WithName("GetMyModerationCase")
+            .WithSummary("A decision about the caller's own content: what happened, why, and what they can do.");
+
         group.MapPost("/moderation/cases/{itemId:guid}/review-request", async (
                 Guid itemId,
                 ISender sender,

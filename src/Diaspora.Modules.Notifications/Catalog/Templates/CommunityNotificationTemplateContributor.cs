@@ -142,6 +142,34 @@ public sealed class CommunityNotificationTemplateContributor : INotificationTemp
             ]
         };
 
+        // The same decision with the reason, in plain words (7 Nov 2026). The one above declared no
+        // reason and read "Your post was reject".
+        yield return new NotificationTemplateSeed
+        {
+            Key = NotificationTemplateKeys.CommunityModerationWithReason,
+            CategoryKey = NotificationCategoryKeys.Moderation,
+            Priority = NotificationPriority.Critical,
+            RouteTemplate = "/profile/community-guidelines",
+            Description = "A community's moderators decided something about a member's content, with the reason.",
+            Variables =
+            [
+                new TemplateVariableSeed { Name = "action", Sample = "removed" },
+                new TemplateVariableSeed { Name = "contenttype", IsRequired = false, Sample = "post" },
+                new TemplateVariableSeed { Name = "reasontext", IsRequired = false, Sample = "The reason given: personal attacks. " }
+            ],
+            Localizations =
+            [
+                new TemplateLocalizationSeed
+                {
+                    Language = "en",
+                    Title = "Your {contenttype} was {action}",
+                    Body = "Your {contenttype} was {action} by the community's moderators. {reasontext}"
+                        + "The community guidelines explain what is allowed, and you can appeal from Profile, Appeals.",
+                    ShortBody = "Your {contenttype} was {action}."
+                }
+            ]
+        };
+
         yield return new NotificationTemplateSeed
         {
             Key = NotificationTemplateKeys.EventRsvpConfirmed,

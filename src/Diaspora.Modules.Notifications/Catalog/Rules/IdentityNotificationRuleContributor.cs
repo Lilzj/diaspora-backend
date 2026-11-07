@@ -48,7 +48,7 @@ public sealed class IdentityNotificationRuleContributor : INotificationRuleContr
             Key = "security.access.changed",
             EventName = typeof(UserAccessStateChangedIntegrationEvent).FullName!,
             Audience = "member",
-            TemplateKey = NotificationTemplateKeys.AccessStateChanged,
+            TemplateKey = NotificationTemplateKeys.AccessStateChangedWithReason,
             CategoryKey = NotificationCategoryKeys.Security,
             Priority = NotificationPriority.Critical,
             Channels =

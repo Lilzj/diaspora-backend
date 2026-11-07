@@ -656,3 +656,32 @@ public sealed class MemberRiskLevelChangedEventHandler : DomainEventHandler<Memb
             cancellationToken);
     }
 }
+
+/// <summary>Tells the platform a reviewer asked for more, so the member hears what (7 Nov 2026).</summary>
+public sealed class VerificationMoreInformationRequestedEventHandler
+    : DomainEventHandler<VerificationMoreInformationRequestedDomainEvent>
+{
+    private readonly IIntegrationEventPublisher _events;
+
+    public VerificationMoreInformationRequestedEventHandler(IIntegrationEventPublisher events)
+    {
+        _events = events;
+    }
+
+    protected override Task HandleAsync(
+        VerificationMoreInformationRequestedDomainEvent domainEvent, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(domainEvent);
+
+        return _events.PublishAsync(
+            new VerificationMoreInformationRequestedIntegrationEvent
+            {
+                VerificationId = domainEvent.RequestId.Value,
+                UserId = domainEvent.UserId.Value,
+                VerificationType = domainEvent.Type.ToString(),
+                Details = domainEvent.Details,
+                RequestedAt = domainEvent.At
+            },
+            cancellationToken);
+    }
+}

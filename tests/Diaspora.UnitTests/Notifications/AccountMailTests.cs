@@ -33,6 +33,8 @@ public sealed class AccountMailTests
     [InlineData("trust.verification.approved")]
     [InlineData("trust.verification.rejected")]
     [InlineData("trust.verification.expired")]
+    [InlineData("moderation.case.restored")]
+    [InlineData("trust.verification.more-information")]
     public async Task A_verification_result_is_emailed_with_email_switched_off(string ruleKey)
     {
         var email = await EmailPlanAsync(ruleKey, NewMember());

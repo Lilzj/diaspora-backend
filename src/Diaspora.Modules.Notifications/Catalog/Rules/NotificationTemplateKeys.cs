@@ -12,13 +12,25 @@ public static class NotificationTemplateKeys
 {
     public const string VerificationApproved = "trust.verification.approved";
     public const string VerificationRejected = "trust.verification.rejected";
+
+    /// <summary>The rejection with its reason and the reviewer's words (7 Nov 2026). New key: the seeder never updates.</summary>
+    public const string VerificationRejectedWithReason = "trust.verification.rejected.v2";
     public const string VerificationExpired = "trust.verification.expired";
     public const string VerificationRevoked = "trust.verification.revoked";
+
+    /// <summary>The revocation with its reason (7 Nov 2026). New key: the seeder never updates.</summary>
+    public const string VerificationRevokedWithReason = "trust.verification.revoked.v2";
     public const string TrustLevelChanged = "trust.level.changed";
     public const string BadgeAwarded = "trust.badge.awarded";
 
     public const string Welcome = "platform.welcome";
     public const string AccessStateChanged = "security.access.changed";
+
+    /// <summary>
+    /// The account notice with the reason and the end date (7 Nov 2026). A new key, because the
+    /// seeder never updates a template that already exists.
+    /// </summary>
+    public const string AccessStateChangedWithReason = "security.access.changed.v2";
 
     public const string JobApplicationReceived = "jobs.application.received";
 
@@ -138,6 +150,9 @@ public static class NotificationTemplateKeys
     public const string CommunityReaction = "community.reaction";
     public const string CommunityModeration = "moderation.decision";
 
+    /// <summary>The community moderation notice with the reason (7 Nov 2026). New key: the seeder never updates.</summary>
+    public const string CommunityModerationWithReason = "moderation.decision.v2";
+
     public const string GuideFeatured = "guides.featured";
 
     /// <summary>A member you follow published a guide. 20 Oct 2026.</summary>
@@ -171,4 +186,16 @@ public static class NotificationTemplateKeys
     public const string DonationReceipt = "billing.donation.receipt";
     public const string ContributionReceipt = "billing.contribution.receipt";
     public const string WalletStatusChanged = "billing.wallet.status";
+
+    // ── Moderation cases (7 Nov 2026) ────────────────────────────────────
+    public const string ModerationCaseHidden = "moderation.case.hidden";
+    public const string ModerationCaseHiddenAutomatically = "moderation.case.hidden-automatically";
+    public const string ModerationCaseRemoved = "moderation.case.removed";
+    public const string ModerationCaseRestored = "moderation.case.restored";
+    public const string ModerationReportOutcome = "moderation.report.outcome";
+
+    // ── Appeals (7 Nov 2026) ─────────────────────────────────────────────
+    public const string AppealUpheld = "trust.appeal.upheld";
+    public const string VerificationMoreInformation = "trust.verification.more-information";
+    public const string AppealRefused = "trust.appeal.refused";
 }

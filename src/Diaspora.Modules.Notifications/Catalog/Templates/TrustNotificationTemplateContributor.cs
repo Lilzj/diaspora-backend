@@ -27,6 +27,85 @@ public sealed class TrustNotificationTemplateContributor : INotificationTemplate
     {
         yield return new NotificationTemplateSeed
         {
+            Key = NotificationTemplateKeys.VerificationMoreInformation,
+            CategoryKey = NotificationCategoryKeys.Trust,
+            Priority = NotificationPriority.High,
+            RouteTemplate = "/profile/trust-center",
+            Description = "A reviewer asked a member for more before deciding their verification.",
+            Variables =
+            [
+                new TemplateVariableSeed { Name = "verificationtype", Sample = "Identity" },
+                new TemplateVariableSeed { Name = "details", Sample = "A photo of the back of your residence card." }
+            ],
+            Localizations =
+            [
+                new TemplateLocalizationSeed
+                {
+                    Language = "en",
+                    Title = "Your verification needs something more",
+                    Body = "The reviewer of your {verificationtype} verification needs more before deciding. "
+                        + "What they asked for: {details} Open your Trust Centre to send it.",
+                    ShortBody = "Your {verificationtype} verification needs something more."
+                }
+            ]
+        };
+
+        // The rejection and the revocation with their reasons (7 Nov 2026). The originals passed a
+        // reason the text never showed, and the reviewer's words went only into an email variant
+        // that is never rendered.
+        yield return new NotificationTemplateSeed
+        {
+            Key = NotificationTemplateKeys.VerificationRejectedWithReason,
+            CategoryKey = NotificationCategoryKeys.Trust,
+            Priority = NotificationPriority.High,
+            RouteTemplate = "/profile/trust-center",
+            Description = "Trust rejected a member's verification, with the reason and the reviewer's words.",
+            Variables =
+            [
+                new TemplateVariableSeed { Name = "verificationtype", Sample = "Identity" },
+                new TemplateVariableSeed { Name = "reasontext", IsRequired = false, Sample = "The reason: the document could not be read. " },
+                new TemplateVariableSeed { Name = "detailstext", IsRequired = false, Sample = "The photo of the document is blurred. " }
+            ],
+            Localizations =
+            [
+                new TemplateLocalizationSeed
+                {
+                    Language = "en",
+                    Title = "Verification could not be approved",
+                    Body = "Your {verificationtype} verification was not approved. {reasontext}{detailstext}"
+                        + "You can send it again, or appeal the decision from Profile, Appeals.",
+                    ShortBody = "Your {verificationtype} verification was not approved."
+                }
+            ]
+        };
+
+        yield return new NotificationTemplateSeed
+        {
+            Key = NotificationTemplateKeys.VerificationRevokedWithReason,
+            CategoryKey = NotificationCategoryKeys.Trust,
+            Priority = NotificationPriority.Critical,
+            RouteTemplate = "/profile/trust-center",
+            Description = "Trust revoked a member's verification, with the reason.",
+            Variables =
+            [
+                new TemplateVariableSeed { Name = "verificationtype", Sample = "Identity" },
+                new TemplateVariableSeed { Name = "reasontext", IsRequired = false, Sample = "The reason given: the document was reported as forged. " }
+            ],
+            Localizations =
+            [
+                new TemplateLocalizationSeed
+                {
+                    Language = "en",
+                    Title = "A verification was withdrawn",
+                    Body = "Your {verificationtype} verification has been withdrawn. {reasontext}"
+                        + "You can appeal the decision from Profile, Appeals.",
+                    ShortBody = "Your {verificationtype} verification has been withdrawn."
+                }
+            ]
+        };
+
+        yield return new NotificationTemplateSeed
+        {
             Key = NotificationTemplateKeys.VerificationApproved,
             CategoryKey = NotificationCategoryKeys.Trust,
             Priority = NotificationPriority.High,

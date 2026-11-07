@@ -299,3 +299,42 @@ public sealed record ConfirmationSummaryResponse
     /// <summary>Whether the caller already confirmed this, so the control renders as spent.</summary>
     public required bool ConfirmedByViewer { get; init; }
 }
+
+/// <summary>
+/// A moderation decision about a member's own content, as they read it (7 Nov 2026): what happened,
+/// why, the note Diaspora wrote, and what they can do. Never the moderator, never the reporters.
+/// </summary>
+public sealed record MyModerationCaseResponse
+{
+    public required Guid CaseId { get; init; }
+
+    public required string ContentType { get; init; }
+
+    public required string ContentId { get; init; }
+
+    public string? Title { get; init; }
+
+    /// <summary>HidePendingReview, Remove, Restore or NoAction. Null while nothing has been decided.</summary>
+    public string? Outcome { get; init; }
+
+    public string? ReasonCode { get; init; }
+
+    public string? ReasonLabel { get; init; }
+
+    /// <summary>The note of the decision that is in force.</summary>
+    public string? Note { get; init; }
+
+    public DateTimeOffset? DecidedAt { get; init; }
+
+    /// <summary>Hidden by the system after many reports; no person has decided yet.</summary>
+    public bool HiddenAutomatically { get; init; }
+
+    /// <summary>A removal waiting for a second member of staff.</summary>
+    public bool RemovalPending { get; init; }
+
+    public DateTimeOffset? AppealDeadline { get; init; }
+
+    public bool CanRequestReview { get; init; }
+
+    public DateTimeOffset? ReviewRequestedAt { get; init; }
+}

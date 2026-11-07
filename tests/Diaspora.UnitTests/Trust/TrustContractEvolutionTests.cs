@@ -392,6 +392,7 @@ public sealed class TrustContractEvolutionTests
             nameof(TrustLevelChangedIntegrationEvent),
             nameof(VerificationApprovedIntegrationEvent),
             nameof(VerificationExpiredIntegrationEvent),
+            nameof(VerificationMoreInformationRequestedIntegrationEvent),
             nameof(VerificationRejectedIntegrationEvent),
             nameof(VerificationRevokedIntegrationEvent),
             nameof(VerificationSubmittedIntegrationEvent)

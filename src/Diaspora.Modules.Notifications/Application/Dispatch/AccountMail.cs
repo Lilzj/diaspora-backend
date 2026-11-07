@@ -23,6 +23,11 @@ public static class AccountMail
         "trust.verification.approved",
         "trust.verification.rejected",
         "trust.verification.expired",
+        // A reviewer asking for more (7 Nov 2026): without it the verification waits forever.
+        "trust.verification.more-information",
+        // Content put back after a moderation decision (7 Nov 2026). The takedown was Critical and
+        // reached email; the owner hears it was undone the same way.
+        "moderation.case.restored",
     };
 
     /// <summary>Whether a rule's email ignores the member's general email switch.</summary>
