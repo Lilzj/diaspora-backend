@@ -62,7 +62,9 @@ public sealed class CommunityEventReadContext
             ? await _rsvps.FindAsync(communityEvent.Id, callerId, cancellationToken)
             : null;
 
-        var isOrganizer = _authorization.CallerId is { } caller
+        // Who sees the organizers' figure (the checked-in count): the organizer, and staff
+        // reviewing the event. A read detail only: staff cannot manage the event.
+        var seesOrganizerFigures = _authorization.CallerId is { } caller
             && (communityEvent.OrganizerUserId == caller || _authorization.IsStaff);
 
         return CommunityEventMapper.ToResponse(
@@ -72,7 +74,7 @@ public sealed class CommunityEventReadContext
             organization?.Slug.Value,
             organization?.TrustMark.IsVerified ?? false,
             viewerRsvp,
-            isOrganizer,
+            seesOrganizerFigures,
             _clock.UtcNow);
     }
 

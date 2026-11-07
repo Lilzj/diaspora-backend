@@ -63,7 +63,9 @@ public sealed class EventSeriesReadContext
         var next = await _events.FindNextOccurrenceAsync(
             series.Id, _clock.UtcNow, cancellationToken);
 
-        var isOrganizer = _authorization.CallerId is { } caller
+        // The organizer, and staff reviewing the series, see the checked-in figure. A read detail
+        // only: staff cannot manage the series.
+        var seesOrganizerFigures = _authorization.CallerId is { } caller
             && (series.OrganizerUserId == caller || _authorization.IsStaff);
 
         var nextOccurrence = next is null
@@ -71,7 +73,7 @@ public sealed class EventSeriesReadContext
             : EventSeriesMapper.ToOccurrence(
                 next,
                 series.Schedule,
-                isOrganizer,
+                seesOrganizerFigures,
                 await ViewerStatusAsync(next.Id, cancellationToken),
                 isNext: true);
 
@@ -159,7 +161,9 @@ public sealed class EventSeriesReadContext
             return [];
         }
 
-        var isOrganizer = _authorization.CallerId is { } caller
+        // The organizer, and staff reviewing the series, see the checked-in figure. A read detail
+        // only: staff cannot manage the series.
+        var seesOrganizerFigures = _authorization.CallerId is { } caller
             && (series.OrganizerUserId == caller || _authorization.IsStaff);
 
         var viewerStatuses = await ViewerStatusesAsync(occurrences, cancellationToken);
@@ -169,7 +173,7 @@ public sealed class EventSeriesReadContext
             .. occurrences.Select(occurrence => EventSeriesMapper.ToOccurrence(
                 occurrence,
                 series.Schedule,
-                isOrganizer,
+                seesOrganizerFigures,
                 viewerStatuses.GetValueOrDefault(occurrence.Id),
                 nextOccurrenceId is not null && occurrence.Id == nextOccurrenceId))
         ];

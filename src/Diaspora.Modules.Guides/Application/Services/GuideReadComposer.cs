@@ -75,11 +75,13 @@ public sealed class GuideReadComposer
             guide.ApplyBookmarkCount(saves);
         }
 
-        var isAuthor = _authorization.IsStaff
+        // Who reads the author's feedback (a revoked trust mark's reason): the author, and staff
+        // reviewing the guide. A read detail, not a capability — staff change nothing through it.
+        var seesAuthorFeedback = _authorization.IsStaff
             || (_authorization.CallerId is { } caller && guide.AuthorId == caller);
 
         var response = GuideMapper.ToResponse(
-            guide, summaries, ToAuthor(guide.AuthorId, standing, profile), isAuthor);
+            guide, summaries, ToAuthor(guide.AuthorId, standing, profile), seesAuthorFeedback);
 
         return response with { Viewer = await ViewerAsync(guide, cancellationToken) };
     }

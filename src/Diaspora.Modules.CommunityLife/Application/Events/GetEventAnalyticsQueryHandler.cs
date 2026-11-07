@@ -52,7 +52,7 @@ public sealed class GetEventAnalyticsQueryHandler
             return Result.Failure<EventAnalyticsResponse>(CommunityLifeErrors.EventNotFound);
         }
 
-        var caller = await _authorization.RequireEventWriteAsync(
+        var caller = await _authorization.RequireEventManagementReadAsync(
             communityEvent, cancellationToken);
 
         if (caller.IsFailure)

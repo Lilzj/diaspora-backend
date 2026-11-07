@@ -17,8 +17,8 @@ namespace Diaspora.Modules.CommunityLife.Extensibility.Publishing;
 /// hidden or suspended.
 /// </para>
 /// <para>
-/// <b>No staff bypass.</b> Unlike this module's other role checks: staff may manage an
-/// organisation's page, but a post in its name is the organisation speaking.
+/// <b>No staff bypass</b>, as in every role check in this module: staff act on an organisation
+/// only through moderation, and a post in its name is the organisation speaking.
 /// </para>
 /// </summary>
 public sealed class OrganizationPublisherAuthority : IPublisherAuthority

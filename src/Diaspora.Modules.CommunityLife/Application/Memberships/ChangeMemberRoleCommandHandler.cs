@@ -101,17 +101,15 @@ public sealed class ChangeMemberRoleCommandHandler
         return Result.Success(OrganizationMapper.ToResponse(membership));
     }
 
-    /// <summary>The two comparisons against the caller's own standing. See the class summary.</summary>
+    /// <summary>
+    /// The two comparisons against the caller's own standing. See the class summary. Staff are
+    /// held to them like anybody else: being staff grants no role in somebody's organization.
+    /// </summary>
     private async Task<Result> MayGrantAsync(
         OrganizationMembership membership,
         MembershipRole role,
         CancellationToken cancellationToken)
     {
-        if (_authorization.IsStaff)
-        {
-            return Result.Success();
-        }
-
         var callerMembership = await _authorization.FindMembershipAsync(
             membership.OrganizationId, cancellationToken);
 

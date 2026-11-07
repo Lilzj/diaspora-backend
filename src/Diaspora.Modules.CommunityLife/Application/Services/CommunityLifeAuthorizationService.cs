@@ -26,11 +26,19 @@ namespace Diaspora.Modules.CommunityLife.Application.Services;
 /// why <c>MembershipRole</c> is ordered and why its numbering leaves gaps.
 /// </para>
 /// <para>
-/// <b>Staff bypass is deliberate and narrow.</b> A moderator may act on any event or organization,
-/// because moderation would otherwise require belonging to everything they touch. It is checked
-/// through the kernel's <c>ICurrentUser.Role</c> rather than through a permission, because the
-/// permission catalogue already gated the endpoint and this is the second question: not "may you
-/// moderate" but "is this yours".
+/// <b>Staff never pass a write check.</b> A moderator or an administrator does not edit, publish,
+/// reschedule, cancel, archive or delete anybody's event, series or organization, check people in,
+/// or admit, invite, promote or remove its members through the owner's routes: there are no support
+/// edits on a member's behalf. Staff act on somebody else's subject only through the moderation
+/// surface — <c>/moderation</c>, <c>/reports</c> and <c>/featured</c> — which asks
+/// <see cref="RequireStaff"/> and never comes through the write checks below. A member of staff who
+/// genuinely belongs to an organization is what they are there: a member with a role, no more.
+/// </para>
+/// <para>
+/// <b>What staff keep is sight.</b> The read checks still let staff see a hidden, private or
+/// unpublished subject, because a moderator who cannot see what was reported cannot review it; and
+/// the management-read checks let them read what an organizer reads about it. Those are reads
+/// only, and no write handler may use them.
 /// </para>
 /// <para>
 /// <b>There is deliberately no staff bypass on an attendee list.</b> Reading who is coming to a
@@ -60,7 +68,10 @@ public sealed class CommunityLifeAuthorizationService
 
     public bool IsAuthenticated => _currentUser.UserId is not null;
 
-    /// <summary>Whether the caller holds a platform staff role.</summary>
+    /// <summary>
+    /// Whether the caller holds a platform staff role. Decides what a caller may <em>see</em> and
+    /// whether they may use the moderation surface; never whether a subject is theirs.
+    /// </summary>
     public bool IsStaff => _currentUser.Role is { } role && StaffRoles.Contains(role);
 
     /// <summary>The caller, or a failure. The first line of every write handler.</summary>
@@ -88,9 +99,10 @@ public sealed class CommunityLifeAuthorizationService
     /// <summary>
     /// Requires the caller to hold at least a given role in an organization.
     /// <para>
-    /// Staff pass regardless. Everybody else is refused with a forbidden that names the role
-    /// rather than a not-found, because an organization page the caller can plainly see is not a
-    /// secret and pretending otherwise would leave them unable to learn that joining is the answer.
+    /// Staff are held to the same rule as everybody else: their membership decides, and without one
+    /// they are refused. The refusal is a forbidden that names the role rather than a not-found,
+    /// because an organization page the caller can plainly see is not a secret and pretending
+    /// otherwise would leave them unable to learn that joining is the answer.
     /// </para>
     /// </summary>
     public async Task<Result<UserId>> RequireRoleAsync(
@@ -101,11 +113,6 @@ public sealed class CommunityLifeAuthorizationService
         var caller = RequireCaller();
 
         if (caller.IsFailure)
-        {
-            return caller;
-        }
-
-        if (IsStaff)
         {
             return caller;
         }
@@ -146,13 +153,38 @@ public sealed class CommunityLifeAuthorizationService
             return caller;
         }
 
-        if (IsStaff || organization.CreatedByUserId == caller.Value)
+        if (organization.CreatedByUserId == caller.Value)
         {
             return caller;
         }
 
         return await RequireRoleAsync(
             organization.Id, MembershipRole.Administrator, cancellationToken);
+    }
+
+    /// <summary>
+    /// Whether the caller may read what an organization's administrators read: a page that is not
+    /// public, and its dashboard. Its administrators may, and so may staff reviewing it.
+    /// <para>
+    /// <b>A read, and only a read.</b> No write handler may use this; a write goes through
+    /// <see cref="RequireOrganizationWriteAsync"/>, which staff never pass.
+    /// </para>
+    /// </summary>
+    public async Task<Result<UserId>> RequireOrganizationManagementReadAsync(
+        Organization organization, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(organization);
+
+        var caller = RequireCaller();
+
+        if (caller.IsFailure)
+        {
+            return caller;
+        }
+
+        return IsStaff
+            ? caller
+            : await RequireOrganizationWriteAsync(organization, cancellationToken);
     }
 
     // ════════════════════════════════════════════════════════════════════════════════════════
@@ -183,7 +215,7 @@ public sealed class CommunityLifeAuthorizationService
             return caller;
         }
 
-        if (IsStaff || communityEvent.OrganizerUserId == caller.Value)
+        if (communityEvent.OrganizerUserId == caller.Value)
         {
             return caller;
         }
@@ -199,6 +231,32 @@ public sealed class CommunityLifeAuthorizationService
         return membership?.CanOrganize == true
             ? caller
             : Result.Failure<UserId>(CommunityLifeErrors.NotEventOrganizer);
+    }
+
+    /// <summary>
+    /// Whether the caller may read what an event's organizers read about it — its analytics. Its
+    /// organizers may, and so may staff reviewing it.
+    /// <para>
+    /// <b>A read, and only a read.</b> No write handler may use this; a write goes through
+    /// <see cref="RequireEventWriteAsync"/>, which staff never pass. The attendee list does not use
+    /// it either — see the class summary.
+    /// </para>
+    /// </summary>
+    public async Task<Result<UserId>> RequireEventManagementReadAsync(
+        CommunityEvent communityEvent, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(communityEvent);
+
+        var caller = RequireCaller();
+
+        if (caller.IsFailure)
+        {
+            return caller;
+        }
+
+        return IsStaff
+            ? caller
+            : await RequireEventWriteAsync(communityEvent, cancellationToken);
     }
 
     /// <summary>
@@ -221,7 +279,7 @@ public sealed class CommunityLifeAuthorizationService
             return caller;
         }
 
-        if (IsStaff || communityEvent.OrganizerUserId == caller.Value)
+        if (communityEvent.OrganizerUserId == caller.Value)
         {
             return caller;
         }
@@ -335,7 +393,7 @@ public sealed class CommunityLifeAuthorizationService
             return caller;
         }
 
-        if (IsStaff || series.OrganizerUserId == caller.Value)
+        if (series.OrganizerUserId == caller.Value)
         {
             return caller;
         }
@@ -351,6 +409,30 @@ public sealed class CommunityLifeAuthorizationService
         return membership?.CanOrganize == true
             ? caller
             : Result.Failure<UserId>(CommunityLifeErrors.EventSeriesNotFound);
+    }
+
+    /// <summary>
+    /// Whether the caller may read a repeating event as its organizers do — every occurrence,
+    /// including drafts, cancellations and the past. Its organizers may, and so may staff
+    /// reviewing it.
+    /// <para>
+    /// <b>A read, and only a read.</b> No write handler may use this; a write goes through
+    /// <see cref="RequireSeriesWriteAsync"/>, which staff never pass.
+    /// </para>
+    /// </summary>
+    public async Task<bool> CanReadSeriesAsOrganizerAsync(
+        EventSeries series, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(series);
+
+        if (IsStaff)
+        {
+            return true;
+        }
+
+        var write = await RequireSeriesWriteAsync(series, cancellationToken);
+
+        return write.IsSuccess;
     }
 
     /// <summary>
