@@ -32,12 +32,19 @@ public sealed class ModerationConsequenceTests : PooledIdentityTestBase
         var (job, ownerId, ownerToken, item) = await ConfirmedRemovalAsync("Warehouse Picker");
 
         (await StrikesAsync(ownerId)).Should().BeEmpty("nothing lands while the owner may still appeal");
+        (await RiskEvidenceAsync(ownerId)).Should().BeEmpty(
+            "until 7 Nov 2026 the upheld report counted against the owner here, before they could appeal");
 
         await SweepAsync();
         (await StrikesAsync(ownerId)).Should().BeEmpty("the window is still open");
+        (await RiskEvidenceAsync(ownerId)).Should().BeEmpty("the window is still open");
 
         await CloseWindowAsync(item);
         await SweepAsync();
+
+        // The removal stands, and only now does it count towards the owner's risk.
+        (await RiskEvidenceAsync(ownerId)).Should().ContainSingle()
+            .Which.Kind.Should().Be(RiskSignalKind.ReportUpheld);
 
         var strike = (await StrikesAsync(ownerId)).Should().ContainSingle().Subject;
         strike.Level.Should().Be(StrikeLevel.Warning);
@@ -52,6 +59,7 @@ public sealed class ModerationConsequenceTests : PooledIdentityTestBase
 
         await SweepAsync();
         (await StrikesAsync(ownerId)).Should().ContainSingle("a decision that stands is counted once");
+        (await RiskEvidenceAsync(ownerId)).Should().ContainSingle("and counted against the owner once");
     }
 
     [Fact]
@@ -218,6 +226,14 @@ public sealed class ModerationConsequenceTests : PooledIdentityTestBase
 
     private Task<int> SweepAsync() =>
         Factory.Services.GetRequiredService<TrustConsequenceSweep>().RunOnceAsync(CancellationToken.None);
+
+    private async Task<List<RiskSignal>> RiskEvidenceAsync(Guid memberId)
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<DiasporaDbContext>();
+        var member = UserId.From(memberId);
+        return await db.Set<RiskSignal>().AsNoTracking().Where(signal => signal.UserId == member).ToListAsync();
+    }
 
     private async Task<List<Strike>> StrikesAsync(Guid memberId)
     {
