@@ -83,12 +83,14 @@ internal static class CampaignMapper
             CanDonate = campaign.AcceptsDonations,
             // Publication and rejection are the review decision, and are listed only for a caller
             // who may actually make it. Naming a move the handler refuses is how a client ends up
-            // rendering a button that answers 403.
+            // rendering a button that answers 403. Suspending and restoring are moderation's and
+            // are never listed: no organiser route makes them.
             AvailableTransitions = canManage
                 ? [.. CampaignTransitions.From(campaign.Status)
                     .Where(status =>
                         canDecideReview
                         || status is not (CampaignStatus.Published or CampaignStatus.Rejected))
+                    .Where(status => !CampaignTransitions.IsModerationMove(campaign.Status, status))
                     .Select(status => status.ToString())]
                 : []
         };

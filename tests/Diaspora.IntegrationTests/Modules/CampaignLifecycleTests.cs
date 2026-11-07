@@ -325,6 +325,145 @@ public sealed class CampaignLifecycleTests : CampaignTestBase<CustomWebApplicati
             .StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
+    // ── Staff (7 Nov 2026) ───────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// <b>Staff are refused on the organiser's own routes, and the organiser is not.</b>
+    /// <para>
+    /// Until 7 Nov 2026 holding <c>financial:giving:manage</c> skipped the organiser check, so a
+    /// moderator could pause, close or cancel anybody's fundraiser with no reason recorded. The
+    /// owner's rule is that staff act only through moderation routes.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [InlineData("Moderator")]
+    [InlineData("Admin")]
+    public async Task Staff_cannot_edit_or_move_a_members_campaign_through_the_organisers_routes(
+        string role)
+    {
+        var (_, organiser) = await SignedInMemberAsync();
+
+        var campaign = await PublishedCampaignAsync();
+
+        await SignInAsRoleAsync(role);
+
+        (await EditAsync(campaign.CampaignId, "Edited by staff")).StatusCode
+            .Should().Be(HttpStatusCode.Forbidden);
+
+        foreach (var verb in new[] { "pause", "close", "cancel" })
+        {
+            (await TransitionAsync(campaign.CampaignId, verb)).StatusCode
+                .Should().Be(HttpStatusCode.Forbidden, "staff cannot {0} a member's campaign", verb);
+        }
+
+        ActAs(organiser);
+
+        var untouched = await GetCampaignAsync(campaign.CampaignId);
+
+        untouched.Status.Should().Be("Published");
+        untouched.Title.Should().Be("Help Ada travel home");
+
+        (await EditAsync(campaign.CampaignId, "Help Ada get home")).StatusCode
+            .Should().Be(HttpStatusCode.OK);
+
+        (await TransitionAsync(campaign.CampaignId, "pause")).StatusCode
+            .Should().Be(HttpStatusCode.OK);
+    }
+
+    /// <summary>
+    /// <b>What replaces it: a moderator suspends a live fundraiser through the moderation route.</b>
+    /// The campaign leaves public view, stops collecting and tells its organiser why — and the
+    /// organiser cannot resume it. Restoring it brings it back paused, for the organiser to resume.
+    /// </summary>
+    [Fact]
+    public async Task A_moderator_suspends_a_live_campaign_and_restores_it_through_the_moderation_route()
+    {
+        var (_, organiser) = await SignedInMemberAsync();
+
+        var campaign = await PublishedCampaignAsync();
+
+        await SignInAsRoleAsync("Moderator");
+
+        var suspended = await ModerateAsync(
+            campaign.CampaignId, "Suspend", "Reported as a copy of another member's appeal.");
+
+        suspended.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ReadDataAsync<CampaignShape>(suspended)).Status.Should().Be("Suspended");
+
+        // A stranger can neither see it nor give to it.
+        await MemberAsync();
+
+        (await HttpClient.GetAsync(
+                new Uri($"{Communities}/campaigns/{campaign.CampaignId}", UriKind.Relative)))
+            .StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        (await PostDonationAsync(campaign.CauseCode!, 10m)).StatusCode
+            .Should().Be(HttpStatusCode.Conflict);
+
+        // The organiser sees why, and cannot lift it or edit around it.
+        ActAs(organiser);
+
+        var seen = await HttpClient.GetAsync(
+            new Uri($"{Communities}/campaigns/{campaign.CampaignId}", UriKind.Relative));
+
+        (await ReviewNoteAsync(seen)).Should().Be("Reported as a copy of another member's appeal.");
+        (await GetCampaignAsync(campaign.CampaignId)).AvailableTransitions.Should().BeEmpty();
+
+        (await TransitionAsync(campaign.CampaignId, "resume")).StatusCode
+            .Should().Be(HttpStatusCode.Conflict);
+
+        (await EditAsync(campaign.CampaignId, "Nothing to see here")).StatusCode
+            .Should().Be(HttpStatusCode.Conflict);
+
+        await SignInAsRoleAsync("Moderator");
+
+        var restored = await ModerateAsync(
+            campaign.CampaignId, "Restore", "The organiser sent the hospital's letter.");
+
+        restored.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ReadDataAsync<CampaignShape>(restored)).Status.Should().Be("Paused");
+
+        ActAs(organiser);
+
+        var resumed = await ReadDataAsync<CampaignShape>(
+            await TransitionAsync(campaign.CampaignId, "resume"));
+
+        resumed.Status.Should().Be("Active");
+        resumed.CanDonate.Should().BeTrue();
+    }
+
+    /// <summary>The moderation route is staff's, needs a reason, and is never used on one's own.</summary>
+    [Fact]
+    public async Task The_moderation_route_is_staff_only_needs_a_reason_and_not_for_ones_own()
+    {
+        await MemberAsync();
+
+        var campaign = await PublishedCampaignAsync();
+
+        // The organiser cannot use it, and neither can any other member.
+        (await ModerateAsync(campaign.CampaignId, "Suspend", "Hiding it myself.")).StatusCode
+            .Should().Be(HttpStatusCode.Forbidden);
+
+        await MemberAsync();
+
+        (await ModerateAsync(campaign.CampaignId, "Suspend", "Because.")).StatusCode
+            .Should().Be(HttpStatusCode.Forbidden);
+
+        await SignInAsRoleAsync("Moderator");
+
+        (await ModerateAsync(campaign.CampaignId, "Suspend", "")).StatusCode
+            .Should().Be(HttpStatusCode.BadRequest);
+
+        (await ModerateAsync(campaign.CampaignId, "Delete", "Because.")).StatusCode
+            .Should().Be(HttpStatusCode.BadRequest);
+
+        // A moderator's own campaign is moderated by somebody else.
+        var own = await PublishedCampaignAsync();
+
+        (await ModerateAsync(own.CampaignId, "Suspend", "Taking my own down.")).StatusCode
+            .Should().Be(HttpStatusCode.Forbidden);
+    }
+
     /// <summary>
     /// A campaign nobody has published is visible only to the person who wrote it.
     /// <para>

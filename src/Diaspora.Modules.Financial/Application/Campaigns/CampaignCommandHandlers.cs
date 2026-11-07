@@ -5,11 +5,10 @@ using Diaspora.Modules.Financial.Contracts.V1.Responses;
 using Diaspora.Modules.Financial.Domain.Enums;
 using Diaspora.Modules.Financial.Domain.Giving;
 using Diaspora.Modules.Financial.Domain.Identifiers;
+using Diaspora.Modules.Financial.Domain.Policies;
 using Diaspora.Modules.Financial.Domain.ValueObjects;
-using Diaspora.Modules.Financial.Options;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Results;
-using Microsoft.Extensions.Options;
 
 namespace Diaspora.Modules.Financial.Application.Campaigns;
 
@@ -315,6 +314,14 @@ public sealed class UpdateCampaignCommandHandler
 /// publishes straight through. Either way the transition table decides what is legal and the
 /// aggregate answers 409 when it is not.
 /// </para>
+/// <para>
+/// <b>Staff never pass the owner check, and the review decision is the only thing staff do here.</b>
+/// Until 7 Nov 2026 holding <c>financial:giving:manage</c> skipped the organiser check outright, so a
+/// moderator could submit, pause, resume, close or cancel anybody's fundraiser through the
+/// organiser's own routes, with no report, reason or notice. Now a reviewer makes exactly two moves —
+/// a submitted campaign to published or to rejected — and never on a campaign they run. Taking a
+/// live campaign down is the moderation route's (<see cref="ModerateCampaignCommandHandler"/>).
+/// </para>
 /// </summary>
 public sealed class TransitionCampaignCommandHandler
     : ICommandHandler<TransitionCampaignCommand, CampaignResponse>
@@ -322,35 +329,27 @@ public sealed class TransitionCampaignCommandHandler
     private readonly ICampaignRepository _campaigns;
     private readonly IDonationCauseRepository _causes;
     private readonly CampaignAccessService _access;
-    private readonly FinancialAuthorizationService _authorization;
     private readonly CurrencyCatalog _currencies;
     private readonly IGuidGenerator _guids;
     private readonly IClock _clock;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly FinancialOptions _options;
 
     public TransitionCampaignCommandHandler(
         ICampaignRepository campaigns,
         IDonationCauseRepository causes,
         CampaignAccessService access,
-        FinancialAuthorizationService authorization,
         CurrencyCatalog currencies,
         IGuidGenerator guids,
         IClock clock,
-        IUnitOfWork unitOfWork,
-        IOptions<FinancialOptions> options)
+        IUnitOfWork unitOfWork)
     {
-        ArgumentNullException.ThrowIfNull(options);
-
         _campaigns = campaigns;
         _causes = causes;
         _access = access;
-        _authorization = authorization;
         _currencies = currencies;
         _guids = guids;
         _clock = clock;
         _unitOfWork = unitOfWork;
-        _options = options.Value;
     }
 
     public async Task<Result<CampaignResponse>> Handle(
@@ -382,25 +381,37 @@ public sealed class TransitionCampaignCommandHandler
                 FinancialErrorCodes.CampaignNotFound, "No campaign with that identifier."));
         }
 
-        var isStaff = _authorization.Has(FinancialPermissions.GivingManage);
+        var canManage = await _access.CanManageAsync(campaign, caller.Value, cancellationToken);
 
-        if (!isStaff && !await _access.CanManageAsync(campaign, caller.Value, cancellationToken))
+        // Publication and rejection are the review decision. Where a deployment reviews campaigns,
+        // that decision is staff's — an organizer who could publish their own submission would make
+        // the review a formality it costs a round trip to skip.
+        if (!_access.CanDecideReview() && target is CampaignStatus.Published or CampaignStatus.Rejected)
         {
+            var review = AuthorizeReviewDecision(campaign, target, canManage, command.Request?.Reason);
+
+            if (review.IsFailure)
+            {
+                return Result.Failure<CampaignResponse>(review.Error);
+            }
+        }
+        else if (!canManage)
+        {
+            // Staff included. Holding the giving-management permission makes nobody the organiser.
             return Result.Failure<CampaignResponse>(Error.Forbidden(
                 FinancialErrorCodes.CampaignOrganizerForbidden,
                 "That campaign is not yours to manage."));
         }
 
-        // Publication and rejection are the review decision. Where a deployment reviews campaigns,
-        // that decision is staff's — an organizer who could publish their own submission would make
-        // the review a formality it costs a round trip to skip.
-        if (_options.RequireCampaignReview
-            && target is CampaignStatus.Published or CampaignStatus.Rejected
-            && !isStaff)
+        // Into a suspension or out of one is moderation's, and no organiser route makes either.
+        if (CampaignTransitions.IsModerationMove(campaign.Status, target))
         {
-            return Result.Failure<CampaignResponse>(Error.Forbidden(
-                FinancialErrorCodes.CampaignOrganizerForbidden,
-                "A campaign is published by Diaspora after review, not by its organiser."));
+            return Result.Failure<CampaignResponse>(Error.Conflict(
+                FinancialErrorCodes.CampaignSuspended,
+                campaign.Status == CampaignStatus.Suspended
+                    ? "Diaspora has suspended this campaign, and only Diaspora can lift that. "
+                        + "The reason is in its review note."
+                    : "A campaign is suspended by Diaspora's moderators, not by its organiser."));
         }
 
         var now = _clock.UtcNow;
@@ -454,7 +465,54 @@ public sealed class TransitionCampaignCommandHandler
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Result.Success(CampaignMapper.ToResponse(
-            campaign, cause, true, now, facts.Symbol, _access.CanDecideReview()));
+            campaign, cause, canManage, now, facts.Symbol, _access.CanDecideReview()));
+    }
+
+    /// <summary>
+    /// Whether this caller may make the review decision on this campaign.
+    /// <para>
+    /// <b>Exactly two moves, on exactly one state, and never on one's own.</b> A reviewer publishes or
+    /// rejects a submitted campaign. Anything else on a campaign they do not run is an organiser's
+    /// move, which staff do not make; and a reviewer who runs the campaign is its organiser, who
+    /// submits and waits like anybody else.
+    /// </para>
+    /// </summary>
+    private Result AuthorizeReviewDecision(
+        Campaign campaign, CampaignStatus target, bool runsIt, string? reason)
+    {
+        if (!_access.IsReviewer())
+        {
+            return Result.Failure(Error.Forbidden(
+                FinancialErrorCodes.CampaignOrganizerForbidden,
+                "A campaign is published by Diaspora after review, not by its organiser."));
+        }
+
+        if (runsIt)
+        {
+            return Result.Failure(Error.Forbidden(
+                FinancialErrorCodes.CampaignOrganizerForbidden,
+                "A campaign you run is reviewed by somebody else at Diaspora."));
+        }
+
+        // A repeat of a decision already made is the no-op every transition is; anything else
+        // would be a reviewer reaching a live campaign through the review door.
+        if (campaign.Status != CampaignStatus.PendingReview && campaign.Status != target)
+        {
+            return Result.Failure(Error.Conflict(
+                FinancialErrorCodes.CampaignTransitionInvalid,
+                $"A reviewer decides a submitted campaign, and this one is {campaign.Status}."));
+        }
+
+        if (target == CampaignStatus.Rejected
+            && campaign.Status != target
+            && string.IsNullOrWhiteSpace(reason))
+        {
+            return Result.Failure(Error.Validation(
+                FinancialErrorCodes.CampaignModerationInvalid,
+                "A campaign is rejected with a reason its organiser can act on."));
+        }
+
+        return Result.Success();
     }
 
     /// <summary>

@@ -9,6 +9,12 @@ namespace Diaspora.Modules.Financial.Domain.Enums;
 /// review and a campaign whose deadline passed were the same thing, and the member is told something
 /// materially different in each.
 /// </para>
+/// <para>
+/// <b>A thirteenth, <see cref="Suspended"/>, is moderation's and not the register's.</b> It is the
+/// only state an organiser can neither enter nor leave: staff put a campaign there through the
+/// moderation route, with a reason, and only that route takes it out again. Stored as its name, so
+/// adding it needed no migration.
+/// </para>
 /// </summary>
 public enum CampaignStatus
 {
@@ -46,7 +52,14 @@ public enum CampaignStatus
     Cancelled = 10,
 
     /// <summary>Shut, without a claim about how it ended. Terminal.</summary>
-    Closed = 11
+    Closed = 11,
+
+    /// <summary>
+    /// Taken down by Diaspora's moderators, with a reason the organiser is shown. Not collecting,
+    /// visible to nobody but the people who run it, and frozen: the organiser cannot edit it or
+    /// move it anywhere. Only the moderation route restores it.
+    /// </summary>
+    Suspended = 12
 }
 
 /// <summary>

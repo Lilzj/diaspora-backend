@@ -258,6 +258,12 @@ public static class FinancialErrorCodes
     public const string CampaignMilestoneInvalid = "financial.campaign.milestone_invalid";
     public const string CampaignAllocationInvalid = "financial.campaign.allocation_invalid";
 
+    /// <summary>Moderation: an unknown action, a missing reason, or staff acting on their own campaign.</summary>
+    public const string CampaignModerationInvalid = "financial.campaign.moderation_invalid";
+
+    /// <summary>The campaign is suspended by moderation, and its organiser cannot move it.</summary>
+    public const string CampaignSuspended = "financial.campaign.suspended";
+
     // ── B15.1 Giving: recurring donations ────────────────────────────────────────────────────
 
     public const string RecurringDonationNotFound = "financial.recurring_donation.not_found";

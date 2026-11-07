@@ -20,7 +20,10 @@ public enum MediaAssetStatus
     /// <summary>Everything passed. The only status a public read will serve.</summary>
     Ready = 2,
 
-    /// <summary>A scanner flagged it. Unreadable except to staff.</summary>
+    /// <summary>
+    /// A scanner flagged it, or a moderator withheld it with a reason. Its bytes are served to
+    /// nobody; staff read its record, and only the quarantine release brings it back.
+    /// </summary>
     Quarantined = 3,
 
     /// <summary>Validation or processing failed terminally.</summary>
