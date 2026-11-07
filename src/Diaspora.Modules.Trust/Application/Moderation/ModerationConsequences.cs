@@ -79,7 +79,7 @@ public sealed class ModerationConsequences
 
         if (Guid.TryParse(item.ContentId, out var contentId))
         {
-            var report = item.Reports.FirstOrDefault();
+            var report = item.Reports.Count > 0 ? item.Reports[0] : null;
 
             await _risk.RecordAsync(
                 RiskSignal.ReportUpheld(
