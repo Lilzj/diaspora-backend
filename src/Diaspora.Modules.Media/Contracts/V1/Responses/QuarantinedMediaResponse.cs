@@ -36,9 +36,10 @@ public sealed record QuarantinedMediaResponse
     public DateTimeOffset? ScannedAt { get; init; }
 
     /// <summary>
-    /// The reason recorded on the file: a moderator's, when one withheld it through
-    /// <c>POST /media/{id}/moderation</c>. Such a file's scan status is whatever the scanner said,
-    /// usually clean, because a take-down is not a finding about malware.
+    /// The reason recorded on the file: the moderator's note, when a decision on a Trust moderation
+    /// case withheld it. Such a file's scan status is whatever the scanner said, usually clean,
+    /// because a take-down is not a finding about malware, and the release route refuses it: it
+    /// comes back by a restore on its case.
     /// </summary>
     public string? Reason { get; init; }
 

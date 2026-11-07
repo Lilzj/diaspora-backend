@@ -29,8 +29,8 @@ namespace Diaspora.Modules.Financial.Application.Campaigns;
 /// organiser of a campaign, and the organiser's routes — edit, submit, pause, resume, close, cancel,
 /// updates, milestones, fund usage — answer staff exactly as they answer any other member who does
 /// not run it. Staff act on a campaign through two doors only: the review decision on a submitted
-/// campaign (<see cref="IsReviewer"/>), and the moderation route that suspends and restores a live
-/// one.
+/// campaign (<see cref="IsReviewer"/>), and a decision on a Trust moderation case, which suspends
+/// or restores a live one through <c>FundraiserModerationTarget</c>.
 /// </para>
 /// </summary>
 public sealed class CampaignAccessService

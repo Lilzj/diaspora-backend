@@ -259,6 +259,9 @@ public sealed class FinancialModule : IPlatformModule
         // Prices a plan change. One implementation, read by the preview and by the change — two
         // computations of one proration is how a preview and a charge come to disagree.
         services.AddScoped<Application.Subscriptions.SubscriptionChangePricer>();
+
+        // A fundraiser, as Trust's moderation cases see it: the only way staff take one down.
+        services.AddScoped<Diaspora.Contracts.Moderation.V1.IModerationTarget, Infrastructure.Moderation.FundraiserModerationTarget>();
     }
 
     /// <summary>

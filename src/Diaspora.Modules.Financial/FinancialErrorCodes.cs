@@ -187,6 +187,7 @@ public static class FinancialErrorCodes
     public const string PlacementDurationInvalid = "financial.placement.duration_invalid";
     public const string PlacementNotPausable = "financial.placement.not_pausable";
     public const string PlacementNotPaused = "financial.placement.not_paused";
+    public const string PlacementHeldByModeration = "financial.placement.held_by_moderation";
     public const string PlacementNotRenewable = "financial.placement.not_renewable";
 
     // ── Subscriptions ────────────────────────────────────────────────────────────────────────

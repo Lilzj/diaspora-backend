@@ -106,21 +106,6 @@ public sealed record CampaignTransitionRequest
     public string? Reason { get; init; }
 }
 
-/// <summary>
-/// A moderator's decision about a fundraising campaign. Staff only.
-/// </summary>
-public sealed record ModerateCampaignRequest
-{
-    /// <summary>
-    /// <c>Suspend</c> takes a live campaign down and stops it collecting; <c>Restore</c> lifts a
-    /// suspension and leaves the campaign paused for its organiser to resume.
-    /// </summary>
-    public required string Action { get; init; }
-
-    /// <summary>Why. Required for both actions; the organiser is shown a suspension's reason.</summary>
-    public required string Reason { get; init; }
-}
-
 /// <summary>Publish an update to a campaign's supporters. COMMUNITY-LIFE-GAP-007.</summary>
 public sealed record CreateCampaignUpdateRequest
 {

@@ -64,6 +64,38 @@ public sealed class PlacementRepository : IPlacementRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Placement>> ListRunningOrScheduledForSubjectAsync(
+        SubjectReference subject, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(subject);
+
+        var subjectType = subject.SubjectType;
+        var subjectId = subject.SubjectId;
+
+        return await Placements
+            .Where(placement => placement.Subject.SubjectType == subjectType
+                && placement.Subject.SubjectId == subjectId
+                && (placement.Status == PlacementStatus.Active
+                    || placement.Status == PlacementStatus.Scheduled))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Placement>> ListPausedForModerationAsync(
+        SubjectReference subject, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(subject);
+
+        var subjectType = subject.SubjectType;
+        var subjectId = subject.SubjectId;
+
+        return await Placements
+            .Where(placement => placement.Subject.SubjectType == subjectType
+                && placement.Subject.SubjectId == subjectId
+                && placement.Status == PlacementStatus.Paused
+                && placement.ModerationCaseId != null)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<Placement>> ListActiveForSubjectsAsync(
         MonetizationSubjectType subjectType,
         IReadOnlyCollection<Guid> subjectIds,

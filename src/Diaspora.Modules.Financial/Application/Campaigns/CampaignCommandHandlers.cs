@@ -320,7 +320,8 @@ public sealed class UpdateCampaignCommandHandler
 /// moderator could submit, pause, resume, close or cancel anybody's fundraiser through the
 /// organiser's own routes, with no report, reason or notice. Now a reviewer makes exactly two moves —
 /// a submitted campaign to published or to rejected — and never on a campaign they run. Taking a
-/// live campaign down is the moderation route's (<see cref="ModerateCampaignCommandHandler"/>).
+/// live campaign down is a decision on a Trust moderation case, carried out by
+/// <c>FundraiserModerationTarget</c>.
 /// </para>
 /// </summary>
 public sealed class TransitionCampaignCommandHandler
