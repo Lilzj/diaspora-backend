@@ -94,6 +94,9 @@ public sealed class ReportHousingCommandHandler : ICommandHandler<ReportHousingC
 
         var now = _clock.UtcNow;
 
+        // Including this one: the number the published report contract carries.
+        var total = await _reports.CountForListingAsync(listing.Id, cancellationToken) + 1;
+
         var report = HousingReport.File(
             HousingReportId.From(_guids.NewSequentialGuid()),
             listing.Id,
@@ -101,6 +104,7 @@ public sealed class ReportHousingCommandHandler : ICommandHandler<ReportHousingC
             caller.Value,
             reason,
             command.Request.Detail,
+            total,
             now);
 
         if (report.IsFailure)

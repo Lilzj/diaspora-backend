@@ -116,6 +116,9 @@ public sealed class HousingModule : IPlatformModule
         // a sponsored item's title. Resolved as collections by Analytics and Creator.
         services.AddScoped<Diaspora.Contracts.Content.V1.IPlatformInventorySource, Persistence.HousingPublishedContentSource>();
         services.AddScoped<Diaspora.Contracts.Content.V1.IContentTitleSource, Persistence.HousingPublishedContentSource>();
+
+        // How a Trust moderation case carries its decision out on a property (7 Nov 2026).
+        services.AddScoped<Diaspora.Contracts.Moderation.V1.IModerationTarget, Infrastructure.Moderation.HousingListingModerationTarget>();
         services.AddScoped<ILandlordProfileRepository, LandlordProfileRepository>();
         services.AddScoped<IHousingViewingRepository, HousingViewingRepository>();
         services.AddScoped<IHousingReservationRepository, HousingReservationRepository>();
