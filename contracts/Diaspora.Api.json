@@ -1454,6 +1454,534 @@
         }
       }
     },
+    "/api/v1/admin/account-actions": {
+      "get": {
+        "tags": [
+          "AccountActions"
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseOfIReadOnlyListOfAccountActionProposalResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/account-actions/{proposalId}": {
+      "get": {
+        "tags": [
+          "AccountActions"
+        ],
+        "parameters": [
+          {
+            "name": "proposalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseOfAccountActionProposalResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/account-actions/{proposalId}/confirm": {
+      "post": {
+        "tags": [
+          "AccountActions"
+        ],
+        "parameters": [
+          {
+            "name": "proposalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DecideAccountActionRequest"
+                  }
+                ]
+              }
+            },
+            "text/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DecideAccountActionRequest"
+                  }
+                ]
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DecideAccountActionRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseOfAccountActionProposalResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/account-actions/{proposalId}/decline": {
+      "post": {
+        "tags": [
+          "AccountActions"
+        ],
+        "parameters": [
+          {
+            "name": "proposalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DecideAccountActionRequest"
+                  }
+                ]
+              }
+            },
+            "text/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DecideAccountActionRequest"
+                  }
+                ]
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DecideAccountActionRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseOfAccountActionProposalResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/account-actions/{proposalId}/adopt": {
+      "post": {
+        "tags": [
+          "AccountActions"
+        ],
+        "parameters": [
+          {
+            "name": "proposalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DecideAccountActionRequest"
+                  }
+                ]
+              }
+            },
+            "text/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DecideAccountActionRequest"
+                  }
+                ]
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DecideAccountActionRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseOfAccountActionProposalResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/account-actions/{proposalId}/withdraw": {
+      "post": {
+        "tags": [
+          "AccountActions"
+        ],
+        "parameters": [
+          {
+            "name": "proposalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DecideAccountActionRequest"
+                  }
+                ]
+              }
+            },
+            "text/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DecideAccountActionRequest"
+                  }
+                ]
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DecideAccountActionRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseOfAccountActionProposalResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/accounts/{userId}/suspend": {
       "post": {
         "tags": [
@@ -1491,18 +2019,48 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "202": {
+            "description": "Accepted",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseOfOperationAcknowledgedResponse"
+                  "$ref": "#/components/schemas/ApiResponseOfAccountActionProposalResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
           },
           "404": {
             "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
             "content": {
               "application/json": {
                 "schema": {
@@ -1581,6 +2139,26 @@
               }
             }
           },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Not Found",
             "content": {
@@ -1631,18 +2209,138 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "202": {
+            "description": "Accepted",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseOfOperationAcknowledgedResponse"
+                  "$ref": "#/components/schemas/ApiResponseOfAccountActionProposalResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
           },
           "404": {
             "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/accounts/{userId}/reactivate": {
+      "post": {
+        "tags": [
+          "AccountAdministration"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReactivateAccountRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReactivateAccountRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReactivateAccountRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseOfAccountActionProposalResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
             "content": {
               "application/json": {
                 "schema": {
@@ -1851,6 +2549,26 @@
               }
             }
           },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Not Found",
             "content": {
@@ -1911,6 +2629,16 @@
               }
             }
           },
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseOfAccountActionProposalResponse"
+                }
+              }
+            }
+          },
           "400": {
             "description": "Bad Request",
             "content": {
@@ -1933,6 +2661,16 @@
           },
           "404": {
             "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
             "content": {
               "application/json": {
                 "schema": {
@@ -6880,30 +7618,6 @@
         }
       }
     },
-    "/api/v1/community/moderation/decisions": {
-      "post": {
-        "tags": [
-          "Community"
-        ],
-        "summary": "Decide a case. Recorded append-only and published.",
-        "operationId": "DecideCommunityModeration",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ModerationDecisionRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
     "/api/v1/community/moderation/history/{contentType}/{contentId}": {
       "get": {
         "tags": [
@@ -9828,55 +10542,12 @@
         }
       }
     },
-    "/api/v1/community-life/{subjectType}/{subjectId}/moderation": {
-      "post": {
-        "tags": [
-          "Community Life"
-        ],
-        "summary": "Hides, suspends or clears a subject. Staff only.",
-        "operationId": "ModerateCommunityLifeSubject",
-        "parameters": [
-          {
-            "name": "subjectType",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "subjectId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ModerateSubjectRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
     "/api/v1/community-life/reports": {
       "get": {
         "tags": [
           "Community Life"
         ],
-        "summary": "The moderation queue. Staff only.",
+        "summary": "The reports members filed, and how each was closed. Staff only.",
         "operationId": "ListCommunityLifeReports",
         "parameters": [
           {
@@ -9916,41 +10587,6 @@
             }
           }
         ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/community-life/reports/{reportId}/resolution": {
-      "post": {
-        "tags": [
-          "Community Life"
-        ],
-        "summary": "Closes a report, optionally acting on its subject. Staff only.",
-        "operationId": "ResolveCommunityLifeReport",
-        "parameters": [
-          {
-            "name": "reportId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ResolveReportRequest"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
             "description": "OK"
@@ -17741,13 +18377,124 @@
         "tags": [
           "Financial"
         ],
-        "summary": "Grants platform credit into a promotional wallet. Staff.",
+        "summary": "Grants platform credit into a promotional wallet. Staff. Not to yourself; at most 100 of the currency; above 50, raise a grant request instead.",
         "operationId": "GrantCredit",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/GrantCreditRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/financial/operations/credit/grant-requests": {
+      "post": {
+        "tags": [
+          "Financial"
+        ],
+        "summary": "Asks for a credit grant that needs a second Admin. Grants nothing until approved. Staff.",
+        "operationId": "RequestCreditGrant",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GrantCreditRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Financial"
+        ],
+        "summary": "Credit grant requests, newest first; pending unless a state is given. Staff.",
+        "operationId": "GetCreditGrantRequests",
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "excludeIds",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "take",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/financial/operations/credit/grant-requests/{requestId}/decide": {
+      "post": {
+        "tags": [
+          "Financial"
+        ],
+        "summary": "Approves or rejects a credit grant request as another Admin, or withdraws your own. Staff.",
+        "operationId": "DecideCreditGrantRequest",
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecideCreditGrantRequestRequest"
               }
             }
           },
@@ -18869,41 +19616,6 @@
             }
           }
         ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/financial/giving/campaigns/{campaignId}/moderation": {
-      "post": {
-        "tags": [
-          "Financial"
-        ],
-        "summary": "Suspends a live fundraiser, or lifts a suspension. Staff only; a reason is required, and nobody moderates a campaign they run.",
-        "operationId": "ModerateFundraisingCampaign",
-        "parameters": [
-          {
-            "name": "campaignId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ModerateCampaignRequest"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
             "description": "OK"
@@ -22193,66 +22905,6 @@
                 "string"
               ],
               "format": "int32"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/guides/{guideId}/hide": {
-      "post": {
-        "tags": [
-          "Guides"
-        ],
-        "summary": "Take the guide off every public surface, reversibly. The reason is required.",
-        "operationId": "HideGuide",
-        "parameters": [
-          {
-            "name": "guideId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/HideGuideRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/guides/{guideId}/unhide": {
-      "post": {
-        "tags": [
-          "Guides"
-        ],
-        "summary": "Lift the hide, restoring exactly what was there.",
-        "operationId": "UnhideGuide",
-        "parameters": [
-          {
-            "name": "guideId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
             }
           }
         ],
@@ -27872,76 +28524,6 @@
         }
       }
     },
-    "/api/v1/housing/moderation/reports/{reportId}/resolve": {
-      "post": {
-        "tags": [
-          "Housing"
-        ],
-        "summary": "Uphold or dismiss a report.",
-        "operationId": "ResolveHousingReport",
-        "parameters": [
-          {
-            "name": "reportId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ResolveHousingReportRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/housing/moderation/listings/{listingId}": {
-      "post": {
-        "tags": [
-          "Housing"
-        ],
-        "summary": "Hide, suspend, clear, archive or annotate a property.",
-        "operationId": "ModerateHousingListing",
-        "parameters": [
-          {
-            "name": "listingId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ModerateHousingRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
     "/api/v1/housing/listings/{listingId}/analytics": {
       "get": {
         "tags": [
@@ -32706,111 +33288,6 @@
         }
       }
     },
-    "/api/v1/marketplace/moderation/listings/{listingId}": {
-      "post": {
-        "tags": [
-          "Marketplace"
-        ],
-        "summary": "Flag, hide, suspend, restore or annotate a listing.",
-        "operationId": "ModerateMarketplaceListing",
-        "parameters": [
-          {
-            "name": "listingId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ModerateListingRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/marketplace/moderation/reports/{reportId}": {
-      "post": {
-        "tags": [
-          "Marketplace"
-        ],
-        "summary": "Close a report, upheld or not.",
-        "operationId": "ResolveMarketplaceReport",
-        "parameters": [
-          {
-            "name": "reportId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ResolveReportRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/marketplace/moderation/sellers/{sellerId}": {
-      "post": {
-        "tags": [
-          "Marketplace"
-        ],
-        "summary": "Bar a seller from trading, or let them back.",
-        "operationId": "SuspendMarketplaceSeller",
-        "parameters": [
-          {
-            "name": "sellerId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SuspendSellerRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
     "/api/v1/marketplace/moderation/trends": {
       "get": {
         "tags": [
@@ -33782,7 +34259,7 @@
         "tags": [
           "Media"
         ],
-        "summary": "Release a file a scanner flagged. Admins only, always audited.",
+        "summary": "Release a file a scanner flagged. Admins only, always audited. A file a moderation decision withheld comes back by a restore on its case instead.",
         "operationId": "ReleaseMediaQuarantine",
         "parameters": [
           {
@@ -33800,41 +34277,6 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ReleaseQuarantineBody"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/media/{mediaId}/moderation": {
-      "post": {
-        "tags": [
-          "Media"
-        ],
-        "summary": "Hide or remove a member's file. Staff only; a reason is required and kept on the file.",
-        "operationId": "ModerateMedia",
-        "parameters": [
-          {
-            "name": "mediaId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ModerateMediaRequest"
               }
             }
           },
@@ -35450,7 +35892,7 @@
         "tags": [
           "Providers"
         ],
-        "summary": "Publish, pause, close or archive. The owner's route: staff suspend and reinstate through POST /providers/moderation/{providerId}.",
+        "summary": "Publish, pause, close or archive. The owner's route: staff act on a provider only through its Trust moderation case.",
         "operationId": "ChangeProviderStatus",
         "parameters": [
           {
@@ -35468,41 +35910,6 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ProviderStatusRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/providers/moderation/{providerId}": {
-      "post": {
-        "tags": [
-          "Providers"
-        ],
-        "summary": "Suspend a provider, or lift its suspension. Staff only, and a reason is required.",
-        "operationId": "ModerateProvider",
-        "parameters": [
-          {
-            "name": "providerId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ModerateProviderRequest"
               }
             }
           },
@@ -38476,6 +38883,31 @@
         }
       }
     },
+    "/api/v1/trust/moderation/cases/{itemId}/mine": {
+      "get": {
+        "tags": [
+          "Trust"
+        ],
+        "summary": "A decision about the caller's own content: what happened, why, and what they can do.",
+        "operationId": "GetMyModerationCase",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/trust/moderation/cases/{itemId}/review-request": {
       "post": {
         "tags": [
@@ -38559,6 +38991,24 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "reasonCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reasonLabel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -38585,6 +39035,126 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "AccountActionProposalResponse": {
+        "required": [
+          "id",
+          "kind",
+          "targetUserId",
+          "note",
+          "status",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "targetUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "targetFullName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "targetRole": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "proposedBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "proposedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "raisedByCaseId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "awaitsProposer": {
+            "type": "boolean"
+          },
+          "reasonCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reasonLabel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "note": {
+            "type": "string"
+          },
+          "until": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "role": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "decidedBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "decidedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "decidedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "decisionNote": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -38840,6 +39410,12 @@
             "format": "date-time"
           },
           "statusReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "statusReasonCode": {
             "type": [
               "null",
               "string"
@@ -39208,6 +39784,28 @@
           }
         }
       },
+      "ApiResponseOfAccountActionProposalResponse": {
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AccountActionProposalResponse"
+              }
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        }
+      },
       "ApiResponseOfAccountErasureReceipt": {
         "required": [
           "data",
@@ -39422,6 +40020,27 @@
                 "$ref": "#/components/schemas/FeatureAccessResponse"
               }
             ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        }
+      },
+      "ApiResponseOfIReadOnlyListOfAccountActionProposalResponse": {
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/AccountActionProposalResponse"
+            }
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta"
@@ -45470,6 +46089,17 @@
         "type": "integer",
         "default": 0
       },
+      "DecideAccountActionRequest": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "DecideAdCampaignRequest": {
         "type": "object",
         "properties": {
@@ -45582,6 +46212,23 @@
               "string"
             ],
             "format": "date-time"
+          }
+        }
+      },
+      "DecideCreditGrantRequestRequest": {
+        "required": [
+          "approve"
+        ],
+        "type": "object",
+        "properties": {
+          "approve": {
+            "type": "boolean"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -45867,10 +46514,14 @@
       },
       "DisableAccountRequest": {
         "required": [
+          "reasonCode",
           "reason"
         ],
         "type": "object",
         "properties": {
+          "reasonCode": {
+            "type": "string"
+          },
           "reason": {
             "type": "string"
           }
@@ -46994,17 +47645,6 @@
       "HealthDimension": {
         "type": "integer"
       },
-      "HideGuideRequest": {
-        "required": [
-          "reason"
-        ],
-        "type": "object",
-        "properties": {
-          "reason": {
-            "type": "string"
-          }
-        }
-      },
       "HouseRuleRequest": {
         "required": [
           "text"
@@ -47713,137 +48353,6 @@
             "items": {
               "$ref": "#/components/schemas/MembershipRequirementRequest"
             }
-          }
-        }
-      },
-      "ModerateCampaignRequest": {
-        "required": [
-          "action",
-          "reason"
-        ],
-        "type": "object",
-        "properties": {
-          "action": {
-            "type": "string"
-          },
-          "reason": {
-            "type": "string"
-          }
-        }
-      },
-      "ModerateHousingRequest": {
-        "required": [
-          "action"
-        ],
-        "type": "object",
-        "properties": {
-          "action": {
-            "type": "string"
-          },
-          "reason": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
-      "ModerateListingRequest": {
-        "required": [
-          "action"
-        ],
-        "type": "object",
-        "properties": {
-          "action": {
-            "type": "string"
-          },
-          "reason": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
-      "ModerateMediaRequest": {
-        "required": [
-          "action",
-          "reason"
-        ],
-        "type": "object",
-        "properties": {
-          "action": {
-            "type": "string"
-          },
-          "reason": {
-            "type": "string"
-          }
-        }
-      },
-      "ModerateProviderRequest": {
-        "required": [
-          "action"
-        ],
-        "type": "object",
-        "properties": {
-          "action": {
-            "type": "string"
-          },
-          "reason": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
-      "ModerateSubjectRequest": {
-        "required": [
-          "action"
-        ],
-        "type": "object",
-        "properties": {
-          "action": {
-            "type": "string"
-          },
-          "reason": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
-      "ModerationDecisionRequest": {
-        "required": [
-          "contentType",
-          "contentId",
-          "action"
-        ],
-        "type": "object",
-        "properties": {
-          "contentType": {
-            "type": "string"
-          },
-          "contentId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "action": {
-            "type": "string"
-          },
-          "reason": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "reportId": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "uuid"
           }
         }
       },
@@ -49540,6 +50049,21 @@
           }
         }
       },
+      "ReactivateAccountRequest": {
+        "required": [
+          "reasonCode",
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "reasonCode": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      },
       "ReactRequest": {
         "required": [
           "reactionKey"
@@ -50969,56 +51493,6 @@
             "items": {
               "$ref": "#/components/schemas/BulkheadState"
             }
-          }
-        }
-      },
-      "ResolveHousingReportRequest": {
-        "required": [
-          "upheld"
-        ],
-        "type": "object",
-        "properties": {
-          "upheld": {
-            "type": "boolean"
-          },
-          "resolution": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "hideListing": {
-            "type": "boolean"
-          }
-        }
-      },
-      "ResolveReportRequest": {
-        "required": [
-          "outcome"
-        ],
-        "type": "object",
-        "properties": {
-          "outcome": {
-            "type": "string"
-          },
-          "note": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "mergedIntoSubjectId": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "uuid"
-          },
-          "action": {
-            "type": [
-              "null",
-              "string"
-            ]
           }
         }
       },
@@ -54215,10 +54689,14 @@
       },
       "SuspendAccountRequest": {
         "required": [
+          "reasonCode",
           "reason"
         ],
         "type": "object",
         "properties": {
+          "reasonCode": {
+            "type": "string"
+          },
           "reason": {
             "type": "string"
           },
@@ -54228,23 +54706,6 @@
               "string"
             ],
             "format": "date-time"
-          }
-        }
-      },
-      "SuspendSellerRequest": {
-        "required": [
-          "action"
-        ],
-        "type": "object",
-        "properties": {
-          "action": {
-            "type": "string"
-          },
-          "reason": {
-            "type": [
-              "null",
-              "string"
-            ]
           }
         }
       },
@@ -58887,6 +59348,9 @@
     },
     {
       "name": "Access"
+    },
+    {
+      "name": "AccountActions"
     },
     {
       "name": "AccountAdministration"
