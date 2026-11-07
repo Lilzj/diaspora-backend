@@ -18,7 +18,10 @@ public enum ModerationSource
     /// <summary>A registered content review provider.</summary>
     Automated = 1,
 
-    /// <summary>A platform rule: report threshold, expiry sweep, author deletion.</summary>
+    /// <summary>
+    /// A platform rule: expiry sweep, author deletion. (The report threshold hide moved to Trust's
+    /// moderation case on 7 Nov 2026; older history rows carry this source for it.)
+    /// </summary>
     System = 2,
 
     /// <summary>The content author acting on their own content.</summary>

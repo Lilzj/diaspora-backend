@@ -5,7 +5,6 @@ using Diaspora.Modules.Jobs.Domain.Enums;
 using Diaspora.Modules.Jobs.Domain.Identifiers;
 using Diaspora.Modules.Jobs.Domain.Policies;
 using Diaspora.Modules.Jobs.Domain.Postings;
-using Diaspora.Platform.Services.Abstractions;
 
 namespace Diaspora.Modules.Jobs.Infrastructure.Community;
 
@@ -37,12 +36,10 @@ namespace Diaspora.Modules.Jobs.Infrastructure.Community;
 public sealed class JobContentSource : ICommunityContentSource
 {
     private readonly IJobPostingRepository _postings;
-    private readonly IClock _clock;
 
-    public JobContentSource(IJobPostingRepository postings, IClock clock)
+    public JobContentSource(IJobPostingRepository postings)
     {
         _postings = postings;
-        _clock = clock;
     }
 
     public CommunityContentType ContentType => CommunityContentType.Job;
@@ -90,61 +87,8 @@ public sealed class JobContentSource : ICommunityContentSource
         return described;
     }
 
-    /// <summary>
-    /// Applies a moderation outcome to the posting itself.
-    /// <para>
-    /// Implemented rather than left at the default, and for the reason the marketplace source gives:
-    /// a moderator who upholds a report about a fraudulent advert and leaves the advert in search
-    /// has moved the complaint rather than the problem. On a job board that means the next
-    /// applicant meets the same fee request.
-    /// </para>
-    /// <para>
-    /// <b>Archive flags rather than hides.</b> B9 models no archive transition a moderator may
-    /// drive, and mapping it onto <c>Hide</c> would take a legitimate advert down on a decision that
-    /// did not ask for that. The caller owns the unit of work, so this mutates and does not save.
-    /// </para>
-    /// </summary>
-    public async Task ApplyModerationAsync(
-        Guid contentId,
-        ModerationActionType action,
-        CancellationToken cancellationToken = default)
-    {
-        var posting = await _postings.GetAsync(JobPostingId.From(contentId), cancellationToken);
-
-        if (posting is null)
-        {
-            return;
-        }
-
-        var now = _clock.UtcNow;
-
-        switch (action)
-        {
-            case ModerationActionType.Hide:
-            case ModerationActionType.Suspend:
-            case ModerationActionType.Reject:
-                posting.Hide("Hidden following a community report.", posting.CreatedByUserId, now);
-                break;
-
-            case ModerationActionType.Approve:
-            case ModerationActionType.Restore:
-                posting.Unhide(null, now);
-                break;
-
-            case ModerationActionType.Archive:
-                // B9 has no archive transition a moderator may drive, and flagging is the weaker
-                // action that keeps the posting visible while marking it for a second look. Better
-                // than mapping archive onto Hide, which would take a legitimate advert down on a
-                // decision that did not ask for that.
-                posting.Flag(null, "Flagged following a community report.", now);
-                break;
-
-            default:
-                // Pin and Unpin say nothing about a posting's lifecycle. B6 has already recorded
-                // the decision; there is nothing for this module to do.
-                break;
-        }
-    }
+    // ApplyModerationAsync is gone (7 Nov 2026). Staff act on an advert only by deciding its Trust
+    // case, carried out by JobModerationTarget; this hook recorded the poster as the moderator.
 
     private static ContentDescriptor Describe(JobPosting posting) => new()
     {

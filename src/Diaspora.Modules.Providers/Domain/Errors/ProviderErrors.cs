@@ -98,14 +98,6 @@ public static class ProviderErrors
         ProviderErrorCodes.ProviderNotFeaturable,
         "Only a provider members can actually open may be featured.");
 
-    public static readonly Error NotSuspended = Error.Conflict(
-        ProviderErrorCodes.ProviderNotSuspended,
-        "This provider is not suspended, so there is nothing to reinstate.");
-
-    public static readonly Error ModerationReasonRequired = Error.Validation(
-        ProviderErrorCodes.ModerationReasonRequired,
-        "Say why. A reason is required for every moderation decision.");
-
     // ── Profile & organization ──────────────────────────────────────────────────────────────
 
     public static readonly Error TaglineTooLong = Error.Validation(

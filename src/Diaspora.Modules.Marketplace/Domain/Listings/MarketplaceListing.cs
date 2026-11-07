@@ -1569,10 +1569,9 @@ public sealed class MarketplaceListing
     /// Removes the listing from every public surface, reversibly. The listing's own state is
     /// untouched — lifting the decision restores exactly what was there.
     /// </summary>
-    public Result Hide(string? reason, UserId moderatorId, DateTimeOffset now)
+    public Result Hide(string? reason, UserId? moderatorId, DateTimeOffset now)
     {
-        ArgumentNullException.ThrowIfNull(moderatorId);
-
+        // A null moderator is the system: the automatic hide after many serious reports.
         var trimmed = reason?.Trim();
 
         if (string.IsNullOrEmpty(trimmed) || trimmed.Length > MarketplaceLimits.MaxModerationNote)
@@ -1590,10 +1589,8 @@ public sealed class MarketplaceListing
     /// is "we are looking at this", and suspended is "we looked, and it stays down".
     /// </para>
     /// </summary>
-    public Result Suspend(string? reason, UserId moderatorId, DateTimeOffset now)
+    public Result Suspend(string? reason, UserId? moderatorId, DateTimeOffset now)
     {
-        ArgumentNullException.ThrowIfNull(moderatorId);
-
         var trimmed = reason?.Trim();
 
         if (string.IsNullOrEmpty(trimmed) || trimmed.Length > MarketplaceLimits.MaxModerationNote)

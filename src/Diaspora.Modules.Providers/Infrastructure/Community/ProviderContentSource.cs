@@ -23,6 +23,13 @@ namespace Diaspora.Modules.Providers.Infrastructure.Community;
 /// claiming one content type fails startup, which is why the claim is worth stating.
 /// </para>
 /// <para>
+/// <b>Describes only; it no longer moderates (7 Nov 2026).</b> Its moderation hook suspended the
+/// provider on a Community hide with a stock reason and nobody recorded, and archived it on a
+/// rejection, which the owner could undo by publishing again and which retired its paid placements.
+/// Staff now act on a provider only through its Trust case, carried out by
+/// <c>ProviderModerationTarget</c> with the real moderator and their note.
+/// </para>
+/// <para>
 /// <b>Visibility is narrowed, never widened.</b> B6 takes the descriptor's audience as a ceiling,
 /// so a provider that is unlisted or private must not be described as public — that would let a
 /// comment on it surface in a feed that has no business showing it.
@@ -59,56 +66,6 @@ public sealed class ProviderContentSource : ICommunityContentSource
             contentIds.Select(ProviderId.From).ToList(), cancellationToken);
 
         return providers.ToDictionary(provider => provider.Id.Value, Describe);
-    }
-
-    /// <summary>
-    /// Applies a moderation outcome to the provider itself.
-    /// <para>
-    /// Optional on the interface, and implemented here because a moderator hiding a provider's
-    /// content and leaving the provider itself in the directory is a half-measure that satisfies
-    /// nobody. Community records the decision and publishes the event either way; this is B7
-    /// acting on its own row, which only B7 can do.
-    /// </para>
-    /// </summary>
-    public async Task ApplyModerationAsync(
-        Guid contentId,
-        Modules.Community.Domain.Enums.ModerationActionType action,
-        CancellationToken cancellationToken = default)
-    {
-        var provider = await _providers.GetAsync(ProviderId.From(contentId), cancellationToken);
-
-        if (provider is null)
-        {
-            return;
-        }
-
-        var now = DateTimeOffset.UtcNow;
-
-        switch (action)
-        {
-            case Modules.Community.Domain.Enums.ModerationActionType.Hide:
-            case Modules.Community.Domain.Enums.ModerationActionType.Suspend:
-                provider.Suspend(now, "Suspended following moderation.");
-                break;
-
-            case Modules.Community.Domain.Enums.ModerationActionType.Restore:
-            case Modules.Community.Domain.Enums.ModerationActionType.Approve:
-                provider.Reinstate(now);
-                break;
-
-            case Modules.Community.Domain.Enums.ModerationActionType.Archive:
-            case Modules.Community.Domain.Enums.ModerationActionType.Reject:
-                // Refused by the aggregate while the provider is suspended (7 Nov 2026), and
-                // deliberately left that way: an archived provider can be republished by its
-                // owner, so archiving a suspended one would undo the suspension.
-                provider.Archive(now, "Archived following moderation.");
-                break;
-
-            default:
-                // Pin, Unpin and Escalate say nothing about a provider's lifecycle. Community
-                // has already recorded them; there is nothing for B7 to do.
-                break;
-        }
     }
 
     private static ContentDescriptor Describe(Provider provider) => new()

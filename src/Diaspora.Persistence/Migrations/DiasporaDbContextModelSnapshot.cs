@@ -8797,6 +8797,9 @@ namespace Diaspora.Persistence.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
+                    b.Property<Guid?>("ModerationCaseId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTimeOffset?>("ModifiedAt")
                         .HasColumnType("timestamp with time zone");
 

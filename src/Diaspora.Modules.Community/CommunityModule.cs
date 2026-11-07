@@ -130,6 +130,15 @@ public sealed class CommunityModule : IPlatformModule
         services.AddScoped<
             Diaspora.Contracts.Community.V1.Moderation.IPublisherReportQueue,
             Application.Services.PublisherReportQueue>();
+
+        // 7 Nov 2026. Staff act on a member's post or comment only by deciding its Trust case;
+        // Trust carries the decision out through these, in the same transaction.
+        services.AddScoped<
+            Diaspora.Contracts.Moderation.V1.IModerationTarget,
+            Infrastructure.Moderation.CommunityPostModerationTarget>();
+        services.AddScoped<
+            Diaspora.Contracts.Moderation.V1.IModerationTarget,
+            Infrastructure.Moderation.CommunityCommentModerationTarget>();
     }
 
     private static void RegisterServices(IServiceCollection services)
@@ -181,7 +190,6 @@ public sealed class CommunityModule : IPlatformModule
         RegisterAll<IMentionResolver>(services, assemblies);
         RegisterAll<IHashtagProcessor>(services, assemblies);
         RegisterAll<IContentReviewProvider>(services, assemblies);
-        RegisterAll<IModerationPolicyProvider>(services, assemblies);
         RegisterAll<IContentEnricher>(services, assemblies);
         RegisterAll<IReactionCatalogContributor>(services, assemblies);
 

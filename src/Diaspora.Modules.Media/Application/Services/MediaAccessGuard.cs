@@ -52,8 +52,8 @@ namespace Diaspora.Modules.Media.Application.Services;
 /// are the member's alone, and <see cref="CanManageAsync"/> answers a moderator exactly as it
 /// answers any other member who did not upload the file. Until 7 Nov 2026 it let anyone holding the
 /// permission delete, edit, re-attach or reorder any member's files through the member's own
-/// routes, with no reason and no notice. Staff now take a file down through
-/// <c>POST /media/{id}/moderation</c>, which requires a reason and records it.
+/// routes, with no reason and no notice. Staff now take a file down only by a decision on a Trust
+/// moderation case, which requires a reason the uploader reads.
 /// </para>
 /// </summary>
 public sealed class MediaAccessGuard

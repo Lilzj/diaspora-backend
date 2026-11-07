@@ -1,6 +1,7 @@
 using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Housing.Domain.Enums;
 using Diaspora.Modules.Housing.Domain.Errors;
+using Diaspora.Modules.Housing.Domain.Events;
 using Diaspora.Modules.Housing.Domain.Identifiers;
 using Diaspora.Modules.Housing.Domain.Policies;
 using Diaspora.SharedKernel.Identity;
@@ -25,9 +26,11 @@ namespace Diaspora.Modules.Housing.Domain.Reports;
 /// listing immediately; every other reason waits for the configured threshold.
 /// </para>
 /// <para>
-/// <b>The reporter's identity never leaves this row.</b> It is not on the domain event, not on the
-/// published contract, and not on any response a landlord can reach. A member who reports a scam
-/// must never be identifiable to the person they reported.
+/// <b>The reporter's identity never leaves this row</b>, except to Trust's moderation case, which
+/// reads it from here (7 Nov 2026) to count each member once and to tell them the outcome. It is
+/// not on the domain event, not on the report's published contract, and not on any response a
+/// landlord can reach. A member who reports a scam must never be identifiable to the person they
+/// reported.
 /// </para>
 /// <para>
 /// Never soft-deleted: a report is a record of a decision, and the trail of what was reported and
@@ -102,6 +105,14 @@ public sealed class HousingReport : AggregateRoot<HousingReportId>, IAuditableEn
     /// </summary>
     public bool FlagsImmediately => Reason == HousingReportReason.Scam;
 
+    /// <summary>
+    /// Files a report, and says so (7 Nov 2026).
+    /// <para>
+    /// <paramref name="totalReports"/> is how many distinct members have reported the listing,
+    /// counting this one. Before this date nothing raised <see cref="HousingReportedDomainEvent"/>,
+    /// so its published contract never went out and no report ever reached a moderation case.
+    /// </para>
+    /// </summary>
     public static Result<HousingReport> File(
         HousingReportId id,
         HousingListingId listingId,
@@ -109,6 +120,7 @@ public sealed class HousingReport : AggregateRoot<HousingReportId>, IAuditableEn
         UserId reportedBy,
         HousingReportReason reason,
         string? detail,
+        int totalReports,
         DateTimeOffset createdAt)
     {
         ArgumentNullException.ThrowIfNull(id);
@@ -123,14 +135,27 @@ public sealed class HousingReport : AggregateRoot<HousingReportId>, IAuditableEn
             trimmed = trimmed[..HousingLimits.MaxReportDetail];
         }
 
-        return Result.Success(new HousingReport(
+        var report = new HousingReport(
             id,
             listingId,
             landlordId,
             reportedBy,
             reason,
             string.IsNullOrWhiteSpace(trimmed) ? null : trimmed,
-            createdAt));
+            createdAt);
+
+        // No reporter on the event: see the class summary. Trust reads it from this row.
+        report.RaiseDomainEvent(new HousingReportedDomainEvent
+        {
+            ReportId = id,
+            ListingId = listingId,
+            LandlordId = landlordId,
+            Reason = reason,
+            TotalReports = Math.Max(1, totalReports),
+            ReportedAt = createdAt
+        });
+
+        return Result.Success(report);
     }
 
     /// <summary>A moderator has picked it up. Distinct from open, so a queue can show who is on it.</summary>
@@ -182,7 +207,7 @@ public sealed class HousingReport : AggregateRoot<HousingReportId>, IAuditableEn
 
         if (upheld)
         {
-            RaiseDomainEvent(new Events.HousingReportUpheldDomainEvent
+            RaiseDomainEvent(new HousingReportUpheldDomainEvent
             {
                 ReportId = Id,
                 ListingId = ListingId,

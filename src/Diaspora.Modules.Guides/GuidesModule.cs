@@ -129,6 +129,10 @@ public sealed class GuidesModule : IPlatformModule
 
         // 21 Oct 2026. An author's published-guide totals, for the creator reputation read.
         services.AddScoped<Diaspora.Contracts.Guides.V1.Authors.IAuthorGuideStatsReader, Persistence.AuthorGuideStatsReader>();
+
+        // 7 Nov 2026. Staff take a guide down only by deciding its Trust case; Trust carries the
+        // decision out through this, in the same transaction.
+        services.AddScoped<Diaspora.Contracts.Moderation.V1.IModerationTarget, Infrastructure.Moderation.GuideModerationTarget>();
         services.AddScoped<IGuideVersionRepository, GuideVersionRepository>();
         services.AddScoped<IGuideCategoryRepository, GuideCategoryRepository>();
         services.AddScoped<IGuideSuggestionRepository, GuideSuggestionRepository>();

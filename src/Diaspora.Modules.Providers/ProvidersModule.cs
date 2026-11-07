@@ -97,6 +97,8 @@ public sealed class ProvidersModule : IPlatformModule
     private static void RegisterServices(IServiceCollection services)
     {
         services.AddScoped<ProviderAuthorizationService>();
+        // A provider as Trust's moderation cases see it: the only way staff act on one (7 Nov 2026).
+        services.AddScoped<Diaspora.Contracts.Moderation.V1.IModerationTarget, Infrastructure.Moderation.ProviderModerationTarget>();
         services.AddScoped<ServiceCategoryResolver>();
         services.AddScoped<ProviderSlugAllocator>();
         services.AddScoped<GeographicScopeAdapter>();

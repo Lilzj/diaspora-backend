@@ -58,11 +58,36 @@ public abstract class CampaignTestBase<TFactory> : IdentityTestBase<TFactory>
         Authorize(accessToken);
     }
 
-    /// <summary>The staff route onto a live fundraiser: suspend or restore, with a reason.</summary>
-    protected Task<HttpResponseMessage> ModerateAsync(Guid campaignId, string action, string reason) =>
+    // ── Staff: a fundraiser is moderated only through a Trust case (7 Nov 2026) ─────────────
+
+    protected const string Trust = "/api/v1/trust";
+
+    /// <summary>A member of staff opens a case about a fundraiser, with no report behind it.</summary>
+    protected Task<HttpResponseMessage> OpenFundraiserCaseAsync(
+        Guid campaignId, string reasonCode, string note) =>
         HttpClient.PostAsJsonAsync(
-            new Uri($"{Financial}/giving/campaigns/{campaignId}/moderation", UriKind.Relative),
-            new { action, reason });
+            new Uri($"{Trust}/moderation/cases", UriKind.Relative),
+            new { contentType = "fundraiser", contentId = campaignId, reasonCode, note });
+
+    protected async Task AssignCaseAsync(Guid itemId) =>
+        (await HttpClient.PostAsync(
+                new Uri($"{Trust}/moderation/queue/{itemId}/assign", UriKind.Relative), content: null))
+            .StatusCode.Should().Be(HttpStatusCode.OK);
+
+    protected Task<HttpResponseMessage> DecideCaseAsync(
+        Guid itemId, string outcome, string reasonCode, string note) =>
+        HttpClient.PostAsJsonAsync(
+            new Uri($"{Trust}/moderation/queue/{itemId}/decision", UriKind.Relative),
+            new { outcome, reasonCode, note });
+
+    protected Task<HttpResponseMessage> SecondReviewCaseAsync(Guid itemId, bool confirm, string note) =>
+        HttpClient.PostAsJsonAsync(
+            new Uri($"{Trust}/moderation/queue/{itemId}/second-review", UriKind.Relative),
+            new { confirm, note });
+
+    protected Task<HttpResponseMessage> RequestCaseReviewAsync(Guid itemId) =>
+        HttpClient.PostAsync(
+            new Uri($"{Trust}/moderation/cases/{itemId}/review-request", UriKind.Relative), content: null);
 
     protected Task<HttpResponseMessage> EditAsync(Guid campaignId, string title) =>
         HttpClient.PutAsJsonAsync(
@@ -296,6 +321,14 @@ public abstract class CampaignTestBase<TFactory> : IdentityTestBase<TFactory>
         int SupporterCount);
 
     protected sealed record PageShape<T>(List<T> Items, string? NextCursor, bool HasMore);
+
+    protected sealed record CaseShape(
+        Guid ItemId,
+        string ContentId,
+        string? CurrentOutcome,
+        string SecondReview,
+        DateTimeOffset? AppealDeadline,
+        bool StaffInitiated);
 }
 
 /// <summary>

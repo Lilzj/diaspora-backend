@@ -225,3 +225,26 @@ public sealed class AlertModeratedMapHandler : DomainEventHandler<ModerationDeci
                 cancellationToken);
     }
 }
+
+/// <summary>
+/// The same for a decision on a Trust moderation case (7 Nov 2026), which records no Community
+/// decision of its own: a hidden or removed alert leaves the map, a restored one comes back.
+/// </summary>
+public sealed class AlertCaseModeratedMapHandler : DomainEventHandler<PostModeratedDomainEvent>
+{
+    private readonly AlertMapAnnouncer _announcer;
+
+    public AlertCaseModeratedMapHandler(AlertMapAnnouncer announcer) => _announcer = announcer;
+
+    protected override Task HandleAsync(PostModeratedDomainEvent domainEvent, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(domainEvent);
+
+        var kind = domainEvent.Status is PostStatus.Hidden or PostStatus.Removed
+            ? AlertChangeKinds.Removed
+            : AlertChangeKinds.Updated;
+
+        return _announcer.AnnounceAsync(
+            domainEvent.PostId, kind, "moderation", domainEvent.OccurredAt, cancellationToken);
+    }
+}

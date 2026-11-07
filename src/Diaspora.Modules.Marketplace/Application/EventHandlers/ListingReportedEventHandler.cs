@@ -2,6 +2,7 @@ using Diaspora.Application.Abstractions;
 using Diaspora.Modules.Marketplace.Domain.Enums;
 using Diaspora.Modules.Marketplace.Domain.Events;
 using Diaspora.Modules.Marketplace.Domain.Listings;
+using Diaspora.Modules.Marketplace.Domain.Reports;
 using Diaspora.Modules.Marketplace.Observability;
 using Diaspora.Modules.Marketplace.Options;
 using Diaspora.Platform.Services.Abstractions;
@@ -26,21 +27,29 @@ namespace Diaspora.Modules.Marketplace.Application.EventHandlers;
 /// The count is denormalised onto the listing so the queue can sort by it without a correlated
 /// count per row.
 /// </para>
+/// <para>
+/// <b>Every report also goes to Trust's moderation cases (7 Nov 2026)</b>, where staff decide it.
+/// The flag stays: it changes nothing in public, and the module's own queue still reads it. The
+/// reporter is read from the report row here and goes to Trust alone.
+/// </para>
 /// </summary>
 public sealed class ListingReportedEventHandler : DomainEventHandler<ListingReportedDomainEvent>
 {
     private readonly IMarketplaceListingRepository _listings;
+    private readonly IListingReportRepository _reports;
     private readonly MarketplaceIntegrationEventRelay _relay;
     private readonly IOptions<MarketplaceOptions> _options;
     private readonly IClock _clock;
 
     public ListingReportedEventHandler(
         IMarketplaceListingRepository listings,
+        IListingReportRepository reports,
         MarketplaceIntegrationEventRelay relay,
         IOptions<MarketplaceOptions> options,
         IClock clock)
     {
         _listings = listings;
+        _reports = reports;
         _relay = relay;
         _options = options;
         _clock = clock;
@@ -73,6 +82,13 @@ public sealed class ListingReportedEventHandler : DomainEventHandler<ListingRepo
         }
 
         await _relay.PublishAsync(domainEvent, flagged, cancellationToken);
+
+        var report = await _reports.GetAsync(domainEvent.ReportId, cancellationToken);
+
+        if (report is not null)
+        {
+            await _relay.PublishReportFiledAsync(domainEvent, report, cancellationToken);
+        }
     }
 
     /// <summary>
