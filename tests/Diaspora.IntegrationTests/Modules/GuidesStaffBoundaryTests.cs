@@ -15,8 +15,9 @@ namespace Diaspora.IntegrationTests.Modules;
 /// an administrator could rewrite, publish, archive or delete any member's guide through the very
 /// routes the author uses, with no report, no reason and no notice — and the guide's history would
 /// record the change as the author's own kind of edit. The owner's rule (7 Nov 2026) is that there
-/// are no support edits: staff take a guide off the shelves with <c>/hide</c>, put it back with
-/// <c>/unhide</c>, note why with <c>/moderation-notes</c> and place it with <c>/featured</c>.
+/// are no support edits: staff take a guide off the shelves and put it back only by deciding its
+/// Trust moderation case (the guides <c>/hide</c> and <c>/unhide</c> routes are gone since stage 5),
+/// note why with <c>/moderation-notes</c> and place it with <c>/featured</c>.
 /// </para>
 /// <para>
 /// Each refusal is checked twice: by the status code, and by reading the guide back as its author,
@@ -109,30 +110,80 @@ public sealed class GuidesStaffBoundaryTests : PooledIdentityTestBase
 
     // ── Moderation still works ──────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Staff take a member's guide down and put it back only through its Trust case (7 Nov 2026).
+    /// This test used the guides <c>/hide</c> and <c>/unhide</c> routes, which acted with no case, no
+    /// reason the author could read and no appeal; they are gone, and the same moderation now runs
+    /// as a case staff open, decide, and reopen when the author asks.
+    /// </summary>
     [Fact]
-    public async Task A_moderator_can_still_hide_and_unhide_a_members_guide()
+    public async Task A_moderator_can_still_hide_and_restore_a_members_guide_through_its_case()
     {
-        var (guideId, _) = await PublishedGuideAsync("Sending money home from Dubai");
+        var (guideId, author) = await PublishedGuideAsync("Sending money home from Dubai");
 
         await SignInAsRoleAsync("Moderator");
 
-        var hidden = await DataAsync(await HttpClient.PostAsJsonAsync(
-            $"{Root}/{guideId}/hide",
-            new { reason = "The exchange-rate advice is out of date and misleading." },
-            JsonOptions));
+        (await HttpClient.PostAsJsonAsync(
+                $"{Root}/{guideId}/hide", new { reason = "The old route." }, JsonOptions))
+            .StatusCode.Should().Be(HttpStatusCode.NotFound, "the guides hide route is gone");
 
-        hidden.GetProperty("moderationState").GetString().Should().Be("Hidden");
+        var opened = await HttpClient.PostAsJsonAsync(
+            "/api/v1/trust/moderation/cases",
+            new
+            {
+                contentType = "guide",
+                contentId = guideId,
+                reasonCode = "FalseOrMisleading",
+                note = "The exchange-rate advice is out of date and misleading."
+            },
+            JsonOptions);
+        opened.StatusCode.Should().Be(HttpStatusCode.Created, await opened.Content.ReadAsStringAsync());
+
+        var caseId = (await DataAsync(opened)).GetProperty("itemId").GetGuid();
+
+        (await HttpClient.PostAsync($"/api/v1/trust/moderation/queue/{caseId}/assign", content: null))
+            .EnsureSuccessStatusCode();
+
+        (await HttpClient.PostAsJsonAsync(
+                $"/api/v1/trust/moderation/queue/{caseId}/decision",
+                new
+                {
+                    outcome = "HidePendingReview",
+                    reasonCode = "FalseOrMisleading",
+                    note = "The exchange-rate advice is out of date and misleading."
+                },
+                JsonOptions))
+            .StatusCode.Should().Be(HttpStatusCode.OK);
 
         (await HttpClient.GetAsync($"{Root}/moderation/queue?moderationState=Hidden"))
             .StatusCode.Should().Be(HttpStatusCode.OK, "the queue is still readable by staff");
 
         // A moderator still sees what they are deciding about, hidden or not.
-        (await HttpClient.GetAsync($"{Root}/{guideId}"))
-            .StatusCode.Should().Be(HttpStatusCode.OK, "staff read visibility is unchanged");
+        var hidden = await ReadGuideAsync(guideId);
+        hidden.GetProperty("moderationState").GetString().Should().Be("Hidden", "Guides carried the hide out");
 
-        var restored = await DataAsync(
-            await HttpClient.PostAsync($"{Root}/{guideId}/unhide", content: null));
+        Api.Authenticate(author);
 
+        (await HttpClient.PostAsync($"/api/v1/trust/moderation/cases/{caseId}/review-request", content: null))
+            .StatusCode.Should().Be(HttpStatusCode.OK, "the author fixed it and asks for another look");
+
+        await SignInAsRoleAsync("Moderator");
+
+        (await HttpClient.PostAsync($"/api/v1/trust/moderation/queue/{caseId}/assign", content: null))
+            .EnsureSuccessStatusCode();
+
+        (await HttpClient.PostAsJsonAsync(
+                $"/api/v1/trust/moderation/queue/{caseId}/decision",
+                new
+                {
+                    outcome = "Restore",
+                    reasonCode = "Other",
+                    note = "The author updated the rates and named the source."
+                },
+                JsonOptions))
+            .StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var restored = await ReadGuideAsync(guideId);
         restored.GetProperty("moderationState").GetString().Should().Be("Clear");
     }
 

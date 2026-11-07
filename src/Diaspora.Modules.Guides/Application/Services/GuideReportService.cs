@@ -15,10 +15,11 @@ namespace Diaspora.Modules.Guides.Application.Services;
 /// <summary>
 /// Reporting a guide, delegated to Community — never a local aggregate.
 /// <para>
-/// Community's moderation workflow brings the reason catalogue, the duplicate rule, the
-/// auto-hide threshold, the append-only decision history and the appeal trail; a report table
-/// here would be a fifth definition of "resolved" on the platform. The moderation outcome
-/// flows back through the content-source seam and Community's published events.
+/// Community's reporting workflow brings the reason catalogue and the duplicate rule; a report
+/// table here would be a fifth definition of "resolved" on the platform. Community sends the
+/// report on to Trust as a moderation case about the guide (7 Nov 2026): staff decide there, the
+/// system hides the guide pending review on many serious reports, and
+/// <c>GuideModerationTarget</c> carries the decision out on the guide.
 /// </para>
 /// </summary>
 public sealed class GuideReportService

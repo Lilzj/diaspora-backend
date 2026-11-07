@@ -7,7 +7,6 @@ using Diaspora.Modules.Community.Domain.Moderation;
 using Diaspora.Modules.Community.Domain.Posts;
 using Diaspora.Modules.Community.Domain.ValueObjects;
 using Diaspora.Modules.Community.Extensibility.Content;
-using Diaspora.Modules.Community.Extensibility.Moderation;
 using Diaspora.Modules.Community.Integration;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Identity;
@@ -16,16 +15,20 @@ using Diaspora.SharedKernel.Results;
 namespace Diaspora.Modules.Community.Application.Services;
 
 /// <summary>
-/// Reporting, automatic policy, and moderator decisions.
+/// Reporting, and community moderators' decisions.
 /// <para>
-/// The whole moderation workflow in one service, so the four verticals that will consume it get
-/// the same duplicate rule, the same auto-hide threshold, the same append-only history and the
-/// same appeal trail rather than four approximations of each.
+/// One reporting workflow, so every module that takes reports through Community gets the same
+/// duplicate rule and the same append-only history rather than approximations of each.
 /// </para>
 /// <para>
-/// <b>Trust is consumed, never duplicated.</b> A report never adjusts a reputation here; it
-/// publishes an event and Trust decides what a pattern of upheld reports is worth. A decision
-/// of <c>suspend</c> is recorded and published, and Identity acts on it.
+/// <b>Staff decide on Trust's moderation case, not here (7 Nov 2026).</b> Every report filed here
+/// is also sent to Trust (<c>ContentReportFiledIntegrationEvent</c>), which keeps the one case per
+/// piece of content, hides it pending review on many serious reports, and carries a staff decision
+/// out through each module's <c>IModerationTarget</c>. The automatic hide on the tenth report and the
+/// staff route that decided on any module's content, which both acted with no reason the owner
+/// could read and no appeal, are gone. <see cref="DecideAsync"/> remains for the members who
+/// moderate their own community, through <see cref="PublisherReportQueue"/>, and only for
+/// Community's own posts and comments.
 /// </para>
 /// </summary>
 public sealed class ModerationService : ICommunityModerationService
@@ -35,8 +38,6 @@ public sealed class ModerationService : ICommunityModerationService
     private readonly ICommunityPostRepository _posts;
     private readonly ICommentRepository _comments;
     private readonly ContentReferenceResolver _references;
-    private readonly CommunityContentSourceRegistry _sources;
-    private readonly ModerationPipeline _pipeline;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
 
@@ -46,8 +47,6 @@ public sealed class ModerationService : ICommunityModerationService
         ICommunityPostRepository posts,
         ICommentRepository comments,
         ContentReferenceResolver references,
-        CommunityContentSourceRegistry sources,
-        ModerationPipeline pipeline,
         IUnitOfWork unitOfWork,
         IClock clock)
     {
@@ -56,8 +55,6 @@ public sealed class ModerationService : ICommunityModerationService
         _posts = posts;
         _comments = comments;
         _references = references;
-        _sources = sources;
-        _pipeline = pipeline;
         _unitOfWork = unitOfWork;
         _clock = clock;
     }
@@ -108,43 +105,23 @@ public sealed class ModerationService : ICommunityModerationService
             ReporterId = reporterId,
             Reason = reason,
             OpenReportCount = openCount,
-            ContentAuthorId = descriptor.AuthorId
+            ContentAuthorId = descriptor.AuthorId,
+            ContentTitle = descriptor.Title
         });
 
-        // The automatic policy runs on the way in, not on a timer. A tenth report has to hide
-        // content now; discovering it an hour later when a sweep runs is not moderation.
-        var review = await _moderation.GetLatestReviewAsync(content, cancellationToken);
-
-        var action = _pipeline.Decide(new ModerationSignal
-        {
-            Content = content,
-            AuthorId = descriptor.AuthorId,
-            OpenReportCount = openCount,
-            DominantReason = reason,
-            ReviewStatus = review?.Status ?? ContentReviewStatus.Pending,
-            ReviewFlags = review?.ParsedFlags ?? [],
-            ReviewConfidence = review?.Confidence ?? 0d,
-            CountryCode = descriptor.CountryCode
-        });
-
-        if (action is not null)
-        {
-            await ApplyAsync(
-                content,
-                action.Value,
-                ModerationSource.System,
-                null,
-                "Automatic: report threshold reached.",
-                descriptor,
-                cancellationToken);
-        }
-
+        // Nothing is hidden here any more, however many reports arrive: the report reaches Trust's
+        // case through ContentReportToTrustEventHandler, and the case hides it pending review on
+        // ten serious reports, as the system, with the owner told why (7 Nov 2026).
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return filed;
     }
 
-    /// <summary>Applies a moderator's decision, records it, and tells the owning module.</summary>
+    /// <summary>
+    /// Applies a community moderator's decision on one of Community's own posts or comments, and
+    /// records it. Staff decide on the Trust case instead; nothing here acts on another module's
+    /// content.
+    /// </summary>
     public async Task<Result<ModerationDecision>> DecideAsync(
         ContentReference content,
         ModerationActionType action,
@@ -206,8 +183,8 @@ public sealed class ModerationService : ICommunityModerationService
         ContentDescriptor descriptor,
         CancellationToken cancellationToken)
     {
-        var previous = "unknown";
-        var next = "unknown";
+        string previous;
+        string next;
 
         switch (content.Type)
         {
@@ -254,20 +231,10 @@ public sealed class ModerationService : ICommunityModerationService
             }
 
             default:
-            {
-                // Another module's content. Community records the decision and publishes it; the
-                // owning module hides its own row if it chose to implement that.
-                var owner = _sources.Find(content.Type);
-
-                if (owner is not null)
-                {
-                    await owner.ApplyModerationAsync(content.Id, action, cancellationToken);
-                }
-
-                previous = CommunityWireNames.ToWire(descriptor.Visibility);
-                next = CommunityWireNames.ToWire(action);
-                break;
-            }
+                // Another module's content is moderated through its own Trust case and
+                // IModerationTarget (7 Nov 2026). Recording a decision here that nothing carries
+                // out would tell the owner something happened that did not.
+                return Result.Failure<ModerationDecision>(CommunityErrors.ContentTypeUnsupported);
         }
 
         var decision = ModerationDecision.Record(

@@ -7,7 +7,7 @@ namespace Diaspora.Modules.Guides.Application.Engagement;
 /// Reports a guide to moderation.
 /// <para>
 /// The report goes to Community's workflow, and this module implements none of it — not the
-/// reason catalogue, not the duplicate rule, not the auto-hide threshold, not the appeal trail.
+/// reason catalogue, not the duplicate rule, not the moderation case the report opens in Trust.
 /// A second moderation queue in a second module is how a platform ends up with two answers to
 /// "has this been dealt with".
 /// </para>

@@ -809,38 +809,62 @@ public sealed class GuidesModuleTests : IdentityTestBase
 
     // ── Moderation ──────────────────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// A guide report reaches a Trust case, and a moderator's hide on the case takes the guide off
+    /// every public surface until a restore puts it back (7 Nov 2026). This test used the guides
+    /// <c>/hide</c> and <c>/unhide</c> routes, which are gone: staff act on a guide only through its
+    /// case now, and the author asks for the second look.
+    /// </summary>
     [Fact]
     public async Task A_moderator_can_take_a_guide_off_the_public_shelves_and_put_it_back()
     {
         var guide = await PublishNewGuideAsync(
             "Advice that turned out to be wrong", "legal", "NG");
+        var author = HttpClient.DefaultRequestHeaders.Authorization;
+
+        await ReportGuideAsAnotherMemberAsync(
+            guide.GuideId, "Misinformation", "The filing deadline it gives is a month late.");
+        await Factory.DrainOutboxAsync();
 
         var moderator = await AuthenticateAsStaffAsync("Moderator");
 
-        var hidden = await ReadDataAsync<GuideDto>(
-            await HttpClient.PostAsJsonAsync(
-                $"{Root}/{guide.GuideId}/hide",
-                new { reason = "The stated filing deadline is wrong and readers are missing it." },
-                JsonOptions));
+        var item = await GuideCaseAsync(guide.GuideId);
+        item.ReasonCode.Should().Be("FalseOrMisleading", "Community's misinformation is the platform's");
+        item.ReportCount.Should().Be(1, "the guide report reached the case through Community");
 
-        hidden.ModerationState.Should().Be(
-            "Hidden", "hiding is reversible removal, not a delete");
+        await AssignAsync(item.ItemId);
+
+        (await DecideAsync(item.ItemId, "HidePendingReview", "FalseOrMisleading",
+                "The stated filing deadline is wrong and readers are missing it."))
+            .StatusCode.Should().Be(HttpStatusCode.OK);
 
         await AssertStrangerCannotReadAsync(
             guide.GuideId, "a hidden guide is off every public surface");
 
         // A moderator can still see what they are deciding about — the one read in this module
         // that deliberately sees what nobody else does.
-        Api.Authenticate(moderator);
-
         var queue = await HttpClient.GetAsync($"{Root}/moderation/queue?moderationState=Hidden");
 
         queue.StatusCode.Should().Be(
             HttpStatusCode.OK, "the moderation queue is readable by the staff who work it");
 
-        var restored = await ReadDataAsync<GuideDto>(
-            await HttpClient.PostAsync($"{Root}/{guide.GuideId}/unhide", content: null));
+        var hidden = await ReadDataAsync<GuideDto>(await HttpClient.GetAsync($"{Root}/{guide.GuideId}"));
+        hidden.ModerationState.Should().Be("Hidden", "hiding is reversible removal, not a delete");
+        hidden.Status.Should().Be("Published", "the guide's own state is untouched");
 
+        HttpClient.DefaultRequestHeaders.Authorization = author;
+
+        (await HttpClient.PostAsync($"/api/v1/trust/moderation/cases/{item.ItemId}/review-request", content: null))
+            .StatusCode.Should().Be(HttpStatusCode.OK, "the author corrected it and asks for another look");
+
+        Api.Authenticate(moderator);
+        await AssignAsync(item.ItemId);
+
+        (await DecideAsync(item.ItemId, "Restore", "Other",
+                "The author corrected the deadline and cited the court rules."))
+            .StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var restored = await ReadDataAsync<GuideDto>(await HttpClient.GetAsync($"{Root}/{guide.GuideId}"));
         restored.ModerationState.Should().Be(
             "Clear", "lifting a hide restores exactly what was there");
 
@@ -848,6 +872,54 @@ public sealed class GuidesModuleTests : IdentityTestBase
             guide.GuideId, "the guide is back on the public shelves");
     }
 
+    /// <summary>
+    /// A removal on a guide's case is only a proposal until a second member of staff confirms it;
+    /// meanwhile, and after, the guide is hidden (7 Nov 2026).
+    /// </summary>
+    [Fact]
+    public async Task A_guide_removal_takes_effect_only_when_a_second_member_of_staff_confirms_it()
+    {
+        var guide = await PublishNewGuideAsync("Guaranteed visas through my agency", "immigration", "NG");
+
+        await ReportGuideAsAnotherMemberAsync(guide.GuideId, "Spam", "An advert for a paid visa agent.");
+        await Factory.DrainOutboxAsync();
+
+        await AuthenticateAsStaffAsync("Moderator");
+
+        var item = await GuideCaseAsync(guide.GuideId);
+        await AssignAsync(item.ItemId);
+
+        var proposed = await DecideAsync(item.ItemId, "Remove", "Spam",
+            "The guide is an advert for a paid visa agent, not advice.");
+        proposed.StatusCode.Should().Be(HttpStatusCode.OK, await proposed.Content.ReadAsStringAsync());
+
+        (await ReadDataAsync<GuideCaseDto>(proposed)).CurrentOutcome.Should().Be(
+            "HidePendingReview", "until a second member of staff confirms it, it is only hidden");
+
+        await AssertStrangerCannotReadAsync(guide.GuideId, "the guide is hidden while the removal waits");
+
+        await AuthenticateAsStaffAsync("Moderator");
+
+        var confirmed = await HttpClient.PostAsJsonAsync(
+            $"/api/v1/trust/moderation/queue/{item.ItemId}/second-review",
+            new { confirm = true, note = "Read the guide and the report. It is an advert." },
+            JsonOptions);
+        confirmed.StatusCode.Should().Be(HttpStatusCode.OK, await confirmed.Content.ReadAsStringAsync());
+
+        (await ReadDataAsync<GuideCaseDto>(confirmed)).CurrentOutcome.Should().Be("Remove");
+
+        var removed = await ReadDataAsync<GuideDto>(await HttpClient.GetAsync($"{Root}/{guide.GuideId}"));
+        removed.ModerationState.Should().Be("Hidden", "a guide has one take-down state, and a removal uses it");
+        removed.Status.Should().Be("Published", "a removal neither archives nor deletes the guide");
+
+        await AssertStrangerCannotReadAsync(guide.GuideId, "a removed guide stays off every public surface");
+    }
+
+    /// <summary>
+    /// Moderation is role-scoped, not tier-scoped. The guides hide route this test once called is
+    /// gone (7 Nov 2026); the only way to take a guide down is a Trust case, and an ordinary member
+    /// can neither open one nor decide one.
+    /// </summary>
     [Fact]
     public async Task An_ordinary_verified_member_cannot_hide_anybody_elses_guide()
     {
@@ -857,12 +929,22 @@ public sealed class GuidesModuleTests : IdentityTestBase
         Api.Authenticate(auth.Tokens.AccessToken);
 
         var response = await HttpClient.PostAsJsonAsync(
-            $"{Root}/{guide.GuideId}/hide", new { reason = "I disagree with it." }, JsonOptions);
+            "/api/v1/trust/moderation/cases",
+            new
+            {
+                contentType = "guide",
+                contentId = guide.GuideId,
+                reasonCode = "Other",
+                note = "I disagree with it, so it should go."
+            },
+            JsonOptions);
 
         // Moderation is role-scoped, not tier-scoped: a tier measures progression, a role grants
         // privilege, and no amount of verification buys this one.
         response.StatusCode.Should().Be(
-            HttpStatusCode.Forbidden, "guides:moderate is held by staff roles alone");
+            HttpStatusCode.Forbidden, "taking a guide down is held by staff roles alone");
+
+        await AssertStrangerCanReadAsync(guide.GuideId, "the refused attempt changed nothing");
     }
 
     // ── Outbox: B8 publishes through B1.1 rather than in process ─────────────────────────────
@@ -1077,6 +1159,30 @@ public sealed class GuidesModuleTests : IdentityTestBase
         return await ReadDataAsync<GuideDto>(response);
     }
 
+    /// <summary>A fresh verified member reports the guide, leaving the caller signed in as them.</summary>
+    private async Task ReportGuideAsAnotherMemberAsync(Guid guideId, string reason, string description)
+    {
+        var (_, reporter) = await RegisterVerifiedMemberAsync();
+        Api.Authenticate(reporter.Tokens.AccessToken);
+
+        var reported = await HttpClient.PostAsJsonAsync(
+            $"{Root}/{guideId}/report", new { reason, description }, JsonOptions);
+
+        reported.IsSuccessStatusCode.Should().BeTrue(await reported.Content.ReadAsStringAsync());
+    }
+
+    private async Task<GuideCaseDto> GuideCaseAsync(Guid guideId) =>
+        await ReadDataAsync<GuideCaseDto>(
+            await HttpClient.GetAsync($"/api/v1/trust/moderation/cases?contentType=guide&contentId={guideId}"));
+
+    private async Task AssignAsync(Guid itemId) =>
+        (await HttpClient.PostAsync($"/api/v1/trust/moderation/queue/{itemId}/assign", content: null))
+            .EnsureSuccessStatusCode();
+
+    private Task<HttpResponseMessage> DecideAsync(Guid itemId, string outcome, string reasonCode, string note) =>
+        HttpClient.PostAsJsonAsync(
+            $"/api/v1/trust/moderation/queue/{itemId}/decision", new { outcome, reasonCode, note }, JsonOptions);
+
     private static async Task<T> ReadDataAsync<T>(HttpResponseMessage response)
     {
         var body = await response.Content.ReadAsStringAsync();
@@ -1096,6 +1202,8 @@ public sealed class GuidesModuleTests : IdentityTestBase
     // ── Wire shapes, deliberately re-declared rather than referenced ─────────────────────────
 
     private sealed record Envelope<T>(T Data);
+
+    private sealed record GuideCaseDto(Guid ItemId, string? ReasonCode, int ReportCount, string? CurrentOutcome);
 
     private sealed record SectionInput(
         Guid SectionId, string Title, int Order, IReadOnlyList<BlockInput> Blocks);

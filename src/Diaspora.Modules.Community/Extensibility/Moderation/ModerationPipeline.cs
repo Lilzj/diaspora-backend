@@ -5,7 +5,7 @@ using Diaspora.Platform.Services.Abstractions;
 namespace Diaspora.Modules.Community.Extensibility.Moderation;
 
 /// <summary>
-/// Runs the registered review providers and policies.
+/// Runs the registered review providers.
 /// <para>
 /// Providers run in order and the <b>strictest answer wins</b> — a rejection beats a flag beats
 /// a clean. Not first-wins and not last-wins: with several classifiers registered, one of them
@@ -15,29 +15,24 @@ namespace Diaspora.Modules.Community.Extensibility.Moderation;
 /// With no provider registered the answer is <see cref="ContentReviewStatus.Unavailable"/>,
 /// never clean.
 /// </para>
+/// <para>
+/// <b>It decides nothing (7 Nov 2026).</b> The policy seam that turned a review or a report count
+/// into an automatic hide is gone, with the tenth-report hide it carried: content is hidden without
+/// a person only by Trust's moderation case, which records why and tells the owner.
+/// </para>
 /// </summary>
 public sealed class ModerationPipeline
 {
     private readonly List<IContentReviewProvider> _reviewers;
-    private readonly IReadOnlyList<IModerationPolicyProvider> _policies;
     private readonly IClock _clock;
 
-    public ModerationPipeline(
-        IEnumerable<IContentReviewProvider> reviewers,
-        IEnumerable<IModerationPolicyProvider> policies,
-        IClock clock)
+    public ModerationPipeline(IEnumerable<IContentReviewProvider> reviewers, IClock clock)
     {
         ArgumentNullException.ThrowIfNull(reviewers);
-        ArgumentNullException.ThrowIfNull(policies);
 
         _reviewers = reviewers
             .OrderBy(reviewer => reviewer.Order)
             .ThenBy(reviewer => reviewer.Name, StringComparer.Ordinal)
-            .ToList();
-
-        _policies = policies
-            .OrderBy(policy => policy.Order)
-            .ThenBy(policy => policy.GetType().FullName, StringComparer.Ordinal)
             .ToList();
 
         _clock = clock;
@@ -79,34 +74,6 @@ public sealed class ModerationPipeline
         return strictest!;
     }
 
-    /// <summary>
-    /// The action the policies agree on, or null. The strictest again — a policy that hides
-    /// beats one that says nothing, because a policy exists to be enforced.
-    /// </summary>
-    public ModerationActionType? Decide(ModerationSignal signal)
-    {
-        ArgumentNullException.ThrowIfNull(signal);
-
-        ModerationActionType? decision = null;
-
-        foreach (var policy in _policies)
-        {
-            var action = policy.Evaluate(signal);
-
-            if (action is null)
-            {
-                continue;
-            }
-
-            if (decision is null || ActionSeverity(action.Value) > ActionSeverity(decision.Value))
-            {
-                decision = action;
-            }
-        }
-
-        return decision;
-    }
-
     private static int Severity(ContentReviewStatus status) => status switch
     {
         ContentReviewStatus.Rejected => 4,
@@ -114,14 +81,5 @@ public sealed class ModerationPipeline
         ContentReviewStatus.Unavailable => 2,
         ContentReviewStatus.Clean => 1,
         _ => 0
-    };
-
-    private static int ActionSeverity(ModerationActionType action) => action switch
-    {
-        ModerationActionType.Reject => 5,
-        ModerationActionType.Suspend => 4,
-        ModerationActionType.Hide => 3,
-        ModerationActionType.Archive => 2,
-        _ => 1
     };
 }

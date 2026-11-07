@@ -49,16 +49,8 @@ public interface ICommunityContentSource
     Task<IReadOnlyDictionary<Guid, ContentDescriptor>> DescribeManyAsync(
         IReadOnlyCollection<Guid> contentIds, CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Applies a moderation outcome to the owning module's item.
-    /// <para>
-    /// Optional. Community always records the decision and publishes the event; a source that
-    /// overrides this <em>also</em> gets to hide its own row. The default does nothing, so a
-    /// module can adopt comments without adopting moderation on day one.
-    /// </para>
-    /// </summary>
-    Task ApplyModerationAsync(
-        Guid contentId,
-        ModerationActionType action,
-        CancellationToken cancellationToken = default) => Task.CompletedTask;
+    // ApplyModerationAsync is gone (7 Nov 2026). Community's staff decision route called it to act
+    // on another module's content with no reason and no notice, and the Guides override put the
+    // author down as the moderator. A module that wants staff to act on its content implements
+    // Diaspora.Contracts.Moderation.V1.IModerationTarget, and staff decide on the Trust case.
 }

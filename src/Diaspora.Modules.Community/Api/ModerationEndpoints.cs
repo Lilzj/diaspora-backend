@@ -63,18 +63,9 @@ internal static class ModerationEndpoints
             .WithName("GetCommunityModerationQueue")
             .WithSummary("Open reports, grouped by the content they are about.");
 
-        group.MapPost("/moderation/decisions", async (
-                ModerationDecisionRequest request,
-                ISender sender,
-                HttpContext context,
-                CancellationToken cancellationToken) =>
-                PlatformResults.Created(
-                    context,
-                    await sender.Send(
-                        new DecideModerationCommand { Request = request }, cancellationToken)))
-            .RequireAuthorization(CommunityPolicies.Moderate)
-            .WithName("DecideCommunityModeration")
-            .WithSummary("Decide a case. Recorded append-only and published.");
+        // POST /moderation/decisions is gone (7 Nov 2026). It let staff act on any module's content
+        // with the report and the reason optional, and no notice or appeal. Staff decide on the
+        // Trust moderation case now (/trust/moderation/...), which every report here reaches.
 
         group.MapGet("/moderation/history/{contentType}/{contentId:guid}", async (
                 string contentType,
