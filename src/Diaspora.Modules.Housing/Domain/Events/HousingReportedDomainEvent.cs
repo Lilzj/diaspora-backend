@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Housing.Domain.Events;
 /// <b>It deliberately carries no reporter identity.</b> The published contract that follows from
 /// it reaches whatever subscribes to the bus, and a member who reported a rental scam must never
 /// be identifiable to the person they reported. The reporter is on the report row, behind
-/// moderator authorisation, and nowhere else.
+/// moderator authorisation; the handler reads it from there for Trust's moderation case alone.
 /// </para>
 /// </summary>
 public sealed record HousingReportedDomainEvent : DomainEvent

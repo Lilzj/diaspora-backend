@@ -33,7 +33,10 @@ public enum PostStatus
     /// <summary>Hidden by moderation. Readable by the author and by staff.</summary>
     Hidden = 4,
 
-    /// <summary>Removed by moderation. Readable by staff only.</summary>
+    /// <summary>
+    /// Removed by moderation. Readable by its author, who may appeal, and by staff; nobody can
+    /// edit it.
+    /// </summary>
     Removed = 5,
 
     /// <summary>Deleted by the author. Soft-deleted; the row survives for moderation history.</summary>

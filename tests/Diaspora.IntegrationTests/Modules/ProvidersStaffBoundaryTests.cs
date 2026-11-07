@@ -8,14 +8,15 @@ using Xunit;
 namespace Diaspora.IntegrationTests.Modules;
 
 /// <summary>
-/// Staff act on a member's provider only through the staff routes.
+/// Staff act on a member's provider only by deciding its Trust moderation case.
 /// <para>
 /// <b>Until 7 Nov 2026 the provider owner check began with "if the caller is staff, allow".</b> A
 /// moderator could rewrite any business's description, contacts, prices, photos, services and
 /// hours, and move its status, through the owner's own routes. The console suspended providers
-/// through the owner's status route with an optional reason. The owner's routes now refuse staff,
-/// and staff suspend and reinstate through <c>POST /providers/moderation/{providerId}</c>, which
-/// requires a reason.
+/// through the owner's status route with an optional reason. The owner's routes now refuse staff.
+/// Stage 2 gave staff <c>POST /providers/moderation/{providerId}</c> to suspend and reinstate with a
+/// reason; stage 5 removed it, and staff now suspend and reinstate a provider only by deciding its
+/// Trust case, with a reason code and a note the owner's team is shown.
 /// </para>
 /// <para>
 /// Each refusal is asserted by its error code as well as its status, so a test cannot pass
@@ -26,6 +27,8 @@ namespace Diaspora.IntegrationTests.Modules;
 public sealed class ProvidersStaffBoundaryTests : PooledIdentityTestBase
 {
     private const string Root = "/api/v1/providers";
+
+    private const string Trust = "/api/v1/trust";
 
     private const string NotOwned = "providers.provider.not-owned";
 
@@ -90,65 +93,124 @@ public sealed class ProvidersStaffBoundaryTests : PooledIdentityTestBase
     }
 
     /// <summary>
-    /// What replaces it: a moderator suspends and reinstates through the moderation route, and a
-    /// reason is required every time. The suspension's reason is what the owner's team is shown.
+    /// What replaces it: a moderator suspends and reinstates through the provider's Trust case, with
+    /// a note every time. The note is the provider's status reason, which its team is shown. The
+    /// stage 2 staff route is gone.
     /// </summary>
     [Fact]
-    public async Task A_moderator_suspends_and_reinstates_through_the_moderation_route_with_a_reason()
+    public async Task A_moderator_suspends_and_reinstates_through_the_trust_case_with_a_note()
     {
         var provider = await ActiveProviderAsync("Lagos Cargo Shipping");
 
-        // A member cannot use the staff route, even on their own business.
+        // A member cannot open a staff case, even on their own business.
         var byOwner = await HttpClient.PostAsJsonAsync(
-            $"{Root}/moderation/{provider.ProviderId}",
-            new { action = "Reinstate", reason = "I would like to be reinstated." });
+            $"{Trust}/moderation/cases",
+            new
+            {
+                contentType = "provider",
+                contentId = provider.ProviderId,
+                reasonCode = "Other",
+                note = "I would like to open a case on myself."
+            });
         byOwner.StatusCode.Should().Be(HttpStatusCode.Forbidden);
 
         await SignInAsRoleAsync("Moderator");
 
-        var withoutReason = await HttpClient.PostAsJsonAsync(
-            $"{Root}/moderation/{provider.ProviderId}", new { action = "Suspend" });
-        withoutReason.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await withoutReason.Content.ReadAsStringAsync())
-            .Should().Contain("providers.moderation.reason-required");
+        (await HttpClient.PostAsJsonAsync(
+                $"{Root}/moderation/{provider.ProviderId}",
+                new { action = "Suspend", reason = "The stage 2 staff route." }))
+            .StatusCode.Should().BeOneOf(
+                new[] { HttpStatusCode.NotFound, HttpStatusCode.MethodNotAllowed }, "the old staff route is gone");
 
-        var blankReason = await HttpClient.PostAsJsonAsync(
-            $"{Root}/moderation/{provider.ProviderId}", new { action = "Suspend", reason = "   " });
-        blankReason.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var item = await OpenCaseAsync(provider.ProviderId, "FraudOrScam",
+            "Three customers report goods paid for and never delivered.");
+        await AssignAsync(item.ItemId);
+
+        var tooShort = await DecideAsync(item.ItemId, "HidePendingReview", "FraudOrScam", "Scam.");
+        tooShort.StatusCode.Should().Be(HttpStatusCode.BadRequest, "a note the owner can read is required");
+
+        var unknown = await DecideAsync(item.ItemId, "Delete", "FraudOrScam", "Not an outcome the platform has.");
+        unknown.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
         (await StatusOfAsync(provider.ProviderId)).Should().Be("Active", "a refused decision changes nothing");
 
-        var suspended = await HttpClient.PostAsJsonAsync(
-            $"{Root}/moderation/{provider.ProviderId}",
-            new { action = "Suspend", reason = "Three customers report goods never delivered." });
+        var suspended = await DecideAsync(item.ItemId, "HidePendingReview", "FraudOrScam",
+            "Three customers report goods never delivered.");
         suspended.StatusCode.Should().Be(HttpStatusCode.OK, await suspended.Content.ReadAsStringAsync());
 
-        var afterSuspension = await ReadDataAsync<ProviderShape>(suspended);
+        var afterSuspension = await ReadDataAsync<ProviderShape>(
+            await HttpClient.GetAsync($"{Root}/{provider.ProviderId}"));
         afterSuspension.Status.Should().Be("Suspended");
         afterSuspension.StatusReason.Should().Be("Three customers report goods never delivered.");
 
-        var unknown = await HttpClient.PostAsJsonAsync(
-            $"{Root}/moderation/{provider.ProviderId}", new { action = "Delete", reason = "No such verb." });
-        unknown.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        using (var anonymous = Factory.CreateClient())
+        {
+            (await anonymous.GetAsync($"{Root}/{provider.ProviderId}")).IsSuccessStatusCode
+                .Should().BeFalse("a suspended provider is off the public directory");
+        }
 
-        var reinstated = await HttpClient.PostAsJsonAsync(
-            $"{Root}/moderation/{provider.ProviderId}",
-            new { action = "Reinstate", reason = "Deliveries confirmed by the customers." });
+        // The owner asks for another look; a second moderator restores it.
+        Api.Authenticate(provider.OwnerToken);
+        (await HttpClient.PostAsync($"{Trust}/moderation/cases/{item.ItemId}/review-request", content: null))
+            .StatusCode.Should().Be(HttpStatusCode.OK, "the provider's primary owner is the case's owner");
+
+        await SignInAsRoleAsync("Moderator");
+        await AssignAsync(item.ItemId);
+
+        var reinstated = await DecideAsync(item.ItemId, "Restore", "Other",
+            "Deliveries confirmed by the customers.");
         reinstated.StatusCode.Should().Be(HttpStatusCode.OK, await reinstated.Content.ReadAsStringAsync());
 
-        (await ReadDataAsync<ProviderShape>(reinstated)).Status.Should().Be("Active");
+        var afterRestore = await ReadDataAsync<ProviderShape>(
+            await HttpClient.GetAsync($"{Root}/{provider.ProviderId}"));
+        afterRestore.Status.Should().Be("Active");
+        afterRestore.StatusReason.Should().BeNull("the suspension it explained is over");
 
-        // Reinstating what is not suspended is refused rather than answered with success.
-        var again = await HttpClient.PostAsJsonAsync(
-            $"{Root}/moderation/{provider.ProviderId}",
-            new { action = "Reinstate", reason = "Twice." });
-        again.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        // A case is decided once: restoring again is refused rather than answered with success.
+        (await DecideAsync(item.ItemId, "Restore", "Other", "Restoring it a second time."))
+            .StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    /// <summary>
+    /// A removal is a proposal until a second member of staff confirms it; the provider is
+    /// suspended throughout, and stays so with the case's outcome a removal.
+    /// </summary>
+    [Fact]
+    public async Task A_removal_takes_effect_only_when_a_second_member_of_staff_confirms_it()
+    {
+        var provider = await ActiveProviderAsync("Peckham Visa Advice");
+
+        await SignInAsRoleAsync("Moderator");
+
+        var item = await OpenCaseAsync(provider.ProviderId, "AsksForFees",
+            "Charges a fee up front for visa applications it never files.");
+        await AssignAsync(item.ItemId);
+
+        var proposed = await DecideAsync(item.ItemId, "Remove", "AsksForFees",
+            "Takes fees up front for applications it never files.");
+        proposed.StatusCode.Should().Be(HttpStatusCode.OK, await proposed.Content.ReadAsStringAsync());
+        (await ReadDataAsync<CaseShape>(proposed)).CurrentOutcome.Should().Be("HidePendingReview");
+
+        (await StatusOfAsync(provider.ProviderId)).Should().Be("Suspended", "suspended while the removal waits");
+
+        (await SecondReviewAsync(item.ItemId, confirm: true, "Agreeing with my own proposal, obviously."))
+            .StatusCode.Should().Be(HttpStatusCode.Forbidden, "nobody checks their own decision");
+
+        await SignInAsRoleAsync("Moderator");
+
+        var confirmed = await SecondReviewAsync(item.ItemId, confirm: true,
+            "Two clients sent receipts and the Home Office has no applications.");
+        confirmed.StatusCode.Should().Be(HttpStatusCode.OK, await confirmed.Content.ReadAsStringAsync());
+        (await ReadDataAsync<CaseShape>(confirmed)).CurrentOutcome.Should().Be("Remove");
+
+        (await StatusOfAsync(provider.ProviderId)).Should().Be("Suspended", "a removal is the suspension that stands");
     }
 
     /// <summary>
     /// The audit's escape: an archived provider may be published again, so an owner archived a
     /// suspended provider and then republished it, and was back in the directory without staff
-    /// lifting anything. Archiving a suspended provider is now refused; only staff end a suspension.
+    /// lifting anything. Archiving a suspended provider is refused; only staff end a suspension,
+    /// and since stage 5 the suspension comes from a decision on the Trust case.
     /// </summary>
     [Fact]
     public async Task An_owner_cannot_escape_a_suspension_by_archiving_and_republishing()
@@ -157,9 +219,11 @@ public sealed class ProvidersStaffBoundaryTests : PooledIdentityTestBase
 
         await SignInAsRoleAsync("Moderator");
 
-        (await HttpClient.PostAsJsonAsync(
-                $"{Root}/moderation/{provider.ProviderId}",
-                new { action = "Suspend", reason = "Unlicensed money transmission." }))
+        var item = await OpenCaseAsync(provider.ProviderId, "FraudOrScam",
+            "Moves money abroad without a money transmission licence.");
+        await AssignAsync(item.ItemId);
+
+        (await DecideAsync(item.ItemId, "HidePendingReview", "FraudOrScam", "Unlicensed money transmission."))
             .StatusCode.Should().Be(HttpStatusCode.OK);
 
         Api.Authenticate(provider.OwnerToken);
@@ -219,6 +283,30 @@ public sealed class ProvidersStaffBoundaryTests : PooledIdentityTestBase
         return new ActiveProvider(providerId, owner.Tokens.AccessToken);
     }
 
+    /// <summary>The signed-in moderator opens a case on the provider with no report.</summary>
+    private async Task<CaseShape> OpenCaseAsync(Guid providerId, string reasonCode, string note)
+    {
+        var opened = await HttpClient.PostAsJsonAsync(
+            $"{Trust}/moderation/cases",
+            new { contentType = "provider", contentId = providerId, reasonCode, note });
+
+        opened.StatusCode.Should().Be(HttpStatusCode.Created, await opened.Content.ReadAsStringAsync());
+
+        return await ReadDataAsync<CaseShape>(opened);
+    }
+
+    private async Task AssignAsync(Guid itemId) =>
+        (await HttpClient.PostAsync($"{Trust}/moderation/queue/{itemId}/assign", content: null))
+            .EnsureSuccessStatusCode();
+
+    private Task<HttpResponseMessage> DecideAsync(Guid itemId, string outcome, string reasonCode, string note) =>
+        HttpClient.PostAsJsonAsync(
+            $"{Trust}/moderation/queue/{itemId}/decision", new { outcome, reasonCode, note });
+
+    private Task<HttpResponseMessage> SecondReviewAsync(Guid itemId, bool confirm, string note) =>
+        HttpClient.PostAsJsonAsync(
+            $"{Trust}/moderation/queue/{itemId}/second-review", new { confirm, note });
+
     /// <summary>The provider's status as the signed-in caller reads it.</summary>
     private async Task<string> StatusOfAsync(Guid providerId) =>
         (await ReadDataAsync<ProviderShape>(await HttpClient.GetAsync($"{Root}/{providerId}"))).Status;
@@ -235,4 +323,6 @@ public sealed class ProvidersStaffBoundaryTests : PooledIdentityTestBase
     private sealed record Envelope<T>(T? Data);
 
     private sealed record ProviderShape(Guid ProviderId, string Status, string? StatusReason);
+
+    private sealed record CaseShape(Guid ItemId, Guid AuthorId, string? CurrentOutcome);
 }

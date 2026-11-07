@@ -4,12 +4,11 @@ using Diaspora.Modules.CommunityLife.Domain.Identifiers;
 using Diaspora.Modules.Community.Domain.Enums;
 using Diaspora.Modules.Community.Domain.ValueObjects;
 using Diaspora.Modules.Community.Extensibility.Content;
-using Diaspora.Platform.Services.Abstractions;
 
 namespace Diaspora.Modules.CommunityLife.Infrastructure.Community;
 
 /// <summary>
-/// Lets B6 describe and moderate an event that is being discussed, shared or reported in the feed.
+/// Lets B6 describe an event that is being discussed, shared or reported in the feed.
 /// <para>
 /// <b>This is the whole of B12's coupling to Community, and it points one way.</b> B6 holds a typed
 /// reference rather than a copy, so an event that is cancelled or hidden stops rendering in every
@@ -21,21 +20,18 @@ namespace Diaspora.Modules.CommunityLife.Infrastructure.Community;
 /// with no explanation, which reads as a bug rather than as a withdrawal.
 /// </para>
 /// <para>
-/// <b>Moderation from the feed is applied to the event itself.</b> A moderator hiding a post about a
-/// fraudulent event and leaving the event live would have moved the complaint rather than the
-/// problem.
+/// <b>Describes only; it no longer moderates (7 Nov 2026).</b> Its moderation hook hid, suspended
+/// and even archived the event on a Community decision, recording nobody as the moderator and a
+/// stock sentence as the reason. Staff now act on an event only through its Trust case, carried
+/// out by
+/// <c>CommunityEventModerationTarget</c> with the real moderator and their note.
 /// </para>
 /// </summary>
 public sealed class CommunityEventContentSource : ICommunityContentSource
 {
     private readonly ICommunityEventRepository _events;
-    private readonly IClock _clock;
 
-    public CommunityEventContentSource(ICommunityEventRepository events, IClock clock)
-    {
-        _events = events;
-        _clock = clock;
-    }
+    public CommunityEventContentSource(ICommunityEventRepository events) => _events = events;
 
     public CommunityContentType ContentType => CommunityContentType.Event;
 
@@ -84,49 +80,6 @@ public sealed class CommunityEventContentSource : ICommunityContentSource
         }
 
         return described;
-    }
-
-    public async Task ApplyModerationAsync(
-        Guid contentId,
-        ModerationActionType action,
-        CancellationToken cancellationToken = default)
-    {
-        var communityEvent = await _events.GetIncludingDeletedAsync(
-            CommunityEventId.From(contentId), cancellationToken);
-
-        if (communityEvent is null)
-        {
-            return;
-        }
-
-        var now = _clock.UtcNow;
-
-        switch (action)
-        {
-            case ModerationActionType.Hide:
-            case ModerationActionType.Reject:
-                communityEvent.Hide("Moderated from the community feed.", null, now);
-                break;
-
-            case ModerationActionType.Suspend:
-                communityEvent.Suspend("Suspended from the community feed.", null, now);
-                break;
-
-            case ModerationActionType.Approve:
-            case ModerationActionType.Restore:
-                communityEvent.Clear(null, now);
-                break;
-
-            case ModerationActionType.Archive:
-                communityEvent.Archive(now, null, "Archived from the community feed.");
-                break;
-
-            default:
-                // Pinning and unpinning are facts about a post, not about the event it mentions.
-                return;
-        }
-
-        _events.Update(communityEvent);
     }
 
     private static ContentDescriptor Describe(CommunityEvent communityEvent) =>

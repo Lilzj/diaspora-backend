@@ -208,30 +208,36 @@ public sealed class MediaAssetTests
     }
 
     [Fact]
-    public void A_file_is_not_withheld_or_removed_without_a_reason()
+    public void A_file_is_not_withheld_without_a_reason()
     {
         var asset = Record()!;
 
         asset.Withhold("  ").Error.Code.Should().Be(MediaErrorCodes.ModerationReasonRequired);
-        asset.Remove(UserId.New(), "").Error.Code.Should().Be(MediaErrorCodes.ModerationReasonRequired);
 
         asset.Status.Should().Be(MediaAssetStatus.Pending);
     }
 
+    /// <summary>
+    /// <b>Changed by design (stage 5, 7 Nov 2026).</b> A staff removal used to soft-delete the file,
+    /// which started the byte sweeper and made a removal impossible to reverse on appeal. A removal
+    /// is now a decision on a Trust case, carried out as a withhold: the row and the bytes stay, the
+    /// reason is kept, and nothing announces a deletion.
+    /// </summary>
     [Fact]
-    public void A_removed_file_is_deleted_by_the_moderator_with_the_reason_kept()
+    public void A_removed_file_is_withheld_with_the_reason_kept_and_is_not_deleted()
     {
-        var asset = Record()!;
-        var moderator = UserId.New();
+        var asset = Ready();
         asset.ClearDomainEvents();
 
-        asset.Remove(moderator, "Copyrighted photograph, owner complained.").IsSuccess.Should().BeTrue();
+        asset.Withhold("Copyrighted photograph, owner complained.").IsSuccess.Should().BeTrue();
 
-        asset.Status.Should().Be(MediaAssetStatus.Deleted);
+        asset.Status.Should().Be(MediaAssetStatus.Quarantined);
+        asset.IsDeleted.Should().BeFalse();
         asset.FailureReason.Should().Be("Copyrighted photograph, owner complained.");
-        asset.DomainEvents.Should().ContainSingle()
-            .Which.Should().BeOfType<MediaAssetDeletedDomainEvent>()
-            .Which.DeletedBy.Should().Be(moderator);
+        asset.DomainEvents.OfType<MediaAssetDeletedDomainEvent>().Should().BeEmpty();
+
+        typeof(MediaAsset).GetMethod("Remove").Should().BeNull(
+            "there is no staff deletion: a decision withholds, and only the uploader deletes");
     }
 
     // ── Access ───────────────────────────────────────────────────────────

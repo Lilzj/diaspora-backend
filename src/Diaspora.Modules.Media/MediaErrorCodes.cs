@@ -30,7 +30,7 @@ public static class MediaErrorCodes
     // Moderation
     public const string ModerationReasonRequired = "media.moderation.reason-required";
     public const string ModerationActionUnknown = "media.moderation.action-unknown";
-    public const string ModerationOfOwnFile = "media.moderation.own-file";
+    public const string WithheldByModeration = "media.moderation.withheld";
 
     // Upload lifecycle
     public const string UploadSessionNotFound = "media.upload.not-found";

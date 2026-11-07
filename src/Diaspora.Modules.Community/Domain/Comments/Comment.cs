@@ -281,6 +281,46 @@ public sealed class Comment : AggregateRoot<CommentId>, IAuditableEntity
         return Result.Success();
     }
 
+    // ── Decisions on a Trust moderation case (7 Nov 2026) ───────────────────────────────────
+    //
+    // Staff act on a member's comment only by deciding its Trust case. A removal here raises no
+    // CommentRemovedDomainEvent, which would take back what the comment earned before the decision
+    // stands; it tombstones the comment in its thread, which says that much and no more.
+
+    /// <summary>Takes the comment out of its thread while the author can ask for a review.</summary>
+    public Result HidePendingReview() => MoveByModeration(CommentStatus.Hidden);
+
+    /// <summary>Tombstones the comment until an appeal succeeds. Not a deletion.</summary>
+    public Result RemoveByModeration() => MoveByModeration(CommentStatus.Removed);
+
+    /// <summary>
+    /// Puts a hidden or removed comment back, still flagged as reported if reports on it are open.
+    /// </summary>
+    public Result RestoreFromModeration() =>
+        Status is CommentStatus.Hidden or CommentStatus.Removed
+            ? MoveByModeration(ReportCount > 0 ? CommentStatus.Reported : CommentStatus.Active)
+            : Result.Success();
+
+    /// <summary>
+    /// A case found nothing wrong: the automatic "reported" flag comes off. The report count is left
+    /// to the reports themselves, which the decision dismisses.
+    /// </summary>
+    public Result ClearReportedFlag() =>
+        Status is CommentStatus.Reported ? MoveByModeration(CommentStatus.Active) : Result.Success();
+
+    private Result MoveByModeration(CommentStatus to)
+    {
+        // The author deleted it: there is nothing left to take down or to put back.
+        if (Status is CommentStatus.Deleted || IsDeleted)
+        {
+            return Result.Failure(CommunityErrors.CommentNotEditable);
+        }
+
+        Status = to;
+
+        return Result.Success();
+    }
+
     /// <summary>
     /// Marks the comment deleted by its author.
     /// <para>

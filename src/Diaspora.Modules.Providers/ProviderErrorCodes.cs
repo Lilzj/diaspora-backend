@@ -38,9 +38,6 @@ public static class ProviderErrorCodes
     public const string ProviderRemoved = "providers.provider.removed";
 
     public const string ProviderNotFeaturable = "providers.provider.not-featurable";
-    public const string ProviderNotSuspended = "providers.provider.not-suspended";
-
-    public const string ModerationReasonRequired = "providers.moderation.reason-required";
 
     public const string ProfileTaglineTooLong = "providers.profile.tagline-too-long";
     public const string ProfileMissionTooLong = "providers.profile.mission-too-long";

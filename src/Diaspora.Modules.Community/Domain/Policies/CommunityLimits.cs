@@ -59,18 +59,6 @@ public static class CommunityLimits
     /// <summary>Revisions kept per post. Older ones are pruned oldest-first.</summary>
     public const int MaxRevisionsRetained = 50;
 
-    /// <summary>
-    /// Open reports on one piece of content before it is auto-hidden pending review.
-    /// <para>
-    /// A blunt instrument, and known to be one: it is also a brigading vector, since a
-    /// coordinated group reaching this number can hide anything. It is set high enough to be
-    /// expensive to organise, the auto-hide is reversible by one moderator action, and the
-    /// alternative — leaving genuinely harmful content up until a human is available — is worse
-    /// in the cases that matter most.
-    /// </para>
-    /// </summary>
-    public const int AutoHideReportThreshold = 10;
-
     /// <summary>How long an author may edit a post before edits are marked publicly.</summary>
     public static readonly TimeSpan SilentEditWindow = TimeSpan.FromMinutes(5);
 

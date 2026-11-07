@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Routing;
 namespace Diaspora.Modules.CommunityLife.Api;
 
 /// <summary>
-/// Reporting and the moderation queue.
+/// Reporting, and the list of reports. Staff decide on a report only through its Trust case.
 /// <para>
 /// <b>The subject type is in the route rather than the body.</b> Reporting an event and reporting an
 /// organization are the same act with the same shape, and a client that had to know which command to
@@ -44,26 +44,6 @@ internal static class CommunityLifeModerationEndpoints
             .WithName("ReportCommunityLifeSubject")
             .WithSummary("Reports an event or an organization.");
 
-        group.MapPost("/{subjectType}/{subjectId:guid}/moderation", async (
-                string subjectType,
-                Guid subjectId,
-                ModerateSubjectRequest request,
-                ISender sender,
-                HttpContext context,
-                CancellationToken cancellationToken) =>
-                PlatformResults.Ok(
-                    context,
-                    await sender.Send(
-                        new ModerateSubjectCommand
-                        {
-                            SubjectType = ToSubjectType(subjectType),
-                            SubjectId = subjectId,
-                            Request = request
-                        },
-                        cancellationToken)))
-            .WithName("ModerateCommunityLifeSubject")
-            .WithSummary("Hides, suspends or clears a subject. Staff only.");
-
         group.MapGet("/reports", async (
                 [FromQuery] string? subjectType,
                 [FromQuery(Name = "status")] string[]? statuses,
@@ -84,21 +64,12 @@ internal static class CommunityLifeModerationEndpoints
                         },
                         cancellationToken)))
             .WithName("ListCommunityLifeReports")
-            .WithSummary("The moderation queue. Staff only.");
+            .WithSummary("The reports members filed, and how each was closed. Staff only.");
 
-        group.MapPost("/reports/{reportId:guid}/resolution", async (
-                Guid reportId,
-                ResolveReportRequest request,
-                ISender sender,
-                HttpContext context,
-                CancellationToken cancellationToken) =>
-                PlatformResults.Ok(
-                    context,
-                    await sender.Send(
-                        new ResolveReportCommand { ReportId = reportId, Request = request },
-                        cancellationToken)))
-            .WithName("ResolveCommunityLifeReport")
-            .WithSummary("Closes a report, optionally acting on its subject. Staff only.");
+        // Hiding, suspending or clearing an event or an organization, and closing a report with an
+        // action, were staff actions here until 7 Nov 2026. They now happen only as decisions on the
+        // Trust moderation case (/trust/moderation/queue/{id}/decision), which carries the decision
+        // out through the module's moderation targets and closes these reports.
     }
 
     /// <summary>

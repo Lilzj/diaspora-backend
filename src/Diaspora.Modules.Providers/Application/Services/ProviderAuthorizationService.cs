@@ -19,8 +19,8 @@ namespace Diaspora.Modules.Providers.Application.Services;
 /// <b>Staff never pass the owner check (7 Nov 2026).</b> A moderator or an administrator who is
 /// not a member of a provider cannot edit its profile, contacts, prices, photos, services or
 /// hours, or move its status, through the owner's routes. Staff act on a provider only through
-/// the staff routes: <c>POST /providers/moderation/{providerId}</c> to suspend or reinstate, with
-/// a reason, and <c>PUT /providers/{providerId}/featured</c> for the carousel. Before this,
+/// a decision on its Trust moderation case to suspend or reinstate it, with a reason and a note,
+/// and <c>PUT /providers/{providerId}/featured</c> for the carousel. Before this,
 /// <see cref="RequireRole"/> began with "if the caller is staff, allow", so any moderator could
 /// rewrite a member's business with no report, no reason and no word to the owner.
 /// </para>

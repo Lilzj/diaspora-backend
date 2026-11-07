@@ -212,6 +212,9 @@ public sealed class MediaModule : IPlatformModule
         services.AddScoped<MediaMapper>();
         services.AddScoped<UploadMapper>();
         services.AddScoped<CollectionMapper>();
+
+        // A member's file, as Trust's moderation cases see it: the only way staff take one down.
+        services.AddScoped<Diaspora.Contracts.Moderation.V1.IModerationTarget, Infrastructure.Moderation.MediaModerationTarget>();
     }
 
     /// <summary>

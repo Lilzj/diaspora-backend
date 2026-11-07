@@ -143,6 +143,26 @@ public sealed class CommunityLifeReport
             createdAt));
     }
 
+    /// <summary>
+    /// Announces the report, carrying the running count rather than the reporter.
+    /// <para>
+    /// Separate from <see cref="File"/> because the count is not known until the row exists. Nothing
+    /// raised this until 7 Nov 2026, so the handlers waiting for it never ran and no report reached
+    /// Trust; the reporter is read from this row by the handler that sends it to the case, never
+    /// carried on the event.
+    /// </para>
+    /// </summary>
+    public void Announce(int totalReports, DateTimeOffset at) =>
+        RaiseDomainEvent(new Events.CommunityLifeReportedDomainEvent
+        {
+            ReportId = Id,
+            SubjectType = SubjectType,
+            SubjectId = SubjectId,
+            Reason = Reason,
+            TotalReports = totalReports,
+            ReportedAt = at
+        });
+
     /// <summary>A moderator picks it up.</summary>
     public Result Claim(UserId moderatorId, DateTimeOffset now)
     {
@@ -159,11 +179,12 @@ public sealed class CommunityLifeReport
     }
 
     /// <summary>
-    /// Records the moderator's decision.
+    /// Records the decision on the report.
     /// <para>
-    /// The action taken against the subject is applied by the handler, not here: hiding an event and
-    /// deciding a report are two different writes against two different aggregates, and folding them
-    /// together would make this type know how to moderate.
+    /// Since 7 Nov 2026 the decision is made on the Trust case and the report is closed from the
+    /// decision event, by <c>CommunityLifeModerationActionTakenConsumer</c>. What happens to the
+    /// subject is carried out separately by the module's moderation targets: hiding an event and
+    /// closing a report are two writes against two aggregates.
     /// </para>
     /// </summary>
     public Result Resolve(

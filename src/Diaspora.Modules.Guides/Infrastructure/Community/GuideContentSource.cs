@@ -71,57 +71,6 @@ public sealed class GuideContentSource : ICommunityContentSource
         return described;
     }
 
-    /// <summary>
-    /// Applies a moderation outcome to the guide itself.
-    /// <para>
-    /// Optional on the interface, and implemented here because a moderator hiding a guide's
-    /// comments and leaving the guide itself in discovery is a half-measure that satisfies
-    /// nobody. Community records the decision and publishes its event either way; this is B8
-    /// acting on its own row, which only B8 can do.
-    /// </para>
-    /// <para>
-    /// The caller is Community's own moderation pipeline, which owns the unit of work — this
-    /// mutates the aggregate and does not save.
-    /// </para>
-    /// </summary>
-    public async Task ApplyModerationAsync(
-        Guid contentId,
-        ModerationActionType action,
-        CancellationToken cancellationToken = default)
-    {
-        var guide = await _guides.GetAsync(GuideId.From(contentId), cancellationToken);
-
-        if (guide is null)
-        {
-            return;
-        }
-
-        var now = DateTimeOffset.UtcNow;
-
-        switch (action)
-        {
-            case ModerationActionType.Hide:
-            case ModerationActionType.Suspend:
-                guide.Hide("Hidden following moderation.", guide.AuthorId, now);
-                break;
-
-            case ModerationActionType.Restore:
-            case ModerationActionType.Approve:
-                guide.Unhide();
-                break;
-
-            case ModerationActionType.Archive:
-            case ModerationActionType.Reject:
-                guide.Archive(now);
-                break;
-
-            default:
-                // Pin, Unpin and Escalate say nothing about a guide's lifecycle. Community has
-                // already recorded them; there is nothing for B8 to do.
-                break;
-        }
-    }
-
     private static ContentDescriptor Describe(Guide guide) => new()
     {
         Reference = ContentReference.Create(CommunityContentType.Guide, guide.Id.Value),

@@ -16,7 +16,8 @@ namespace Diaspora.Modules.Marketplace.Api;
 /// <para>
 /// <b>Reporting is the one route here a member can reach</b>, and it sits at the low permission
 /// floor and survives a restriction — because a restriction that silenced the person best placed to
-/// flag a scam would be the platform working against itself. Everything else is staff.
+/// flag a scam would be the platform working against itself. Everything else is staff, and none of
+/// it acts on a member's listing: that is a Trust moderation case's decision.
 /// </para>
 /// </summary>
 internal static class MarketplaceModerationEndpoints
@@ -63,50 +64,11 @@ internal static class MarketplaceModerationEndpoints
             .WithName("ListMarketplaceModerationQueue")
             .WithSummary("The marketplace moderation queue.");
 
-        group.MapPost("/moderation/listings/{listingId:guid}", async (
-                Guid listingId,
-                [FromBody] ModerateListingRequest request,
-                ISender sender,
-                HttpContext context,
-                CancellationToken cancellationToken) =>
-                PlatformResults.Ok(
-                    context,
-                    await sender.Send(
-                        new ModerateListingCommand { ListingId = listingId, Request = request },
-                        cancellationToken)))
-            .RequireAuthorization(MarketplacePolicies.Moderate)
-            .WithName("ModerateMarketplaceListing")
-            .WithSummary("Flag, hide, suspend, restore or annotate a listing.");
-
-        group.MapPost("/moderation/reports/{reportId:guid}", async (
-                Guid reportId,
-                [FromBody] ResolveReportRequest request,
-                ISender sender,
-                HttpContext context,
-                CancellationToken cancellationToken) =>
-                PlatformResults.Ok(
-                    context,
-                    await sender.Send(
-                        new ResolveReportCommand { ReportId = reportId, Request = request },
-                        cancellationToken)))
-            .RequireAuthorization(MarketplacePolicies.Moderate)
-            .WithName("ResolveMarketplaceReport")
-            .WithSummary("Close a report, upheld or not.");
-
-        group.MapPost("/moderation/sellers/{sellerId:guid}", async (
-                Guid sellerId,
-                [FromBody] SuspendSellerRequest request,
-                ISender sender,
-                HttpContext context,
-                CancellationToken cancellationToken) =>
-                PlatformResults.Ok(
-                    context,
-                    await sender.Send(
-                        new SuspendSellerCommand { SellerId = sellerId, Request = request },
-                        cancellationToken)))
-            .RequireAuthorization(MarketplacePolicies.Moderate)
-            .WithName("SuspendMarketplaceSeller")
-            .WithSummary("Bar a seller from trading, or let them back.");
+        // Hiding, suspending and restoring a listing, closing a report and suspending a seller were
+        // actions here until 7 Nov 2026. A listing is now decided only on the Trust moderation case
+        // (/trust/moderation/queue/{id}/decision), which carries the decision out through
+        // MarketplaceListingModerationTarget and closes these reports. Seller suspension, a staff
+        // action on a member with no case at all, waits for the strikes that replace it.
 
         group.MapGet("/moderation/trends", async (
                 [FromQuery] string? groupBy,

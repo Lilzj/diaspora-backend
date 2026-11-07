@@ -14,7 +14,8 @@ public sealed record GuideHiddenDomainEvent : DomainEvent
 {
     public required GuideId GuideId { get; init; }
 
-    public required UserId ModeratorId { get; init; }
+    /// <summary>The member of staff who decided the case. Null when the system hid it.</summary>
+    public UserId? ModeratorId { get; init; }
 
     public required string Reason { get; init; }
 

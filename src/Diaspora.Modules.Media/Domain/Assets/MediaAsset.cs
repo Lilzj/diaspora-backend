@@ -289,7 +289,8 @@ public sealed class MediaAsset : AggregateRoot<MediaId>, IAuditableEntity, ISoft
     }
 
     /// <summary>
-    /// Staff release from quarantine: a scanner's false positive, or a moderator's withhold lifted.
+    /// Staff release from quarantine: a scanner's false positive, or a moderation withhold lifted by
+    /// a restore on its case.
     /// <para>
     /// <b>Only a scanner's verdict is overruled.</b> When the scanner put the file here, the release
     /// is a person's call that it was a false positive, recorded as a clean result under their name.
@@ -316,13 +317,17 @@ public sealed class MediaAsset : AggregateRoot<MediaId>, IAuditableEntity, ISoft
     }
 
     /// <summary>
-    /// Staff take-down: withholds the file from everyone, on a moderator's decision.
+    /// Staff take-down: withholds the file from everyone, on a moderation decision.
     /// <para>
     /// <b>The quarantine floor, reached by a person instead of a scanner.</b> The bytes are served
     /// to nobody — the guard's state check runs before every credential, signed links included —
-    /// and the file joins the quarantine queue, where the existing release route is how it comes
+    /// and the file joins the quarantine queue. A restore on its moderation case is how it comes
     /// back. The scan verdict is left alone, because it is a fact about malware and this is not a
-    /// finding about malware; visibility is left alone, so a release puts the file back as it was.
+    /// finding about malware; visibility is left alone, so a restore puts the file back as it was.
+    /// </para>
+    /// <para>
+    /// <b>Both a hide and a removal end here (7 Nov 2026).</b> A decision never deletes a file: a
+    /// deletion starts the byte sweeper, and a removal has to be reversible on appeal.
     /// </para>
     /// <para>
     /// <b>The reason is the record.</b> It is kept in <see cref="FailureReason"/>, the field this
@@ -346,33 +351,6 @@ public sealed class MediaAsset : AggregateRoot<MediaId>, IAuditableEntity, ISoft
         FailureReason = Truncate(reason, MaxCaptionLength);
 
         return Result.Success();
-    }
-
-    /// <summary>
-    /// Staff removal: deletes the file on a moderator's decision, with the reason kept on the row.
-    /// <para>
-    /// The same soft delete a member's own deletion is — the row survives for the record and the
-    /// bytes go on the sweeper's schedule — with the moderator as the one who deleted it and the
-    /// reason in <see cref="FailureReason"/>.
-    /// </para>
-    /// </summary>
-    public Result Remove(UserId removedBy, string reason)
-    {
-        ArgumentNullException.ThrowIfNull(removedBy);
-
-        if (string.IsNullOrWhiteSpace(reason))
-        {
-            return Result.Failure(MediaErrors.ModerationReasonRequired);
-        }
-
-        if (Status is MediaAssetStatus.Deleted)
-        {
-            return Result.Failure(MediaErrors.AssetDeleted);
-        }
-
-        FailureReason = Truncate(reason, MaxCaptionLength);
-
-        return Delete(removedBy);
     }
 
     public Result Delete(UserId deletedBy)

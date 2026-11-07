@@ -15,8 +15,9 @@ namespace Diaspora.IntegrationTests.Modules;
 /// allow".</b> A moderator could rewrite, publish, cancel, archive or delete anybody's event or
 /// organization, remove its members and hand out its Owner role — and a staff cancellation told
 /// every attendee the organiser had called it off. The owner's rule (7 Nov 2026) is that there are
-/// no support edits: staff hide, suspend or clear a subject through <c>/moderation</c>, decide
-/// reports through <c>/reports</c>, and place subjects through <c>/featured</c>.
+/// no support edits: staff hide, remove or restore a subject only by deciding its Trust moderation
+/// case (since stage 5; the module's own <c>/moderation</c> and report-resolution routes are gone),
+/// and place subjects through <c>/featured</c>.
 /// </para>
 /// <para>
 /// A member of staff who genuinely belongs to an organization is treated as what they are there:
@@ -96,11 +97,8 @@ public sealed class CommunityLifeStaffBoundaryTests : PooledIdentityTestBase
 
         await SignInAsRoleAsync("Moderator");
 
-        (await HttpClient.PostAsJsonAsync(
-                $"{Root}/events/{eventId}/moderation",
-                new { action = "Hidden", reason = "Collecting deposits for a hall nobody booked." },
-                JsonOptions))
-            .StatusCode.Should().Be(HttpStatusCode.OK, "the moderation route is how staff act");
+        (await HideThroughCaseAsync("event", eventId, "Collecting deposits for a hall nobody booked."))
+            .StatusCode.Should().Be(HttpStatusCode.OK, "a decision on the Trust case is how staff act");
 
         using (var anonymous = Factory.CreateClient())
         {
@@ -186,11 +184,8 @@ public sealed class CommunityLifeStaffBoundaryTests : PooledIdentityTestBase
 
         await SignInAsRoleAsync("Moderator");
 
-        (await HttpClient.PostAsJsonAsync(
-                $"{Root}/organizations/{organizationId}/moderation",
-                new { action = "Hidden", reason = "The page impersonates a registered charity." },
-                JsonOptions))
-            .StatusCode.Should().Be(HttpStatusCode.OK, "the moderation route is how staff act");
+        (await HideThroughCaseAsync("organization", organizationId, "The page impersonates a registered charity."))
+            .StatusCode.Should().Be(HttpStatusCode.OK, "a decision on the Trust case is how staff act");
 
         // A hidden, unpublished page used to resolve for staff only because staff passed the
         // owner check. It must still resolve for them now that they do not.
@@ -319,6 +314,28 @@ public sealed class CommunityLifeStaffBoundaryTests : PooledIdentityTestBase
             JsonOptions));
 
         return (created.GetProperty("organizationId").GetGuid(), owner.Tokens.AccessToken);
+    }
+
+    /// <summary>
+    /// What replaced the module's own moderation route (stage 5): the signed-in moderator opens a
+    /// case on the subject with no report, takes it, and decides a hide pending review.
+    /// </summary>
+    private async Task<HttpResponseMessage> HideThroughCaseAsync(string contentType, Guid contentId, string note)
+    {
+        var opened = await DataAsync(await HttpClient.PostAsJsonAsync(
+            "/api/v1/trust/moderation/cases",
+            new { contentType, contentId, reasonCode = "FraudOrScam", note },
+            JsonOptions));
+
+        var itemId = opened.GetProperty("itemId").GetGuid();
+
+        (await HttpClient.PostAsync($"/api/v1/trust/moderation/queue/{itemId}/assign", content: null))
+            .EnsureSuccessStatusCode();
+
+        return await HttpClient.PostAsJsonAsync(
+            $"/api/v1/trust/moderation/queue/{itemId}/decision",
+            new { outcome = "HidePendingReview", reasonCode = "FraudOrScam", note },
+            JsonOptions);
     }
 
     private static async Task<JsonElement> DataAsync(HttpResponseMessage response)

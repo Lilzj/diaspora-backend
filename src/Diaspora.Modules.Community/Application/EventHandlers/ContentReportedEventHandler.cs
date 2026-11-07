@@ -2,7 +2,6 @@ using Diaspora.Application.Abstractions;
 using Diaspora.Contracts.Community.V1.Events;
 using Diaspora.Modules.Community.Application.Services;
 using Diaspora.Modules.Community.Domain.Events;
-using Diaspora.Modules.Community.Domain.Policies;
 using Diaspora.Modules.Community.Observability;
 
 namespace Diaspora.Modules.Community.Application.EventHandlers;
@@ -12,7 +11,8 @@ namespace Diaspora.Modules.Community.Application.EventHandlers;
 /// <para>
 /// Trust subscribes to this rather than B6 adjusting a reputation. Deciding what a sustained
 /// pattern of upheld reports is worth is Trust's judgement; making it here would be the
-/// duplication the brief forbids.
+/// duplication the brief forbids. The moderation case is fed separately, by
+/// <see cref="ContentReportToTrustEventHandler"/>.
 /// </para>
 /// </summary>
 public sealed class ContentReportedEventHandler : DomainEventHandler<ContentReportedDomainEvent>
@@ -30,11 +30,6 @@ public sealed class ContentReportedEventHandler : DomainEventHandler<ContentRepo
             1,
             new KeyValuePair<string, object?>(
                 "reason", CommunityWireNames.ToWire(domainEvent.Reason)));
-
-        if (domainEvent.OpenReportCount >= CommunityLimits.AutoHideReportThreshold)
-        {
-            CommunityTelemetry.AutoHides.Add(1);
-        }
 
         return _relay.PublishAsync(
             new CommunityContentReportedIntegrationEvent

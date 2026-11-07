@@ -24,6 +24,17 @@ public interface IPlacementRepository
     Task<IReadOnlyList<Placement>> ListActiveForSubjectAsync(
         SubjectReference subject, DateTimeOffset asOf, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Every placement over a subject that is running or waiting to run: what a moderation decision
+    /// that takes the subject out of view pauses.
+    /// </summary>
+    Task<IReadOnlyList<Placement>> ListRunningOrScheduledForSubjectAsync(
+        SubjectReference subject, CancellationToken cancellationToken = default);
+
+    /// <summary>Every placement over a subject that a moderation decision paused.</summary>
+    Task<IReadOnlyList<Placement>> ListPausedForModerationAsync(
+        SubjectReference subject, CancellationToken cancellationToken = default);
+
     /// <summary>Active placements over many subjects at once, so a list page needs one query.</summary>
     Task<IReadOnlyList<Placement>> ListActiveForSubjectsAsync(
         MonetizationSubjectType subjectType,

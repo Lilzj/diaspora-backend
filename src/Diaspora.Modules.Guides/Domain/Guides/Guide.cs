@@ -1125,11 +1125,14 @@ public sealed class Guide
     /// <summary>
     /// Removes the guide from every public surface, reversibly. The guide's own state is
     /// untouched — lifting the decision restores exactly what was there.
+    /// <para>
+    /// Called only by a decision on the guide's Trust moderation case (7 Nov 2026). A null
+    /// moderator is the system: Trust's automatic hide on many serious reports. The moderator was
+    /// once the guide's own author here, which is what the old Community hook passed.
+    /// </para>
     /// </summary>
-    public Result Hide(string? reason, UserId moderatorId, DateTimeOffset now)
+    public Result Hide(string? reason, UserId? moderatorId, DateTimeOffset now)
     {
-        ArgumentNullException.ThrowIfNull(moderatorId);
-
         var trimmed = reason?.Trim();
 
         if (string.IsNullOrEmpty(trimmed) || trimmed.Length > GuideLimits.MaxModerationNote)
@@ -1172,6 +1175,23 @@ public sealed class Guide
             GuideId = Id,
             ModeratorId = moderatorId
         });
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Takes an automatic flag off: a moderation case found nothing wrong. A hidden guide stays
+    /// hidden; only a restore lifts that.
+    /// </summary>
+    public Result ClearFlag()
+    {
+        if (ModerationState != GuideModerationState.Flagged)
+        {
+            return Result.Success();
+        }
+
+        ModerationState = GuideModerationState.Clear;
+        Touch();
 
         return Result.Success();
     }

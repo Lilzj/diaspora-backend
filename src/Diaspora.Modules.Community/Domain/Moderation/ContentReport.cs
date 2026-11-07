@@ -13,7 +13,8 @@ namespace Diaspora.Modules.Community.Domain.Moderation;
 /// One member reporting one piece of content.
 /// <para>
 /// Unique per reporter and content, so a member cannot inflate a count by reporting the same
-/// thing repeatedly — which matters because the count is what triggers the auto-hide.
+/// thing repeatedly — which matters because the count is what puts content in front of a
+/// moderator, and, on Trust's case, what hides it pending review.
 /// </para>
 /// <para>
 /// <b>This is where B6's moderation stops and Trust's begins.</b> Trust decides whether a
