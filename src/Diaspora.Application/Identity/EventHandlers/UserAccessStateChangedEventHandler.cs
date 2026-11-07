@@ -45,7 +45,7 @@ public sealed class UserAccessStateChangedEventHandler : DomainEventHandler<User
         {
             Action = IdentityAuditActions.AccessStateChanged,
             EntityType = IdentityAuditActions.EntityTypes.User,
-            EntityId = domainEvent.UserId.ToString(),
+            EntityId = domainEvent.UserId.Value.ToString(),
             SubjectUserId = domainEvent.UserId,
             Metadata = new Dictionary<string, string>
             {

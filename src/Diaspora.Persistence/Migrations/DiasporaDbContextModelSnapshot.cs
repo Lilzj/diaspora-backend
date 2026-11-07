@@ -18292,6 +18292,62 @@ namespace Diaspora.Persistence.Migrations
                     b.ToTable("verification_reviews", "trust");
                 });
 
+            modelBuilder.Entity("Diaspora.Platform.Auditing.AuditRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("ActorRole")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("ActorUserId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("CorrelationId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("Detail")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("EntityId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OccurredAt")
+                        .HasDatabaseName("ix_audit_records_occurred_at");
+
+                    b.HasIndex("ActorUserId", "OccurredAt")
+                        .HasDatabaseName("ix_audit_records_actor");
+
+                    b.HasIndex("EntityId", "OccurredAt")
+                        .HasDatabaseName("ix_audit_records_entity");
+
+                    b.ToTable("audit_records", "platform");
+                });
+
             modelBuilder.Entity("Diaspora.Platform.Messaging.Outbox.Model.OutboxDeadLetter", b =>
                 {
                     b.Property<long>("Id")
@@ -24475,7 +24531,6 @@ namespace Diaspora.Persistence.Migrations
                     b.OwnsMany("Diaspora.Modules.Guides.Domain.Guides.GuideModerationNote", "ModerationNotes", b1 =>
                         {
                             b1.Property<Guid>("NoteId")
-                                .ValueGeneratedOnAdd()
                                 .HasColumnType("uuid");
 
                             b1.Property<Guid>("AuthorId")

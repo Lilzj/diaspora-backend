@@ -56,7 +56,9 @@ public sealed class ReleaseQuarantineCommandHandler
             return Result.Failure<MediaAssetResponse>(released.Error);
         }
 
-        var ready = asset.MarkReady();
+        // A file released from a moderator's withhold that the scanner has not cleared yet stays in
+        // processing, and the scan pipeline finishes it. Only a file safe to serve becomes ready.
+        var ready = asset.ScanResult.IsSafeToServe ? asset.MarkReady() : Result.Success();
 
         if (ready.IsFailure)
         {

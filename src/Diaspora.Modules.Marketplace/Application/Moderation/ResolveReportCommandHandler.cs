@@ -93,10 +93,7 @@ public sealed class ResolveReportCommandHandler : ICommandHandler<ResolveReportC
         {
             var listing = await _listings.GetAsync(report.ListingId, cancellationToken);
 
-            if (listing?.ModerationState == ListingModerationState.Flagged)
-            {
-                listing.Unhide(caller.Value, now);
-            }
+            listing?.ClearFlag(caller.Value, now);
         }
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);

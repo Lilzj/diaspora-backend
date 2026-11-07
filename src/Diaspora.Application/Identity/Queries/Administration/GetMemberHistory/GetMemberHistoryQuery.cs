@@ -14,6 +14,7 @@ namespace Diaspora.Application.Identity.Queries.Administration.GetMemberHistory;
 /// moderator confirming an identity needs the first without the second.
 /// </para>
 /// </summary>
+[Auditable(Action = "identity.member.security-events.read", OnlyForStaff = true)]
 [Authorize(Permission = IdentityPermissions.ReadAnySecurityEvents)]
 public sealed record GetMemberHistoryQuery : IQuery<IReadOnlyList<SecurityEventResponse>>
 {

@@ -438,7 +438,11 @@ public sealed class GuideConfiguration : IEntityTypeConfiguration<Guide>
             note.ToTable(
                 GuidePersistenceConstants.GuideModerationNotesTable, GuidesModuleMetadata.Schema);
 
+            // ValueGeneratedNever, for the reason the sections give above. Without it every note a
+            // moderator added was an UPDATE of a row that did not exist, and the route answered 409
+            // for every moderator, every time (found 7 Nov 2026).
             note.HasKey(value => value.NoteId);
+            note.Property(value => value.NoteId).ValueGeneratedNever();
 
             note.Property(value => value.AuthorId)
                 .HasConversion(GuideValueConverters.Id<UserId>())

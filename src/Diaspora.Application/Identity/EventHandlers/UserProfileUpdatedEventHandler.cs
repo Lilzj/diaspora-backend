@@ -22,7 +22,7 @@ public sealed class UserProfileUpdatedEventHandler : DomainEventHandler<UserProf
         {
             Action = IdentityAuditActions.ProfileUpdated,
             EntityType = IdentityAuditActions.EntityTypes.User,
-            EntityId = domainEvent.UserId.ToString(),
+            EntityId = domainEvent.UserId.Value.ToString(),
             SubjectUserId = domainEvent.UserId,
             Metadata = new Dictionary<string, string>
             {

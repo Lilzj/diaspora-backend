@@ -136,6 +136,25 @@ public sealed class GuidesStaffBoundaryTests : PooledIdentityTestBase
         restored.GetProperty("moderationState").GetString().Should().Be("Clear");
     }
 
+    /// <summary>
+    /// A moderator's note is written (7 Nov 2026). Every note used to fail with 409: its key was
+    /// treated as store-generated, so EF updated a row that did not exist instead of inserting it.
+    /// </summary>
+    [Fact]
+    public async Task A_moderator_can_add_a_moderation_note_to_a_members_guide()
+    {
+        var (guideId, _) = await PublishedGuideAsync("Opening a bank account in Lisbon");
+
+        await SignInAsRoleAsync("Moderator");
+
+        var noted = await HttpClient.PostAsJsonAsync(
+            $"{Root}/{guideId}/moderation-notes",
+            new { note = "Checked the bank list against the regulator's register. Fine." },
+            JsonOptions);
+
+        noted.StatusCode.Should().Be(HttpStatusCode.OK, await noted.Content.ReadAsStringAsync());
+    }
+
     [Fact]
     public async Task An_administrator_can_still_feature_a_members_guide()
     {

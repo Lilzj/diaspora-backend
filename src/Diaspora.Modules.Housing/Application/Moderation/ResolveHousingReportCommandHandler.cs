@@ -126,8 +126,9 @@ public sealed class ResolveHousingReportCommandHandler
         }
         else if (!command.Request.Upheld)
         {
-            // Found to be fine. Back into discovery. See the class summary.
-            listing.Clear(moderatorId, now);
+            // Found to be fine: the report's own flag comes off. A hide or a suspension is a separate
+            // decision and stays (7 Nov 2026: dismissing lifted them too).
+            listing.ClearFlag(moderatorId, now);
         }
 
         var note = command.Request.Resolution

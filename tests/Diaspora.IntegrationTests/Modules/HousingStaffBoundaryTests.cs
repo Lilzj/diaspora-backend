@@ -128,6 +128,74 @@ public sealed class HousingStaffBoundaryTests : PooledIdentityTestBase
         (await ReadListingAsync(listingId)).ModerationState.Should().Be("Hidden");
     }
 
+    /// <summary>
+    /// Dismissing a report takes off the report's own flag and nothing else (7 Nov 2026). It used to
+    /// clear the listing outright, so dismissing a weak report on a suspended scam put the scam back
+    /// in search.
+    /// </summary>
+    [Fact]
+    public async Task Dismissing_a_report_does_not_lift_an_unrelated_suspension()
+    {
+        var (_, listingId) = await LandlordWithDraftAsync();
+        var (_, reporter) = await RegisterVerifiedMemberAsync();
+
+        await SignInAsRoleAsync("Moderator");
+
+        var suspended = await HttpClient.PostAsJsonAsync(
+            $"{Root}/moderation/listings/{listingId}",
+            new { action = "suspend", reason = "Deposit demanded before any viewing; confirmed scam." },
+            JsonOptions);
+        suspended.StatusCode.Should().Be(HttpStatusCode.OK, await suspended.Content.ReadAsStringAsync());
+
+        var reportId = await FileReportDirectlyAsync(listingId, reporter.User.Id);
+
+        var dismissed = await HttpClient.PostAsJsonAsync(
+            $"{Root}/moderation/reports/{reportId}/resolve",
+            new { upheld = false, resolution = "This report was about the photos, which are fine." },
+            JsonOptions);
+        dismissed.StatusCode.Should().Be(HttpStatusCode.OK, await dismissed.Content.ReadAsStringAsync());
+
+        (await ReadListingAsync(listingId)).ModerationState.Should().Be(
+            "Suspended", "a dismissed report is no decision about the suspension");
+    }
+
+    /// <summary>Housing moderation never asked for a reason; every action needs one now (7 Nov 2026).</summary>
+    [Fact]
+    public async Task A_moderation_action_without_a_reason_is_refused()
+    {
+        var (_, listingId) = await LandlordWithDraftAsync();
+
+        await SignInAsRoleAsync("Moderator");
+
+        var refused = await HttpClient.PostAsJsonAsync(
+            $"{Root}/moderation/listings/{listingId}", new { action = "hide" }, JsonOptions);
+
+        refused.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await ReadListingAsync(listingId)).ModerationState.Should().NotBe("Hidden");
+    }
+
+    private async Task<Guid> FileReportDirectlyAsync(Guid listingId, Guid reporterId)
+    {
+        using var scope = Factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<DiasporaDbContext>();
+
+        var listing = await dbContext.Set<HousingListing>().FindAsync(HousingListingId.From(listingId));
+
+        var report = Diaspora.Modules.Housing.Domain.Reports.HousingReport.File(
+            HousingReportId.From(Guid.NewGuid()),
+            listing!.Id,
+            listing.LandlordId,
+            UserId.From(reporterId),
+            HousingReportReason.Misleading,
+            "The photos look like a different flat.",
+            DateTimeOffset.UtcNow).Value;
+
+        dbContext.Add(report);
+        await dbContext.SaveChangesAsync();
+
+        return report.Id.Value;
+    }
+
     // ── Seeding ──────────────────────────────────────────────────────────────────────────────
 
     /// <summary>

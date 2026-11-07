@@ -1,5 +1,6 @@
 using Diaspora.Domain.Abstractions;
 using Diaspora.Persistence.Atomic;
+using Diaspora.Persistence.Auditing;
 using Diaspora.Persistence.Identity;
 using Diaspora.Platform.Operations.Privacy;
 using Diaspora.Persistence.Modules;
@@ -12,6 +13,8 @@ using Diaspora.Platform.Modules;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Diaspora.Platform.Services.Abstractions;
 
 namespace Diaspora.Persistence;
 
@@ -41,6 +44,12 @@ public static class DependencyInjection
         // commit verifiable live inside the unit of work itself — they are steps in a transaction,
         // not services anything else may call — so this is the only one that needs registering.
         services.AddScoped<ITransactionReceiptStore, EfTransactionReceiptStore>();
+
+        // The audit trail is stored, not just logged (7 Nov 2026). Replaces the log-only default
+        // the infrastructure layer registers, which runs first; Replace rather than Add so the
+        // order of the two registrations cannot decide which one answers.
+        services.Replace(ServiceDescriptor.Scoped<IAuditService, EfAuditService>());
+        services.AddScoped<Diaspora.Platform.Auditing.IAuditTrailReader, EfAuditTrailReader>();
 
         // The monthly allowance on paid vendor calls. In the database rather than in memory
         // because every Fly machine has to draw on the same allowance.

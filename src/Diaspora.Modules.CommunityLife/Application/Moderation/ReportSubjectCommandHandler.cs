@@ -191,7 +191,8 @@ public sealed class ReportSubjectCommandHandler
             var organization = await _organizations.GetAsync(
                 OrganizationId.From(report.SubjectId), cancellationToken);
 
-            organization?.RecordReport(threshold, now, reportedBy);
+            // The system flags on a count; the reporter did not change the moderation (7 Nov 2026).
+            organization?.RecordReport(threshold, now, reportedBy: null);
 
             var analytics = await _organizationAnalytics.FindByOrganizationAsync(
                 OrganizationId.From(report.SubjectId), cancellationToken);
@@ -204,7 +205,8 @@ public sealed class ReportSubjectCommandHandler
         var communityEvent = await _events.GetAsync(
             CommunityEventId.From(report.SubjectId), cancellationToken);
 
-        communityEvent?.RecordReport(threshold, now, reportedBy);
+        // The system flags on a count; the reporter did not change the moderation (7 Nov 2026).
+        communityEvent?.RecordReport(threshold, now, reportedBy: null);
 
         var eventAnalytics = await _eventAnalytics.FindByEventAsync(
             CommunityEventId.From(report.SubjectId), cancellationToken);

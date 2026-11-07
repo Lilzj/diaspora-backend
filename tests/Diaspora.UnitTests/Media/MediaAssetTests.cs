@@ -176,6 +176,37 @@ public sealed class MediaAssetTests
         asset.Visibility.Should().Be(MediaVisibility.Public);
     }
 
+    /// <summary>
+    /// Lifting a moderator's withhold leaves the scan verdict alone (7 Nov 2026). It used to write a
+    /// manual "clean" over a file the scanner had never seen.
+    /// </summary>
+    [Fact]
+    public void Releasing_a_withheld_file_that_was_never_scanned_does_not_call_it_clean()
+    {
+        var asset = Record()!;
+
+        asset.Withhold("Reported as somebody else's photograph.").IsSuccess.Should().BeTrue();
+
+        asset.ReleaseFromQuarantine(DateTimeOffset.UtcNow, "manual:moderator").IsSuccess.Should().BeTrue();
+
+        asset.ScanResult.Status.Should().Be(VirusScanStatus.NotScanned);
+        asset.Status.Should().Be(MediaAssetStatus.Processing, "it goes back to be scanned");
+        asset.MarkReady().IsFailure.Should().BeTrue("an unscanned file is not served");
+    }
+
+    /// <summary>The other release: a person overrules the scanner, and the record says so.</summary>
+    [Fact]
+    public void Releasing_a_scanner_quarantine_records_a_persons_clean_verdict()
+    {
+        var asset = Record()!;
+        asset.RecordScan(VirusScanResult.Infected("clam", "EICAR", DateTimeOffset.UtcNow));
+
+        asset.ReleaseFromQuarantine(DateTimeOffset.UtcNow, "manual:admin").IsSuccess.Should().BeTrue();
+
+        asset.ScanResult.Status.Should().Be(VirusScanStatus.Clean);
+        asset.MarkReady().IsSuccess.Should().BeTrue();
+    }
+
     [Fact]
     public void A_file_is_not_withheld_or_removed_without_a_reason()
     {

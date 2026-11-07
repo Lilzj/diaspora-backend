@@ -1611,6 +1611,16 @@ public sealed class MarketplaceListing
             : Result.Success();
 
     /// <summary>
+    /// Takes an automatic flag off, and nothing stronger. What dismissing a report does: before
+    /// 7 Nov 2026 dismissal called <see cref="Unhide"/>, which ignores a flag, so the listing stayed
+    /// flagged and came back to the top of the queue.
+    /// </summary>
+    public Result ClearFlag(UserId? moderatorId, DateTimeOffset now) =>
+        ModerationState == ListingModerationState.Flagged
+            ? SetModeration(ListingModerationState.Clear, moderatorId, reason: null, now)
+            : Result.Success();
+
+    /// <summary>
     /// Puts the listing in the moderation queue without taking it down. What a report produces.
     /// </summary>
     public Result Flag(UserId? flaggedBy, string? reason, DateTimeOffset now) =>

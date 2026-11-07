@@ -288,7 +288,16 @@ public sealed class MediaAsset : AggregateRoot<MediaId>, IAuditableEntity, ISoft
         });
     }
 
-    /// <summary>Staff override: a confirmed false positive.</summary>
+    /// <summary>
+    /// Staff release from quarantine: a scanner's false positive, or a moderator's withhold lifted.
+    /// <para>
+    /// <b>Only a scanner's verdict is overruled.</b> When the scanner put the file here, the release
+    /// is a person's call that it was a false positive, recorded as a clean result under their name.
+    /// When a moderator withheld it, the scan verdict was never the question, and it is left as it
+    /// was (7 Nov 2026: a release wrote "clean" over a file that had never been scanned). A file
+    /// that has not been scanned goes back to processing to be scanned, not straight to members.
+    /// </para>
+    /// </summary>
     public Result ReleaseFromQuarantine(DateTimeOffset at, string releasedBy)
     {
         if (Status is not MediaAssetStatus.Quarantined)
@@ -296,7 +305,11 @@ public sealed class MediaAsset : AggregateRoot<MediaId>, IAuditableEntity, ISoft
             return Result.Success();
         }
 
-        ScanResult = VirusScanResult.Clean(releasedBy, at);
+        if (ScanResult.RequiresQuarantine)
+        {
+            ScanResult = VirusScanResult.Clean(releasedBy, at);
+        }
+
         Status = MediaAssetStatus.Processing;
 
         return Result.Success();

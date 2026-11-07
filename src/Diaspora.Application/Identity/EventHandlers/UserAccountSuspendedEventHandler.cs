@@ -22,7 +22,7 @@ public sealed class UserAccountSuspendedEventHandler : DomainEventHandler<UserAc
         {
             Action = IdentityAuditActions.AccountSuspended,
             EntityType = IdentityAuditActions.EntityTypes.User,
-            EntityId = domainEvent.UserId.ToString(),
+            EntityId = domainEvent.UserId.Value.ToString(),
             SubjectUserId = domainEvent.UserId,
             Metadata = new Dictionary<string, string>
             {

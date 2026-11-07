@@ -22,7 +22,7 @@ public sealed class UserAccountDisabledEventHandler : DomainEventHandler<UserAcc
         {
             Action = IdentityAuditActions.AccountDisabled,
             EntityType = IdentityAuditActions.EntityTypes.User,
-            EntityId = domainEvent.UserId.ToString(),
+            EntityId = domainEvent.UserId.Value.ToString(),
             SubjectUserId = domainEvent.UserId,
             Metadata = new Dictionary<string, string> { ["reason"] = domainEvent.Reason }
         }, cancellationToken);
