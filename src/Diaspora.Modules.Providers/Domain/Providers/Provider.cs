@@ -667,8 +667,13 @@ public sealed class Provider
     /// <see cref="ProviderStatus.Draft"/> when it had not — the state it can meaningfully return
     /// to, rather than a blanket Active that would publish a provider that never was.
     /// </para>
+    /// <para>
+    /// The only way out of <see cref="ProviderStatus.Suspended"/>. The <paramref name="reason"/>
+    /// travels on the status-changed event; the provider's own <see cref="StatusReason"/> is
+    /// cleared, because the suspension it explained is over.
+    /// </para>
     /// </summary>
-    public Result Reinstate(DateTimeOffset now, UserId? changedBy = null)
+    public Result Reinstate(DateTimeOffset now, UserId? changedBy = null, string? reason = null)
     {
         if (IsDeleted)
         {
@@ -686,14 +691,23 @@ public sealed class Provider
         StatusChangedAt = now;
         StatusReason = null;
 
-        RaiseStatusChanged(previous, changedBy);
+        RaiseStatusChanged(previous, changedBy, Truncate(reason, 500));
 
         return Result.Success();
     }
 
-    /// <summary>Removes the provider from every surface, retaining it for audit.</summary>
+    /// <summary>
+    /// Removes the provider from every surface, retaining it for audit.
+    /// <para>
+    /// <b>Refused while suspended (7 Nov 2026).</b> An archived provider may be published again,
+    /// so archiving a suspended one was a way out of the suspension: archive, then publish, and
+    /// the business was back in the directory without staff ever lifting anything. A suspension
+    /// now ends only by <see cref="Reinstate"/>; the provider is already off every surface while
+    /// it lasts.
+    /// </para>
+    /// </summary>
     public Result Archive(DateTimeOffset now, string? reason = null, UserId? changedBy = null) =>
-        MoveStatus(ProviderStatus.Archived, now, reason, changedBy, allowFromSuspended: true);
+        MoveStatus(ProviderStatus.Archived, now, reason, changedBy, allowFromSuspended: false);
 
     /// <summary>Staff-only. Featured placement is not something an owner can grant themselves.</summary>
     public void SetFeatured(bool isFeatured) => IsFeatured = isFeatured;

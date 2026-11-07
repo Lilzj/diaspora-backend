@@ -1,14 +1,16 @@
 namespace Diaspora.Modules.Providers.Contracts.V1.Requests;
 
-/// <summary>Publishes, pauses, closes, suspends, reinstates or archives a provider.</summary>
+/// <summary>Publishes, pauses, closes or archives a provider. The owner's route.</summary>
 public sealed record ProviderStatusRequest
 {
     /// <summary>
-    /// The <c>ProviderStatus</c> to move to. Not every transition is reachable by every caller:
-    /// <c>Suspended</c> is staff-only, and <c>Closed</c> is the owner's.
+    /// The <c>ProviderStatus</c> to move to: <c>Active</c>, <c>Paused</c>, <c>Closed</c> or
+    /// <c>Archived</c>. <c>Suspended</c>, and <c>Active</c> on a suspended provider, are refused
+    /// here for everybody; staff suspend and reinstate through
+    /// <c>POST /providers/moderation/{providerId}</c>.
     /// </summary>
     public required string Status { get; init; }
 
-    /// <summary>Why. Required for a suspension; shown to the owner.</summary>
+    /// <summary>Why, in the owner's words. Optional; shown to the owner's team.</summary>
     public string? Reason { get; init; }
 }

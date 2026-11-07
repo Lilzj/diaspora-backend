@@ -69,7 +69,7 @@ public sealed class GetEmployerDashboardQueryHandler
             return Result.Failure<EmployerDashboardResponse>(JobErrors.EmployerNotFound);
         }
 
-        var employer = await _authorization.RequireEmployerAsync(
+        var employer = await _authorization.RequireEmployerReadAsync(
             employerId, EmployerMemberRole.Viewer, cancellationToken);
 
         if (employer.IsFailure)

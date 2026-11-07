@@ -190,7 +190,32 @@ internal static class ProviderEndpoints
                         cancellationToken)))
             .RequireAuthorization(ProviderPolicies.ManageStatus)
             .WithName("ChangeProviderStatus")
-            .WithSummary("Publish, pause, close, suspend, reinstate or archive.");
+            .WithSummary(
+                "Publish, pause, close or archive. The owner's route: staff suspend and reinstate " +
+                "through POST /providers/moderation/{providerId}.");
+
+        // Staff act on a member's provider through this route and the featured one below, never
+        // through the owner's routes (7 Nov 2026). Under /moderation like every other module's
+        // staff routes, so the console and the audit can tell the two kinds apart by path.
+        group.MapPost("/moderation/{providerId:guid}", async (
+                Guid providerId,
+                ModerateProviderRequest request,
+                ISender sender,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+                PlatformResults.Ok(
+                    context,
+                    await sender.Send(
+                        new ModerateProviderCommand
+                        {
+                            ProviderId = providerId,
+                            Request = request
+                        },
+                        cancellationToken)))
+            .RequireAuthorization(ProviderPolicies.Administer)
+            .WithName("ModerateProvider")
+            .WithSummary(
+                "Suspend a provider, or lift its suspension. Staff only, and a reason is required.");
 
         group.MapPut("/{providerId:guid}/featured", async (
                 Guid providerId,

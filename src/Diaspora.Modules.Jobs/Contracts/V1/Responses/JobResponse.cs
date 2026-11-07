@@ -126,12 +126,14 @@ public sealed record JobResponse
 
     /// <summary>
     /// Whether this viewer may manage the job: a member of the employer's team, or platform staff,
-    /// who moderate every job. <see cref="IsOnEmployerTeam"/> tells the two apart.
+    /// who moderate every job. <see cref="IsOnEmployerTeam"/> tells the two apart. Staff who are
+    /// not on the team moderate only through <c>/jobs/moderation/*</c>; the owner's routes refuse
+    /// them (7 Nov 2026).
     /// </summary>
     public required bool CanManage { get; init; }
 
     /// <summary>
-    /// Whether this viewer belongs to the employer's team. Staff who are not on it can manage the
+    /// Whether this viewer belongs to the employer's team. Staff who are not on it moderate the
     /// job but are not its owner: the job is not "theirs", and they may apply to it like anyone
     /// else (6 Nov 2026 — the page told an Admin "You manage this job" and hid "I'm interested",
     /// while the card offered it).

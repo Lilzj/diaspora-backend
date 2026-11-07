@@ -77,7 +77,7 @@ public sealed class ListApplicationsQueryHandler
 
         if (isEmployerView)
         {
-            var employer = await _authorization.RequireEmployerAsync(
+            var employer = await _authorization.RequireEmployerReadAsync(
                 EmployerProfileId.From(query.EmployerId!.Value),
                 EmployerMemberRole.Viewer,
                 cancellationToken);

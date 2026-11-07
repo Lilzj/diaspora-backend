@@ -98,6 +98,9 @@ public sealed class ProviderContentSource : ICommunityContentSource
 
             case Modules.Community.Domain.Enums.ModerationActionType.Archive:
             case Modules.Community.Domain.Enums.ModerationActionType.Reject:
+                // Refused by the aggregate while the provider is suspended (7 Nov 2026), and
+                // deliberately left that way: an archived provider can be republished by its
+                // owner, so archiving a suspended one would undo the suspension.
                 provider.Archive(now, "Archived following moderation.");
                 break;
 
