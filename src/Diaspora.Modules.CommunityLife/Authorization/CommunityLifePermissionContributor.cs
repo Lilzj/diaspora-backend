@@ -290,7 +290,7 @@ public sealed class CommunityLifePermissionContributor : IPermissionContributor
 
         yield return new PermissionDefinition(
             CommunityLifePermissions.Moderate, CommunityLifeModuleMetadata.Name,
-            "Hide, suspend and annotate any event or organization.")
+            "Read the reports members filed about events and organizations. Staff act on one only by deciding its Trust moderation case.")
         {
             MinimumTier = AccessTier.Limited,
             Roles = StaffRoles

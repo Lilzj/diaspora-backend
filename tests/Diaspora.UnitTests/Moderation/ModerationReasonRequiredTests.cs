@@ -1,7 +1,5 @@
 using Diaspora.Modules.Community.Application.Moderation;
 using Diaspora.Modules.Community.Contracts.V1.Requests;
-using Diaspora.Modules.CommunityLife.Application.Moderation;
-using Diaspora.Modules.CommunityLife.Contracts.V1.Requests;
 using Diaspora.Modules.Housing.Application.Moderation;
 using Diaspora.Modules.Housing.Contracts.V1.Requests;
 using Diaspora.Modules.Marketplace.Application.Moderation;
@@ -29,16 +27,6 @@ public sealed class ModerationReasonRequiredTests
         {
             ListingId = Guid.NewGuid(),
             Request = new ModerateHousingRequest { Action = "clear", Reason = reason }
-        });
-
-    [Theory]
-    [MemberData(nameof(Blank))]
-    public void Community_life_refuses_a_moderation_action_with_no_reason(string? reason) =>
-        Refuses(new ModerateSubjectCommandValidator(), new ModerateSubjectCommand
-        {
-            SubjectType = "events",
-            SubjectId = Guid.NewGuid(),
-            Request = new ModerateSubjectRequest { Action = "hide", Reason = reason }
         });
 
     [Theory]

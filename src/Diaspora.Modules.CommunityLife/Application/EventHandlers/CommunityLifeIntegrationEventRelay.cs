@@ -1,6 +1,8 @@
 using Diaspora.Contracts.CommunityLife.V1.Events;
 using Diaspora.Contracts.Content.V1.Events;
 using Diaspora.Contracts.Events;
+using Diaspora.Contracts.Moderation.V1;
+using Diaspora.Contracts.Moderation.V1.Events;
 using Diaspora.Modules.CommunityLife.Domain.Catalog;
 using Diaspora.Modules.CommunityLife.Domain.CommunityEvents;
 using Diaspora.Modules.CommunityLife.Domain.Enums;
@@ -8,6 +10,7 @@ using Diaspora.Modules.CommunityLife.Domain.Events;
 using Diaspora.Modules.CommunityLife.Domain.Identifiers;
 using Diaspora.Modules.CommunityLife.Domain.Organizations;
 using Diaspora.Modules.CommunityLife.Domain.Policies;
+using Diaspora.Modules.CommunityLife.Domain.Reports;
 using Diaspora.Modules.CommunityLife.Domain.Series;
 using Diaspora.Platform.Messaging;
 using Microsoft.Extensions.Logging;
@@ -1193,6 +1196,44 @@ public sealed class CommunityLifeIntegrationEventRelay
                 ContentId = domainEvent.SubjectId,
                 ReporterUserId = domainEvent.ReportedByUserId.Value,
                 UpheldAt = domainEvent.UpheldAt
+            },
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// A report, sent to Trust's moderation case for the event or organisation (7 Nov 2026).
+    /// <para>
+    /// <b>The one publication that carries the reporter, and it goes to Trust alone.</b> Trust needs
+    /// it to count each member once and to tell them the outcome; the organiser is never given it,
+    /// and the domain event that triggers this does not carry it — the handler reads it from the
+    /// report row. The owner is the one <c>CommunityLifeContentOwners</c> names.
+    /// </para>
+    /// </summary>
+    public Task PublishToModerationCaseAsync(
+        CommunityLifeReport report,
+        Guid ownerUserId,
+        string? title,
+        DateTimeOffset filedAt,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(report);
+
+        return PublishSafelyAsync(
+            new ContentReportFiledIntegrationEvent
+            {
+                Module = "community-life",
+                ContentType = report.SubjectType == ReportSubjectType.Organization
+                    ? ModerationContentTypes.Organization
+                    : ModerationContentTypes.Event,
+                ContentId = report.SubjectId,
+                ContentOwnerUserId = ownerUserId,
+                ReporterUserId = report.ReportedByUserId.Value,
+                ReasonCode = CommunityLifeModerationReasons.Map(report.Reason).ToString(),
+                ModuleReason = report.Reason.ToString(),
+                Detail = report.Detail,
+                ModuleReportId = report.Id.Value,
+                ContentTitle = title,
+                FiledAt = filedAt
             },
             cancellationToken);
     }

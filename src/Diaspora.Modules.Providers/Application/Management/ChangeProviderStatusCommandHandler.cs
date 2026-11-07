@@ -18,9 +18,9 @@ namespace Diaspora.Modules.Providers.Application.Management;
 /// <para>
 /// <b>The owner's route, and only the owner's (7 Nov 2026).</b> Publish, pause, close and
 /// archive. Suspending and lifting a suspension are decisions made <em>about</em> a provider by
-/// somebody who is not part of it, so they are not reachable here by anybody: staff use
-/// <c>POST /providers/moderation/{providerId}</c>
-/// (<see cref="ModerateProviderCommandHandler"/>), which requires a reason. Staff who are not
+/// somebody who is not part of it, so they are not reachable here by anybody: staff decide the
+/// provider's Trust moderation case, with a reason and a note, and the decision is carried out by
+/// <c>ProviderModerationTarget</c>. Staff who are not
 /// members of the provider are refused by the owner check like any outsider, and a manager who
 /// happens to hold a staff role cannot lift their own suspension here.
 /// </para>
@@ -84,7 +84,7 @@ public sealed class ChangeProviderStatusCommandHandler
         var moved = status.Value switch
         {
             // Publishing a suspended provider is refused by the aggregate; only staff lift a
-            // suspension, through the moderation route.
+            // suspension, by restoring it on its Trust moderation case.
             ProviderStatus.Active => Publish(provider, now, caller.Value),
 
             ProviderStatus.Paused => provider.Pause(now, reason, caller.Value),

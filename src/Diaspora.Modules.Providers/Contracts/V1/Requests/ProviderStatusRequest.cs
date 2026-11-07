@@ -6,8 +6,8 @@ public sealed record ProviderStatusRequest
     /// <summary>
     /// The <c>ProviderStatus</c> to move to: <c>Active</c>, <c>Paused</c>, <c>Closed</c> or
     /// <c>Archived</c>. <c>Suspended</c>, and <c>Active</c> on a suspended provider, are refused
-    /// here for everybody; staff suspend and reinstate through
-    /// <c>POST /providers/moderation/{providerId}</c>.
+    /// here for everybody; staff suspend and reinstate by deciding the provider's Trust moderation
+    /// case.
     /// </summary>
     public required string Status { get; init; }
 
