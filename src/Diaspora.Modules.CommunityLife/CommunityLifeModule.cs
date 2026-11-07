@@ -106,6 +106,12 @@ public sealed class CommunityLifeModule : IPlatformModule
         services.AddScoped<CommunityEventReadContext>();
         services.AddScoped<EventSeriesReadContext>();
 
+        // Events and organisations as Trust's moderation cases see them: the only way staff act on
+        // one (7 Nov 2026). Both name their owner through the one resolver.
+        services.AddScoped<CommunityLifeContentOwners>();
+        services.AddScoped<Diaspora.Contracts.Moderation.V1.IModerationTarget, Infrastructure.Moderation.CommunityEventModerationTarget>();
+        services.AddScoped<Diaspora.Contracts.Moderation.V1.IModerationTarget, Infrastructure.Moderation.OrganizationModerationTarget>();
+
         // B23.x Wave 12. What an organization's people may automate, and who a broadcast reaches.
         //
         // Wave 11 shipped `notify.organization` working and granted to nobody, because the automation
