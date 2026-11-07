@@ -14,6 +14,7 @@ namespace Diaspora.Modules.Housing.Application.Listings;
 [Authorize(Permission = HousingPermissions.ListingCreate)]
 [Transactional(Reason = "Writes the listing, its analytics record and possibly a new neighbourhood profile.")]
 [Auditable]
+[Diaspora.Application.Behaviors.PostsInArea(Diaspora.Contracts.Moderation.V1.ModerationAreas.Housing)]
 public sealed record CreateHousingListingCommand : ICommand<HousingListingResponse>
 {
     public required CreateHousingListingRequest Request { get; init; }

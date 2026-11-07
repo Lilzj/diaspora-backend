@@ -7,6 +7,7 @@ namespace Diaspora.Modules.CommunityLife.Application.Organizations;
 /// <summary>Makes an organization discoverable, or submits it for review first.</summary>
 [Authorize(Permission = CommunityLifePermissions.OrganizationPublish)]
 [Auditable]
+[Diaspora.Application.Behaviors.PostsInArea(Diaspora.Contracts.Moderation.V1.ModerationAreas.Events)]
 public sealed record PublishOrganizationCommand : ICommand<OrganizationResponse>
 {
     public required Guid OrganizationId { get; init; }

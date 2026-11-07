@@ -22,6 +22,7 @@ namespace Diaspora.Modules.CommunityLife.Application.Series;
 [Authorize(Permission = CommunityLifePermissions.EventCreate)]
 [Transactional(Reason = "Writes the series, its first occurrences and their analytics records.")]
 [Auditable]
+[Diaspora.Application.Behaviors.PostsInArea(Diaspora.Contracts.Moderation.V1.ModerationAreas.Events)]
 public sealed record CreateEventSeriesCommand : ICommand<EventSeriesResponse>
 {
     public required CreateEventSeriesRequest Request { get; init; }

@@ -13,6 +13,7 @@ namespace Diaspora.Modules.Housing.Application.Listings;
 /// </summary>
 [Authorize(Permission = HousingPermissions.ListingPublish)]
 [Auditable]
+[Diaspora.Application.Behaviors.PostsInArea(Diaspora.Contracts.Moderation.V1.ModerationAreas.Housing)]
 public sealed record PublishHousingListingCommand : ICommand<HousingListingResponse>
 {
     public required Guid ListingId { get; init; }

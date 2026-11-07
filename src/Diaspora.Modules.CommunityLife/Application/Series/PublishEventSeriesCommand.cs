@@ -13,6 +13,7 @@ namespace Diaspora.Modules.CommunityLife.Application.Series;
 [Authorize(Permission = CommunityLifePermissions.EventPublish)]
 [Transactional(Reason = "Publishes the series and the occurrences already written for it.")]
 [Auditable]
+[Diaspora.Application.Behaviors.PostsInArea(Diaspora.Contracts.Moderation.V1.ModerationAreas.Events)]
 public sealed record PublishEventSeriesCommand : ICommand<EventSeriesResponse>
 {
     public required Guid SeriesId { get; init; }

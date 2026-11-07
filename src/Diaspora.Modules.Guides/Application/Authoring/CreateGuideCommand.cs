@@ -19,6 +19,7 @@ namespace Diaspora.Modules.Guides.Application.Authoring;
 /// </summary>
 [Authorize(Permission = GuidePermissions.Create)]
 [Auditable]
+[Diaspora.Application.Behaviors.PostsInArea(Diaspora.Contracts.Moderation.V1.ModerationAreas.Guides)]
 public sealed record CreateGuideCommand : ICommand<GuideResponse>
 {
     public required CreateGuideRequest Request { get; init; }
