@@ -38,6 +38,42 @@ primary_region = 'iad'
   ASPNETCORE_ENVIRONMENT = 'Production'
   ASPNETCORE_URLS = 'http://+:8080'
 
+  # ── Which upstream may set X-Forwarded-For ─────────────────────────────────
+  #
+  # Load-bearing, and the host will not start without it. Every per-IP rate limit partitions
+  # on Connection.RemoteIpAddress and every SecurityEvent and UserSession records it, so who
+  # may set that address is a security boundary. ASP.NET Core answers it the dangerous way by
+  # default: with both allow-lists empty it skips the known-address check and applies whatever
+  # the caller sent, which made every per-IP budget forgeable once per request and every
+  # recorded client address attacker-controlled. TrustedProxyOptionsValidator now refuses to
+  # boot a non-Development host that names no ingress, so this entry is what lets this
+  # deployment start at all.
+  #
+  # ── Why a /12, and why not fdaa::/16 ───────────────────────────────────────
+  #
+  # Measured on this machine, not taken from documentation — Fly documents neither the proxy's
+  # source address nor a range to trust. Reading /proc/net/tcp6 inside machine
+  # 867615be4673d8 while traffic flowed: connections to :8080 arrive from 172.19.11.233, the
+  # default gateway on eth0, which sits on 172.19.11.232/29. They arrive as IPv4-mapped IPv6
+  # peers, which ForwardedHeadersMiddleware.CheckKnownAddress unwraps before testing.
+  #
+  # It is NOT a 6PN fdaa:: address. 6PN carries machine-to-machine traffic and SSH and
+  # bypasses the proxy — Fly's own 6PN page says so. An fdaa::/16 allow-list is the obvious
+  # guess, and an earlier draft of this fix made it; it would have matched nothing, and that
+  # failure is quiet rather than loud: headers ignored, every member sharing one rate-limit
+  # bucket. The audit finding's own remediation note had to be corrected for the same reason.
+  #
+  # A /12 rather than the measured /29 because the /29 is this machine on this host. A
+  # reschedule moves it and a stale /29 fails the same quiet way. 172.16.0.0/12 is the private
+  # range the machine's own interface lives on, is unroutable from the internet, and survives
+  # the machine moving.
+  #
+  # The __0 is not decorative. Both lists bind as arrays, and configuration reads an array from
+  # indexed child keys only, so a flat ForwardedHeaders__KnownIPNetworks has a value, no
+  # children, and binds to an empty list — a fix that deploys green and changes nothing.
+  # Measured on .NET 10.0.13. With the validator in place that mistake now refuses to boot.
+  ForwardedHeaders__KnownIPNetworks__0 = '172.16.0.0/12'
+
   # ── Media needs somewhere it may write ─────────────────────────────────────
   #
   # `FilesystemStorageProvider` resolves a relative `FilesystemRoot` against
