@@ -37,10 +37,25 @@ public static class IdentityAuthenticationRegistration
         services.AddAuthorization(options =>
         {
             // No fallback policy: several identity endpoints are deliberately anonymous
-            // (register, sign-in, refresh, recovery). An architecture test is what stops a
-            // new endpoint from being accidentally public — a check that names the offending
-            // action beats a runtime default that has to be opted out of correctly eleven
-            // times.
+            // (register, sign-in, refresh, recovery).
+            //
+            // The sentence that used to follow this one said "an architecture test is what stops a
+            // new endpoint from being accidentally public". That test did not exist. It was
+            // described here, planned, and never written, and the only rule occupying its name
+            // asserted that more than a hundred endpoints were authorised — which is true, green,
+            // and says nothing about any particular endpoint. BSEC-003 is what the gap cost:
+            // GET /api/v1/creators/me/activity served GetMyCreatorActivityQuery to unauthenticated
+            // callers for as long as the route existed.
+            //
+            // RequestAuthorizationArchitectureTests is the rule, written on 9 November 2026. It
+            // requires every query and command to carry [Authorize] or [AllowAnonymous], holding
+            // the 247 pre-existing exceptions in a dated list that can only shrink. So the claim is
+            // now true of everything written from today, and explicitly not yet true of that list.
+            //
+            // It is still a compensating control rather than a guarantee: it reasons about CQRS
+            // request types, not the composed route table, so an endpoint that reaches no handler
+            // is outside it. AuthorizationBehavior becomes fail-closed when the list is empty,
+            // which is the remaining half of the finding.
             options.FallbackPolicy = null;
         });
 
