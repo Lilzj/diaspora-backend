@@ -237,24 +237,56 @@ builder.Services.AddOpenApi(options =>
 // Forwarded headers. Without this, every security event, session record and rate-limit
 // partition behind a load balancer sees the proxy's address instead of the client's —
 // which makes the forensic trail useless and collapses the entire user base into a single
-// rate-limit bucket. KnownProxies is configured per environment; an empty allowlist means
-// the headers are ignored, which is the safe failure.
-builder.Services.Configure<ForwardedHeadersOptions>(options =>
-{
-    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    options.ForwardLimit = builder.Configuration.GetValue("ForwardedHeaders:Limit", 1);
+// rate-limit bucket.
+//
+// ── An empty allow-list is not the safe failure, and this block used to claim it was ─────
+//
+// ForwardedHeadersMiddleware computes `checkKnownIps = KnownNetworks.Count > 0 ||
+// KnownProxies.Count > 0` and skips the known-address check *entirely* when both are empty,
+// applying whatever the caller sent. Verified with a probe rather than inferred: a forged
+// `X-Forwarded-For: 203.0.113.77` became Connection.RemoteIpAddress — which is the
+// rate-limit partition key (RateLimitingRegistration.PartitionKey) and the address written
+// to SecurityEvent and UserSession.
+//
+// So the trust list is a declared, validated option now rather than three configuration
+// lookups. TrustedProxyOptions says why that shape matters; in short, KnownIPNetworks had
+// no configuration path back after being cleared here, an unparseable entry was dropped in
+// silence, and a flat `ForwardedHeaders__KnownIPNetworks` environment variable binds to
+// nothing at all. TrustedProxyOptionsValidator turns all three from silent into fatal.
+builder.Services.AddOptions<TrustedProxyOptions>()
+    .Bind(builder.Configuration.GetSection(TrustedProxyOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 
-    options.KnownProxies.Clear();
-    options.KnownIPNetworks.Clear();
+builder.Services.AddSingleton<IValidateOptions<TrustedProxyOptions>, TrustedProxyOptionsValidator>();
 
-    foreach (var proxy in builder.Configuration.GetSection("ForwardedHeaders:KnownProxies").Get<string[]>() ?? [])
+// Projected onto the framework's options rather than bound to them, so the validated strings
+// are parsed in one place and Parse may be used without a fallback. That is safe in this
+// order and only this order: GenericWebHostService.StartAsync runs the startup validator
+// before it builds the middleware pipeline, so nothing unparseable can reach here.
+builder.Services.AddOptions<ForwardedHeadersOptions>()
+    .Configure<IOptions<TrustedProxyOptions>>((options, trusted) =>
     {
-        if (System.Net.IPAddress.TryParse(proxy, out var address))
+        var trustedProxies = trusted.Value;
+
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        options.ForwardLimit = trustedProxies.Limit;
+
+        // Cleared because the framework's defaults trust loopback, which is a different
+        // deployment's answer to this question. Everything trusted is named in configuration.
+        options.KnownProxies.Clear();
+        options.KnownIPNetworks.Clear();
+
+        foreach (var proxy in trustedProxies.KnownProxies)
         {
-            options.KnownProxies.Add(address);
+            options.KnownProxies.Add(System.Net.IPAddress.Parse(proxy));
         }
-    }
-});
+
+        foreach (var network in trustedProxies.KnownIPNetworks)
+        {
+            options.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(network));
+        }
+    });
 
 // CORS
 builder.Services.AddCors(options =>

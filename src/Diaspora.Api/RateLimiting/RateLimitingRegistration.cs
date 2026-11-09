@@ -143,8 +143,15 @@ public static class RateLimitingRegistration
     /// host runs forwarded-header processing ahead of this middleware. Without that this
     /// would partition every request behind a load balancer into one bucket and throttle the
     /// entire user base as though it were one client — which is why the two are wired
-    /// together in <c>Program.cs</c> and why the forwarded-header configuration refuses to
-    /// trust an unbounded proxy list.
+    /// together in <c>Program.cs</c>.
+    /// </para>
+    /// <para>
+    /// The clause that used to close that sentence — that the forwarded-header configuration
+    /// "refuses to trust an unbounded proxy list" — was false when it was written. Both
+    /// address collections were empty, and empty makes ASP.NET Core trust <i>every</i> proxy
+    /// rather than none, so this partition key was forgeable once per request and every budget
+    /// below was decorative. It is true now, and <c>TrustedProxyOptionsValidator</c> is what
+    /// makes it true: a deployed host that names no ingress does not start.
     /// </para>
     /// </summary>
     private static string PartitionKey(HttpContext context, string policyName)
