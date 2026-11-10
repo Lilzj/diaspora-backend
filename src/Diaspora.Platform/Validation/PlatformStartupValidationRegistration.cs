@@ -18,7 +18,7 @@ namespace Diaspora.Platform.Validation;
 /// after authentication.
 /// </para>
 /// <para>
-/// <b>Validators are discovered, not listed.</b> The six the kernel ships are found the same way a
+/// <b>Validators are discovered, not listed.</b> The seven the kernel ships are found the same way a
 /// module's would be, so a vertical that wants its own invariant checked at boot writes a class and
 /// changes nothing else — which is the whole of B2.6's extension model applied to validation.
 /// </para>
@@ -74,6 +74,7 @@ public static class PlatformStartupValidationRegistration
         typeof(AuthorizationCatalogValidator),
         typeof(FeatureGateValidator),
         typeof(SeederRegistrationValidator),
-        typeof(ModuleCatalogValidator)
+        typeof(ModuleCatalogValidator),
+        typeof(DeploymentTopologyValidator)
     ];
 }

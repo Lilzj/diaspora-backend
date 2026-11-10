@@ -4,6 +4,7 @@ using Diaspora.Platform.Authorization.AspNetCore;
 using Diaspora.Platform.Modules.Contributors;
 using Diaspora.Platform.Modules.Seeding;
 using Diaspora.Platform.Operations.Policies;
+using Diaspora.Platform.Operations.Scalability;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -37,6 +38,13 @@ public static class PlatformKernelRegistration
         var registry = new ModuleRegistry().DiscoverModules(scanned);
         services.AddSingleton(registry);
         services.AddSingleton(new PlatformManifest(registry));
+
+        // Bound here rather than beside the startup validator that reads it, because how many
+        // instances the deployment runs is not a fact about validation — the dashboard, a cache key
+        // prefix and anything else that needs to know the topology reads the same options. Bound in
+        // the kernel means every host has it, including the ones that switch validation off.
+        services.AddOptions<DeploymentOptions>()
+            .Bind(configuration.GetSection(DeploymentOptions.SectionName));
 
         RegisterContributors<IPermissionContributor>(services, scanned);
         RegisterContributors<IFeatureContributor>(services, scanned);
