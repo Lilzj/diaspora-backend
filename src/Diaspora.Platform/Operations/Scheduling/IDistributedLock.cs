@@ -45,6 +45,24 @@ public interface ILeaseHandle : IAsyncDisposable
 public interface IDistributedLock
 {
     /// <summary>
+    /// Whether this lock actually spans instances.
+    /// <para>
+    /// <b>A member rather than an attribute, so it cannot be forgotten.</b> The shipped
+    /// implementation coordinates within one process and says so by returning false; a
+    /// database- or Redis-backed one returns true. An implementation that omitted the claim would
+    /// be assumed distributed and would let a scaled deployment boot with every sweep running on
+    /// every instance — so the compiler asks the question instead, and a new implementation cannot
+    /// answer it by saying nothing.
+    /// </para>
+    /// <para>
+    /// Read at boot by <c>DeploymentTopologyValidator</c>, which refuses a deployment that declares
+    /// more than one instance while this is false. It is the single signal that turns "closing
+    /// DEBT-015 is a registration" from a comment into something the host enforces.
+    /// </para>
+    /// </summary>
+    bool IsDistributed { get; }
+
+    /// <summary>
     /// Takes the lease on <paramref name="resource"/>, or returns null immediately.
     /// <para>
     /// Non-blocking by design. A sweeper that could not take the lease should skip this cycle, not

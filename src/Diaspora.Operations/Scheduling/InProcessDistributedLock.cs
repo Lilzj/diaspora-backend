@@ -37,6 +37,17 @@ public sealed class InProcessDistributedLock : IDistributedLock
             $"{Environment.MachineName}/{Environment.ProcessId}");
     }
 
+    /// <summary>
+    /// False, and that is the whole point of the property existing.
+    /// <para>
+    /// The class summary above has said since B17 that this coordinates within one process only.
+    /// Saying it here as well makes it readable by the startup validator, so a deployment that
+    /// declares two instances is refused at boot rather than running every sweep twice and being
+    /// found out by a double charge.
+    /// </para>
+    /// </summary>
+    public bool IsDistributed => false;
+
     public Task<ILeaseHandle?> TryAcquireAsync(
         string resource,
         TimeSpan timeToLive,

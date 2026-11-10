@@ -38,6 +38,52 @@ primary_region = 'iad'
   ASPNETCORE_ENVIRONMENT = 'Production'
   ASPNETCORE_URLS = 'http://+:8080'
 
+  # ── This app runs on exactly one machine, and that is a correctness requirement ──
+  #
+  # Not a cost decision and not a default nobody revisited. Four parts of the platform assume
+  # one copy of the process, and three of them fail by quietly doing something reasonable:
+  #
+  #   1. Rate limiting partitions in memory. Three machines enforce every budget three times
+  #      over — sign-in at 30/min rather than 10, OTP at 15 per 5 min rather than 5 — and
+  #      nothing logs that it happened.
+  #   2. The timer-driven sweeps take an IDistributedLock whose shipped implementation
+  #      coordinates within one process only. Three machines run every expiry, placement,
+  #      withdrawal, campaign and recurring-donation sweep three times. Recurring donations
+  #      are the one where running twice is a second charge.
+  #   3. Real-time delivery has no backplane, so a notification reaches only the members
+  #      attached to the machine that produced it.
+  #   4. The outbox dispatcher is sized for one dispatcher (MaxConcurrency 1). Leases make
+  #      concurrent dispatch safe, so this is the least fragile of the four.
+  #
+  # ── What this file can and cannot do about it ─────────────────────────────
+  #
+  # It can say so. It cannot enforce it. There is no fly.toml key that caps machine count:
+  # `max_machines_running` is not a documented [http_service] key, and writing one would be a
+  # line that looks like a cap and silently is not — the same shape of mistake as the
+  # fdaa::/16 guess corrected under ForwardedHeaders above. Count is changed with
+  # `fly scale count` or by cloning machines, and `fly deploy` preserves whatever the app was
+  # scaled to rather than resetting it to this file.
+  #
+  # Note also that `min_machines_running` below is NOT a floor here: Fly documents it as
+  # applying only when `auto_stop_machines` is "stop" or "suspend", and this app sets it to
+  # false. It is kept because it becomes meaningful the moment autostop is turned on.
+  #
+  # So the enforcement is in the application. DeploymentTopologyValidator refuses to start a
+  # host whose declared instance count exceeds what the platform can serve correctly, and this
+  # value is that declaration.
+  #
+  # Be clear about the limit of that: scaling this app without changing the line below is NOT
+  # caught by anything. The second machine boots, reads 1, and serves traffic while believing
+  # it is alone. A process cannot count its own replicas, so the check validates a declaration
+  # rather than a reality, and this comment is the only thing standing between an operator and
+  # that gap. Raise this number in the same change that scales the app — at which point the
+  # host refuses to start, which is the point.
+  #
+  # To actually scale: register a lock that spans instances (a Postgres advisory lock needs no
+  # new infrastructure), add a distributed rate-limit store and a real-time backplane, then
+  # raise this. In that order. See BARCH-002.
+  Deployment__InstanceCount = '1'
+
   # ── Which upstream may set X-Forwarded-For ─────────────────────────────────
   #
   # Load-bearing, and the host will not start without it. Every per-IP rate limit partitions
@@ -216,6 +262,11 @@ primary_region = 'iad'
   # shared machine is worth more than the saving.
   auto_stop_machines = false
   auto_start_machines = true
+
+  # Inert as written, and kept deliberately. Fly documents min_machines_running as applying
+  # only when auto_stop_machines is "stop" or "suspend"; it is false above, so this sets no
+  # floor today. It is also a floor and never a cap — see the single-instance note in [env],
+  # which is where the constraint that matters is written down.
   min_machines_running = 1
 
   [[http_service.checks]]
