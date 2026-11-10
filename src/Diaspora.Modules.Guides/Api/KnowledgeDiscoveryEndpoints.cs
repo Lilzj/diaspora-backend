@@ -245,6 +245,7 @@ internal static class KnowledgeDiscoveryEndpoints
                     context,
                     await sender.Send(
                         new SearchKnowledgeQuery { Request = request }, cancellationToken)))
+            .RequireRateLimiting(RateLimitPolicyNames.Search)
             .WithName("SearchKnowledge")
             .WithSummary("Search a country's organised knowledge, with every discovery filter.");
 }

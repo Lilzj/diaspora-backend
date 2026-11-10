@@ -55,6 +55,7 @@ internal static class GuideDiscoveryEndpoints
                     context,
                     await sender.Send(
                         new SearchGuidesQuery { Request = request }, cancellationToken)))
+            .RequireRateLimiting(RateLimitPolicyNames.Search)
             .WithName("SearchGuides")
             .WithSummary("Find guides, with every discovery filter the client offers.");
     }

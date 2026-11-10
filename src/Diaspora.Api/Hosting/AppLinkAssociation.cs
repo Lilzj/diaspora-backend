@@ -35,11 +35,19 @@ internal static class AppLinkAssociation
 {
     public const string Path = "/.well-known/assetlinks.json";
 
-    public static void Map(WebApplication app)
+    // Takes the route builder rather than the WebApplication so the host can map it through the
+    // group that carries the platform's default transport budget. Configuration comes from the
+    // same container either way.
+    public static void Map(IEndpointRouteBuilder endpoints)
     {
-        var options = app.Configuration.GetSection(AppLinkOptions.SectionName).Get<AppLinkOptions>() ?? new AppLinkOptions();
+        ArgumentNullException.ThrowIfNull(endpoints);
 
-        app.MapGet(Path, () =>
+        var options = endpoints.ServiceProvider
+            .GetRequiredService<IConfiguration>()
+            .GetSection(AppLinkOptions.SectionName)
+            .Get<AppLinkOptions>() ?? new AppLinkOptions();
+
+        endpoints.MapGet(Path, () =>
             {
                 if (!options.IsConfigured) return Results.NotFound();
 

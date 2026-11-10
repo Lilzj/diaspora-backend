@@ -45,7 +45,7 @@ public sealed class ConversationEndpointContributor : IEndpointContributor
             // candidate: the conversation list answered eight reads and then 429ed for a
             // minute, because this group was sharing the ten-a-minute sign-in budget. A chat
             // screen is the last surface that should be metered against password attempts.
-            .RequireRateLimiting("diaspora-authenticated");
+            .RequireRateLimiting(RateLimitPolicyNames.Authenticated);
 
         MapInbox(group);
         MapRequests(group);

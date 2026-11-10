@@ -66,6 +66,13 @@ internal static class UploadEndpoints
                 return PlatformResults.Ok(context, result);
             })
             .RequireAuthorization(MediaPolicies.UploadImage)
+            // The one route on this platform where a single legitimate action is dozens of
+            // requests: a hundred-megabyte file is twenty chunks. Metered against the
+            // authenticated budget every other screen draws on, one upload would stop the app
+            // loading; a bucket of its own bounds upload abuse without that side effect. Granted
+            // to the chunk PUT alone — /uploads/direct is one request per file and belongs on the
+            // ordinary budget, where it is already the tighter of the two.
+            .RequireRateLimiting(RateLimitPolicyNames.Upload)
             .WithName("UploadMediaChunk")
             .WithSummary("Send one part. Idempotent: re-sending an identical part is a no-op.");
 

@@ -76,6 +76,7 @@ internal static class WebhookEndpoints
                         cancellationToken));
             })
             .AllowAnonymous()
+            .RequireRateLimiting(RateLimitPolicyNames.Webhook)
             .WithName("ProcessPaymentWebhook")
             .WithSummary(
                 "A payment provider's callback. Signature-verified, replay-protected, and the only "
@@ -116,6 +117,7 @@ internal static class WebhookEndpoints
                         cancellationToken));
             })
             .AllowAnonymous()
+            .RequireRateLimiting(RateLimitPolicyNames.Webhook)
             .WithName("ProcessPayoutWebhook")
             .WithSummary(
                 "A payout provider's callback. Signature-verified, replay-protected, and one of the "

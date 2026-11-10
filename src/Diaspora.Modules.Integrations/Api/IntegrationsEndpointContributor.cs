@@ -435,6 +435,7 @@ public sealed class IntegrationsEndpointContributor : IEndpointContributor
                         cancellationToken));
             })
             .AllowAnonymous()
+            .RequireRateLimiting(RateLimitPolicyNames.Webhook)
             .WithName("ProcessIntegrationWebhook")
             .WithSummary(
                 "A provider's callback. Signature-verified, replay-protected and idempotent on the "

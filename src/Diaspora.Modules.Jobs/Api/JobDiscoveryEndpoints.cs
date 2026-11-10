@@ -64,6 +64,7 @@ internal static class JobDiscoveryEndpoints
                     await sender.Send(
                         new SearchJobsQuery { Request = request, IncludeFacets = facets ?? false },
                         cancellationToken)))
+            .RequireRateLimiting(RateLimitPolicyNames.Search)
             .WithName("SearchJobs")
             .WithSummary("Search and browse jobs. POST because the filter set is large.");
 
@@ -79,6 +80,7 @@ internal static class JobDiscoveryEndpoints
                     await sender.Send(
                         new SearchJobsQuery { Request = parameters.ToRequest() },
                         cancellationToken)))
+            .RequireRateLimiting(RateLimitPolicyNames.Search)
             .WithName("BrowseJobs")
             .WithSummary("Browse jobs with the common filters, as a shareable link.");
     }
