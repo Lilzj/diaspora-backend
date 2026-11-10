@@ -298,9 +298,15 @@ public sealed class PrelaunchRemediationArchitectureTests
     /// Nothing is VERIFIED ahead of what it depends on.
     /// <para>
     /// The index states the one ordering rule that matters most in its own words: "1 before 2 (a
-    /// limiter with a forgeable key is not a limiter)". BSEC-001 is merged and BSEC-002 is not
-    /// started, so the constraint is satisfied today — this rule is what keeps it satisfied when
-    /// somebody extends rate limiting across nine hundred endpoints and wants to call it done.
+    /// limiter with a forgeable key is not a limiter)".
+    /// <para>
+    /// Updated 10 Nov 2026, because this paragraph used to read "BSEC-002 is not started" and that
+    /// is the sentence this rule exists to outlive. Rate limiting has since been extended across
+    /// the whole route table and BSEC-002 is FIXED, so the rule now has something to hold: both
+    /// findings are FIXED and neither is deployed, and the first attempt to call the coverage
+    /// VERIFIED will fail here until the forgeable partition key it rests on is verified too.
+    /// Fixing a limiter's reach proves nothing while its key can still be chosen by the caller.
+    /// </para>
     /// </para>
     /// </summary>
     [Fact]

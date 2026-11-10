@@ -263,6 +263,7 @@ internal static class InsightEndpoints
                             Take = take
                         },
                         cancellationToken)))
+            .RequireRateLimiting(RateLimitPolicyNames.Search)
             .WithName("SearchCommunityProgramme")
             .WithSummary("The federated search over what B18 owns. Ordered by server relevance.");
     }

@@ -49,6 +49,7 @@ internal static class HousingDiscoveryEndpoints
                     await sender.Send(
                         new SearchHousingQuery { Request = request }, cancellationToken)))
             .AllowAnonymous()
+            .RequireRateLimiting(RateLimitPolicyNames.Search)
             .WithName("SearchHousing")
             .WithSummary("Search for somewhere to live.");
 

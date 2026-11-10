@@ -78,6 +78,7 @@ internal static class IntelligenceDiscoveryEndpoints
                             Locale = locale
                         },
                         cancellationToken)))
+            .RequireRateLimiting(RateLimitPolicyNames.Search)
             .WithName("SearchOfficialNotices")
             .WithSummary(
                 "Search official notices. An unavailable engine answers 503, never an empty page.");

@@ -49,8 +49,13 @@ public sealed class TrustEndpointContributor : IEndpointContributor
             // credential-exchange budget — ten requests a minute, per IP, shared with
             // /auth/login — which meant /trust/feature-requirements, the list every create
             // screen fetches when it opens, 429ed after a member looked at a few of them.
-            // The literal rather than the host's constant: a module does not reference the host.
-            .RequireRateLimiting("diaspora-authenticated");
+            //
+            // This line used to end with "the literal rather than the host's constant: a module
+            // does not reference the host". The constraint was real and the conclusion was not:
+            // the names now live in Diaspora.Platform, which every module already references, so
+            // a misspelling is a compile error rather than a 500 on the first request to reach
+            // the endpoint it was meant to protect.
+            .RequireRateLimiting(RateLimitPolicyNames.Authenticated);
 
         MapProfile(group);
         MapVerifications(group);

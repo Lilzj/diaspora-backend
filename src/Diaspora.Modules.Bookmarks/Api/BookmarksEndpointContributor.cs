@@ -34,7 +34,7 @@ public sealed class BookmarksEndpointContributor : IEndpointContributor
             // named a bucket that did not exist. "diaspora-signin" is credential exchange, and
             // bookmarks were being refused on their first request because a conversation list
             // had already spent the shared per-IP budget. This one does exist.
-            .RequireRateLimiting("diaspora-authenticated");
+            .RequireRateLimiting(RateLimitPolicyNames.Authenticated);
 
         group.MapGet("/", async (ISender sender, HttpContext context, CancellationToken cancellationToken) =>
             {

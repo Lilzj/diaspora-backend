@@ -62,6 +62,7 @@ internal static class MarketplaceDiscoveryEndpoints
                     await sender.Send(
                         new SearchListingsQuery { Request = request }, cancellationToken)))
             .AllowAnonymous()
+            .RequireRateLimiting(RateLimitPolicyNames.Search)
             .WithName("SearchMarketplaceListings")
             .WithSummary("Search and browse listings.");
 

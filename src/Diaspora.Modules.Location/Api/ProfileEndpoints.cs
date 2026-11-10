@@ -161,7 +161,7 @@ internal static class ProfileEndpoints
                 return PlatformResults.Ok(context, result);
             })
             .RequireAuthorization(LocationPolicies.ManageProfile)
-            .RequireRateLimiting("diaspora-authenticated")
+            .RequireRateLimiting(RateLimitPolicyNames.Authenticated)
             .WithName("ReportPresence")
             .WithSummary(
                 "Report where the device is while the app is open. Resolved to an area and "

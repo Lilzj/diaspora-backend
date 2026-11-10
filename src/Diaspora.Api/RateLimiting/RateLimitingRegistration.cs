@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 namespace Diaspora.Api.RateLimiting;
 
 /// <summary>
-/// Per-IP throttling on the unauthenticated attack surface.
+/// Per-IP throttling, on every endpoint this host composes.
 /// <para>
 /// B2 had none. Its only defences were a per-account lockout and a per-user OTP budget,
 /// which between them stop one attacker guessing one password and nothing else: password
@@ -17,19 +17,36 @@ namespace Diaspora.Api.RateLimiting;
 /// gap; <c>ISubjectRateLimiter</c>, applied inside the handlers, closes the other.
 /// </para>
 /// <para>
-/// In-memory partitions, which means each instance enforces the limit independently. Stated
-/// plainly rather than implied: behind three replicas the effective rate is three times the
-/// configured one. That is still a bound where there was none, and the swap to a distributed
-/// store is a limiter registration rather than a redesign.
+/// <b>This summary used to begin "the unauthenticated attack surface", and that sentence was
+/// quoted back as the root cause of BSEC-002.</b> It was accurate about intent and wrong about
+/// consequence: rate limiting was built for credential exchange, four module route groups out of
+/// twenty-one were later pointed at the authenticated budget by hand, and roughly nine hundred
+/// endpoints were left with no bound at all — every financial endpoint, every media upload, both
+/// payment webhooks, all anonymous discovery and search, and ten of the host's twelve
+/// controllers. Nothing was broken; nobody had been asked. Coverage is now applied where
+/// endpoints are composed rather than module by module, so an endpoint is throttled by omission
+/// — see <c>RateLimitCoverage</c>, and <c>RateLimitCoverageTests</c> for the rule that keeps it
+/// that way.
+/// </para>
+/// <para>
+/// In-memory partitions, which means each instance enforces the limit independently: behind three
+/// replicas the effective rate is three times the configured one. That is no longer a quiet
+/// weakening — <c>DeploymentTopologyValidator</c> refuses to start a host that declares more than
+/// one instance, naming this limiter as the reason (SV8003) — and the swap to a distributed store
+/// is a limiter registration rather than a redesign.
 /// </para>
 /// </summary>
 public static class RateLimitingRegistration
 {
-    public const string SignInPolicy = "diaspora-signin";
-    public const string RegistrationPolicy = "diaspora-registration";
-    public const string OneTimeCodePolicy = "diaspora-otp";
-    public const string RecoveryPolicy = "diaspora-recovery";
-    public const string RefreshPolicy = "diaspora-refresh";
+    // Aliases. The names themselves live in Diaspora.Platform, where a module can see them —
+    // see RateLimitPolicyNames for why that move was not cosmetic. These stay because the
+    // identity surface names its budgets through attributes on controller actions, and an
+    // attribute argument must be a constant the host can reach.
+    public const string SignInPolicy = RateLimitPolicyNames.SignIn;
+    public const string RegistrationPolicy = RateLimitPolicyNames.Registration;
+    public const string OneTimeCodePolicy = RateLimitPolicyNames.OneTimeCode;
+    public const string RecoveryPolicy = RateLimitPolicyNames.Recovery;
+    public const string RefreshPolicy = RateLimitPolicyNames.Refresh;
 
     /// <summary>
     /// The budget for authenticated application traffic, and the reason it exists.
@@ -59,7 +76,32 @@ public static class RateLimitingRegistration
     /// proxy's address and therefore this budget.
     /// </para>
     /// </summary>
-    public const string AuthenticatedPolicy = "diaspora-authenticated";
+    public const string AuthenticatedPolicy = RateLimitPolicyNames.Authenticated;
+
+    /// <summary>
+    /// Every policy this host registers, which is what makes an endpoint's named policy
+    /// checkable.
+    /// <para>
+    /// A name no policy answers to is not a compile error and not a startup error. ASP.NET Core
+    /// raises it on the request that reaches the endpoint — so a typo ships, and the endpoint
+    /// it was meant to protect is the one that fails. This list is here so a guardrail can ask
+    /// the question at build time instead, in the same shape as the authorisation catalogue's
+    /// <c>Every_policy_an_endpoint_names_is_declared_by_a_module</c>.
+    /// </para>
+    /// </summary>
+    public static IReadOnlySet<string> Declared { get; } = new HashSet<string>(StringComparer.Ordinal)
+    {
+        RateLimitPolicyNames.SignIn,
+        RateLimitPolicyNames.Registration,
+        RateLimitPolicyNames.OneTimeCode,
+        RateLimitPolicyNames.Recovery,
+        RateLimitPolicyNames.Refresh,
+        RateLimitPolicyNames.Authenticated,
+        RateLimitPolicyNames.Anonymous,
+        RateLimitPolicyNames.Search,
+        RateLimitPolicyNames.Webhook,
+        RateLimitPolicyNames.Upload
+    };
 
     public static IServiceCollection AddDiasporaRateLimiting(this IServiceCollection services)
     {
@@ -96,6 +138,14 @@ public static class RateLimitingRegistration
             AddFixedWindow(limiter, RecoveryPolicy, options => options.Recovery);
             AddFixedWindow(limiter, RefreshPolicy, options => options.Refresh);
             AddFixedWindow(limiter, AuthenticatedPolicy, options => options.Authenticated);
+
+            // The two tiers every composed endpoint falls into, and the three deviations a route
+            // may ask for. See RateLimitCoverage for how an endpoint acquires one of the tiers
+            // without naming it.
+            AddFixedWindow(limiter, RateLimitPolicyNames.Anonymous, options => options.Anonymous);
+            AddFixedWindow(limiter, RateLimitPolicyNames.Search, options => options.Search);
+            AddFixedWindow(limiter, RateLimitPolicyNames.Webhook, options => options.Webhook);
+            AddFixedWindow(limiter, RateLimitPolicyNames.Upload, options => options.Upload);
         });
 
         return services;

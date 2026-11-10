@@ -1,6 +1,6 @@
 Id,Severity,Wave,Blocker,Repo,Title,State,BlockedBy,Evidence,Decided
 BSEC-001,HIGH,0,1,backend,"X-Forwarded-For is trusted from any source, defeating every per-IP rate limit and poisoning the security audit trail",FIXED,,test:ForwardedHeaderTrustTests;test:TrustedProxyOptionsValidatorTests,2026-11-09
-BSEC-002,HIGH,0,2,backend,Rate limiting is applied to 4 of 21 module route groups; ~900 endpoints are unthrottled,OPEN,BSEC-001,,
+BSEC-002,HIGH,0,2,backend,Rate limiting is applied to 4 of 21 module route groups; ~900 endpoints are unthrottled,FIXED,BSEC-001,test:RateLimitCoverageTests;test:RateLimitConventionTests;test:RateLimitingTests,2026-11-10
 BSEC-003,HIGH,0,3,backend,"Authorization fails open: 430 of 951 endpoints have no route-level policy, the CQRS behaviour skips unannotated requests, and the guardrail test that should catch this does not exist",OPEN,,,
 BSEC-004,MEDIUM,1,,backend,"Unauthenticated, unthrottled engagement writes inflate counters that feed trending and creator recognition",OPEN,,,
 BSEC-005,MEDIUM,1,,backend,Media served Content-Disposition inline although the code's own comment forbids it and names stored XSS as the reason,OPEN,,,
