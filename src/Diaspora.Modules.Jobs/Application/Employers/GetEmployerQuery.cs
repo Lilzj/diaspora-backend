@@ -18,6 +18,10 @@ namespace Diaspora.Modules.Jobs.Application.Employers;
 /// what was missing was genuinely only the query and the route, not a projection.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Public discovery. The route already says AllowAnonymous and this is the same statement at " +
+    "the other end of the pipeline: a listing nobody can see without signing up is a listing " +
+    "nobody answers.")]
 public sealed record GetEmployerQuery : IQuery<EmployerResponse>
 {
     /// <summary>A GUID or a slug. A public profile is linkable, so both must resolve.</summary>

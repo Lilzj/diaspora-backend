@@ -16,6 +16,10 @@ namespace Diaspora.Modules.Guides.Application.Knowledge.Discovery;
 /// read about the country they are moving to has no way of persuading them to make one.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Published reference content, and the platform's public face. Somebody researching a move " +
+    "reads this before they have an account; requiring one would make the knowledge base useless " +
+    "to the people it exists for.")]
 public sealed record GetCountryKnowledgeDirectoryQuery : IQuery<CountryKnowledgeDirectoryResponse>
 {
     /// <summary>ISO 3166-1 alpha-2. Case-insensitive on the way in.</summary>

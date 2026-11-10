@@ -125,19 +125,29 @@ public sealed class RequestAuthorizationArchitectureTests
                 ReviewListPath);
     }
 
-    /// <summary>The list only shrinks.</summary>
+    /// <summary>
+    /// The list is empty, and stays empty.
+    /// <para>
+    /// <b>Replaced "the list only shrinks" on 10 Nov 2026, because it finished shrinking.</b> All
+    /// 247 entries are classified and <c>AuthorizationBehavior</c> now refuses a request carrying
+    /// neither attribute. A ceiling of 247 was the right rule while the sweep was in progress; now
+    /// it would be a door left open, because a new unannotated request type could be waved through
+    /// by adding a line here.
+    /// </para>
+    /// <para>
+    /// So the rule is <c>BeEmpty</c>, and the escape hatch is gone on purpose: the only way to add
+    /// a request type to this platform is to say what it requires.
+    /// </para>
+    /// </summary>
     [Fact]
-    public void The_review_list_only_shrinks()
+    public void The_review_list_is_empty_and_stays_empty()
     {
-        ReviewList.Value.Should().HaveCountLessThanOrEqualTo(
-            ReviewListSizeAtBaseline,
-            "{0} held {1} entries when BSEC-003's detection landed. A new unannotated request type "
-            + "would have to be added to it to pass the sibling rule, and that is what this "
-            + "refuses: raising the ceiling is a deliberate edit to this suite, with a reason",
+        ReviewList.Value.Should().BeEmpty(
+            "{0} held {1} entries when BSEC-003's detection landed and holds none now. A line "
+            + "here would be a request type nobody classified, admitted by editing a text file "
+            + "instead of by deciding what it requires",
             ReviewListPath,
             ReviewListSizeAtBaseline);
-
-        ReviewList.Value.Should().OnlyHaveUniqueItems();
     }
 
     /// <summary>

@@ -23,6 +23,7 @@ namespace Diaspora.Modules.Integrations.Application.Capabilities;
 /// different fixes.
 /// </para>
 /// </summary>
+[Authorize(Policy = IntegrationsPolicies.ConnectionsRead)]
 public sealed record GetIntegrationCapabilitiesQuery : IQuery<IntegrationCapabilitiesResponse>;
 
 public sealed class GetIntegrationCapabilitiesQueryHandler

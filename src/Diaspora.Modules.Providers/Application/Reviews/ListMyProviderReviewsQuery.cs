@@ -18,6 +18,7 @@ namespace Diaspora.Modules.Providers.Application.Reviews;
 /// provider they own, so the client had no id to put in the working route.
 /// </para>
 /// </summary>
+[Authorize(Policy = ProviderPolicies.Read)]
 public sealed record ListMyProviderReviewsQuery : IQuery<ProviderReviewPageResponse>
 {
     public string? Cursor { get; init; }

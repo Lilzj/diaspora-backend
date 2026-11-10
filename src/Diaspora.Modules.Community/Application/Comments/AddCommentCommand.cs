@@ -7,6 +7,7 @@ namespace Diaspora.Modules.Community.Application.Comments;
 /// <summary>Adds a comment or a reply to any addressable content.</summary>
 [Auditable]
 [Transactional]
+[Authorize(Policy = CommunityPolicies.Comment)]
 public sealed record AddCommentCommand : ICommand<CommentResponse>
 {
     /// <summary>From the route. The body may name the content instead.</summary>

@@ -168,6 +168,12 @@ public sealed record ReviewOfficialNoticeCommand : ICommand<OfficialNoticeRespon
     "The notice's own counter and the country's counter are written by two saves — the handler's " +
     "and the analytics sink's. Either alone leaves a most-viewed list and a country total that " +
     "disagree about the same read.")]
+[AllowAnonymous(
+    "Deliberately anonymous, and the counter is the reason: readers who share a visa guide with a " +
+    "relative are frequently not signed in, and a figure that counted only members would " +
+    "understate the one number that measures whether the knowledge base works. Bounded by the " +
+    "transport limiter rather than by a token (BSEC-002); BSEC-004 is the finding that asked for " +
+    "the bound.")]
 public sealed record RecordNoticeActivityCommand : ICommand
 {
     public required Guid OfficialNoticeId { get; init; }

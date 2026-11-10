@@ -4,6 +4,7 @@ using Diaspora.Modules.Location.Contracts.V1.Responses;
 namespace Diaspora.Modules.Location.Application.Nearby;
 
 /// <summary>Aggregated markers for a map viewport.</summary>
+[Authorize(Policy = LocationPolicies.Hyperlocal)]
 public sealed record GetMapClustersQuery : IQuery<MapClusterPageResponse>
 {
     /// <summary>The viewport: <c>north,south,east,west</c>.</summary>

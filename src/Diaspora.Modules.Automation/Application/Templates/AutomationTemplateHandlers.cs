@@ -18,6 +18,7 @@ namespace Diaspora.Modules.Automation.Application.Templates;
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>What the builder may offer, filtered to what this member may create.</summary>
+[Authorize(Policy = AutomationPolicies.Read)]
 public sealed record ListTemplatesQuery : IQuery<IReadOnlyList<AutomationTemplateResponse>>
 {
     public string? Category { get; init; }
@@ -73,6 +74,7 @@ public sealed class ListTemplatesQueryHandler
 }
 
 /// <summary>The trigger, condition and action vocabulary, and what this deployment can do with it.</summary>
+[Authorize(Policy = AutomationPolicies.Read)]
 public sealed record GetCatalogQuery : IQuery<AutomationCatalogResponse>;
 
 public sealed class GetCatalogQueryHandler : IQueryHandler<GetCatalogQuery, AutomationCatalogResponse>

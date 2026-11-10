@@ -12,6 +12,10 @@ namespace Diaspora.Modules.Guides.Application.Versioning;
 /// given it.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Published reference content, and the platform's public face. Somebody researching a move " +
+    "reads this before they have an account; requiring one would make the knowledge base useless " +
+    "to the people it exists for.")]
 public sealed record GetGuideVersionQuery : IQuery<GuideVersionResponse>
 {
     public required Guid GuideId { get; init; }

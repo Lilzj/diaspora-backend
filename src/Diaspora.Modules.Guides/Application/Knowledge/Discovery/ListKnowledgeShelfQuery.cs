@@ -19,6 +19,10 @@ namespace Diaspora.Modules.Guides.Application.Knowledge.Discovery;
 /// and a signed-in one both see published guides and nothing else.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Published reference content, and the platform's public face. Somebody researching a move " +
+    "reads this before they have an account; requiring one would make the knowledge base useless " +
+    "to the people it exists for.")]
 public sealed record ListKnowledgeShelfQuery : IQuery<CursorPagedResult<GuideCardResponse>>
 {
     /// <summary>Which shelf. Chosen by the endpoint, never by the caller.</summary>

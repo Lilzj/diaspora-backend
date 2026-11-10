@@ -12,6 +12,7 @@ namespace Diaspora.Modules.GeographicIntelligence.Application.Areas;
 /// <summary>
 /// The area around one point: counts, rent and safety within a circle (14 Oct 2026).
 /// </summary>
+[Authorize(Policy = GeographicIntelligencePolicies.IntelligenceRead)]
 public sealed record GetAreaReportQuery : IQuery<AreaReportResponse>
 {
     public required AreaPoint Point { get; init; }
@@ -48,6 +49,7 @@ public sealed class GetAreaReportQueryHandler : IQueryHandler<GetAreaReportQuery
 /// <summary>
 /// Several areas around points, composed identically with one radius, in the caller's order.
 /// </summary>
+[Authorize(Policy = GeographicIntelligencePolicies.IntelligenceRead)]
 public sealed record CompareAreasQuery : IQuery<AreaComparisonResponse>
 {
     public required IReadOnlyList<AreaPoint> Points { get; init; }

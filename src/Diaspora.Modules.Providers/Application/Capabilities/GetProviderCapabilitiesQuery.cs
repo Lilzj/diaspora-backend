@@ -12,4 +12,5 @@ namespace Diaspora.Modules.Providers.Application.Capabilities;
 /// into the app; this is what unbakes them.
 /// </para>
 /// </summary>
+[Authorize(Policy = ProviderPolicies.Read)]
 public sealed record GetProviderCapabilitiesQuery : IQuery<ProviderCapabilitiesResponse>;

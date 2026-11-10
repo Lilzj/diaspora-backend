@@ -10,6 +10,10 @@ namespace Diaspora.Modules.CommunityLife.Application.Discovery;
 /// trips before it could show a dropdown would be three chances to render half a form.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Public discovery. The route already says AllowAnonymous and this is the same statement at " +
+    "the other end of the pipeline: a listing nobody can see without signing up is a listing " +
+    "nobody answers.")]
 public sealed record GetCommunityLifeCatalogueQuery : IQuery<CommunityLifeCatalogueResponse>
 {
     public bool IncludeRetired { get; init; }

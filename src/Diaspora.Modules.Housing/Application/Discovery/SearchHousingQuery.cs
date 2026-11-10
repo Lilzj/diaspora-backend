@@ -12,6 +12,10 @@ namespace Diaspora.Modules.Housing.Application.Discovery;
 /// would be useful only to people who had already decided.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Public discovery. The route already says AllowAnonymous and this is the same statement at " +
+    "the other end of the pipeline: a listing nobody can see without signing up is a listing " +
+    "nobody answers.")]
 public sealed record SearchHousingQuery : IQuery<HousingSearchResultResponse>
 {
     public required SearchHousingRequest Request { get; init; }

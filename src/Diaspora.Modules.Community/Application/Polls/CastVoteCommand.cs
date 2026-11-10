@@ -7,6 +7,7 @@ namespace Diaspora.Modules.Community.Application.Polls;
 /// <summary>Votes in a poll.</summary>
 [Auditable]
 [Transactional]
+[Authorize(Policy = CommunityPolicies.Poll)]
 public sealed record CastVoteCommand : ICommand<PollResponse>
 {
     public required Guid PostId { get; init; }

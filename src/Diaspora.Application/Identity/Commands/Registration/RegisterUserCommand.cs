@@ -12,6 +12,9 @@ namespace Diaspora.Application.Identity.Commands.Registration;
 /// </para>
 /// </summary>
 [Auditable(Action = "identity.user.registered")]
+[AllowAnonymous(
+    "Authentication itself. A caller who could already prove who they are would have no reason to " +
+    "be here.")]
 public sealed record RegisterUserCommand : ICommand<RegistrationResponse>
 {
     public required string FullName { get; init; }

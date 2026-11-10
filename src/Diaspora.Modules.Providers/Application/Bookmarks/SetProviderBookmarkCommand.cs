@@ -16,6 +16,7 @@ namespace Diaspora.Modules.Providers.Application.Bookmarks;
 /// </para>
 /// </summary>
 [Auditable]
+[Authorize(Policy = ProviderPolicies.Bookmark)]
 public sealed record SetProviderBookmarkCommand : ICommand
 {
     public required Guid ProviderId { get; init; }

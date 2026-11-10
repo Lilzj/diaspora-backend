@@ -12,6 +12,10 @@ namespace Diaspora.Modules.Guides.Application.Suggestions;
 /// correction ten times. What is <em>not</em> public is deciding them.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Published reference content, and the platform's public face. Somebody researching a move " +
+    "reads this before they have an account; requiring one would make the knowledge base useless " +
+    "to the people it exists for.")]
 public sealed record ListGuideSuggestionsQuery : IQuery<CursorPagedResult<GuideSuggestionResponse>>
 {
     public required Guid GuideId { get; init; }

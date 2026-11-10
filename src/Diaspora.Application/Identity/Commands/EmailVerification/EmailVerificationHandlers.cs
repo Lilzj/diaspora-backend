@@ -25,6 +25,9 @@ public sealed record SendEmailVerificationCommand : ICommand<EmailIdentityRespon
 /// member often opens the email on a device where they are not signed in.
 /// </summary>
 [Auditable(Action = "identity.user.email-verified")]
+[AllowAnonymous(
+    "Confirmed from a link in an email, which is the proof. The address being confirmed is the " +
+    "thing in question, so a session cannot be a precondition for confirming it.")]
 public sealed record ConfirmEmailVerificationCommand : ICommand<EmailVerificationOutcomeResponse>
 {
     public required string Token { get; init; }

@@ -17,6 +17,9 @@ namespace Diaspora.Modules.Financial.Application.Webhooks;
 /// </para>
 /// </summary>
 [Transactional(Reason = "One callback completes a payout, posts its ledger entries and records itself.")]
+[AllowAnonymous(
+    "A provider callback. It carries no bearer token and never will — the request signature is " +
+    "the credential, and the handler verifies it before reading anything.")]
 public sealed record ProcessPayoutWebhookCommand : ICommand<WebhookAcknowledgementResponse>
 {
     /// <summary>Whose callback this is, from the URL. Matched against registered processors.</summary>

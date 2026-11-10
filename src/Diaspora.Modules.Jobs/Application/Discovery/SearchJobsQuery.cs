@@ -12,6 +12,10 @@ namespace Diaspora.Modules.Jobs.Application.Discovery;
 /// "you saved" annotations, which is the only difference.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Public discovery. The route already says AllowAnonymous and this is the same statement at " +
+    "the other end of the pipeline: a listing nobody can see without signing up is a listing " +
+    "nobody answers.")]
 public sealed record SearchJobsQuery : IQuery<JobSearchResultResponse>
 {
     public required SearchJobsRequest Request { get; init; }

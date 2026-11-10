@@ -7,6 +7,7 @@ namespace Diaspora.Modules.Providers.Application.Management;
 /// <summary>Adds one thing a provider offers.</summary>
 [Transactional]
 [Auditable]
+[Authorize(Policy = ProviderPolicies.ManageServices)]
 public sealed record AddProviderServiceCommand : ICommand<ProviderResponse>
 {
     public required Guid ProviderId { get; init; }

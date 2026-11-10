@@ -17,4 +17,8 @@ namespace Diaspora.Modules.Guides.Application.Capabilities;
 /// it is a description of the software rather than of anyone's data.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Published reference content, and the platform's public face. Somebody researching a move " +
+    "reads this before they have an account; requiring one would make the knowledge base useless " +
+    "to the people it exists for.")]
 public sealed record GetGuideCapabilitiesQuery : IQuery<GuideCapabilitiesResponse>;

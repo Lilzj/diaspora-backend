@@ -34,6 +34,10 @@ namespace Diaspora.Modules.Media.Application.Assets;
 /// </para>
 /// </summary>
 [Auditable]
+// Dispatched from inside an authorised handler, never from a route of its own —
+// ProfileController ([Authorize] at the class) and Creator's cover handlers. The caller is
+// present in both.
+[Authorize]
 public sealed record PublishProfileImageCommand : ICommand<ProfileImageResponse>
 {
     public required Guid MediaId { get; init; }
@@ -51,6 +55,8 @@ public sealed record PublishProfileImageCommand : ICommand<ProfileImageResponse>
 /// </para>
 /// </summary>
 [Auditable]
+// Same two dispatch sites as PublishProfileImageCommand.
+[Authorize]
 public sealed record WithdrawProfileImageCommand : ICommand
 {
     public required Guid MediaId { get; init; }

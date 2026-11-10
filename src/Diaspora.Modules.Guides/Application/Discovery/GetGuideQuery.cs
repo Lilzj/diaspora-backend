@@ -12,6 +12,10 @@ namespace Diaspora.Modules.Guides.Application.Discovery;
 /// found to anybody but their author and staff.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Published reference content, and the platform's public face. Somebody researching a move " +
+    "reads this before they have an account; requiring one would make the knowledge base useless " +
+    "to the people it exists for.")]
 public sealed record GetGuideQuery : IQuery<GuideResponse>
 {
     public required Guid GuideId { get; init; }

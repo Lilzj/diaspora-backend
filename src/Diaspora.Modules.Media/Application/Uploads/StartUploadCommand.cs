@@ -6,6 +6,7 @@ namespace Diaspora.Modules.Media.Application.Uploads;
 
 /// <summary>Opens an upload session.</summary>
 [Auditable]
+[Authorize(Policy = MediaPolicies.UploadImage)]
 public sealed record StartUploadCommand : ICommand<UploadSessionResponse>
 {
     public required StartUploadRequest Request { get; init; }

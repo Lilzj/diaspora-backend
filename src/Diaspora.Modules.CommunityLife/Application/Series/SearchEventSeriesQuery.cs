@@ -11,6 +11,10 @@ namespace Diaspora.Modules.CommunityLife.Application.Series;
 /// search runs against the occurrences, which are ordinary events and already carry every facet.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Public discovery. The route already says AllowAnonymous and this is the same statement at " +
+    "the other end of the pipeline: a listing nobody can see without signing up is a listing " +
+    "nobody answers.")]
 public sealed record SearchEventSeriesQuery : IQuery<EventSeriesPageResponse>
 {
     public string? SearchTerm { get; init; }

@@ -7,6 +7,7 @@ namespace Diaspora.Modules.Providers.Application.Management;
 /// <summary>Publishes, pauses, closes, suspends, reinstates or archives a provider.</summary>
 [Transactional]
 [Auditable]
+[Authorize(Policy = ProviderPolicies.ManageStatus)]
 public sealed record ChangeProviderStatusCommand : ICommand<ProviderResponse>
 {
     public required Guid ProviderId { get; init; }

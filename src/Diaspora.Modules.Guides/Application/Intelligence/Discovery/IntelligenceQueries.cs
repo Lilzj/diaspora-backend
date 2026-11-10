@@ -11,6 +11,10 @@ namespace Diaspora.Modules.Guides.Application.Intelligence.Discovery;
 /// would show somebody an emergency number has misunderstood what the number is for.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Published reference content, and the platform's public face. Somebody researching a move " +
+    "reads this before they have an account; requiring one would make the knowledge base useless " +
+    "to the people it exists for.")]
 public sealed record GetCountryIntelligenceQuery : IQuery<CountryIntelligenceResponse>
 {
     /// <summary>Upper-case ISO 3166-1 alpha-2.</summary>
@@ -32,6 +36,10 @@ public sealed record GetCountryIntelligenceQuery : IQuery<CountryIntelligenceRes
 /// filter rather than trusting the query to have set it.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Published reference content, and the platform's public face. Somebody researching a move " +
+    "reads this before they have an account; requiring one would make the knowledge base useless " +
+    "to the people it exists for.")]
 public sealed record ListOfficialNoticesQuery : IQuery<CursorPagedResult<OfficialNoticeCardResponse>>
 {
     /// <summary>Upper-case ISO 3166-1 alpha-2. Null lists across every country.</summary>
@@ -79,6 +87,10 @@ public sealed record ListOfficialNoticesQuery : IQuery<CursorPagedResult<Officia
 }
 
 /// <summary>One official notice in full.</summary>
+[AllowAnonymous(
+    "Published reference content, and the platform's public face. Somebody researching a move " +
+    "reads this before they have an account; requiring one would make the knowledge base useless " +
+    "to the people it exists for.")]
 public sealed record GetOfficialNoticeQuery : IQuery<OfficialNoticeResponse>
 {
     public required Guid OfficialNoticeId { get; init; }
@@ -87,6 +99,10 @@ public sealed record GetOfficialNoticeQuery : IQuery<OfficialNoticeResponse>
 }
 
 /// <summary>The notice category catalogue, ordered.</summary>
+[AllowAnonymous(
+    "Published reference content, and the platform's public face. Somebody researching a move " +
+    "reads this before they have an account; requiring one would make the knowledge base useless " +
+    "to the people it exists for.")]
 public sealed record ListNoticeCategoriesQuery : IQuery<IReadOnlyList<NoticeCategoryResponse>>
 {
     public string? Locale { get; init; }
@@ -102,6 +118,10 @@ public sealed record ListNoticeCategoriesQuery : IQuery<IReadOnlyList<NoticeCate
 /// Mauritius" and "missions serving Mauritians" are different lists with almost no overlap.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Published reference content, and the platform's public face. Somebody researching a move " +
+    "reads this before they have an account; requiring one would make the knowledge base useless " +
+    "to the people it exists for.")]
 public sealed record ListEmbassiesQuery : IQuery<CursorPagedResult<EmbassyResponse>>
 {
     /// <summary>Missions physically in this country.</summary>
@@ -123,6 +143,10 @@ public sealed record ListEmbassiesQuery : IQuery<CursorPagedResult<EmbassyRespon
 }
 
 /// <summary>One mission in full.</summary>
+[AllowAnonymous(
+    "Published reference content, and the platform's public face. Somebody researching a move " +
+    "reads this before they have an account; requiring one would make the knowledge base useless " +
+    "to the people it exists for.")]
 public sealed record GetEmbassyQuery : IQuery<EmbassyResponse>
 {
     public required Guid EmbassyId { get; init; }
@@ -137,6 +161,9 @@ public sealed record GetEmbassyQuery : IQuery<EmbassyResponse>
 /// to do with it — see <see cref="EmergencyContactsResponse"/>.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Published emergency contacts. The one read on the platform most likely to be opened by " +
+    "somebody in trouble on a phone they have not signed in on.")]
 public sealed record GetEmergencyContactsQuery : IQuery<EmergencyContactsResponse>
 {
     public required string CountryCode { get; init; }
@@ -154,6 +181,10 @@ public sealed record GetEmergencyContactsQuery : IQuery<EmergencyContactsRespons
 /// that no rules exist for them.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Published reference content, and the platform's public face. Somebody researching a move " +
+    "reads this before they have an account; requiring one would make the knowledge base useless " +
+    "to the people it exists for.")]
 public sealed record ListVisaAdvisoriesQuery : IQuery<CursorPagedResult<VisaAdvisoryResponse>>
 {
     /// <summary>The destination. Required — an advisory is always about one.</summary>
@@ -173,6 +204,10 @@ public sealed record ListVisaAdvisoriesQuery : IQuery<CursorPagedResult<VisaAdvi
 }
 
 /// <summary>One visa advisory in full.</summary>
+[AllowAnonymous(
+    "Published reference content, and the platform's public face. Somebody researching a move " +
+    "reads this before they have an account; requiring one would make the knowledge base useless " +
+    "to the people it exists for.")]
 public sealed record GetVisaAdvisoryQuery : IQuery<VisaAdvisoryResponse>
 {
     public required Guid VisaAdvisoryId { get; init; }
@@ -187,6 +222,10 @@ public sealed record GetVisaAdvisoryQuery : IQuery<VisaAdvisoryResponse>
 /// dashboard's horizon asks for, and expressing one as the other would make the second awkward.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Published reference content, and the platform's public face. Somebody researching a move " +
+    "reads this before they have an account; requiring one would make the knowledge base useless " +
+    "to the people it exists for.")]
 public sealed record ListPublicHolidaysQuery : IQuery<IReadOnlyList<PublicHolidayResponse>>
 {
     public required string CountryCode { get; init; }
@@ -211,6 +250,10 @@ public sealed record ListPublicHolidaysQuery : IQuery<IReadOnlyList<PublicHolida
 /// somebody that when the truth is that an index is down is the worst failure mode this module has.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Published reference content, and the platform's public face. Somebody researching a move " +
+    "reads this before they have an account; requiring one would make the knowledge base useless " +
+    "to the people it exists for.")]
 public sealed record SearchOfficialNoticesQuery : IQuery<OfficialNoticeSearchResponse>
 {
     public string? Text { get; init; }
@@ -246,6 +289,10 @@ public sealed record SearchOfficialNoticesQuery : IQuery<OfficialNoticeSearchRes
 }
 
 /// <summary>The bodies that issue for one country.</summary>
+[AllowAnonymous(
+    "Published reference content, and the platform's public face. Somebody researching a move " +
+    "reads this before they have an account; requiring one would make the knowledge base useless " +
+    "to the people it exists for.")]
 public sealed record ListIssuingAuthoritiesQuery : IQuery<IReadOnlyList<IssuingAuthorityResponse>>
 {
     public required string CountryCode { get; init; }
@@ -257,12 +304,20 @@ public sealed record ListIssuingAuthoritiesQuery : IQuery<IReadOnlyList<IssuingA
 }
 
 /// <summary>One issuing authority.</summary>
+[AllowAnonymous(
+    "Published reference content, and the platform's public face. Somebody researching a move " +
+    "reads this before they have an account; requiring one would make the knowledge base useless " +
+    "to the people it exists for.")]
 public sealed record GetIssuingAuthorityQuery : IQuery<IssuingAuthorityResponse>
 {
     public required Guid IssuingAuthorityId { get; init; }
 }
 
 /// <summary>What this deployment's Country Intelligence Platform can actually do.</summary>
+[AllowAnonymous(
+    "Published reference content, and the platform's public face. Somebody researching a move " +
+    "reads this before they have an account; requiring one would make the knowledge base useless " +
+    "to the people it exists for.")]
 public sealed record GetIntelligenceCapabilitiesQuery : IQuery<IntelligenceCapabilitiesResponse>
 {
     public string? Locale { get; init; }

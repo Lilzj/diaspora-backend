@@ -8,6 +8,7 @@ namespace Diaspora.Modules.Community.Application.Posts;
 [Auditable]
 [Transactional]
 [Diaspora.Application.Behaviors.PostsInArea(Diaspora.Contracts.Moderation.V1.ModerationAreas.Community)]
+[Authorize(Policy = CommunityPolicies.Post)]
 public sealed record CreatePostCommand : ICommand<CommunityPostResponse>
 {
     public required CreatePostRequest Request { get; init; }

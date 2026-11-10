@@ -27,6 +27,7 @@ namespace Diaspora.Modules.Automation.Application.Execution;
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>How one owner's automations have been behaving.</summary>
+[Authorize(Policy = AutomationPolicies.Read)]
 public sealed record GetAutomationDiagnosticsQuery : IQuery<AutomationDiagnosticsResponse>
 {
     /// <summary>Narrow to one automation the caller may read. Omitted means all of their own.</summary>

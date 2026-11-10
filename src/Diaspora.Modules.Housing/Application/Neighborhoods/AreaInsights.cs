@@ -158,6 +158,10 @@ public sealed class SubmitAreaInsightCommandHandler
 /// own sees their own whatever the status.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Public discovery. The route already says AllowAnonymous and this is the same statement at " +
+    "the other end of the pipeline: a listing nobody can see without signing up is a listing " +
+    "nobody answers.")]
 public sealed record ListAreaInsightsQuery : IQuery<IReadOnlyList<NeighborhoodInsightResponse>>
 {
     public required double Latitude { get; init; }

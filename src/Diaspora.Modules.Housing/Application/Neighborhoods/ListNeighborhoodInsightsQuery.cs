@@ -11,6 +11,10 @@ namespace Diaspora.Modules.Housing.Application.Neighborhoods;
 /// and the default of every read path must be that it does not exist.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Public discovery. The route already says AllowAnonymous and this is the same statement at " +
+    "the other end of the pipeline: a listing nobody can see without signing up is a listing " +
+    "nobody answers.")]
 public sealed record ListNeighborhoodInsightsQuery
     : IQuery<IReadOnlyList<NeighborhoodInsightResponse>>
 {

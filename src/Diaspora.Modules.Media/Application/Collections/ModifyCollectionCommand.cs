@@ -13,6 +13,7 @@ namespace Diaspora.Modules.Media.Application.Collections;
 /// </para>
 /// </summary>
 [Auditable]
+[Authorize(Policy = MediaPolicies.ManageCollections)]
 public sealed record ModifyCollectionCommand : ICommand<MediaCollectionResponse>
 {
     public required Guid CollectionId { get; init; }

@@ -10,6 +10,7 @@ namespace Diaspora.Modules.Media.Application.Processing;
 /// has no codec" or "the codec failed", and those want different responses.
 /// </para>
 /// </summary>
+[Authorize(Policy = MediaPolicies.Read)]
 public sealed record GetProcessingJobQuery : IQuery<ProcessingJobResponse>
 {
     public required Guid MediaId { get; init; }

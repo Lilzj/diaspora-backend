@@ -10,6 +10,10 @@ namespace Diaspora.Modules.Housing.Application.Neighborhoods;
 /// area subtree and gets back places with housing in them, ordered by where members actually are.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Public discovery. The route already says AllowAnonymous and this is the same statement at " +
+    "the other end of the pipeline: a listing nobody can see without signing up is a listing " +
+    "nobody answers.")]
 public sealed record SearchNeighborhoodsQuery : IQuery<IReadOnlyList<NeighborhoodSummaryResponse>>
 {
     public string? CountryCode { get; init; }

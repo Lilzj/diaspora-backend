@@ -12,6 +12,10 @@ namespace Diaspora.Modules.Guides.Application.Discovery;
 /// moved wants the shelf for where they now live.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Published reference content, and the platform's public face. Somebody researching a move " +
+    "reads this before they have an account; requiring one would make the knowledge base useless " +
+    "to the people it exists for.")]
 public sealed record ListGuidesByCountryQuery : IQuery<CursorPagedResult<GuideCardResponse>>
 {
     /// <summary>ISO 3166-1 alpha-2. Case-insensitive on the way in.</summary>

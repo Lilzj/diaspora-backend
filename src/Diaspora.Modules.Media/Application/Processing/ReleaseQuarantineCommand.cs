@@ -13,6 +13,7 @@ namespace Diaspora.Modules.Media.Application.Processing;
 /// </para>
 /// </summary>
 [Auditable]
+[Authorize(Policy = MediaPolicies.ManageProcessing)]
 public sealed record ReleaseQuarantineCommand : ICommand<MediaAssetResponse>
 {
     public required Guid MediaId { get; init; }

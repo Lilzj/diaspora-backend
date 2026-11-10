@@ -49,13 +49,22 @@ public static class IdentityAuthenticationRegistration
             //
             // RequestAuthorizationArchitectureTests is the rule, written on 9 November 2026. It
             // requires every query and command to carry [Authorize] or [AllowAnonymous], holding
-            // the 247 pre-existing exceptions in a dated list that can only shrink. So the claim is
-            // now true of everything written from today, and explicitly not yet true of that list.
+            // the 247 pre-existing exceptions in a dated list that could only shrink.
             //
-            // It is still a compensating control rather than a guarantee: it reasons about CQRS
-            // request types, not the composed route table, so an endpoint that reaches no handler
-            // is outside it. AuthorizationBehavior becomes fail-closed when the list is empty,
-            // which is the remaining half of the finding.
+            // CLOSED 10 November 2026, and this paragraph used to end "explicitly not yet true of
+            // that list". The list is empty: all 247 are classified, so that rule now has no
+            // exemptions at all, and AuthorizationBehavior REFUSES a request type carrying
+            // neither attribute. The compensating control became the guarantee it was described as.
+            //
+            // The route table is covered too, which it was not: RouteAuthorizationCoverageTests
+            // pins the 478 endpoints that declare nothing on the route — every one of them
+            // delegating to a request attribute the pipeline now enforces — so an endpoint that
+            // loses .RequireAuthorization is named by a failing test rather than quietly served.
+            // The health probes are the only two entries on that list reaching no handler.
+            //
+            // So FallbackPolicy stays null, and for the first time that is a choice rather than a
+            // gap: the anonymous endpoints are enumerated, each says why, and nothing reaches a
+            // handler without a declaration somewhere.
             options.FallbackPolicy = null;
         });
 

@@ -11,4 +11,5 @@ namespace Diaspora.Modules.Media.Application.Uploads;
 /// <c>AsyncStorage</c> no longer resolve on a fresh install.
 /// </para>
 /// </summary>
+[Authorize(Policy = MediaPolicies.Read)]
 public sealed record ListMyUploadsQuery : IQuery<IReadOnlyList<UploadSessionResponse>>;

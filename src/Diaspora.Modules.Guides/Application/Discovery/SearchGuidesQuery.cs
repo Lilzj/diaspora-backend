@@ -17,6 +17,10 @@ namespace Diaspora.Modules.Guides.Application.Discovery;
 /// deployment that installs a real engine changes the quality of this screen and nothing else.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Published reference content, and the platform's public face. Somebody researching a move " +
+    "reads this before they have an account; requiring one would make the knowledge base useless " +
+    "to the people it exists for.")]
 public sealed record SearchGuidesQuery : IQuery<CursorPagedResult<GuideCardResponse>>
 {
     public required SearchGuidesRequest Request { get; init; }

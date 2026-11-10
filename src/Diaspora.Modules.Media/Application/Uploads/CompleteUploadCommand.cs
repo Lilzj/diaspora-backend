@@ -16,6 +16,7 @@ namespace Diaspora.Modules.Media.Application.Uploads;
 [Transactional(Reason =
     "Completing a session writes the session, the asset and the processing job. Partial " +
     "application leaves either an unprocessable asset or a session pointing at nothing.")]
+[Authorize(Policy = MediaPolicies.UploadImage)]
 public sealed record CompleteUploadCommand : ICommand<UploadSessionResponse>
 {
     public required Guid SessionId { get; init; }

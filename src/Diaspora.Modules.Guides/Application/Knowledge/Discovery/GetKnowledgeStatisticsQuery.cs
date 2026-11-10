@@ -12,6 +12,10 @@ namespace Diaspora.Modules.Guides.Application.Knowledge.Discovery;
 /// anywhere. The <em>actionable</em> analytics, the unanswered searches, are gated separately.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Published reference content, and the platform's public face. Somebody researching a move " +
+    "reads this before they have an account; requiring one would make the knowledge base useless " +
+    "to the people it exists for.")]
 public sealed record GetKnowledgeStatisticsQuery : IQuery<KnowledgeStatisticsResponse>
 {
     public required string CountryCode { get; init; }

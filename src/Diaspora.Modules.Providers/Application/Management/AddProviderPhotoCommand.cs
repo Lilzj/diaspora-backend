@@ -7,6 +7,7 @@ namespace Diaspora.Modules.Providers.Application.Management;
 /// <summary>Puts an uploaded photograph on a provider: the cover, or the gallery.</summary>
 [Transactional]
 [Auditable]
+[Authorize(Policy = ProviderPolicies.ManageMedia)]
 public sealed record AddProviderPhotoCommand : ICommand<ProviderResponse>
 {
     public required Guid ProviderId { get; init; }

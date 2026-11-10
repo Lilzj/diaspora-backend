@@ -11,6 +11,7 @@ namespace Diaspora.Modules.Media.Application.Assets;
 /// </para>
 /// </summary>
 [Auditable]
+[Authorize(Policy = MediaPolicies.Delete)]
 public sealed record DeleteMediaCommand : ICommand
 {
     public required Guid MediaId { get; init; }

@@ -25,6 +25,10 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Communities;
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>A community's office holders, optionally of one role.</summary>
+[AllowAnonymous(
+    "Public discovery. The route already says AllowAnonymous and this is the same statement at " +
+    "the other end of the pipeline: a listing nobody can see without signing up is a listing " +
+    "nobody answers.")]
 public sealed record ListCommunityRoleHoldersQuery : IQuery<IReadOnlyList<CommunityRoleHolderResponse>>
 {
     public required string IdOrSlug { get; init; }

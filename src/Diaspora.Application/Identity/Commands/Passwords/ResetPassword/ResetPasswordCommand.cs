@@ -7,6 +7,9 @@ namespace Diaspora.Application.Identity.Commands.Passwords.ResetPassword;
 /// Completes account recovery: redeems the recovery code and sets a new password.
 /// </summary>
 [Auditable(Action = "identity.user.password-reset-completed")]
+[AllowAnonymous(
+    "Account recovery, reached by somebody who has lost the credential that would authenticate " +
+    "them. Guarded by a one-time code and by the OTP issue budget, not by a token.")]
 public sealed record ResetPasswordCommand : ICommand<OperationAcknowledgedResponse>
 {
     /// <summary>The address the account was registered with.</summary>

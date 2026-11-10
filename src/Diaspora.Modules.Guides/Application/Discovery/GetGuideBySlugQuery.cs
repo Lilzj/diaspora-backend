@@ -11,6 +11,10 @@ namespace Diaspora.Modules.Guides.Application.Discovery;
 /// same "not found" for anything the caller may not see.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Published reference content, and the platform's public face. Somebody researching a move " +
+    "reads this before they have an account; requiring one would make the knowledge base useless " +
+    "to the people it exists for.")]
 public sealed record GetGuideBySlugQuery : IQuery<GuideResponse>
 {
     public required string Slug { get; init; }

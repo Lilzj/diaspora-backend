@@ -20,6 +20,7 @@ namespace Diaspora.Modules.Jobs.Application.Interviews;
 /// already takes.
 /// </para>
 /// </summary>
+[Authorize(Policy = JobPolicies.ApplicationsReview)]
 public sealed record ListApplicationInterviewsQuery : IQuery<IReadOnlyList<InterviewResponse>>
 {
     public required Guid ApplicationId { get; init; }

@@ -6,6 +6,7 @@ namespace Diaspora.Modules.Media.Application.Assets;
 
 /// <summary>Asks for a rendition that does not exist yet.</summary>
 [Auditable]
+[Authorize(Policy = MediaPolicies.Transform)]
 public sealed record RequestVariantCommand : ICommand<MediaAssetResponse>
 {
     public required Guid MediaId { get; init; }

@@ -226,6 +226,10 @@ public sealed class GetAnalyticsExportQueryHandler
 /// handler is the check, and it never answers without one of the two.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "The token in the link is the credential. A browser or share sheet following it holds no " +
+    "session, and the handler answers only to that token or to the owner's own session, never to " +
+    "neither.")]
 public sealed record GetAnalyticsExportFileQuery : IQuery<AnalyticsExportFile>
 {
     public required string ExportId { get; init; }

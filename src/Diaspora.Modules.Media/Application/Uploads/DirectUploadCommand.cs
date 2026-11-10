@@ -20,6 +20,7 @@ namespace Diaspora.Modules.Media.Application.Uploads;
 [Transactional(Reason =
     "A direct upload writes the asset and its processing job together. Either both land or " +
     "the stored object is an orphan the sweeper collects.")]
+[Authorize(Policy = MediaPolicies.UploadImage)]
 public sealed record DirectUploadCommand : ICommand<MediaAssetResponse>
 {
     public required string Kind { get; init; }

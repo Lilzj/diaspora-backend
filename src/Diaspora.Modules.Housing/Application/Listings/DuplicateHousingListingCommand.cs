@@ -11,6 +11,7 @@ namespace Diaspora.Modules.Housing.Application.Listings;
 /// time.
 /// </para>
 /// </summary>
+[Authorize(Policy = HousingPolicies.ListingCreate)]
 public sealed record DuplicateHousingListingCommand : ICommand<HousingListingResponse>
 {
     public required Guid ListingId { get; init; }

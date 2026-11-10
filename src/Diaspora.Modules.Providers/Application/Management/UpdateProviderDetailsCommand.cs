@@ -7,6 +7,7 @@ namespace Diaspora.Modules.Providers.Application.Management;
 /// <summary>Changes a provider's description, contact methods or location. See the request.</summary>
 [Transactional]
 [Auditable]
+[Authorize(Policy = ProviderPolicies.Manage)]
 public sealed record UpdateProviderDetailsCommand : ICommand<ProviderResponse>
 {
     public required Guid ProviderId { get; init; }
@@ -17,6 +18,7 @@ public sealed record UpdateProviderDetailsCommand : ICommand<ProviderResponse>
 /// <summary>Takes a photograph off a provider: out of the gallery, and off the cover if it was.</summary>
 [Transactional]
 [Auditable]
+[Authorize(Policy = ProviderPolicies.ManageMedia)]
 public sealed record RemoveProviderPhotoCommand : ICommand<ProviderResponse>
 {
     public required Guid ProviderId { get; init; }

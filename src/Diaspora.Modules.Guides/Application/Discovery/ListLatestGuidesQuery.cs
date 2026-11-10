@@ -13,6 +13,10 @@ namespace Diaspora.Modules.Guides.Application.Discovery;
 /// accumulate any.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Published reference content, and the platform's public face. Somebody researching a move " +
+    "reads this before they have an account; requiring one would make the knowledge base useless " +
+    "to the people it exists for.")]
 public sealed record ListLatestGuidesQuery : IQuery<CursorPagedResult<GuideCardResponse>>
 {
     /// <summary>Narrows to one country. Null lists everywhere.</summary>
