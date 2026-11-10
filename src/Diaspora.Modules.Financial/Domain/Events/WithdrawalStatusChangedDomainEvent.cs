@@ -13,7 +13,16 @@ public sealed record WithdrawalStatusChangedDomainEvent : DomainEvent
 
     public required WalletId WalletId { get; init; }
 
-    public required WithdrawalStatus PreviousStatus { get; init; }
+    /// <summary>
+    /// What it was before, or null when there was no before — the request itself.
+    /// <para>
+    /// Nullable since BSEC-007 (10 Nov 2026). It was a non-nullable status, and a created
+    /// withdrawal had nothing honest to put in it, which is one of the reasons creation raised no
+    /// event at all for a year. "Requested, from nothing" is a real transition and this is how it
+    /// says so.
+    /// </para>
+    /// </summary>
+    public WithdrawalStatus? PreviousStatus { get; init; }
 
     public required WithdrawalStatus Status { get; init; }
 

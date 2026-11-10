@@ -43,6 +43,9 @@ public static class IdentityMessageKeys
     public const string OtpFormat = "identity.validation.otp.format";
     public const string OtpPurposeUnknown = "identity.validation.otp.purposeUnknown";
 
+    /// <summary>A step-up scope the platform does not define (BSEC-007).</summary>
+    public const string StepUpScopeUnknown = "identity.validation.stepUp.scopeUnknown";
+
     /// <summary>
     /// The body of the SMS that carries a one-time code.
     /// <para>

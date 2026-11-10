@@ -178,7 +178,7 @@ public sealed class Withdrawal : AggregateRoot<WithdrawalId>, IAuditableEntity
                 FinancialErrorCodes.AmountInvalid);
         }
 
-        return new Withdrawal(
+        var withdrawal = new Withdrawal(
             id, requestedByUserId, accountId, walletId, destinationId,
             destinationLabel.Trim(), gross, fee, requestedAt)
         {
@@ -187,6 +187,30 @@ public sealed class Withdrawal : AggregateRoot<WithdrawalId>, IAuditableEntity
                 ? null
                 : countryCode.Trim().ToUpperInvariant()
         };
+
+        // BSEC-007, 10 Nov 2026. Nothing was raised here, so the one moment a member most needs to
+        // hear about — somebody asked to take money out of their wallet — was the only moment in
+        // the lifecycle that announced nothing. WithdrawalStatusChangedIntegrationEvent has always
+        // documented itself as covering "requested, taken up, paid, refused or reversed"; this is
+        // the first of those actually happening.
+        //
+        // Raised here rather than through Transition, which exists for moves between two real
+        // statuses and would have to be told that the previous one was null.
+        withdrawal.RaiseDomainEvent(new WithdrawalStatusChangedDomainEvent
+        {
+            WithdrawalId = withdrawal.Id,
+            RequestedByUserId = withdrawal.RequestedByUserId,
+            WalletId = withdrawal.WalletId,
+            PreviousStatus = null,
+            Status = withdrawal.Status,
+            GrossMinorUnits = withdrawal.GrossMinorUnits,
+            FeeMinorUnits = withdrawal.FeeMinorUnits,
+            Currency = withdrawal.Currency,
+            DestinationLabel = withdrawal.DestinationLabel,
+            ChangedAt = requestedAt
+        });
+
+        return withdrawal;
     }
 
     /// <summary>

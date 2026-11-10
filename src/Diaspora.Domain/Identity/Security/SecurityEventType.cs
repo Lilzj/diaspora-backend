@@ -52,5 +52,21 @@ public enum SecurityEventType
     EmailChangeRequested = 27,
 
     /// <summary>The sign-in address was replaced after the new one was proved.</summary>
-    EmailChanged = 28
+    EmailChanged = 28,
+
+    /// <summary>
+    /// A session re-proved the member's identity and earned a step-up grant (BSEC-007).
+    /// <para>
+    /// Its own type rather than <see cref="PhoneVerified"/> or <see cref="LoginSucceeded"/>,
+    /// because the question it answers is neither of theirs. "When did this member last confirm,
+    /// from which session, for what" is the first question of any dispute about a payout, and
+    /// filing it under a verification event would bury it among registration codes.
+    /// </para>
+    /// <para>
+    /// There is deliberately no matching refusal event. The gate refuses in the MediatR pipeline,
+    /// outside any unit of work, and a refusal that had to open one to record itself would make the
+    /// cheap path expensive; the refusal is already in the request log with its own error code.
+    /// </para>
+    /// </summary>
+    StepUpGranted = 29
 }

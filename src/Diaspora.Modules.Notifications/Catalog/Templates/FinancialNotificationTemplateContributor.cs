@@ -372,5 +372,71 @@ public sealed class FinancialNotificationTemplateContributor : INotificationTemp
                 }
             ]
         };
+
+        // ── Money security (BSEC-007, 10 Nov 2026) ───────────────────────
+        //
+        // Two templates in the security category rather than billing. Both are written to be read
+        // by somebody who did NOT do the thing being described, because that is the only reader who
+        // needs them: they lead with what happened, name what the member would recognise, and end
+        // with the one action that stops it. Neither mentions step-up, because a member reading
+        // this at midnight does not care how the platform is built.
+
+        yield return new NotificationTemplateSeed
+        {
+            Key = NotificationTemplateKeys.PayoutDestinationAdded,
+            CategoryKey = NotificationCategoryKeys.Security,
+            Priority = NotificationPriority.Critical,
+            RouteTemplate = "/wallet/payout-accounts",
+            Description = "Somewhere new was added for a member's money to go.",
+            Variables =
+            [
+                new TemplateVariableSeed { Name = "label", Sample = "GTBank •••3421" },
+                new TemplateVariableSeed { Name = "kind", Sample = "bank account" },
+                new TemplateVariableSeed { Name = "currency", Sample = "NGN" }
+            ],
+            Localizations =
+            [
+                new TemplateLocalizationSeed
+                {
+                    Language = "en",
+                    Title = "A new payout account was added",
+                    Body = "A {kind} ({label}) was added to your Diaspora wallet for payouts in "
+                        + "{currency}. If you added it, there is nothing to do. If you did not, "
+                        + "remove it from Wallet, Payout accounts and change your password straight "
+                        + "away — somebody else may be signed in to your account.",
+                    ShortBody = "A new payout account was added: {label}."
+                }
+            ]
+        };
+
+        yield return new NotificationTemplateSeed
+        {
+            Key = NotificationTemplateKeys.WithdrawalRequested,
+            CategoryKey = NotificationCategoryKeys.Security,
+            Priority = NotificationPriority.Critical,
+            RouteTemplate = "/wallet",
+            Description = "Somebody asked to take money out of a member's wallet.",
+            Variables =
+            [
+                new TemplateVariableSeed
+                {
+                    Name = "amount", Format = TemplateVariable.CurrencyFormat, Sample = "250.00 NGN"
+                },
+                new TemplateVariableSeed { Name = "destination", Sample = "GTBank •••3421" }
+            ],
+            Localizations =
+            [
+                new TemplateLocalizationSeed
+                {
+                    Language = "en",
+                    Title = "{amount} was requested from your wallet",
+                    Body = "A payout of {amount} to {destination} was requested from your Diaspora "
+                        + "wallet. If that was you, nothing more is needed. If it was not, cancel it "
+                        + "from Wallet now — a request can still be cancelled until a provider "
+                        + "picks it up — and change your password.",
+                    ShortBody = "{amount} was requested from your wallet."
+                }
+            ]
+        };
     }
 }

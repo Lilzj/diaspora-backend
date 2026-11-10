@@ -520,6 +520,39 @@ namespace Diaspora.Persistence.Migrations
                     b.ToTable("otp_challenges", "identity");
                 });
 
+            modelBuilder.Entity("Diaspora.Domain.Identity.Verification.StepUpGrant", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ChallengeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("GrantedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "SessionId", "Scope", "ExpiresAt")
+                        .HasDatabaseName("ix_step_up_grants_user_session_scope_expires");
+
+                    b.ToTable("step_up_grants", "identity");
+                });
+
             modelBuilder.Entity("Diaspora.Modules.Analytics.Domain.Dimensions.AnalyticsContentDimension", b =>
                 {
                     b.Property<Guid>("Id")
