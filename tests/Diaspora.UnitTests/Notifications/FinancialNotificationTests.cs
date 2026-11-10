@@ -4,6 +4,7 @@ using Diaspora.Modules.Notifications.Application.Consumers;
 using Diaspora.Modules.Notifications.Application.Consumers.Financial;
 using Diaspora.Modules.Notifications.Application.Dispatch;
 using Diaspora.Modules.Notifications.Catalog;
+using Diaspora.Modules.Notifications.Domain.Enums;
 using Diaspora.Modules.Notifications.Catalog.Rules;
 using Diaspora.Modules.Notifications.Catalog.Templates;
 using Diaspora.SharedKernel.Results;
@@ -338,17 +339,75 @@ public sealed class FinancialNotificationTests
     }
 
     /// <summary>
-    /// Every financial rule and template files under <c>billing</c> — the category B13 seeded for
-    /// exactly this and which had no traffic until now.
+    /// Every financial rule and template files under <c>billing</c>, except the two that file under
+    /// <c>security</c> — and the exception is the decision, not a loophole.
+    /// <para>
+    /// <b>Amended 10 Nov 2026 for BSEC-007, and the original premise was right until then.</b>
+    /// Billing is the category B13 seeded for Financial and which had no traffic for two phases;
+    /// every receipt, failure and refund belongs there. What does not belong there is a notice whose
+    /// whole purpose is to reach a member who has turned their money messages off. Billing can be
+    /// muted. Security is mandatory, and a Critical rule in it overrides every remaining switch —
+    /// so a new payout destination and a withdrawal request go there, because the member they are
+    /// written for is the one who did not ask for either.
+    /// </para>
+    /// <para>
+    /// Named individually rather than allowed by pattern, so a third one is a decision somebody
+    /// writes down instead of a category drifting across a module.
+    /// </para>
     /// </summary>
     [Fact]
-    public void Every_financial_rule_and_template_files_under_billing()
+    public void Every_financial_rule_and_template_files_under_billing_but_for_the_two_security_notices()
     {
+        var security = new[]
+        {
+            NotificationTemplateKeys.PayoutDestinationAdded,
+            NotificationTemplateKeys.WithdrawalRequested
+        };
+
         new FinancialNotificationRuleContributor().GetRules()
-            .Should().OnlyContain(rule => rule.CategoryKey == NotificationCategoryKeys.Billing);
+            .Should().OnlyContain(rule =>
+                rule.CategoryKey == NotificationCategoryKeys.Billing
+                || (rule.CategoryKey == NotificationCategoryKeys.Security
+                    && security.Contains(rule.TemplateKey)));
 
         new FinancialNotificationTemplateContributor().GetTemplates()
-            .Should().OnlyContain(template => template.CategoryKey == NotificationCategoryKeys.Billing);
+            .Should().OnlyContain(template =>
+                template.CategoryKey == NotificationCategoryKeys.Billing
+                || (template.CategoryKey == NotificationCategoryKeys.Security
+                    && security.Contains(template.Key)));
+    }
+
+    /// <summary>
+    /// <b>The two security notices are Critical, and that is what makes them arrive.</b>
+    /// <para>
+    /// Filing them under a mandatory category stops a member muting the category; Critical is what
+    /// overrides the member's own channel switches on top of that — <c>AccountMail</c>'s own note
+    /// records the rule ("Revocation is not listed because it is Critical, which already overrides
+    /// every switch"). Dropped to High, these would route correctly and still not reach the member
+    /// an attacker hopes for, and nothing else would fail.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_money_security_notices_are_critical_and_go_everywhere()
+    {
+        var security = new[]
+        {
+            NotificationTemplateKeys.PayoutDestinationAdded,
+            NotificationTemplateKeys.WithdrawalRequested
+        };
+
+        var rules = new FinancialNotificationRuleContributor().GetRules()
+            .Where(rule => security.Contains(rule.TemplateKey))
+            .ToList();
+
+        rules.Should().HaveCount(2, "both notices have a rule, or one of them goes nowhere");
+
+        rules.Should().OnlyContain(rule => rule.Priority == NotificationPriority.Critical);
+
+        rules.Should().OnlyContain(rule =>
+            rule.Channels.Contains(NotificationChannelKind.Push)
+            && rule.Channels.Contains(NotificationChannelKind.Email)
+            && rule.Channels.Contains(NotificationChannelKind.InApp));
     }
 
     /// <summary>
@@ -647,6 +706,43 @@ public sealed class FinancialNotificationTests
 
         Collect(Translate(
             dispatcher => new WalletStatusChangedConsumer(dispatcher), Wallet("Personal")));
+
+        // BSEC-007, 10 Nov 2026. The two money-security consumers, driven like the rest: the
+        // destination notice and the withdrawal request. Adding them here is not bookkeeping — it
+        // is what proves their templates have no holes in them, and the withdrawal one also proves
+        // the consumer recognises a request by its absent previous status.
+        Collect(Translate(
+            dispatcher => new PayoutDestinationRegisteredConsumer(dispatcher),
+            new PayoutDestinationRegisteredIntegrationEvent
+            {
+                DestinationId = Subject,
+                OwnerUserId = Member,
+                Kind = "BankAccount",
+                Label = "GTBank •••3421",
+                Currency = "NGN",
+                Provider = "Flutterwave",
+                CountryCode = "NG",
+                RegisteredAt = Now
+            }));
+
+        Collect(Translate(
+            dispatcher => new WithdrawalRequestedConsumer(dispatcher),
+            new WithdrawalStatusChangedIntegrationEvent
+            {
+                WithdrawalId = Subject,
+                RequestedByUserId = Member,
+                Status = "Requested",
+
+                // Null is what makes it the request rather than a later move, and the consumer
+                // yields nothing without it — so a test that set this would collect no names and
+                // the template check above would fail on every variable.
+                PreviousStatus = null,
+                AmountMinorUnits = 120_000,
+                FeeMinorUnits = 0,
+                Currency = "NGN",
+                DestinationLabel = "GTBank •••3421",
+                ChangedAt = Now
+            }));
 
         return names;
     }

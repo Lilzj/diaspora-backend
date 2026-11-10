@@ -208,5 +208,45 @@ public sealed class FinancialNotificationRuleContributor : INotificationRuleCont
             // better than a missing one. Zero, not null: null means the platform's hour.
             DeduplicationWindow = TimeSpan.Zero
         };
+
+        // ── Money security (BSEC-007, 10 Nov 2026) ───────────────────────
+        //
+        // The two notices that let a member catch a payout they did not ask for. Both are routed to
+        // the SECURITY category rather than billing, and that is the whole decision: billing can be
+        // muted, security is mandatory, and Critical overrides every remaining switch. The member an
+        // attacker hopes for is the one who turned their money messages off.
+
+        yield return new NotificationRuleSeed
+        {
+            Key = NotificationTemplateKeys.PayoutDestinationAdded,
+            EventName = typeof(PayoutDestinationRegisteredIntegrationEvent).FullName!,
+            Audience = "owner",
+            TemplateKey = NotificationTemplateKeys.PayoutDestinationAdded,
+            CategoryKey = NotificationCategoryKeys.Security,
+            Priority = NotificationPriority.Critical,
+            Channels = Everywhere
+
+            // No window set, so the platform's default hour applies — and it is harmless here
+            // because the subject is the destination. Two destinations added in one sitting are two
+            // subjects and two notices, which is required: one of them may not be the member's.
+        };
+
+        yield return new NotificationRuleSeed
+        {
+            Key = NotificationTemplateKeys.WithdrawalRequested,
+            EventName = typeof(WithdrawalStatusChangedIntegrationEvent).FullName!,
+
+            // A distinct audience, because the consumer yields only for the request itself. The
+            // lifecycle contract carries five other transitions and none of them reaches a rule;
+            // keying this on "requester" leaves that space open rather than claiming it.
+            Audience = "requester",
+            TemplateKey = NotificationTemplateKeys.WithdrawalRequested,
+            CategoryKey = NotificationCategoryKeys.Security,
+            Priority = NotificationPriority.Critical,
+            Channels = Everywhere
+
+            // Default window again, and again harmless: the subject is the withdrawal and a
+            // withdrawal is requested exactly once, so there is no second fact to swallow.
+        };
     }
 }

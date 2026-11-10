@@ -78,7 +78,8 @@ public sealed class IdentityPolicyProvider : IIdentityPolicyProvider
                     : null,
 
                 MaxRecoveryRequestsPerWindow = otp.MaxRequestsPerWindow,
-                RecoveryThrottleWindow = TimeSpan.FromMinutes(otp.ThrottleWindowMinutes)
+                RecoveryThrottleWindow = TimeSpan.FromMinutes(otp.ThrottleWindowMinutes),
+                StepUpGrantLifetime = TimeSpan.FromMinutes(_identity.CurrentValue.StepUpGrantMinutes)
             };
         }
     }

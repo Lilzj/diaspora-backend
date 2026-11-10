@@ -44,4 +44,9 @@ public sealed record IdentityPolicySet
     public required int MaxRecoveryRequestsPerWindow { get; init; }
 
     public required TimeSpan RecoveryThrottleWindow { get; init; }
+
+    /// <summary>
+    /// How long a step-up grant authorises its scope for the session that earned it (BSEC-007).
+    /// </summary>
+    public required TimeSpan StepUpGrantLifetime { get; init; }
 }

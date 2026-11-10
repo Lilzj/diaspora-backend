@@ -457,6 +457,33 @@ public sealed class FinancialIntegrationEventRelay
             cancellationToken);
     }
 
+    /// <summary>
+    /// A new payout destination (BSEC-007). Published verified or not: a member who did not add it
+    /// needs to hear before it becomes payable.
+    /// </summary>
+    public Task PublishAsync(
+        PayoutDestinationRegisteredDomainEvent domainEvent,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(domainEvent);
+
+        return PublishSafelyAsync(
+            new PayoutDestinationRegisteredIntegrationEvent
+            {
+                DestinationId = domainEvent.DestinationId.Value,
+                OwnerUserId = domainEvent.OwnerUserId,
+                Kind = domainEvent.Kind.ToString(),
+
+                // The masked label the member would recognise, never the provider token.
+                Label = domainEvent.Label,
+                Currency = domainEvent.Currency,
+                Provider = domainEvent.Provider,
+                CountryCode = domainEvent.CountryCode,
+                RegisteredAt = domainEvent.RegisteredAt
+            },
+            cancellationToken);
+    }
+
     public Task PublishAsync(
         WithdrawalStatusChangedDomainEvent domainEvent,
         CancellationToken cancellationToken = default)
@@ -469,7 +496,7 @@ public sealed class FinancialIntegrationEventRelay
                 WithdrawalId = domainEvent.WithdrawalId.Value,
                 RequestedByUserId = domainEvent.RequestedByUserId,
                 Status = domainEvent.Status.ToString(),
-                PreviousStatus = domainEvent.PreviousStatus.ToString(),
+                PreviousStatus = domainEvent.PreviousStatus?.ToString(),
                 AmountMinorUnits = domainEvent.GrossMinorUnits,
                 FeeMinorUnits = domainEvent.FeeMinorUnits,
                 Currency = domainEvent.Currency,

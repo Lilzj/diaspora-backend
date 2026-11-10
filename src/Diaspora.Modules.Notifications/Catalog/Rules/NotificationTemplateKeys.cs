@@ -204,6 +204,21 @@ public static class NotificationTemplateKeys
     /// <summary>A staff answer to a member's refund request, with the note. Nobody was told before.</summary>
     public const string RefundRequestDecided = "billing.refund-request.decided";
 
+    // ── Money security (BSEC-007, 10 Nov 2026) ───────────────────────────
+    //
+    // Filed under security, not billing, and that is the point of them. Billing can be muted; these
+    // two are the only notices that let a member catch a payout they did not ask for, so they are
+    // Critical in a mandatory category and reach somebody who has switched everything else off.
+
+    /// <summary>Somewhere new was added for a member's money to go. Nobody was told before.</summary>
+    public const string PayoutDestinationAdded = "security.payout-destination.added";
+
+    /// <summary>
+    /// Somebody asked to take money out of a member's wallet. Nobody was told before — the
+    /// withdrawal lifecycle raised nothing at the one moment the member could still cancel.
+    /// </summary>
+    public const string WithdrawalRequested = "security.withdrawal.requested";
+
     // ── Moderation cases (7 Nov 2026) ────────────────────────────────────
     public const string ModerationCaseHidden = "moderation.case.hidden";
     public const string ModerationCaseHiddenAutomatically = "moderation.case.hidden-automatically";

@@ -13,6 +13,10 @@ namespace Diaspora.Modules.Financial.Application.Withdrawals;
 /// </para>
 /// </summary>
 [Authorize(Permission = FinancialPermissions.PaymentsManage)]
+// BSEC-007. One bearer token used to be enough to take money off the platform. Every withdrawal,
+// not those over a threshold: a per-request threshold is an instruction to slice, and because the
+// grant lasts a window this costs a member one code per sitting rather than one per request.
+[RequiresStepUp(StepUpScopes.Withdrawal)]
 [Transactional(Reason = "The request and the ledger hold behind it land together or not at all.")]
 [Auditable(Action = "financial.withdrawal.create")]
 public sealed record CreateWithdrawalCommand : ICommand<WithdrawalResponse>
@@ -97,6 +101,9 @@ public sealed record GetWithdrawalLimitsQuery : IQuery<MovementLimitsResponse>
 /// </para>
 /// </summary>
 [Authorize(Permission = FinancialPermissions.PaymentsManage)]
+// BSEC-007. Adding somewhere money can be sent is the first half of a takeover's payout, and the
+// half a member would notice if they were asked to confirm it.
+[RequiresStepUp(StepUpScopes.PayoutDestination)]
 [Auditable(Action = "financial.payout_destination.register")]
 public sealed record RegisterPayoutDestinationCommand : ICommand<PayoutDestinationResponse>
 {
@@ -174,6 +181,10 @@ public sealed record StartPayoutOnboardingCommand : ICommand<PayoutOnboardingRes
 /// </para>
 /// </summary>
 [Authorize(Permission = FinancialPermissions.PaymentsManage)]
+// BSEC-007. The other route to a payable destination, and it accepts the address directly rather
+// than handing off to a provider — so it is the cheaper of the two for an attacker and needs the
+// same gate.
+[RequiresStepUp(StepUpScopes.PayoutDestination)]
 [Auditable(Action = "financial.payout_destination.identity")]
 public sealed record RegisterPayoutIdentityCommand : ICommand<PayoutDestinationResponse>
 {
@@ -201,6 +212,15 @@ public sealed record RegisterPayoutIdentityCommand : ICommand<PayoutDestinationR
 /// </para>
 /// </summary>
 [Authorize(Permission = FinancialPermissions.PaymentsManage)]
+// BSEC-007, and this is the one the finding's evidence singles out rather than its remediation
+// list. Every production corridor sets RequiresVerifiedPayee, which reads like a brake on a new
+// destination — but this route lets the member drive that verification themselves against the
+// provider with the same single permission, so the brake was only as strong as this call.
+//
+// Its sibling VerifyPayoutDestinationCommand is deliberately NOT gated: that one is staff
+// recording that somebody who could check did, and a step-up there would send a code to the
+// staff member's phone, which is a different control for a different threat.
+[RequiresStepUp(StepUpScopes.PayoutDestination)]
 [Auditable(Action = "financial.payout_destination.refresh")]
 public sealed record RefreshPayoutDestinationCommand : ICommand<PayoutDestinationResponse>
 {

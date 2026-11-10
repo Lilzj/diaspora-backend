@@ -18,6 +18,9 @@ public static class IdentitySchema
     public const string RefreshTokens = "refresh_tokens";
     public const string Devices = "user_devices";
     public const string OtpChallenges = "otp_challenges";
+
+    /// <summary>Step-up proofs: which session re-proved itself, for what, until when (BSEC-007).</summary>
+    public const string StepUpGrants = "step_up_grants";
     public const string SecurityEvents = "security_events";
     public const string AccountActionProposals = "account_action_proposals";
 }

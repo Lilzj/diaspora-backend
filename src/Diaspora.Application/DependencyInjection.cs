@@ -26,13 +26,19 @@ public static class DependencyInjection
             //
             // B2 registered eight behaviors here; two of them — transactions and
             // idempotency — were empty pass-throughs, and two more ran duplicate stopwatches
-            // over the same delegate. This is six that all do something.
+            // over the same delegate. This is seven that all do something (six until BSEC-007
+            // added the step-up gate on 10 Nov 2026).
             cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(CorrelationBehavior<,>));
             cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(RequestTelemetryBehavior<,>));
             cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
             cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(AuthorizationBehavior<,>));
             // After the permission check, before anything is written: a strike's posting block (7 Nov 2026).
             cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(PostingStandingBehavior<,>));
+            // And a fresh proof of identity where one is required (BSEC-007, 10 Nov 2026). Here for
+            // two reasons. After authorisation, so a caller who lacks the permission is told that
+            // and never learns which operations are step-up-guarded. Before the transaction, so a
+            // refusal never opens one.
+            cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(StepUpBehavior<,>));
             cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(TransactionBehavior<,>));
             cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(AuditBehavior<,>));
         });

@@ -48,4 +48,22 @@ public sealed class IdentityModuleOptions
     /// </summary>
     [Range(1, 1440)]
     public int SuspensionExpirySweepMinutes { get; set; } = 15;
+
+    /// <summary>
+    /// How long a step-up grant lasts (BSEC-007). Five minutes.
+    /// <para>
+    /// <b>Short because the grant is the control.</b> Inside the window every request in the
+    /// grant's scope proceeds on the token alone, so the window is exactly the time a stolen
+    /// session would have if it were the one that answered the challenge. Five minutes covers a
+    /// member reading a code off their phone, choosing a destination and confirming an amount,
+    /// with room for a mistyped code; it does not cover walking away from an unlocked phone.
+    /// </para>
+    /// <para>
+    /// The ceiling is an hour, not a day. A grant measured in hours is a second password with a
+    /// shorter life, and the member would stop connecting the code they typed to the payment it
+    /// authorised — which is the property that makes a phished code noticeable.
+    /// </para>
+    /// </summary>
+    [Range(1, 60)]
+    public int StepUpGrantMinutes { get; set; } = 5;
 }

@@ -122,6 +122,14 @@ public sealed class GlobalExceptionHandlingMiddleware
 
         var extensions = new Dictionary<string, object?>(StringComparer.Ordinal);
 
+        if (exception is Application.Exceptions.StepUpRequiredException stepUp)
+        {
+            // What to ask for. Without it the client knows a code is needed and not which one, and
+            // a grant minted for the wrong scope satisfies nothing — the refusal would repeat with
+            // the member having already answered a challenge.
+            extensions["stepUpScope"] = stepUp.Scope;
+        }
+
         if (exception is Application.Exceptions.RateLimitException rateLimit)
         {
             extensions["retryAfter"] = rateLimit.RetryAfterSeconds;
@@ -181,6 +189,20 @@ public sealed class GlobalExceptionHandlingMiddleware
 
             Application.Exceptions.UnauthorizedException ex =>
                 ((int)HttpStatusCode.Unauthorized, PlatformErrorCodes.Unauthorized, "Unauthorized", ex.Message),
+
+            // BSEC-007. A 403 the client is meant to act on rather than report: collect a code and
+            // retry, where the generic Forbidden below means stop. Its own code is what makes that
+            // possible, and the scope rides in an extension further down.
+            //
+            // A sibling of ForbiddenException, not a subclass, which is why this arm's position is
+            // grouping rather than a requirement. Deriving from it would have made the order
+            // load-bearing: move this below and every step-up refusal silently becomes
+            // Platform.Auth.Forbidden again, with nothing failing to say so.
+            Application.Exceptions.StepUpRequiredException ex =>
+                ((int)HttpStatusCode.Forbidden,
+                 PlatformErrorCodes.StepUpRequired,
+                 "Confirmation required",
+                 ex.Message),
 
             Application.Exceptions.ForbiddenException ex =>
                 ((int)HttpStatusCode.Forbidden, PlatformErrorCodes.Forbidden, "Forbidden", ex.Message),

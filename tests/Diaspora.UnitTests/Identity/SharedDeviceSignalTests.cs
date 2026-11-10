@@ -128,6 +128,7 @@ public sealed class SharedDeviceSignalTests
             MaxDevicesPerUser = 10,
             MaxRecoveryRequestsPerWindow = 5,
             RecoveryThrottleWindow = TimeSpan.FromMinutes(60),
+            StepUpGrantLifetime = TimeSpan.FromMinutes(5),
             EnableSharedDeviceSignal = enabled
         };
     }

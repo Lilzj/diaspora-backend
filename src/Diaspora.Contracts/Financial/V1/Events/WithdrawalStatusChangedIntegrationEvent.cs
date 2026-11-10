@@ -28,7 +28,10 @@ public sealed record WithdrawalStatusChangedIntegrationEvent : IntegrationEvent
     /// </summary>
     public required string Status { get; init; }
 
-    public required string PreviousStatus { get; init; }
+    /// <summary>
+    /// The status before this change, or null for the request itself, which had no before.
+    /// </summary>
+    public string? PreviousStatus { get; init; }
 
     public required long AmountMinorUnits { get; init; }
 
