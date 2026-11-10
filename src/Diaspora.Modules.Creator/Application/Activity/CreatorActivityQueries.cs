@@ -7,6 +7,22 @@ using Diaspora.SharedKernel.Results;
 namespace Diaspora.Modules.Creator.Application.Activity;
 
 /// <summary>One page of the caller's own recognised activity, newest first.</summary>
+/// <remarks>
+/// <b>This attribute was missing, and its absence made the route anonymous</b> (BSEC-003, the one
+/// instance the pre-launch audit confirmed live). The endpoint carries no
+/// <c>RequireAuthorization</c> — no route in <c>Diaspora.Modules.Creator/Api</c> does, the module
+/// authorises entirely through this attribute — so with nothing here, the only thing between
+/// <c>GET /api/v1/creators/me/activity</c> and an unauthenticated caller was the handler's own
+/// <c>RequireUser()</c>. That is defence in depth doing its job, not authorisation.
+/// <para>
+/// <c>ProfileRead</c> rather than <c>Participate</c>, which the audit suggested: every sibling
+/// caller-scoped read takes <c>ProfileRead</c> — earnings, revenue, reputation, milestones,
+/// referral programme, referral history — and <c>Participate</c> is what the module requires of an
+/// <i>act</i>. Reading one's own timeline is not an act, and <c>Participate</c> would have made
+/// this read stricter than the earnings beside it.
+/// </para>
+/// </remarks>
+[Authorize(Permission = CreatorPermissions.ProfileRead)]
 public sealed record GetMyCreatorActivityQuery : IQuery<CreatorActivityPageResponse>
 {
     /// <summary>
