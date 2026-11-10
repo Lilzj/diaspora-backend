@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Guides.Application.Analytics;
 /// everybody else to browse.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.ViewAnalytics)]
+[RequirePermission(GuidePermissions.ViewAnalytics)]
 public sealed record GetGuideAnalyticsQuery : IQuery<GuideAnalyticsResponse>
 {
     public required Guid GuideId { get; init; }

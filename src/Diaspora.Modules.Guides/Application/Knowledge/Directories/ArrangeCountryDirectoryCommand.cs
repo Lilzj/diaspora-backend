@@ -19,7 +19,7 @@ namespace Diaspora.Modules.Guides.Application.Knowledge.Directories;
 /// most-read screen in the product.
 /// </para>
 /// </summary>
-[Authorize(Permission = KnowledgePermissions.ManageDirectory)]
+[RequirePermission(KnowledgePermissions.ManageDirectory)]
 [Auditable]
 public sealed record ArrangeCountryDirectoryCommand : ICommand<CountryDirectoryDetailResponse>
 {

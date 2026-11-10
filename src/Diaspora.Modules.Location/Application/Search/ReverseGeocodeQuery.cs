@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Location.Application.Search;
 /// ignoring this — but the reason to adopt it is not performance.
 /// </para>
 /// </summary>
-[Authorize(Permission = LocationPermissions.Search)]
+[RequirePermission(LocationPermissions.Search)]
 public sealed record ReverseGeocodeQuery : IQuery<LocationReferenceResponse>
 {
     public required double Latitude { get; init; }

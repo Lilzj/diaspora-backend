@@ -28,7 +28,7 @@ namespace Diaspora.Modules.Conversations.Application.Messages;
 /// never shows it; counters that committed without their message leave a badge no read can clear.
 /// </para>
 /// </summary>
-[Authorize(Permission = ConversationPermissions.Participate)]
+[RequirePermission(ConversationPermissions.Participate)]
 [Transactional(Reason =
     "Inserts the message and advances every participant's unread counter as one unit. Either half "
     + "alone leaves an inbox that disagrees with the thread.")]

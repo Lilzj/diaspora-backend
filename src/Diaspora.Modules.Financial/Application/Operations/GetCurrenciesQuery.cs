@@ -10,5 +10,5 @@ namespace Diaspora.Modules.Financial.Application.Operations;
 /// two-currency table currently hard-coded in its job card.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.WalletRead)]
+[RequirePermission(FinancialPermissions.WalletRead)]
 public sealed record GetCurrenciesQuery : IQuery<IReadOnlyList<CurrencyResponse>>;

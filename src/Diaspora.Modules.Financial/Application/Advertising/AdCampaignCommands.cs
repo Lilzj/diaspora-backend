@@ -25,14 +25,14 @@ namespace Diaspora.Modules.Financial.Application.Advertising;
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>Drafts a campaign. Nothing is charged and nothing is booked.</summary>
-[Authorize(Permission = FinancialPermissions.PurchasesCreate)]
+[RequirePermission(FinancialPermissions.PurchasesCreate)]
 public sealed record CreateAdCampaignCommand : ICommand<AdCampaignResponse>
 {
     public required CreateAdCampaignRequest Request { get; init; }
 }
 
 /// <summary>Rewrites a draft. Refused once the campaign is funded.</summary>
-[Authorize(Permission = FinancialPermissions.PurchasesCreate)]
+[RequirePermission(FinancialPermissions.PurchasesCreate)]
 public sealed record UpdateAdCampaignCommand : ICommand<AdCampaignResponse>
 {
     public required Guid CampaignId { get; init; }
@@ -43,7 +43,7 @@ public sealed record UpdateAdCampaignCommand : ICommand<AdCampaignResponse>
 /// <summary>
 /// Submits for review, which is what freezes the campaign — before the money arrives, not after.
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PurchasesCreate)]
+[RequirePermission(FinancialPermissions.PurchasesCreate)]
 public sealed record SubmitAdCampaignCommand : ICommand<AdCampaignSubmissionResponse>
 {
     public required Guid CampaignId { get; init; }
@@ -63,7 +63,7 @@ public sealed record SubmitAdCampaignCommand : ICommand<AdCampaignSubmissionResp
 }
 
 /// <summary>Pauses or resumes a running campaign. The advertiser's own control.</summary>
-[Authorize(Permission = FinancialPermissions.PurchasesCreate)]
+[RequirePermission(FinancialPermissions.PurchasesCreate)]
 public sealed record SetAdCampaignRunStateCommand : ICommand<AdCampaignResponse>
 {
     public required Guid CampaignId { get; init; }
@@ -73,7 +73,7 @@ public sealed record SetAdCampaignRunStateCommand : ICommand<AdCampaignResponse>
 }
 
 /// <summary>Stops a campaign for good and records the unspent budget as owed.</summary>
-[Authorize(Permission = FinancialPermissions.PurchasesCreate)]
+[RequirePermission(FinancialPermissions.PurchasesCreate)]
 public sealed record CancelAdCampaignCommand : ICommand<AdCampaignResponse>
 {
     public required Guid CampaignId { get; init; }
@@ -82,7 +82,7 @@ public sealed record CancelAdCampaignCommand : ICommand<AdCampaignResponse>
 }
 
 /// <summary>The advertiser contests a rejection — MON-GAP-006.</summary>
-[Authorize(Permission = FinancialPermissions.PurchasesCreate)]
+[RequirePermission(FinancialPermissions.PurchasesCreate)]
 public sealed record AppealAdCampaignCommand : ICommand<AdCampaignReviewResponse>
 {
     public required Guid CampaignId { get; init; }

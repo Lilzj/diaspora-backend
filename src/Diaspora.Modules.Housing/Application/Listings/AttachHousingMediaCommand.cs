@@ -5,7 +5,7 @@ using Diaspora.Modules.Housing.Contracts.V1.Responses;
 namespace Diaspora.Modules.Housing.Application.Listings;
 
 /// <summary>Attaches a Media asset to a property, by reference.</summary>
-[Authorize(Permission = HousingPermissions.ListingEditOwn)]
+[RequirePermission(HousingPermissions.ListingEditOwn)]
 [Auditable]
 public sealed record AttachHousingMediaCommand : ICommand<HousingListingResponse>
 {

@@ -7,7 +7,7 @@ namespace Diaspora.Application.Identity.Commands.Passwords.ChangePassword;
 /// Changes the signed-in member's password.
 /// </summary>
 [Auditable(Action = "identity.user.password-changed")]
-[Authorize(Permission = "identity:password:change")]
+[RequirePermission("identity:password:change")]
 public sealed record ChangePasswordCommand : ICommand<OperationAcknowledgedResponse>
 {
     public required string CurrentPassword { get; init; }

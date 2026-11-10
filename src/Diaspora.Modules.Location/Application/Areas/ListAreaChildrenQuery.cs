@@ -13,7 +13,7 @@ namespace Diaspora.Modules.Location.Application.Areas;
 /// browsing down is the only interaction that scales.
 /// </para>
 /// </summary>
-[Authorize(Permission = LocationPermissions.ReadCatalog)]
+[RequirePermission(LocationPermissions.ReadCatalog)]
 public sealed record ListAreaChildrenQuery : IQuery<PagedResult<AreaSummaryResponse>>
 {
     public required Guid AreaId { get; init; }

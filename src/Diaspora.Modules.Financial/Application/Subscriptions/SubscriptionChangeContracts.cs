@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Financial.Application.Subscriptions;
 /// and the figure it gets wrong is the one it charges somebody.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.SubscriptionsRead)]
+[RequirePermission(FinancialPermissions.SubscriptionsRead)]
 public sealed record PreviewSubscriptionChangeQuery : IQuery<PlanChangePreviewResponse>
 {
     public required Guid SubscriptionId { get; init; }
@@ -28,7 +28,7 @@ public sealed record PreviewSubscriptionChangeQuery : IQuery<PlanChangePreviewRe
 /// implementation is unfair.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.SubscriptionsManage)]
+[RequirePermission(FinancialPermissions.SubscriptionsManage)]
 [Transactional(Reason = "The plan change and the payment that funds it land together.")]
 [Auditable(Action = "financial.subscription.change")]
 public sealed record ChangeSubscriptionPlanCommand : ICommand<SubscriptionResponse>
@@ -51,5 +51,5 @@ public sealed record ChangeSubscriptionPlanCommand : ICommand<SubscriptionRespon
 /// promotion, a trial or a repricing policy all change it.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.SubscriptionsRead)]
+[RequirePermission(FinancialPermissions.SubscriptionsRead)]
 public sealed record GetUpcomingChargesQuery : IQuery<IReadOnlyList<UpcomingChargeResponse>>;

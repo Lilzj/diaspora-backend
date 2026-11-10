@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Media.Application.Uploads;
 /// a working upload path and a memory problem.
 /// </para>
 /// </summary>
-[Authorize(Policy = MediaPolicies.UploadImage)]
+[RequirePolicy(MediaPolicies.UploadImage)]
 public sealed record UploadChunkCommand : ICommand<UploadSessionResponse>
 {
     public required Guid SessionId { get; init; }

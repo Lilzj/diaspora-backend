@@ -40,7 +40,7 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Communities;
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>Found a community. The caller becomes its Owner and one of its Administrators.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.ProposeCommunity)]
+[RequirePermission(CommunityProgrammePermissions.ProposeCommunity)]
 public sealed record ProposeCommunityCommand : ICommand<CommunityMembershipResponse>
 {
     public required ProposeCommunityRequest Request { get; init; }
@@ -159,7 +159,7 @@ public sealed class ProposeCommunityCommandHandler
 }
 
 /// <summary>Give a member a role in a community, or take one away.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record ChangeCommunityRoleCommand : ICommand<CommunityMemberResponse>
 {
     public required string IdOrSlug { get; init; }
@@ -294,7 +294,7 @@ public sealed class ChangeCommunityRoleCommandHandler
 }
 
 /// <summary>The members of a community the caller may see.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record ListCommunityMembersQuery : IQuery<CommunityPageResponse<CommunityMemberResponse>>
 {
     public required string IdOrSlug { get; init; }
@@ -386,7 +386,7 @@ public sealed class ListCommunityMembersQueryHandler
 }
 
 /// <summary>Open a pending community into the directory. Platform administrators.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record OpenCommunityCommand : ICommand<CommunityResponse>
 {
     public required string IdOrSlug { get; init; }
@@ -439,7 +439,7 @@ public sealed class OpenCommunityCommandHandler : ICommandHandler<OpenCommunityC
 }
 
 /// <summary>Make a member the owner of a community that has none. Platform administrators.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record AppointCommunityOwnerCommand : ICommand<CommunityMemberResponse>
 {
     public required string IdOrSlug { get; init; }

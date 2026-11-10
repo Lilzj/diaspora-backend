@@ -34,7 +34,7 @@ namespace Diaspora.Modules.Recommendations.Application.Communities;
 /// start uses, because an empty rail tells a new member nothing.
 /// </para>
 /// </summary>
-[Authorize(Permission = RecommendationPermissions.FeedRead)]
+[RequirePermission(RecommendationPermissions.FeedRead)]
 public sealed record GetCommunityRecommendationsQuery : IQuery<RecommendationPageResponse>
 {
     /// <summary>The presence country — where the communities should be active. ISO 3166-1 alpha-2.</summary>

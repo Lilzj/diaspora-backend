@@ -5,7 +5,7 @@ using Diaspora.Modules.Housing.Contracts.V1.Responses;
 namespace Diaspora.Modules.Housing.Application.Listings;
 
 /// <summary>Revises a property.</summary>
-[Authorize(Permission = HousingPermissions.ListingEditOwn)]
+[RequirePermission(HousingPermissions.ListingEditOwn)]
 [Auditable]
 public sealed record UpdateHousingListingCommand : ICommand<HousingListingResponse>
 {

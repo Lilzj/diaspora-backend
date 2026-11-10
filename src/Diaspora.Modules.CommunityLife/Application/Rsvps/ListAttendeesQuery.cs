@@ -10,7 +10,9 @@ namespace Diaspora.Modules.CommunityLife.Application.Rsvps;
 /// attending a support meeting or a political gathering is not a fact a link should carry.
 /// </para>
 /// </summary>
-[Authorize]
+[RequireAuthentication(
+    "Authentication is all the gate can ask. A guest list is shown where the organizer publishes " +
+    "it and to the organizer always, so the decision belongs to the event.")]
 public sealed record ListAttendeesQuery : IQuery<AttendeePageResponse>
 {
     public required Guid EventId { get; init; }

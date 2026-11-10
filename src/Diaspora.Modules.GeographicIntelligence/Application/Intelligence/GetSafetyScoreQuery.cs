@@ -15,7 +15,7 @@ using Microsoft.Extensions.Options;
 namespace Diaspora.Modules.GeographicIntelligence.Application.Intelligence;
 
 /// <summary>The safety surface for a neighbourhood.</summary>
-[Authorize(Policy = GeographicIntelligencePolicies.IntelligenceRead)]
+[RequirePolicy(GeographicIntelligencePolicies.IntelligenceRead)]
 public sealed record GetSafetyScoreQuery : IQuery<SafetyScoreResponse>
 {
     public required string IdOrSlug { get; init; }

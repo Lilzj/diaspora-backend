@@ -4,7 +4,7 @@ using Diaspora.Modules.Marketplace.Contracts.V1.Requests;
 namespace Diaspora.Modules.Marketplace.Application.Listings;
 
 /// <summary>Replaces a listing's structured attributes wholesale.</summary>
-[Authorize(Permission = MarketplacePermissions.ListingEditOwn)]
+[RequirePermission(MarketplacePermissions.ListingEditOwn)]
 [Auditable]
 public sealed record SetListingAttributesCommand : ICommand
 {

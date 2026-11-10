@@ -23,7 +23,7 @@ namespace Diaspora.Modules.Analytics.Application.Queries;
 /// patterns (a period's days are too few to tell a pattern from chance).
 /// </para>
 /// </summary>
-[Authorize(Permission = AnalyticsPermissions.CreatorRead)]
+[RequirePermission(AnalyticsPermissions.CreatorRead)]
 public sealed record GetAnalyticsInsightsQuery : IQuery<IReadOnlyList<AnalyticsInsightResponse>>
 {
     public string? SubjectType { get; init; }

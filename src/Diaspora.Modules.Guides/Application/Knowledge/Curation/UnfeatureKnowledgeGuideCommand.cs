@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Guides.Application.Knowledge.Curation;
 /// content.
 /// </para>
 /// </summary>
-[Authorize(Permission = KnowledgePermissions.Curate)]
+[RequirePermission(KnowledgePermissions.Curate)]
 [Auditable]
 public sealed record UnfeatureKnowledgeGuideCommand : ICommand
 {

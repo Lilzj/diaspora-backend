@@ -4,7 +4,7 @@ using Diaspora.Modules.Financial.Contracts.V1.Responses;
 namespace Diaspora.Modules.Financial.Application.Operations;
 
 /// <summary>What the platform earned over a period, per currency.</summary>
-[Authorize(Permission = FinancialPermissions.ReportingRead)]
+[RequirePermission(FinancialPermissions.ReportingRead)]
 public sealed record GetRevenueSummaryQuery : IQuery<IReadOnlyList<RevenueSummaryResponse>>
 {
     public required DateTimeOffset From { get; init; }

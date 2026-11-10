@@ -93,7 +93,7 @@ public sealed class ListCommunityNoticesQueryHandler
 }
 
 /// <summary>Publish a notice. The owner's or an administrator's.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record PublishCommunityNoticeCommand : ICommand<CommunityNoticeResponse>
 {
     public required string IdOrSlug { get; init; }
@@ -181,7 +181,7 @@ public sealed class PublishCommunityNoticeCommandHandler
 }
 
 /// <summary>Revise a notice. Its author while they belong, or the owner or an administrator.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record UpdateCommunityNoticeCommand : ICommand<CommunityNoticeResponse>
 {
     public required string IdOrSlug { get; init; }
@@ -254,7 +254,7 @@ public sealed class UpdateCommunityNoticeCommandHandler
 }
 
 /// <summary>Remove a notice. Its author while they belong, or the owner or an administrator.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record DeleteCommunityNoticeCommand : ICommand<CommunityNoticeResponse>
 {
     public required string IdOrSlug { get; init; }

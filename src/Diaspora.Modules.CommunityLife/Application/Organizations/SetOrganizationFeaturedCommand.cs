@@ -11,7 +11,7 @@ namespace Diaspora.Modules.CommunityLife.Application.Organizations;
 /// worthless within a week.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityLifePermissions.OrganizationFeature)]
+[RequirePermission(CommunityLifePermissions.OrganizationFeature)]
 [Auditable]
 public sealed record SetOrganizationFeaturedCommand : ICommand<OrganizationResponse>
 {

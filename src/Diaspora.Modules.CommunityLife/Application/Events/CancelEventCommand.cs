@@ -12,7 +12,7 @@ namespace Diaspora.Modules.CommunityLife.Application.Events;
 /// happening, and counting against their attendance record when it does not.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityLifePermissions.EventCancel)]
+[RequirePermission(CommunityLifePermissions.EventCancel)]
 [Transactional(Reason = "Cancels the event and releases every response against it.")]
 [Auditable]
 public sealed record CancelEventCommand : ICommand<EventResponse>

@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Media.Application.Assets;
 /// thousands of photographs and a library screen renders twenty.
 /// </para>
 /// </summary>
-[Authorize(Policy = MediaPolicies.Read)]
+[RequirePolicy(MediaPolicies.Read)]
 public sealed record ListMyMediaQuery : IQuery<PagedResult<MediaAssetResponse>>
 {
     /// <summary>Filter to one kind. Null for everything.</summary>

@@ -13,7 +13,7 @@ namespace Diaspora.Modules.Location.Application.Search;
 /// result already in that shape saves the client a mapping step.
 /// </para>
 /// </summary>
-[Authorize(Permission = LocationPermissions.Search)]
+[RequirePermission(LocationPermissions.Search)]
 public sealed record SearchLocationsQuery : IQuery<LocationSearchResponse>
 {
     public required string Term { get; init; }

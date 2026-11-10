@@ -9,7 +9,7 @@ namespace Diaspora.Modules.Guides.Application.Knowledge.Directories;
 /// half-visible while it is. Publishing is the moment somebody decided the page is coherent.
 /// </para>
 /// </summary>
-[Authorize(Permission = KnowledgePermissions.ManageDirectory)]
+[RequirePermission(KnowledgePermissions.ManageDirectory)]
 [Auditable]
 public sealed record PublishCountryDirectoryCommand : ICommand
 {

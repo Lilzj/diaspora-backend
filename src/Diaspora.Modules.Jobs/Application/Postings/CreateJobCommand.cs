@@ -17,7 +17,7 @@ namespace Diaspora.Modules.Jobs.Application.Postings;
 /// ever enter.
 /// </para>
 /// </summary>
-[Authorize(Permission = JobPermissions.PostCreate)]
+[RequirePermission(JobPermissions.PostCreate)]
 [Auditable]
 [Transactional(Reason = "Writes the posting and its default hiring pipeline together.")]
 [Diaspora.Application.Behaviors.PostsInArea(Diaspora.Contracts.Moderation.V1.ModerationAreas.Jobs)]

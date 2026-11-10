@@ -10,7 +10,7 @@ using Diaspora.SharedKernel.Results;
 namespace Diaspora.Modules.Financial.Application.Advertising;
 
 /// <summary>One campaign's delivery — MON-GAP-002.</summary>
-[Authorize(Permission = FinancialPermissions.PurchasesRead)]
+[RequirePermission(FinancialPermissions.PurchasesRead)]
 public sealed record GetAdCampaignPerformanceQuery : IQuery<AdPerformanceResponse>
 {
     public required Guid CampaignId { get; init; }
@@ -20,7 +20,7 @@ public sealed record GetAdCampaignPerformanceQuery : IQuery<AdPerformanceRespons
 }
 
 /// <summary>One placement's delivery — MON-GAP-002.</summary>
-[Authorize(Permission = FinancialPermissions.PurchasesRead)]
+[RequirePermission(FinancialPermissions.PurchasesRead)]
 public sealed record GetPlacementPerformanceQuery : IQuery<AdPerformanceResponse>
 {
     public required Guid PlacementId { get; init; }
@@ -29,7 +29,7 @@ public sealed record GetPlacementPerformanceQuery : IQuery<AdPerformanceResponse
 }
 
 /// <summary>The monetization dashboard's rollup across everything the caller runs.</summary>
-[Authorize(Permission = FinancialPermissions.PurchasesRead)]
+[RequirePermission(FinancialPermissions.PurchasesRead)]
 public sealed record GetMyAdPerformanceSummaryQuery : IQuery<AdPerformanceResponse>
 {
     public int? Days { get; init; }

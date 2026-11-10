@@ -14,7 +14,7 @@ namespace Diaspora.Application.Identity.Commands.Lifecycle.ReactivateAccount;
 /// </para>
 /// </summary>
 [Auditable(Action = "identity.user.reopening-proposed")]
-[Authorize(Permission = IdentityPermissions.DisableUser)]
+[RequirePermission(IdentityPermissions.DisableUser)]
 public sealed record ReactivateAccountCommand : ICommand<AccountActionProposalResponse>
 {
     public required Guid UserId { get; init; }

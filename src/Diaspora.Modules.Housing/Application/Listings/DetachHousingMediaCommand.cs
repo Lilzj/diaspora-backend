@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Housing.Application.Listings;
 /// landlord who detaches a photograph may reattach it a minute later.
 /// </para>
 /// </summary>
-[Authorize(Permission = HousingPermissions.ListingEditOwn)]
+[RequirePermission(HousingPermissions.ListingEditOwn)]
 [Auditable]
 public sealed record DetachHousingMediaCommand : ICommand<HousingListingResponse>
 {

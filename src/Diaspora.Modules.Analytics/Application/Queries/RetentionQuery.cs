@@ -26,7 +26,7 @@ namespace Diaspora.Modules.Analytics.Application.Queries;
 /// listed in <c>unavailableCohorts</c>, never estimated.
 /// </para>
 /// </summary>
-[Authorize(Permission = AnalyticsPermissions.CreatorRead)]
+[RequirePermission(AnalyticsPermissions.CreatorRead)]
 public sealed record GetAnalyticsRetentionQuery : IQuery<AnalyticsRetentionTableResponse>
 {
     public string? SubjectType { get; init; }

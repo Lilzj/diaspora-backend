@@ -107,7 +107,7 @@ public sealed class ClaimsPermissionService : IPermissionService
     /// <para>
     /// Nothing had noticed because nothing used it: the only caller is
     /// <c>AuthorizationBehavior</c>'s <c>Policy</c> arm, and no request type set that field. The
-    /// 54 <c>[Authorize(Policy = …)]</c> attributes in the repository are all on MVC controllers,
+    /// 54 <c>[RequirePolicy(…)]</c> attributes in the repository are all on MVC controllers,
     /// where ASP.NET Core resolves the policy itself and gets the right answer. So this was a
     /// loaded trap rather than a live defect — the first request type to name a policy would have
     /// been refused for every caller, and the refusal would have looked exactly like a permission

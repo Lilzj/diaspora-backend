@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Financial.Application.Payments;
 /// mandate reference. Opaque to the platform, passed through unread, and never stored.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PaymentsManage)]
+[RequirePermission(FinancialPermissions.PaymentsManage)]
 [Transactional(Reason = "Authorising a one-step provider also captures, which posts to the ledger.")]
 [Auditable(Action = "financial.payment.authorize")]
 public sealed record AuthorizePaymentCommand : ICommand<PaymentIntentResponse>

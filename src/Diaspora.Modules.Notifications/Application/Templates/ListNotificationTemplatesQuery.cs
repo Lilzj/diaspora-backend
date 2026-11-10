@@ -5,7 +5,7 @@ using Diaspora.SharedKernel.Pagination;
 namespace Diaspora.Modules.Notifications.Application.Templates;
 
 /// <summary>The template catalogue, for the staff authoring surface.</summary>
-[Authorize(Permission = NotificationPermissions.TemplatesRead)]
+[RequirePermission(NotificationPermissions.TemplatesRead)]
 public sealed record ListNotificationTemplatesQuery
     : IQuery<CursorPagedResult<NotificationTemplateResponse>>
 {

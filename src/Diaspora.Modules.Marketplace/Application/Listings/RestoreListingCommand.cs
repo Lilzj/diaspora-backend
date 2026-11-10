@@ -9,7 +9,7 @@ namespace Diaspora.Modules.Marketplace.Application.Listings;
 /// the market wants its price and its stock looked at before anybody can buy from it again.
 /// </para>
 /// </summary>
-[Authorize(Permission = MarketplacePermissions.ListingRestore)]
+[RequirePermission(MarketplacePermissions.ListingRestore)]
 [Auditable]
 public sealed record RestoreListingCommand : ICommand
 {

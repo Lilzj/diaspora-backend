@@ -16,7 +16,7 @@ namespace Diaspora.Modules.Guides.Application.Suggestions;
 /// Authors do not suggest to their own guides — they edit them, and the aggregate says so.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.Suggest)]
+[RequirePermission(GuidePermissions.Suggest)]
 [Auditable]
 public sealed record SubmitGuideSuggestionCommand : ICommand<GuideSuggestionResponse>
 {

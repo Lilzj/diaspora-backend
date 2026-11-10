@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Recommendations.Application.Strategies;
 /// decision, and reading the weights behind it is the first half of being able to change them.
 /// </para>
 /// </summary>
-[Authorize(Permission = RecommendationPermissions.StrategiesRead)]
+[RequirePermission(RecommendationPermissions.StrategiesRead)]
 public sealed record GetRankingStrategiesQuery : IQuery<IReadOnlyList<RankingStrategyResponse>>
 {
     /// <summary>Null returns every surface's configuration.</summary>

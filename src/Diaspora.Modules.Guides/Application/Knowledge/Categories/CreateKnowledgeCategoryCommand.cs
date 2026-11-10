@@ -18,7 +18,7 @@ namespace Diaspora.Modules.Guides.Application.Knowledge.Categories;
 /// per-country editorial choice.
 /// </para>
 /// </summary>
-[Authorize(Permission = KnowledgePermissions.ManageCategories)]
+[RequirePermission(KnowledgePermissions.ManageCategories)]
 [Auditable]
 public sealed record CreateKnowledgeCategoryCommand : ICommand<KnowledgeCategoryResponse>
 {

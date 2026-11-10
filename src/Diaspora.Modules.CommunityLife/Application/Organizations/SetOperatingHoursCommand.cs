@@ -5,7 +5,7 @@ using Diaspora.Modules.CommunityLife.Contracts.V1.Responses;
 namespace Diaspora.Modules.CommunityLife.Application.Organizations;
 
 /// <summary>Replaces an organization's opening hours.</summary>
-[Authorize(Permission = CommunityLifePermissions.OrganizationEditOwn)]
+[RequirePermission(CommunityLifePermissions.OrganizationEditOwn)]
 [Auditable]
 public sealed record SetOperatingHoursCommand : ICommand<OrganizationResponse>
 {

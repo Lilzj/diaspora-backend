@@ -15,7 +15,7 @@ namespace Diaspora.Modules.Guides.Application.Engagement;
 /// how two modules end up sharing a unit of work neither can reason about.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.Bookmark)]
+[RequirePermission(GuidePermissions.Bookmark)]
 [Auditable]
 public sealed record SetGuideBookmarkCommand : ICommand
 {

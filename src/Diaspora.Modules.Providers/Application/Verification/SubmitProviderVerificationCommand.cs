@@ -30,7 +30,7 @@ namespace Diaspora.Modules.Providers.Application.Verification;
 /// platform's unit of work is re-entrant precisely so a cross-module call composes this way.
 /// </para>
 /// </summary>
-[Authorize(Permission = ProviderPermissions.SubmitVerification)]
+[RequirePermission(ProviderPermissions.SubmitVerification)]
 [Transactional]
 public sealed record SubmitProviderVerificationCommand : ICommand<ProviderVerificationClaimAccepted>
 {

@@ -23,7 +23,7 @@ namespace Diaspora.Modules.Trust.Application.Appeals;
 /// generic appeals form and its diaspora-specific appeal both land here.
 /// </para>
 /// </summary>
-[Authorize(Permission = TrustPermissions.SubmitAppeal)]
+[RequirePermission(TrustPermissions.SubmitAppeal)]
 [Transactional]
 public sealed record SubmitAppealCommand : ICommand<AppealResponse>
 {
@@ -281,7 +281,7 @@ public sealed class SubmitAppealCommandHandler : ICommandHandler<SubmitAppealCom
 /// one definition of what makes an appeal reviewer eligible.
 /// </para>
 /// </summary>
-[Authorize(Permission = TrustPermissions.ReviewAppeal)]
+[RequirePermission(TrustPermissions.ReviewAppeal)]
 [Transactional]
 public sealed record ReviewAppealCommand : ICommand<AppealResponse>
 {
@@ -479,7 +479,7 @@ public sealed class ReviewAppealCommandHandler : ICommandHandler<ReviewAppealCom
 }
 
 /// <summary>The caller's own appeals.</summary>
-[Authorize(Permission = TrustPermissions.ReadSelf)]
+[RequirePermission(TrustPermissions.ReadSelf)]
 public sealed record ListMyAppealsQuery : IQuery<PagedResult<AppealResponse>>
 {
     public PaginationRequest Pagination { get; init; } = new();
@@ -518,7 +518,7 @@ public sealed class ListMyAppealsQueryHandler
 }
 
 /// <summary>One appeal with its history.</summary>
-[Authorize(Permission = TrustPermissions.ReadSelf)]
+[RequirePermission(TrustPermissions.ReadSelf)]
 public sealed record GetAppealQuery : IQuery<AppealDetailResponse>
 {
     public required Guid AppealId { get; init; }
@@ -564,7 +564,7 @@ public sealed class GetAppealQueryHandler : IQueryHandler<GetAppealQuery, Appeal
 }
 
 /// <summary>The staff appeals queue.</summary>
-[Authorize(Permission = TrustPermissions.ReviewAppeal)]
+[RequirePermission(TrustPermissions.ReviewAppeal)]
 public sealed record ListAppealQueueQuery : IQuery<PagedResult<AppealResponse>>
 {
     public PaginationRequest Pagination { get; init; } = new();

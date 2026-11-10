@@ -37,7 +37,7 @@ public enum ReviewDecision
 /// forgot to check would otherwise be one refactor away.
 /// </para>
 /// </summary>
-[Authorize(Permission = TrustPermissions.ReviewVerification)]
+[RequirePermission(TrustPermissions.ReviewVerification)]
 [Transactional]
 public sealed record ReviewVerificationCommand : ICommand<VerificationResponse>
 {

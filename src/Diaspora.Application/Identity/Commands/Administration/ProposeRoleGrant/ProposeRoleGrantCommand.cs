@@ -13,7 +13,7 @@ namespace Diaspora.Application.Identity.Commands.Administration.ProposeRoleGrant
 /// </para>
 /// </summary>
 [Auditable(Action = "identity.user.role-grant-proposed")]
-[Authorize(Permission = IdentityPermissions.AssignRoles)]
+[RequirePermission(IdentityPermissions.AssignRoles)]
 public sealed record ProposeRoleGrantCommand : ICommand<AccountActionProposalResponse>
 {
     public required Guid UserId { get; init; }

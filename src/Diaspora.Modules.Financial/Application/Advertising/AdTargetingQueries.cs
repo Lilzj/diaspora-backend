@@ -15,7 +15,7 @@ namespace Diaspora.Modules.Financial.Application.Advertising;
 /// time one of them changes.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PurchasesRead)]
+[RequirePermission(FinancialPermissions.PurchasesRead)]
 public sealed record GetAdTargetingOptionsQuery : IQuery<AdTargetingOptionsResponse>
 {
     /// <summary>An <c>AdTargetingDimension</c> name.</summary>
@@ -28,7 +28,7 @@ public sealed record GetAdTargetingOptionsQuery : IQuery<AdTargetingOptionsRespo
 }
 
 /// <summary>How many people a selection could reach — MON-GAP-007.</summary>
-[Authorize(Permission = FinancialPermissions.PurchasesRead)]
+[RequirePermission(FinancialPermissions.PurchasesRead)]
 public sealed record EstimateAdAudienceQuery : IQuery<AdAudienceEstimateResponse>
 {
     public AdAudienceRequest? Audience { get; init; }

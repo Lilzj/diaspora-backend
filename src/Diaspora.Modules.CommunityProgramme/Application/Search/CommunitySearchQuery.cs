@@ -33,7 +33,7 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Search;
 /// nobody can debug, and the alternative was leaving the order to a concatenation.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record SearchCommunityQuery
     : IQuery<CommunityPageResponse<CommunitySearchResultResponse>>
 {

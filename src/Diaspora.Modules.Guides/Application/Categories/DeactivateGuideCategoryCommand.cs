@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Guides.Application.Categories;
 /// Deactivating stops new guides choosing it and leaves the existing ones readable.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.ManageCategories)]
+[RequirePermission(GuidePermissions.ManageCategories)]
 [Auditable]
 public sealed record DeactivateGuideCategoryCommand : ICommand<GuideCategoryResponse>
 {

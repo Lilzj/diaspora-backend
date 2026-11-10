@@ -44,7 +44,7 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Memberships;
 /// therefore a member" and there is nothing here that could.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 [Transactional(Reason =
     "Opens the membership, writes its first history entry and raises the status event as one unit. "
     + "A membership that committed without its history would have no record of how it began, which "
@@ -331,7 +331,7 @@ public sealed class SubmitMembershipApplicationCommandHandler
 }
 
 /// <summary>Every membership the caller holds, terminal ones included.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record ListMyMembershipsQuery : IQuery<IReadOnlyList<ProgrammeMembershipResponse>>;
 
 public sealed class ListMyMembershipsQueryHandler
@@ -401,7 +401,7 @@ public sealed class ListMyMembershipsQueryHandler
 /// gets the same answer as somebody asking about a membership that does not exist.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record GetMembershipQuery : IQuery<ProgrammeMembershipResponse>
 {
     public required Guid MembershipId { get; init; }
@@ -467,7 +467,7 @@ public sealed class GetMembershipQueryHandler
 }
 
 /// <summary>The member ends their own membership.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 [Transactional(Reason =
     "Moves the membership and appends its history entry as one unit. A cancellation recorded "
     + "without its history entry would leave the member unable to see when or why it ended.")]
@@ -574,7 +574,7 @@ public sealed class CancelMembershipCommandHandler
 /// through its own routes; binding the two is COMMUNITY-LIFE-GAP-003 and belongs to B15.1.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 [Transactional(Reason =
     "Records the renewal key and extends the window as one unit. A renewal that extended the "
     + "membership without recording its key would be renewed again by the client's ordinary retry.")]

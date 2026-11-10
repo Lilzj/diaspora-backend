@@ -27,7 +27,7 @@ namespace Diaspora.Modules.Creator.Application.Sponsorship;
 /// <c>finished</c> — or one state name, or <c>all</c>.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 public sealed record GetMySponsoredContentQuery : IQuery<IReadOnlyList<SponsoredContentItemResponse>>
 {
     public string? State { get; init; }

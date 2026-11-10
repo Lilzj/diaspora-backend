@@ -5,7 +5,7 @@ using Diaspora.Modules.Guides.Contracts.V1.Responses;
 namespace Diaspora.Modules.Guides.Application.Knowledge.LearningPaths;
 
 /// <summary>Rewrites a learning path's own copy. The key and the country never change.</summary>
-[Authorize(Permission = KnowledgePermissions.ManagePaths)]
+[RequirePermission(KnowledgePermissions.ManagePaths)]
 [Auditable]
 public sealed record UpdateLearningPathCommand : ICommand<LearningPathResponse>
 {

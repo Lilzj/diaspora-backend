@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Marketplace.Application.Listings;
 /// reference went would silently blank an unrelated one.
 /// </para>
 /// </summary>
-[Authorize(Permission = MarketplacePermissions.ListingEditOwn)]
+[RequirePermission(MarketplacePermissions.ListingEditOwn)]
 [Auditable]
 public sealed record RemoveListingMediaCommand : ICommand
 {

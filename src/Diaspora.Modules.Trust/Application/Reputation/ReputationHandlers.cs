@@ -15,7 +15,7 @@ using FluentValidation;
 namespace Diaspora.Modules.Trust.Application.Reputation;
 
 /// <summary>The caller's reputation, in the shape the reputation screen renders.</summary>
-[Authorize(Permission = TrustPermissions.ReadSelf)]
+[RequirePermission(TrustPermissions.ReadSelf)]
 public sealed record GetMyReputationQuery : IQuery<ReputationProfileResponse>;
 
 public sealed class GetMyReputationQueryHandler
@@ -86,7 +86,7 @@ public sealed class GetMyReputationQueryHandler
 /// promises. Ordered contribution, verification, trust, and within each the largest award first.
 /// </para>
 /// </summary>
-[Authorize(Permission = TrustPermissions.ReadSelf)]
+[RequirePermission(TrustPermissions.ReadSelf)]
 public sealed record ListReputationRulesQuery : IQuery<IReadOnlyList<ReputationRuleResponse>>;
 
 public sealed class ListReputationRulesQueryHandler
@@ -115,7 +115,7 @@ public sealed class ListReputationRulesQueryHandler
 }
 
 /// <summary>The caller's scoring history.</summary>
-[Authorize(Permission = TrustPermissions.ReadSelf)]
+[RequirePermission(TrustPermissions.ReadSelf)]
 public sealed record ListMyReputationEventsQuery : IQuery<PagedResult<ReputationEventResponse>>
 {
     public PaginationRequest Pagination { get; init; } = new();
@@ -177,7 +177,7 @@ public sealed class ListMyReputationEventsQueryHandler
 /// route stays; <see cref="ConfirmationResponse.PointsAwarded"/> is always zero.
 /// </para>
 /// </summary>
-[Authorize(Permission = TrustPermissions.Confirm)]
+[RequirePermission(TrustPermissions.Confirm)]
 [Transactional]
 public sealed record RecordConfirmationCommand : ICommand<ConfirmationResponse>
 {
@@ -299,7 +299,7 @@ public sealed class RecordConfirmationCommandHandler
 /// rest of the trust centre rather than on <c>Confirm</c>.
 /// </para>
 /// </summary>
-[Authorize(Permission = TrustPermissions.ReadSelf)]
+[RequirePermission(TrustPermissions.ReadSelf)]
 public sealed record GetConfirmationSummaryQuery : IQuery<ConfirmationSummaryResponse>
 {
     public required string TargetType { get; init; }

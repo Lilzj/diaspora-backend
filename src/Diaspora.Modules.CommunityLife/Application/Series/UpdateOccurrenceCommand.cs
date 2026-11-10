@@ -12,7 +12,7 @@ namespace Diaspora.Modules.CommunityLife.Application.Series;
 /// expansion put it straight back.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityLifePermissions.EventEditOwn)]
+[RequirePermission(CommunityLifePermissions.EventEditOwn)]
 [Transactional(Reason = "Moves the occurrence and records the exception on its series.")]
 [Auditable]
 public sealed record UpdateOccurrenceCommand : ICommand<EventOccurrenceResponse>

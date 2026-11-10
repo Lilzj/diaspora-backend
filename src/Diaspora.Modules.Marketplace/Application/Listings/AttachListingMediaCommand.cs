@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Marketplace.Application.Listings;
 /// later.
 /// </para>
 /// </summary>
-[Authorize(Permission = MarketplacePermissions.ListingEditOwn)]
+[RequirePermission(MarketplacePermissions.ListingEditOwn)]
 [Auditable]
 public sealed record AttachListingMediaCommand : ICommand
 {

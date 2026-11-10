@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Guides.Application.Knowledge.Directories;
 /// platform stops serving can be brought back without being rebuilt.
 /// </para>
 /// </summary>
-[Authorize(Permission = KnowledgePermissions.ManageDirectory)]
+[RequirePermission(KnowledgePermissions.ManageDirectory)]
 [Auditable]
 public sealed record ArchiveCountryDirectoryCommand : ICommand
 {

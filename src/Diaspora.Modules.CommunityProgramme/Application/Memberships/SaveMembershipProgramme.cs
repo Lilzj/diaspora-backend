@@ -41,7 +41,7 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Memberships;
 /// unsupported code is refused rather than stored and rendered as an unknown symbol later.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityProgrammePermissions.ManageProgramme)]
+[RequirePermission(CommunityProgrammePermissions.ManageProgramme)]
 [Transactional(Reason =
     "Opens the programme and writes its tiers, benefits and requirements as one unit. A programme "
     + "that committed without its tiers would be a join page with nothing to join, and the client "

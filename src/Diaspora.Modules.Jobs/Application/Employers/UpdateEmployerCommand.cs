@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Jobs.Application.Employers;
 /// whether they are an administrator <em>of this one</em>. Both run.
 /// </para>
 /// </summary>
-[Authorize(Permission = JobPermissions.EmployerManage)]
+[RequirePermission(JobPermissions.EmployerManage)]
 [Auditable]
 public sealed record UpdateEmployerCommand : ICommand<EmployerResponse>
 {

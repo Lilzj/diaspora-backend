@@ -7,7 +7,7 @@ namespace Diaspora.Modules.Location.Application.Nearby;
 /// <summary>
 /// The catalogue nodes inside a viewport — the query behind a map that can be panned.
 /// </summary>
-[Authorize(Permission = LocationPermissions.Hyperlocal)]
+[RequirePermission(LocationPermissions.Hyperlocal)]
 public sealed record SearchWithinBoundsQuery : IQuery<IReadOnlyList<AreaSummaryResponse>>
 {
     public required double North { get; init; }

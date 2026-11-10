@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Jobs.Application.Postings;
 /// reputation is measured against.
 /// </para>
 /// </summary>
-[Authorize(Permission = JobPermissions.PostPublish)]
+[RequirePermission(JobPermissions.PostPublish)]
 [Auditable]
 [Diaspora.Application.Behaviors.PostsInArea(Diaspora.Contracts.Moderation.V1.ModerationAreas.Jobs)]
 public sealed record PublishJobCommand : ICommand<JobResponse>

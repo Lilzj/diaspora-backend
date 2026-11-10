@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Guides.Application.Knowledge.Directories;
 /// rebuild.
 /// </para>
 /// </summary>
-[Authorize(Permission = KnowledgePermissions.ManageDirectory)]
+[RequirePermission(KnowledgePermissions.ManageDirectory)]
 [Auditable]
 public sealed record UnpublishCountryDirectoryCommand : ICommand
 {

@@ -90,7 +90,7 @@ internal static class AnalyticsReports
 }
 
 /// <summary>The caller's saved reports. <c>mine</c> (the default), <c>favorites</c> or <c>shared</c>.</summary>
-[Authorize(Permission = AnalyticsPermissions.CreatorRead)]
+[RequirePermission(AnalyticsPermissions.CreatorRead)]
 public sealed record ListAnalyticsReportsQuery : IQuery<IReadOnlyList<AnalyticsReportResponse>>
 {
     public string? Scope { get; init; }
@@ -144,7 +144,7 @@ public sealed class ListAnalyticsReportsQueryHandler
 }
 
 /// <summary>One of the caller's saved reports.</summary>
-[Authorize(Permission = AnalyticsPermissions.CreatorRead)]
+[RequirePermission(AnalyticsPermissions.CreatorRead)]
 public sealed record GetAnalyticsReportQuery : IQuery<AnalyticsReportResponse>
 {
     public required string ReportId { get; init; }
@@ -189,7 +189,7 @@ public sealed class GetAnalyticsReportQueryHandler
 }
 
 /// <summary>Saves a new report definition for the caller.</summary>
-[Authorize(Permission = AnalyticsPermissions.CreatorRead)]
+[RequirePermission(AnalyticsPermissions.CreatorRead)]
 public sealed record CreateAnalyticsReportCommand : ICommand<AnalyticsReportResponse>
 {
     public required CreateAnalyticsReportRequest Request { get; init; }
@@ -267,7 +267,7 @@ public sealed class CreateAnalyticsReportCommandHandler
 }
 
 /// <summary>Changes one of the caller's reports. Fields left out of the body are left as they were.</summary>
-[Authorize(Permission = AnalyticsPermissions.CreatorRead)]
+[RequirePermission(AnalyticsPermissions.CreatorRead)]
 public sealed record UpdateAnalyticsReportCommand : ICommand<AnalyticsReportResponse>
 {
     public required string ReportId { get; init; }
@@ -374,7 +374,7 @@ public sealed class UpdateAnalyticsReportCommandHandler
 }
 
 /// <summary>Deletes one of the caller's reports.</summary>
-[Authorize(Permission = AnalyticsPermissions.CreatorRead)]
+[RequirePermission(AnalyticsPermissions.CreatorRead)]
 public sealed record DeleteAnalyticsReportCommand : ICommand<AnalyticsReportDeletedResponse>
 {
     public required string ReportId { get; init; }

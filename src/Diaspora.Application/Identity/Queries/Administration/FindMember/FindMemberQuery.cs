@@ -16,7 +16,7 @@ namespace Diaspora.Application.Identity.Queries.Administration.FindMember;
 /// </para>
 /// </summary>
 [Auditable(Action = "identity.member.looked-up", OnlyForStaff = true)]
-[Authorize(Permission = IdentityPermissions.ReadAnyUser)]
+[RequirePermission(IdentityPermissions.ReadAnyUser)]
 public sealed record FindMemberQuery : IQuery<AdminMemberResponse>
 {
     /// <summary>An account identifier, an email address, or a phone number in any format.</summary>

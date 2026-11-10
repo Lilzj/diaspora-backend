@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Marketplace.Application.Listings;
 /// buyer identity or a price would push sellers into inventing one.
 /// </para>
 /// </summary>
-[Authorize(Permission = MarketplacePermissions.ListingMarkSold)]
+[RequirePermission(MarketplacePermissions.ListingMarkSold)]
 [Auditable]
 public sealed record MarkListingSoldCommand : ICommand
 {

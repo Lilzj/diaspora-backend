@@ -23,7 +23,7 @@ namespace Diaspora.Modules.Integrations.Application.Connections;
 /// variant."
 /// </para>
 /// </summary>
-[Authorize(Policy = IntegrationsPolicies.ConnectionsRead)]
+[RequirePolicy(IntegrationsPolicies.ConnectionsRead)]
 public sealed record ListConnectionsQuery : IQuery<IReadOnlyList<IntegrationConnectionResponse>>
 {
     /// <summary>Optional filter on the domain half of the key — <c>calendar</c>, <c>identity</c>.</summary>
@@ -132,7 +132,7 @@ public sealed class ListConnectionsQueryHandler
     + "it stranded and enqueues the disconnection contract. A partial commit would leave a settings "
     + "row naming a calendar the member can no longer reach, or a disconnection nobody was told "
     + "about.")]
-[Authorize(Policy = IntegrationsPolicies.ConnectionsWrite)]
+[RequirePolicy(IntegrationsPolicies.ConnectionsWrite)]
 public sealed record DisconnectIntegrationCommand : ICommand<IntegrationDisconnectResponse>
 {
     public required string Provider { get; init; }

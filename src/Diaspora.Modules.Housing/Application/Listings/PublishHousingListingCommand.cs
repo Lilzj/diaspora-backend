@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Housing.Application.Listings;
 /// blocking signal holds the listing rather than publishing it.
 /// </para>
 /// </summary>
-[Authorize(Permission = HousingPermissions.ListingPublish)]
+[RequirePermission(HousingPermissions.ListingPublish)]
 [Auditable]
 [Diaspora.Application.Behaviors.PostsInArea(Diaspora.Contracts.Moderation.V1.ModerationAreas.Housing)]
 public sealed record PublishHousingListingCommand : ICommand<HousingListingResponse>

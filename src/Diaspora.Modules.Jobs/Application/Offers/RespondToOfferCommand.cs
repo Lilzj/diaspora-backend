@@ -16,7 +16,7 @@ namespace Diaspora.Modules.Jobs.Application.Offers;
 /// wrong everywhere it was not.
 /// </para>
 /// </summary>
-[Authorize(Permission = JobPermissions.OffersRespond)]
+[RequirePermission(JobPermissions.OffersRespond)]
 [Auditable]
 [Transactional(Reason = "Answering an offer moves the application, the posting and the employer.")]
 public sealed record RespondToOfferCommand : ICommand<JobOfferResponse>

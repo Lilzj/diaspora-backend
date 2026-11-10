@@ -9,13 +9,25 @@ namespace Diaspora.AnalyzerTests;
 /// </summary>
 public sealed class CqrsGuardrailAnalyzerTests
 {
+    /// <summary>
+    /// The requests the probes dispatch.
+    /// </summary>
+    /// <remarks>
+    /// <b>Each one declares its authorization, because since BSOLID-001 one that does not is not
+    /// valid platform code.</b> DSP4005 would otherwise fire on every probe here and bury the rule
+    /// each test is actually about. A fixture that could not exist in the platform is a fixture
+    /// testing something else.
+    /// </remarks>
     private const string Requests =
         """
+        [RequirePermission("probe:things:write")]
         public sealed record DoThingCommand : ICommand<string>;
 
+        [RequirePermission("probe:things:write")]
         [Transactional(Reason = "Writes two aggregates.")]
         public sealed record DoTwoThingsCommand : ICommand<string>;
 
+        [RequirePermission("probe:things:read")]
         public sealed record ReadThingQuery : IQuery<string>;
         """;
 

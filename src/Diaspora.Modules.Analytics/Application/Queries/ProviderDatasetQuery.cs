@@ -35,7 +35,7 @@ namespace Diaspora.Modules.Analytics.Application.Queries;
 /// provider.
 /// </para>
 /// </summary>
-[Authorize(Permission = AnalyticsPermissions.ContentReadOwn)]
+[RequirePermission(AnalyticsPermissions.ContentReadOwn)]
 public sealed record GetProviderAnalyticsDatasetQuery : IQuery<AnalyticsDatasetResponse>
 {
     public string? Period { get; init; }

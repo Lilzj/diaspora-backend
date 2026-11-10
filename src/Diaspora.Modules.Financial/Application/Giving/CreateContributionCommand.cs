@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Financial.Application.Giving;
 /// else has to happen for a pledge to count.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.GivingCreate)]
+[RequirePermission(FinancialPermissions.GivingCreate)]
 [Transactional(Reason = "A monetary contribution writes the contribution and its payment intent.")]
 [Auditable(Action = "financial.contribution.create")]
 public sealed record CreateContributionCommand : ICommand<ContributionResponse>

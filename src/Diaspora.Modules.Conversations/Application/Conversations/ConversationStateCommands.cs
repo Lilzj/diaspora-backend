@@ -19,7 +19,7 @@ namespace Diaspora.Modules.Conversations.Application.Conversations;
 // permanently un-archivable — stuck at the top of the inbox of the person who most wants it gone.
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
-[Authorize(Permission = ConversationPermissions.Participate)]
+[RequirePermission(ConversationPermissions.Participate)]
 [Transactional(Reason = "Moves one participant row and raises the event the client renders from.")]
 public sealed record ArchiveConversationCommand : ICommand
 {
@@ -88,7 +88,7 @@ public sealed class ArchiveConversationCommandHandler : ICommandHandler<ArchiveC
 
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
-[Authorize(Permission = ConversationPermissions.Participate)]
+[RequirePermission(ConversationPermissions.Participate)]
 [Transactional(Reason = "Moves one participant row and raises the event the client renders from.")]
 public sealed record MuteConversationCommand : ICommand
 {
@@ -165,7 +165,7 @@ public sealed class MuteConversationCommandHandler : ICommandHandler<MuteConvers
 
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
-[Authorize(Permission = ConversationPermissions.Participate)]
+[RequirePermission(ConversationPermissions.Participate)]
 [Transactional(Reason =
     "Counts the member's existing pins and writes the new one together. Counting outside the "
     + "transaction would let two devices each see four pins and create a sixth.")]
@@ -253,7 +253,7 @@ public sealed class PinConversationCommandHandler : ICommandHandler<PinConversat
 // Mark read
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
-[Authorize(Permission = ConversationPermissions.Participate)]
+[RequirePermission(ConversationPermissions.Participate)]
 [Transactional(Reason =
     "Clears the reader's unread counter and latches read timestamps onto the messages the receipt "
     + "covers. Split, the sender's ticks and the reader's badge would disagree.")]

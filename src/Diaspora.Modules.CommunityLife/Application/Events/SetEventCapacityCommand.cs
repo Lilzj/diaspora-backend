@@ -11,7 +11,7 @@ namespace Diaspora.Modules.CommunityLife.Application.Events;
 /// shrinking the hall under them would take it back silently.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityLifePermissions.EventEditOwn)]
+[RequirePermission(CommunityLifePermissions.EventEditOwn)]
 [Auditable]
 public sealed record SetEventCapacityCommand : ICommand<EventResponse>
 {

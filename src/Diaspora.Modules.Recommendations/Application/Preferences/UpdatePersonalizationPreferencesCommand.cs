@@ -17,7 +17,7 @@ namespace Diaspora.Modules.Recommendations.Application.Preferences;
 /// "clear" would be a defect waiting to happen.
 /// </para>
 /// </summary>
-[Authorize(Permission = RecommendationPermissions.PreferencesManage)]
+[RequirePermission(RecommendationPermissions.PreferencesManage)]
 [Transactional(Reason = "A preference change is one decision; a partial one is a setting nobody chose.")]
 [Auditable(Action = "recommendations.preferences.update")]
 public sealed record UpdatePersonalizationPreferencesCommand

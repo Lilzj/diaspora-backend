@@ -24,7 +24,7 @@ namespace Diaspora.Modules.Recommendations.Application.Monetization;
 /// <c>RecommendationSet</c> so the ordinary feedback routes work on it.
 /// </para>
 /// </summary>
-[Authorize(Permission = RecommendationPermissions.FeedRead)]
+[RequirePermission(RecommendationPermissions.FeedRead)]
 public sealed record GetMonetizationRecommendationsQuery
     : IQuery<IReadOnlyList<MonetizationRecommendationResponse>>
 {

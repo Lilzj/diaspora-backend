@@ -4,7 +4,7 @@ using Diaspora.Modules.Financial.Contracts.V1.Responses;
 namespace Diaspora.Modules.Financial.Application.Purchases;
 
 /// <summary>Everything the caller has bought.</summary>
-[Authorize(Permission = FinancialPermissions.PurchasesRead)]
+[RequirePermission(FinancialPermissions.PurchasesRead)]
 public sealed record GetMyPurchasesQuery : IQuery<IReadOnlyList<MonetizationPurchaseResponse>>
 {
     public string? Status { get; init; }

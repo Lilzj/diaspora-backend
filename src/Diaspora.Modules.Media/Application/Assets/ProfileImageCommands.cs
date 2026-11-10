@@ -37,7 +37,9 @@ namespace Diaspora.Modules.Media.Application.Assets;
 // Dispatched from inside an authorised handler, never from a route of its own —
 // ProfileController ([Authorize] at the class) and Creator's cover handlers. The caller is
 // present in both.
-[Authorize]
+[RequireAuthentication(
+    "Dispatched from inside an already-authorised handler, so the caller is present and the media " +
+    "is their own.")]
 public sealed record PublishProfileImageCommand : ICommand<ProfileImageResponse>
 {
     public required Guid MediaId { get; init; }
@@ -56,7 +58,9 @@ public sealed record PublishProfileImageCommand : ICommand<ProfileImageResponse>
 /// </summary>
 [Auditable]
 // Same two dispatch sites as PublishProfileImageCommand.
-[Authorize]
+[RequireAuthentication(
+    "Dispatched from inside an already-authorised handler, so the caller is present and the media " +
+    "is their own.")]
 public sealed record WithdrawProfileImageCommand : ICommand
 {
     public required Guid MediaId { get; init; }

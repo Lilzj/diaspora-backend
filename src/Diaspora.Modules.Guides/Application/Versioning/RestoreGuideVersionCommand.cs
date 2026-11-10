@@ -18,7 +18,7 @@ namespace Diaspora.Modules.Guides.Application.Versioning;
 /// go missing when the guide write succeeds.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.EditOwn)]
+[RequirePermission(GuidePermissions.EditOwn)]
 [Transactional(Reason = "The restored draft and the version-adoption analytics must commit together.")]
 [Auditable]
 public sealed record RestoreGuideVersionCommand : ICommand<GuideResponse>

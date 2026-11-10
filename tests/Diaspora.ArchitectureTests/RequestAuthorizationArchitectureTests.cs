@@ -162,13 +162,13 @@ public sealed class RequestAuthorizationArchitectureTests
     [Fact]
     public void The_creator_activity_query_requires_the_same_permission_as_its_siblings()
     {
-        var authorize = typeof(GetMyCreatorActivityQuery)
-            .GetCustomAttribute<AuthorizeAttribute>();
+        var requirement = typeof(GetMyCreatorActivityQuery)
+            .GetCustomAttribute<RequirePermissionAttribute>();
 
-        authorize.Should().NotBeNull(
+        requirement.Should().NotBeNull(
             "GET /api/v1/creators/me/activity was reachable unauthenticated (BSEC-003)");
 
-        authorize!.Permission.Should().Be(
+        requirement!.Permission.Should().Be(
             CreatorPermissions.ProfileRead,
             "every sibling caller-scoped creator read takes ProfileRead — earnings, revenue, "
             + "reputation, milestones, referral programme, referral history — and Participate is "
@@ -177,9 +177,20 @@ public sealed class RequestAuthorizationArchitectureTests
 
     // ─── Discovery ──────────────────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// A request declares its requirement with exactly one of four attributes, or it is undeclared.
+    /// </summary>
+    /// <remarks>
+    /// Four rather than two since BSOLID-001 split <c>[Authorize]</c> by question. Listing them
+    /// here rather than probing a shared base type is deliberate: there is no base type, because
+    /// an abstract one would reintroduce the thing the split removed — somewhere for a request to
+    /// be "authorized" without saying how.
+    /// </remarks>
     private static IEnumerable<string> Undeclared() =>
         Requests.Value
-            .Where(type => type.GetCustomAttribute<AuthorizeAttribute>() is null)
+            .Where(type => type.GetCustomAttribute<RequirePermissionAttribute>() is null)
+            .Where(type => type.GetCustomAttribute<RequirePolicyAttribute>() is null)
+            .Where(type => type.GetCustomAttribute<RequireAuthenticationAttribute>() is null)
             .Where(type => type.GetCustomAttribute<AllowAnonymousAttribute>() is null)
             .Select(Describe)
             .OrderBy(entry => entry, StringComparer.Ordinal);

@@ -17,7 +17,7 @@ namespace Diaspora.Application.Identity.Commands.Administration.RepublishEmailVe
 /// account that is already mirrored costs nothing. A member whose email is not verified is refused.
 /// </para>
 /// </summary>
-[Authorize(Permission = IdentityPermissions.RepublishMemberFacts)]
+[RequirePermission(IdentityPermissions.RepublishMemberFacts)]
 public sealed record RepublishEmailVerificationCommand : ICommand<OperationAcknowledgedResponse>
 {
     public required Guid UserId { get; init; }

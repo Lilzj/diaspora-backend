@@ -5,7 +5,7 @@ using Diaspora.Modules.CommunityLife.Contracts.V1.Responses;
 namespace Diaspora.Modules.CommunityLife.Application.Events;
 
 /// <summary>Makes an event discoverable.</summary>
-[Authorize(Permission = CommunityLifePermissions.EventPublish)]
+[RequirePermission(CommunityLifePermissions.EventPublish)]
 [Auditable]
 [Diaspora.Application.Behaviors.PostsInArea(Diaspora.Contracts.Moderation.V1.ModerationAreas.Events)]
 public sealed record PublishEventCommand : ICommand<EventResponse>

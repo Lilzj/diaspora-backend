@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Housing.Application.Listings;
 /// commit together, and a listing whose neighbourhood profile failed to save would point at nothing.
 /// </para>
 /// </summary>
-[Authorize(Permission = HousingPermissions.ListingCreate)]
+[RequirePermission(HousingPermissions.ListingCreate)]
 [Transactional(Reason = "Writes the listing, its analytics record and possibly a new neighbourhood profile.")]
 [Auditable]
 [Diaspora.Application.Behaviors.PostsInArea(Diaspora.Contracts.Moderation.V1.ModerationAreas.Housing)]

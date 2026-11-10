@@ -13,7 +13,7 @@ namespace Diaspora.Modules.Financial.Application.Entitlements;
 /// entitlement re-reads it rather than trusting what a client was told.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.SubscriptionsRead)]
+[RequirePermission(FinancialPermissions.SubscriptionsRead)]
 public sealed record GetMyEntitlementsQuery : IQuery<EntitlementSnapshotResponse>;
 
 /// <summary>Resolves the caller's entitlements and the consumption verticals reported.</summary>

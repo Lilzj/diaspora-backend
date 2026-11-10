@@ -17,7 +17,7 @@ namespace Diaspora.Modules.Financial.Application.Operations;
 /// would make it a refusal.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PoliciesManage)]
+[RequirePermission(FinancialPermissions.PoliciesManage)]
 [Transactional(Reason = "Publishing a version and superseding the previous one is one decision.")]
 [Auditable(Action = "financial.policy.publish")]
 public sealed record PublishFinancialPolicyCommand : ICommand<FinancialPolicyResponse>

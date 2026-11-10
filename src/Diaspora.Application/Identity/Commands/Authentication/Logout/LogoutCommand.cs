@@ -10,7 +10,9 @@ namespace Diaspora.Application.Identity.Commands.Authentication.Logout;
 [Auditable(Action = "identity.user.logged-out")]
 // Ending the caller's own session. The route is [Authorize] with no policy and that is right:
 // there is no permission a member could lack that should keep them signed in.
-[Authorize]
+[RequireAuthentication(
+    "Ending the caller's own session. There is no permission a member could lack that should keep " +
+    "them signed in.")]
 public sealed record LogoutCommand : ICommand<OperationAcknowledgedResponse>
 {
     /// <summary>When true, every other session on the account ends as well.</summary>

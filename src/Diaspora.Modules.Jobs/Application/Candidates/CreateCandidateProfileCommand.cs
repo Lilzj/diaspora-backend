@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Jobs.Application.Candidates;
 /// stranger, and that is where the Verified floor bites.
 /// </para>
 /// </summary>
-[Authorize(Permission = JobPermissions.CandidateManage)]
+[RequirePermission(JobPermissions.CandidateManage)]
 [Auditable]
 public sealed record CreateCandidateProfileCommand : ICommand<CandidateProfileResponse>
 {

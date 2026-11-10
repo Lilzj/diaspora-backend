@@ -16,11 +16,11 @@ namespace Diaspora.Modules.Financial.Application.Invoices;
 /// is retried for that one payment without rolling back the others.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PaymentsRead)]
+[RequirePermission(FinancialPermissions.PaymentsRead)]
 public sealed record IssueMyInvoicesCommand : ICommand<int>;
 
 /// <summary>The caller's invoices, newest number first.</summary>
-[Authorize(Permission = FinancialPermissions.PaymentsRead)]
+[RequirePermission(FinancialPermissions.PaymentsRead)]
 public sealed record GetMyInvoicesQuery : IQuery<IReadOnlyList<InvoiceResponse>>
 {
     /// <summary>An invoice number already served. The page starts strictly after it.</summary>
@@ -30,14 +30,14 @@ public sealed record GetMyInvoicesQuery : IQuery<IReadOnlyList<InvoiceResponse>>
 }
 
 /// <summary>One invoice. Only its owner may read it; anybody else is told it does not exist.</summary>
-[Authorize(Permission = FinancialPermissions.PaymentsRead)]
+[RequirePermission(FinancialPermissions.PaymentsRead)]
 public sealed record GetInvoiceQuery : IQuery<InvoiceResponse>
 {
     public required Guid InvoiceId { get; init; }
 }
 
 /// <summary>One invoice as a printable HTML page. Owner only, exactly as <see cref="GetInvoiceQuery"/>.</summary>
-[Authorize(Permission = FinancialPermissions.PaymentsRead)]
+[RequirePermission(FinancialPermissions.PaymentsRead)]
 public sealed record GetInvoiceDocumentQuery : IQuery<string>
 {
     public required Guid InvoiceId { get; init; }

@@ -31,7 +31,7 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Volunteering;
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>Offers to do a piece of volunteer work.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 [Transactional(Reason =
     "Writes the application and its answers as one unit. An application that committed without its "
     + "answers would reach an organizer as a name and nothing to decide on.")]
@@ -235,7 +235,7 @@ public sealed class SubmitVolunteerApplicationCommandHandler
 }
 
 /// <summary>Every application the caller has made.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record ListMyVolunteerApplicationsQuery
     : IQuery<IReadOnlyList<VolunteerApplicationResponse>>;
 
@@ -313,7 +313,7 @@ public sealed class ListMyVolunteerApplicationsQueryHandler
 }
 
 /// <summary>The applicant withdraws.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record WithdrawVolunteerApplicationCommand : ICommand<VolunteerApplicationResponse>
 {
     public required Guid ApplicationId { get; init; }
@@ -387,7 +387,7 @@ public sealed class WithdrawVolunteerApplicationCommandHandler
 /// opportunity the caller does not manage". Oldest first, because a queue is a queue.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityProgrammePermissions.ManageVolunteers)]
+[RequirePermission(CommunityProgrammePermissions.ManageVolunteers)]
 public sealed record ListApplicantsQuery : IQuery<CommunityPageResponse<VolunteerApplicantResponse>>
 {
     public required Guid OpportunityId { get; init; }
@@ -494,7 +494,7 @@ public sealed class ListApplicantsQueryHandler
 }
 
 /// <summary>An organizer's decision about an applicant.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.ManageVolunteers)]
+[RequirePermission(CommunityProgrammePermissions.ManageVolunteers)]
 [Transactional(Reason =
     "Moves the application and reconciles the opportunity's counters as one unit. An approval that "
     + "committed without the recount would leave a place counted as free that somebody now holds.")]

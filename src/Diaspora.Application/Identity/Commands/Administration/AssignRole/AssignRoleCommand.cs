@@ -18,7 +18,7 @@ namespace Diaspora.Application.Identity.Commands.Administration.AssignRole;
 /// </para>
 /// </summary>
 [Auditable(Action = "identity.user.role-changed")]
-[Authorize(Permission = IdentityPermissions.AssignRoles)]
+[RequirePermission(IdentityPermissions.AssignRoles)]
 public sealed record AssignRoleCommand : ICommand<AdminMemberResponse>
 {
     public required Guid UserId { get; init; }

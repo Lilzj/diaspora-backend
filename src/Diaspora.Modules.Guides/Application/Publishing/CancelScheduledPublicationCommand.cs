@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Guides.Application.Publishing;
 /// the author believed something was pending, and saying "done" would leave them believing it.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.Schedule)]
+[RequirePermission(GuidePermissions.Schedule)]
 [Auditable]
 public sealed record CancelScheduledPublicationCommand : ICommand<GuideResponse>
 {

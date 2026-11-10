@@ -13,7 +13,7 @@ namespace Diaspora.Modules.Guides.Application.Localization;
 /// until somebody fixes it.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.EditOwn)]
+[RequirePermission(GuidePermissions.EditOwn)]
 [Auditable]
 public sealed record SetGuideLanguageCommand : ICommand<GuideResponse>
 {

@@ -10,5 +10,5 @@ namespace Diaspora.Modules.Financial.Application.Subscriptions;
 /// real answer rather than a missing resource.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.SubscriptionsRead)]
+[RequirePermission(FinancialPermissions.SubscriptionsRead)]
 public sealed record GetMySubscriptionQuery : IQuery<SubscriptionResponse?>;

@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Notifications.Application.Delivery;
 /// precisely the console nobody should build.
 /// </para>
 /// </summary>
-[Authorize(Permission = NotificationPermissions.DeliveryRetry)]
+[RequirePermission(NotificationPermissions.DeliveryRetry)]
 [Transactional(Reason = "Requeues the delivery and records the decision together.")]
 [Auditable]
 public sealed record RetryNotificationDeliveryCommand : ICommand<NotificationDeliveryResponse>

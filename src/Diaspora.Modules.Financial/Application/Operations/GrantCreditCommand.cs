@@ -14,7 +14,7 @@ namespace Diaspora.Modules.Financial.Application.Operations;
 /// 100 of the currency, and above 50 a second Admin through <see cref="RequestCreditGrantCommand"/>.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.CreditManage)]
+[RequirePermission(FinancialPermissions.CreditManage)]
 [Transactional(Reason = "A grant writes the grant record and posts the ledger entries behind it.")]
 [Auditable(Action = "financial.credit.grant")]
 public sealed record GrantCreditCommand : ICommand<CreditGrantResponse>

@@ -22,7 +22,7 @@ namespace Diaspora.Modules.Housing.Application.Neighborhoods;
 /// Shares what a member knows about the area around a point (14 Oct 2026, Phase 2A of retiring the
 /// place catalogue).
 /// </summary>
-[Authorize(Permission = HousingPermissions.InsightSubmit)]
+[RequirePermission(HousingPermissions.InsightSubmit)]
 [Auditable]
 public sealed record SubmitAreaInsightCommand : ICommand<NeighborhoodInsightResponse>
 {

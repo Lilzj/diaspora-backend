@@ -27,7 +27,7 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Communities;
 /// subject is always the bearer token, never a path parameter.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record ChangeCommunityMembershipCommand : ICommand<CommunityMembershipResponse>
 {
     public required string IdOrSlug { get; init; }

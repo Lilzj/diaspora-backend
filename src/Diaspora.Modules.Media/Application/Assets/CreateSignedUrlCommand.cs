@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Media.Application.Assets;
 /// </para>
 /// </summary>
 [Auditable]
-[Authorize(Policy = MediaPolicies.SignedAccess)]
+[RequirePolicy(MediaPolicies.SignedAccess)]
 public sealed record CreateSignedUrlCommand : ICommand<SignedUrlResponse>
 {
     public required Guid MediaId { get; init; }

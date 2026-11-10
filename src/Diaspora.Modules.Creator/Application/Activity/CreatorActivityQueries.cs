@@ -22,7 +22,7 @@ namespace Diaspora.Modules.Creator.Application.Activity;
 /// this read stricter than the earnings beside it.
 /// </para>
 /// </remarks>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 public sealed record GetMyCreatorActivityQuery : IQuery<CreatorActivityPageResponse>
 {
     /// <summary>

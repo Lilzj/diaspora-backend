@@ -8,7 +8,7 @@ using Diaspora.SharedKernel.Results;
 namespace Diaspora.Modules.GeographicIntelligence.Application.Scores;
 
 /// <summary>The score breakdown for one neighbourhood.</summary>
-[Authorize(Policy = GeographicIntelligencePolicies.IntelligenceRead)]
+[RequirePolicy(GeographicIntelligencePolicies.IntelligenceRead)]
 public sealed record GetNeighborhoodScoreQuery : IQuery<NeighborhoodScoreResponse>
 {
     /// <summary>B4's area identifier or its slug. Identifier wins where both would parse.</summary>

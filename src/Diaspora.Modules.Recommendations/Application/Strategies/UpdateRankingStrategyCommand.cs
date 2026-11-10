@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Recommendations.Application.Strategies;
 /// changed on a particular Tuesday is the audit trail.
 /// </para>
 /// </summary>
-[Authorize(Permission = RecommendationPermissions.StrategiesManage)]
+[RequirePermission(RecommendationPermissions.StrategiesManage)]
 [Transactional(Reason = "A retune is one decision across a weight, an order and its parameters.")]
 [Auditable(Action = "recommendations.strategy.update")]
 public sealed record UpdateRankingStrategyCommand : ICommand<RankingStrategyResponse>

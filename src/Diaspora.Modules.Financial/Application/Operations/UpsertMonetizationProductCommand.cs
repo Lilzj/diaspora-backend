@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Financial.Application.Operations;
 /// code path anywhere hard-codes a product, a price or a placement weight.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.CatalogManage)]
+[RequirePermission(FinancialPermissions.CatalogManage)]
 [Auditable(Action = "financial.catalog.upsert")]
 public sealed record UpsertMonetizationProductCommand : ICommand<MonetizationProductResponse>
 {

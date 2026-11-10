@@ -144,15 +144,31 @@ public class AuthorizationBehaviorTests
         new(_currentUser, _permissions,
             NullLogger<AuthorizationBehavior<TRequest, Result>>.Instance);
 
-    /// <summary>A request type nobody classified. The state BSEC-003 made unreachable.</summary>
-    private sealed record UnclassifiedCommand;
+    /// <summary>
+    /// A request type nobody classified: the state BSEC-003 made unreachable at runtime.
+    /// </summary>
+    /// <remarks>
+    /// <b>A real <c>ICommand</c>, and DSP4005 is suppressed for exactly one declaration.</b> The
+    /// analyzer forbids this shape, which is the point of the analyzer — and this test needs the
+    /// shape in order to prove the runtime refuses it too. Suppressing rather than sidestepping
+    /// (by declaring a record that implements nothing) keeps the fixture faithful to the case: the
+    /// defect was an unannotated <em>request</em>, not an unannotated POCO.
+    /// <para>
+    /// The two mechanisms are belt and brace. If this suppression is ever deleted and the fixture
+    /// annotated to make the build quiet, this test stops testing anything and the three
+    /// assertions below pass for free.
+    /// </para>
+    /// </remarks>
+#pragma warning disable DSP4005
+    private sealed record UnclassifiedCommand : ICommand;
+#pragma warning restore DSP4005
 
     [AllowAnonymous("A test double standing in for published reference content.")]
     private sealed record PublicQuery;
 
-    [Authorize]
+    [RequireAuthentication("A test double for the fourteen requests that ask only for a caller.")]
     private sealed record MemberCommand;
 
-    [Authorize(Policy = "testing.widgets.read")]
+    [RequirePolicy("testing.widgets.read")]
     private sealed record PolicyQuery;
 }

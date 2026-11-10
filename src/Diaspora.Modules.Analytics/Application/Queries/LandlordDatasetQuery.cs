@@ -37,7 +37,7 @@ namespace Diaspora.Modules.Analytics.Application.Queries;
 /// community would do the most harm, and this dataset has no dimension to break down by.
 /// </para>
 /// </summary>
-[Authorize(Permission = AnalyticsPermissions.ContentReadOwn)]
+[RequirePermission(AnalyticsPermissions.ContentReadOwn)]
 public sealed record GetLandlordAnalyticsDatasetQuery : IQuery<AnalyticsDatasetResponse>
 {
     public string? Period { get; init; }

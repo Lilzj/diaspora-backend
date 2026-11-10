@@ -8,7 +8,7 @@ namespace Diaspora.Application.Identity.Commands.Profile.UpdateProfile;
 /// after phone verification.
 /// </summary>
 [Auditable(Action = "identity.user.profile-updated")]
-[Authorize(Permission = "identity:profile:update")]
+[RequirePermission("identity:profile:update")]
 public sealed record UpdateProfileCommand : ICommand<UserProfileResponse>
 {
     public required string FullName { get; init; }

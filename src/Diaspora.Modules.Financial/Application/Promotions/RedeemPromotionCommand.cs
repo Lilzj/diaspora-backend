@@ -23,7 +23,7 @@ namespace Diaspora.Modules.Financial.Application.Promotions;
 /// needed by nothing is worse than no attribute.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PromotionsRedeem)]
+[RequirePermission(FinancialPermissions.PromotionsRedeem)]
 [Auditable(Action = "financial.promotion.redeem")]
 public sealed record RedeemPromotionCommand : ICommand<PromotionQuoteResponse>
 {

@@ -19,7 +19,7 @@ namespace Diaspora.Application.Identity.Commands.Administration.AccountActions;
 /// </para>
 /// </summary>
 [Auditable(Action = "identity.account-action.confirmed")]
-[Authorize(Permission = IdentityPermissions.ReadAnyUser)]
+[RequirePermission(IdentityPermissions.ReadAnyUser)]
 public sealed record ConfirmAccountActionCommand : ICommand<AccountActionProposalResponse>
 {
     public required Guid ProposalId { get; init; }
@@ -32,7 +32,7 @@ public sealed record ConfirmAccountActionCommand : ICommand<AccountActionProposa
 /// same people may decline as may confirm, and they must say why.
 /// </summary>
 [Auditable(Action = "identity.account-action.declined")]
-[Authorize(Permission = IdentityPermissions.ReadAnyUser)]
+[RequirePermission(IdentityPermissions.ReadAnyUser)]
 public sealed record DeclineAccountActionCommand : ICommand<AccountActionProposalResponse>
 {
     public required Guid ProposalId { get; init; }
@@ -46,7 +46,7 @@ public sealed record DeclineAccountActionCommand : ICommand<AccountActionProposa
 /// staff then confirms or declines it. Taking it up needs what proposing a suspension needs.
 /// </summary>
 [Auditable(Action = "identity.account-action.adopted")]
-[Authorize(Permission = IdentityPermissions.ReadAnyUser)]
+[RequirePermission(IdentityPermissions.ReadAnyUser)]
 public sealed record AdoptAccountActionCommand : ICommand<AccountActionProposalResponse>
 {
     public required Guid ProposalId { get; init; }
@@ -57,7 +57,7 @@ public sealed record AdoptAccountActionCommand : ICommand<AccountActionProposalR
 
 /// <summary>The proposer takes back an account action nobody has decided yet.</summary>
 [Auditable(Action = "identity.account-action.withdrawn")]
-[Authorize(Permission = IdentityPermissions.ReadAnyUser)]
+[RequirePermission(IdentityPermissions.ReadAnyUser)]
 public sealed record WithdrawAccountActionCommand : ICommand<AccountActionProposalResponse>
 {
     public required Guid ProposalId { get; init; }

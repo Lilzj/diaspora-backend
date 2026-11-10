@@ -10,5 +10,5 @@ namespace Diaspora.Modules.Financial.Application.Operations;
 /// behaviour whether a seam has an adapter behind it.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.WalletRead)]
+[RequirePermission(FinancialPermissions.WalletRead)]
 public sealed record GetFinancialCapabilitiesQuery : IQuery<FinancialCapabilitiesResponse>;

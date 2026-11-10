@@ -5,7 +5,7 @@ using Diaspora.Modules.Location.Contracts.V1.Responses;
 namespace Diaspora.Modules.Location.Application.Profile;
 
 /// <summary>Changes how geography behaves for the caller. Null fields are left alone.</summary>
-[Authorize(Permission = LocationPermissions.ManageProfile)]
+[RequirePermission(LocationPermissions.ManageProfile)]
 public sealed record UpdateGeographicPreferencesCommand : ICommand<LocationProfileResponse>
 {
     public required UpdateGeographicPreferencesRequest Preferences { get; init; }

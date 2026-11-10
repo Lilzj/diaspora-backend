@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Marketplace.Application.Reservations;
 /// the most sensitive thing this module records about anyone.
 /// </para>
 /// </summary>
-[Authorize(Permission = MarketplacePermissions.ReservationManage)]
+[RequirePermission(MarketplacePermissions.ReservationManage)]
 public sealed record ListReservationsQuery : IQuery<CursorPagedResult<ReservationResponse>>
 {
     /// <summary><c>Buying</c> or <c>Selling</c>. Buying when omitted.</summary>

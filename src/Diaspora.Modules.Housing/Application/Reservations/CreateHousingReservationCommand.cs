@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Housing.Application.Reservations;
 /// member takes the same room.
 /// </para>
 /// </summary>
-[Authorize(Permission = HousingPermissions.ReservationCreate)]
+[RequirePermission(HousingPermissions.ReservationCreate)]
 [Transactional(Reason = "Holds units on the listing and writes the reservation atomically.")]
 [Auditable]
 public sealed record CreateHousingReservationCommand : ICommand<HousingReservationResponse>

@@ -18,7 +18,7 @@ namespace Diaspora.Modules.Recommendations.Application.Profiles;
 /// still cannot discard a stated preference.
 /// </para>
 /// </summary>
-[Authorize(Permission = RecommendationPermissions.ProfileManage)]
+[RequirePermission(RecommendationPermissions.ProfileManage)]
 [Transactional(Reason = "A rebuild empties and repopulates the profile; a partial one is worse than none.")]
 [Auditable(Action = "recommendations.profile.rebuild")]
 public sealed record RebuildProfileCommand : ICommand<PersonalizationProfileResponse>;

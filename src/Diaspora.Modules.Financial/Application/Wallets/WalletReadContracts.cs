@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Financial.Application.Wallets;
 /// from a notification, a receipt, a support conversation — had to page until it found it or give up.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.WalletRead)]
+[RequirePermission(FinancialPermissions.WalletRead)]
 public sealed record GetTransactionQuery : IQuery<TransactionDetailResponse>
 {
     public required Guid TransactionId { get; init; }
@@ -26,7 +26,7 @@ public sealed record GetTransactionQuery : IQuery<TransactionDetailResponse>
 /// screen that could not find it.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.GivingRead)]
+[RequirePermission(FinancialPermissions.GivingRead)]
 public sealed record GetReceiptQuery : IQuery<ReceiptResponse>
 {
     public required string ReceiptReference { get; init; }
@@ -39,7 +39,7 @@ public sealed record GetReceiptQuery : IQuery<ReceiptResponse>
 /// there — which works for a light user and is quietly wrong for a heavy one.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.WalletRead)]
+[RequirePermission(FinancialPermissions.WalletRead)]
 public sealed record GetWalletAnalyticsQuery : IQuery<WalletAnalyticsResponse>
 {
     public DateTimeOffset? From { get; init; }

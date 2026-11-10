@@ -20,7 +20,7 @@ namespace Diaspora.Modules.Bookmarks.Application;
 /// and nothing module-specific to Identity.
 /// </para>
 /// </summary>
-[Authorize(Permission = BookmarkPermissions.Manage)]
+[RequirePermission(BookmarkPermissions.Manage)]
 public sealed record CreateBookmarkCommand : ICommand<BookmarkResponse>
 {
     public required string TargetType { get; init; }

@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Marketplace.Application.Conversations;
 /// whatever handles a messaging provider issued — never a message.
 /// </para>
 /// </summary>
-[Authorize(Permission = MarketplacePermissions.OfferRespond)]
+[RequirePermission(MarketplacePermissions.OfferRespond)]
 public sealed record ListConversationsQuery
     : IQuery<CursorPagedResult<ConversationReferenceResponse>>
 {

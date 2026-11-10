@@ -4,7 +4,7 @@ using Diaspora.Modules.CommunityLife.Contracts.V1.Responses;
 namespace Diaspora.Modules.CommunityLife.Application.Catalog;
 
 /// <summary>Adds an event category or restates one. Staff only.</summary>
-[Authorize(Permission = CommunityLifePermissions.ManageCatalogue)]
+[RequirePermission(CommunityLifePermissions.ManageCatalogue)]
 [Auditable]
 public sealed record UpsertEventCategoryCommand : ICommand<EventCategoryResponse>
 {

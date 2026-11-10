@@ -161,7 +161,7 @@ public sealed class GetCommunityInitiativeQueryHandler
 }
 
 /// <summary>Start an initiative. Needs canManageInitiatives.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record CreateCommunityInitiativeCommand : ICommand<CommunityInitiativeResponse>
 {
     public required string IdOrSlug { get; init; }
@@ -265,7 +265,7 @@ public sealed class CreateCommunityInitiativeCommandHandler
 }
 
 /// <summary>Change an initiative. Its organisers, or anybody with canManageInitiatives.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record UpdateCommunityInitiativeCommand : ICommand<CommunityInitiativeResponse>
 {
     public required string IdOrSlug { get; init; }
@@ -403,7 +403,7 @@ public sealed class UpdateCommunityInitiativeCommandHandler
 }
 
 /// <summary>Take part in an initiative. Any current member, while it is Planned or Active.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record JoinCommunityInitiativeCommand : ICommand<CommunityInitiativeResponse>
 {
     public required string IdOrSlug { get; init; }
@@ -499,7 +499,7 @@ public sealed class JoinCommunityInitiativeCommandHandler
 }
 
 /// <summary>Stop taking part. Always allowed; leaving something you are not in changes nothing.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record LeaveCommunityInitiativeCommand : ICommand<CommunityInitiativeResponse>
 {
     public required string IdOrSlug { get; init; }
@@ -726,7 +726,7 @@ public sealed class ListCommunityInitiativeUpdatesQueryHandler
 }
 
 /// <summary>Post a progress update. Its organisers, or anybody with canManageInitiatives.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record PostCommunityInitiativeUpdateCommand : ICommand<CommunityInitiativeUpdateResponse>
 {
     public required string IdOrSlug { get; init; }

@@ -24,7 +24,7 @@ namespace Diaspora.Modules.Financial.Application.Campaigns;
 /// <see cref="IDonationRepository.ListByDonorForCauseAsync"/> gives.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.GivingRead)]
+[RequirePermission(FinancialPermissions.GivingRead)]
 public sealed record GetMyCampaignDonationsQuery : IQuery<IReadOnlyList<CampaignDonationResponse>>
 {
     public required Guid CampaignId { get; init; }

@@ -21,7 +21,7 @@ namespace Diaspora.Modules.Conversations.Application.Blocks;
 /// somebody blocking is trying to end.
 /// </para>
 /// </summary>
-[Authorize(Permission = ConversationPermissions.Participate)]
+[RequirePermission(ConversationPermissions.Participate)]
 [Transactional(Reason = "Writes the block and raises the event the realtime and inbox paths read.")]
 public sealed record BlockUserCommand : ICommand
 {
@@ -113,7 +113,7 @@ public sealed class BlockUserCommandHandler : ICommandHandler<BlockUserCommand>
 
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
-[Authorize(Permission = ConversationPermissions.Participate)]
+[RequirePermission(ConversationPermissions.Participate)]
 [Transactional(Reason = "Removes the block and raises the event that re-enables the conversation.")]
 public sealed record UnblockUserCommand : ICommand
 {

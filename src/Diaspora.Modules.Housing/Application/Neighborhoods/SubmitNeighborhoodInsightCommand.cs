@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Housing.Application.Neighborhoods;
 /// residents write them. Everything they write is moderated before anybody sees it.
 /// </para>
 /// </summary>
-[Authorize(Permission = HousingPermissions.InsightSubmit)]
+[RequirePermission(HousingPermissions.InsightSubmit)]
 [Auditable]
 public sealed record SubmitNeighborhoodInsightCommand : ICommand<NeighborhoodInsightResponse>
 {

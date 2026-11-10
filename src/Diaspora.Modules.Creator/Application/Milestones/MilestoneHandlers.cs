@@ -33,7 +33,7 @@ namespace Diaspora.Modules.Creator.Application.Milestones;
 /// showed what you had begun would not be a catalogue.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 public sealed record GetMyMilestonesQuery : IQuery<IReadOnlyList<CreatorMilestoneResponse>>;
 
 public sealed class GetMyMilestonesQueryHandler
@@ -91,7 +91,7 @@ public sealed class GetMyMilestonesQueryHandler
 /// which is the one neither of the first two can see.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.Participate)]
+[RequirePermission(CreatorPermissions.Participate)]
 [Auditable(Action = "creator.milestone.claim")]
 public sealed record ClaimMilestoneCommand : ICommand<CreatorMilestoneResponse>
 {

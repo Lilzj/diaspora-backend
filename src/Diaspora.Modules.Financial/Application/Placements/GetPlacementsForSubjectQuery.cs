@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Financial.Application.Placements;
 /// for; nothing here resolves the subject, joins to it or checks that it exists.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PurchasesRead)]
+[RequirePermission(FinancialPermissions.PurchasesRead)]
 public sealed record GetPlacementsForSubjectQuery : IQuery<IReadOnlyList<PlacementResponse>>
 {
     public required string SubjectType { get; init; }

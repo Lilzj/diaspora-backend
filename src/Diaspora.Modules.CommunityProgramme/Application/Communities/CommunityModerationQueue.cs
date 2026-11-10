@@ -30,7 +30,7 @@ public sealed record CommunityReportPage(
     IReadOnlyList<CommunityReportResponse> Items, string? NextCursor, bool HasMore);
 
 /// <summary>Reports about a community's content, for its moderators and administrators.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record GetCommunityReportsQuery : IQuery<CommunityReportPage>
 {
     public required string IdOrSlug { get; init; }
@@ -83,7 +83,7 @@ public sealed class GetCommunityReportsQueryHandler
 }
 
 /// <summary>A community moderator deciding a report about the community's content.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 [Transactional]
 public sealed record DecideCommunityReportCommand : ICommand<CommunityReportResponse>
 {

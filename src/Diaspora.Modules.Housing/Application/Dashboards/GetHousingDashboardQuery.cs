@@ -12,5 +12,5 @@ namespace Diaspora.Modules.Housing.Application.Dashboards;
 /// is built from, so the screen and the incentive point the same way.
 /// </para>
 /// </summary>
-[Authorize(Permission = HousingPermissions.ListingEditOwn)]
+[RequirePermission(HousingPermissions.ListingEditOwn)]
 public sealed record GetHousingDashboardQuery : IQuery<HousingDashboardResponse>;

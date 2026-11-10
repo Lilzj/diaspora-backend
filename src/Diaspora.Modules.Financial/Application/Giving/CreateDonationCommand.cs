@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Financial.Application.Giving;
 /// with no payment behind it would sit pending for ever, counted by nothing and chased by nobody.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.GivingCreate)]
+[RequirePermission(FinancialPermissions.GivingCreate)]
 [Transactional(Reason = "A donation writes the donation record and its payment intent together.")]
 [Auditable(Action = "financial.donation.create")]
 public sealed record CreateDonationCommand : ICommand<DonationResponse>

@@ -34,7 +34,7 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Polls;
 /// violation into a 409 rather than a 500 is the idempotency guard.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 [Transactional(Reason =
     "Writes the response, its selections and the poll's response counter as one unit. A vote that "
     + "committed without incrementing the counter would make the poll under-report itself, and a "

@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Marketplace.Application.Listings;
 /// a transaction for a single-aggregate write would be a promise the module does not need to make.
 /// </para>
 /// </summary>
-[Authorize(Permission = MarketplacePermissions.ListingEditOwn)]
+[RequirePermission(MarketplacePermissions.ListingEditOwn)]
 [Auditable]
 public sealed record UpdateListingCommand : ICommand<ListingResponse>
 {

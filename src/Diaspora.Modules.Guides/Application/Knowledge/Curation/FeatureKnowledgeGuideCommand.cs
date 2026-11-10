@@ -18,7 +18,7 @@ namespace Diaspora.Modules.Guides.Application.Knowledge.Curation;
 /// conflict caused by somebody else's curation.
 /// </para>
 /// </summary>
-[Authorize(Permission = KnowledgePermissions.Curate)]
+[RequirePermission(KnowledgePermissions.Curate)]
 [Auditable]
 public sealed record FeatureKnowledgeGuideCommand : ICommand
 {

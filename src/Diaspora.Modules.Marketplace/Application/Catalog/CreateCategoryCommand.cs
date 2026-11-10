@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Marketplace.Application.Catalog;
 /// waiting for a release.
 /// </para>
 /// </summary>
-[Authorize(Permission = MarketplacePermissions.ManageCategories)]
+[RequirePermission(MarketplacePermissions.ManageCategories)]
 [Auditable]
 public sealed record CreateCategoryCommand : ICommand<ListingCategoryResponse>
 {

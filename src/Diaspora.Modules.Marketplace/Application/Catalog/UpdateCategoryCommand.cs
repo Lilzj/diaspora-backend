@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Marketplace.Application.Catalog;
 /// the node. Retiring takes it off the create form and leaves a decade of listings readable.
 /// </para>
 /// </summary>
-[Authorize(Permission = MarketplacePermissions.ManageCategories)]
+[RequirePermission(MarketplacePermissions.ManageCategories)]
 [Auditable]
 public sealed record UpdateCategoryCommand : ICommand<ListingCategoryResponse>
 {

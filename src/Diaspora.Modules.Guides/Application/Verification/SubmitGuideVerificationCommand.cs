@@ -18,7 +18,7 @@ namespace Diaspora.Modules.Guides.Application.Verification;
 /// make members earn.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.SubmitVerification)]
+[RequirePermission(GuidePermissions.SubmitVerification)]
 [Auditable]
 public sealed record SubmitGuideVerificationCommand : ICommand<GuideVerificationStatusResponse>
 {

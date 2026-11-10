@@ -16,7 +16,7 @@ namespace Diaspora.Modules.Location.Application.Towns;
 /// so a word inside a foreign town's name never stands for a town the member did not mean.
 /// </para>
 /// </summary>
-[Authorize(Permission = LocationPermissions.Search)]
+[RequirePermission(LocationPermissions.Search)]
 public sealed record MatchTownQuery : IQuery<TownMatchResponse>
 {
     public required string Text { get; init; }

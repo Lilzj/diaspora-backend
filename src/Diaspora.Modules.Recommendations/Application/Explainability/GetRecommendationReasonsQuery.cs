@@ -12,6 +12,6 @@ namespace Diaspora.Modules.Recommendations.Application.Explainability;
 /// next app update reached the member — which in the countries this product serves can be months.
 /// </para>
 /// </summary>
-[Authorize(Permission = RecommendationPermissions.FeedRead)]
+[RequirePermission(RecommendationPermissions.FeedRead)]
 public sealed record GetRecommendationReasonsQuery
     : IQuery<IReadOnlyList<RecommendationReasonCatalogResponse>>;

@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Notifications.Application.Templates;
 /// a typo reaching two hundred thousand people because somebody saved.
 /// </para>
 /// </summary>
-[Authorize(Permission = NotificationPermissions.TemplatesManage)]
+[RequirePermission(NotificationPermissions.TemplatesManage)]
 [Transactional(Reason = "Edits or versions the template and its collections together.")]
 [Auditable]
 public sealed record UpdateNotificationTemplateCommand : ICommand<NotificationTemplateResponse>

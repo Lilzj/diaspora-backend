@@ -5,7 +5,7 @@ using Diaspora.Modules.Housing.Contracts.V1.Responses;
 namespace Diaspora.Modules.Housing.Application.Landlords;
 
 /// <summary>Revises the caller landlord profile.</summary>
-[Authorize(Permission = HousingPermissions.LandlordManage)]
+[RequirePermission(HousingPermissions.LandlordManage)]
 [Auditable]
 public sealed record UpdateLandlordCommand : ICommand<LandlordProfileResponse>
 {

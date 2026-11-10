@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Notifications.Application.Inbox;
 /// search" is this query with <c>search</c> set.
 /// </para>
 /// </summary>
-[Authorize(Permission = NotificationPermissions.InboxRead)]
+[RequirePermission(NotificationPermissions.InboxRead)]
 public sealed record GetInboxQuery : IQuery<NotificationPageResponse>
 {
     /// <summary><c>inbox</c>, <c>archived</c>, <c>starred</c>, <c>pinned</c> or <c>all</c>.</summary>

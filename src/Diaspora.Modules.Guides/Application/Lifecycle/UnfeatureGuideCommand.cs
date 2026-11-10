@@ -7,7 +7,7 @@ namespace Diaspora.Modules.Guides.Application.Lifecycle;
 /// Withdraws editorial placement. Idempotent — un-featuring what is not featured succeeds,
 /// because the caller's intent is already the world's state.
 /// </summary>
-[Authorize(Permission = GuidePermissions.Feature)]
+[RequirePermission(GuidePermissions.Feature)]
 [Auditable]
 public sealed record UnfeatureGuideCommand : ICommand<GuideResponse>
 {

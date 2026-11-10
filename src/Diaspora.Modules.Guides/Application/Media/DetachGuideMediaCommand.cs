@@ -15,7 +15,7 @@ namespace Diaspora.Modules.Guides.Application.Media;
 /// at a photograph has said nothing about whether anything else still does.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.EditOwn)]
+[RequirePermission(GuidePermissions.EditOwn)]
 [Auditable]
 public sealed record DetachGuideMediaCommand : ICommand<GuideResponse>
 {

@@ -24,7 +24,7 @@ namespace Diaspora.Modules.Housing.Application.Reviews;
 /// either rates it or changes the rating they gave.
 /// </para>
 /// </summary>
-[Authorize(Permission = HousingPermissions.ReviewWrite)]
+[RequirePermission(HousingPermissions.ReviewWrite)]
 [Transactional]
 public sealed record WriteLandlordReviewCommand : ICommand<LandlordReviewResponse>
 {

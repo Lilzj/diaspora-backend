@@ -17,7 +17,7 @@ namespace Diaspora.Modules.Conversations.Application.Queries;
 // Inbox
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
-[Authorize(Permission = ConversationPermissions.Read)]
+[RequirePermission(ConversationPermissions.Read)]
 public sealed record ListConversationsQuery : IQuery<ConversationPageResponse>
 {
     /// <summary>One of the client's thirteen chips. Translated to catalogue keys at the edge.</summary>
@@ -164,7 +164,7 @@ public sealed class ListConversationsQueryHandler
 /// would be a round trip on the platform's most-opened screen.
 /// </para>
 /// </summary>
-[Authorize(Permission = ConversationPermissions.Read)]
+[RequirePermission(ConversationPermissions.Read)]
 public sealed record GetConversationQuery : IQuery<ConversationDetailResponse>
 {
     public required Guid ConversationId { get; init; }
@@ -243,7 +243,7 @@ public sealed class GetConversationQueryHandler
 // History
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
-[Authorize(Permission = ConversationPermissions.Read)]
+[RequirePermission(ConversationPermissions.Read)]
 public sealed record ListMessagesQuery : IQuery<MessagePageResponse>
 {
     public required Guid ConversationId { get; init; }
@@ -312,7 +312,7 @@ public sealed class ListMessagesQueryHandler
 // Requests, blocks, media, search, catalogue, badge
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
-[Authorize(Permission = ConversationPermissions.Read)]
+[RequirePermission(ConversationPermissions.Read)]
 public sealed record ListConversationRequestsQuery
     : IQuery<IReadOnlyList<ConversationRequestResponse>>;
 
@@ -383,7 +383,7 @@ public sealed class ListConversationRequestsQueryHandler
 
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
-[Authorize(Permission = ConversationPermissions.Read)]
+[RequirePermission(ConversationPermissions.Read)]
 public sealed record ListBlockedUsersQuery : IQuery<IReadOnlyList<BlockedUserResponse>>;
 
 public sealed class ListBlockedUsersQueryHandler
@@ -424,7 +424,7 @@ public sealed class ListBlockedUsersQueryHandler
 
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
-[Authorize(Permission = ConversationPermissions.Read)]
+[RequirePermission(ConversationPermissions.Read)]
 public sealed record GetConversationMediaQuery : IQuery<ConversationMediaResponse>
 {
     public required Guid ConversationId { get; init; }
@@ -483,7 +483,7 @@ public sealed class GetConversationMediaQueryHandler
 
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
-[Authorize(Permission = ConversationPermissions.Read)]
+[RequirePermission(ConversationPermissions.Read)]
 public sealed record SearchConversationsQuery : IQuery<ConversationSearchResponse>
 {
     public required string Query { get; init; }
@@ -569,7 +569,7 @@ public sealed class SearchConversationsQueryHandler
 
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
-[Authorize(Permission = ConversationPermissions.Read)]
+[RequirePermission(ConversationPermissions.Read)]
 public sealed record ListConversationContextTypesQuery
     : IQuery<IReadOnlyList<ConversationContextTypeResponse>>;
 
@@ -604,7 +604,7 @@ public sealed class ListConversationContextTypesQueryHandler
 
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
-[Authorize(Permission = ConversationPermissions.Read)]
+[RequirePermission(ConversationPermissions.Read)]
 public sealed record GetConversationUnreadCountQuery : IQuery<ConversationUnreadCountResponse>;
 
 public sealed class GetConversationUnreadCountQueryHandler

@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Notifications.Application.Inbox;
 /// the opposite of honouring that.
 /// </para>
 /// </summary>
-[Authorize(Permission = NotificationPermissions.InboxManage)]
+[RequirePermission(NotificationPermissions.InboxManage)]
 [Transactional(Reason = "Removes the notification and settles the member's counters together.")]
 [Auditable]
 public sealed record DeleteNotificationCommand : ICommand

@@ -27,7 +27,7 @@ namespace Diaspora.Modules.Trust.Application.Verifications;
 /// leave a member with a timeline entry for a verification that does not exist.
 /// </para>
 /// </summary>
-[Authorize(Permission = TrustPermissions.SubmitVerification)]
+[RequirePermission(TrustPermissions.SubmitVerification)]
 [Transactional]
 public sealed record SubmitVerificationCommand : ICommand<VerificationResponse>
 {

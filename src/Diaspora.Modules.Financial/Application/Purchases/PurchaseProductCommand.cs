@@ -18,7 +18,7 @@ namespace Diaspora.Modules.Financial.Application.Purchases;
 /// otherwise a member is charged for a boost that was never created, or gets one they never paid for.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PurchasesCreate)]
+[RequirePermission(FinancialPermissions.PurchasesCreate)]
 [Transactional(Reason =
     "A purchase writes the purchase, a promotion redemption, a placement and a payment intent.")]
 [Auditable(Action = "financial.purchase.create")]

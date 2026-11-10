@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Jobs.Application.Interviews;
 /// with an appointment and a status that says nobody has looked at them.
 /// </para>
 /// </summary>
-[Authorize(Permission = JobPermissions.InterviewsSchedule)]
+[RequirePermission(JobPermissions.InterviewsSchedule)]
 [Auditable]
 [Transactional(Reason = "Writes the interview and moves the application it belongs to.")]
 public sealed record ScheduleInterviewCommand : ICommand<InterviewResponse>

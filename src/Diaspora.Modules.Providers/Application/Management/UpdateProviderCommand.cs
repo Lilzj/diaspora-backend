@@ -7,7 +7,7 @@ namespace Diaspora.Modules.Providers.Application.Management;
 /// <summary>Edits a provider's identity and classification.</summary>
 [Transactional]
 [Auditable]
-[Authorize(Policy = ProviderPolicies.Manage)]
+[RequirePolicy(ProviderPolicies.Manage)]
 public sealed record UpdateProviderCommand : ICommand<ProviderResponse>
 {
     public required Guid ProviderId { get; init; }

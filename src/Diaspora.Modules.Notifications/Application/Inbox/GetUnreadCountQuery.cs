@@ -11,5 +11,5 @@ namespace Diaspora.Modules.Notifications.Application.Inbox;
 /// history.
 /// </para>
 /// </summary>
-[Authorize(Permission = NotificationPermissions.InboxRead)]
+[RequirePermission(NotificationPermissions.InboxRead)]
 public sealed record GetUnreadCountQuery : IQuery<UnreadCountResponse>;

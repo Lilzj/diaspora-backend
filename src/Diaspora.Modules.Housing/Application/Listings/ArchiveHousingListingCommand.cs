@@ -4,7 +4,7 @@ using Diaspora.Modules.Housing.Contracts.V1.Requests;
 namespace Diaspora.Modules.Housing.Application.Listings;
 
 /// <summary>Takes a property off the market, temporarily or for good.</summary>
-[Authorize(Permission = HousingPermissions.ListingArchive)]
+[RequirePermission(HousingPermissions.ListingArchive)]
 [Auditable]
 public sealed record ArchiveHousingListingCommand : ICommand
 {

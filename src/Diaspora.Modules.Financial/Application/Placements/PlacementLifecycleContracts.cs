@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Financial.Application.Placements;
 /// notification.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PurchasesRead)]
+[RequirePermission(FinancialPermissions.PurchasesRead)]
 public sealed record GetPlacementQuery : IQuery<PlacementResponse>
 {
     public required Guid PlacementId { get; init; }
@@ -25,7 +25,7 @@ public sealed record GetPlacementQuery : IQuery<PlacementResponse>
 /// exists, which is what the word has always meant.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PurchasesCreate)]
+[RequirePermission(FinancialPermissions.PurchasesCreate)]
 [Transactional(Reason = "The purchase, the payment and the extended window land together.")]
 [Auditable(Action = "financial.placement.renew")]
 public sealed record RenewPlacementCommand : ICommand<MonetizationPurchaseResponse>
@@ -49,7 +49,7 @@ public sealed record RenewPlacementCommand : ICommand<MonetizationPurchaseRespon
 /// presenting that as a pause would misdescribe what the member's money just did.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PurchasesCreate)]
+[RequirePermission(FinancialPermissions.PurchasesCreate)]
 [Auditable(Action = "financial.placement.pause")]
 public sealed record PausePlacementCommand : ICommand<PlacementResponse>
 {
@@ -57,7 +57,7 @@ public sealed record PausePlacementCommand : ICommand<PlacementResponse>
 }
 
 /// <summary>Starts delivery again and extends the window by exactly the paused duration.</summary>
-[Authorize(Permission = FinancialPermissions.PurchasesCreate)]
+[RequirePermission(FinancialPermissions.PurchasesCreate)]
 [Auditable(Action = "financial.placement.resume")]
 public sealed record ResumePlacementCommand : ICommand<PlacementResponse>
 {
@@ -65,7 +65,7 @@ public sealed record ResumePlacementCommand : ICommand<PlacementResponse>
 }
 
 /// <summary>Records whether a placement should renew itself when its window closes.</summary>
-[Authorize(Permission = FinancialPermissions.PurchasesCreate)]
+[RequirePermission(FinancialPermissions.PurchasesCreate)]
 [Auditable(Action = "financial.placement.auto_renew")]
 public sealed record SetPlacementAutoRenewCommand : ICommand<PlacementResponse>
 {

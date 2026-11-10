@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Housing.Application.Listings;
 /// and its photographs looked at before anybody is shown it again.
 /// </para>
 /// </summary>
-[Authorize(Permission = HousingPermissions.ListingRestore)]
+[RequirePermission(HousingPermissions.ListingRestore)]
 [Auditable]
 public sealed record RestoreHousingListingCommand : ICommand<HousingListingResponse>
 {

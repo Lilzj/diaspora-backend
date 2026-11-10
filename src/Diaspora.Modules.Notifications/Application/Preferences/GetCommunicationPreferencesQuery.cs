@@ -11,5 +11,5 @@ namespace Diaspora.Modules.Notifications.Application.Preferences;
 /// drift — what is separate is the surface, not the state.
 /// </para>
 /// </summary>
-[Authorize(Permission = NotificationPermissions.PreferencesRead)]
+[RequirePermission(NotificationPermissions.PreferencesRead)]
 public sealed record GetCommunicationPreferencesQuery : IQuery<CommunicationPreferencesResponse>;

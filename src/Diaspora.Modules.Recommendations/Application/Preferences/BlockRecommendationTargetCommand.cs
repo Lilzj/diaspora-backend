@@ -17,7 +17,7 @@ namespace Diaspora.Modules.Recommendations.Application.Preferences;
 /// control.
 /// </para>
 /// </summary>
-[Authorize(Permission = RecommendationPermissions.PreferencesManage)]
+[RequirePermission(RecommendationPermissions.PreferencesManage)]
 [Transactional(Reason = "The block and the preference record commit together.")]
 [Auditable(Action = "recommendations.preferences.block")]
 public sealed record BlockRecommendationTargetCommand : ICommand<PersonalizationPreferencesResponse>

@@ -24,7 +24,7 @@ namespace Diaspora.Modules.Analytics.Application.Queries;
 /// approximated.
 /// </para>
 /// </summary>
-[Authorize(Permission = AnalyticsPermissions.CreatorRead)]
+[RequirePermission(AnalyticsPermissions.CreatorRead)]
 public sealed record GetCampaignAnalyticsDatasetQuery : IQuery<AnalyticsDatasetResponse>
 {
     public required string CampaignId { get; init; }

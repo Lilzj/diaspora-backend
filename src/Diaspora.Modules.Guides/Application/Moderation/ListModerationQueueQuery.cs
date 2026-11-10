@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Guides.Application.Moderation;
 /// content they are deciding about would be deciding about a title.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.Moderate)]
+[RequirePermission(GuidePermissions.Moderate)]
 public sealed record ListModerationQueueQuery
     : IQuery<CursorPagedResult<GuideModerationQueueItemResponse>>
 {

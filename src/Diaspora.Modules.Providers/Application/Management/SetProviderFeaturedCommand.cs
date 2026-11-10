@@ -16,7 +16,7 @@ namespace Diaspora.Modules.Providers.Application.Management;
 /// </summary>
 [Transactional]
 [Auditable]
-[Authorize(Policy = ProviderPolicies.Administer)]
+[RequirePolicy(ProviderPolicies.Administer)]
 public sealed record SetProviderFeaturedCommand : ICommand<ProviderResponse>
 {
     public required Guid ProviderId { get; init; }

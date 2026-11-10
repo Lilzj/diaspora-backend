@@ -18,7 +18,7 @@ namespace Diaspora.Application.Identity.Commands.Administration.RevokeMemberSess
 /// </para>
 /// </summary>
 [Auditable(Action = "identity.user.sessions-revoked")]
-[Authorize(Permission = IdentityPermissions.RevokeAnySession)]
+[RequirePermission(IdentityPermissions.RevokeAnySession)]
 public sealed record RevokeMemberSessionsCommand : ICommand<OperationAcknowledgedResponse>
 {
     public required Guid UserId { get; init; }

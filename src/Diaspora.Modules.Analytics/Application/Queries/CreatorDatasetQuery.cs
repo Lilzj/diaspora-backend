@@ -20,7 +20,7 @@ namespace Diaspora.Modules.Analytics.Application.Queries;
 /// name another creator cannot leak one.
 /// </para>
 /// </summary>
-[Authorize(Permission = AnalyticsPermissions.CreatorRead)]
+[RequirePermission(AnalyticsPermissions.CreatorRead)]
 public sealed record GetCreatorAnalyticsDatasetQuery : IQuery<AnalyticsDatasetResponse>
 {
     public string? Period { get; init; }

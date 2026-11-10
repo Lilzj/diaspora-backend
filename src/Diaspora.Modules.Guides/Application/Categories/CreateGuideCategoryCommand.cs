@@ -18,7 +18,7 @@ namespace Diaspora.Modules.Guides.Application.Categories;
 /// preference.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.ManageCategories)]
+[RequirePermission(GuidePermissions.ManageCategories)]
 [Auditable]
 public sealed record CreateGuideCategoryCommand : ICommand<GuideCategoryResponse>
 {

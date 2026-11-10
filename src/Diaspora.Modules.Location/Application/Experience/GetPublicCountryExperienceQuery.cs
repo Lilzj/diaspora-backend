@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Location.Application.Experience;
 /// something to display beside their name.
 /// </para>
 /// </summary>
-[Authorize(Permission = LocationPermissions.ReadPublic)]
+[RequirePermission(LocationPermissions.ReadPublic)]
 public sealed record GetPublicCountryExperienceQuery : IQuery<CountryExperienceTimelineResponse>
 {
     public required Guid UserId { get; init; }

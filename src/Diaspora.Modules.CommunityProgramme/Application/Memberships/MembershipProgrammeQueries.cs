@@ -37,7 +37,7 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Memberships;
 /// distinction the client renders as three different screens and which only the server can make.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record GetMembershipProgrammeQuery : IQuery<MembershipProgrammeResponse>
 {
     public required Guid OrganizationId { get; init; }
@@ -164,7 +164,7 @@ public sealed class GetMembershipProgrammeQueryHandler
 }
 
 /// <summary>An organization's tiers on their own, for a screen that only needs the prices.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record ListMembershipTiersQuery : IQuery<IReadOnlyList<MembershipTierResponse>>
 {
     public required Guid OrganizationId { get; init; }
@@ -232,7 +232,7 @@ public sealed class ListMembershipTiersQueryHandler
 /// the result — which is the part B12 cannot do because it does not know what a tier is.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record DiscoverMembershipsQuery
     : IQuery<CommunityPageResponse<MembershipProgrammeResponse>>
 {

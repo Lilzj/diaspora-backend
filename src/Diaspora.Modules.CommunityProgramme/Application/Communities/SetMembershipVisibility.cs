@@ -23,7 +23,7 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Communities;
 /// religion or health.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record SetMembershipVisibilityCommand : ICommand<CommunityMembershipResponse>
 {
     public required string IdOrSlug { get; init; }

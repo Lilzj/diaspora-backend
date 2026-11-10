@@ -12,5 +12,5 @@ namespace Diaspora.Modules.Media.Application.Capabilities;
 /// member upload four hundred megabytes before finding out.
 /// </para>
 /// </summary>
-[Authorize(Policy = MediaPolicies.Read)]
+[RequirePolicy(MediaPolicies.Read)]
 public sealed record GetMediaCapabilitiesQuery : IQuery<MediaCapabilitiesResponse>;

@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Jobs.Application.Candidates;
 /// and can fail validation on an unrelated field.
 /// </para>
 /// </summary>
-[Authorize(Permission = JobPermissions.CandidateManage)]
+[RequirePermission(JobPermissions.CandidateManage)]
 [Auditable]
 public sealed record ChangeCandidateVisibilityCommand : ICommand
 {

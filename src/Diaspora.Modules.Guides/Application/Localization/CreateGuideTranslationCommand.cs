@@ -20,7 +20,7 @@ namespace Diaspora.Modules.Guides.Application.Localization;
 /// finds empty.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.Create)]
+[RequirePermission(GuidePermissions.Create)]
 [Transactional(Reason = "The translation draft, its group link and its seeded structure must commit together.")]
 [Auditable]
 public sealed record CreateGuideTranslationCommand : ICommand<GuideResponse>

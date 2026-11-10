@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Recommendations.Application.Profiles;
 /// one with a flag.
 /// </para>
 /// </summary>
-[Authorize(Permission = RecommendationPermissions.ProfileManage)]
+[RequirePermission(RecommendationPermissions.ProfileManage)]
 [Transactional(Reason = "The fold, the processed stamps and the profile commit together.")]
 [Auditable(Action = "recommendations.profile.refresh")]
 public sealed record RefreshProfileCommand : ICommand<PersonalizationProfileResponse>;

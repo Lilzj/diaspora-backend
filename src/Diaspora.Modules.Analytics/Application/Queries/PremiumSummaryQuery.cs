@@ -27,7 +27,7 @@ namespace Diaspora.Modules.Analytics.Application.Queries;
 /// and are listed in <c>unavailable</c> rather than drawn.
 /// </para>
 /// </summary>
-[Authorize(Permission = AnalyticsPermissions.CreatorRead)]
+[RequirePermission(AnalyticsPermissions.CreatorRead)]
 public sealed record GetPremiumAnalyticsSummaryQuery : IQuery<PremiumAnalyticsSummaryResponse>
 {
     public string? Period { get; init; }

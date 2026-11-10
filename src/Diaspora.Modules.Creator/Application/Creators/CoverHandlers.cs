@@ -27,7 +27,7 @@ namespace Diaspora.Modules.Creator.Application.Creators;
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary><c>PUT /creators/me/cover</c>.</summary>
-[Authorize(Permission = CreatorPermissions.ProfileManage)]
+[RequirePermission(CreatorPermissions.ProfileManage)]
 [Auditable(Action = "creator.profile.cover.set")]
 public sealed record SetCreatorCoverCommand : ICommand<CreatorProfileResponse>
 {
@@ -35,7 +35,7 @@ public sealed record SetCreatorCoverCommand : ICommand<CreatorProfileResponse>
 }
 
 /// <summary><c>DELETE /creators/me/cover</c>.</summary>
-[Authorize(Permission = CreatorPermissions.ProfileManage)]
+[RequirePermission(CreatorPermissions.ProfileManage)]
 [Auditable(Action = "creator.profile.cover.remove")]
 public sealed record RemoveCreatorCoverCommand : ICommand<CreatorProfileResponse>;
 

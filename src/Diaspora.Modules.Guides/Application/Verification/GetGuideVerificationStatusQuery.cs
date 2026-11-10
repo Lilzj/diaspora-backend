@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Guides.Application.Verification;
 /// defamation risk dressed as transparency.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.SubmitVerification)]
+[RequirePermission(GuidePermissions.SubmitVerification)]
 public sealed record GetGuideVerificationStatusQuery : IQuery<GuideVerificationStatusResponse>
 {
     public required Guid GuideId { get; init; }

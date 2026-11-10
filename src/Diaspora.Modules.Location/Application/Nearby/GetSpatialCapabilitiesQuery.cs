@@ -11,5 +11,5 @@ namespace Diaspora.Modules.Location.Application.Nearby;
 /// has no answer short of reading startup logs.
 /// </para>
 /// </summary>
-[Authorize(Permission = LocationPermissions.ReadCatalog)]
+[RequirePermission(LocationPermissions.ReadCatalog)]
 public sealed record GetSpatialCapabilitiesQuery : IQuery<SpatialCapabilitiesResponse>;

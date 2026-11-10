@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Recommendations.Application.Feedback;
 /// slightly different ideas about what counts as a duplicate. The kind is a value, not a route.
 /// </para>
 /// </summary>
-[Authorize(Permission = RecommendationPermissions.FeedbackRecord)]
+[RequirePermission(RecommendationPermissions.FeedbackRecord)]
 [Transactional(Reason = "The feedback record, the suppression and the signal commit together.")]
 [Auditable(Action = "recommendations.feedback.record")]
 public sealed record RecordFeedbackCommand : ICommand<FeedbackRecordedResponse>

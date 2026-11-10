@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Media.Application.Uploads;
 /// </para>
 /// </summary>
 [Auditable]
-[Authorize(Policy = MediaPolicies.UploadImage)]
+[RequirePolicy(MediaPolicies.UploadImage)]
 public sealed record SetUploadStateCommand : ICommand<UploadSessionResponse>
 {
     public required Guid SessionId { get; init; }

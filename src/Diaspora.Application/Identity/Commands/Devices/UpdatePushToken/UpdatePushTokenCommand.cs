@@ -6,7 +6,7 @@ namespace Diaspora.Application.Identity.Commands.Devices.UpdatePushToken;
 /// <summary>
 /// Replaces a device's push registration token. Send null to clear it.
 /// </summary>
-[Authorize(Permission = "identity:devices:manage")]
+[RequirePermission("identity:devices:manage")]
 public sealed record UpdatePushTokenCommand : ICommand<DeviceResponse>
 {
     public required Guid DeviceId { get; init; }

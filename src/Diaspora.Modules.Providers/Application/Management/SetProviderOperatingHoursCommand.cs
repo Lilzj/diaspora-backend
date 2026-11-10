@@ -7,7 +7,7 @@ namespace Diaspora.Modules.Providers.Application.Management;
 /// <summary>Replaces a provider's opening hours for the days named in the request.</summary>
 [Transactional]
 [Auditable]
-[Authorize(Policy = ProviderPolicies.ManageAvailability)]
+[RequirePolicy(ProviderPolicies.ManageAvailability)]
 public sealed record SetProviderOperatingHoursCommand : ICommand<ProviderResponse>
 {
     public required Guid ProviderId { get; init; }

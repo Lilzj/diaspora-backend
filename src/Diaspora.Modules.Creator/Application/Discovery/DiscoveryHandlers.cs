@@ -91,7 +91,7 @@ public static class LeaderboardDefinitions
 /// parameter is what makes it answerable.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 public sealed record GetCreatorLeaderboardQuery : IQuery<CreatorLeaderboardResponse>
 {
     public string? Scope { get; init; }
@@ -298,7 +298,7 @@ public sealed class GetCreatorLeaderboardQueryHandler
 /// computed under the same predicate, so a private creator does not appear in a count either.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 public sealed record SearchCreatorsQuery : IQuery<CreatorDirectoryResponse>
 {
     public string? Query { get; init; }

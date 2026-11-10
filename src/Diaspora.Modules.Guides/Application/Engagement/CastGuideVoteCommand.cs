@@ -19,7 +19,7 @@ namespace Diaspora.Modules.Guides.Application.Engagement;
 /// reports and everybody notices.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.Vote)]
+[RequirePermission(GuidePermissions.Vote)]
 [Transactional(Reason = "The vote row, the guide's rollup and the analytics row must commit together.")]
 [Auditable]
 public sealed record CastGuideVoteCommand : ICommand<GuideEngagementResponse>

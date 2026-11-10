@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Marketplace.Application.Listings;
 /// A PUT that could do it by accident is one that eventually does.
 /// </para>
 /// </summary>
-[Authorize(Permission = MarketplacePermissions.ListingPublish)]
+[RequirePermission(MarketplacePermissions.ListingPublish)]
 [Auditable]
 [Diaspora.Application.Behaviors.PostsInArea(Diaspora.Contracts.Moderation.V1.ModerationAreas.Marketplace)]
 public sealed record PublishListingCommand : ICommand<ListingResponse>

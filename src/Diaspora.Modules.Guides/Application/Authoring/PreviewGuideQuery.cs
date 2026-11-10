@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Guides.Application.Authoring;
 /// public endpoint that switches a draft on is a permission check waiting to be forgotten.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.ViewDrafts)]
+[RequirePermission(GuidePermissions.ViewDrafts)]
 public sealed record PreviewGuideQuery : IQuery<GuideResponse>
 {
     public required Guid GuideId { get; init; }

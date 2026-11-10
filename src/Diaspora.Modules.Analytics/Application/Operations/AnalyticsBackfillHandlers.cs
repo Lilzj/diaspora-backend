@@ -31,7 +31,7 @@ namespace Diaspora.Modules.Analytics.Application.Operations;
 /// a restart.
 /// </para>
 /// </summary>
-[Authorize(Permission = AnalyticsPermissions.OperationsRun)]
+[RequirePermission(AnalyticsPermissions.OperationsRun)]
 [Auditable(Action = "analytics.backfill.request")]
 public sealed record StartAnalyticsBackfillCommand : ICommand<AnalyticsBackfillResponse>
 {
@@ -132,7 +132,7 @@ public sealed class StartAnalyticsBackfillCommandHandler
 }
 
 /// <summary>Reads a backfill run, so an operator can watch it without reading logs.</summary>
-[Authorize(Permission = AnalyticsPermissions.OperationsRun)]
+[RequirePermission(AnalyticsPermissions.OperationsRun)]
 public sealed record GetAnalyticsBackfillQuery : IQuery<AnalyticsBackfillResponse>
 {
     public required Guid RunId { get; init; }

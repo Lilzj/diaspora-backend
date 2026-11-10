@@ -5,7 +5,7 @@ using Diaspora.Modules.Housing.Contracts.V1.Responses;
 namespace Diaspora.Modules.Housing.Application.Neighborhoods;
 
 /// <summary>A moderator approving, rejecting or retiring an insight.</summary>
-[Authorize(Permission = HousingPermissions.InsightModerate)]
+[RequirePermission(HousingPermissions.InsightModerate)]
 [Auditable]
 public sealed record DecideNeighborhoodInsightCommand : ICommand<NeighborhoodInsightResponse>
 {

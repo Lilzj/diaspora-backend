@@ -32,7 +32,7 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Volunteering;
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>The volunteer opportunity list. Anonymous, and drafts are absent from it.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record ListOpportunitiesQuery
     : IQuery<CommunityPageResponse<VolunteerOpportunityResponse>>
 {
@@ -159,7 +159,7 @@ public sealed class ListOpportunitiesQueryHandler
 }
 
 /// <summary>One opportunity, with the caller's own standing and the server's decision.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record GetOpportunityQuery : IQuery<VolunteerOpportunityResponse>
 {
     public required Guid OpportunityId { get; init; }
@@ -227,7 +227,7 @@ public sealed class GetOpportunityQueryHandler
 }
 
 /// <summary>The shifts on an opportunity, for a screen that only draws the rota.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record ListShiftsQuery : IQuery<IReadOnlyList<VolunteerShiftResponse>>
 {
     public required Guid OpportunityId { get; init; }
@@ -279,7 +279,7 @@ public sealed class ListShiftsQueryHandler
 }
 
 /// <summary>Creates a volunteer opportunity.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.ManageVolunteers)]
+[RequirePermission(CommunityProgrammePermissions.ManageVolunteers)]
 [Transactional(Reason =
     "Writes the opportunity, its shifts and its required skills as one unit. An opportunity that "
     + "committed without its shifts would be a rota with no slots, and a volunteer applying to it "
@@ -505,7 +505,7 @@ public sealed class CreateOpportunityCommandHandler
 }
 
 /// <summary>Rewrites a volunteer opportunity.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.ManageVolunteers)]
+[RequirePermission(CommunityProgrammePermissions.ManageVolunteers)]
 [Transactional(Reason =
     "Rewrites the opportunity, its shifts and its skills as one unit, for the same reason creating "
     + "it is one unit.")]
@@ -627,7 +627,7 @@ public sealed class UpdateOpportunityCommandHandler
 }
 
 /// <summary>Publishes, closes or cancels an opportunity.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.ManageVolunteers)]
+[RequirePermission(CommunityProgrammePermissions.ManageVolunteers)]
 public sealed record ActOnOpportunityCommand : ICommand<VolunteerOpportunityResponse>
 {
     public required Guid OpportunityId { get; init; }

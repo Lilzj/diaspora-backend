@@ -11,7 +11,7 @@ namespace Diaspora.Application.Identity.Commands.Profile.ChangeAvatar;
 /// </para>
 /// </summary>
 [Auditable(Action = "identity.user.avatar-changed")]
-[Authorize(Permission = "identity:profile:update")]
+[RequirePermission("identity:profile:update")]
 public sealed record ChangeAvatarCommand : ICommand<AvatarChange>
 {
     /// <summary>The new photo's Media asset; null removes the photo.</summary>
