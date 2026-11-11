@@ -36,8 +36,13 @@
   <ItemGroup>
     <!--
       Release tracking. RS2008 refuses a diagnostic id that is not recorded here, which is
-      exactly the discipline this pack needs: the catalogue in docs/platform is generated from
-      the same two files, so a rule cannot ship undocumented.
+      exactly the discipline this pack needs.
+
+      This comment used to add "the catalogue is generated from the same two files, so a rule
+      cannot ship undocumented". It is not generated, it is written by hand, and DSP4005 shipped
+      with no entry in it at all. AnalyzerCatalog.md now sits beside these two and is committed
+      with them, and the test that reads it (AnalyzerCatalogTests) runs in CI, which is what
+      makes the sentence true rather than hopeful. Corrected 11 November 2026.
     -->
     <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
     <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />

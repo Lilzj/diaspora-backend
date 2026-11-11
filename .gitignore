@@ -105,6 +105,22 @@ docs/
 # and has not been given one here.
 !src/Diaspora.Analyzers/AnalyzerReleases.Shipped.md
 !src/Diaspora.Analyzers/AnalyzerReleases.Unshipped.md
+
+# -- ...and a third, which is a test input ------------------------------------
+#
+# AnalyzerCatalog.md lived in docs/platform until 11 Nov 2026, where
+# AnalyzerCatalogTests read it. That test therefore passed on every working
+# tree and threw DirectoryNotFoundException on a clean checkout -- it had
+# never run, because the analyzer suite was not in CI either. The first CI
+# run of that suite is what found it.
+#
+# It could not be rescued where it stood: docs/ is excluded as a DIRECTORY and
+# git cannot re-include a file inside one. Moving it beside the two files
+# above puts it back under the extension rule, which is re-includable.
+#
+# The rule is the one the note above states: a guardrail's input must be in
+# the repository, or the guardrail is a comment.
+!src/Diaspora.Analyzers/AnalyzerCatalog.md
 .neon
 .env.local
 node_modules/

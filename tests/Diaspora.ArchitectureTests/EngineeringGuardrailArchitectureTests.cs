@@ -64,8 +64,15 @@ public sealed class EngineeringGuardrailArchitectureTests
     /// Every rule the pack can report is recorded in the release-tracking file the compiler reads
     /// and in the catalogue a human reads. <c>RS2008</c> already fails the build on the first;
     /// nothing but this fails it on the second.
+    /// <para>
+    /// <b>No longer a <c>[DocumentationFact]</c> (11 November 2026).</b> It was gated on
+    /// <c>docs/platform</c> existing, so it skipped on every clean checkout and in CI: the rule
+    /// that catches an undocumented rule was run only by whoever already had the documentation,
+    /// and DSP4005 duly shipped with no entry. Both files it reads are committed now, so it runs
+    /// everywhere and the gate would be a lie.
+    /// </para>
     /// </summary>
-    [DocumentationFact]
+    [Fact]
     public void Every_analyzer_diagnostic_is_catalogued()
     {
         var ids = AnalyzerIds();
@@ -73,7 +80,7 @@ public sealed class EngineeringGuardrailArchitectureTests
         ids.Should().HaveCountGreaterThanOrEqualTo(15, "the phase shipped a pack, not a rule");
 
         var catalogue = File.ReadAllText(Path.Combine(
-            SourceTree.Root.FullName, "docs", "platform", "b1.4-analyzer-catalog.md"));
+            SourceTree.Root.FullName, "src", "Diaspora.Analyzers", "AnalyzerCatalog.md"));
 
         var release = File.ReadAllText(Path.Combine(
             SourceTree.Root.FullName, "src", "Diaspora.Analyzers", "AnalyzerReleases.Unshipped.md"));
@@ -160,11 +167,15 @@ public sealed class EngineeringGuardrailArchitectureTests
 
     /// <summary>
     /// The documents the phase promised. Named individually rather than counted, because a
-    /// count passes when the wrong eleven files exist.
+    /// count passes when the wrong ten files exist.
+    /// <para>
+    /// Ten, not eleven: <c>b1.4-analyzer-catalog.md</c> left this directory on 11 November 2026
+    /// and is now <c>src/Diaspora.Analyzers/AnalyzerCatalog.md</c>, committed, because a test
+    /// reads it. This theory still guards the documentation that only a human reads.
+    /// </para>
     /// </summary>
     [DocumentationTheory]
     [InlineData("b1.4-engineering-guardrails-guide.md")]
-    [InlineData("b1.4-analyzer-catalog.md")]
     [InlineData("b1.4-contributor-validation-guide.md")]
     [InlineData("b1.4-domain-event-safety-guide.md")]
     [InlineData("b1.4-messaging-guardrails-guide.md")]
