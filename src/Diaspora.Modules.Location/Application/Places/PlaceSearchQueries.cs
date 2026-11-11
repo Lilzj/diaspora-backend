@@ -11,7 +11,7 @@ using Microsoft.Extensions.Options;
 namespace Diaspora.Modules.Location.Application.Places;
 
 /// <summary>What a member has typed into an address field.</summary>
-[Authorize(Permission = LocationPermissions.Search)]
+[RequirePermission(LocationPermissions.Search)]
 public sealed record AutocompletePlacesQuery : IQuery<PlaceAutocompleteResponse>
 {
     public required string Input { get; init; }
@@ -36,7 +36,7 @@ public sealed record AutocompletePlacesQuery : IQuery<PlaceAutocompleteResponse>
 }
 
 /// <summary>The suggestion a member picked.</summary>
-[Authorize(Permission = LocationPermissions.Search)]
+[RequirePermission(LocationPermissions.Search)]
 public sealed record GetPlaceDetailsQuery : IQuery<PlaceDetailsResponse>
 {
     public required string PlaceId { get; init; }

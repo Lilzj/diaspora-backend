@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Marketplace.Application.Offers;
 /// deliberate support tool rather than fall out of a role check.
 /// </para>
 /// </summary>
-[Authorize(Permission = MarketplacePermissions.OfferRespond)]
+[RequirePermission(MarketplacePermissions.OfferRespond)]
 public sealed record GetOfferQuery : IQuery<OfferResponse>
 {
     public required Guid OfferId { get; init; }

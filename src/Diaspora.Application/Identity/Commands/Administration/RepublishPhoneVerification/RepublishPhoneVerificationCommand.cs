@@ -20,7 +20,7 @@ namespace Diaspora.Application.Identity.Commands.Administration.RepublishPhoneVe
 /// consumers are idempotent, so running it twice costs nothing.
 /// </para>
 /// </summary>
-[Authorize(Permission = IdentityPermissions.RepublishMemberFacts)]
+[RequirePermission(IdentityPermissions.RepublishMemberFacts)]
 public sealed record RepublishPhoneVerificationCommand : ICommand<OperationAcknowledgedResponse>
 {
     public required Guid UserId { get; init; }

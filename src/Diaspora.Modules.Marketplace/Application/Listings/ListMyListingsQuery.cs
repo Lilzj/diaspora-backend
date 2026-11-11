@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Marketplace.Application.Listings;
 /// caller's own seller profile owns.
 /// </para>
 /// </summary>
-[Authorize(Permission = MarketplacePermissions.ListingEditOwn)]
+[RequirePermission(MarketplacePermissions.ListingEditOwn)]
 public sealed record ListMyListingsQuery : IQuery<CursorPagedResult<ListingCardResponse>>
 {
     /// <summary>

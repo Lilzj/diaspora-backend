@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Housing.Application.Moderation;
 /// platform can carry.
 /// </para>
 /// </summary>
-[Authorize(Permission = HousingPermissions.Report)]
+[RequirePermission(HousingPermissions.Report)]
 [Transactional(Reason = "Writes the report and may flag the listing in the same unit of work.")]
 [Auditable]
 public sealed record ReportHousingCommand : ICommand<Guid>

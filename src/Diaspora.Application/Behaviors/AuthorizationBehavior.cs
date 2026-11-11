@@ -42,17 +42,17 @@ namespace Diaspora.Application.Behaviors;
 /// still asks — <c>RequireUser()</c> and the aggregate's own checks remain necessary.
 /// </para>
 /// <para>
-/// <b>What BSOLID-001 still wants, recorded here rather than only in a commit message.</b> That
-/// finding is the same defect stated as a shape, and its first criterion — an unannotated request
-/// is refused, with a test proving it — is met above. Two are not. The attribute still carries
-/// three independent questions on three nullable fields, so <c>[Authorize]</c> with nothing set
-/// remains a valid state that a reader cannot distinguish from a half-finished thought; the
-/// remediation asks for <c>[RequirePermission(x)]</c>, <c>[RequirePolicy(x)]</c> and
-/// <c>[RequireRole(x)]</c> with required constructor arguments, so that an empty one does not
-/// compile. And <c>Roles</c> is still a comma-separated string split at runtime, where a typo is a
-/// silently never-authorised path rather than a compile error. Both are ergonomics rather than
-/// exposure now that the absence of an attribute is refused, which is why they are a separate
-/// change and not a reason to delay this one. BSOLID-001 stays OPEN in the ledger until they land.
+/// <b>BSOLID-001 closed with it, on 10 November 2026, and this paragraph used to say it had
+/// not.</b> That finding is the same defect stated as a shape: one attribute carrying three
+/// independently nullable questions, so <c>[Authorize]</c> with nothing set was a valid state a
+/// reader could not tell from a half-finished thought. It is gone. The vocabulary is
+/// <c>[RequirePermission]</c>, <c>[RequirePolicy]</c>, <c>[RequireAuthentication]</c> and
+/// <c>[AllowAnonymous]</c>, each with a required constructor argument, so an empty one does not
+/// compile — and the old attribute was deleted rather than deprecated, which is what let the
+/// compiler prove all 863 of its uses had been migrated. <c>Roles</c> went with it: the field had
+/// zero users, every <c>Roles =</c> in the repository being <c>PermissionDefinition.Roles</c>, so
+/// the finding's "type the role" item had nothing to type. DSP4005 reports an undeclared request
+/// at the keystroke; this behaviour refuses one at runtime. Belt and brace.
 /// </para>
 /// </summary>
 public sealed class AuthorizationBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
@@ -74,13 +74,17 @@ public sealed class AuthorizationBehavior<TRequest, TResponse> : IPipelineBehavi
 
     public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
-        var authorizeAttribute = typeof(TRequest).GetCustomAttribute<AuthorizeAttribute>();
+        var requestType = typeof(TRequest);
 
-        if (authorizeAttribute is null)
+        var permission = requestType.GetCustomAttribute<RequirePermissionAttribute>();
+        var policy = requestType.GetCustomAttribute<RequirePolicyAttribute>();
+        var authentication = requestType.GetCustomAttribute<RequireAuthenticationAttribute>();
+
+        if (permission is null && policy is null && authentication is null)
         {
             // Deliberately public, and it had to say so. The attribute carries the reason, which
             // is the whole difference between this and the absent attribute below.
-            if (typeof(TRequest).GetCustomAttribute<AllowAnonymousAttribute>() is not null)
+            if (requestType.GetCustomAttribute<AllowAnonymousAttribute>() is not null)
             {
                 return await next();
             }
@@ -88,50 +92,39 @@ public sealed class AuthorizationBehavior<TRequest, TResponse> : IPipelineBehavi
             // Classified by nobody. Before BSEC-003 this line was `return await next()` and 247
             // request types took it.
             _logger.LogError(
-                "{RequestName} declares neither [Authorize] nor [AllowAnonymous] and was refused. "
-                + "This is a gap in the platform rather than anything the caller did: the "
-                + "architecture rules reject an unannotated request type, so a passing build "
-                + "should make this unreachable.",
-                typeof(TRequest).Name);
+                "{RequestName} declares no authorization requirement and no [AllowAnonymous], and "
+                + "was refused. This is a gap in the platform rather than anything the caller did: "
+                + "the architecture rules and DSP4005 both reject an unannotated request type, so "
+                + "a passing build should make this unreachable.",
+                requestType.Name);
 
             throw new Exceptions.UnauthorizedException("Authentication is required.");
         }
 
         if (!_currentUser.IsAuthenticated)
         {
-            _logger.LogWarning("Unauthorized access attempt to {RequestName}", typeof(TRequest).Name);
+            _logger.LogWarning("Unauthorized access attempt to {RequestName}", requestType.Name);
             throw new Exceptions.UnauthorizedException("Authentication is required.");
         }
 
-        if (!string.IsNullOrEmpty(authorizeAttribute.Roles))
+        // Each requirement is checked when present, and the attributes are not exclusive: a
+        // request may name a permission and a policy, and both must hold. What is gone is the
+        // state where NONE was named and the behaviour passed anyway.
+        if (permission is not null
+            && !await _permissionService.HasPermissionAsync(permission.Permission, cancellationToken))
         {
-            var requiredRoles = authorizeAttribute.Roles.Split(',', StringSplitOptions.TrimEntries);
-            if (!requiredRoles.Contains(_currentUser.Role))
-            {
-                _logger.LogWarning(
-                    "Forbidden access by user {UserId} with role {Role} to {RequestName}. Required: {RequiredRoles}",
-                    _currentUser.UserId, _currentUser.Role, typeof(TRequest).Name, authorizeAttribute.Roles);
-                throw new Exceptions.ForbiddenException("Insufficient role permissions.");
-            }
+            throw new Exceptions.ForbiddenException(
+                $"Missing required permission: {permission.Permission}.");
         }
 
-        if (!string.IsNullOrEmpty(authorizeAttribute.Permission))
+        if (policy is not null
+            && !await _permissionService.AuthorizeAsync(policy.Policy, cancellationToken))
         {
-            var hasPermission = await _permissionService.HasPermissionAsync(authorizeAttribute.Permission, cancellationToken);
-            if (!hasPermission)
-            {
-                throw new Exceptions.ForbiddenException($"Missing required permission: {authorizeAttribute.Permission}.");
-            }
+            throw new Exceptions.ForbiddenException($"Policy '{policy.Policy}' not satisfied.");
         }
 
-        if (!string.IsNullOrEmpty(authorizeAttribute.Policy))
-        {
-            var authorized = await _permissionService.AuthorizeAsync(authorizeAttribute.Policy, cancellationToken);
-            if (!authorized)
-            {
-                throw new Exceptions.ForbiddenException($"Policy '{authorizeAttribute.Policy}' not satisfied.");
-            }
-        }
+        // [RequireAuthentication] asks for nothing beyond the check above, which is the point of
+        // it: "any signed-in member" is now a statement rather than an empty attribute.
 
         return await next();
     }

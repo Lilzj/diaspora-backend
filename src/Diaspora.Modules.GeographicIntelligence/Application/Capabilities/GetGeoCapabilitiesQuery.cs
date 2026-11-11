@@ -13,7 +13,7 @@ using Microsoft.Extensions.Options;
 namespace Diaspora.Modules.GeographicIntelligence.Application.Capabilities;
 
 /// <summary>What this deployment's geographic stack can actually do.</summary>
-[Authorize(Policy = GeographicIntelligencePolicies.CapabilitiesRead)]
+[RequirePolicy(GeographicIntelligencePolicies.CapabilitiesRead)]
 public sealed record GetGeoCapabilitiesQuery : IQuery<GeoCapabilitiesResponse>;
 
 /// <summary>

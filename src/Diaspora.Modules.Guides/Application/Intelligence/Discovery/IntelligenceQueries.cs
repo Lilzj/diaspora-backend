@@ -331,7 +331,7 @@ public sealed record GetIntelligenceCapabilitiesQuery : IQuery<IntelligenceCapab
 /// field for who.
 /// </para>
 /// </summary>
-[Authorize(Permission = IntelligencePermissions.ReadAnalytics)]
+[RequirePermission(IntelligencePermissions.ReadAnalytics)]
 public sealed record GetIntelligenceAnalyticsQuery : IQuery<IntelligenceAnalyticsResponse>
 {
     public required string CountryCode { get; init; }

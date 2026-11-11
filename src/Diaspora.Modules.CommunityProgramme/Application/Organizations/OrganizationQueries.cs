@@ -37,7 +37,7 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Organizations;
 /// through B12 for a screen that is a list.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record ListMyOrganizationsQuery : IQuery<IReadOnlyList<MyOrganizationResponse>>;
 
 public sealed class ListMyOrganizationsQueryHandler
@@ -110,7 +110,7 @@ public sealed class ListMyOrganizationsQueryHandler
 /// what they can do, which is what they asked.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record GetOrganizationCapabilitiesQuery : IQuery<OrganizationCapabilitiesResponse>
 {
     public required Guid OrganizationId { get; init; }
@@ -159,7 +159,7 @@ public sealed class GetOrganizationCapabilitiesQueryHandler
 /// with no management capability still gets the overview the register describes.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record GetOrganizationDashboardQuery : IQuery<OrganizationDashboardResponse>
 {
     public required Guid OrganizationId { get; init; }

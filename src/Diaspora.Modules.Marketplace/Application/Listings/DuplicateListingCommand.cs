@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Marketplace.Application.Listings;
 /// fulfilment options and the location for each one.
 /// </para>
 /// </summary>
-[Authorize(Policy = MarketplacePolicies.ListingCreate)]
+[RequirePolicy(MarketplacePolicies.ListingCreate)]
 public sealed record DuplicateListingCommand : ICommand<ListingResponse>
 {
     public required Guid ListingId { get; init; }

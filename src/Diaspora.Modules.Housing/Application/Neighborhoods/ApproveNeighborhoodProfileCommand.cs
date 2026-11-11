@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Housing.Application.Neighborhoods;
 /// which is what lets the platform find profiles quietly describing a place that has changed.
 /// </para>
 /// </summary>
-[Authorize(Permission = HousingPermissions.NeighborhoodApprove)]
+[RequirePermission(HousingPermissions.NeighborhoodApprove)]
 [Auditable]
 public sealed record ApproveNeighborhoodProfileCommand : ICommand<NeighborhoodProfileResponse>
 {

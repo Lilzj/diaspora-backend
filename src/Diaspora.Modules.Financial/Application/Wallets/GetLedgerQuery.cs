@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Financial.Application.Wallets;
 /// on record as the worst property a paging bug can have.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.WalletRead)]
+[RequirePermission(FinancialPermissions.WalletRead)]
 public sealed record GetLedgerQuery : IQuery<LedgerPageResponse>
 {
     /// <summary>Whose statement. Must belong to the caller unless they hold the staff permission.</summary>

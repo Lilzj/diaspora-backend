@@ -26,14 +26,14 @@ namespace Diaspora.Modules.Financial.Application.PaymentMethods;
 /// a way to pay, and are served by the withdrawal routes rather than here.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PaymentsRead)]
+[RequirePermission(FinancialPermissions.PaymentsRead)]
 public sealed record GetMySavedPaymentMethodsQuery : IQuery<IReadOnlyList<SavedPaymentMethodResponse>>;
 
 /// <summary>
 /// Forgets a saved payment method. Answers not-found for every identifier today, because none is
 /// stored; see <see cref="GetMySavedPaymentMethodsQuery"/>.
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PaymentsManage)]
+[RequirePermission(FinancialPermissions.PaymentsManage)]
 public sealed record ForgetSavedPaymentMethodCommand : ICommand<SavedPaymentMethodRemovalResponse>
 {
     public required Guid PaymentMethodId { get; init; }

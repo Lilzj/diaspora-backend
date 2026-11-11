@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Notifications.Application.Delivery;
 /// an operator may ask about anybody; the message itself is only ever the recipient's.
 /// </para>
 /// </summary>
-[Authorize(Permission = NotificationPermissions.DeliveryRead)]
+[RequirePermission(NotificationPermissions.DeliveryRead)]
 public sealed record GetDeliveryHistoryQuery : IQuery<NotificationDetailResponse>
 {
     public required Guid NotificationId { get; init; }

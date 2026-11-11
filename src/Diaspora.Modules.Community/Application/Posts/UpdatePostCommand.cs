@@ -7,7 +7,7 @@ namespace Diaspora.Modules.Community.Application.Posts;
 /// <summary>Edits a post the caller owns. Captures a revision first.</summary>
 [Auditable]
 [Transactional]
-[Authorize(Policy = CommunityPolicies.ManagePost)]
+[RequirePolicy(CommunityPolicies.ManagePost)]
 public sealed record UpdatePostCommand : ICommand<CommunityPostResponse>
 {
     public required Guid PostId { get; init; }

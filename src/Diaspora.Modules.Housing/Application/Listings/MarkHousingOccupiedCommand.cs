@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Housing.Application.Listings;
 /// publish neighbourhood statistics computed from a fraction of the truth.
 /// </para>
 /// </summary>
-[Authorize(Permission = HousingPermissions.ListingMarkOccupied)]
+[RequirePermission(HousingPermissions.ListingMarkOccupied)]
 [Transactional(Reason = "Settles the listing units and writes the analytics record together.")]
 [Auditable]
 public sealed record MarkHousingOccupiedCommand : ICommand<HousingListingResponse>

@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Housing.Application.Viewings;
 /// the client should not have to.
 /// </para>
 /// </summary>
-[Authorize(Permission = HousingPermissions.ViewingManage)]
+[RequirePermission(HousingPermissions.ViewingManage)]
 [Auditable]
 public sealed record UpdateViewingCommand : ICommand<HousingViewingResponse>
 {

@@ -31,7 +31,7 @@ namespace Diaspora.Modules.Analytics.Application.Queries;
 /// caller, which is a fact about the request rather than about the subject.
 /// </para>
 /// </summary>
-[Authorize(Permission = AnalyticsPermissions.CreatorRead)]
+[RequirePermission(AnalyticsPermissions.CreatorRead)]
 public sealed record GetAnalyticsAccessQuery : IQuery<AnalyticsAccessResponse>
 {
     /// <summary><c>creator</c>, or one of the content subject types.</summary>
@@ -236,7 +236,7 @@ public sealed class GetAnalyticsAccessQueryHandler
 /// it is also a map of the analytics surface and there is no reason for it to be anonymous.
 /// </para>
 /// </summary>
-[Authorize(Permission = AnalyticsPermissions.CreatorRead)]
+[RequirePermission(AnalyticsPermissions.CreatorRead)]
 public sealed record GetAnalyticsDefinitionsQuery : IQuery<AnalyticsDefinitionsResponse>;
 
 public sealed class GetAnalyticsDefinitionsQueryHandler
@@ -302,7 +302,7 @@ public sealed class GetAnalyticsDefinitionsQueryHandler
 /// and one route with a type segment is what honouring both looks like on the wire.
 /// </para>
 /// </summary>
-[Authorize(Permission = AnalyticsPermissions.ContentReadOwn)]
+[RequirePermission(AnalyticsPermissions.ContentReadOwn)]
 public sealed record GetContentAnalyticsQuery : IQuery<AnalyticsDatasetResponse>
 {
     public required string ContentType { get; init; }

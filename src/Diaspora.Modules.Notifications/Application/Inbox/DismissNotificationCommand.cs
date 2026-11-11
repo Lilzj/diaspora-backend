@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Notifications.Application.Inbox;
 /// judged.
 /// </para>
 /// </summary>
-[Authorize(Permission = NotificationPermissions.InboxManage)]
+[RequirePermission(NotificationPermissions.InboxManage)]
 [Transactional(Reason = "Moves the notification and the member's counters together.")]
 public sealed record DismissNotificationCommand : ICommand<NotificationResponse>
 {

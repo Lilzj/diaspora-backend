@@ -18,7 +18,7 @@ namespace Diaspora.Modules.Guides.Application.Knowledge.LearningPaths;
 /// path and is not a state change at all.
 /// </para>
 /// </summary>
-[Authorize(Permission = KnowledgePermissions.ManagePaths)]
+[RequirePermission(KnowledgePermissions.ManagePaths)]
 [Auditable]
 public sealed record ChangeLearningPathStatusCommand : ICommand
 {

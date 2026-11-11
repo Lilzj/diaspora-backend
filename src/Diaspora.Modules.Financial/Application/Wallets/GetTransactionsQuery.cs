@@ -4,7 +4,7 @@ using Diaspora.Modules.Financial.Contracts.V1.Responses;
 namespace Diaspora.Modules.Financial.Application.Wallets;
 
 /// <summary>The caller's transaction history.</summary>
-[Authorize(Permission = FinancialPermissions.WalletRead)]
+[RequirePermission(FinancialPermissions.WalletRead)]
 public sealed record GetTransactionsQuery : IQuery<IReadOnlyList<TransactionResponse>>
 {
     public string? TransactionType { get; init; }

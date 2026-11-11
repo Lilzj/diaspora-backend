@@ -16,7 +16,7 @@ namespace Diaspora.Modules.Guides.Application.Knowledge.Curation;
 /// nothing above it changes — which is most of why the curated version is worth building first.
 /// </para>
 /// </summary>
-[Authorize(Permission = KnowledgePermissions.Curate)]
+[RequirePermission(KnowledgePermissions.Curate)]
 [Auditable]
 public sealed record SetRecommendedReadsCommand : ICommand
 {

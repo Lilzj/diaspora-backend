@@ -37,7 +37,7 @@ namespace Diaspora.Modules.Creator.Application.Creators;
 /// creator id that resolves to nothing.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 [SideEffecting(Reason =
     "Opens the caller's creator record on first read, exactly as GET /creators/me does, so the "
     + "reputation it answers carries a creator identifier that exists.")]
@@ -89,7 +89,7 @@ public sealed class GetMyCreatorReputationQueryHandler
 /// dimensions, the earned badges and the counts are public.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 public sealed record GetCreatorReputationQuery : IQuery<CreatorReputationResponse>
 {
     public required Guid CreatorId { get; init; }

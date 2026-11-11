@@ -7,7 +7,7 @@ namespace Diaspora.Modules.Guides.Application.Intelligence.Directory;
 // ── Embassies ───────────────────────────────────────────────────────────────────────────────
 
 /// <summary>Adds a mission to the embassy directory.</summary>
-[Authorize(Permission = IntelligencePermissions.ManageDirectory)]
+[RequirePermission(IntelligencePermissions.ManageDirectory)]
 [Auditable]
 public sealed record CreateEmbassyCommand : ICommand<EmbassyResponse>
 {
@@ -23,7 +23,7 @@ public sealed record CreateEmbassyCommand : ICommand<EmbassyResponse>
 /// and last year's emergency number.
 /// </para>
 /// </summary>
-[Authorize(Permission = IntelligencePermissions.ManageDirectory)]
+[RequirePermission(IntelligencePermissions.ManageDirectory)]
 [Auditable]
 [Transactional(Reason =
     "Profile, contact, capabilities, media, authority link and three collections are separate " +
@@ -36,7 +36,7 @@ public sealed record UpdateEmbassyCommand : ICommand<EmbassyResponse>
 }
 
 /// <summary>Raises a claim that a mission is what it says it is.</summary>
-[Authorize(Permission = IntelligencePermissions.ManageAuthorities)]
+[RequirePermission(IntelligencePermissions.ManageAuthorities)]
 [Auditable]
 [Transactional(Reason =
     "The submission opens a Trust case and the case identifier is then stored on the mission. " +
@@ -49,7 +49,7 @@ public sealed record SubmitEmbassyVerificationCommand : ICommand<EmbassyResponse
 }
 
 /// <summary>Removes a mission from the directory. The soft delete; restorable.</summary>
-[Authorize(Permission = IntelligencePermissions.ManageDirectory)]
+[RequirePermission(IntelligencePermissions.ManageDirectory)]
 [Auditable]
 public sealed record ArchiveEmbassyCommand : ICommand
 {
@@ -57,7 +57,7 @@ public sealed record ArchiveEmbassyCommand : ICommand
 }
 
 /// <summary>Returns an archived mission to the directory, verification intact.</summary>
-[Authorize(Permission = IntelligencePermissions.ManageDirectory)]
+[RequirePermission(IntelligencePermissions.ManageDirectory)]
 [Auditable]
 public sealed record RestoreEmbassyCommand : ICommand<EmbassyResponse>
 {
@@ -81,7 +81,7 @@ public sealed record RestoreEmbassyCommand : ICommand<EmbassyResponse>
 /// that name the old ones would render half its page in the wrong language.
 /// </para>
 /// </summary>
-[Authorize(Permission = IntelligencePermissions.ManageDirectory)]
+[RequirePermission(IntelligencePermissions.ManageDirectory)]
 [Auditable]
 [Transactional(Reason =
     "Guidance, contacts, translations and the review stamp are four aggregate operations, and a " +
@@ -97,7 +97,7 @@ public sealed record SaveEmergencyContactsCommand : ICommand<EmergencyContactsRe
 // ── Visa advisories ─────────────────────────────────────────────────────────────────────────
 
 /// <summary>Opens a draft visa advisory.</summary>
-[Authorize(Permission = IntelligencePermissions.ManageVisas)]
+[RequirePermission(IntelligencePermissions.ManageVisas)]
 [Auditable]
 public sealed record CreateVisaAdvisoryCommand : ICommand<VisaAdvisoryResponse>
 {
@@ -112,7 +112,7 @@ public sealed record CreateVisaAdvisoryCommand : ICommand<VisaAdvisoryResponse>
 /// a rule change publishes a notice, and notices are permanent.
 /// </para>
 /// </summary>
-[Authorize(Permission = IntelligencePermissions.ManageVisas)]
+[RequirePermission(IntelligencePermissions.ManageVisas)]
 [Auditable]
 [Transactional(Reason =
     "Content, sourcing, dates, the authority link and three collections are separate aggregate " +
@@ -132,7 +132,7 @@ public sealed record UpdateVisaAdvisoryCommand : ICommand<VisaAdvisoryResponse>
 /// helped by the distinction between a notice and an advisory.
 /// </para>
 /// </summary>
-[Authorize(Permission = IntelligencePermissions.ManageVisas)]
+[RequirePermission(IntelligencePermissions.ManageVisas)]
 [Auditable]
 public sealed record PublishVisaAdvisoryCommand : ICommand<VisaAdvisoryResponse>
 {
@@ -142,7 +142,7 @@ public sealed record PublishVisaAdvisoryCommand : ICommand<VisaAdvisoryResponse>
 }
 
 /// <summary>Withdraws a visa advisory. The soft delete; restorable.</summary>
-[Authorize(Permission = IntelligencePermissions.ManageVisas)]
+[RequirePermission(IntelligencePermissions.ManageVisas)]
 [Auditable]
 public sealed record ArchiveVisaAdvisoryCommand : ICommand
 {
@@ -150,7 +150,7 @@ public sealed record ArchiveVisaAdvisoryCommand : ICommand
 }
 
 /// <summary>Returns an archived advisory to the desk as a draft.</summary>
-[Authorize(Permission = IntelligencePermissions.ManageVisas)]
+[RequirePermission(IntelligencePermissions.ManageVisas)]
 [Auditable]
 public sealed record RestoreVisaAdvisoryCommand : ICommand<VisaAdvisoryResponse>
 {
@@ -160,7 +160,7 @@ public sealed record RestoreVisaAdvisoryCommand : ICommand<VisaAdvisoryResponse>
 // ── Public holidays ─────────────────────────────────────────────────────────────────────────
 
 /// <summary>Adds a day to the public holiday calendar.</summary>
-[Authorize(Permission = IntelligencePermissions.ManageDirectory)]
+[RequirePermission(IntelligencePermissions.ManageDirectory)]
 [Auditable]
 [Transactional(Reason =
     "The entry and its translations are two aggregate operations, and a holiday saved without its " +
@@ -171,7 +171,7 @@ public sealed record CreatePublicHolidayCommand : ICommand<PublicHolidayResponse
 }
 
 /// <summary>Rewrites a calendar entry. The country cannot change.</summary>
-[Authorize(Permission = IntelligencePermissions.ManageDirectory)]
+[RequirePermission(IntelligencePermissions.ManageDirectory)]
 [Auditable]
 [Transactional(Reason = "The entry and its translations are two aggregate operations.")]
 public sealed record UpdatePublicHolidayCommand : ICommand<PublicHolidayResponse>
@@ -182,7 +182,7 @@ public sealed record UpdatePublicHolidayCommand : ICommand<PublicHolidayResponse
 }
 
 /// <summary>Removes a calendar entry. The soft delete; restorable.</summary>
-[Authorize(Permission = IntelligencePermissions.ManageDirectory)]
+[RequirePermission(IntelligencePermissions.ManageDirectory)]
 [Auditable]
 public sealed record ArchivePublicHolidayCommand : ICommand
 {
@@ -190,7 +190,7 @@ public sealed record ArchivePublicHolidayCommand : ICommand
 }
 
 /// <summary>Returns an archived calendar entry, exactly as it was.</summary>
-[Authorize(Permission = IntelligencePermissions.ManageDirectory)]
+[RequirePermission(IntelligencePermissions.ManageDirectory)]
 [Auditable]
 public sealed record RestorePublicHolidayCommand : ICommand<PublicHolidayResponse>
 {

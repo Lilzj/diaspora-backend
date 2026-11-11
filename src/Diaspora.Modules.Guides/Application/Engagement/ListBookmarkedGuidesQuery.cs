@@ -15,7 +15,7 @@ namespace Diaspora.Modules.Guides.Application.Engagement;
 /// shows guides beside providers and posts from one store with one folder model.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.Bookmark)]
+[RequirePermission(GuidePermissions.Bookmark)]
 public sealed record ListBookmarkedGuidesQuery : IQuery<CursorPagedResult<GuideCardResponse>>
 {
     public string? Cursor { get; init; }

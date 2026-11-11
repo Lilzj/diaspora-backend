@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Recommendations.Application.Feed;
 /// than merely forbidden.
 /// </para>
 /// </summary>
-[Authorize(Permission = RecommendationPermissions.FeedRead)]
+[RequirePermission(RecommendationPermissions.FeedRead)]
 public sealed record GetHomeFeedQuery : IQuery<HomeFeedResponse>
 {
     /// <summary>

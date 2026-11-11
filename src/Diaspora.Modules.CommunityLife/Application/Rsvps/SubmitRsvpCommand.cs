@@ -11,7 +11,7 @@ namespace Diaspora.Modules.CommunityLife.Application.Rsvps;
 /// count moving is a place two people can be told they have.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityLifePermissions.Rsvp)]
+[RequirePermission(CommunityLifePermissions.Rsvp)]
 [Transactional(Reason = "Takes or releases a place against the event capacity.")]
 [Auditable]
 public sealed record SubmitRsvpCommand : ICommand<RsvpResponse>

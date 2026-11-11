@@ -71,7 +71,7 @@ public sealed class ListCommunityRulesQueryHandler
 }
 
 /// <summary>Add a rule. The owner's or an administrator's.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record CreateCommunityRuleCommand : ICommand<CommunityRuleResponse>
 {
     public required string IdOrSlug { get; init; }
@@ -149,7 +149,7 @@ public sealed class CreateCommunityRuleCommandHandler
 }
 
 /// <summary>Replace a rule's text, and optionally move it. The owner's or an administrator's.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record UpdateCommunityRuleCommand : ICommand<CommunityRuleResponse>
 {
     public required string IdOrSlug { get; init; }
@@ -220,7 +220,7 @@ public sealed class UpdateCommunityRuleCommandHandler
 }
 
 /// <summary>Remove a rule. Answers the rules that remain, renumbered.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record DeleteCommunityRuleCommand : ICommand<IReadOnlyList<CommunityRuleResponse>>
 {
     public required string IdOrSlug { get; init; }

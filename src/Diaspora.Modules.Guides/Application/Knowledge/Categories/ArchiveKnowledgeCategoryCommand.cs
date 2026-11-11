@@ -16,7 +16,7 @@ namespace Diaspora.Modules.Guides.Application.Knowledge.Categories;
 /// so the curator knows where to go.
 /// </para>
 /// </summary>
-[Authorize(Permission = KnowledgePermissions.ManageCategories)]
+[RequirePermission(KnowledgePermissions.ManageCategories)]
 [Auditable]
 public sealed record ArchiveKnowledgeCategoryCommand : ICommand
 {

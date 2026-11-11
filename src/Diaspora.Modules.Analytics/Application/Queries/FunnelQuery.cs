@@ -26,7 +26,7 @@ namespace Diaspora.Modules.Analytics.Application.Queries;
 /// recorded; every other step the client names comes back in <c>unavailableSteps</c> with a reason.
 /// </para>
 /// </summary>
-[Authorize(Permission = AnalyticsPermissions.CreatorRead)]
+[RequirePermission(AnalyticsPermissions.CreatorRead)]
 public sealed record GetAnalyticsFunnelQuery : IQuery<AnalyticsFunnelResponse>
 {
     public required string FunnelKey { get; init; }

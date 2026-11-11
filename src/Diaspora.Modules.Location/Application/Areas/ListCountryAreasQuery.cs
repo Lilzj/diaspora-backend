@@ -13,7 +13,7 @@ namespace Diaspora.Modules.Location.Application.Areas;
 /// to fix the same paging bug.
 /// </para>
 /// </summary>
-[Authorize(Permission = LocationPermissions.ReadCatalog)]
+[RequirePermission(LocationPermissions.ReadCatalog)]
 public sealed record ListCountryAreasQuery : IQuery<PagedResult<AreaSummaryResponse>>
 {
     public required string CountryCode { get; init; }

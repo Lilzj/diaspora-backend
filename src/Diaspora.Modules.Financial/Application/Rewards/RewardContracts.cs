@@ -5,11 +5,11 @@ using FluentValidation;
 namespace Diaspora.Modules.Financial.Application.Rewards;
 
 /// <summary>The caller's points balance.</summary>
-[Authorize(Permission = FinancialPermissions.WalletRead)]
+[RequirePermission(FinancialPermissions.WalletRead)]
 public sealed record GetMyRewardBalanceQuery : IQuery<RewardBalanceResponse>;
 
 /// <summary>How the caller earned and spent their points.</summary>
-[Authorize(Permission = FinancialPermissions.WalletRead)]
+[RequirePermission(FinancialPermissions.WalletRead)]
 public sealed record GetMyRewardHistoryQuery : IQuery<IReadOnlyList<RewardEntryResponse>>
 {
     /// <summary>The instant the previous page ended on. Inclusive — see <see cref="ExcludeIds"/>.</summary>
@@ -42,7 +42,7 @@ public sealed record GetMyRewardHistoryQuery : IQuery<IReadOnlyList<RewardEntryR
 /// forbids computing one locally, and this is the contract that makes obeying it possible.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.WalletRead)]
+[RequirePermission(FinancialPermissions.WalletRead)]
 public sealed record GetRewardConversionTermsQuery : IQuery<RewardConversionTermsResponse>
 {
     /// <summary>Optional. A currency other than the rate's reads as disabled, with the reason.</summary>
@@ -60,7 +60,7 @@ public sealed record GetRewardConversionTermsQuery : IQuery<RewardConversionTerm
 /// at the first rounding boundary.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.WalletRead)]
+[RequirePermission(FinancialPermissions.WalletRead)]
 public sealed record PreviewRewardConversionQuery : IQuery<RewardConversionPreviewResponse>
 {
     public required long Points { get; init; }
@@ -81,7 +81,7 @@ public sealed record PreviewRewardConversionQuery : IQuery<RewardConversionPrevi
 /// ever.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PaymentsManage)]
+[RequirePermission(FinancialPermissions.PaymentsManage)]
 [Transactional(Reason = "Points leaving and credit arriving are one change or neither.")]
 [Auditable(Action = "financial.rewards.convert")]
 public sealed record ConvertRewardPointsCommand : ICommand<RewardConversionResponse>
@@ -127,7 +127,7 @@ public sealed class ConvertRewardPointsCommandValidator : AbstractValidator<Conv
 }
 
 /// <summary>The caller's conversions.</summary>
-[Authorize(Permission = FinancialPermissions.WalletRead)]
+[RequirePermission(FinancialPermissions.WalletRead)]
 public sealed record GetMyRewardConversionsQuery : IQuery<IReadOnlyList<RewardConversionResponse>>
 {
     public DateTimeOffset? Before { get; init; }
@@ -155,7 +155,7 @@ public sealed record GetMyRewardConversionsQuery : IQuery<IReadOnlyList<RewardCo
 /// instead, which a second Admin decides (RWD-10). Nobody grants points to their own account.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.CreditManage)]
+[RequirePermission(FinancialPermissions.CreditManage)]
 [Transactional(Reason = "Opening the account and awarding against it are one change.")]
 [Auditable(Action = "financial.rewards.grant")]
 public sealed record GrantRewardPointsCommand : ICommand<RewardBalanceResponse>
@@ -180,7 +180,7 @@ public sealed record GrantRewardPointsCommand : ICommand<RewardBalanceResponse>
 /// when it lands. A repeated grant reference replays the request.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.CreditManage)]
+[RequirePermission(FinancialPermissions.CreditManage)]
 [Transactional(Reason = "A request and its replay check are one change.")]
 [Auditable(Action = "financial.rewards.grant_request")]
 public sealed record RequestRewardGrantCommand : ICommand<RewardGrantRequestResponse>
@@ -204,7 +204,7 @@ public sealed record RequestRewardGrantCommand : ICommand<RewardGrantRequestResp
 /// on a deployment with one Admin nobody else could close it.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.CreditManage)]
+[RequirePermission(FinancialPermissions.CreditManage)]
 [Transactional(Reason = "Approving a request and granting its points are one change.")]
 [Auditable(Action = "financial.rewards.grant_decide")]
 public sealed record DecideRewardGrantRequestCommand : ICommand<RewardGrantRequestResponse>
@@ -217,7 +217,7 @@ public sealed record DecideRewardGrantRequestCommand : ICommand<RewardGrantReque
 }
 
 /// <summary>Staff grant requests, newest first; pending by default. Staff.</summary>
-[Authorize(Permission = FinancialPermissions.WalletReadAny)]
+[RequirePermission(FinancialPermissions.WalletReadAny)]
 public sealed record GetRewardGrantRequestsQuery : IQuery<IReadOnlyList<RewardGrantRequestResponse>>
 {
     /// <summary><c>Pending</c> (the default), <c>Approved</c>, <c>Rejected</c>, <c>Withdrawn</c>, or <c>all</c>.</summary>
@@ -244,7 +244,7 @@ public sealed record GetRewardGrantRequestsQuery : IQuery<IReadOnlyList<RewardGr
 /// this attribute writes is a log line and the hold's own reason is cleared when it lifts.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.WalletManage)]
+[RequirePermission(FinancialPermissions.WalletManage)]
 [Transactional(Reason = "Opening the account and holding it are one change.")]
 [Auditable(Action = "financial.rewards.conversion_hold")]
 public sealed record SetRewardConversionHoldCommand : ICommand<RewardConversionHoldResponse>
@@ -278,7 +278,7 @@ public sealed class SetRewardConversionHoldCommandValidator
 /// refused; nothing here creates money.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.WalletManage)]
+[RequirePermission(FinancialPermissions.WalletManage)]
 [Transactional(Reason = "The top-up is one posting and must land whole.")]
 [Auditable(Action = "financial.rewards.pot_fund")]
 public sealed record FundRewardsPotCommand : ICommand<RewardPotResponse>
@@ -313,7 +313,7 @@ public sealed class FundRewardsPotCommandValidator : AbstractValidator<FundRewar
 }
 
 /// <summary>What each currency's rewards pot can pay. Staff.</summary>
-[Authorize(Permission = FinancialPermissions.WalletReadAny)]
+[RequirePermission(FinancialPermissions.WalletReadAny)]
 public sealed record GetRewardPotsQuery : IQuery<IReadOnlyList<RewardPotResponse>>;
 
 /// <summary>
@@ -325,7 +325,7 @@ public sealed record GetRewardPotsQuery : IQuery<IReadOnlyList<RewardPotResponse
 /// ever. Holds are lifted through <see cref="SetRewardConversionHoldCommand"/>, as before.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.WalletReadAny)]
+[RequirePermission(FinancialPermissions.WalletReadAny)]
 public sealed record GetRewardHoldsQuery : IQuery<IReadOnlyList<RewardHoldResponse>>
 {
     /// <summary>The decision instant the previous page ended on. Inclusive — see <see cref="ExcludeIds"/>.</summary>

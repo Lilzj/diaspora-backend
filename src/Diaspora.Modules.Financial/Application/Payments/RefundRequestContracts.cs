@@ -13,7 +13,7 @@ namespace Diaspora.Modules.Financial.Application.Payments;
 /// decision. This is the other half.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PaymentsManage)]
+[RequirePermission(FinancialPermissions.PaymentsManage)]
 [Auditable(Action = "financial.refund_request.create")]
 public sealed record CreateRefundRequestCommand : ICommand<RefundRequestResponse>
 {
@@ -28,7 +28,7 @@ public sealed record CreateRefundRequestCommand : ICommand<RefundRequestResponse
 }
 
 /// <summary>Withdraws a request before anybody has answered it.</summary>
-[Authorize(Permission = FinancialPermissions.PaymentsManage)]
+[RequirePermission(FinancialPermissions.PaymentsManage)]
 [Auditable(Action = "financial.refund_request.withdraw")]
 public sealed record WithdrawRefundRequestCommand : ICommand<RefundRequestResponse>
 {
@@ -36,7 +36,7 @@ public sealed record WithdrawRefundRequestCommand : ICommand<RefundRequestRespon
 }
 
 /// <summary>The caller's refund requests.</summary>
-[Authorize(Permission = FinancialPermissions.PaymentsRead)]
+[RequirePermission(FinancialPermissions.PaymentsRead)]
 public sealed record GetMyRefundRequestsQuery : IQuery<IReadOnlyList<RefundRequestResponse>>
 {
     public int Take { get; init; } = Domain.Policies.FinancialLimits.DefaultLedgerPageSize;
@@ -50,7 +50,7 @@ public sealed record GetMyRefundRequestsQuery : IQuery<IReadOnlyList<RefundReque
 /// change or neither happens.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PaymentsManageAny)]
+[RequirePermission(FinancialPermissions.PaymentsManageAny)]
 [Transactional(Reason = "An approval and the refund it produces are one change or neither.")]
 [Auditable(Action = "financial.refund_request.decide")]
 public sealed record DecideRefundRequestCommand : ICommand<RefundRequestResponse>
@@ -67,7 +67,7 @@ public sealed record DecideRefundRequestCommand : ICommand<RefundRequestResponse
 }
 
 /// <summary>Refund requests waiting for somebody to answer. Staff.</summary>
-[Authorize(Permission = FinancialPermissions.PaymentsManageAny)]
+[RequirePermission(FinancialPermissions.PaymentsManageAny)]
 public sealed record GetPendingRefundRequestsQuery : IQuery<IReadOnlyList<RefundRequestResponse>>
 {
     public int Take { get; init; } = Domain.Policies.FinancialLimits.DefaultLedgerPageSize;

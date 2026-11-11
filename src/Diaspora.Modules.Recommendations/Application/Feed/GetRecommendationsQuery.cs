@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Recommendations.Application.Feed;
 /// them is a surface name that the catalogue already turns into ten different rankings.
 /// </para>
 /// </summary>
-[Authorize(Permission = RecommendationPermissions.FeedRead)]
+[RequirePermission(RecommendationPermissions.FeedRead)]
 public sealed record GetRecommendationsQuery : IQuery<RecommendationPageResponse>
 {
     /// <summary>Which surface. Decides the weights, the policies and the diversity rules.</summary>

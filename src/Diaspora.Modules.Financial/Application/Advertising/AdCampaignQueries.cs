@@ -11,7 +11,7 @@ using Diaspora.SharedKernel.Results;
 namespace Diaspora.Modules.Financial.Application.Advertising;
 
 /// <summary>The caller's own campaigns — MON-GAP-001.</summary>
-[Authorize(Permission = FinancialPermissions.PurchasesRead)]
+[RequirePermission(FinancialPermissions.PurchasesRead)]
 public sealed record GetMyAdCampaignsQuery : IQuery<IReadOnlyList<AdCampaignResponse>>
 {
     /// <summary>
@@ -25,14 +25,14 @@ public sealed record GetMyAdCampaignsQuery : IQuery<IReadOnlyList<AdCampaignResp
 }
 
 /// <summary>One campaign, with its authoritative status.</summary>
-[Authorize(Permission = FinancialPermissions.PurchasesRead)]
+[RequirePermission(FinancialPermissions.PurchasesRead)]
 public sealed record GetAdCampaignQuery : IQuery<AdCampaignResponse>
 {
     public required Guid CampaignId { get; init; }
 }
 
 /// <summary>The decision, the note and the appeal route — MON-GAP-006.</summary>
-[Authorize(Permission = FinancialPermissions.PurchasesRead)]
+[RequirePermission(FinancialPermissions.PurchasesRead)]
 public sealed record GetAdCampaignReviewQuery : IQuery<AdCampaignReviewResponse>
 {
     public required Guid CampaignId { get; init; }
@@ -43,7 +43,7 @@ public sealed record GetAdCampaignReviewQuery : IQuery<AdCampaignReviewResponse>
 /// reads — a queue of everybody's creative and targeting is not something a purchase permission
 /// should open.
 /// </summary>
-[Authorize(Permission = FinancialPermissions.AdvertisingRead)]
+[RequirePermission(FinancialPermissions.AdvertisingRead)]
 public sealed record GetAdCampaignReviewQueueQuery : IQuery<IReadOnlyList<AdCampaignResponse>>
 {
     public int? Take { get; init; }
@@ -195,7 +195,7 @@ public sealed class GetAdCampaignReviewQueueQueryHandler
 /// request shape that lets somebody approve their own campaign.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.AdvertisingManage)]
+[RequirePermission(FinancialPermissions.AdvertisingManage)]
 public sealed record DecideAdCampaignCommand : ICommand<AdCampaignResponse>
 {
     public required Guid CampaignId { get; init; }

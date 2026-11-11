@@ -15,7 +15,7 @@ namespace Diaspora.Modules.Marketplace.Application.Reviews;
 /// placed to answer.
 /// </para>
 /// </summary>
-[Authorize(Permission = MarketplacePermissions.ReviewWrite)]
+[RequirePermission(MarketplacePermissions.ReviewWrite)]
 [Transactional]
 public sealed record WriteSellerReviewCommand : ICommand<SellerReviewResponse>
 {

@@ -32,7 +32,7 @@ namespace Diaspora.Modules.Creator.Application.Grants;
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>Every grant, published or not, for the administrators' list.</summary>
-[Authorize(Permission = CreatorPermissions.ProgrammeManage)]
+[RequirePermission(CreatorPermissions.ProgrammeManage)]
 public sealed record ListGrantsForAdminQuery : IQuery<IReadOnlyList<AdminGrantResponse>>
 {
     public int? Take { get; init; }
@@ -64,7 +64,7 @@ public sealed class ListGrantsForAdminQueryHandler
 }
 
 /// <summary>Posts a grant, or prepares one unpublished.</summary>
-[Authorize(Permission = CreatorPermissions.ProgrammeManage)]
+[RequirePermission(CreatorPermissions.ProgrammeManage)]
 [Auditable(Action = "creator.grant.create")]
 public sealed record CreateGrantCommand : ICommand<AdminGrantResponse>
 {
@@ -72,7 +72,7 @@ public sealed record CreateGrantCommand : ICommand<AdminGrantResponse>
 }
 
 /// <summary>Edits what a grant offers and to whom. Its form is left alone.</summary>
-[Authorize(Permission = CreatorPermissions.ProgrammeManage)]
+[RequirePermission(CreatorPermissions.ProgrammeManage)]
 [Auditable(Action = "creator.grant.update")]
 public sealed record UpdateGrantCommand : ICommand<AdminGrantResponse>
 {
@@ -90,7 +90,7 @@ public enum GrantWindowAction
 }
 
 /// <summary>Publishes, unpublishes or closes a grant.</summary>
-[Authorize(Permission = CreatorPermissions.ProgrammeManage)]
+[RequirePermission(CreatorPermissions.ProgrammeManage)]
 [Auditable(Action = "creator.grant.window")]
 public sealed record SetGrantWindowCommand : ICommand<AdminGrantResponse>
 {

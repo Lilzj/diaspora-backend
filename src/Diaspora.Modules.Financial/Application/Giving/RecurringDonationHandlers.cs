@@ -18,7 +18,7 @@ namespace Diaspora.Modules.Financial.Application.Giving;
 /// it stopped, and a list that hid it would look as though the cancellation had lost the record.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.GivingRead)]
+[RequirePermission(FinancialPermissions.GivingRead)]
 public sealed record GetMyRecurringDonationsQuery : IQuery<IReadOnlyList<RecurringDonationResponse>>;
 
 public sealed class GetMyRecurringDonationsQueryHandler
@@ -80,7 +80,7 @@ public sealed class GetMyRecurringDonationsQueryHandler
 /// the second with a 409 would tell somebody their cancellation failed when it had already worked.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.GivingCreate)]
+[RequirePermission(FinancialPermissions.GivingCreate)]
 [Transactional(Reason = "The schedule is stopped and its next charge cleared in one write.")]
 [Auditable(Action = "financial.recurring_donation.cancel")]
 public sealed record CancelRecurringDonationCommand : ICommand<RecurringDonationResponse>

@@ -10,7 +10,7 @@ namespace Diaspora.Modules.CommunityLife.Application.Organizations;
 /// pages — and it returns them only to people who are already inside.
 /// </para>
 /// </summary>
-[Authorize]
+[RequireAuthentication("The caller's own organizations, scoped from the token.")]
 public sealed record ListMyOrganizationsQuery : IQuery<OrganizationSearchResultResponse>
 {
     public string? Cursor { get; init; }

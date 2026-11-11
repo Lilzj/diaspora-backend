@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Notifications.Application.Preferences;
 /// they did not touch.
 /// </para>
 /// </summary>
-[Authorize(Permission = NotificationPermissions.PreferencesManage)]
+[RequirePermission(NotificationPermissions.PreferencesManage)]
 [Transactional(Reason = "Applies every section of the settings screen atomically.")]
 [Auditable]
 public sealed record UpdateNotificationPreferencesCommand : ICommand<NotificationPreferencesResponse>

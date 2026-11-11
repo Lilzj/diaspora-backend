@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Marketplace.Application.Listings;
 /// which is final to every consumer — an archived listing can come back with its history intact.
 /// </para>
 /// </summary>
-[Authorize(Permission = MarketplacePermissions.ListingArchive)]
+[RequirePermission(MarketplacePermissions.ListingArchive)]
 [Auditable]
 public sealed record ArchiveListingCommand : ICommand
 {

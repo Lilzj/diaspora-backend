@@ -18,7 +18,7 @@ namespace Diaspora.Modules.Financial.Application.Deposits;
 /// balance that goes up.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PaymentsManage)]
+[RequirePermission(FinancialPermissions.PaymentsManage)]
 [Transactional(Reason = "A first deposit opens the payer's financial identity alongside the intent.")]
 [Auditable(Action = "financial.deposit.create")]
 public sealed record CreateDepositCommand : ICommand<PaymentIntentResponse>
@@ -42,7 +42,7 @@ public sealed record CreateDepositCommand : ICommand<PaymentIntentResponse>
 /// a view of something that exists.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.WalletRead)]
+[RequirePermission(FinancialPermissions.WalletRead)]
 public sealed record GetMyDepositsQuery : IQuery<IReadOnlyList<PaymentIntentResponse>>
 {
     public string? Status { get; init; }
@@ -63,7 +63,7 @@ public sealed record GetMyDepositsQuery : IQuery<IReadOnlyList<PaymentIntentResp
 /// Every figure comes from a versioned policy row.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.WalletRead)]
+[RequirePermission(FinancialPermissions.WalletRead)]
 public sealed record GetDepositLimitsQuery : IQuery<MovementLimitsResponse>
 {
     public string? Currency { get; init; }

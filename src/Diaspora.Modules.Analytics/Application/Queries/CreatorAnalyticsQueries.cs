@@ -38,7 +38,7 @@ namespace Diaspora.Modules.Analytics.Application.Queries;
 /// <c>GET /api/v1/analytics/creators/me/summary</c>.
 /// </para>
 /// </summary>
-[Authorize(Permission = AnalyticsPermissions.CreatorRead)]
+[RequirePermission(AnalyticsPermissions.CreatorRead)]
 public sealed record GetCreatorAnalyticsSummaryQuery : IQuery<CreatorAnalyticsSummaryResponse>
 {
     public string? Period { get; init; }
@@ -188,7 +188,7 @@ public sealed class GetCreatorAnalyticsSummaryQueryHandler
 /// something new lands between pages.
 /// </para>
 /// </summary>
-[Authorize(Permission = AnalyticsPermissions.ContentReadOwn)]
+[RequirePermission(AnalyticsPermissions.ContentReadOwn)]
 public sealed record GetCreatorContentPerformanceQuery : IQuery<CreatorContentPerformancePageResponse>
 {
     public string? Period { get; init; }

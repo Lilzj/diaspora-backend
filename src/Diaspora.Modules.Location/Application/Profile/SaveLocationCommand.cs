@@ -8,7 +8,7 @@ namespace Diaspora.Modules.Location.Application.Profile;
 /// Saves or moves a labelled place. Idempotent on the label, matching the client's
 /// <c>Record</c>-keyed store.
 /// </summary>
-[Authorize(Permission = LocationPermissions.ManageProfile)]
+[RequirePermission(LocationPermissions.ManageProfile)]
 public sealed record SaveLocationCommand : ICommand<SavedLocationResponse>
 {
     public required string Label { get; init; }

@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Financial.Application.Operations;
 /// catalogue is the only place to answer.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PoliciesRead)]
+[RequirePermission(FinancialPermissions.PoliciesRead)]
 public sealed record GetFinancialPoliciesQuery : IQuery<IReadOnlyList<FinancialPolicyResponse>>
 {
     public string? PolicyKey { get; init; }

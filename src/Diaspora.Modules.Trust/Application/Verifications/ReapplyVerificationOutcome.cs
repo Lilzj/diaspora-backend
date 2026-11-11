@@ -34,7 +34,7 @@ namespace Diaspora.Modules.Trust.Application.Verifications;
 /// in the aggregate, guarding the decision. This only finishes a decision somebody else made.
 /// </para>
 /// </summary>
-[Authorize(Permission = TrustPermissions.ReviewVerification)]
+[RequirePermission(TrustPermissions.ReviewVerification)]
 [Transactional]
 public sealed record ReapplyVerificationOutcomeCommand : ICommand<VerificationResponse>
 {

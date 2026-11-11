@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Providers.Application.Discovery;
 /// restaurant has no way of persuading anybody to make one.
 /// </para>
 /// </summary>
-[Authorize(Policy = ProviderPolicies.Read)]
+[RequirePolicy(ProviderPolicies.Read)]
 public sealed record SearchProvidersQuery : IQuery<ProviderPageResponse>
 {
     public required ProviderSearchRequest Request { get; init; }

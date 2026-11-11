@@ -14,7 +14,7 @@ namespace Diaspora.Modules.Recommendations.Application.Signals;
 /// this module holds itself to rather than one the kernel imposes.
 /// </para>
 /// </summary>
-[Authorize(Permission = RecommendationPermissions.SignalsRecord)]
+[RequirePermission(RecommendationPermissions.SignalsRecord)]
 [Transactional(Reason = "A batch of signals is one unit; a partial batch skews a profile silently.")]
 [Auditable(Action = "recommendations.signals.record")]
 public sealed record RecordSignalsCommand : ICommand<SignalsRecordedResponse>

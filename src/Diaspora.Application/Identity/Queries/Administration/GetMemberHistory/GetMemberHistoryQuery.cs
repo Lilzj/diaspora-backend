@@ -15,7 +15,7 @@ namespace Diaspora.Application.Identity.Queries.Administration.GetMemberHistory;
 /// </para>
 /// </summary>
 [Auditable(Action = "identity.member.security-events.read", OnlyForStaff = true)]
-[Authorize(Permission = IdentityPermissions.ReadAnySecurityEvents)]
+[RequirePermission(IdentityPermissions.ReadAnySecurityEvents)]
 public sealed record GetMemberHistoryQuery : IQuery<IReadOnlyList<SecurityEventResponse>>
 {
     public required Guid UserId { get; init; }

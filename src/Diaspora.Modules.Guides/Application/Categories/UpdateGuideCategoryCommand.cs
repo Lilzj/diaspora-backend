@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Guides.Application.Categories;
 /// that could rewrite its own address would be an update no client could follow.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.ManageCategories)]
+[RequirePermission(GuidePermissions.ManageCategories)]
 [Auditable]
 public sealed record UpdateGuideCategoryCommand : ICommand<GuideCategoryResponse>
 {

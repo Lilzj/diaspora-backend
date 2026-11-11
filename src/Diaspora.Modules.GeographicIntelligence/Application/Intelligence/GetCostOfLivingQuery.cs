@@ -14,7 +14,7 @@ using Microsoft.Extensions.Options;
 namespace Diaspora.Modules.GeographicIntelligence.Application.Intelligence;
 
 /// <summary>What it costs to live in a neighbourhood.</summary>
-[Authorize(Policy = GeographicIntelligencePolicies.IntelligenceRead)]
+[RequirePolicy(GeographicIntelligencePolicies.IntelligenceRead)]
 public sealed record GetCostOfLivingQuery : IQuery<CostOfLivingResponse>
 {
     public required string IdOrSlug { get; init; }

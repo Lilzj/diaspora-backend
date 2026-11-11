@@ -18,7 +18,7 @@ namespace Diaspora.Modules.Jobs.Application.Postings;
 /// has gone, and the last one fills the job. The same permission as closing it, for the same
 /// reason: a place that no longer exists wastes the afternoon of whoever answers it.
 /// </summary>
-[Authorize(Permission = JobPermissions.PostClose)]
+[RequirePermission(JobPermissions.PostClose)]
 [Auditable]
 public sealed record FillJobPlaceCommand : ICommand<JobResponse>
 {

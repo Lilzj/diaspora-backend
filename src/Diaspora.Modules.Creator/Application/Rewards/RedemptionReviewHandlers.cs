@@ -29,7 +29,7 @@ namespace Diaspora.Modules.Creator.Application.Rewards;
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>The fulfilment queue. Pending by default; <c>all</c> for everything.</summary>
-[Authorize(Permission = CreatorPermissions.RewardsManage)]
+[RequirePermission(CreatorPermissions.RewardsManage)]
 public sealed record ListRedemptionsForReviewQuery : IQuery<IReadOnlyList<CreatorRewardRedemptionResponse>>
 {
     public string? State { get; init; }
@@ -108,7 +108,7 @@ public sealed class ListRedemptionsForReviewQueryHandler
 /// decide their own application.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.RewardsManage)]
+[RequirePermission(CreatorPermissions.RewardsManage)]
 [Transactional(Reason =
     "Rejecting refunds B15's points and records the rejection. Either alone would leave a member "
     + "with points gone and nothing given, or with both the points and the reward.")]

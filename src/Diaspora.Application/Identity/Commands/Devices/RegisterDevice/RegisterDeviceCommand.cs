@@ -8,7 +8,7 @@ namespace Diaspora.Application.Identity.Commands.Devices.RegisterDevice;
 /// <c>DeviceIdentifier</c>, so a client can call it on every launch.
 /// </summary>
 [Auditable(Action = "identity.device.registered")]
-[Authorize(Permission = "identity:devices:manage")]
+[RequirePermission("identity:devices:manage")]
 public sealed record RegisterDeviceCommand : ICommand<DeviceResponse>
 {
     public required string DeviceIdentifier { get; init; }

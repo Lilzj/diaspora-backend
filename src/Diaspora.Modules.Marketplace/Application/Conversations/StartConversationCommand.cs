@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Marketplace.Application.Conversations;
 /// one. What the caller is doing is initiating contact about a trade, which is the same band.
 /// </para>
 /// </summary>
-[Authorize(Permission = MarketplacePermissions.OfferRespond)]
+[RequirePermission(MarketplacePermissions.OfferRespond)]
 public sealed record StartConversationCommand : ICommand<ConversationReferenceResponse>
 {
     public required Guid ListingId { get; init; }

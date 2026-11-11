@@ -13,7 +13,7 @@ namespace Diaspora.Modules.Jobs.Application.Applications;
 /// caller's own applications. A caller cannot ask for somebody else's.
 /// </para>
 /// </summary>
-[Authorize(Permission = JobPermissions.ApplicationsReview)]
+[RequirePermission(JobPermissions.ApplicationsReview)]
 public sealed record ListApplicationsQuery : IQuery<CursorPagedResult<ApplicationCardResponse>>
 {
     /// <summary>Scopes to an employer. Requires membership. Omitted, the caller's own.</summary>

@@ -18,7 +18,7 @@ namespace Diaspora.Modules.Marketplace.Application.Listings;
 /// counted against.
 /// </para>
 /// </summary>
-[Authorize(Permission = MarketplacePermissions.ListingCreate)]
+[RequirePermission(MarketplacePermissions.ListingCreate)]
 [Auditable]
 [Transactional(Reason = "Writes the listing and its analytics rollup together.")]
 [Diaspora.Application.Behaviors.PostsInArea(Diaspora.Contracts.Moderation.V1.ModerationAreas.Marketplace)]

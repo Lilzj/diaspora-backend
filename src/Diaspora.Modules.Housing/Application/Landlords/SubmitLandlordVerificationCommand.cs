@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Housing.Application.Landlords;
 /// its own published event.
 /// </para>
 /// </summary>
-[Authorize(Permission = HousingPermissions.LandlordSubmitVerification)]
+[RequirePermission(HousingPermissions.LandlordSubmitVerification)]
 [Auditable]
 public sealed record SubmitLandlordVerificationCommand : ICommand<Guid>
 {

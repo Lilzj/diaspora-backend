@@ -12,7 +12,7 @@ BSEC-010,LOW,3,,backend,No Content-Security-Policy although the host now serves 
 BSEC-011,MEDIUM,1,,backend,The published OpenAPI contract declares no security schemes at all,OPEN,,,
 BSEC-012,LOW,3,,backend,AllowedHosts is configured as a wildcard,OPEN,,,
 BSEC-013,LOW,2,,backend,Service-token issuance is registered with no production caller and bypasses every session check,OPEN,,,
-BSOLID-001,HIGH,0,3,backend,"AuthorizationBehavior and AuthorizeAttribute conflate three authorization questions into one optional-everything attribute, and the behaviour does nothing when all three are absent",OPEN,,,
+BSOLID-001,HIGH,0,3,backend,"AuthorizationBehavior and AuthorizeAttribute conflate three authorization questions into one optional-everything attribute, and the behaviour does nothing when all three are absent",FIXED,,test:AuthorizationCompilerEnforcementTests;test:AuthorizationDeclarationAnalyzerTests;test:AuthorizationBehaviorTests,2026-11-10
 BSOLID-002,MEDIUM,2,,backend,DiasporaDbContext carries seven responsibilities in 833 lines,OPEN,,,
 BSOLID-003,MEDIUM,2,,backend,"107 cross-module using directives reach another module's Domain, Application or Persistence, bypassing the published Extensibility, Contracts and Integration seams",OPEN,,,
 BSOLID-004,MEDIUM,2,,backend,Repository interfaces have grown to 13-24 members and mix aggregate access with report-shaped queries,OPEN,,,

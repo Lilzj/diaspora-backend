@@ -12,7 +12,7 @@ namespace Diaspora.Application.Identity.Commands.Lifecycle.DisableAccount;
 /// </para>
 /// </summary>
 [Auditable(Action = "identity.user.closure-proposed")]
-[Authorize(Permission = IdentityPermissions.DisableUser)]
+[RequirePermission(IdentityPermissions.DisableUser)]
 public sealed record DisableAccountCommand : ICommand<AccountActionProposalResponse>
 {
     public required Guid UserId { get; init; }

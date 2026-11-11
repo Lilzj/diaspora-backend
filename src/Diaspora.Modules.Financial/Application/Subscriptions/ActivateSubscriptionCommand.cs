@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Financial.Application.Subscriptions;
 /// subscription active against a payment that was never opened is access nobody paid for.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.SubscriptionsManage)]
+[RequirePermission(FinancialPermissions.SubscriptionsManage)]
 [Transactional(Reason = "A paid subscription writes the subscription and its first payment intent.")]
 [Auditable(Action = "financial.subscription.activate")]
 public sealed record ActivateSubscriptionCommand : ICommand<SubscriptionResponse>

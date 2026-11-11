@@ -19,7 +19,7 @@ namespace Diaspora.Modules.CommunityLife.Application.Series;
 /// permission would mean every deployment had to grant two things to allow one.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityLifePermissions.EventCreate)]
+[RequirePermission(CommunityLifePermissions.EventCreate)]
 [Transactional(Reason = "Writes the series, its first occurrences and their analytics records.")]
 [Auditable]
 [Diaspora.Application.Behaviors.PostsInArea(Diaspora.Contracts.Moderation.V1.ModerationAreas.Events)]

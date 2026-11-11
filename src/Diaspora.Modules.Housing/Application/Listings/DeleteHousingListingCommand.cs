@@ -9,7 +9,7 @@ namespace Diaspora.Modules.Housing.Application.Listings;
 /// somebody may still be living there under an arrangement it records.
 /// </para>
 /// </summary>
-[Authorize(Permission = HousingPermissions.ListingDeleteOwn)]
+[RequirePermission(HousingPermissions.ListingDeleteOwn)]
 [Auditable]
 public sealed record DeleteHousingListingCommand : ICommand
 {

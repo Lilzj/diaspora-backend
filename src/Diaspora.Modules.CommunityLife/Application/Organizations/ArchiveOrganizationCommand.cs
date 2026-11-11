@@ -5,7 +5,7 @@ using Diaspora.Modules.CommunityLife.Contracts.V1.Responses;
 namespace Diaspora.Modules.CommunityLife.Application.Organizations;
 
 /// <summary>Withdraws an organization page. Reversible only through a restore into draft.</summary>
-[Authorize(Permission = CommunityLifePermissions.OrganizationArchive)]
+[RequirePermission(CommunityLifePermissions.OrganizationArchive)]
 [Auditable]
 public sealed record ArchiveOrganizationCommand : ICommand<OrganizationResponse>
 {

@@ -76,7 +76,7 @@ internal static class AnalyticsExports
 }
 
 /// <summary>Produces an export of one subject's dataset for the caller.</summary>
-[Authorize(Permission = AnalyticsPermissions.CreatorRead)]
+[RequirePermission(AnalyticsPermissions.CreatorRead)]
 public sealed record RequestAnalyticsExportCommand : ICommand<AnalyticsExportResponse>
 {
     public required RequestAnalyticsExportRequest Request { get; init; }
@@ -174,7 +174,7 @@ public sealed class RequestAnalyticsExportCommandHandler
 }
 
 /// <summary>One of the caller's exports, and its link while the link is live.</summary>
-[Authorize(Permission = AnalyticsPermissions.CreatorRead)]
+[RequirePermission(AnalyticsPermissions.CreatorRead)]
 public sealed record GetAnalyticsExportQuery : IQuery<AnalyticsExportResponse>
 {
     public required string ExportId { get; init; }

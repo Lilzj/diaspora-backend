@@ -57,7 +57,7 @@ namespace Diaspora.Modules.Analytics.Application.Ingestion;
 /// heard of — the silent drop the registry exists to prevent, moved one layer up.
 /// </para>
 /// </summary>
-[Authorize(Permission = AnalyticsPermissions.TelemetryWrite)]
+[RequirePermission(AnalyticsPermissions.TelemetryWrite)]
 public sealed record RecordTelemetryCommand : ICommand<TelemetryIngestionResponse>
 {
     public required TelemetryBatchRequest Request { get; init; }

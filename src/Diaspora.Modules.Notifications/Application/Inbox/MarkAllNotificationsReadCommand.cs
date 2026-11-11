@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Notifications.Application.Inbox;
 /// across the lot.
 /// </para>
 /// </summary>
-[Authorize(Permission = NotificationPermissions.InboxManage)]
+[RequirePermission(NotificationPermissions.InboxManage)]
 [Transactional(Reason = "Moves every notification and the member's counters together.")]
 [Auditable]
 public sealed record MarkAllNotificationsReadCommand : ICommand<UnreadCountResponse>;

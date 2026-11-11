@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Marketplace.Application.Reservations;
 /// which a second buyer takes the same item.
 /// </para>
 /// </summary>
-[Authorize(Permission = MarketplacePermissions.ReservationCreate)]
+[RequirePermission(MarketplacePermissions.ReservationCreate)]
 [Auditable]
 [Transactional(Reason = "Holds the listing's stock and opens the reservation together.")]
 public sealed record CreateReservationCommand : ICommand<ReservationResponse>

@@ -10,7 +10,7 @@ using Microsoft.Extensions.Options;
 namespace Diaspora.Modules.GeographicIntelligence.Application.Scores;
 
 /// <summary>Several neighbourhoods, composed the same way, for a side-by-side surface.</summary>
-[Authorize(Policy = GeographicIntelligencePolicies.IntelligenceRead)]
+[RequirePolicy(GeographicIntelligencePolicies.IntelligenceRead)]
 public sealed record CompareNeighborhoodsQuery : IQuery<IReadOnlyList<NeighborhoodScoreResponse>>
 {
     public required IReadOnlyList<string> IdsOrSlugs { get; init; }

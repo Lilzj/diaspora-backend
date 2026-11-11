@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Housing.Application.Analytics;
 /// photographed badly, or not real.
 /// </para>
 /// </summary>
-[Authorize(Permission = HousingPermissions.ViewAnalytics)]
+[RequirePermission(HousingPermissions.ViewAnalytics)]
 public sealed record GetHousingAnalyticsQuery : IQuery<HousingAnalyticsResponse>
 {
     public required Guid ListingId { get; init; }

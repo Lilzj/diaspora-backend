@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Housing.Application.Moderation;
 /// queue matters.
 /// </para>
 /// </summary>
-[Authorize(Permission = HousingPermissions.Moderate)]
+[RequirePermission(HousingPermissions.Moderate)]
 public sealed record ListHousingReportsQuery : IQuery<IReadOnlyList<HousingReportResponse>>
 {
     public bool OpenOnly { get; init; } = true;

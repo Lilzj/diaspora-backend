@@ -13,7 +13,7 @@ namespace Diaspora.Application.Identity.Commands.Verification.SubmitVerification
 /// </para>
 /// </summary>
 [Auditable(Action = "identity.user.verification-requested")]
-[Authorize(Permission = "identity:verification:submit")]
+[RequirePermission("identity:verification:submit")]
 public sealed record SubmitVerificationRequestCommand : ICommand<AccessStateResponse>
 {
     public string? Notes { get; init; }

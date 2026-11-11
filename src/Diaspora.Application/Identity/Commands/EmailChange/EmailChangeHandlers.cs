@@ -24,7 +24,7 @@ namespace Diaspora.Application.Identity.Commands.EmailChange;
 /// </para>
 /// </summary>
 [Auditable(Action = "identity.user.email-change-requested")]
-[Authorize(Permission = "identity:profile:update")]
+[RequirePermission("identity:profile:update")]
 public sealed record RequestEmailChangeCommand : ICommand<EmailIdentityResponse>
 {
     public required string Address { get; init; }

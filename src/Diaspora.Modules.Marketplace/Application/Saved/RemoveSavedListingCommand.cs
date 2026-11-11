@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Marketplace.Application.Saved;
 /// to forget.
 /// </para>
 /// </summary>
-[Authorize(Permission = MarketplacePermissions.SavedManage)]
+[RequirePermission(MarketplacePermissions.SavedManage)]
 public sealed record RemoveSavedListingCommand : ICommand
 {
     public required Guid ListingId { get; init; }

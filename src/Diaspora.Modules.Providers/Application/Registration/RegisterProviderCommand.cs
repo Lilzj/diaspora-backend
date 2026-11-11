@@ -16,7 +16,7 @@ namespace Diaspora.Modules.Providers.Application.Registration;
 [Transactional]
 [Auditable]
 [Diaspora.Application.Behaviors.PostsInArea(Diaspora.Contracts.Moderation.V1.ModerationAreas.Providers)]
-[Authorize(Policy = ProviderPolicies.Register)]
+[RequirePolicy(ProviderPolicies.Register)]
 public sealed record RegisterProviderCommand : ICommand<ProviderResponse>
 {
     public required RegisterProviderRequest Request { get; init; }

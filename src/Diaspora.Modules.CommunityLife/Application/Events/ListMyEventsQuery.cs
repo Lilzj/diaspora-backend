@@ -4,7 +4,7 @@ using Diaspora.Modules.CommunityLife.Contracts.V1.Responses;
 namespace Diaspora.Modules.CommunityLife.Application.Events;
 
 /// <summary>The caller's own events, drafts included.</summary>
-[Authorize]
+[RequireAuthentication("The caller's own events, scoped from the token.")]
 public sealed record ListMyEventsQuery : IQuery<EventSearchResultResponse>
 {
     public Guid? OrganizationId { get; init; }

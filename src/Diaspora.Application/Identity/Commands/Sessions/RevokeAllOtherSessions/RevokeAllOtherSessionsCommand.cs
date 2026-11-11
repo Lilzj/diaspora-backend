@@ -7,5 +7,5 @@ namespace Diaspora.Application.Identity.Commands.Sessions.RevokeAllOtherSessions
 /// Signs the member out everywhere except the device they are using.
 /// </summary>
 [Auditable(Action = "identity.session.revoked-all")]
-[Authorize(Permission = "identity:sessions:revoke")]
+[RequirePermission("identity:sessions:revoke")]
 public sealed record RevokeAllOtherSessionsCommand : ICommand<OperationAcknowledgedResponse>;

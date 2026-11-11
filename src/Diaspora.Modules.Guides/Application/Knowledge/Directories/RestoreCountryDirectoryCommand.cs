@@ -14,7 +14,7 @@ namespace Diaspora.Modules.Guides.Application.Knowledge.Directories;
 /// needs is exactly the row archiving hid.
 /// </para>
 /// </summary>
-[Authorize(Permission = KnowledgePermissions.ManageDirectory)]
+[RequirePermission(KnowledgePermissions.ManageDirectory)]
 [Auditable]
 public sealed record RestoreCountryDirectoryCommand : ICommand
 {

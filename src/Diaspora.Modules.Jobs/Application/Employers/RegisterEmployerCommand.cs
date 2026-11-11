@@ -15,7 +15,7 @@ namespace Diaspora.Modules.Jobs.Application.Employers;
 /// makes atomic.
 /// </para>
 /// </summary>
-[Authorize(Permission = JobPermissions.EmployerCreate)]
+[RequirePermission(JobPermissions.EmployerCreate)]
 [Auditable]
 public sealed record RegisterEmployerCommand : ICommand<EmployerResponse>
 {

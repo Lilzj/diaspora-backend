@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Notifications.Application.Inbox;
 /// restore eventually calls the wrong one.
 /// </para>
 /// </summary>
-[Authorize(Permission = NotificationPermissions.InboxManage)]
+[RequirePermission(NotificationPermissions.InboxManage)]
 [Transactional(Reason = "Moves the notification and the member's counters together.")]
 [Auditable]
 public sealed record RestoreNotificationCommand : ICommand<NotificationResponse>

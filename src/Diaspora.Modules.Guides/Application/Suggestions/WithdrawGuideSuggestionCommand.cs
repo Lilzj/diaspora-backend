@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Guides.Application.Suggestions;
 /// friendlier word — the aggregate refuses it, whoever asks.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.Suggest)]
+[RequirePermission(GuidePermissions.Suggest)]
 [Auditable]
 public sealed record WithdrawGuideSuggestionCommand : ICommand<GuideSuggestionResponse>
 {

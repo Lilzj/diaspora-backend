@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Guides.Application.Lifecycle;
 /// privilege, and featuring is unambiguously a privilege.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.Feature)]
+[RequirePermission(GuidePermissions.Feature)]
 [Auditable]
 public sealed record FeatureGuideCommand : ICommand<GuideResponse>
 {

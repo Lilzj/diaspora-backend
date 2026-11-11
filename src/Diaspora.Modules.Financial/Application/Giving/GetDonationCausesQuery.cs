@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Financial.Application.Giving;
 /// mock's shape was the specification, so the swap is a data-source change rather than a redesign.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.GivingRead)]
+[RequirePermission(FinancialPermissions.GivingRead)]
 public sealed record GetDonationCausesQuery : IQuery<IReadOnlyList<DonationCauseResponse>>
 {
     public string? CountryCode { get; init; }

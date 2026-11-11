@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Media.Application.Processing;
 /// </para>
 /// </summary>
 [Auditable]
-[Authorize(Policy = MediaPolicies.ManageProcessing)]
+[RequirePolicy(MediaPolicies.ManageProcessing)]
 public sealed record RequeueProcessingCommand : ICommand<ProcessingJobResponse>
 {
     public required Guid MediaId { get; init; }

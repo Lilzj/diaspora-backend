@@ -18,7 +18,7 @@ namespace Diaspora.Modules.Housing.Application.Catalog;
 /// than to a moderation decision.
 /// </para>
 /// </summary>
-[Authorize(Permission = HousingPermissions.ManageCatalogue)]
+[RequirePermission(HousingPermissions.ManageCatalogue)]
 [Auditable]
 public sealed record UpsertAccommodationTypeCommand : ICommand<AccommodationTypeResponse>
 {

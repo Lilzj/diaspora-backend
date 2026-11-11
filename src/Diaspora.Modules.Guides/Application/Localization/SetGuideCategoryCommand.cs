@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Guides.Application.Localization;
 /// that act carry the risk of overwriting the author's in-flight edit.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.EditOwn)]
+[RequirePermission(GuidePermissions.EditOwn)]
 [Auditable]
 public sealed record SetGuideCategoryCommand : ICommand<GuideResponse>
 {

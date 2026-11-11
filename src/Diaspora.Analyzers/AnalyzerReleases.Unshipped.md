@@ -19,6 +19,7 @@ DSP4001 | Diaspora.Cqrs | Warning | A query handler must not write
 DSP4002 | Diaspora.Cqrs | Warning | A handler that saves twice in a row must declare [Transactional]
 DSP4003 | Diaspora.Cqrs | Warning | A command handler that stages a write must save it
 DSP4004 | Diaspora.Cqrs | Warning | [Transactional] belongs on the command, not on the handler
+DSP4005 | Diaspora.Cqrs | Warning | A request must declare what it requires of its caller
 DSP5001 | Diaspora.Contributors | Warning | A feature gate name must be module.capability
 DSP5002 | Diaspora.Contributors | Warning | A permission key must be module:resource:action
 DSP5003 | Diaspora.Contributors | Warning | A policy name must be dotted and namespaced to its module

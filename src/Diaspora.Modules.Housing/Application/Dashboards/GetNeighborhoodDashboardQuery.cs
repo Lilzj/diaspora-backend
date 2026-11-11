@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Housing.Application.Dashboards;
 /// what is unreviewed and what is waiting.
 /// </para>
 /// </summary>
-[Authorize(Permission = HousingPermissions.NeighborhoodManage)]
+[RequirePermission(HousingPermissions.NeighborhoodManage)]
 public sealed record GetNeighborhoodDashboardQuery : IQuery<NeighborhoodDashboardResponse>
 {
     /// <summary>Narrows the estate to one country. Editorial teams are usually regional.</summary>

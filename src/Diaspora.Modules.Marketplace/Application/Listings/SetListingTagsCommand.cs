@@ -4,7 +4,7 @@ using Diaspora.Modules.Marketplace.Contracts.V1.Requests;
 namespace Diaspora.Modules.Marketplace.Application.Listings;
 
 /// <summary>Replaces a listing's tags wholesale — that is how the chip editor saves.</summary>
-[Authorize(Permission = MarketplacePermissions.ListingEditOwn)]
+[RequirePermission(MarketplacePermissions.ListingEditOwn)]
 [Auditable]
 public sealed record SetListingTagsCommand : ICommand
 {

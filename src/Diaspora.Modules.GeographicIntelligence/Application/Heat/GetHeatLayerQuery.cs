@@ -18,7 +18,7 @@ using LocationCountryCode = Diaspora.Modules.Location.Domain.ValueObjects.Countr
 namespace Diaspora.Modules.GeographicIntelligence.Application.Heat;
 
 /// <summary>A density layer for a viewport.</summary>
-[Authorize(Policy = GeographicIntelligencePolicies.IntelligenceRead)]
+[RequirePolicy(GeographicIntelligencePolicies.IntelligenceRead)]
 public sealed record GetHeatLayerQuery : IQuery<HeatLayerResponse>
 {
     /// <summary>The client's layer id: <c>housing-availability</c>, <c>jobs</c>, …</summary>

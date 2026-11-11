@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Housing.Application.Viewings;
 /// appointments is a different act from moderating a public listing.
 /// </para>
 /// </summary>
-[Authorize(Permission = HousingPermissions.ViewingManage)]
+[RequirePermission(HousingPermissions.ViewingManage)]
 public sealed record GetViewingQuery : IQuery<HousingViewingResponse>
 {
     public required Guid ViewingId { get; init; }

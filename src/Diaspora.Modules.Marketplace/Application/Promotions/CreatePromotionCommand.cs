@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Marketplace.Application.Promotions;
 /// external reference is where a future billing module's receipt lands without a schema change.
 /// </para>
 /// </summary>
-[Authorize(Permission = MarketplacePermissions.ManagePromotions)]
+[RequirePermission(MarketplacePermissions.ManagePromotions)]
 [Auditable]
 public sealed record CreatePromotionCommand : ICommand<ListingPromotionResponse>
 {

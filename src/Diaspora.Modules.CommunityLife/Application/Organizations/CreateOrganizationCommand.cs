@@ -11,7 +11,7 @@ namespace Diaspora.Modules.CommunityLife.Application.Organizations;
 /// An organization whose owner membership failed to save would be a page nobody could administer.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityLifePermissions.OrganizationCreate)]
+[RequirePermission(CommunityLifePermissions.OrganizationCreate)]
 [Transactional(Reason = "Writes the organization, its owner membership and its analytics record.")]
 [Auditable]
 [Diaspora.Application.Behaviors.PostsInArea(Diaspora.Contracts.Moderation.V1.ModerationAreas.Events)]

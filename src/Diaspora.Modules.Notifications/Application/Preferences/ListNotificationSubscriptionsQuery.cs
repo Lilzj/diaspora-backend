@@ -17,7 +17,7 @@ namespace Diaspora.Modules.Notifications.Application.Preferences;
 /// second, and it is not derivable from a boolean.
 /// </para>
 /// </summary>
-[Authorize(Permission = NotificationPermissions.PreferencesRead)]
+[RequirePermission(NotificationPermissions.PreferencesRead)]
 public sealed record ListNotificationSubscriptionsQuery
     : IQuery<IReadOnlyList<NotificationSubscriptionResponse>>;
 

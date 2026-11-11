@@ -10,7 +10,7 @@ namespace Diaspora.Modules.CommunityLife.Application.Organizations;
 /// hours and its leadership looked at before members are pointed at it again.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityLifePermissions.OrganizationRestore)]
+[RequirePermission(CommunityLifePermissions.OrganizationRestore)]
 [Auditable]
 public sealed record RestoreOrganizationCommand : ICommand<OrganizationResponse>
 {

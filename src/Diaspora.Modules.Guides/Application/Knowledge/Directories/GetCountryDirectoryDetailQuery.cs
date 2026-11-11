@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Guides.Application.Knowledge.Directories;
 /// consumer's rendering depend on who was asking.
 /// </para>
 /// </summary>
-[Authorize(Permission = KnowledgePermissions.ManageDirectory)]
+[RequirePermission(KnowledgePermissions.ManageDirectory)]
 public sealed record GetCountryDirectoryDetailQuery : IQuery<CountryDirectoryDetailResponse>
 {
     public required string CountryCode { get; init; }

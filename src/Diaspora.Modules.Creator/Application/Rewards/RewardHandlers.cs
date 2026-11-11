@@ -31,7 +31,7 @@ namespace Diaspora.Modules.Creator.Application.Rewards;
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>The caller's sign-up bonus, as a state.</summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 public sealed record GetMySignupBonusQuery : IQuery<SignupBonusResponse>;
 
 public sealed class GetMySignupBonusQueryHandler
@@ -92,7 +92,7 @@ public sealed class GetMySignupBonusQueryHandler
 /// requirements here rather than trusting that the client checked before calling.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.Participate)]
+[RequirePermission(CreatorPermissions.Participate)]
 [Auditable(Action = "creator.signup-bonus.acknowledge")]
 public sealed record AcknowledgeSignupBonusCommand : ICommand<SignupBonusResponse>
 {
@@ -255,7 +255,7 @@ public sealed class SignupBonusEligibility
 }
 
 /// <summary>CREATOR-GAP-011. The rules catalogue, with its version and expiry policy.</summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 public sealed record GetRewardRulesQuery : IQuery<CreatorPointRulesResponse>;
 
 public sealed class GetRewardRulesQueryHandler
@@ -296,7 +296,7 @@ public sealed class GetRewardRulesQueryHandler
 /// holding a figure it could decrement.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 public sealed record GetRewardCatalogueQuery : IQuery<CreatorRewardCatalogueResponse>;
 
 public sealed class GetRewardCatalogueQueryHandler
@@ -414,7 +414,7 @@ public sealed class GetRewardCatalogueQueryHandler
 }
 
 /// <summary>The caller's redemptions.</summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 public sealed record ListMyRedemptionsQuery : IQuery<IReadOnlyList<CreatorRewardRedemptionResponse>>
 {
     public int? Take { get; init; }
@@ -474,7 +474,7 @@ public sealed class ListMyRedemptionsQueryHandler
 /// courtesy to the client; this is the decision.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.Participate)]
+[RequirePermission(CreatorPermissions.Participate)]
 [Transactional(Reason =
     "Debits B15's points balance and writes the redemption. A debit that committed without its "
     + "redemption would take points for nothing.")]

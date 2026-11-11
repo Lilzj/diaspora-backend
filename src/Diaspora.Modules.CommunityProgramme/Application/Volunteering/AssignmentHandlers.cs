@@ -29,7 +29,7 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Volunteering;
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>Places an approved volunteer on a shift.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.ManageVolunteers)]
+[RequirePermission(CommunityProgrammePermissions.ManageVolunteers)]
 [Transactional(Reason =
     "Creates the assignment and reconciles the opportunity's and the shift's counters as one unit. "
     + "An assignment that committed without the recount would leave a place counted as free that "
@@ -193,7 +193,7 @@ public sealed class AssignVolunteerCommandHandler
 }
 
 /// <summary>Every assignment the caller holds.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record ListMyAssignmentsQuery : IQuery<IReadOnlyList<VolunteerAssignmentResponse>>;
 
 public sealed class ListMyAssignmentsQueryHandler
@@ -250,7 +250,7 @@ public sealed class ListMyAssignmentsQueryHandler
 /// timestamps are recorded and neither is counted.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record CheckVolunteerCommand : ICommand<VolunteerAssignmentResponse>
 {
     public required Guid AssignmentId { get; init; }
@@ -347,7 +347,7 @@ public sealed class CheckVolunteerCommandHandler
 /// An organizer confirms the hours actually worked, which completes the assignment and issues the
 /// certificate.
 /// </summary>
-[Authorize(Permission = CommunityProgrammePermissions.ManageVolunteers)]
+[RequirePermission(CommunityProgrammePermissions.ManageVolunteers)]
 [Transactional(Reason =
     "Confirms the hours and issues the certificate as one unit. A certificate that committed without "
     + "the confirmed hours behind it would be a credential with nothing to stand on, and confirmed "
@@ -473,7 +473,7 @@ public sealed class ConfirmVolunteerHoursCommandHandler
 }
 
 /// <summary>The caller's volunteering record. Confirmed hours only.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record GetMyVolunteerHoursQuery : IQuery<VolunteerHoursResponse>;
 
 public sealed class GetMyVolunteerHoursQueryHandler
@@ -526,7 +526,7 @@ public sealed class GetMyVolunteerHoursQueryHandler
 }
 
 /// <summary>The caller's issued certificates.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record ListMyCertificatesQuery : IQuery<IReadOnlyList<VolunteerCertificateResponse>>;
 
 public sealed class ListMyCertificatesQueryHandler

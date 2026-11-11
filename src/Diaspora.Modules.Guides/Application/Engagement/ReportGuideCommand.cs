@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Guides.Application.Engagement;
 /// "has this been dealt with".
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.Report)]
+[RequirePermission(GuidePermissions.Report)]
 [Auditable]
 public sealed record ReportGuideCommand : ICommand
 {

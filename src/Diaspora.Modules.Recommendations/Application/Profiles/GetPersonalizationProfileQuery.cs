@@ -10,5 +10,5 @@ namespace Diaspora.Modules.Recommendations.Application.Profiles;
 /// and nobody else's, which is a property of the query's shape rather than of a check inside it.
 /// </para>
 /// </summary>
-[Authorize(Permission = RecommendationPermissions.ProfileRead)]
+[RequirePermission(RecommendationPermissions.ProfileRead)]
 public sealed record GetPersonalizationProfileQuery : IQuery<PersonalizationProfileResponse>;

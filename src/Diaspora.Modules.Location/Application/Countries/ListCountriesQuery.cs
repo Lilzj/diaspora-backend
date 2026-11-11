@@ -13,7 +13,7 @@ namespace Diaspora.Modules.Location.Application.Countries;
 /// than twenty.
 /// </para>
 /// </summary>
-[Authorize(Permission = LocationPermissions.ReadCatalog)]
+[RequirePermission(LocationPermissions.ReadCatalog)]
 public sealed record ListCountriesQuery : IQuery<PagedResult<CountrySummaryResponse>>
 {
     public PaginationRequest Pagination { get; init; } = new();

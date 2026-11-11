@@ -30,7 +30,7 @@ namespace Diaspora.Modules.Conversations.Application.Conversations;
 /// at once defeats it entirely.
 /// </para>
 /// </summary>
-[Authorize(Permission = ConversationPermissions.Participate)]
+[RequirePermission(ConversationPermissions.Participate)]
 [Transactional(Reason =
     "Opens the conversation, both participant rows and the opening message as one unit. A "
     + "conversation that committed without its first message would be an empty thread the client "

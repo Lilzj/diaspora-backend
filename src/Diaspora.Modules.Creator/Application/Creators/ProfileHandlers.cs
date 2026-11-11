@@ -35,7 +35,7 @@ namespace Diaspora.Modules.Creator.Application.Creators;
 /// refused them.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 [SideEffecting(Reason =
     "Opens the caller's creator record on first read and brings their status up to date. A member "
     + "opening the creator dashboard should find a projection rather than a 404.")]
@@ -84,7 +84,7 @@ public sealed class GetMyCreatorProfileQueryHandler
 /// not depend on the member having been shown a disabled button.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.ProfileManage)]
+[RequirePermission(CreatorPermissions.ProfileManage)]
 [Auditable(Action = "creator.profile.update")]
 public sealed record UpdateCreatorProfileCommand : ICommand<CreatorProfileResponse>
 {
@@ -192,7 +192,7 @@ public sealed class UpdateCreatorProfileCommandHandler
 /// discovery off has not hidden from themselves.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 public sealed record GetPublicCreatorQuery : IQuery<PublicCreatorResponse>
 {
     public required Guid CreatorId { get; init; }
@@ -256,7 +256,7 @@ public sealed class GetPublicCreatorQueryHandler
 /// everybody but the creator, exactly as <see cref="GetPublicCreatorQuery"/> does.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 public sealed record GetPublicCreatorByUserQuery : IQuery<PublicCreatorResponse>
 {
     public required Guid UserId { get; init; }

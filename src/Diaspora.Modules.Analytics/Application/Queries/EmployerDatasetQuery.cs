@@ -31,7 +31,7 @@ namespace Diaspora.Modules.Analytics.Application.Queries;
 /// jurisdictions, an employment-law one. Nothing here identifies an applicant.
 /// </para>
 /// </summary>
-[Authorize(Permission = AnalyticsPermissions.ContentReadOwn)]
+[RequirePermission(AnalyticsPermissions.ContentReadOwn)]
 public sealed record GetEmployerAnalyticsDatasetQuery : IQuery<AnalyticsDatasetResponse>
 {
     public string? Period { get; init; }

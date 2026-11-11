@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Marketplace.Application.Reservations;
 /// until its window lapsed.
 /// </para>
 /// </summary>
-[Authorize(Permission = MarketplacePermissions.ReservationManage)]
+[RequirePermission(MarketplacePermissions.ReservationManage)]
 [Auditable]
 public sealed record UpdateReservationCommand : ICommand<ReservationResponse>
 {

@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Housing.Application.Listings;
 /// four beds while five people are booked into them.
 /// </para>
 /// </summary>
-[Authorize(Permission = HousingPermissions.ListingEditOwn)]
+[RequirePermission(HousingPermissions.ListingEditOwn)]
 [Auditable]
 public sealed record SetHousingAvailabilityCommand : ICommand<HousingListingResponse>
 {

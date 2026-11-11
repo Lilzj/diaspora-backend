@@ -13,7 +13,7 @@ namespace Diaspora.Modules.Location.Application.Experience;
 /// discovering it first.
 /// </para>
 /// </summary>
-[Authorize(Permission = LocationPermissions.ManageExperience)]
+[RequirePermission(LocationPermissions.ManageExperience)]
 public sealed record DeclareCountryExperienceCommand : ICommand<CountryExperienceResponse>
 {
     public required DeclareCountryExperienceRequest Experience { get; init; }

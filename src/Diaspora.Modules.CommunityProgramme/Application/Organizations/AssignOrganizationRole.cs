@@ -39,7 +39,7 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Organizations;
 /// around a write this module does not own.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityProgrammePermissions.ManageProgramme)]
+[RequirePermission(CommunityProgrammePermissions.ManageProgramme)]
 public sealed record AssignOrganizationRoleCommand : ICommand<OrganizationCapabilitiesResponse>
 {
     public required Guid OrganizationId { get; init; }

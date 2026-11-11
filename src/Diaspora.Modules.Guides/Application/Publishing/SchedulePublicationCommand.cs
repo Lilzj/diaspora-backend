@@ -17,7 +17,7 @@ namespace Diaspora.Modules.Guides.Application.Publishing;
 /// one without the other.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.Schedule)]
+[RequirePermission(GuidePermissions.Schedule)]
 [Auditable]
 public sealed record SchedulePublicationCommand : ICommand<GuideResponse>
 {

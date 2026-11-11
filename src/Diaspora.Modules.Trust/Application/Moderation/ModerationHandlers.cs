@@ -26,7 +26,7 @@ namespace Diaspora.Modules.Trust.Application.Moderation;
 // ═════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>The moderation queue: listed cases, priority first, then age.</summary>
-[Authorize(Permission = TrustPermissions.Moderate)]
+[RequirePermission(TrustPermissions.Moderate)]
 public sealed record ListModerationQueueQuery : IQuery<PagedResult<ModerationQueueItemResponse>>
 {
     public PaginationRequest Pagination { get; init; } = new();
@@ -106,7 +106,7 @@ public sealed class ListModerationQueueQueryHandler
 }
 
 /// <summary>One case in full: its reports (without reporters), and every decision on it.</summary>
-[Authorize(Permission = TrustPermissions.Moderate)]
+[RequirePermission(TrustPermissions.Moderate)]
 public sealed record GetModerationCaseQuery : IQuery<ModerationQueueItemResponse>
 {
     public Guid? ItemId { get; init; }
@@ -147,7 +147,7 @@ public sealed class GetModerationCaseQueryHandler
 }
 
 /// <summary>Takes a case onto the caller's desk, or releases it.</summary>
-[Authorize(Permission = TrustPermissions.Moderate)]
+[RequirePermission(TrustPermissions.Moderate)]
 [Transactional]
 public sealed record AssignModerationItemCommand : ICommand<ModerationQueueItemResponse>
 {
@@ -230,7 +230,7 @@ public sealed class AssignModerationItemCommandHandler
 /// A moderator's decision on a case: no action, hide pending review, remove (a proposal a second
 /// member of staff confirms), or restore. Carried out on the content in the same transaction.
 /// </summary>
-[Authorize(Permission = TrustPermissions.Moderate)]
+[RequirePermission(TrustPermissions.Moderate)]
 [Transactional]
 [Auditable(Action = "trust.case.decided")]
 public sealed record RecordModerationDecisionCommand : ICommand<ModerationQueueItemResponse>
@@ -340,7 +340,7 @@ public sealed class RecordModerationDecisionCommandHandler
 /// A second member of staff checks the first one's decision: a proposed removal, an emergency hide,
 /// or a case staff opened with no report.
 /// </summary>
-[Authorize(Permission = TrustPermissions.Moderate)]
+[RequirePermission(TrustPermissions.Moderate)]
 [Transactional]
 [Auditable(Action = "trust.case.second-review")]
 public sealed record CompleteSecondReviewCommand : ICommand<ModerationQueueItemResponse>
@@ -451,7 +451,7 @@ public sealed class CompleteSecondReviewCommandHandler
 /// Staff open a case with no report, because staff do find scams first. Listed at once, and
 /// checked by a second member of staff within seven days.
 /// </summary>
-[Authorize(Permission = TrustPermissions.Moderate)]
+[RequirePermission(TrustPermissions.Moderate)]
 [Transactional]
 [Auditable(Action = "trust.case.opened-by-staff")]
 public sealed record OpenModerationCaseCommand : ICommand<ModerationQueueItemResponse>
@@ -561,7 +561,7 @@ public sealed class OpenModerationCaseCommandHandler
 /// The owner fixed what was hidden and asks a moderator to look again. Open to any member, for
 /// their own content only.
 /// </summary>
-[Authorize(Permission = TrustPermissions.ReadSelf)]
+[RequirePermission(TrustPermissions.ReadSelf)]
 [Transactional]
 [Auditable(Action = "trust.case.review-requested")]
 public sealed record RequestCaseReviewCommand : ICommand
@@ -620,7 +620,7 @@ public sealed class RequestCaseReviewCommandHandler : ICommandHandler<RequestCas
 }
 
 /// <summary>A decision about the caller's own content, as they read it. Somebody else's answers as missing.</summary>
-[Authorize(Permission = TrustPermissions.ReadSelf)]
+[RequirePermission(TrustPermissions.ReadSelf)]
 public sealed record GetMyModerationCaseQuery : IQuery<MyModerationCaseResponse>
 {
     public required Guid ItemId { get; init; }

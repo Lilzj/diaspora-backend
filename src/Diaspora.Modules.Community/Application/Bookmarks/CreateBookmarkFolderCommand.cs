@@ -6,7 +6,7 @@ namespace Diaspora.Modules.Community.Application.Bookmarks;
 
 /// <summary>Creates a member-named folder.</summary>
 [Auditable]
-[Authorize(Policy = CommunityPolicies.Bookmark)]
+[RequirePolicy(CommunityPolicies.Bookmark)]
 public sealed record CreateBookmarkFolderCommand : ICommand<BookmarkFolderResponse>
 {
     public required CreateBookmarkFolderRequest Request { get; init; }

@@ -6,7 +6,7 @@ using Diaspora.Modules.Location.Domain.ValueObjects;
 namespace Diaspora.Modules.Location.Application.Nearby;
 
 /// <summary>The catalogue nodes inside a drawn outline.</summary>
-[Authorize(Permission = LocationPermissions.Hyperlocal)]
+[RequirePermission(LocationPermissions.Hyperlocal)]
 public sealed record SearchWithinPolygonQuery : IQuery<IReadOnlyList<AreaSummaryResponse>>
 {
     public required IReadOnlyList<GeoCoordinate> Vertices { get; init; }

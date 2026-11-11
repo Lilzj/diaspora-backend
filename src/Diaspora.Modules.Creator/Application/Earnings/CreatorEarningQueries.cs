@@ -13,7 +13,7 @@ using Microsoft.Extensions.Options;
 namespace Diaspora.Modules.Creator.Application.Earnings;
 
 /// <summary>The caller's own earnings, newest first — CREATOR-GAP-008.</summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 public sealed record GetMyEarningsQuery : IQuery<CreatorEarningPageResponse>
 {
     /// <summary>A <c>CreatorEarningState</c> name. Absent means every state.</summary>
@@ -37,7 +37,7 @@ public sealed record GetMyEarningsQuery : IQuery<CreatorEarningPageResponse>
 }
 
 /// <summary>What the caller has earned, totalled — CREATOR-GAP-008.</summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 public sealed record GetMyRevenueSummaryQuery : IQuery<CreatorRevenueSummaryResponse>
 {
     /// <summary>Days to look back over. Absent means the whole history.</summary>

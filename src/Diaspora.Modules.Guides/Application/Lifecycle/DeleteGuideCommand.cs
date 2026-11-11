@@ -15,7 +15,7 @@ namespace Diaspora.Modules.Guides.Application.Lifecycle;
 /// client to render it.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.DeleteOwn)]
+[RequirePermission(GuidePermissions.DeleteOwn)]
 [Auditable]
 public sealed record DeleteGuideCommand : ICommand
 {

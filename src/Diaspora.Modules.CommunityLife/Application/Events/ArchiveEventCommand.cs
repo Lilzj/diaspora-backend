@@ -5,7 +5,7 @@ using Diaspora.Modules.CommunityLife.Contracts.V1.Responses;
 namespace Diaspora.Modules.CommunityLife.Application.Events;
 
 /// <summary>Files an event away.</summary>
-[Authorize(Permission = CommunityLifePermissions.EventArchive)]
+[RequirePermission(CommunityLifePermissions.EventArchive)]
 [Auditable]
 public sealed record ArchiveEventCommand : ICommand<EventResponse>
 {

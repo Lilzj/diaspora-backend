@@ -39,7 +39,7 @@ namespace Diaspora.Modules.Analytics.Application.Queries;
 /// datasets share: they are one question asked of four content types.
 /// </para>
 /// </summary>
-[Authorize(Permission = AnalyticsPermissions.ContentReadOwn)]
+[RequirePermission(AnalyticsPermissions.ContentReadOwn)]
 public sealed record GetSellerAnalyticsDatasetQuery : IQuery<AnalyticsDatasetResponse>
 {
     public string? Period { get; init; }

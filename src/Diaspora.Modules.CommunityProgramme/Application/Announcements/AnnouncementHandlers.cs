@@ -30,7 +30,7 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Announcements;
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>Publishes a scoped announcement.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.PublishAnnouncements)]
+[RequirePermission(CommunityProgrammePermissions.PublishAnnouncements)]
 [Transactional(Reason =
     "Writes the announcement and its media references as one unit, and raises the publication event "
     + "inside the same transaction so B13 cannot fan out a post that did not commit.")]
@@ -234,7 +234,7 @@ public sealed class PublishAnnouncementCommandHandler
 /// that organization. A caller who is not one does not receive the row and does not learn it exists.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record ListAnnouncementsQuery
     : IQuery<CommunityPageResponse<CommunityAnnouncementResponse>>
 {

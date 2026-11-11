@@ -40,6 +40,20 @@ internal sealed class PlatformSymbols
         SideEffectingAttribute = compilation.GetTypeByMetadataName(
             "Diaspora.Application.Abstractions.SideEffectingAttribute");
 
+        Command = compilation.GetTypeByMetadataName("Diaspora.Application.Abstractions.ICommand");
+        CommandWithResponse = compilation.GetTypeByMetadataName(
+            "Diaspora.Application.Abstractions.ICommand`1");
+        Query = compilation.GetTypeByMetadataName("Diaspora.Application.Abstractions.IQuery`1");
+
+        RequirePermissionAttribute = compilation.GetTypeByMetadataName(
+            "Diaspora.Application.Abstractions.RequirePermissionAttribute");
+        RequirePolicyAttribute = compilation.GetTypeByMetadataName(
+            "Diaspora.Application.Abstractions.RequirePolicyAttribute");
+        RequireAuthenticationAttribute = compilation.GetTypeByMetadataName(
+            "Diaspora.Application.Abstractions.RequireAuthenticationAttribute");
+        AllowAnonymousAttribute = compilation.GetTypeByMetadataName(
+            "Diaspora.Application.Abstractions.AllowAnonymousAttribute");
+
         NotificationHandler = compilation.GetTypeByMetadataName("MediatR.INotificationHandler`1");
         Mediator = compilation.GetTypeByMetadataName("MediatR.IMediator");
         Sender = compilation.GetTypeByMetadataName("MediatR.ISender");
@@ -74,6 +88,13 @@ internal sealed class PlatformSymbols
     public INamedTypeSymbol? QueryHandler { get; }
     public INamedTypeSymbol? TransactionalAttribute { get; }
     public INamedTypeSymbol? SideEffectingAttribute { get; }
+    public INamedTypeSymbol? Command { get; }
+    public INamedTypeSymbol? CommandWithResponse { get; }
+    public INamedTypeSymbol? Query { get; }
+    public INamedTypeSymbol? RequirePermissionAttribute { get; }
+    public INamedTypeSymbol? RequirePolicyAttribute { get; }
+    public INamedTypeSymbol? RequireAuthenticationAttribute { get; }
+    public INamedTypeSymbol? AllowAnonymousAttribute { get; }
     public INamedTypeSymbol? NotificationHandler { get; }
     public INamedTypeSymbol? Mediator { get; }
     public INamedTypeSymbol? Sender { get; }

@@ -15,7 +15,7 @@ namespace Diaspora.Modules.Guides.Application.Knowledge.Directories;
 /// which countries the platform serves is a structural decision, not an editorial one.
 /// </para>
 /// </summary>
-[Authorize(Permission = KnowledgePermissions.ManageDirectory)]
+[RequirePermission(KnowledgePermissions.ManageDirectory)]
 [Auditable]
 public sealed record CreateCountryDirectoryCommand : ICommand<CountryDirectoryDetailResponse>
 {

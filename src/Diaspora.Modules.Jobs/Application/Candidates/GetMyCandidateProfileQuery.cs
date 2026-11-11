@@ -19,5 +19,5 @@ namespace Diaspora.Modules.Jobs.Application.Candidates;
 /// takes an identifier.
 /// </para>
 /// </summary>
-[Authorize(Policy = JobPolicies.CandidateManage)]
+[RequirePolicy(JobPolicies.CandidateManage)]
 public sealed record GetMyCandidateProfileQuery : IQuery<CandidateProfileResponse>;

@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Notifications.Application.Inbox;
 /// inbox that shows nothing is a member who stops trusting both.
 /// </para>
 /// </summary>
-[Authorize(Permission = NotificationPermissions.InboxManage)]
+[RequirePermission(NotificationPermissions.InboxManage)]
 [Transactional(Reason = "Moves the notification and the member's unread counters together.")]
 public sealed record MarkNotificationReadCommand : ICommand<NotificationResponse>
 {

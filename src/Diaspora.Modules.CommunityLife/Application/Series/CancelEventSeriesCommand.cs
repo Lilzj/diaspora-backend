@@ -11,7 +11,7 @@ namespace Diaspora.Modules.CommunityLife.Application.Series;
 /// leave some attendees told and others still expecting to come.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityLifePermissions.EventCancel)]
+[RequirePermission(CommunityLifePermissions.EventCancel)]
 [Transactional(Reason = "Cancels the series and releases every future occurrence's places.")]
 [Auditable]
 public sealed record CancelEventSeriesCommand : ICommand<EventSeriesResponse>

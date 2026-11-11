@@ -13,12 +13,14 @@ namespace Diaspora.Application.Identity.Commands.Privacy;
 /// <summary>Everything the platform holds that the member gave it.</summary>
 // PrivacyController is [Authorize] at the class, and the export is of the caller's own data,
 // scoped from the token.
-[Authorize]
+[RequireAuthentication(
+    "The caller's own data, scoped from the token. A permission here would gate a member out of " +
+    "their own export.")]
 public sealed record ExportMyDataQuery : IQuery<PersonalDataExport>;
 
 /// <summary>What erasing this account would do. Changes nothing.</summary>
 // Same gate and same scoping as DeleteMyAccountCommand.
-[Authorize]
+[RequireAuthentication("What erasing the caller's own account would do. Reads nothing but their own data.")]
 public sealed record PreviewMyAccountDeletionQuery : IQuery<AccountErasureReceipt>;
 
 /// <summary>
@@ -36,7 +38,9 @@ public sealed record PreviewMyAccountDeletionQuery : IQuery<AccountErasureReceip
 /// </param>
 // PrivacyController is [Authorize] at the class. The caller may only ever delete themselves,
 // which the handler enforces from the token rather than from the request.
-[Authorize]
+[RequireAuthentication(
+    "Erasing the caller's own account. The identity comes from the token, so there is nobody else " +
+    "it could erase.")]
 public sealed record DeleteMyAccountCommand(
     string CurrentPassword,
     string Confirmation) : ICommand<AccountErasureReceipt>;

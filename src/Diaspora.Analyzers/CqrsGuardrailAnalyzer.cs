@@ -32,7 +32,8 @@ public sealed class CqrsGuardrailAnalyzer : DiagnosticAnalyzer
         Rules.QueryHandlerWrites,
         Rules.SequentialSavesWithoutTransaction,
         Rules.CommandHandlerNeverSaves,
-        Rules.TransactionalOnHandler
+        Rules.TransactionalOnHandler,
+        Rules.RequestDeclaresNoAuthorization
     ];
 
     public override void Initialize(AnalysisContext context)
@@ -54,6 +55,16 @@ public sealed class CqrsGuardrailAnalyzer : DiagnosticAnalyzer
 
         context.RegisterSyntaxNodeAction(
             node => AnalyzeType(node, symbols), SyntaxKind.ClassDeclaration);
+
+        // DSP4005 looks at the REQUEST rather than the handler, and a request is almost always a
+        // record -- so this needs its own registration. Records were outside this analyzer
+        // entirely until BSOLID-001, which is why a rule about the request type could not simply
+        // be added to AnalyzeType.
+        context.RegisterSyntaxNodeAction(
+            node => AnalyzeRequest(node, symbols),
+            SyntaxKind.RecordDeclaration,
+            SyntaxKind.RecordStructDeclaration,
+            SyntaxKind.ClassDeclaration);
     }
 
     private static void AnalyzeType(SyntaxNodeAnalysisContext context, PlatformSymbols symbols)
@@ -205,4 +216,64 @@ public sealed class CqrsGuardrailAnalyzer : DiagnosticAnalyzer
             .Count(statement => statement.DescendantNodesAndSelf()
                 .OfType<InvocationExpressionSyntax>()
                 .Any(invocation => Settlement.IsSave(invocation, model)));
+
+    /// <summary>
+    /// DSP4005 — a request that says nothing about who may send it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Reported on the request type, which is where the decision belongs: <c>AuthorizationBehavior</c>
+    /// reads the attribute off <c>TRequest</c> because that is the type MediatR closes the pipeline
+    /// over, and a route-level declaration cannot be seen from there.
+    /// </para>
+    /// <para>
+    /// <b>A warning rather than an error, because the runtime already refuses it.</b> The behaviour
+    /// throws on an unannotated request, so this is belt to that brace — it moves the discovery
+    /// from a 401 on a shipped route to a squiggle in the editor. Making it an error would also
+    /// break a work-in-progress request before its author had chosen, which is the moment they are
+    /// most likely to be reading the rule's description.
+    /// </para>
+    /// </remarks>
+    private static void AnalyzeRequest(SyntaxNodeAnalysisContext context, PlatformSymbols symbols)
+    {
+        if (symbols.Command is null && symbols.CommandWithResponse is null && symbols.Query is null)
+        {
+            return;
+        }
+
+        var declaration = (TypeDeclarationSyntax)context.Node;
+
+        if (context.SemanticModel.GetDeclaredSymbol(declaration, context.CancellationToken)
+            is not { IsAbstract: false } type)
+        {
+            return;
+        }
+
+        var isRequest = PlatformSymbols.Implements(type, symbols.Command)
+                        || PlatformSymbols.Implements(type, symbols.CommandWithResponse)
+                        || PlatformSymbols.Implements(type, symbols.Query);
+
+        if (!isRequest)
+        {
+            return;
+        }
+
+        // Any one of the four is a declaration. There is deliberately no base type to probe for:
+        // an abstract "authorized request" would be somewhere to be authorized without saying how,
+        // which is the state BSOLID-001's split removed.
+        var declared = PlatformSymbols.HasAttribute(type, symbols.RequirePermissionAttribute)
+                       || PlatformSymbols.HasAttribute(type, symbols.RequirePolicyAttribute)
+                       || PlatformSymbols.HasAttribute(type, symbols.RequireAuthenticationAttribute)
+                       || PlatformSymbols.HasAttribute(type, symbols.AllowAnonymousAttribute);
+
+        if (declared)
+        {
+            return;
+        }
+
+        context.ReportDiagnostic(Diagnostic.Create(
+            Rules.RequestDeclaresNoAuthorization,
+            declaration.Identifier.GetLocation(),
+            type.Name));
+    }
 }

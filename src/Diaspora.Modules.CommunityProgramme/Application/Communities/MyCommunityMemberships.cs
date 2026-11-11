@@ -26,7 +26,7 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Communities;
 /// <c>me</c> is a reserved handle, so <c>/communities/me/…</c> is a space no community can take.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record GetMyCommunityMembershipsQuery : IQuery<CommunityMembershipSetResponse>;
 
 public sealed class GetMyCommunityMembershipsQueryHandler
@@ -127,7 +127,7 @@ public sealed class GetMyCommunityMembershipsQueryHandler
 /// member that none of them chose. No migration here writes it.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record SetPrimaryCommunityCommand : ICommand<CommunityMembershipSetResponse>
 {
     /// <summary>The community to lead with, or null to clear.</summary>

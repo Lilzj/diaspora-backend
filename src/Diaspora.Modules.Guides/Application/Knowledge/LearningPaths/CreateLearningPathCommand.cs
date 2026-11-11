@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Guides.Application.Knowledge.LearningPaths;
 /// written over days and must not be half-visible to newcomers while it is.
 /// </para>
 /// </summary>
-[Authorize(Permission = KnowledgePermissions.ManagePaths)]
+[RequirePermission(KnowledgePermissions.ManagePaths)]
 [Auditable]
 public sealed record CreateLearningPathCommand : ICommand<LearningPathResponse>
 {
