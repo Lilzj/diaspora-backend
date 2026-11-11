@@ -3,7 +3,7 @@ BSEC-001,HIGH,0,1,backend,"X-Forwarded-For is trusted from any source, defeating
 BSEC-002,HIGH,0,2,backend,Rate limiting is applied to 4 of 21 module route groups; ~900 endpoints are unthrottled,FIXED,BSEC-001,test:RateLimitCoverageTests;test:RateLimitConventionTests;test:RateLimitingTests,2026-11-10
 BSEC-003,HIGH,0,3,backend,"Authorization fails open: 430 of 951 endpoints have no route-level policy, the CQRS behaviour skips unannotated requests, and the guardrail test that should catch this does not exist",FIXED,,test:AuthorizationBehaviorTests;test:RequestAuthorizationArchitectureTests;test:RouteAuthorizationCoverageTests;test:ClaimsPermissionServicePolicyTests,2026-11-10
 BSEC-004,MEDIUM,1,,backend,"Unauthenticated, unthrottled engagement writes inflate counters that feed trending and creator recognition",OPEN,,,
-BSEC-005,MEDIUM,1,,backend,Media served Content-Disposition inline although the code's own comment forbids it and names stored XSS as the reason,OPEN,,,
+BSEC-005,MEDIUM,1,,backend,Media served Content-Disposition inline although the code's own comment forbids it and names stored XSS as the reason,FIXED,,test:MediaModuleTests;test:MediaValueObjectTests,2026-11-11
 BSEC-006,MEDIUM,1,,backend,No request-body size limit is configured; the upload route's documented cap does not exist,OPEN,,,
 BSEC-007,HIGH,0,4,backend,No MFA and no step-up authentication: a single bearer token can register a payout destination and request a withdrawal,FIXED,,test:StepUpBehaviorTests;test:FinancialMovementTests,2026-11-10
 BSEC-008,MEDIUM,1,,backend,"Live production database, object-storage and JWT signing secrets sit in the working tree, with no rotation mechanism",OPEN,,,

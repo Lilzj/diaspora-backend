@@ -138,14 +138,100 @@ internal static class MediaContentEndpoints
             // CDN serving one member's verification document to the next caller.
             : "no-store, no-cache, must-revalidate, private";
 
-        // Always an attachment disposition with an explicit type, never inline. An HTML or SVG
-        // file served inline from the platform's own origin is stored cross-site scripting;
-        // forcing a download makes the content type irrelevant to the browser's parser.
-        headers.ContentDisposition =
-            $"inline; filename=\"{content.FileName}\"";
+        // BSEC-005. This comment used to read "always an attachment disposition, never inline"
+        // and the next statement emitted `inline` unconditionally. The comment named the right
+        // threat -- an HTML or SVG file served inline from the platform's own origin is stored
+        // cross-site scripting -- and was the only thing implementing it.
+        //
+        // `inline` is now reached only by the types the client renders in place, by allow-list.
+        // Everything else downloads, which makes the content type irrelevant to the browser's
+        // parser whatever it claims to be.
+        headers.ContentDisposition = Disposition(content);
 
         // Belt and braces on the same problem: even if a disposition is mishandled, this stops
         // the browser second-guessing the declared content type.
         headers["X-Content-Type-Options"] = "nosniff";
+
+        // And a third layer, because the first two are both header-shaped and a document served
+        // inline despite them should still be inert. `default-src 'none'` denies every fetch a
+        // rendered document could make and `sandbox` drops it into an opaque origin, so script
+        // in a file that reached a parser has nothing to reach back to.
+        headers.ContentSecurityPolicy = "default-src 'none'; sandbox";
+    }
+
+    /// <summary>
+    /// The content types the client renders in place, and the only ones served <c>inline</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// An allow-list rather than a deny-list of the dangerous types, because the dangerous set is
+    /// whatever a browser will parse next year. <c>FileSignatureReader</c> does not recognise SVG
+    /// or HTML today, so neither can currently be stored — which is why BSEC-005 is MEDIUM rather
+    /// than HIGH — and that is a property of the signature table rather than of this decision.
+    /// Adding a signature should not quietly make a new type renderable from this origin.
+    /// </para>
+    /// <para>
+    /// Decided from the content type and not from <c>MediaKind</c>, deliberately: the question is
+    /// what a browser would do with the type the response declares, and the type is what it reads.
+    /// A kind would have to be plumbed through <c>MediaContentResult</c> to answer the same
+    /// question one step further from the evidence.
+    /// </para>
+    /// </remarks>
+    private static readonly HashSet<string> InlineRenderableTypes =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+            "image/gif",
+            "video/mp4",
+            "video/webm"
+        };
+
+    /// <summary>
+    /// The <c>Content-Disposition</c> header for one asset.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The name needs no escaping here, and that is worth stating rather than re-implementing.</b>
+    /// BSEC-005's secondary point is that <c>FileName</c> is interpolated without sanitisation, and
+    /// a quote or a CR/LF would break the header. It cannot: <c>SafeFileName.Sanitize</c> keeps only
+    /// <c>char.IsLetterOrDigit</c>, excluding the Format, Control, Surrogate and PrivateUse
+    /// categories, and maps space, hyphen, underscore and dot to a single hyphen. A double quote is
+    /// not a letter or a digit; CR and LF are Control. Neither can reach this string, and
+    /// <c>MediaContentResult.FileName</c> is documented as always the sanitised form.
+    /// </para>
+    /// <para>
+    /// <b>What does survive is non-ASCII</b>, because <c>é</c> and <c>Ω</c> are letters. RFC 6266
+    /// allows only ASCII in the plain <c>filename</c> parameter, so a name holding either is
+    /// emitted in the RFC 5987 <c>filename*</c> form as well — the extended parameter for clients
+    /// that read it, and an ASCII-folded <c>filename</c> for those that do not.
+    /// </para>
+    /// </remarks>
+    private static string Disposition(MediaContentResult content)
+    {
+        var disposition = InlineRenderableTypes.Contains(content.ContentType)
+            ? "inline"
+            : "attachment";
+
+        var name = content.FileName;
+
+        if (name.All(char.IsAscii))
+        {
+            return $"{disposition}; filename=\"{name}\"";
+        }
+
+        // Both forms, in the order RFC 6266 expects: a client that understands filename* uses it
+        // and ignores the other, and one that does not still gets a usable name.
+        var ascii = new string([.. name.Where(char.IsAscii)]);
+
+        if (ascii.Length == 0)
+        {
+            ascii = "file";
+        }
+
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"{disposition}; filename=\"{ascii}\"; filename*=UTF-8''{Uri.EscapeDataString(name)}");
     }
 }

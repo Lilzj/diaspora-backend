@@ -25,7 +25,23 @@ public sealed class MediaModuleTests : IdentityTestBase
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
+    /// <summary>
+    /// The smallest thing <c>FileSignatureReader</c> will accept as a document: the five bytes
+    /// <c>%PDF-</c> it matches on, plus a version and a trailer so the file is not a lie.
+    /// </summary>
+    private static readonly byte[] MinimalPdf = System.Text.Encoding.ASCII.GetBytes(
+        """
+        %PDF-1.7
+        1 0 obj
+        <<>>
+        endobj
+        trailer
+        <<>>
+        %%EOF
+        """);
+
     /// <summary>A one-pixel PNG. Real bytes, so the signature check has something to read.</summary>
+
     private static readonly byte[] OnePixelPng = Convert.FromBase64String(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
 
@@ -882,6 +898,127 @@ public sealed class MediaModuleTests : IdentityTestBase
             new AuthenticationHeaderValue("Bearer", auth.Tokens.AccessToken);
     }
 
+    // ─── BSEC-005: the disposition the comment claimed ──────────────────────────────────────
+    //
+    // ApplyHeaders carried the sentence "always an attachment disposition with an explicit type,
+    // never inline", naming stored cross-site scripting as the threat, and the next statement
+    // emitted `inline` unconditionally. The comment was the only thing implementing the control,
+    // which is what these tests replace.
+
+    /// <summary>
+    /// <b>An image the client renders in place is served <c>inline</c>.</b> This is the half that
+    /// must keep working: every listing photograph and avatar on the platform is an
+    /// <c>&lt;img src&gt;</c> against this route, and an attachment disposition would turn each
+    /// one into a download prompt.
+    /// </summary>
+    [Fact]
+    public async Task An_image_is_served_inline()
+    {
+        await AuthenticateAsync();
+
+        var mediaId = (await UploadOnePixelPngAsync()).GetProperty("mediaId").GetGuid();
+
+        var response = await HttpClient.GetAsync($"/api/v1/media/{mediaId}/content");
+
+        response.Content.Headers.ContentDisposition!.DispositionType
+            .Should().Be("inline", "image/png is on the allow-list the client renders");
+    }
+
+    /// <summary>
+    /// <b>A document is served as an attachment.</b> The finding itself.
+    /// <para>
+    /// A PDF is what can actually be stored today — <c>FileSignatureReader</c> recognises
+    /// <c>%PDF-</c> and <c>MediaLimits</c> permits Document up to 25 MB — and before this change
+    /// it came back <c>inline</c> from the platform's own origin. SVG and HTML have no signature
+    /// entry, which is why the finding is MEDIUM; that is a property of the signature table and
+    /// not of the disposition, so the disposition is what this asserts.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task A_document_is_served_as_an_attachment()
+    {
+        await AuthenticateAsync();
+
+        var response = await PostDirectAsync(
+            MinimalPdf, "application/pdf", "passport.pdf", kind: "document");
+
+        response.StatusCode.Should().Be(
+            HttpStatusCode.Created, "a PDF is a storable Document kind");
+
+        var mediaId = (await ReadDataAsync(response)).GetProperty("mediaId").GetGuid();
+
+        var content = await HttpClient.GetAsync($"/api/v1/media/{mediaId}/content");
+
+        content.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        content.Content.Headers.ContentDisposition!.DispositionType.Should().Be(
+            "attachment",
+            "a document served inline from the platform's own origin is what the comment named "
+            + "as stored cross-site scripting, and what the code did anyway");
+    }
+
+    /// <summary>
+    /// <b>Every media response carries a content security policy.</b> A third layer under the
+    /// disposition and <c>nosniff</c>, both of which are header-shaped: a document that reached a
+    /// parser in spite of them has nothing to fetch and no origin to reach back into.
+    /// </summary>
+    [Fact]
+    public async Task Content_responses_carry_a_denying_content_security_policy()
+    {
+        await AuthenticateAsync();
+
+        var mediaId = (await UploadOnePixelPngAsync()).GetProperty("mediaId").GetGuid();
+
+        var response = await HttpClient.GetAsync($"/api/v1/media/{mediaId}/content");
+
+        response.Headers.TryGetValues("Content-Security-Policy", out var values)
+            .Should().BeTrue();
+
+        values!.Should().Contain("default-src 'none'; sandbox");
+    }
+
+    /// <summary>
+    /// <b>A non-ASCII name produces both header forms, and the header still parses.</b>
+    /// <para>
+    /// <c>SafeFileName</c> keeps <c>char.IsLetterOrDigit</c>, and <c>ô</c> is a letter — so a name
+    /// survives sanitisation into a header where RFC 6266 permits only ASCII in the plain
+    /// <c>filename</c> parameter. The extended <c>filename*</c> form carries the real name and an
+    /// ASCII-folded <c>filename</c> serves clients that do not read it.
+    /// </para>
+    /// <para>
+    /// Asserted through <c>HttpClient</c>'s own parser rather than on the raw string: a header
+    /// this test built an expectation for by hand could be malformed in exactly the way the parser
+    /// would reject.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task A_non_ascii_file_name_is_emitted_in_both_disposition_forms()
+    {
+        await AuthenticateAsync();
+
+        var response = await PostDirectAsync(OnePixelPng, "image/png", "Côte.png");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var mediaId = (await ReadDataAsync(response)).GetProperty("mediaId").GetGuid();
+
+        var content = await HttpClient.GetAsync($"/api/v1/media/{mediaId}/content");
+
+        var disposition = content.Content.Headers.ContentDisposition!;
+
+        disposition.FileNameStar.Should().NotBeNullOrEmpty(
+            "the extended form is what carries a name the plain parameter cannot");
+
+        disposition.FileNameStar.Should().Contain(
+            "ô", "the real name survives in the form that is allowed to hold it");
+
+        disposition.FileName.Should().NotBeNullOrEmpty(
+            "and a client that ignores filename* still gets something usable");
+
+        disposition.FileName!.Should().MatchRegex(
+            "^\"?[\\x20-\\x7E]+\"?$", "the plain parameter is ASCII only, per RFC 6266");
+    }
+
     private async Task<JsonElement> UploadOnePixelPngAsync()
     {
         var response = await PostDirectAsync(OnePixelPng, "image/png", "pixel.png");
@@ -891,8 +1028,12 @@ public sealed class MediaModuleTests : IdentityTestBase
         return await ReadDataAsync(response);
     }
 
+    /// <summary>
+    /// One direct upload. <paramref name="kind"/> defaults to <c>image</c>, which is what every
+    /// caller wanted before BSEC-005 needed a Document asset to assert a disposition against.
+    /// </summary>
     private async Task<HttpResponseMessage> PostDirectAsync(
-        byte[] bytes, string contentType, string fileName)
+        byte[] bytes, string contentType, string fileName, string kind = "image")
     {
         using var form = new MultipartFormDataContent();
         using var file = new ByteArrayContent(bytes);
@@ -900,7 +1041,7 @@ public sealed class MediaModuleTests : IdentityTestBase
         file.Headers.ContentType = new MediaTypeHeaderValue(contentType);
 
         form.Add(file, "file", fileName);
-        form.Add(new StringContent("image"), "kind");
+        form.Add(new StringContent(kind), "kind");
 
         return await HttpClient.PostAsync("/api/v1/media/uploads/direct", form);
     }

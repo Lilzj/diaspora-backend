@@ -1,9 +1,11 @@
 using Diaspora.Modules.Media.Application.Uploads;
 using Diaspora.Modules.Media.Contracts.V1.Requests;
+using Diaspora.Modules.Media.Domain.Policies;
 using Diaspora.Platform.Http;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 
 namespace Diaspora.Modules.Media.Api;
@@ -22,6 +24,32 @@ namespace Diaspora.Modules.Media.Api;
 /// </summary>
 internal static class UploadEndpoints
 {
+    /// <summary>
+    /// Headroom over the declared payload, for the request framing around it (BSEC-006).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A chunk PUT carries the bytes and little else, so the framing is a handful of headers. A
+    /// direct POST is multipart and carries a boundary, four form fields and a part header per
+    /// field. 256 KB covers both by a wide margin while leaving the limit recognisably the
+    /// payload's own size.
+    /// </para>
+    /// <para>
+    /// Stated once rather than added at each call, because "plus headroom" was the phrase the
+    /// comment on the chunk route used for a cap that did not exist. A named figure can be
+    /// disagreed with; an unnamed one cannot.
+    /// </para>
+    /// </remarks>
+    private const long RequestFramingHeadroom = 256 * 1024;
+
+    /// <summary>The largest chunk PUT the host will read: one chunk plus framing.</summary>
+    private static readonly long ChunkRequestCeiling =
+        MediaLimits.ChunkSize.Bytes + RequestFramingHeadroom;
+
+    /// <summary>The largest direct POST the host will read: one whole small file plus framing.</summary>
+    private static readonly long DirectRequestCeiling =
+        MediaLimits.DirectUploadCeiling.Bytes + RequestFramingHeadroom;
+
     public static void Map(RouteGroupBuilder group)
     {
         ArgumentNullException.ThrowIfNull(group);
@@ -41,10 +69,17 @@ internal static class UploadEndpoints
             .WithName("StartMediaUpload")
             .WithSummary("Open an upload. The server picks the protocol and the chunk size.");
 
-        // Multipart rather than JSON, because this route carries bytes. The size cap is the
-        // session's chunk size plus headroom, enforced by the host's request-body limit — a
-        // route that accepted an unbounded body would be a memory exhaustion vector regardless
-        // of what the session declared.
+        // BSEC-006. This comment claimed the cap existed: "the size cap is the session's chunk
+        // size plus headroom, enforced by the host's request-body limit". No request-body limit
+        // was configured anywhere in the repository, so the real cap was Kestrel's default 30 MB
+        // — six times the chunk size, and not a number anybody chose.
+        //
+        // It is now the cap the comment described, derived from MediaLimits rather than written
+        // out, so changing the chunk size moves the limit with it.
+        //
+        // The comment also said "multipart rather than JSON" and this route reads
+        // httpRequest.Body directly: it is a raw-body PUT and always was. /uploads/direct is the
+        // multipart one.
         group.MapPut("/uploads/{sessionId:guid}/chunks/{chunkNumber:int}", async (
                 Guid sessionId,
                 int chunkNumber,
@@ -73,6 +108,7 @@ internal static class UploadEndpoints
             // to the chunk PUT alone — /uploads/direct is one request per file and belongs on the
             // ordinary budget, where it is already the tighter of the two.
             .RequireRateLimiting(RateLimitPolicyNames.Upload)
+            .WithMetadata(new RequestSizeLimitAttribute(ChunkRequestCeiling))
             .WithName("UploadMediaChunk")
             .WithSummary("Send one part. Idempotent: re-sending an identical part is a no-op.");
 
@@ -197,6 +233,13 @@ internal static class UploadEndpoints
             })
             .RequireAuthorization(MediaPolicies.UploadImage)
             .DisableAntiforgery()
+
+            // BSEC-006. Two limits, because this route reads a form: the body limit is what
+            // Kestrel enforces as bytes arrive, and MultipartBodyLengthLimit is what
+            // ReadFormAsync enforces per section. Setting only the first would leave the form
+            // reader on its own 128 MB default, well above the body it is allowed to receive.
+            .WithMetadata(new RequestSizeLimitAttribute(DirectRequestCeiling))
+            .WithMetadata(new MultipartBodyLimit(MediaLimits.DirectUploadCeiling.Bytes))
             .WithName("UploadMediaDirect")
             .WithSummary("Upload a small file in one request.");
     }
