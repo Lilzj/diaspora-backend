@@ -14,7 +14,9 @@ namespace Diaspora.Application.Identity.Commands.StepUp;
 /// radius of a grant, not of a stolen code.
 /// </para>
 /// </summary>
-[Authorize]
+[RequireAuthentication(
+    "Redeeming a code the platform itself sent needs an identity to bind the grant to, and "
+    + "the grant is bound to the calling session, which only an authenticated caller has.")]
 [Auditable(Action = "identity.stepup.completed")]
 public sealed record CompleteStepUpCommand : ICommand<StepUpGrantResponse>
 {

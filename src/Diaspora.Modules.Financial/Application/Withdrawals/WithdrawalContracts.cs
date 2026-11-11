@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Financial.Application.Withdrawals;
 /// reach. The unit of work is what makes neither possible.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PaymentsManage)]
+[RequirePermission(FinancialPermissions.PaymentsManage)]
 // BSEC-007. One bearer token used to be enough to take money off the platform. Every withdrawal,
 // not those over a threshold: a per-request threshold is an instruction to slice, and because the
 // grant lasts a window this costs a member one code per sitting rather than one per request.
@@ -100,7 +100,7 @@ public sealed record GetWithdrawalLimitsQuery : IQuery<MovementLimitsResponse>
 /// <c>RegisterPayoutDestinationRequest</c>. This module could not store one if it were sent.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PaymentsManage)]
+[RequirePermission(FinancialPermissions.PaymentsManage)]
 // BSEC-007. Adding somewhere money can be sent is the first half of a takeover's payout, and the
 // half a member would notice if they were asked to confirm it.
 [RequiresStepUp(StepUpScopes.PayoutDestination)]
@@ -180,7 +180,7 @@ public sealed record StartPayoutOnboardingCommand : ICommand<PayoutOnboardingRes
 /// claim about somebody's money, and the response contract has always described it as the server's.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PaymentsManage)]
+[RequirePermission(FinancialPermissions.PaymentsManage)]
 // BSEC-007. The other route to a payable destination, and it accepts the address directly rather
 // than handing off to a provider — so it is the cheaper of the two for an attacker and needs the
 // same gate.
@@ -211,7 +211,7 @@ public sealed record RegisterPayoutIdentityCommand : ICommand<PayoutDestinationR
 /// timeout — would strand money mid-payout for a reason nobody could see.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PaymentsManage)]
+[RequirePermission(FinancialPermissions.PaymentsManage)]
 // BSEC-007, and this is the one the finding's evidence singles out rather than its remediation
 // list. Every production corridor sets RequiresVerifiedPayee, which reads like a brake on a new
 // destination — but this route lets the member drive that verification themselves against the

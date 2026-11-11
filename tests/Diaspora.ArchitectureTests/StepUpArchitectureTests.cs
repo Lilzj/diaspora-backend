@@ -100,18 +100,35 @@ public class StepUpArchitectureTests
     /// <summary>
     /// <b>Every guarded command also names its authorisation.</b>
     /// <para>
-    /// The gate runs after the authorisation behaviour, so a guarded command carrying no
-    /// <c>[Authorize]</c> would reach the gate with nobody having been identified — and the gate
-    /// would answer an anonymous caller with "fetch a code", which both discloses the guard and
-    /// asks for something an anonymous caller has no way to provide. Step-up is a second factor; it
-    /// is not a first one.
+    /// The gate runs after the authorisation behaviour, so a guarded command declaring no
+    /// authorisation would reach the gate with nobody having been identified — and the gate would
+    /// answer an anonymous caller with "fetch a code", which both discloses the guard and asks for
+    /// something an anonymous caller has no way to provide. Step-up is a second factor; it is not a
+    /// first one.
+    /// </para>
+    /// <para>
+    /// <b>This asserts more than it used to, and BSOLID-001 is why (11 November 2026).</b> It was
+    /// written against the single <c>[Authorize]</c>, which permitted every field to be unset — so
+    /// a guarded command carrying a bare <c>[Authorize]</c> satisfied this test while declaring
+    /// nothing for the behaviour to check. The three attributes below each require their argument,
+    /// so passing now means a requirement was named. <c>[AllowAnonymous]</c> is deliberately absent
+    /// from the list: an anonymous command behind a second factor is precisely the shape this rule
+    /// exists to refuse.
     /// </para>
     /// </summary>
     [Fact]
     public void Every_step_up_guarded_command_names_its_authorization()
     {
+        Type[] declaring =
+        [
+            typeof(RequirePermissionAttribute),
+            typeof(RequirePolicyAttribute),
+            typeof(RequireAuthenticationAttribute)
+        ];
+
         var offenders = Guarded()
-            .Where(type => type.GetCustomAttributes(typeof(AuthorizeAttribute), inherit: false).Length == 0)
+            .Where(type => !declaring.Any(attribute =>
+                type.GetCustomAttributes(attribute, inherit: false).Length > 0))
             .Select(type => type.FullName!)
             .ToList();
 
