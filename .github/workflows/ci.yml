@@ -55,6 +55,31 @@ jobs:
       - name: Build (Release)
         run: dotnet build Diaspora.slnx -c Release --no-restore
 
+      # BBL-006. The build writes contracts/Diaspora.Api.json -- the step above just did -- so a
+      # dirty contracts/ here is a contract that was committed stale. It is the same guarantee the
+      # migrations job gets from `ef migrations has-pending-model-changes`, pointed at the other
+      # committed artefact.
+      #
+      # This matters because the file is read by a SECOND repository. The client's eleven
+      # contract-drift suites compare their assumptions against it and describe.skip themselves
+      # when the backend is not checked out beside them, which it is not in their static-and-unit
+      # job -- so nothing downstream notices a stale document either. Those two halves are the
+      # client's to fix; this half makes sure the document they would read is current.
+      #
+      # `git diff --exit-code` and not `git status`: on Windows a rebuild updates the file's mtime
+      # and `status` reports it modified although the content is identical after the line-ending
+      # filter. `diff` compares content and is the honest check.
+      - name: Published contract is current
+        run: |
+          if ! git diff --exit-code -- contracts/; then
+            echo "::error::contracts/Diaspora.Api.json is stale. The Release build above"
+            echo "::error::regenerated it and the result differs from what was committed."
+            echo "::error::Run 'dotnet build src/Diaspora.Api' and commit the diff: it is the"
+            echo "::error::API surface changing, and the client repository reads this file."
+            git --no-pager diff --stat -- contracts/
+            exit 1
+          fi
+
       - name: Unit tests
         run: >
           dotnet test tests/Diaspora.UnitTests/Diaspora.UnitTests.csproj
