@@ -18,7 +18,7 @@ namespace Diaspora.Modules.Guides.Application.Referencing;
 /// verification is never misrepresented by an old guide.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.EditOwn)]
+[RequirePermission(GuidePermissions.EditOwn)]
 [Auditable]
 public sealed record SetGuideProviderReferencesCommand : ICommand<GuideResponse>
 {

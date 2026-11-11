@@ -8,7 +8,7 @@ namespace Diaspora.Application.Identity.Queries.GetSecurityEvents;
 /// revoked sessions. The member is the first line of defence for their own account, and
 /// they cannot notice anything they cannot see.
 /// </summary>
-[Authorize(Permission = "identity:security-events:read")]
+[RequirePermission("identity:security-events:read")]
 public sealed record GetSecurityEventsQuery : IQuery<IReadOnlyList<SecurityEventResponse>>
 {
     public int Limit { get; init; } = 50;

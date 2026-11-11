@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Financial.Application.Payments;
 /// support tooling; this is the operation that actually moves it.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PaymentsManageAny)]
+[RequirePermission(FinancialPermissions.PaymentsManageAny)]
 [Transactional(Reason = "A refund writes the intent and posts the reversing ledger entries.")]
 [Auditable(Action = "financial.payment.refund")]
 public sealed record IssueRefundCommand : ICommand<PaymentIntentResponse>

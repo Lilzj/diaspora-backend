@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Housing.Application.Neighborhoods;
 /// saying the water goes off is an anecdote, eleven people saying it is a fact about the place.
 /// </para>
 /// </summary>
-[Authorize(Permission = HousingPermissions.InsightEndorse)]
+[RequirePermission(HousingPermissions.InsightEndorse)]
 [Transactional(Reason = "Writes the endorsement row and the insight count together.")]
 [Auditable]
 public sealed record EndorseNeighborhoodInsightCommand : ICommand<NeighborhoodInsightResponse>

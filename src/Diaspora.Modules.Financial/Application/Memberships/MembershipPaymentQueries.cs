@@ -17,7 +17,7 @@ namespace Diaspora.Modules.Financial.Application.Memberships;
 /// exactly as the write path does.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PaymentsRead)]
+[RequirePermission(FinancialPermissions.PaymentsRead)]
 public sealed record GetMembershipPaymentsQuery
     : IQuery<IReadOnlyList<MembershipPaymentBindingResponse>>
 {

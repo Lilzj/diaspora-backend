@@ -19,7 +19,7 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Communities;
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>The caller's community preferences, or the defaults.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record GetMyCommunityPreferencesQuery : IQuery<CommunityPreferencesResponse>;
 
 public sealed class GetMyCommunityPreferencesQueryHandler
@@ -53,7 +53,7 @@ public sealed class GetMyCommunityPreferencesQueryHandler
 }
 
 /// <summary>Save the caller's community preferences. Answers what was stored.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record SaveMyCommunityPreferencesCommand : ICommand<CommunityPreferencesResponse>
 {
     public required SaveCommunityPreferencesRequest Request { get; init; }

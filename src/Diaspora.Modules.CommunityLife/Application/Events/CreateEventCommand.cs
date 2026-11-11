@@ -11,7 +11,7 @@ namespace Diaspora.Modules.CommunityLife.Application.Events;
 /// are counted from the moment the link exists.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityLifePermissions.EventCreate)]
+[RequirePermission(CommunityLifePermissions.EventCreate)]
 [Transactional(Reason = "Writes the event and its analytics record.")]
 [Auditable]
 [Diaspora.Application.Behaviors.PostsInArea(Diaspora.Contracts.Moderation.V1.ModerationAreas.Events)]

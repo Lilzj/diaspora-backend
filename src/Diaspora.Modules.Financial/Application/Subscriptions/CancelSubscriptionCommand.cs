@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Financial.Application.Subscriptions;
 /// access the instant somebody clicks cancel is taking back something that was paid for.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.SubscriptionsManage)]
+[RequirePermission(FinancialPermissions.SubscriptionsManage)]
 [Auditable(Action = "financial.subscription.cancel")]
 public sealed record CancelSubscriptionCommand : ICommand<SubscriptionResponse>
 {

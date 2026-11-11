@@ -5,6 +5,7 @@ namespace Diaspora.Modules.Community.Application.Reactions;
 
 /// <summary>Adds or withdraws one reaction on any addressable content.</summary>
 [Auditable]
+[RequirePolicy(CommunityPolicies.React)]
 public sealed record ReactCommand : ICommand<ReactionResponse>
 {
     public required string ContentType { get; init; }

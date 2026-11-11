@@ -20,6 +20,7 @@ namespace Diaspora.Modules.Providers.Application.Discovery;
 /// closed.
 /// </para>
 /// </summary>
+[RequirePolicy(ProviderPolicies.Read)]
 public sealed record ListMyProvidersQuery : IQuery<IReadOnlyList<ProviderSummaryResponse>>
 {
     /// <summary>Bounded. This is a picker and a workspace list, not a directory page.</summary>

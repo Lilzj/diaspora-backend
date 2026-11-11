@@ -7,6 +7,7 @@ namespace Diaspora.Modules.Providers.Application.Management;
 /// <summary>Edits one thing a provider offers.</summary>
 [Transactional]
 [Auditable]
+[RequirePolicy(ProviderPolicies.ManageServices)]
 public sealed record UpdateProviderServiceCommand : ICommand<ProviderResponse>
 {
     public required Guid ProviderId { get; init; }

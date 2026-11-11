@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Guides.Application.Lifecycle;
 /// the author, and restoring puts the guide back exactly as it was.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.ArchiveOwn)]
+[RequirePermission(GuidePermissions.ArchiveOwn)]
 [Auditable]
 public sealed record ArchiveGuideCommand : ICommand<GuideResponse>
 {

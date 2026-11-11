@@ -13,6 +13,7 @@ namespace Diaspora.Modules.Media.Application.Assets;
 /// </para>
 /// </summary>
 [Auditable]
+[RequirePolicy(MediaPolicies.Manage)]
 public sealed record AttachMediaCommand : ICommand<MediaAssetResponse>
 {
     public required AttachMediaRequest Request { get; init; }

@@ -11,5 +11,5 @@ namespace Diaspora.Modules.Notifications.Application.Preferences;
 /// half it needs.
 /// </para>
 /// </summary>
-[Authorize(Permission = NotificationPermissions.PreferencesRead)]
+[RequirePermission(NotificationPermissions.PreferencesRead)]
 public sealed record GetNotificationPreferencesQuery : IQuery<NotificationPreferencesResponse>;

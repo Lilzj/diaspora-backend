@@ -29,6 +29,10 @@ public sealed record ListingOptionsResponse
 /// dropped without a word and the listing went out with no furnishing or lease at all.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Public discovery. The route already says AllowAnonymous and this is the same statement at " +
+    "the other end of the pipeline: a listing nobody can see without signing up is a listing " +
+    "nobody answers.")]
 public sealed record GetListingOptionsQuery : IQuery<ListingOptionsResponse>;
 
 public sealed class GetListingOptionsQueryHandler : IQueryHandler<GetListingOptionsQuery, ListingOptionsResponse>

@@ -10,6 +10,10 @@ namespace Diaspora.Modules.CommunityLife.Application.Organizations;
 /// or a support group, and requiring an account first would put the platform behind the need.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Public discovery. The route already says AllowAnonymous and this is the same statement at " +
+    "the other end of the pipeline: a listing nobody can see without signing up is a listing " +
+    "nobody answers.")]
 public sealed record GetOrganizationQuery : IQuery<OrganizationResponse>
 {
     public Guid? OrganizationId { get; init; }

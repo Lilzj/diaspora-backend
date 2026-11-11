@@ -11,6 +11,7 @@ namespace Diaspora.Modules.Providers.Application.Discovery;
 /// visibility check to drift apart.
 /// </para>
 /// </summary>
+[RequirePolicy(ProviderPolicies.Read)]
 public sealed record GetProviderQuery : IQuery<ProviderResponse>
 {
     /// <summary>Set exactly one of this and <see cref="Slug"/>.</summary>

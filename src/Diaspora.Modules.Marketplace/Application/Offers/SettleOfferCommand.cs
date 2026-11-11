@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Marketplace.Application.Offers;
 /// without its reservation would be a buyer who won a deal the platform then forgot about.
 /// </para>
 /// </summary>
-[Authorize(Permission = MarketplacePermissions.OfferRespond)]
+[RequirePermission(MarketplacePermissions.OfferRespond)]
 [Auditable]
 [Transactional(Reason = "Accepting settles the offer, holds the stock and opens the reservation.")]
 public sealed record SettleOfferCommand : ICommand<OfferResponse>

@@ -4,7 +4,7 @@ using Diaspora.Modules.CommunityLife.Contracts.V1.Responses;
 namespace Diaspora.Modules.CommunityLife.Application.Moderation;
 
 /// <summary>The moderation queue. Staff only.</summary>
-[Authorize(Permission = CommunityLifePermissions.Moderate)]
+[RequirePermission(CommunityLifePermissions.Moderate)]
 public sealed record ListReportsQuery : IQuery<ReportPageResponse>
 {
     public string? SubjectType { get; init; }

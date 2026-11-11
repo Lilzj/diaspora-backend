@@ -19,7 +19,7 @@ namespace Diaspora.Modules.Financial.Application.Campaigns;
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>Creates a campaign, in draft. COMMUNITY-LIFE-GAP-006.</summary>
-[Authorize(Permission = FinancialPermissions.GivingCreate)]
+[RequirePermission(FinancialPermissions.GivingCreate)]
 [Transactional(Reason = "A campaign is created and its idempotency key recorded together.")]
 [Auditable(Action = "financial.campaign.create")]
 [Diaspora.Application.Behaviors.PostsInArea(Diaspora.Contracts.Moderation.V1.ModerationAreas.Fundraisers)]
@@ -68,7 +68,7 @@ public sealed class CreateCampaignCommandValidator : AbstractValidator<CreateCam
 }
 
 /// <summary>Edits a campaign's own text. Nothing financial moves through it.</summary>
-[Authorize(Permission = FinancialPermissions.GivingCreate)]
+[RequirePermission(FinancialPermissions.GivingCreate)]
 [Transactional(Reason = "A campaign edit is one write with its concurrency token.")]
 [Auditable(Action = "financial.campaign.update")]
 public sealed record UpdateCampaignCommand : ICommand<CampaignResponse>
@@ -103,7 +103,7 @@ public sealed class UpdateCampaignCommandValidator : AbstractValidator<UpdateCam
 /// the destination; the aggregate decides whether it is legal and answers 409 when it is not.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.GivingCreate)]
+[RequirePermission(FinancialPermissions.GivingCreate)]
 [Transactional(
     Reason = "Publishing writes the campaign and creates its donation cause in one unit of work.")]
 [Auditable(Action = "financial.campaign.transition")]
@@ -131,14 +131,14 @@ public sealed class TransitionCampaignCommandValidator
 }
 
 /// <summary>One campaign, with everything the detail screen needs.</summary>
-[Authorize(Permission = FinancialPermissions.GivingRead)]
+[RequirePermission(FinancialPermissions.GivingRead)]
 public sealed record GetCampaignQuery : IQuery<CampaignResponse>
 {
     public required Guid CampaignId { get; init; }
 }
 
 /// <summary>Campaigns a member can browse, cursor-paged.</summary>
-[Authorize(Permission = FinancialPermissions.GivingRead)]
+[RequirePermission(FinancialPermissions.GivingRead)]
 public sealed record SearchCampaignsQuery : IQuery<GivingPageResponse<CampaignResponse>>
 {
     public string? State { get; init; }
@@ -160,7 +160,7 @@ public sealed record SearchCampaignsQuery : IQuery<GivingPageResponse<CampaignRe
 // ── GAP-007 · Transparency ───────────────────────────────────────────────────────────────────────
 
 /// <summary>Publishes an update to a campaign's supporters.</summary>
-[Authorize(Permission = FinancialPermissions.GivingCreate)]
+[RequirePermission(FinancialPermissions.GivingCreate)]
 [Transactional(Reason = "The update is written and announced together.")]
 [Auditable(Action = "financial.campaign.update.publish")]
 public sealed record PublishCampaignUpdateCommand : ICommand<CampaignUpdateResponse>
@@ -191,7 +191,7 @@ public sealed class PublishCampaignUpdateCommandValidator
 }
 
 /// <summary>A campaign's timeline, newest first, cursor-paged.</summary>
-[Authorize(Permission = FinancialPermissions.GivingRead)]
+[RequirePermission(FinancialPermissions.GivingRead)]
 public sealed record GetCampaignUpdatesQuery : IQuery<GivingPageResponse<CampaignUpdateResponse>>
 {
     public required Guid CampaignId { get; init; }
@@ -202,7 +202,7 @@ public sealed record GetCampaignUpdatesQuery : IQuery<GivingPageResponse<Campaig
 }
 
 /// <summary>Declares a campaign's milestones. Whether they are reached is never the caller's.</summary>
-[Authorize(Permission = FinancialPermissions.GivingCreate)]
+[RequirePermission(FinancialPermissions.GivingCreate)]
 [Transactional(Reason = "Milestones are replaced and re-evaluated in one write.")]
 [Auditable(Action = "financial.campaign.milestones.set")]
 public sealed record SetCampaignMilestonesCommand : ICommand<IReadOnlyList<CampaignMilestoneResponse>>
@@ -234,7 +234,7 @@ public sealed class SetCampaignMilestonesCommandValidator
 }
 
 /// <summary>A campaign's milestones, with the server's own reached-ness.</summary>
-[Authorize(Permission = FinancialPermissions.GivingRead)]
+[RequirePermission(FinancialPermissions.GivingRead)]
 public sealed record GetCampaignMilestonesQuery : IQuery<IReadOnlyList<CampaignMilestoneResponse>>
 {
     public required Guid CampaignId { get; init; }
@@ -247,7 +247,7 @@ public sealed record GetCampaignMilestonesQuery : IQuery<IReadOnlyList<CampaignM
 /// anonymous ones. There is nothing here for a client-side filter to have to hide.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.GivingRead)]
+[RequirePermission(FinancialPermissions.GivingRead)]
 public sealed record GetCampaignSupportersQuery
     : IQuery<GivingPageResponse<CampaignSupporterResponse>>
 {
@@ -259,7 +259,7 @@ public sealed record GetCampaignSupportersQuery
 }
 
 /// <summary>Declares how a campaign's money is allocated, and reports what has been spent.</summary>
-[Authorize(Permission = FinancialPermissions.GivingCreate)]
+[RequirePermission(FinancialPermissions.GivingCreate)]
 [Transactional(Reason = "The allocation lines are replaced in one write.")]
 [Auditable(Action = "financial.campaign.fund_usage.set")]
 public sealed record SetCampaignFundUsageCommand : ICommand<CampaignFundUsageResponse>
@@ -293,7 +293,7 @@ public sealed class SetCampaignFundUsageCommandValidator
 }
 
 /// <summary>Where a campaign's money is. Four figures with four different authorities.</summary>
-[Authorize(Permission = FinancialPermissions.GivingRead)]
+[RequirePermission(FinancialPermissions.GivingRead)]
 public sealed record GetCampaignFundUsageQuery : IQuery<CampaignFundUsageResponse>
 {
     public required Guid CampaignId { get; init; }
@@ -307,7 +307,7 @@ public sealed record GetCampaignFundUsageQuery : IQuery<CampaignFundUsageRespons
 /// donation happened on, and picking the organiser's would make the chart change when they travel.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.GivingRead)]
+[RequirePermission(FinancialPermissions.GivingRead)]
 public sealed record GetDonationTimeSeriesQuery : IQuery<DonationTimeSeriesResponse>
 {
     public required string CauseCode { get; init; }

@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Location.Application.Profile;
 /// the selector abroad does not silently overwrite where the member lives.
 /// </para>
 /// </summary>
-[Authorize(Permission = LocationPermissions.ManageProfile)]
+[RequirePermission(LocationPermissions.ManageProfile)]
 public sealed record SetCurrentLocationCommand : ICommand<LocationProfileResponse>
 {
     public required SetCurrentLocationRequest Location { get; init; }

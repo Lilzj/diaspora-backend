@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Housing.Application.Catalog;
 /// is the reverse. Shipping one list and calling it configurable would have been a lie.
 /// </para>
 /// </summary>
-[Authorize(Permission = HousingPermissions.ManageCatalogue)]
+[RequirePermission(HousingPermissions.ManageCatalogue)]
 [Auditable]
 public sealed record UpsertHousingAmenityCommand : ICommand<HousingAmenityCatalogResponse>
 {

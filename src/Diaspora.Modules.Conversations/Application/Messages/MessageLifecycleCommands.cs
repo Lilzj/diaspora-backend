@@ -19,7 +19,7 @@ namespace Diaspora.Modules.Conversations.Application.Messages;
 // Edit
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
-[Authorize(Permission = ConversationPermissions.Participate)]
+[RequirePermission(ConversationPermissions.Participate)]
 [Transactional(Reason = "One aggregate, but the edit must not commit without its domain event.")]
 public sealed record EditMessageCommand : ICommand<MessageResponse>
 {
@@ -104,7 +104,7 @@ public sealed class EditMessageCommandHandler : ICommandHandler<EditMessageComma
 // Delete
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
-[Authorize(Permission = ConversationPermissions.Participate)]
+[RequirePermission(ConversationPermissions.Participate)]
 [Transactional(Reason =
     "Withdraws the message and un-counts it from every recipient who had not read it. Either half "
     + "alone leaves a badge counting a message that no longer exists.")]

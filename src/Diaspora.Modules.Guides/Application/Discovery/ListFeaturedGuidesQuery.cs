@@ -12,6 +12,10 @@ namespace Diaspora.Modules.Guides.Application.Discovery;
 /// being able to change how that shelf is built without touching search.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Published reference content, and the platform's public face. Somebody researching a move " +
+    "reads this before they have an account; requiring one would make the knowledge base useless " +
+    "to the people it exists for.")]
 public sealed record ListFeaturedGuidesQuery : IQuery<CursorPagedResult<GuideCardResponse>>
 {
     /// <summary>Narrows the shelf to one country. Null features globally.</summary>

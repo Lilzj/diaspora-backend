@@ -24,7 +24,7 @@ namespace Diaspora.Modules.Notifications.Application.Devices;
 /// different records with different lifetimes and the platform has never conflated them.
 /// </para>
 /// </summary>
-[Authorize(Permission = NotificationPermissions.DevicesManage)]
+[RequirePermission(NotificationPermissions.DevicesManage)]
 [Transactional(Reason = "Retires every other endpoint in one unit of work, or none of them.")]
 [Auditable]
 public sealed record DeactivateOtherNotificationDevicesCommand : ICommand<int>;

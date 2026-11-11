@@ -13,7 +13,7 @@ namespace Diaspora.Modules.Guides.Application.Knowledge.Categories;
 /// for a row the curator can see in their own archive list.
 /// </para>
 /// </summary>
-[Authorize(Permission = KnowledgePermissions.ManageCategories)]
+[RequirePermission(KnowledgePermissions.ManageCategories)]
 [Auditable]
 public sealed record RestoreKnowledgeCategoryCommand : ICommand<KnowledgeCategoryResponse>
 {

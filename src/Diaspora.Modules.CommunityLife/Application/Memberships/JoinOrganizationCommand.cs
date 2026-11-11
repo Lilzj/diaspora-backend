@@ -11,7 +11,7 @@ namespace Diaspora.Modules.CommunityLife.Application.Memberships;
 /// association admits, one that vets queues.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityLifePermissions.MembershipJoin)]
+[RequirePermission(CommunityLifePermissions.MembershipJoin)]
 [Auditable]
 public sealed record JoinOrganizationCommand : ICommand<MembershipResponse>
 {

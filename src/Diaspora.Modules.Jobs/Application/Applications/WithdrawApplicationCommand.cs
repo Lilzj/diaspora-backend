@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Jobs.Application.Applications;
 /// process they wanted out of would be the platform working against the person it restricted.
 /// </para>
 /// </summary>
-[Authorize(Permission = JobPermissions.ApplicationWithdraw)]
+[RequirePermission(JobPermissions.ApplicationWithdraw)]
 [Auditable]
 [Transactional(Reason = "Withdraws the application and corrects the posting's applicant count.")]
 public sealed record WithdrawApplicationCommand : ICommand

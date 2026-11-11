@@ -63,6 +63,7 @@ public sealed record AuthorizationStartResponse
 /// client.
 /// </para>
 /// </summary>
+[RequirePolicy(IntegrationsPolicies.ConnectionsWrite)]
 public sealed record StartAuthorizationCommand : ICommand<AuthorizationStartResponse>
 {
     public required string Provider { get; init; }
@@ -326,6 +327,7 @@ public sealed class StartAuthorizationCommandHandler
     "Consumes the single-use authorization request, writes or updates the connection and enqueues "
     + "the connected contract. A partial commit would either burn a code without storing the grant "
     + "it bought, or store a grant against a request that could be replayed.")]
+[RequirePolicy(IntegrationsPolicies.ConnectionsWrite)]
 public sealed record ExchangeAuthorizationCommand : ICommand<IntegrationConnectionResponse>
 {
     public required string Provider { get; init; }
@@ -574,6 +576,7 @@ public sealed class ExchangeAuthorizationCommandHandler
 /// a 200 no-op" — because a retry must not become an error.
 /// </para>
 /// </summary>
+[RequirePolicy(IntegrationsPolicies.ConnectionsWrite)]
 public sealed record RevokeAuthorizationCommand : ICommand<IntegrationDisconnectResponse>
 {
     public required string Provider { get; init; }

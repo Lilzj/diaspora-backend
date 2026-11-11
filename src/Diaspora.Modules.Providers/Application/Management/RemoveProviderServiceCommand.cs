@@ -6,6 +6,7 @@ namespace Diaspora.Modules.Providers.Application.Management;
 /// <summary>Removes one thing a provider offers.</summary>
 [Transactional]
 [Auditable]
+[RequirePolicy(ProviderPolicies.ManageServices)]
 public sealed record RemoveProviderServiceCommand : ICommand<ProviderResponse>
 {
     public required Guid ProviderId { get; init; }

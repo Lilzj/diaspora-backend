@@ -39,6 +39,10 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Communities;
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>A community's initiatives, newest first, optionally of one status.</summary>
+[AllowAnonymous(
+    "Public discovery. The route already says AllowAnonymous and this is the same statement at " +
+    "the other end of the pipeline: a listing nobody can see without signing up is a listing " +
+    "nobody answers.")]
 public sealed record ListCommunityInitiativesQuery : IQuery<IReadOnlyList<CommunityInitiativeResponse>>
 {
     public required string IdOrSlug { get; init; }
@@ -101,6 +105,10 @@ public sealed class ListCommunityInitiativesQueryHandler
 }
 
 /// <summary>One initiative.</summary>
+[AllowAnonymous(
+    "Public discovery. The route already says AllowAnonymous and this is the same statement at " +
+    "the other end of the pipeline: a listing nobody can see without signing up is a listing " +
+    "nobody answers.")]
 public sealed record GetCommunityInitiativeQuery : IQuery<CommunityInitiativeResponse>
 {
     public required string IdOrSlug { get; init; }
@@ -153,7 +161,7 @@ public sealed class GetCommunityInitiativeQueryHandler
 }
 
 /// <summary>Start an initiative. Needs canManageInitiatives.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record CreateCommunityInitiativeCommand : ICommand<CommunityInitiativeResponse>
 {
     public required string IdOrSlug { get; init; }
@@ -257,7 +265,7 @@ public sealed class CreateCommunityInitiativeCommandHandler
 }
 
 /// <summary>Change an initiative. Its organisers, or anybody with canManageInitiatives.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record UpdateCommunityInitiativeCommand : ICommand<CommunityInitiativeResponse>
 {
     public required string IdOrSlug { get; init; }
@@ -395,7 +403,7 @@ public sealed class UpdateCommunityInitiativeCommandHandler
 }
 
 /// <summary>Take part in an initiative. Any current member, while it is Planned or Active.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record JoinCommunityInitiativeCommand : ICommand<CommunityInitiativeResponse>
 {
     public required string IdOrSlug { get; init; }
@@ -491,7 +499,7 @@ public sealed class JoinCommunityInitiativeCommandHandler
 }
 
 /// <summary>Stop taking part. Always allowed; leaving something you are not in changes nothing.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record LeaveCommunityInitiativeCommand : ICommand<CommunityInitiativeResponse>
 {
     public required string IdOrSlug { get; init; }
@@ -572,6 +580,10 @@ public sealed class LeaveCommunityInitiativeCommandHandler
 }
 
 /// <summary>Who is taking part, as each chose to be seen. The count on the initiative is everybody.</summary>
+[AllowAnonymous(
+    "Public discovery. The route already says AllowAnonymous and this is the same statement at " +
+    "the other end of the pipeline: a listing nobody can see without signing up is a listing " +
+    "nobody answers.")]
 public sealed record ListCommunityInitiativeParticipantsQuery
     : IQuery<IReadOnlyList<CommunityInitiativeParticipantResponse>>
 {
@@ -649,6 +661,10 @@ public sealed class ListCommunityInitiativeParticipantsQueryHandler
 }
 
 /// <summary>An initiative's progress updates, newest first.</summary>
+[AllowAnonymous(
+    "Public discovery. The route already says AllowAnonymous and this is the same statement at " +
+    "the other end of the pipeline: a listing nobody can see without signing up is a listing " +
+    "nobody answers.")]
 public sealed record ListCommunityInitiativeUpdatesQuery
     : IQuery<IReadOnlyList<CommunityInitiativeUpdateResponse>>
 {
@@ -710,7 +726,7 @@ public sealed class ListCommunityInitiativeUpdatesQueryHandler
 }
 
 /// <summary>Post a progress update. Its organisers, or anybody with canManageInitiatives.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record PostCommunityInitiativeUpdateCommand : ICommand<CommunityInitiativeUpdateResponse>
 {
     public required string IdOrSlug { get; init; }

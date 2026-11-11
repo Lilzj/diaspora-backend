@@ -17,7 +17,7 @@ namespace Diaspora.Modules.Guides.Application.Suggestions;
 /// edit the author makes afterwards.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.EditOwn)]
+[RequirePermission(GuidePermissions.EditOwn)]
 [Auditable]
 public sealed record DecideGuideSuggestionCommand : ICommand<GuideSuggestionResponse>
 {

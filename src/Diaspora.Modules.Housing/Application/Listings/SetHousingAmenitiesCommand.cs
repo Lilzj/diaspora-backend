@@ -5,7 +5,7 @@ using Diaspora.Modules.Housing.Contracts.V1.Responses;
 namespace Diaspora.Modules.Housing.Application.Listings;
 
 /// <summary>Replaces a property amenity list, checked against the catalogue.</summary>
-[Authorize(Permission = HousingPermissions.ListingEditOwn)]
+[RequirePermission(HousingPermissions.ListingEditOwn)]
 [Auditable]
 public sealed record SetHousingAmenitiesCommand : ICommand<HousingListingResponse>
 {

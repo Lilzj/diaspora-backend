@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Guides.Application.Lifecycle;
 /// comes back a draft.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.RestoreOwn)]
+[RequirePermission(GuidePermissions.RestoreOwn)]
 [Auditable]
 public sealed record UndeleteGuideCommand : ICommand<GuideResponse>
 {

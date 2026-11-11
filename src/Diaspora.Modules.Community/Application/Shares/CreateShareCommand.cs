@@ -6,6 +6,7 @@ namespace Diaspora.Modules.Community.Application.Shares;
 
 /// <summary>Records a share.</summary>
 [Auditable]
+[RequirePolicy(CommunityPolicies.Share)]
 public sealed record CreateShareCommand : ICommand<ShareResponse>
 {
     public required string ContentType { get; init; }

@@ -7,6 +7,9 @@ namespace Diaspora.Application.Identity.Commands.Authentication.Login;
 /// Exchanges a phone number and password for a session and token pair.
 /// </summary>
 [Auditable(Action = "identity.user.logged-in")]
+[AllowAnonymous(
+    "Authentication itself. A caller who could already prove who they are would have no reason to " +
+    "be here.")]
 public sealed record LoginCommand : ICommand<AuthenticationResponse>
 {
     /// <summary>The address the account was registered with. Was <c>PhoneNumber</c>.</summary>

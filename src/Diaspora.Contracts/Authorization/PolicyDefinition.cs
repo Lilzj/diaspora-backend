@@ -6,7 +6,7 @@ namespace Diaspora.Contracts.Authorization;
 /// A policy is the name an endpoint uses; a permission is the thing being checked. Keeping
 /// them separate means an endpoint's attribute never has to change when the rule behind it
 /// does, and it is why the platform can host both permission-backed and tier-backed gates
-/// under one <c>[Authorize(Policy = ...)]</c> vocabulary.
+/// under one <c>[RequirePolicy(...)]</c> vocabulary.
 /// </para>
 /// <para>
 /// Exactly one of <see cref="Permission"/> or <see cref="MinimumTier"/> must be set.

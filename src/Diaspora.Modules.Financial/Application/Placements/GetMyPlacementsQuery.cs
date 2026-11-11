@@ -4,7 +4,7 @@ using Diaspora.Modules.Financial.Contracts.V1.Responses;
 namespace Diaspora.Modules.Financial.Application.Placements;
 
 /// <summary>Everything the caller has bought a placement for.</summary>
-[Authorize(Permission = FinancialPermissions.PurchasesRead)]
+[RequirePermission(FinancialPermissions.PurchasesRead)]
 public sealed record GetMyPlacementsQuery : IQuery<IReadOnlyList<PlacementResponse>>
 {
     public string? Status { get; init; }

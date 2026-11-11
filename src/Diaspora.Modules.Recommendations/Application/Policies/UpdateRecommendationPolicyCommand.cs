@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Recommendations.Application.Policies;
 /// the published event are the only two records that it happened.
 /// </para>
 /// </summary>
-[Authorize(Permission = RecommendationPermissions.PoliciesManage)]
+[RequirePermission(RecommendationPermissions.PoliciesManage)]
 [Transactional(Reason = "A policy change is one decision across its state, scope and parameters.")]
 [Auditable(Action = "recommendations.policy.update")]
 public sealed record UpdateRecommendationPolicyCommand : ICommand<RecommendationPolicyResponse>

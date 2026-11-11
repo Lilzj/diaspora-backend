@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Financial.Application.Placements;
 /// payment explicitly, and it is recorded as a goodwill refund rather than as a policy outcome.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PurchasesCreate)]
+[RequirePermission(FinancialPermissions.PurchasesCreate)]
 [Auditable(Action = "financial.placement.cancel")]
 public sealed record CancelPlacementCommand : ICommand<PlacementResponse>
 {

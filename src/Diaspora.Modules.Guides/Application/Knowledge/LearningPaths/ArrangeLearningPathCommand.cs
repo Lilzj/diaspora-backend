@@ -18,7 +18,7 @@ namespace Diaspora.Modules.Guides.Application.Knowledge.LearningPaths;
 /// step somebody discovered was missing.
 /// </para>
 /// </summary>
-[Authorize(Permission = KnowledgePermissions.ManagePaths)]
+[RequirePermission(KnowledgePermissions.ManagePaths)]
 [Auditable]
 public sealed record ArrangeLearningPathCommand : ICommand<LearningPathResponse>
 {

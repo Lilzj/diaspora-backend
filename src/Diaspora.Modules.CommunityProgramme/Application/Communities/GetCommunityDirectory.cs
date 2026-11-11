@@ -26,6 +26,10 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Communities;
 /// the one somebody sees before they have an account.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Public discovery. The route already says AllowAnonymous and this is the same statement at " +
+    "the other end of the pipeline: a listing nobody can see without signing up is a listing " +
+    "nobody answers.")]
 public sealed record GetCommunityDirectoryQuery
     : IQuery<CommunityPageResponse<CommunityDirectoryEntryResponse>>
 {

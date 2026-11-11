@@ -25,7 +25,7 @@ namespace Diaspora.Modules.Analytics.Application.Queries;
 /// with a thousand of each. Both are refused with the reason rather than approximated.
 /// </para>
 /// </summary>
-[Authorize(Permission = AnalyticsPermissions.CreatorRead)]
+[RequirePermission(AnalyticsPermissions.CreatorRead)]
 public sealed record GetAnalyticsLeaderboardQuery : IQuery<AnalyticsLeaderboardResponse>
 {
     public required string LeaderboardKey { get; init; }

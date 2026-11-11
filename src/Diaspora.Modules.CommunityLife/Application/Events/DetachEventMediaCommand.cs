@@ -4,7 +4,7 @@ using Diaspora.Modules.CommunityLife.Contracts.V1.Responses;
 namespace Diaspora.Modules.CommunityLife.Application.Events;
 
 /// <summary>Removes an asset from an event.</summary>
-[Authorize(Permission = CommunityLifePermissions.EventEditOwn)]
+[RequirePermission(CommunityLifePermissions.EventEditOwn)]
 [Auditable]
 public sealed record DetachEventMediaCommand : ICommand<EventResponse>
 {

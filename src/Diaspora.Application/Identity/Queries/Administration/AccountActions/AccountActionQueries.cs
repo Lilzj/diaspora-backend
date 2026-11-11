@@ -14,7 +14,7 @@ namespace Diaspora.Application.Identity.Queries.Administration.AccountActions;
 /// Proposed account actions, newest first: the queue a second member of staff works from
 /// (7 Nov 2026). Filtered by status (<c>Pending</c> for the queue) and by account.
 /// </summary>
-[Authorize(Permission = IdentityPermissions.ReadAnyUser)]
+[RequirePermission(IdentityPermissions.ReadAnyUser)]
 public sealed record ListAccountActionsQuery : IQuery<IReadOnlyList<AccountActionProposalResponse>>
 {
     /// <summary><c>Pending</c>, <c>Confirmed</c>, <c>Declined</c> or <c>Withdrawn</c>; all when null.</summary>
@@ -27,7 +27,7 @@ public sealed record ListAccountActionsQuery : IQuery<IReadOnlyList<AccountActio
 }
 
 /// <summary>One proposed account action.</summary>
-[Authorize(Permission = IdentityPermissions.ReadAnyUser)]
+[RequirePermission(IdentityPermissions.ReadAnyUser)]
 public sealed record GetAccountActionQuery : IQuery<AccountActionProposalResponse>
 {
     public required Guid ProposalId { get; init; }

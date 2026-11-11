@@ -15,7 +15,7 @@ namespace Diaspora.Modules.Guides.Application.Authoring;
 /// Gated at <see cref="GuidePermissions.EditOwn"/>, like every other write to somebody's draft.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.EditOwn)]
+[RequirePermission(GuidePermissions.EditOwn)]
 [Auditable]
 public sealed record SaveGuideDraftCommand : ICommand
 {

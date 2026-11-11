@@ -10,5 +10,5 @@ namespace Diaspora.Modules.Location.Application.Experience;
 /// carries is Trust's answer projected, never Location's own.
 /// </para>
 /// </summary>
-[Authorize(Permission = LocationPermissions.ReadExperience)]
+[RequirePermission(LocationPermissions.ReadExperience)]
 public sealed record GetMyCountryExperienceQuery : IQuery<CountryExperienceTimelineResponse>;

@@ -16,6 +16,7 @@ namespace Diaspora.Modules.Community.Application.Reactions;
 /// them — so a notice screen could add a reaction and never show one.
 /// </para>
 /// </summary>
+[RequirePolicy(CommunityPolicies.Read)]
 public sealed record GetContentEngagementQuery : IQuery<ContentEngagementResponse>
 {
     public required string ContentType { get; init; }

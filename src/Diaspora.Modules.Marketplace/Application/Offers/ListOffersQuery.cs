@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Marketplace.Application.Offers;
 /// to read everybody's offers.
 /// </para>
 /// </summary>
-[Authorize(Permission = MarketplacePermissions.OfferRespond)]
+[RequirePermission(MarketplacePermissions.OfferRespond)]
 public sealed record ListOffersQuery : IQuery<CursorPagedResult<OfferCardResponse>>
 {
     /// <summary>

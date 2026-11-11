@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Recommendations.Application.Search;
 /// reaches a surface this module does not own.
 /// </para>
 /// </summary>
-[Authorize(Permission = RecommendationPermissions.FeedRead)]
+[RequirePermission(RecommendationPermissions.FeedRead)]
 public sealed record GetSearchSignalsQuery : IQuery<IReadOnlyList<SearchBoostResponse>>
 {
     /// <summary>Asks for the non-personalised trending boosts instead of the caller's own.</summary>

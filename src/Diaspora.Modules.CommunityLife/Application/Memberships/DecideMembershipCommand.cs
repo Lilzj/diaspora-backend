@@ -12,7 +12,10 @@ namespace Diaspora.Modules.CommunityLife.Application.Memberships;
 /// endpoint rather than four.
 /// </para>
 /// </summary>
-[Authorize]
+[RequireAuthentication(
+    "Authentication is all the gate can ask: this serves an administrator deciding a request and " +
+    "a member accepting an invitation, and which one the caller is doing follows from what is " +
+    "pending. The handler reads that.")]
 [Auditable]
 public sealed record DecideMembershipCommand : ICommand<MembershipResponse>
 {

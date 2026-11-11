@@ -11,7 +11,7 @@ namespace Diaspora.Modules.CommunityLife.Application.Organizations;
 /// first, which is what stops two administrators of the same body silently overwriting each other.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityLifePermissions.OrganizationEditOwn)]
+[RequirePermission(CommunityLifePermissions.OrganizationEditOwn)]
 [Auditable]
 public sealed record UpdateOrganizationCommand : ICommand<OrganizationResponse>
 {

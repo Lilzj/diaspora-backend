@@ -12,6 +12,9 @@ namespace Diaspora.Application.Identity.Commands.PhoneVerification.VerifyPhone;
 /// </para>
 /// </summary>
 [Auditable(Action = "identity.user.phone-verified")]
+[AllowAnonymous(
+    "Redeeming the registration code, which is what produces the member's first token pair. There " +
+    "is nothing to authenticate with yet.")]
 public sealed record VerifyPhoneCommand : ICommand<AuthenticationResponse>
 {
     public required string PhoneNumber { get; init; }

@@ -10,6 +10,7 @@ namespace Diaspora.Modules.Community.Application.Follows;
 /// a Follow button had no way to know it should already say "Following".
 /// </para>
 /// </summary>
+[RequirePolicy(CommunityPolicies.Follow)]
 public sealed record GetFollowStateQuery : IQuery<FollowStateResponse>
 {
     public required Guid TargetId { get; init; }

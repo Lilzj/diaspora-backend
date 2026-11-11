@@ -11,7 +11,7 @@ namespace Diaspora.Application.Identity.Commands.Lifecycle.ReinstateAccount;
 /// </para>
 /// </summary>
 [Auditable(Action = "identity.user.reinstated")]
-[Authorize(Permission = "identity:users:reinstate")]
+[RequirePermission("identity:users:reinstate")]
 public sealed record ReinstateAccountCommand : ICommand<OperationAcknowledgedResponse>
 {
     public required Guid UserId { get; init; }

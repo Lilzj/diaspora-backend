@@ -11,6 +11,10 @@ namespace Diaspora.Modules.Guides.Application.Tags;
 /// what somebody once thought they would write about rather than what they wrote.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Published reference content, and the platform's public face. Somebody researching a move " +
+    "reads this before they have an account; requiring one would make the knowledge base useless " +
+    "to the people it exists for.")]
 public sealed record ListGuideTagsQuery : IQuery<IReadOnlyList<GuideTagResponse>>
 {
     /// <summary>Narrows the sample to one country. Null samples everywhere.</summary>

@@ -11,7 +11,7 @@ namespace Diaspora.Modules.CommunityLife.Application.Moderation;
 /// that auto-flags cannot be crossed twice by two reports racing.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityLifePermissions.Report)]
+[RequirePermission(CommunityLifePermissions.Report)]
 [Transactional(Reason = "Files the report and moves the subject's report count.")]
 [Auditable]
 public sealed record ReportSubjectCommand : ICommand<ReportResponse>

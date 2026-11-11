@@ -13,7 +13,7 @@ namespace Diaspora.Modules.Guides.Application.Media;
 /// upload screen.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.EditOwn)]
+[RequirePermission(GuidePermissions.EditOwn)]
 [Auditable]
 public sealed record AttachGuideMediaCommand : ICommand<GuideResponse>
 {

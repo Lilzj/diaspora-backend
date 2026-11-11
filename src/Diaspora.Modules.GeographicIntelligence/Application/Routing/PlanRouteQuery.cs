@@ -13,6 +13,7 @@ using Microsoft.Extensions.Options;
 namespace Diaspora.Modules.GeographicIntelligence.Application.Routing;
 
 /// <summary>A journey to plan. Coordinates are raw here and validated before anything else runs.</summary>
+[RequirePolicy(GeographicIntelligencePolicies.RoutingRead)]
 public sealed record PlanRouteQuery : IQuery<RouteResponse>
 {
     public required double OriginLatitude { get; init; }

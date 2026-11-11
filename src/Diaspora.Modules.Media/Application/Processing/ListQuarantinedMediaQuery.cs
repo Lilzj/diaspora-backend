@@ -16,7 +16,7 @@ namespace Diaspora.Modules.Media.Application.Processing;
 /// appear, and the longest wait is the one nobody has looked at.
 /// </para>
 /// </summary>
-[Authorize(Permission = MediaPermissions.Administer)]
+[RequirePermission(MediaPermissions.Administer)]
 public sealed record ListQuarantinedMediaQuery : IQuery<IReadOnlyList<QuarantinedMediaResponse>>
 {
     public int? Limit { get; init; }

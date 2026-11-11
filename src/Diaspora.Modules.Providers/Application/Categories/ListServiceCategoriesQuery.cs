@@ -11,6 +11,7 @@ namespace Diaspora.Modules.Providers.Application.Categories;
 /// a row or build a tree from the same payload.
 /// </para>
 /// </summary>
+[RequirePolicy(ProviderPolicies.Read)]
 public sealed record ListServiceCategoriesQuery : IQuery<IReadOnlyList<ServiceCategoryResponse>>
 {
     /// <summary>Only this node's children. Null returns the whole tree.</summary>

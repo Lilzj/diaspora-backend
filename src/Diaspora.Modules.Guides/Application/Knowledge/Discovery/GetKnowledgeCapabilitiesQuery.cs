@@ -12,4 +12,8 @@ namespace Diaspora.Modules.Guides.Application.Knowledge.Discovery;
 /// the shipped list would render a page missing half of it.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Published reference content, and the platform's public face. Somebody researching a move " +
+    "reads this before they have an account; requiring one would make the knowledge base useless " +
+    "to the people it exists for.")]
 public sealed record GetKnowledgeCapabilitiesQuery : IQuery<KnowledgeCapabilitiesResponse>;

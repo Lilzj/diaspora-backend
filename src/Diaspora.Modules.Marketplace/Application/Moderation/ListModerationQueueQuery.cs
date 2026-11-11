@@ -5,7 +5,7 @@ using Diaspora.SharedKernel.Pagination;
 namespace Diaspora.Modules.Marketplace.Application.Moderation;
 
 /// <summary>The marketplace moderation queue.</summary>
-[Authorize(Permission = MarketplacePermissions.Moderate)]
+[RequirePermission(MarketplacePermissions.Moderate)]
 public sealed record ListModerationQueueQuery : IQuery<CursorPagedResult<ListingReportResponse>>
 {
     /// <summary><c>Open</c>, <c>Reviewing</c>, <c>Actioned</c> or <c>Dismissed</c>.</summary>

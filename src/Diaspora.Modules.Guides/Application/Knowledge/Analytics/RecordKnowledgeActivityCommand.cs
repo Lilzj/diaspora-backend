@@ -23,6 +23,12 @@ namespace Diaspora.Modules.Guides.Application.Knowledge.Analytics;
 /// traffic, which makes the actual audit trail — who curated what — impossible to find.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Deliberately anonymous, and the counter is the reason: readers who share a visa guide with a " +
+    "relative are frequently not signed in, and a figure that counted only members would " +
+    "understate the one number that measures whether the knowledge base works. Bounded by the " +
+    "transport limiter rather than by a token (BSEC-002); BSEC-004 is the finding that asked for " +
+    "the bound.")]
 public sealed record RecordKnowledgeActivityCommand : ICommand
 {
     public required string CountryCode { get; init; }

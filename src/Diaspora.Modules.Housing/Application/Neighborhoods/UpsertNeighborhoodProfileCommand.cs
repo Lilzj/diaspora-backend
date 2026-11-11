@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Housing.Application.Neighborhoods;
 /// set of contributors edit.
 /// </para>
 /// </summary>
-[Authorize(Permission = HousingPermissions.NeighborhoodManage)]
+[RequirePermission(HousingPermissions.NeighborhoodManage)]
 [Auditable]
 public sealed record UpsertNeighborhoodProfileCommand : ICommand<NeighborhoodProfileResponse>
 {

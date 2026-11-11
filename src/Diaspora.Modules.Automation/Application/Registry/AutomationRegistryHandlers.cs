@@ -28,6 +28,7 @@ namespace Diaspora.Modules.Automation.Application.Registry;
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>A page of the caller's automations.</summary>
+[RequirePolicy(AutomationPolicies.Read)]
 public sealed record ListAutomationsQuery : IQuery<AutomationPageResponse>
 {
     public string? OwnerKind { get; init; }
@@ -147,6 +148,7 @@ public sealed class ListAutomationsQueryHandler
 }
 
 /// <summary>One automation, with its rule and its audit trail.</summary>
+[RequirePolicy(AutomationPolicies.Read)]
 public sealed record GetAutomationQuery : IQuery<AutomationDefinitionResponse>
 {
     public required Guid AutomationId { get; init; }
@@ -181,6 +183,7 @@ public sealed class GetAutomationQueryHandler
 }
 
 /// <summary>An automation's audit trail. Owner or manager only.</summary>
+[RequirePolicy(AutomationPolicies.Read)]
 public sealed record GetAutomationAuditQuery : IQuery<IReadOnlyList<AutomationAuditEntryResponse>>
 {
     public required Guid AutomationId { get; init; }
@@ -224,6 +227,7 @@ public sealed class GetAutomationAuditQueryHandler
 /// </para>
 /// </summary>
 [Transactional(Reason = "An automation and its first scheduled occurrence are written together, or neither.")]
+[RequirePolicy(AutomationPolicies.Write)]
 public sealed record CreateAutomationCommand : ICommand<AutomationDefinitionResponse>
 {
     public required CreateAutomationRequest Request { get; init; }
@@ -403,6 +407,7 @@ public sealed class CreateAutomationCommandHandler
 
 /// <summary>Changes an automation's name, rule or schedule, under a concurrency precondition.</summary>
 [Transactional(Reason = "The rule and its rescheduled occurrence change together, or neither does.")]
+[RequirePolicy(AutomationPolicies.Write)]
 public sealed record UpdateAutomationCommand : ICommand<AutomationDefinitionResponse>
 {
     public required Guid AutomationId { get; init; }
@@ -561,6 +566,7 @@ public sealed class UpdateAutomationCommandHandler
 
 /// <summary>Activates, pauses, disables or drafts an automation.</summary>
 [Transactional(Reason = "A lifecycle change and its cancelled occurrences settle together.")]
+[RequirePolicy(AutomationPolicies.Write)]
 public sealed record ChangeAutomationStatusCommand : ICommand<AutomationStatusChangedResponse>
 {
     public required Guid AutomationId { get; init; }
@@ -717,6 +723,7 @@ public sealed class ChangeAutomationStatusCommandHandler
 /// </para>
 /// </summary>
 [Transactional(Reason = "The automation and its pending occurrences are removed together.")]
+[RequirePolicy(AutomationPolicies.Write)]
 public sealed record DeleteAutomationCommand : ICommand<AutomationDeletedResponse>
 {
     public required Guid AutomationId { get; init; }

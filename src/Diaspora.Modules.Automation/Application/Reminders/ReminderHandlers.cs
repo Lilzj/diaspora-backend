@@ -22,6 +22,7 @@ namespace Diaspora.Modules.Automation.Application.Reminders;
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>Every reminder this member has on one subject. Self only.</summary>
+[RequirePolicy(AutomationPolicies.Read)]
 public sealed record ListRemindersQuery : IQuery<IReadOnlyList<ReminderResponse>>
 {
     public required string SubjectKind { get; init; }
@@ -65,6 +66,7 @@ public sealed class ListRemindersQueryHandler
 }
 
 /// <summary>Sets a reminder. Self only, and mandatorily idempotent.</summary>
+[RequirePolicy(AutomationPolicies.RemindersWrite)]
 public sealed record CreateReminderCommand : ICommand<ReminderResponse>
 {
     public required CreateReminderRequest Request { get; init; }
@@ -185,6 +187,7 @@ public sealed class CreateReminderCommandHandler
 /// Idempotent: cancelling a cancelled reminder answers 200 with the same body.
 /// </para>
 /// </summary>
+[RequirePolicy(AutomationPolicies.RemindersWrite)]
 public sealed record CancelReminderCommand : ICommand<ReminderResponse>
 {
     public required Guid ReminderId { get; init; }

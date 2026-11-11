@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Recommendations.Application.Analytics;
 /// behavioural data safe to expose at all.
 /// </para>
 /// </summary>
-[Authorize(Permission = RecommendationPermissions.AnalyticsRead)]
+[RequirePermission(RecommendationPermissions.AnalyticsRead)]
 public sealed record GetRecommendationAnalyticsQuery
     : IQuery<IReadOnlyList<RecommendationAnalyticsResponse>>
 {

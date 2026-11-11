@@ -36,7 +36,7 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Polls;
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>The poll list, with the audience rule applied inside the query.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record ListPollsQuery : IQuery<CommunityPageResponse<CommunityPollResponse>>
 {
     public Guid? OrganizationId { get; init; }
@@ -167,7 +167,7 @@ public sealed class ListPollsQueryHandler
 /// exist.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record GetPollQuery : IQuery<CommunityPollResponse>
 {
     public required Guid PollId { get; init; }
@@ -241,7 +241,7 @@ public sealed class GetPollQueryHandler : IQueryHandler<GetPollQuery, CommunityP
 /// than merely required.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record GetPollResultQuery : IQuery<PollResultResponse>
 {
     public required Guid PollId { get; init; }
@@ -301,7 +301,7 @@ public sealed class GetPollResultQueryHandler
 }
 
 /// <summary>Creates a poll.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.ManagePolls)]
+[RequirePermission(CommunityProgrammePermissions.ManagePolls)]
 [Transactional(Reason =
     "Writes the poll, its options and its invitee list as one unit. A poll that committed without "
     + "its options would be a question nobody can answer, and the client would render it as broken.")]
@@ -496,7 +496,7 @@ public sealed class CreatePollCommandHandler
 }
 
 /// <summary>Publishes, closes, cancels or publishes the results of a poll.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.ManagePolls)]
+[RequirePermission(CommunityProgrammePermissions.ManagePolls)]
 public sealed record ActOnPollCommand : ICommand<CommunityPollResponse>
 {
     public required Guid PollId { get; init; }

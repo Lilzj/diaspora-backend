@@ -24,6 +24,9 @@ namespace Diaspora.Modules.Notifications.Application.Preferences;
 /// </summary>
 [Transactional(Reason = "Records the member's decision and the reason for it together.")]
 [Auditable]
+[AllowAnonymous(
+    "An unsubscribe link, followed from an email by somebody who may have no account at all. The " +
+    "token names the subscription and is the only thing it authorises.")]
 public sealed record RedeemUnsubscribeTokenCommand : ICommand<UnsubscribeResultResponse>
 {
     public required string Token { get; init; }

@@ -11,7 +11,7 @@ namespace Diaspora.Modules.CommunityLife.Application.Events;
 /// why the aggregate marks it as one and consumers notify on it.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityLifePermissions.EventEditOwn)]
+[RequirePermission(CommunityLifePermissions.EventEditOwn)]
 [Auditable]
 public sealed record RescheduleEventCommand : ICommand<EventResponse>
 {

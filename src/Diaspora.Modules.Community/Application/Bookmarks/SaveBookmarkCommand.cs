@@ -6,6 +6,7 @@ namespace Diaspora.Modules.Community.Application.Bookmarks;
 
 /// <summary>Saves anything the platform can address.</summary>
 [Auditable]
+[RequirePolicy(CommunityPolicies.Bookmark)]
 public sealed record SaveBookmarkCommand : ICommand<BookmarkResponse>
 {
     public required CreateBookmarkRequest Request { get; init; }

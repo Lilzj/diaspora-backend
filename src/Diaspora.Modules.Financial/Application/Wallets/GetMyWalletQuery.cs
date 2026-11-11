@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Financial.Application.Wallets;
 /// and here the stakes are a balance rather than a preference.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.WalletRead)]
+[RequirePermission(FinancialPermissions.WalletRead)]
 public sealed record GetMyWalletQuery : IQuery<IReadOnlyList<WalletResponse>>
 {
     /// <summary>Narrow to one currency. Null returns every wallet the caller holds.</summary>

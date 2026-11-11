@@ -7,7 +7,7 @@ namespace Diaspora.Modules.Location.Application.Presence;
 /// One foreground location report — 21 Oct 2026. Resolved to an area and discarded; see
 /// <see cref="ReportPresenceCommandHandler"/>.
 /// </summary>
-[Authorize(Permission = LocationPermissions.ManageProfile)]
+[RequirePermission(LocationPermissions.ManageProfile)]
 public sealed record ReportPresenceCommand : ICommand<PresencePingResponse>
 {
     public required double Latitude { get; init; }

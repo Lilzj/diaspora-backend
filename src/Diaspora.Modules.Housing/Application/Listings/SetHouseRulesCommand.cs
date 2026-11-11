@@ -5,7 +5,7 @@ using Diaspora.Modules.Housing.Contracts.V1.Responses;
 namespace Diaspora.Modules.Housing.Application.Listings;
 
 /// <summary>Replaces a property house rules.</summary>
-[Authorize(Permission = HousingPermissions.ListingEditOwn)]
+[RequirePermission(HousingPermissions.ListingEditOwn)]
 [Auditable]
 public sealed record SetHouseRulesCommand : ICommand<HousingListingResponse>
 {

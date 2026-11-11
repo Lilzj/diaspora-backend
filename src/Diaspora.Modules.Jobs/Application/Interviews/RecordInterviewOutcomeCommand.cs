@@ -5,7 +5,7 @@ using Diaspora.Modules.Jobs.Contracts.V1.Responses;
 namespace Diaspora.Modules.Jobs.Application.Interviews;
 
 /// <summary>Records what an interview concluded.</summary>
-[Authorize(Permission = JobPermissions.InterviewsRecord)]
+[RequirePermission(JobPermissions.InterviewsRecord)]
 [Auditable]
 [Transactional(Reason = "Records the outcome and appends it to the application's history.")]
 public sealed record RecordInterviewOutcomeCommand : ICommand<InterviewResponse>

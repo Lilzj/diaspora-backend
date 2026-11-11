@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Housing.Application.Viewings;
 /// could map the empty homes in a city.
 /// </para>
 /// </summary>
-[Authorize(Permission = HousingPermissions.ViewingSchedule)]
+[RequirePermission(HousingPermissions.ViewingSchedule)]
 [Auditable]
 public sealed record RequestViewingCommand : ICommand<HousingViewingResponse>
 {

@@ -10,6 +10,10 @@ namespace Diaspora.Modules.Guides.Application.Knowledge.Discovery;
 /// what the platform is good at; one built from what people asked for tells you what they need.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Published reference content, and the platform's public face. Somebody researching a move " +
+    "reads this before they have an account; requiring one would make the knowledge base useless " +
+    "to the people it exists for.")]
 public sealed record ListTrendingTopicsQuery : IQuery<IReadOnlyList<TrendingTopicResponse>>
 {
     /// <summary>ISO 3166-1 alpha-2, or absent for the phrases searched without naming a country.</summary>

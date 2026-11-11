@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Marketplace.Application.Listings;
 /// and a restock that failed the revision check because somebody fixed a typo would be infuriating.
 /// </para>
 /// </summary>
-[Authorize(Permission = MarketplacePermissions.ListingEditOwn)]
+[RequirePermission(MarketplacePermissions.ListingEditOwn)]
 [Auditable]
 public sealed record SetListingStockCommand : ICommand
 {

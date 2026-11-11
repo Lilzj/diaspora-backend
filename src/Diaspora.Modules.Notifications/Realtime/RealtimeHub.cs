@@ -31,6 +31,11 @@ namespace Diaspora.Modules.Notifications.Realtime;
 /// unit tests rather than by an integration test that has to negotiate a transport first.
 /// </para>
 /// </summary>
+// ASP.NET Core's [Authorize], not the CQRS one. A hub method does not travel through
+// MediatR, so the pipeline would never read a Diaspora attribute here -- the framework
+// evaluates this during the handshake. BSOLID-001's migration script rewrote it and only
+// the deleted type caught the mistake; with the old attribute kept as an alias this would
+// have compiled and left the socket unauthenticated.
 [Authorize(Policy = NotificationPolicies.Recipient)]
 public sealed class RealtimeHub : Hub<IRealtimeClient>
 {

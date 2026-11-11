@@ -53,7 +53,7 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Memberships;
 /// and make a membership activation able to roll back a financial record.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 [Auditable(Action = "community.membership.payment.bind")]
 public sealed record RecordMembershipSettlementCommand : ICommand<ProgrammeMembershipResponse>
 {

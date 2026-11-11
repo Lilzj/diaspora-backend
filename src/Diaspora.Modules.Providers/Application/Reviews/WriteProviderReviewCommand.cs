@@ -14,6 +14,7 @@ namespace Diaspora.Modules.Providers.Application.Reviews;
 /// </summary>
 [Transactional]
 [Auditable]
+[RequirePolicy(ProviderPolicies.Review)]
 public sealed record WriteProviderReviewCommand : ICommand<ProviderReviewResponse>
 {
     public required Guid ProviderId { get; init; }

@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Financial.Application.Giving;
 /// worked around.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.GivingRead)]
+[RequirePermission(FinancialPermissions.GivingRead)]
 public sealed record GetMyGivingQuery : IQuery<GivingHistoryResponse>
 {
     /// <summary>

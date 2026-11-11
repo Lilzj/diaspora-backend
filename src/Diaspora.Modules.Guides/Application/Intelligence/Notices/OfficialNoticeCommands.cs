@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Guides.Application.Intelligence.Notices;
 /// own permission.
 /// </para>
 /// </summary>
-[Authorize(Permission = IntelligencePermissions.ManageNotices)]
+[RequirePermission(IntelligencePermissions.ManageNotices)]
 [Auditable]
 public sealed record CreateOfficialNoticeCommand : ICommand<OfficialNoticeResponse>
 {
@@ -29,7 +29,7 @@ public sealed record CreateOfficialNoticeCommand : ICommand<OfficialNoticeRespon
 /// category moved and whose dates did not — a state the editor never asked for and cannot see.
 /// </para>
 /// </summary>
-[Authorize(Permission = IntelligencePermissions.ManageNotices)]
+[RequirePermission(IntelligencePermissions.ManageNotices)]
 [Auditable]
 [Transactional(Reason =
     "Content, classification, dates, sourcing and four collections are separate aggregate " +
@@ -42,7 +42,7 @@ public sealed record UpdateOfficialNoticeCommand : ICommand<OfficialNoticeRespon
 }
 
 /// <summary>Sends a completed draft for verification.</summary>
-[Authorize(Permission = IntelligencePermissions.ManageNotices)]
+[RequirePermission(IntelligencePermissions.ManageNotices)]
 [Auditable]
 public sealed record SubmitOfficialNoticeCommand : ICommand<OfficialNoticeResponse>
 {
@@ -59,7 +59,7 @@ public sealed record SubmitOfficialNoticeCommand : ICommand<OfficialNoticeRespon
 /// verification step that verifies nothing.
 /// </para>
 /// </summary>
-[Authorize(Permission = IntelligencePermissions.VerifyNotices)]
+[RequirePermission(IntelligencePermissions.VerifyNotices)]
 [Auditable]
 public sealed record VerifyOfficialNoticeCommand : ICommand<OfficialNoticeResponse>
 {
@@ -77,7 +77,7 @@ public sealed record VerifyOfficialNoticeCommand : ICommand<OfficialNoticeRespon
 /// matters is the moment somebody is about to be told.
 /// </para>
 /// </summary>
-[Authorize(Permission = IntelligencePermissions.PublishNotices)]
+[RequirePermission(IntelligencePermissions.PublishNotices)]
 [Auditable]
 public sealed record PublishOfficialNoticeCommand : ICommand<OfficialNoticeResponse>
 {
@@ -94,7 +94,7 @@ public sealed record PublishOfficialNoticeCommand : ICommand<OfficialNoticeRespo
 /// replacement that was never confirmed published.
 /// </para>
 /// </summary>
-[Authorize(Permission = IntelligencePermissions.PublishNotices)]
+[RequirePermission(IntelligencePermissions.PublishNotices)]
 [Auditable]
 [Transactional(Reason =
     "Supersession reads the replacement and writes the superseded notice. A partial apply leaves a " +
@@ -107,7 +107,7 @@ public sealed record SupersedeOfficialNoticeCommand : ICommand<OfficialNoticeRes
 }
 
 /// <summary>Withdraws a notice. The soft delete; restorable.</summary>
-[Authorize(Permission = IntelligencePermissions.ManageNotices)]
+[RequirePermission(IntelligencePermissions.ManageNotices)]
 [Auditable]
 public sealed record ArchiveOfficialNoticeCommand : ICommand
 {
@@ -122,7 +122,7 @@ public sealed record ArchiveOfficialNoticeCommand : ICommand
 /// without anybody confirming it is still true.
 /// </para>
 /// </summary>
-[Authorize(Permission = IntelligencePermissions.ManageNotices)]
+[RequirePermission(IntelligencePermissions.ManageNotices)]
 [Auditable]
 public sealed record RestoreOfficialNoticeCommand : ICommand<OfficialNoticeResponse>
 {
@@ -137,7 +137,7 @@ public sealed record RestoreOfficialNoticeCommand : ICommand<OfficialNoticeRespo
 /// confirmed last week, and only this distinguishes them.
 /// </para>
 /// </summary>
-[Authorize(Permission = IntelligencePermissions.ManageNotices)]
+[RequirePermission(IntelligencePermissions.ManageNotices)]
 [Auditable]
 public sealed record ReviewOfficialNoticeCommand : ICommand<OfficialNoticeResponse>
 {
@@ -168,6 +168,12 @@ public sealed record ReviewOfficialNoticeCommand : ICommand<OfficialNoticeRespon
     "The notice's own counter and the country's counter are written by two saves — the handler's " +
     "and the analytics sink's. Either alone leaves a most-viewed list and a country total that " +
     "disagree about the same read.")]
+[AllowAnonymous(
+    "Deliberately anonymous, and the counter is the reason: readers who share a visa guide with a " +
+    "relative are frequently not signed in, and a figure that counted only members would " +
+    "understate the one number that measures whether the knowledge base works. Bounded by the " +
+    "transport limiter rather than by a token (BSEC-002); BSEC-004 is the finding that asked for " +
+    "the bound.")]
 public sealed record RecordNoticeActivityCommand : ICommand
 {
     public required Guid OfficialNoticeId { get; init; }

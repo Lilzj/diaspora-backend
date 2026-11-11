@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Financial.Application.Wallets;
 /// member sees; the audit entry is what says who decided.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.WalletManage)]
+[RequirePermission(FinancialPermissions.WalletManage)]
 [Auditable(Action = "financial.wallet.status")]
 public sealed record UpdateWalletStatusCommand : ICommand<WalletResponse>
 {

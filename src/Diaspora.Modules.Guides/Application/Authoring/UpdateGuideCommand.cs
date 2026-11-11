@@ -17,7 +17,7 @@ namespace Diaspora.Modules.Guides.Application.Authoring;
 /// can edit any guide without co-authoring it.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.EditOwn)]
+[RequirePermission(GuidePermissions.EditOwn)]
 [Auditable]
 public sealed record UpdateGuideCommand : ICommand<GuideResponse>
 {

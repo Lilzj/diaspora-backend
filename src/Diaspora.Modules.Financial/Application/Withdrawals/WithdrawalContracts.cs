@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Financial.Application.Withdrawals;
 /// reach. The unit of work is what makes neither possible.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PaymentsManage)]
+[RequirePermission(FinancialPermissions.PaymentsManage)]
 // BSEC-007. One bearer token used to be enough to take money off the platform. Every withdrawal,
 // not those over a threshold: a per-request threshold is an instruction to slice, and because the
 // grant lasts a window this costs a member one code per sitting rather than one per request.
@@ -56,7 +56,7 @@ public sealed class CreateWithdrawalCommandValidator : AbstractValidator<CreateW
 }
 
 /// <summary>Calls off a withdrawal nobody has picked up yet, and releases the hold.</summary>
-[Authorize(Permission = FinancialPermissions.PaymentsManage)]
+[RequirePermission(FinancialPermissions.PaymentsManage)]
 [Transactional(Reason = "Cancelling the request and releasing its hold are one change.")]
 [Auditable(Action = "financial.withdrawal.cancel")]
 public sealed record CancelWithdrawalCommand : ICommand<WithdrawalResponse>
@@ -65,7 +65,7 @@ public sealed record CancelWithdrawalCommand : ICommand<WithdrawalResponse>
 }
 
 /// <summary>The caller's payout requests.</summary>
-[Authorize(Permission = FinancialPermissions.WalletRead)]
+[RequirePermission(FinancialPermissions.WalletRead)]
 public sealed record GetMyWithdrawalsQuery : IQuery<IReadOnlyList<WithdrawalResponse>>
 {
     public string? Status { get; init; }
@@ -78,14 +78,14 @@ public sealed record GetMyWithdrawalsQuery : IQuery<IReadOnlyList<WithdrawalResp
 }
 
 /// <summary>One payout request of the caller's.</summary>
-[Authorize(Permission = FinancialPermissions.WalletRead)]
+[RequirePermission(FinancialPermissions.WalletRead)]
 public sealed record GetWithdrawalQuery : IQuery<WithdrawalResponse>
 {
     public required Guid WithdrawalId { get; init; }
 }
 
 /// <summary>What the caller may withdraw, what it would cost, and what they hold.</summary>
-[Authorize(Permission = FinancialPermissions.WalletRead)]
+[RequirePermission(FinancialPermissions.WalletRead)]
 public sealed record GetWithdrawalLimitsQuery : IQuery<MovementLimitsResponse>
 {
     public string? Currency { get; init; }
@@ -100,7 +100,7 @@ public sealed record GetWithdrawalLimitsQuery : IQuery<MovementLimitsResponse>
 /// <c>RegisterPayoutDestinationRequest</c>. This module could not store one if it were sent.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PaymentsManage)]
+[RequirePermission(FinancialPermissions.PaymentsManage)]
 // BSEC-007. Adding somewhere money can be sent is the first half of a takeover's payout, and the
 // half a member would notice if they were asked to confirm it.
 [RequiresStepUp(StepUpScopes.PayoutDestination)]
@@ -121,11 +121,11 @@ public sealed record RegisterPayoutDestinationCommand : ICommand<PayoutDestinati
 }
 
 /// <summary>The caller's payout destinations.</summary>
-[Authorize(Permission = FinancialPermissions.WalletRead)]
+[RequirePermission(FinancialPermissions.WalletRead)]
 public sealed record GetMyPayoutDestinationsQuery : IQuery<IReadOnlyList<PayoutDestinationResponse>>;
 
 /// <summary>Stops using a destination. Never deletes it — old withdrawals still name it.</summary>
-[Authorize(Permission = FinancialPermissions.PaymentsManage)]
+[RequirePermission(FinancialPermissions.PaymentsManage)]
 [Auditable(Action = "financial.payout_destination.remove")]
 public sealed record RemovePayoutDestinationCommand : ICommand<PayoutDestinationResponse>
 {
@@ -148,7 +148,7 @@ public sealed record RemovePayoutDestinationCommand : ICommand<PayoutDestination
 /// is what turns it usable.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PaymentsManage)]
+[RequirePermission(FinancialPermissions.PaymentsManage)]
 [Auditable(Action = "financial.payout_destination.onboard")]
 public sealed record StartPayoutOnboardingCommand : ICommand<PayoutOnboardingResponse>
 {
@@ -180,7 +180,7 @@ public sealed record StartPayoutOnboardingCommand : ICommand<PayoutOnboardingRes
 /// claim about somebody's money, and the response contract has always described it as the server's.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PaymentsManage)]
+[RequirePermission(FinancialPermissions.PaymentsManage)]
 // BSEC-007. The other route to a payable destination, and it accepts the address directly rather
 // than handing off to a provider — so it is the cheaper of the two for an attacker and needs the
 // same gate.
@@ -211,7 +211,7 @@ public sealed record RegisterPayoutIdentityCommand : ICommand<PayoutDestinationR
 /// timeout — would strand money mid-payout for a reason nobody could see.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PaymentsManage)]
+[RequirePermission(FinancialPermissions.PaymentsManage)]
 // BSEC-007, and this is the one the finding's evidence singles out rather than its remediation
 // list. Every production corridor sets RequiresVerifiedPayee, which reads like a brake on a new
 // destination — but this route lets the member drive that verification themselves against the
@@ -235,7 +235,7 @@ public sealed record RefreshPayoutDestinationCommand : ICommand<PayoutDestinatio
 /// have.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.WalletManage)]
+[RequirePermission(FinancialPermissions.WalletManage)]
 [Auditable(Action = "financial.payout_destination.verify")]
 public sealed record VerifyPayoutDestinationCommand : ICommand<PayoutDestinationResponse>
 {

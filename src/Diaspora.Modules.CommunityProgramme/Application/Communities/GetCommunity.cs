@@ -19,6 +19,10 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Communities;
 /// would then have to guess what a pasted string is.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Public discovery. The route already says AllowAnonymous and this is the same statement at " +
+    "the other end of the pipeline: a listing nobody can see without signing up is a listing " +
+    "nobody answers.")]
 public sealed record GetCommunityQuery : IQuery<CommunityResponse>
 {
     public required string IdOrSlug { get; init; }

@@ -11,6 +11,7 @@ namespace Diaspora.Modules.CommunityLife.Application.Events;
 /// workshop — each is the previous one with a new date.
 /// </para>
 /// </summary>
+[RequirePolicy(CommunityLifePolicies.EventCreate)]
 public sealed record DuplicateEventCommand : ICommand<EventResponse>
 {
     public required Guid EventId { get; init; }

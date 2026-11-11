@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Housing.Application.Reservations;
 /// without its settlement would leave a home nobody can let.
 /// </para>
 /// </summary>
-[Authorize(Permission = HousingPermissions.ReservationManage)]
+[RequirePermission(HousingPermissions.ReservationManage)]
 [Transactional(Reason = "Settles listing units alongside the reservation status change.")]
 [Auditable]
 public sealed record UpdateHousingReservationCommand : ICommand<HousingReservationResponse>

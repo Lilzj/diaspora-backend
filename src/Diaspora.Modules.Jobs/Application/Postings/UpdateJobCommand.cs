@@ -5,7 +5,7 @@ using Diaspora.Modules.Jobs.Contracts.V1.Responses;
 namespace Diaspora.Modules.Jobs.Application.Postings;
 
 /// <summary>Updates a posting's descriptive fields.</summary>
-[Authorize(Permission = JobPermissions.PostEditOwn)]
+[RequirePermission(JobPermissions.PostEditOwn)]
 [Auditable]
 public sealed record UpdateJobCommand : ICommand<JobResponse>
 {

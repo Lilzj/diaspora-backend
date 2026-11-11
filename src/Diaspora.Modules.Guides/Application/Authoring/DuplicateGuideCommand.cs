@@ -17,6 +17,7 @@ namespace Diaspora.Modules.Guides.Application.Authoring;
 /// every field below is on one side of it or the other.
 /// </para>
 /// </summary>
+[RequirePolicy(GuidePolicies.Create)]
 public sealed record DuplicateGuideCommand : ICommand<GuideResponse>
 {
     public required Guid GuideId { get; init; }

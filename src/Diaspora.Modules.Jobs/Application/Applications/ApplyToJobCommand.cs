@@ -17,7 +17,7 @@ namespace Diaspora.Modules.Jobs.Application.Applications;
 /// every dashboard figure wrong.
 /// </para>
 /// </summary>
-[Authorize(Permission = JobPermissions.Apply)]
+[RequirePermission(JobPermissions.Apply)]
 [Auditable]
 [Transactional(Reason = "Writes the application and updates the posting it was sent to.")]
 public sealed record ApplyToJobCommand : ICommand<JobApplicationResponse>

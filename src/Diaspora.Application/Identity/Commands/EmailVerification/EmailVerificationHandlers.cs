@@ -12,12 +12,12 @@ using Diaspora.SharedKernel.ValueObjects;
 namespace Diaspora.Application.Identity.Commands.EmailVerification;
 
 /// <summary>The signed-in member's address and its verification state. Backs <c>GET /auth/email</c>.</summary>
-[Authorize(Permission = "identity:profile:read")]
+[RequirePermission("identity:profile:read")]
 public sealed record GetEmailIdentityQuery : IQuery<EmailIdentityResponse>;
 
 /// <summary>Sends a verification link to the address on file. Backs <c>POST /auth/email/verification</c>.</summary>
 [Auditable(Action = "identity.user.email-verification-sent")]
-[Authorize(Permission = "identity:profile:update")]
+[RequirePermission("identity:profile:update")]
 public sealed record SendEmailVerificationCommand : ICommand<EmailIdentityResponse>;
 
 /// <summary>
@@ -25,6 +25,9 @@ public sealed record SendEmailVerificationCommand : ICommand<EmailIdentityRespon
 /// member often opens the email on a device where they are not signed in.
 /// </summary>
 [Auditable(Action = "identity.user.email-verified")]
+[AllowAnonymous(
+    "Confirmed from a link in an email, which is the proof. The address being confirmed is the " +
+    "thing in question, so a session cannot be a precondition for confirming it.")]
 public sealed record ConfirmEmailVerificationCommand : ICommand<EmailVerificationOutcomeResponse>
 {
     public required string Token { get; init; }

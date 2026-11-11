@@ -11,5 +11,5 @@ namespace Diaspora.Modules.Marketplace.Application.Dashboards;
 /// of each wrong.
 /// </para>
 /// </summary>
-[Authorize(Permission = MarketplacePermissions.SellerManage)]
+[RequirePermission(MarketplacePermissions.SellerManage)]
 public sealed record GetSellerDashboardQuery : IQuery<SellerDashboardResponse>;

@@ -20,7 +20,7 @@ namespace Diaspora.Modules.Conversations.Application.Requests;
 /// identifier — see <c>ConversationRequestResponse</c> for why there is no second one.
 /// </para>
 /// </summary>
-[Authorize(Permission = ConversationPermissions.Participate)]
+[RequirePermission(ConversationPermissions.Participate)]
 [Transactional(Reason = "Moves the conversation to Active and raises the event both parties render.")]
 public sealed record AcceptConversationRequestCommand : ICommand<ConversationResponse>
 {
@@ -111,7 +111,7 @@ public sealed class AcceptConversationRequestCommandHandler
 /// "declined" signal would tell somebody persistent that they had been noticed.
 /// </para>
 /// </summary>
-[Authorize(Permission = ConversationPermissions.Participate)]
+[RequirePermission(ConversationPermissions.Participate)]
 [Transactional(Reason = "Closes the conversation and raises its closure event as one unit.")]
 public sealed record DeclineConversationRequestCommand : ICommand
 {

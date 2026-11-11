@@ -17,7 +17,7 @@ namespace Diaspora.Modules.Recommendations.Application.Creator;
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>The caller's creator suggestions, ordered by the server.</summary>
-[Authorize(Permission = RecommendationPermissions.FeedRead)]
+[RequirePermission(RecommendationPermissions.FeedRead)]
 public sealed record GetCreatorRecommendationsQuery : IQuery<IReadOnlyList<CreatorRecommendationResponse>>
 {
     public int? Take { get; init; }
@@ -90,7 +90,7 @@ public sealed class GetCreatorRecommendationsQueryHandler
 /// tap into an error for nothing, and a repeat dismissal is the same dismissal.
 /// </para>
 /// </summary>
-[Authorize(Permission = RecommendationPermissions.FeedbackRecord)]
+[RequirePermission(RecommendationPermissions.FeedbackRecord)]
 [Auditable(Action = "recommendations.creator.dismiss")]
 public sealed record DismissCreatorRecommendationCommand : ICommand<CreatorRecommendationDismissedResponse>
 {

@@ -24,7 +24,7 @@ namespace Diaspora.Application.Identity.Commands.EmailChange;
 /// </para>
 /// </summary>
 [Auditable(Action = "identity.user.email-change-requested")]
-[Authorize(Permission = "identity:profile:update")]
+[RequirePermission("identity:profile:update")]
 public sealed record RequestEmailChangeCommand : ICommand<EmailIdentityResponse>
 {
     public required string Address { get; init; }
@@ -37,6 +37,9 @@ public sealed record RequestEmailChangeCommand : ICommand<EmailIdentityResponse>
 /// credential, and it was delivered only to the new mailbox.
 /// </summary>
 [Auditable(Action = "identity.user.email-changed")]
+[AllowAnonymous(
+    "Confirmed from a link in an email, which is the proof. The address being confirmed is the " +
+    "thing in question, so a session cannot be a precondition for confirming it.")]
 public sealed record ConfirmEmailChangeCommand : ICommand<EmailChangeOutcomeResponse>
 {
     public required string Token { get; init; }

@@ -41,6 +41,9 @@ public sealed record IntegrationWebhookAcknowledgement
     "Records the callback, applies it to the connection and enqueues the contract that tells the "
     + "member. Committing the record without the effect would silently swallow a revocation; "
     + "committing the effect without the record would let the next redelivery apply it again.")]
+[AllowAnonymous(
+    "A provider callback. It carries no bearer token and never will — the request signature is " +
+    "the credential, and the handler verifies it before reading anything.")]
 public sealed record ProcessIntegrationWebhookCommand : ICommand<IntegrationWebhookAcknowledgement>
 {
     public required string Provider { get; init; }

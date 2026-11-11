@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Financial.Application.Wallets;
 /// have somewhere to keep money without an event having said so.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.WalletManage)]
+[RequirePermission(FinancialPermissions.WalletManage)]
 [Auditable(Action = "financial.wallet.provision")]
 public sealed record ProvisionWalletCommand : ICommand<IReadOnlyList<WalletResponse>>
 {

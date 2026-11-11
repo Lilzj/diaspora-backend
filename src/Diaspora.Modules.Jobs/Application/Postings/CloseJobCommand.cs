@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Jobs.Application.Postings;
 /// applicants' afternoons rather than the restricted recruiter's.
 /// </para>
 /// </summary>
-[Authorize(Permission = JobPermissions.PostClose)]
+[RequirePermission(JobPermissions.PostClose)]
 [Auditable]
 public sealed record CloseJobCommand : ICommand<JobResponse>
 {

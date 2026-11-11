@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Guides.Application.Lifecycle;
 /// would put an empty entry in the history for an act that changed nothing a reader can see.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.RestoreOwn)]
+[RequirePermission(GuidePermissions.RestoreOwn)]
 [Auditable]
 public sealed record RestoreGuideCommand : ICommand<GuideResponse>
 {

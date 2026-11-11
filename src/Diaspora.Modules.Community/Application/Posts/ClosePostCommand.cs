@@ -16,6 +16,7 @@ public enum PostClosure
 /// <summary>Withdraws or cancels a post the caller wrote.</summary>
 [Auditable]
 [Transactional]
+[RequirePolicy(CommunityPolicies.ManagePost)]
 public sealed record ClosePostCommand : ICommand<CommunityPostResponse>
 {
     public required Guid PostId { get; init; }

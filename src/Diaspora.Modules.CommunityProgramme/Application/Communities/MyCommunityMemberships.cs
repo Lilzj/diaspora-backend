@@ -26,7 +26,7 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Communities;
 /// <c>me</c> is a reserved handle, so <c>/communities/me/…</c> is a space no community can take.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record GetMyCommunityMembershipsQuery : IQuery<CommunityMembershipSetResponse>;
 
 public sealed class GetMyCommunityMembershipsQueryHandler
@@ -127,7 +127,7 @@ public sealed class GetMyCommunityMembershipsQueryHandler
 /// member that none of them chose. No migration here writes it.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record SetPrimaryCommunityCommand : ICommand<CommunityMembershipSetResponse>
 {
     /// <summary>The community to lead with, or null to clear.</summary>
@@ -229,6 +229,10 @@ public sealed class SetPrimaryCommunityCommandHandler
 /// signed-out path, and the answer is the same either way.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Public discovery. The route already says AllowAnonymous and this is the same statement at " +
+    "the other end of the pipeline: a listing nobody can see without signing up is a listing " +
+    "nobody answers.")]
 public sealed record GetCommunityCapabilitiesQuery : IQuery<CommunityMemberCapabilitiesResponse>
 {
     public required string IdOrSlug { get; init; }

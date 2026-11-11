@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Location.Application.Areas;
 /// navigation that works today.
 /// </para>
 /// </summary>
-[Authorize(Permission = LocationPermissions.ReadCatalog)]
+[RequirePermission(LocationPermissions.ReadCatalog)]
 public sealed record GetNeighborhoodHubQuery : IQuery<NeighborhoodHubResponse>
 {
     /// <summary>A slug (<c>peckham</c>) or a GUID. Both resolve.</summary>

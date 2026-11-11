@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Marketplace.Application.Offers;
 /// claim, and the permission is the low-floor one — leaving a negotiation must never be blocked.
 /// </para>
 /// </summary>
-[Authorize(Permission = MarketplacePermissions.OfferRespond)]
+[RequirePermission(MarketplacePermissions.OfferRespond)]
 [Auditable]
 public sealed record CounterOfferCommand : ICommand<OfferResponse>
 {

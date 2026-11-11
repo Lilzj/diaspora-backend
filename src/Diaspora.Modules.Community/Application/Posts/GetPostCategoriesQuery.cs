@@ -23,6 +23,7 @@ public sealed record PostCategoryResponse
 /// what keeps the two from drifting apart again.
 /// </para>
 /// </summary>
+[RequirePolicy(CommunityPolicies.Read)]
 public sealed record GetPostCategoriesQuery : IQuery<IReadOnlyList<PostCategoryResponse>>;
 
 public sealed class GetPostCategoriesQueryHandler

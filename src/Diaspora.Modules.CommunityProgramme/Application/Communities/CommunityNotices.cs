@@ -31,6 +31,10 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Communities;
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>A community's notices: pinned first, then newest first.</summary>
+[AllowAnonymous(
+    "Public discovery. The route already says AllowAnonymous and this is the same statement at " +
+    "the other end of the pipeline: a listing nobody can see without signing up is a listing " +
+    "nobody answers.")]
 public sealed record ListCommunityNoticesQuery : IQuery<IReadOnlyList<CommunityNoticeResponse>>
 {
     public required string IdOrSlug { get; init; }
@@ -89,7 +93,7 @@ public sealed class ListCommunityNoticesQueryHandler
 }
 
 /// <summary>Publish a notice. The owner's or an administrator's.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record PublishCommunityNoticeCommand : ICommand<CommunityNoticeResponse>
 {
     public required string IdOrSlug { get; init; }
@@ -177,7 +181,7 @@ public sealed class PublishCommunityNoticeCommandHandler
 }
 
 /// <summary>Revise a notice. Its author while they belong, or the owner or an administrator.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record UpdateCommunityNoticeCommand : ICommand<CommunityNoticeResponse>
 {
     public required string IdOrSlug { get; init; }
@@ -250,7 +254,7 @@ public sealed class UpdateCommunityNoticeCommandHandler
 }
 
 /// <summary>Remove a notice. Its author while they belong, or the owner or an administrator.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record DeleteCommunityNoticeCommand : ICommand<CommunityNoticeResponse>
 {
     public required string IdOrSlug { get; init; }

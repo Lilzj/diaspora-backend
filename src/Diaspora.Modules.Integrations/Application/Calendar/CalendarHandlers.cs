@@ -34,6 +34,7 @@ namespace Diaspora.Modules.Integrations.Application.Calendar;
 /// to the provider every time somebody opens the picker.
 /// </para>
 /// </summary>
+[RequirePolicy(IntegrationsPolicies.CalendarRead)]
 public sealed record ListRemoteCalendarsQuery : IQuery<IReadOnlyList<CalendarRefResponse>>
 {
     public required string Provider { get; init; }
@@ -119,6 +120,7 @@ public sealed class ListRemoteCalendarsQueryHandler
     "Writes at the provider and records the source-to-external mapping. The mapping is the "
     + "duplicate barrier, so committing the write without it would make the next retry a second "
     + "entry in somebody's calendar.")]
+[RequirePolicy(IntegrationsPolicies.CalendarWrite)]
 public sealed record WriteCalendarEventCommand : ICommand<CalendarEventRefResponse>
 {
     public required string Provider { get; init; }
@@ -484,6 +486,7 @@ public sealed class WriteCalendarEventCommandHandler
 [Transactional(Reason =
     "Deletes at the provider and marks the mapping removed. A commit of one without the other "
     + "would leave a link the next export treats as live.")]
+[RequirePolicy(IntegrationsPolicies.CalendarWrite)]
 public sealed record DeleteCalendarEventCommand : ICommand
 {
     public required string Provider { get; init; }
@@ -588,6 +591,7 @@ public sealed class DeleteCalendarEventCommandHandler : ICommandHandler<DeleteCa
 /// provider round-trip here would also mean a calendar read on every render of an export button.
 /// </para>
 /// </summary>
+[RequirePolicy(IntegrationsPolicies.CalendarRead)]
 public sealed record LookupCalendarEventQuery : IQuery<CalendarEventRefResponse?>
 {
     public required string Provider { get; init; }

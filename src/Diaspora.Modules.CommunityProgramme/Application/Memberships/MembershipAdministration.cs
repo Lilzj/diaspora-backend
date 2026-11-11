@@ -32,7 +32,7 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Memberships;
 /// own authorization.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityProgrammePermissions.ManageProgramme)]
+[RequirePermission(CommunityProgrammePermissions.ManageProgramme)]
 public sealed record ListOrganizationMembersQuery
     : IQuery<CommunityPageResponse<OrganizationMemberResponse>>
 {
@@ -151,7 +151,7 @@ public sealed class ListOrganizationMembersQueryHandler
 /// them the sentence it wrote, not a code.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityProgrammePermissions.ManageProgramme)]
+[RequirePermission(CommunityProgrammePermissions.ManageProgramme)]
 [Transactional(Reason =
     "Moves the membership and appends its history entry as one unit. A decision recorded without "
     + "its history entry would leave the member with a state nobody can explain.")]

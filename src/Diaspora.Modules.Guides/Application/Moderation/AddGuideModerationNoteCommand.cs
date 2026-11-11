@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Guides.Application.Moderation;
 /// somebody later wished had been decided. Never shown to readers.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.Moderate)]
+[RequirePermission(GuidePermissions.Moderate)]
 [Auditable]
 public sealed record AddGuideModerationNoteCommand : ICommand<GuideResponse>
 {

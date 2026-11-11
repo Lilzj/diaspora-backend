@@ -5,7 +5,7 @@ using Diaspora.Modules.Guides.Contracts.V1.Responses;
 namespace Diaspora.Modules.Guides.Application.Knowledge.Directories;
 
 /// <summary>Rewrites a country directory's header copy and its translations.</summary>
-[Authorize(Permission = KnowledgePermissions.ManageDirectory)]
+[RequirePermission(KnowledgePermissions.ManageDirectory)]
 [Auditable]
 public sealed record UpdateCountryDirectoryCommand : ICommand<CountryDirectoryDetailResponse>
 {

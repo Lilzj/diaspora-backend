@@ -21,6 +21,7 @@ namespace Diaspora.Modules.Integrations.Application.Calendar;
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>This member's calendar preferences, defaulted if they have never set any.</summary>
+[RequirePolicy(IntegrationsPolicies.ConnectionsRead)]
 public sealed record GetCalendarSettingsQuery : IQuery<CalendarSyncSettingsResponse>;
 
 public sealed class GetCalendarSettingsQueryHandler
@@ -77,6 +78,7 @@ public sealed class GetCalendarSettingsQueryHandler
 /// clear would mean a client that sends only <c>enabled</c> wipes the member's default calendar.
 /// </para>
 /// </summary>
+[RequirePolicy(IntegrationsPolicies.SettingsWrite)]
 public sealed record UpdateCalendarSettingsCommand : ICommand<CalendarSyncSettingsResponse>
 {
     public bool? Enabled { get; init; }

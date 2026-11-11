@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Marketplace.Application.Moderation;
 /// silenced the person best placed to flag a scam would be the platform working against itself.
 /// </para>
 /// </summary>
-[Authorize(Permission = MarketplacePermissions.Report)]
+[RequirePermission(MarketplacePermissions.Report)]
 [Auditable]
 public sealed record ReportListingCommand : ICommand
 {

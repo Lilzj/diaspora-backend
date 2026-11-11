@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Financial.Application.Operations;
 /// Admin who wants a second pair of eyes on a smaller grant can have them.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.CreditManage)]
+[RequirePermission(FinancialPermissions.CreditManage)]
 [Transactional(Reason = "A credit grant request is one record.")]
 [Auditable(Action = "financial.credit.grant_request")]
 public sealed record RequestCreditGrantCommand : ICommand<CreditGrantRequestResponse>
@@ -37,7 +37,7 @@ public sealed record RequestCreditGrantCommand : ICommand<CreditGrantRequestResp
 /// request, which withdraws it: on a deployment with one Admin nobody else could close it.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.CreditManage)]
+[RequirePermission(FinancialPermissions.CreditManage)]
 [Transactional(Reason = "Approving a request and issuing its credit are one change.")]
 [Auditable(Action = "financial.credit.grant_decide")]
 public sealed record DecideCreditGrantRequestCommand : ICommand<CreditGrantRequestResponse>
@@ -51,7 +51,7 @@ public sealed record DecideCreditGrantRequestCommand : ICommand<CreditGrantReque
 }
 
 /// <summary>Credit grant requests, newest first; pending by default. Staff.</summary>
-[Authorize(Permission = FinancialPermissions.WalletReadAny)]
+[RequirePermission(FinancialPermissions.WalletReadAny)]
 public sealed record GetCreditGrantRequestsQuery : IQuery<IReadOnlyList<CreditGrantRequestResponse>>
 {
     /// <summary><c>Pending</c> (the default), <c>Approved</c>, <c>Rejected</c>, <c>Withdrawn</c>, or <c>all</c>.</summary>

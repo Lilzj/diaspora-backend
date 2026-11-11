@@ -13,7 +13,7 @@ namespace Diaspora.Modules.Guides.Application.Tags;
 /// ever assert.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.ManageTags)]
+[RequirePermission(GuidePermissions.ManageTags)]
 [Auditable]
 public sealed record SetGuideTagsCommand : ICommand<GuideResponse>
 {

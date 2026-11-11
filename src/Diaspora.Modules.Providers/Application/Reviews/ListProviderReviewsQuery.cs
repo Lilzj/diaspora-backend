@@ -4,6 +4,7 @@ using Diaspora.Modules.Providers.Contracts.V1.Responses;
 namespace Diaspora.Modules.Providers.Application.Reviews;
 
 /// <summary>A page of a provider's reviews, newest first, with the rollup attached.</summary>
+[RequirePolicy(ProviderPolicies.Read)]
 public sealed record ListProviderReviewsQuery : IQuery<ProviderReviewPageResponse>
 {
     public required Guid ProviderId { get; init; }

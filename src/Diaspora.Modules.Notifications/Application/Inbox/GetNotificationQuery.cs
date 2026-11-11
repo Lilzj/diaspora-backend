@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Notifications.Application.Inbox;
 /// endpoint that never returns the words.
 /// </para>
 /// </summary>
-[Authorize(Permission = NotificationPermissions.InboxRead)]
+[RequirePermission(NotificationPermissions.InboxRead)]
 public sealed record GetNotificationQuery : IQuery<NotificationDetailResponse>
 {
     public required Guid NotificationId { get; init; }

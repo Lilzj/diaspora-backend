@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Notifications.Application.Templates;
 /// still names it starts logging loudly.
 /// </para>
 /// </summary>
-[Authorize(Permission = NotificationPermissions.TemplatesPublish)]
+[RequirePermission(NotificationPermissions.TemplatesPublish)]
 [Transactional(Reason = "Retires the template and evicts the render cache together.")]
 [Auditable]
 public sealed record DeactivateNotificationTemplateCommand : ICommand<NotificationTemplateResponse>

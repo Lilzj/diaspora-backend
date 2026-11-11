@@ -10,6 +10,10 @@ namespace Diaspora.Modules.Guides.Application.Knowledge.Categories;
 /// what a country page renders as a menu, and a menu that needs pagination has stopped being one.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Published reference content, and the platform's public face. Somebody researching a move " +
+    "reads this before they have an account; requiring one would make the knowledge base useless " +
+    "to the people it exists for.")]
 public sealed record ListKnowledgeCategoriesQuery : IQuery<IReadOnlyList<KnowledgeCategoryResponse>>
 {
     /// <summary>

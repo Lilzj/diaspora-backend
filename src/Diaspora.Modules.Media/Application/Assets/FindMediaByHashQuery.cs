@@ -12,6 +12,7 @@ namespace Diaspora.Modules.Media.Application.Assets;
 /// that policy here would be a fraud rule living in a storage module.
 /// </para>
 /// </summary>
+[RequirePolicy(MediaPolicies.Read)]
 public sealed record FindMediaByHashQuery : IQuery<IReadOnlyList<MediaAssetResponse>>
 {
     public required string ContentHash { get; init; }

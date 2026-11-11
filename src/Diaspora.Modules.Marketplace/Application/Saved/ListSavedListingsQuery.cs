@@ -5,7 +5,7 @@ using Diaspora.SharedKernel.Pagination;
 namespace Diaspora.Modules.Marketplace.Application.Saved;
 
 /// <summary>The caller's watchlist.</summary>
-[Authorize(Permission = MarketplacePermissions.SavedManage)]
+[RequirePermission(MarketplacePermissions.SavedManage)]
 public sealed record ListSavedListingsQuery : IQuery<CursorPagedResult<SavedListingResponse>>
 {
     public string? Cursor { get; init; }

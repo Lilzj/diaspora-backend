@@ -4,7 +4,7 @@ using Diaspora.Modules.Financial.Contracts.V1.Responses;
 namespace Diaspora.Modules.Financial.Application.Payments;
 
 /// <summary>The caller's payments.</summary>
-[Authorize(Permission = FinancialPermissions.PaymentsRead)]
+[RequirePermission(FinancialPermissions.PaymentsRead)]
 public sealed record GetPaymentHistoryQuery : IQuery<IReadOnlyList<PaymentIntentResponse>>
 {
     public string? Status { get; init; }

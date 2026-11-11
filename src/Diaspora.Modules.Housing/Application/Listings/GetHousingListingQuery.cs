@@ -11,6 +11,10 @@ namespace Diaspora.Modules.Housing.Application.Listings;
 /// address never appears without a confirmed viewing.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Public discovery. The route already says AllowAnonymous and this is the same statement at " +
+    "the other end of the pipeline: a listing nobody can see without signing up is a listing " +
+    "nobody answers.")]
 public sealed record GetHousingListingQuery : IQuery<HousingListingResponse>
 {
     public required string IdOrSlug { get; init; }

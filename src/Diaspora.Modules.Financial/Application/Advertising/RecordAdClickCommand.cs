@@ -29,7 +29,7 @@ namespace Diaspora.Modules.Financial.Application.Advertising;
 /// ownership check here, and why nothing about the campaign comes back in the response.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PurchasesRead)]
+[RequirePermission(FinancialPermissions.PurchasesRead)]
 public sealed record RecordAdClickCommand : ICommand
 {
     public required Guid CampaignId { get; init; }

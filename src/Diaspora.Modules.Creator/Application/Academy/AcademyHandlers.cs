@@ -31,7 +31,7 @@ namespace Diaspora.Modules.Creator.Application.Academy;
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>The Academy's sections, with the courses in each.</summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 public sealed record ListAcademySectionsQuery : IQuery<IReadOnlyList<AcademySectionResponse>>;
 
 public sealed class ListAcademySectionsQueryHandler
@@ -69,7 +69,7 @@ public sealed class ListAcademySectionsQueryHandler
 }
 
 /// <summary>The course catalogue, with this member's progress against each.</summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 public sealed record ListAcademyCoursesQuery : IQuery<IReadOnlyList<CreatorCourseResponse>>
 {
     public string? Section { get; init; }
@@ -142,7 +142,7 @@ public sealed class ListAcademyCoursesQueryHandler
 /// which has no overload that could include one.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 public sealed record ListCourseLessonsQuery : IQuery<IReadOnlyList<CreatorLessonResponse>>
 {
     public required Guid CourseId { get; init; }
@@ -217,7 +217,7 @@ public sealed class ListCourseLessonsQueryHandler
 /// read and the catalogue must gain the gate together.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 public sealed record GetAcademyCourseQuery : IQuery<CreatorCourseResponse>
 {
     public required Guid CourseId { get; init; }
@@ -284,7 +284,7 @@ public sealed class GetAcademyCourseQueryHandler
 /// from the catalogue.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 public sealed record GetAcademyLessonQuery : IQuery<CreatorLessonResponse>
 {
     public required Guid LessonId { get; init; }
@@ -364,7 +364,7 @@ public sealed class GetAcademyLessonQueryHandler
 /// it at a newer version updates the recorded version, because the member has now read the new one.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.Participate)]
+[RequirePermission(CreatorPermissions.Participate)]
 [Transactional(Reason =
     "Writes the lesson completion and, when it finishes the course, the certificate. A completion "
     + "that committed without its certificate would leave a finished course nobody was credited for.")]
@@ -468,7 +468,7 @@ public sealed class CompleteLessonCommandHandler
 /// a member brute-forcing a four-option quiz.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.Participate)]
+[RequirePermission(CreatorPermissions.Participate)]
 [Transactional(Reason =
     "Records the attempt, completes the lesson when it passed, and issues the certificate when that "
     + "finishes the course. Three writes that must land together or not at all.")]
@@ -597,7 +597,7 @@ public sealed class SubmitQuizCommandHandler
 }
 
 /// <summary>Saves or unsaves a course.</summary>
-[Authorize(Permission = CreatorPermissions.Participate)]
+[RequirePermission(CreatorPermissions.Participate)]
 public sealed record SaveCourseCommand : ICommand<CreatorCourseResponse>
 {
     public required Guid CourseId { get; init; }
@@ -668,7 +668,7 @@ public sealed class SaveCourseCommandHandler
 }
 
 /// <summary>The caller's certificates.</summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 public sealed record ListMyCertificatesQuery : IQuery<IReadOnlyList<CreatorCertificateResponse>>;
 
 public sealed class ListMyCertificatesQueryHandler

@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Location.Application.Experience;
 /// edited a profile field would be Location making a trust decision.
 /// </para>
 /// </summary>
-[Authorize(Permission = LocationPermissions.ManageExperience)]
+[RequirePermission(LocationPermissions.ManageExperience)]
 public sealed record RemoveCountryExperienceCommand : ICommand
 {
     public required string CountryCode { get; init; }

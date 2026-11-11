@@ -24,7 +24,7 @@ namespace Diaspora.Modules.Analytics.Application.Queries;
 /// approximated from the community's country of origin.
 /// </para>
 /// </summary>
-[Authorize(Permission = AnalyticsPermissions.CreatorRead)]
+[RequirePermission(AnalyticsPermissions.CreatorRead)]
 public sealed record GetCommunityAnalyticsDatasetQuery : IQuery<AnalyticsDatasetResponse>
 {
     /// <summary>The community's identifier or slug.</summary>

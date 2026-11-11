@@ -11,6 +11,7 @@ namespace Diaspora.Modules.Community.Application.Feeds;
 /// adds no route, no query and no handler.
 /// </para>
 /// </summary>
+[RequirePolicy(CommunityPolicies.Read)]
 public sealed record GetFeedQuery : IQuery<FeedResponse>
 {
     public required string FeedKey { get; init; }

@@ -58,6 +58,7 @@ namespace Diaspora.Modules.Integrations.Application.Sync;
     "Opens the run, performs the reconciliation, closes the run and — when it did not end cleanly — "
     + "enqueues the contract that tells the member. A partial commit would leave a run stuck in "
     + "`syncing`, which is also the concurrency barrier, so that calendar could never sync again.")]
+[RequirePolicy(IntegrationsPolicies.CalendarSync)]
 public sealed record StartCalendarSyncCommand : ICommand<IntegrationSyncStateResponse>
 {
     public required string Provider { get; init; }
@@ -355,6 +356,7 @@ public sealed class StartCalendarSyncCommandHandler
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>The state of the most recent synchronisation for a key.</summary>
+[RequirePolicy(IntegrationsPolicies.CalendarSync)]
 public sealed record GetCalendarSyncStatusQuery : IQuery<IntegrationSyncStateResponse>
 {
     public required string Provider { get; init; }

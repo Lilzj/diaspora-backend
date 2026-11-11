@@ -11,7 +11,7 @@ namespace Diaspora.Modules.CommunityLife.Application.Series;
 /// clock, and a partial commit would leave half a pattern moved.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityLifePermissions.EventEditOwn)]
+[RequirePermission(CommunityLifePermissions.EventEditOwn)]
 [Transactional(Reason = "Rewrites the series template and the occurrences within scope.")]
 [Auditable]
 public sealed record UpdateEventSeriesCommand : ICommand<EventSeriesResponse>

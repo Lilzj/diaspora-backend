@@ -17,7 +17,7 @@ namespace Diaspora.Modules.Guides.Application.Authoring;
 /// drafting is low-stakes engagement, and publishing is where the Verified floor bites.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.Create)]
+[RequirePermission(GuidePermissions.Create)]
 [Auditable]
 [Diaspora.Application.Behaviors.PostsInArea(Diaspora.Contracts.Moderation.V1.ModerationAreas.Guides)]
 public sealed record CreateGuideCommand : ICommand<GuideResponse>

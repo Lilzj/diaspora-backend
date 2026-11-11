@@ -10,6 +10,7 @@ namespace Diaspora.Modules.Media.Application.Uploads;
 /// <c>receivedChunks</c>, and sends only the gaps.
 /// </para>
 /// </summary>
+[RequirePolicy(MediaPolicies.Read)]
 public sealed record GetUploadSessionQuery : IQuery<UploadSessionResponse>
 {
     public required Guid SessionId { get; init; }

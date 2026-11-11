@@ -9,7 +9,7 @@ namespace Diaspora.Modules.Marketplace.Application.Listings;
 /// the card closed. The difference is what a buyer holding a saved listing sees.
 /// </para>
 /// </summary>
-[Authorize(Permission = MarketplacePermissions.ListingDeleteOwn)]
+[RequirePermission(MarketplacePermissions.ListingDeleteOwn)]
 [Auditable]
 public sealed record DeleteListingCommand : ICommand
 {

@@ -13,6 +13,10 @@ namespace Diaspora.Modules.Jobs.Application.Discovery;
 /// employer and staff, because a 403 would confirm the posting exists.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Public discovery. The route already says AllowAnonymous and this is the same statement at " +
+    "the other end of the pipeline: a listing nobody can see without signing up is a listing " +
+    "nobody answers.")]
 public sealed record GetJobQuery : IQuery<JobResponse>
 {
     public Guid? JobId { get; init; }

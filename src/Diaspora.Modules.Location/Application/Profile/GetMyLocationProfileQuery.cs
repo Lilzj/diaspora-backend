@@ -10,5 +10,5 @@ namespace Diaspora.Modules.Location.Application.Profile;
 /// recents, travel mode and permission status — on any device.
 /// </para>
 /// </summary>
-[Authorize(Permission = LocationPermissions.ReadProfile)]
+[RequirePermission(LocationPermissions.ReadProfile)]
 public sealed record GetMyLocationProfileQuery : IQuery<LocationProfileResponse>;

@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Location.Application.Countries;
 /// without Location knowing what a guide is.
 /// </para>
 /// </summary>
-[Authorize(Permission = LocationPermissions.ReadCatalog)]
+[RequirePermission(LocationPermissions.ReadCatalog)]
 public sealed record GetCountryQuery : IQuery<CountryDetailResponse>
 {
     public required string CountryCode { get; init; }

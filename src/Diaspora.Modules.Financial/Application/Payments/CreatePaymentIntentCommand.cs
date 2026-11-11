@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Financial.Application.Payments;
 /// reference a row that does not exist.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PaymentsManage)]
+[RequirePermission(FinancialPermissions.PaymentsManage)]
 [Transactional(Reason = "A first payment opens the payer's financial identity alongside the intent.")]
 [Auditable(Action = "financial.payment.create")]
 public sealed record CreatePaymentIntentCommand : ICommand<PaymentIntentResponse>

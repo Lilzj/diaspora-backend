@@ -11,7 +11,10 @@ namespace Diaspora.Modules.CommunityLife.Application.Memberships;
 /// anybody outside it should be able to read.
 /// </para>
 /// </summary>
-[Authorize]
+[RequireAuthentication(
+    "Authentication is all the gate can ask. A body's member list is visible to members where it " +
+    "publishes one and to administrators always, which is a fact about the organization rather " +
+    "than about the caller's permissions.")]
 public sealed record ListMembershipsQuery : IQuery<MembershipPageResponse>
 {
     public required Guid OrganizationId { get; init; }

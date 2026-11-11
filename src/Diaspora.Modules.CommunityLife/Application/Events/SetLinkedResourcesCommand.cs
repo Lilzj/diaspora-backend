@@ -13,7 +13,7 @@ namespace Diaspora.Modules.CommunityLife.Application.Events;
 /// other to render an anchor.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityLifePermissions.EventEditOwn)]
+[RequirePermission(CommunityLifePermissions.EventEditOwn)]
 [Auditable]
 public sealed record SetLinkedResourcesCommand : ICommand<EventResponse>
 {

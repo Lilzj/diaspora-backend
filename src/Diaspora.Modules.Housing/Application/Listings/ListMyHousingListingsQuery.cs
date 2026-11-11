@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Housing.Application.Listings;
 /// them unable to correct whatever caused it.
 /// </para>
 /// </summary>
-[Authorize(Permission = HousingPermissions.ListingEditOwn)]
+[RequirePermission(HousingPermissions.ListingEditOwn)]
 public sealed record ListMyHousingListingsQuery : IQuery<HousingSearchResultResponse>
 {
     /// <summary>Narrow to one lifecycle state. Null returns everything of theirs.</summary>

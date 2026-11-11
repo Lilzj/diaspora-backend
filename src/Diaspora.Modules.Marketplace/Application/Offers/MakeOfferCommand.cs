@@ -5,7 +5,7 @@ using Diaspora.Modules.Marketplace.Contracts.V1.Responses;
 namespace Diaspora.Modules.Marketplace.Application.Offers;
 
 /// <summary>Opens a negotiation on a listing.</summary>
-[Authorize(Permission = MarketplacePermissions.OfferMake)]
+[RequirePermission(MarketplacePermissions.OfferMake)]
 [Auditable]
 public sealed record MakeOfferCommand : ICommand<OfferResponse>
 {

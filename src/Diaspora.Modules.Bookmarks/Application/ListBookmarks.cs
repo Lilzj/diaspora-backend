@@ -7,7 +7,7 @@ using Diaspora.SharedKernel.Results;
 namespace Diaspora.Modules.Bookmarks.Application;
 
 /// <summary>Lists the signed-in member's bookmarks. A query — never wrapped in a transaction.</summary>
-[Authorize(Permission = BookmarkPermissions.Read)]
+[RequirePermission(BookmarkPermissions.Read)]
 public sealed record ListBookmarksQuery : IQuery<IReadOnlyList<BookmarkResponse>>;
 
 public sealed class ListBookmarksQueryHandler

@@ -17,6 +17,7 @@ namespace Diaspora.Modules.Jobs.Application.Offers;
 /// question; this answers "what has been on the table".
 /// </para>
 /// </summary>
+[RequirePolicy(JobPolicies.ApplicationsReview)]
 public sealed record ListApplicationOffersQuery : IQuery<IReadOnlyList<JobOfferResponse>>
 {
     public required Guid ApplicationId { get; init; }

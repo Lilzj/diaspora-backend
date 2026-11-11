@@ -3,7 +3,7 @@ using Diaspora.Application.Abstractions;
 namespace Diaspora.Modules.CommunityLife.Application.Events;
 
 /// <summary>Soft-deletes an event.</summary>
-[Authorize(Permission = CommunityLifePermissions.EventDeleteOwn)]
+[RequirePermission(CommunityLifePermissions.EventDeleteOwn)]
 [Auditable]
 public sealed record DeleteEventCommand : ICommand
 {

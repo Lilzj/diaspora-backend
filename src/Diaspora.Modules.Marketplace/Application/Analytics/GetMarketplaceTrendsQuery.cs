@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Marketplace.Application.Analytics;
 /// would know exactly which categories to flood.
 /// </para>
 /// </summary>
-[Authorize(Permission = MarketplacePermissions.Moderate)]
+[RequirePermission(MarketplacePermissions.Moderate)]
 public sealed record GetMarketplaceTrendsQuery : IQuery<IReadOnlyList<MarketplaceTrendResponse>>
 {
     /// <summary><c>Category</c> or <c>Country</c>. Category when omitted.</summary>

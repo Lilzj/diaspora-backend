@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Jobs.Application.Applications;
 /// and is not reachable from here — it must not be issuable by an employer passing an enum value.
 /// </para>
 /// </summary>
-[Authorize(Permission = JobPermissions.ApplicationsDecide)]
+[RequirePermission(JobPermissions.ApplicationsDecide)]
 [Auditable]
 [Transactional(Reason = "Moves the application and updates the employer's response metrics.")]
 public sealed record DecideApplicationCommand : ICommand<JobApplicationResponse>

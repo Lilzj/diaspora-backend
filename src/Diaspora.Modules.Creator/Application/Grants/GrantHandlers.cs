@@ -121,7 +121,7 @@ public static class CreatorStatusWords
 }
 
 /// <summary>Grant discovery.</summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 public sealed record ListGrantsQuery : IQuery<IReadOnlyList<CommunityGrantResponse>>
 {
     public string? Category { get; init; }
@@ -206,7 +206,7 @@ public sealed class ListGrantsQueryHandler
 }
 
 /// <summary>One grant.</summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 public sealed record GetGrantQuery : IQuery<CommunityGrantResponse>
 {
     public required Guid GrantId { get; init; }
@@ -263,7 +263,7 @@ public sealed class GetGrantQueryHandler : IQueryHandler<GetGrantQuery, Communit
 /// server validates against the same rows. Adding a question is a seed change.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 public sealed record GetGrantFormQuery : IQuery<GrantApplicationFormResponse>
 {
     public required Guid GrantId { get; init; }
@@ -290,7 +290,7 @@ public sealed class GetGrantFormQueryHandler
 }
 
 /// <summary>The caller's own applications.</summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 public sealed record ListMyGrantApplicationsQuery : IQuery<IReadOnlyList<GrantApplicationResponse>>;
 
 public sealed class ListMyGrantApplicationsQueryHandler
@@ -362,7 +362,7 @@ public sealed class ListMyGrantApplicationsQueryHandler
 /// A reviewer reading their own application is answered as its applicant.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 public sealed record GetGrantApplicationQuery : IQuery<GrantApplicationResponse>
 {
     public required Guid ApplicationId { get; init; }
@@ -439,7 +439,7 @@ public sealed class GetGrantApplicationQueryHandler
 /// reads first — so a second POST edits the first rather than colliding.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.Participate)]
+[RequirePermission(CreatorPermissions.Participate)]
 [Auditable(Action = "creator.grant.draft")]
 public sealed record SaveGrantApplicationCommand : ICommand<GrantApplicationResponse>
 {
@@ -580,7 +580,7 @@ public sealed class SaveGrantApplicationCommandHandler
 }
 
 /// <summary>Submits an application. Idempotent on the key.</summary>
-[Authorize(Permission = CreatorPermissions.Participate)]
+[RequirePermission(CreatorPermissions.Participate)]
 [Auditable(Action = "creator.grant.submit")]
 public sealed record SubmitGrantApplicationCommand : ICommand<GrantApplicationResponse>
 {
@@ -736,7 +736,7 @@ public sealed class SubmitGrantApplicationCommandHandler
 /// whether this one is theirs is asked separately, on every request.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.Participate)]
+[RequirePermission(CreatorPermissions.Participate)]
 [Auditable(Action = "creator.grant.withdraw")]
 public sealed record WithdrawGrantApplicationCommand : ICommand<GrantApplicationResponse>
 {
@@ -814,7 +814,7 @@ public sealed class WithdrawGrantApplicationCommandHandler
 }
 
 /// <summary>Files a report against an active grant.</summary>
-[Authorize(Permission = CreatorPermissions.Participate)]
+[RequirePermission(CreatorPermissions.Participate)]
 [Auditable(Action = "creator.grant.report")]
 public sealed record SubmitGrantReportCommand : ICommand<GrantApplicationResponse>
 {
@@ -899,7 +899,7 @@ public sealed class SubmitGrantReportCommandHandler
 }
 
 /// <summary>The reviewer's queue.</summary>
-[Authorize(Permission = CreatorPermissions.GrantReview)]
+[RequirePermission(CreatorPermissions.GrantReview)]
 public sealed record ListGrantApplicationsForReviewQuery
     : IQuery<IReadOnlyList<GrantApplicationResponse>>
 {
@@ -967,7 +967,7 @@ public sealed class ListGrantApplicationsForReviewQueryHandler
 /// the necessary condition and the applicant check is the sufficient one.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.GrantReview)]
+[RequirePermission(CreatorPermissions.GrantReview)]
 [Auditable(Action = "creator.grant.decide")]
 public sealed record DecideGrantApplicationCommand : ICommand<GrantApplicationResponse>
 {

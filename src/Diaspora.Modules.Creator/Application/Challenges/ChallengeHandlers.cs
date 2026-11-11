@@ -103,7 +103,7 @@ public static class ChallengeEligibility
 /// the register asks for.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 public sealed record ListChallengesQuery : IQuery<IReadOnlyList<CreatorChallengeResponse>>
 {
     public string? State { get; init; }
@@ -177,7 +177,7 @@ public sealed class ListChallengesQueryHandler
 }
 
 /// <summary>One challenge, with this creator's progress against it.</summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 public sealed record GetChallengeQuery : IQuery<CreatorChallengeResponse>
 {
     public required Guid ChallengeId { get; init; }
@@ -237,7 +237,7 @@ public sealed class GetChallengeQueryHandler
 /// register's "duplicate join" test exercises.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.Participate)]
+[RequirePermission(CreatorPermissions.Participate)]
 [Auditable(Action = "creator.challenge.join")]
 public sealed record JoinChallengeCommand : ICommand<CreatorChallengeResponse>
 {
@@ -386,7 +386,7 @@ public sealed class JoinChallengeCommandHandler
 }
 
 /// <summary>Claims a completed challenge. The same three barriers a milestone claim carries.</summary>
-[Authorize(Permission = CreatorPermissions.Participate)]
+[RequirePermission(CreatorPermissions.Participate)]
 [Auditable(Action = "creator.challenge.claim")]
 public sealed record ClaimChallengeCommand : ICommand<CreatorChallengeResponse>
 {
@@ -524,7 +524,7 @@ public sealed class ClaimChallengeCommandHandler
 /// register asks for on the creator boards.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 public sealed record GetChallengeLeaderboardQuery : IQuery<CreatorLeaderboardResponse>
 {
     public required Guid ChallengeId { get; init; }

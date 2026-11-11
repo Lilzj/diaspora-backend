@@ -11,6 +11,10 @@ namespace Diaspora.Modules.Media.Application.Assets;
 /// is the only credential available.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Serving the bytes of published media. The route says AllowAnonymous because an image in a " +
+    "public guide is fetched by a browser with no session; access is decided by the asset's own " +
+    "visibility, which the handler checks.")]
 public sealed record GetMediaContentQuery : IQuery<MediaContentResult>
 {
     public required Guid MediaId { get; init; }

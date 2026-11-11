@@ -21,7 +21,7 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Communities;
 /// returning member from a new one — and so a revocation cannot be escaped by leaving first.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record EndCommunityMembershipCommand : ICommand<CommunityMembershipResponse>
 {
     public required string IdOrSlug { get; init; }

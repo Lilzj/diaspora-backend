@@ -4,7 +4,7 @@ using Diaspora.Modules.Housing.Contracts.V1.Requests;
 namespace Diaspora.Modules.Housing.Application.Listings;
 
 /// <summary>Asks Trust to vouch for a particular property. Returns a case identifier.</summary>
-[Authorize(Permission = HousingPermissions.ListingSubmitVerification)]
+[RequirePermission(HousingPermissions.ListingSubmitVerification)]
 [Auditable]
 public sealed record SubmitListingVerificationCommand : ICommand<Guid>
 {

@@ -10,7 +10,7 @@ namespace Diaspora.Modules.CommunityLife.Application.Series;
 /// and for the same reason: publishing puts something in front of strangers.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityLifePermissions.EventPublish)]
+[RequirePermission(CommunityLifePermissions.EventPublish)]
 [Transactional(Reason = "Publishes the series and the occurrences already written for it.")]
 [Auditable]
 [Diaspora.Application.Behaviors.PostsInArea(Diaspora.Contracts.Moderation.V1.ModerationAreas.Events)]

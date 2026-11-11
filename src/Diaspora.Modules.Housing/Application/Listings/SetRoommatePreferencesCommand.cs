@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Housing.Application.Listings;
 /// validator, because it is a rule about the property rather than about the request.
 /// </para>
 /// </summary>
-[Authorize(Permission = HousingPermissions.ListingEditOwn)]
+[RequirePermission(HousingPermissions.ListingEditOwn)]
 [Auditable]
 public sealed record SetRoommatePreferencesCommand : ICommand<HousingListingResponse>
 {

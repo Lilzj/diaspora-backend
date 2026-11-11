@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Guides.Application.Knowledge.Categories;
 /// translations.
 /// </para>
 /// </summary>
-[Authorize(Permission = KnowledgePermissions.ManageCategories)]
+[RequirePermission(KnowledgePermissions.ManageCategories)]
 [Auditable]
 public sealed record UpdateKnowledgeCategoryCommand : ICommand<KnowledgeCategoryResponse>
 {

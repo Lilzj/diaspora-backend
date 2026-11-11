@@ -40,7 +40,7 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Communities;
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>An owner asking Diaspora to close their community.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record RequestCommunityDeletionCommand : ICommand<CommunityDeletionRequestResponse>
 {
     public required string IdOrSlug { get; init; }
@@ -137,7 +137,7 @@ public sealed class RequestCommunityDeletionCommandHandler
 }
 
 /// <summary>The owner changing their mind before the community closes.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record WithdrawCommunityDeletionCommand : ICommand<CommunityDeletionRequestResponse>
 {
     public required string IdOrSlug { get; init; }
@@ -223,7 +223,7 @@ public sealed class WithdrawCommunityDeletionCommandHandler
 /// What is happening to this community, if anything. The owner's own banner, and what an
 /// administrator reads before deciding.
 /// </summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record GetCommunityDeletionRequestQuery : IQuery<CommunityDeletionRequestResponse?>
 {
     public required string IdOrSlug { get; init; }
@@ -293,7 +293,7 @@ public sealed class GetCommunityDeletionRequestQueryHandler
 }
 
 /// <summary>The queue a Diaspora administrator works through.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record ListCommunityDeletionRequestsQuery
     : IQuery<CommunityPageResponse<CommunityDeletionRequestResponse>>
 {
@@ -380,7 +380,7 @@ public sealed class ListCommunityDeletionRequestsQueryHandler
 }
 
 /// <summary>A Diaspora administrator deciding. Platform administrators, not moderators.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record DecideCommunityDeletionCommand : ICommand<CommunityDeletionRequestResponse>
 {
     public required Guid RequestId { get; init; }
@@ -458,7 +458,7 @@ public sealed class DecideCommunityDeletionCommandHandler
 }
 
 /// <summary>An owner offering the community to one of its moderators or administrators.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record OfferCommunityOwnershipCommand : ICommand<CommunityOwnershipOfferResponse>
 {
     public required string IdOrSlug { get; init; }
@@ -575,7 +575,7 @@ public sealed class OfferCommunityOwnershipCommandHandler
 }
 
 /// <summary>The owner taking the offer back.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record WithdrawCommunityOwnershipOfferCommand
     : ICommand<CommunityOwnershipOfferResponse>
 {
@@ -660,7 +660,7 @@ public sealed class WithdrawCommunityOwnershipOfferCommandHandler
 }
 
 /// <summary>Every community somebody has been asked to take over.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record ListMyCommunityOwnershipOffersQuery
     : IQuery<IReadOnlyList<CommunityOwnershipOfferResponse>>;
 
@@ -725,7 +725,7 @@ public sealed class ListMyCommunityOwnershipOffersQueryHandler
 /// to, which as owner they could not.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityProgrammePermissions.Participate)]
+[RequirePermission(CommunityProgrammePermissions.Participate)]
 public sealed record DecideCommunityOwnershipCommand : ICommand<CommunityOwnershipOfferResponse>
 {
     public required Guid TransferId { get; init; }

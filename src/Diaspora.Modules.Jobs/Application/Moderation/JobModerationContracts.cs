@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Jobs.Application.Moderation;
 /// nothing until this command existed.
 /// </para>
 /// </summary>
-[Authorize(Permission = JobPermissions.Report)]
+[RequirePermission(JobPermissions.Report)]
 [Transactional]
 [Auditable]
 public sealed record ReportJobPostingCommand : ICommand<Guid>
@@ -22,7 +22,7 @@ public sealed record ReportJobPostingCommand : ICommand<Guid>
 }
 
 /// <summary>The moderation queue. Staff.</summary>
-[Authorize(Permission = JobPermissions.Moderate)]
+[RequirePermission(JobPermissions.Moderate)]
 public sealed record ListJobReportsQuery : IQuery<IReadOnlyList<JobReportResponse>>
 {
     public bool OpenOnly { get; init; } = true;

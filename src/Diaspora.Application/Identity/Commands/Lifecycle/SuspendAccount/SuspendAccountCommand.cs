@@ -13,7 +13,7 @@ namespace Diaspora.Application.Identity.Commands.Lifecycle.SuspendAccount;
 /// </para>
 /// </summary>
 [Auditable(Action = "identity.user.suspension-proposed")]
-[Authorize(Permission = IdentityPermissions.SuspendUser)]
+[RequirePermission(IdentityPermissions.SuspendUser)]
 public sealed record SuspendAccountCommand : ICommand<AccountActionProposalResponse>
 {
     public required Guid UserId { get; init; }

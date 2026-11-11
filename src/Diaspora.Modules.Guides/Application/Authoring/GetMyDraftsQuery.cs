@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Guides.Application.Authoring;
 /// read is permissioned where the rest of discovery is not.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.ViewDrafts)]
+[RequirePermission(GuidePermissions.ViewDrafts)]
 public sealed record GetMyDraftsQuery : IQuery<CursorPagedResult<GuideCardResponse>>
 {
     public string? Cursor { get; init; }

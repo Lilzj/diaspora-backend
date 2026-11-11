@@ -25,6 +25,7 @@ namespace Diaspora.Modules.Automation.Application.Execution;
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>A page of the caller's execution history.</summary>
+[RequirePolicy(AutomationPolicies.Read)]
 public sealed record ListRunsQuery : IQuery<AutomationRunPageResponse>
 {
     public Guid? AutomationId { get; init; }
@@ -191,6 +192,7 @@ public sealed class ListRunsQueryHandler : IQueryHandler<ListRunsQuery, Automati
 }
 
 /// <summary>One run, with its per-condition and per-action outcomes.</summary>
+[RequirePolicy(AutomationPolicies.Read)]
 public sealed record GetRunQuery : IQuery<AutomationRunResponse>
 {
     public required Guid AutomationId { get; init; }
@@ -264,6 +266,7 @@ public sealed class GetRunQueryHandler : IQueryHandler<GetRunQuery, AutomationRu
 /// event behind it, and an engine that accepted it would let a client manufacture a trigger.
 /// </para>
 /// </summary>
+[RequirePolicy(AutomationPolicies.Execute)]
 public sealed record RunAutomationCommand : ICommand<AutomationRunResponse>
 {
     public required Guid AutomationId { get; init; }
@@ -357,6 +360,7 @@ public sealed class RunAutomationCommandHandler
 }
 
 /// <summary>What this member may do with automation.</summary>
+[RequirePolicy(AutomationPolicies.Read)]
 public sealed record GetAutomationCapabilitiesQuery : IQuery<AutomationAccessResponse>
 {
     public string? OwnerKind { get; init; }
@@ -394,6 +398,7 @@ public sealed class GetAutomationCapabilitiesQueryHandler
 /// a flag the dispatcher ignored once is a member's community receiving a test broadcast.
 /// </para>
 /// </summary>
+[RequirePolicy(AutomationPolicies.Simulate)]
 public sealed record SimulateAutomationCommand : ICommand<AutomationSimulationResponse>
 {
     public required SimulateAutomationRequest Request { get; init; }
@@ -651,6 +656,7 @@ public sealed class SimulateAutomationCommandHandler
 }
 
 /// <summary>How many people an automation would reach. A count and prose, never a member list.</summary>
+[RequirePolicy(AutomationPolicies.Simulate)]
 public sealed record GetAudienceQuery : IQuery<AutomationAudienceResponse>
 {
     public required AudienceRequest Request { get; init; }
@@ -720,6 +726,7 @@ public sealed class GetAudienceQueryHandler : IQueryHandler<GetAudienceQuery, Au
 }
 
 /// <summary>The next occurrence of a scheduled automation, and anything worth warning about.</summary>
+[RequirePolicy(AutomationPolicies.Read)]
 public sealed record GetScheduleQuery : IQuery<AutomationScheduleStateResponse>
 {
     public required Guid AutomationId { get; init; }
@@ -786,6 +793,7 @@ public sealed class GetScheduleQueryHandler
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>What a trigger would carry about a subject the member named.</summary>
+[RequirePolicy(AutomationPolicies.Read)]
 public sealed record GetTriggerContextQuery : IQuery<AutomationTriggerContextResponse>
 {
     public string TriggerKey { get; init; } = string.Empty;

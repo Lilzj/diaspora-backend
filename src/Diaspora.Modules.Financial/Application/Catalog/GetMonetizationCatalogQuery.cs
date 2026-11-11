@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Financial.Application.Catalog;
 /// conversion path.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PurchasesRead)]
+[RequirePermission(FinancialPermissions.PurchasesRead)]
 public sealed record GetMonetizationCatalogQuery : IQuery<IReadOnlyList<MonetizationProductResponse>>
 {
     /// <summary>Narrow to what can be bought for one kind of thing.</summary>

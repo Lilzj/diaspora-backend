@@ -197,15 +197,28 @@ public sealed class ApiGuardrailTests : IClassFixture<CustomWebApplicationFactor
     /// decorative: if endpoint-level authorisation quietly disappeared, every module that relies on
     /// it would be open and nothing else here would notice.
     /// </para>
+    /// <para>
+    /// <b>Superseded 10 November 2026, and kept deliberately narrow.</b> BSEC-003 named this test
+    /// as the thing occupying the real rule's place: it asserts an aggregate count and "says
+    /// nothing about any particular endpoint", which is why it stayed green while
+    /// <c>GET /api/v1/creators/me/activity</c> was reachable without a token.
+    /// <see cref="RouteAuthorizationCoverageTests"/> is the per-endpoint rule now, and it names the
+    /// offender. This one is reduced to the single claim it can honestly make — that the mechanism
+    /// has not vanished wholesale — because a route table where <em>nothing</em> declared
+    /// authorisation would mean the convention had been abandoned, and the pinned-set rule would
+    /// then report four hundred failures rather than one sentence.
+    /// </para>
     /// </summary>
     [Fact]
-    public void Route_level_authorisation_is_still_in_use()
+    public void Route_level_authorisation_has_not_been_abandoned_wholesale()
     {
         var authorised = _endpoints
             .Count(endpoint => endpoint.Metadata.GetMetadata<IAuthorizeData>() is not null);
 
         authorised.Should().BeGreaterThan(
-            100, "most of the platform's endpoints declare their policy on the route");
+            100,
+            "around 550 endpoints declare their policy on the route; a number near zero would mean "
+            + "the convention itself had gone, which no per-endpoint rule states as plainly");
     }
 
     /// <summary>

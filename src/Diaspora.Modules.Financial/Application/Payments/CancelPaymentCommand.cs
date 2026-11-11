@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Financial.Application.Payments;
 /// would give the platform two names for an operation whose accounting is entirely different.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PaymentsManage)]
+[RequirePermission(FinancialPermissions.PaymentsManage)]
 [Auditable(Action = "financial.payment.cancel")]
 public sealed record CancelPaymentCommand : ICommand<PaymentIntentResponse>
 {

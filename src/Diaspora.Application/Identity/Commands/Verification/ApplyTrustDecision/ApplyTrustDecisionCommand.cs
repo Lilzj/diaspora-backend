@@ -13,7 +13,7 @@ namespace Diaspora.Application.Identity.Commands.Verification.ApplyTrustDecision
 /// </para>
 /// </summary>
 [Auditable(Action = "identity.user.trust-decision-applied")]
-[Authorize(Permission = "identity:trust:apply-decision")]
+[RequirePermission("identity:trust:apply-decision")]
 public sealed record ApplyTrustDecisionCommand : ICommand<AccessStateResponse>
 {
     public required Guid UserId { get; init; }

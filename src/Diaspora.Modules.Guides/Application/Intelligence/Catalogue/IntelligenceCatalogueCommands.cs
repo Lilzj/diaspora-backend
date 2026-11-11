@@ -12,7 +12,7 @@ namespace Diaspora.Modules.Guides.Application.Intelligence.Catalogue;
 /// per-country editorial choice.
 /// </para>
 /// </summary>
-[Authorize(Permission = IntelligencePermissions.ManageCatalogue)]
+[RequirePermission(IntelligencePermissions.ManageCatalogue)]
 [Auditable]
 public sealed record CreateNoticeCategoryCommand : ICommand<NoticeCategoryResponse>
 {
@@ -27,7 +27,7 @@ public sealed record CreateNoticeCategoryCommand : ICommand<NoticeCategoryRespon
 /// name beside the old French one.
 /// </para>
 /// </summary>
-[Authorize(Permission = IntelligencePermissions.ManageCatalogue)]
+[RequirePermission(IntelligencePermissions.ManageCatalogue)]
 [Auditable]
 [Transactional(Reason =
     "The label and the localization set are separate aggregate operations applied from one screen.")]
@@ -45,7 +45,7 @@ public sealed record UpdateNoticeCategoryCommand : ICommand<NoticeCategoryRespon
 /// into a category that is gone would strand it somewhere no listing shows.
 /// </para>
 /// </summary>
-[Authorize(Permission = IntelligencePermissions.ManageCatalogue)]
+[RequirePermission(IntelligencePermissions.ManageCatalogue)]
 [Auditable]
 public sealed record ArchiveNoticeCategoryCommand : ICommand
 {
@@ -53,7 +53,7 @@ public sealed record ArchiveNoticeCategoryCommand : ICommand
 }
 
 /// <summary>Returns an archived category to the catalogue.</summary>
-[Authorize(Permission = IntelligencePermissions.ManageCatalogue)]
+[RequirePermission(IntelligencePermissions.ManageCatalogue)]
 [Auditable]
 public sealed record RestoreNoticeCategoryCommand : ICommand<NoticeCategoryResponse>
 {
@@ -65,7 +65,7 @@ public sealed record RestoreNoticeCategoryCommand : ICommand<NoticeCategoryRespo
 /// Notices, visa advisories and embassy details written by platform admins name it as their
 /// issuer, and readers are shown "Posted by Diaspora platform admin". Idempotent.
 /// </summary>
-[Authorize(Permission = IntelligencePermissions.ManageNotices)]
+[RequirePermission(IntelligencePermissions.ManageNotices)]
 [Auditable]
 public sealed record EnsurePlatformAuthorityCommand : ICommand<IssuingAuthorityResponse>
 {
@@ -73,7 +73,7 @@ public sealed record EnsurePlatformAuthorityCommand : ICommand<IssuingAuthorityR
 }
 
 /// <summary>Records a body whose statements this platform will treat as official.</summary>
-[Authorize(Permission = IntelligencePermissions.ManageAuthorities)]
+[RequirePermission(IntelligencePermissions.ManageAuthorities)]
 [Auditable]
 public sealed record CreateIssuingAuthorityCommand : ICommand<IssuingAuthorityResponse>
 {
@@ -81,7 +81,7 @@ public sealed record CreateIssuingAuthorityCommand : ICommand<IssuingAuthorityRe
 }
 
 /// <summary>Rewrites an authority record. The country cannot change.</summary>
-[Authorize(Permission = IntelligencePermissions.ManageAuthorities)]
+[RequirePermission(IntelligencePermissions.ManageAuthorities)]
 [Auditable]
 public sealed record UpdateIssuingAuthorityCommand : ICommand<IssuingAuthorityResponse>
 {
@@ -100,7 +100,7 @@ public sealed record UpdateIssuingAuthorityCommand : ICommand<IssuingAuthorityRe
 /// the reviewer approves, and the badge never appears.
 /// </para>
 /// </summary>
-[Authorize(Permission = IntelligencePermissions.ManageAuthorities)]
+[RequirePermission(IntelligencePermissions.ManageAuthorities)]
 [Auditable]
 [Transactional(Reason =
     "The submission opens a Trust case and the case identifier is then stored on the subject. " +
@@ -119,7 +119,7 @@ public sealed record SubmitAuthorityVerificationCommand : ICommand<IssuingAuthor
 /// and archiving it would leave live official information attributed to a body the register hides.
 /// </para>
 /// </summary>
-[Authorize(Permission = IntelligencePermissions.ManageAuthorities)]
+[RequirePermission(IntelligencePermissions.ManageAuthorities)]
 [Auditable]
 public sealed record ArchiveIssuingAuthorityCommand : ICommand
 {
@@ -127,7 +127,7 @@ public sealed record ArchiveIssuingAuthorityCommand : ICommand
 }
 
 /// <summary>Returns an archived authority to the register, verification intact.</summary>
-[Authorize(Permission = IntelligencePermissions.ManageAuthorities)]
+[RequirePermission(IntelligencePermissions.ManageAuthorities)]
 [Auditable]
 public sealed record RestoreIssuingAuthorityCommand : ICommand<IssuingAuthorityResponse>
 {

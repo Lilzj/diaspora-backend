@@ -5,7 +5,7 @@ using Diaspora.Modules.CommunityLife.Contracts.V1.Responses;
 namespace Diaspora.Modules.CommunityLife.Application.Rsvps;
 
 /// <summary>Records somebody arriving at an event.</summary>
-[Authorize(Permission = CommunityLifePermissions.CheckInManage)]
+[RequirePermission(CommunityLifePermissions.CheckInManage)]
 [Auditable]
 public sealed record RecordCheckInCommand : ICommand<RsvpResponse>
 {

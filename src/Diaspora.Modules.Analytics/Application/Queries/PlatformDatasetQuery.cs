@@ -34,7 +34,7 @@ namespace Diaspora.Modules.Analytics.Application.Queries;
 /// <c>unavailableMetrics</c> and the dataset is <c>PARTIAL</c>; nothing is filled in for it.
 /// </para>
 /// </summary>
-[Authorize(Permission = AnalyticsPermissions.CreatorRead)]
+[RequirePermission(AnalyticsPermissions.CreatorRead)]
 public sealed record GetPlatformAnalyticsDatasetQuery : IQuery<AnalyticsDatasetResponse>
 {
     /// <summary><c>7d</c>, <c>30d</c> (the default), <c>90d</c>, <c>today</c>, <c>year</c> or <c>custom</c>.</summary>

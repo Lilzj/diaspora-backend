@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Notifications.Application.Templates;
 /// on a platform this one's members trust, they should be able to be two people.
 /// </para>
 /// </summary>
-[Authorize(Permission = NotificationPermissions.TemplatesPublish)]
+[RequirePermission(NotificationPermissions.TemplatesPublish)]
 [Transactional(Reason = "Publishes the template and evicts the render cache together.")]
 [Auditable]
 public sealed record PublishNotificationTemplateCommand : ICommand<NotificationTemplateResponse>

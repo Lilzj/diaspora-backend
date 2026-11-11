@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Marketplace.Application.Analytics;
 /// knowing that a listing has had two views and no offers would be reading a negotiating position.
 /// </para>
 /// </summary>
-[Authorize(Permission = MarketplacePermissions.ViewAnalytics)]
+[RequirePermission(MarketplacePermissions.ViewAnalytics)]
 public sealed record GetListingAnalyticsQuery : IQuery<ListingAnalyticsResponse>
 {
     public required Guid ListingId { get; init; }

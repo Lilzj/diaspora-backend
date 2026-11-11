@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Marketplace.Application.Listings;
 /// verdict would be one whose contract implies it could.
 /// </para>
 /// </summary>
-[Authorize(Permission = MarketplacePermissions.ListingSubmitVerification)]
+[RequirePermission(MarketplacePermissions.ListingSubmitVerification)]
 [Auditable]
 public sealed record SubmitListingVerificationCommand : ICommand
 {

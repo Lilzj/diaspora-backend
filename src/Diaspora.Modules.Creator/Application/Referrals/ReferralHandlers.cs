@@ -307,7 +307,7 @@ public sealed class ReferralQualificationService
 /// first.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 [SideEffecting(Reason =
     "Issues the caller's referral code on first read. Idempotent on the creator, so a second read "
     + "returns the first code.")]
@@ -385,7 +385,7 @@ public sealed class GetMyReferralProgrammeQueryHandler
 }
 
 /// <summary>The caller's referral history, cursor-paged.</summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 public sealed record GetMyReferralHistoryQuery : IQuery<CreatorReferralPageResponse>
 {
     public string? Cursor { get; init; }
@@ -443,7 +443,7 @@ public sealed class GetMyReferralHistoryQueryHandler
 }
 
 /// <summary>Issues a code where none exists. Idempotent on the creator.</summary>
-[Authorize(Permission = CreatorPermissions.Participate)]
+[RequirePermission(CreatorPermissions.Participate)]
 [Auditable(Action = "creator.referral.code")]
 public sealed record IssueReferralCodeCommand : ICommand<CreatorReferralProgrammeResponse>
 {

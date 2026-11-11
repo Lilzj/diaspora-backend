@@ -185,6 +185,20 @@ internal static class Rules
         "opens nothing, which is the exact failure B2's logging-only transaction behaviour already cost " +
         "this platform once.");
 
+    public static readonly DiagnosticDescriptor RequestDeclaresNoAuthorization = Rule(
+        DiagnosticIds.RequestDeclaresNoAuthorization,
+        "A request must declare what it requires of its caller",
+        "'{0}' declares no authorization requirement. Add [RequirePermission], [RequirePolicy], "
+            + "[RequireAuthentication] or [AllowAnonymous].",
+        Cqrs,
+        DiagnosticSeverity.Warning,
+        "AuthorizationBehavior refuses a request that declares nothing, so this is caught at runtime "
+            + "either way -- but a 401 on a route somebody has already shipped is a worse place to "
+            + "learn it than the editor. Before BSEC-003 the behaviour returned next() instead, and "
+            + "247 request types took that path; one route was reachable by anonymous callers for as "
+            + "long as it existed. [AllowAnonymous] carries a required reason precisely so that the "
+            + "public case is a decision somebody wrote down rather than an attribute nobody added.");
+
     public static readonly DiagnosticDescriptor CommandHandlerNeverSaves = Rule(
         DiagnosticIds.CommandHandlerNeverSaves,
         "A command handler that stages a write must save it",

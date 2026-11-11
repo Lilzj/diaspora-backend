@@ -14,7 +14,7 @@ using FluentValidation;
 namespace Diaspora.Modules.Trust.Application.Verifications;
 
 /// <summary>The caller's own verification requests.</summary>
-[Authorize(Permission = TrustPermissions.ReadSelf)]
+[RequirePermission(TrustPermissions.ReadSelf)]
 public sealed record ListMyVerificationsQuery : IQuery<PagedResult<VerificationResponse>>
 {
     public PaginationRequest Pagination { get; init; } = new();
@@ -64,7 +64,7 @@ public sealed class ListMyVerificationsQueryHandler
 /// </para>
 /// </summary>
 [Auditable(Action = "trust.verification.read", OnlyForStaff = true)]
-[Authorize(Permission = TrustPermissions.ReadSelf)]
+[RequirePermission(TrustPermissions.ReadSelf)]
 public sealed record GetVerificationQuery : IQuery<VerificationDetailResponse>
 {
     public required Guid VerificationId { get; init; }
@@ -151,7 +151,7 @@ public sealed class GetVerificationQueryHandler
 }
 
 /// <summary>The staff review queue.</summary>
-[Authorize(Permission = TrustPermissions.ReviewVerification)]
+[RequirePermission(TrustPermissions.ReviewVerification)]
 public sealed record ListVerificationQueueQuery : IQuery<PagedResult<VerificationQueueItemResponse>>
 {
     public PaginationRequest Pagination { get; init; } = new();
@@ -223,7 +223,7 @@ public sealed class ListVerificationQueueQueryHandler
 }
 
 /// <summary>Takes a verification onto the caller's desk, or releases it.</summary>
-[Authorize(Permission = TrustPermissions.ReviewVerification)]
+[RequirePermission(TrustPermissions.ReviewVerification)]
 [Transactional]
 public sealed record AssignVerificationCommand : ICommand<VerificationResponse>
 {

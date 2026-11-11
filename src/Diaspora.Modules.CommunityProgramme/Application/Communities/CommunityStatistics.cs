@@ -17,6 +17,10 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Communities;
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>One community's figures for a period.</summary>
+[AllowAnonymous(
+    "Public discovery. The route already says AllowAnonymous and this is the same statement at " +
+    "the other end of the pipeline: a listing nobody can see without signing up is a listing " +
+    "nobody answers.")]
 public sealed record GetCommunityStatisticsQuery : IQuery<CommunityStatisticsResponse>
 {
     public required string IdOrSlug { get; init; }
@@ -79,6 +83,10 @@ public sealed class GetCommunityStatisticsQueryHandler
 }
 
 /// <summary>Two to four communities' figures, aligned by metric. No winner and no score.</summary>
+[AllowAnonymous(
+    "Public discovery. The route already says AllowAnonymous and this is the same statement at " +
+    "the other end of the pipeline: a listing nobody can see without signing up is a listing " +
+    "nobody answers.")]
 public sealed record CompareCommunitiesQuery : IQuery<CommunityComparisonResponse>
 {
     /// <summary>Comma-joined identifiers or handles, as the client sends them.</summary>

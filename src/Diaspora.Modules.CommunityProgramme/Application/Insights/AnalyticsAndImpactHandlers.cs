@@ -32,7 +32,7 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Insights;
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>An organization's programme analytics, over a period.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.ViewAnalytics)]
+[RequirePermission(CommunityProgrammePermissions.ViewAnalytics)]
 public sealed record GetOrganizationAnalyticsQuery : IQuery<OrganizationAnalyticsResponse>
 {
     public required Guid OrganizationId { get; init; }
@@ -116,7 +116,7 @@ public sealed class GetOrganizationAnalyticsQueryHandler
 }
 
 /// <summary>An organization's membership analytics, broken down by state.</summary>
-[Authorize(Permission = CommunityProgrammePermissions.ViewAnalytics)]
+[RequirePermission(CommunityProgrammePermissions.ViewAnalytics)]
 public sealed record GetMemberAnalyticsQuery : IQuery<MemberAnalyticsResponse>
 {
     public required Guid OrganizationId { get; init; }
@@ -198,7 +198,7 @@ public sealed class GetMemberAnalyticsQueryHandler
 /// only hours an organizer confirmed.
 /// </para>
 /// </summary>
-[Authorize(Permission = CommunityProgrammePermissions.Read)]
+[RequirePermission(CommunityProgrammePermissions.Read)]
 public sealed record GetCommunityImpactQuery : IQuery<CommunityImpactResponse>
 {
     /// <summary><c>member</c>, <c>organization</c>, <c>neighborhood</c> or <c>country</c>.</summary>

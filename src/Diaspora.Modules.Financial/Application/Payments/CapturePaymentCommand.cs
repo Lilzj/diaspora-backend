@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Financial.Application.Payments;
 /// account for.
 /// </para>
 /// </summary>
-[Authorize(Permission = FinancialPermissions.PaymentsManage)]
+[RequirePermission(FinancialPermissions.PaymentsManage)]
 [Transactional(Reason = "Capture writes the intent and posts the ledger entries; both or neither.")]
 [Auditable(Action = "financial.payment.capture")]
 public sealed record CapturePaymentCommand : ICommand<PaymentIntentResponse>

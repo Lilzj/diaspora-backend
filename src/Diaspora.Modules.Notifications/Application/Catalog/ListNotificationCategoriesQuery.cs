@@ -11,6 +11,6 @@ namespace Diaspora.Modules.Notifications.Application.Catalog;
 /// them configurable was for.
 /// </para>
 /// </summary>
-[Authorize(Permission = NotificationPermissions.PreferencesRead)]
+[RequirePermission(NotificationPermissions.PreferencesRead)]
 public sealed record ListNotificationCategoriesQuery
     : IQuery<IReadOnlyList<NotificationCategoryResponse>>;

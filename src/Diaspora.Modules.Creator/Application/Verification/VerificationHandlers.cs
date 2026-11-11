@@ -103,7 +103,7 @@ public sealed class CreatorVerificationRequirements
 }
 
 /// <summary>The caller's own creator-programme application.</summary>
-[Authorize(Permission = CreatorPermissions.ProfileRead)]
+[RequirePermission(CreatorPermissions.ProfileRead)]
 public sealed record GetMyCreatorVerificationQuery : IQuery<CreatorVerificationResponse>;
 
 public sealed class GetMyCreatorVerificationQueryHandler
@@ -161,7 +161,7 @@ public sealed class GetMyCreatorVerificationQueryHandler
 }
 
 /// <summary>Starts a draft. Refused unless the programme's requirements are met.</summary>
-[Authorize(Permission = CreatorPermissions.Participate)]
+[RequirePermission(CreatorPermissions.Participate)]
 [Auditable(Action = "creator.verification.start")]
 public sealed record StartCreatorVerificationCommand : ICommand<CreatorVerificationResponse>;
 
@@ -268,7 +268,7 @@ public sealed class StartCreatorVerificationCommandHandler
 /// hint; what is stored carries neither a file nor a path.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.Participate)]
+[RequirePermission(CreatorPermissions.Participate)]
 public sealed record AttachCreatorEvidenceCommand : ICommand<CreatorEvidenceResponse>
 {
     public required AttachCreatorEvidenceRequest Request { get; init; }
@@ -377,7 +377,7 @@ public sealed class AttachCreatorEvidenceCommandHandler
 /// acknowledgement list exists at all.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.Participate)]
+[RequirePermission(CreatorPermissions.Participate)]
 [Auditable(Action = "creator.verification.submit")]
 public sealed record SubmitCreatorVerificationCommand : ICommand<CreatorVerificationResponse>
 {
@@ -506,7 +506,7 @@ public sealed class SubmitCreatorVerificationCommandHandler
 }
 
 /// <summary>The member appeals a refusal. Once.</summary>
-[Authorize(Permission = CreatorPermissions.Participate)]
+[RequirePermission(CreatorPermissions.Participate)]
 [Auditable(Action = "creator.verification.appeal")]
 public sealed record AppealCreatorVerificationCommand : ICommand<CreatorVerificationResponse>
 {
@@ -592,7 +592,7 @@ public sealed class AppealCreatorVerificationCommandHandler
 /// for a member of staff who applied, so the two checks are separate.
 /// </para>
 /// </summary>
-[Authorize(Permission = CreatorPermissions.VerificationReview)]
+[RequirePermission(CreatorPermissions.VerificationReview)]
 [Transactional(Reason =
     "Writes the decision and the creator's status in one unit. A decision that committed without "
     + "the status would leave a verified creator the platform still calls Emerging.")]

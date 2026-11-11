@@ -23,6 +23,7 @@ namespace Diaspora.Modules.Automation.Application.SavedSearches;
 // and the subject is always the token's.
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 
+[RequirePolicy(AutomationPolicies.Read)]
 public sealed record ListSavedSearchesQuery : IQuery<IReadOnlyList<SavedSearchResponse>>
 {
     public string? Subject { get; init; }
@@ -71,6 +72,7 @@ public sealed class ListSavedSearchesQueryHandler
 /// the existing one rather than creating a duplicate that would double every alert.
 /// </para>
 /// </summary>
+[RequirePolicy(AutomationPolicies.SavedSearchesWrite)]
 public sealed record CreateSavedSearchCommand : ICommand<SavedSearchResponse>
 {
     public required CreateSavedSearchRequest Request { get; init; }
@@ -177,6 +179,7 @@ public sealed class CreateSavedSearchCommandHandler
 }
 
 /// <summary>Changes a saved search's name or its alert settings. Never its criteria.</summary>
+[RequirePolicy(AutomationPolicies.SavedSearchesWrite)]
 public sealed record UpdateSavedSearchCommand : ICommand<SavedSearchResponse>
 {
     public required Guid SavedSearchId { get; init; }
@@ -238,6 +241,7 @@ public sealed class UpdateSavedSearchCommandHandler
 }
 
 /// <summary>Deletes a saved search. Idempotent.</summary>
+[RequirePolicy(AutomationPolicies.SavedSearchesWrite)]
 public sealed record DeleteSavedSearchCommand : ICommand<SavedSearchDeletedResponse>
 {
     public required Guid SavedSearchId { get; init; }

@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Housing.Application.Viewings;
 /// side is a schedule. Both are private to the caller.
 /// </para>
 /// </summary>
-[Authorize(Permission = HousingPermissions.ViewingManage)]
+[RequirePermission(HousingPermissions.ViewingManage)]
 public sealed record ListViewingsQuery : IQuery<IReadOnlyList<HousingViewingResponse>>
 {
     /// <summary>Seeker or Landlord. Defaults to the member view.</summary>

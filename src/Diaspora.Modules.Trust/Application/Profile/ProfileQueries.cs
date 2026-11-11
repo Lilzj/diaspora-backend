@@ -21,7 +21,7 @@ namespace Diaspora.Modules.Trust.Application.Profile;
 /// centre.
 /// </para>
 /// </summary>
-[Authorize(Permission = TrustPermissions.ReadSelf)]
+[RequirePermission(TrustPermissions.ReadSelf)]
 public sealed record GetMyTrustProfileQuery : IQuery<TrustProfileResponse>;
 
 public sealed class GetMyTrustProfileQueryHandler
@@ -126,7 +126,7 @@ public sealed class GetMyTrustProfileQueryHandler
 /// nulled fields.
 /// </para>
 /// </summary>
-[Authorize(Permission = TrustPermissions.ReadPublic)]
+[RequirePermission(TrustPermissions.ReadPublic)]
 public sealed record GetPublicTrustProfileQuery : IQuery<PublicTrustProfileResponse>
 {
     public required Guid UserId { get; init; }
@@ -166,7 +166,7 @@ public sealed class GetPublicTrustProfileQueryHandler
 }
 
 /// <summary>The caller's trust timeline — the client's "Trust Journey" tab.</summary>
-[Authorize(Permission = TrustPermissions.ReadSelf)]
+[RequirePermission(TrustPermissions.ReadSelf)]
 public sealed record GetTrustTimelineQuery : IQuery<PagedResult<TrustTimelineEventResponse>>
 {
     public PaginationRequest Pagination { get; init; } = new();
@@ -206,7 +206,7 @@ public sealed class GetTrustTimelineQueryHandler
 }
 
 /// <summary>The caller's active badges.</summary>
-[Authorize(Permission = TrustPermissions.ReadSelf)]
+[RequirePermission(TrustPermissions.ReadSelf)]
 public sealed record GetMyBadgesQuery : IQuery<IReadOnlyList<BadgeResponse>>;
 
 public sealed class GetMyBadgesQueryHandler

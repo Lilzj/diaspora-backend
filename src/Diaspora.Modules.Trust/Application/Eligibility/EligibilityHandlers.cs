@@ -18,7 +18,7 @@ namespace Diaspora.Modules.Trust.Application.Eligibility;
 /// behind a GET and eventually behind a cache.
 /// </para>
 /// </summary>
-[Authorize(Permission = TrustPermissions.ReadSelf)]
+[RequirePermission(TrustPermissions.ReadSelf)]
 public sealed record EvaluateEligibilityCommand : ICommand<EligibilityDecisionResponse>
 {
     public required string Capability { get; init; }
@@ -84,7 +84,7 @@ public sealed class EvaluateEligibilityCommandHandler
 /// A query, because describing requirements consumes nothing.
 /// </para>
 /// </summary>
-[Authorize(Permission = TrustPermissions.ReadSelf)]
+[RequirePermission(TrustPermissions.ReadSelf)]
 public sealed record GetFeatureRequirementsQuery : IQuery<IReadOnlyList<FeatureRequirementResponse>>
 {
     /// <summary>

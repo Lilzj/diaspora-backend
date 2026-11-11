@@ -5,7 +5,7 @@ using Diaspora.Modules.CommunityLife.Contracts.V1.Responses;
 namespace Diaspora.Modules.CommunityLife.Application.Memberships;
 
 /// <summary>Removes somebody from an organization.</summary>
-[Authorize(Permission = CommunityLifePermissions.MembershipManage)]
+[RequirePermission(CommunityLifePermissions.MembershipManage)]
 [Auditable]
 public sealed record RemoveMemberCommand : ICommand<MembershipResponse>
 {

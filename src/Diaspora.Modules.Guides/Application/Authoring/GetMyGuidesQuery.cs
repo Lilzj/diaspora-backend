@@ -13,7 +13,7 @@ namespace Diaspora.Modules.Guides.Application.Authoring;
 /// has an audience of one.
 /// </para>
 /// </summary>
-[Authorize(Permission = GuidePermissions.ViewDrafts)]
+[RequirePermission(GuidePermissions.ViewDrafts)]
 public sealed record GetMyGuidesQuery : IQuery<CursorPagedResult<GuideCardResponse>>
 {
     /// <summary>A <c>GuideStatus</c> name to narrow to. Null returns every state.</summary>

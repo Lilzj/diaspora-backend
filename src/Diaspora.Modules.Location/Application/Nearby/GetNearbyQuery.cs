@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Location.Application.Nearby;
 /// member id and nothing else it resolves to wherever they are, travel mode included.
 /// </para>
 /// </summary>
-[Authorize(Permission = LocationPermissions.Hyperlocal)]
+[RequirePermission(LocationPermissions.Hyperlocal)]
 public sealed record GetNearbyQuery : IQuery<NearbyResponse>
 {
     public double? Latitude { get; init; }

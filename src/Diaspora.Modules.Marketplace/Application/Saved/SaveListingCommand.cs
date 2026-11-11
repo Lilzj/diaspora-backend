@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Marketplace.Application.Saved;
 /// same row rather than creating a second and inflating the listing's save count forever.
 /// </para>
 /// </summary>
-[Authorize(Permission = MarketplacePermissions.SavedManage)]
+[RequirePermission(MarketplacePermissions.SavedManage)]
 public sealed record SaveListingCommand : ICommand
 {
     public required Guid ListingId { get; init; }

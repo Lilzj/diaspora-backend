@@ -19,6 +19,10 @@ namespace Diaspora.Modules.Guides.Application.Knowledge.Search;
 /// wanted it.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "Published reference content, and the platform's public face. Somebody researching a move " +
+    "reads this before they have an account; requiring one would make the knowledge base useless " +
+    "to the people it exists for.")]
 public sealed record SearchKnowledgeQuery : IQuery<KnowledgeSearchResponse>
 {
     public required SearchKnowledgeRequest Request { get; init; }

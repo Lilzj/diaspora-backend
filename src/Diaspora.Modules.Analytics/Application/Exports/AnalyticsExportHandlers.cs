@@ -76,7 +76,7 @@ internal static class AnalyticsExports
 }
 
 /// <summary>Produces an export of one subject's dataset for the caller.</summary>
-[Authorize(Permission = AnalyticsPermissions.CreatorRead)]
+[RequirePermission(AnalyticsPermissions.CreatorRead)]
 public sealed record RequestAnalyticsExportCommand : ICommand<AnalyticsExportResponse>
 {
     public required RequestAnalyticsExportRequest Request { get; init; }
@@ -174,7 +174,7 @@ public sealed class RequestAnalyticsExportCommandHandler
 }
 
 /// <summary>One of the caller's exports, and its link while the link is live.</summary>
-[Authorize(Permission = AnalyticsPermissions.CreatorRead)]
+[RequirePermission(AnalyticsPermissions.CreatorRead)]
 public sealed record GetAnalyticsExportQuery : IQuery<AnalyticsExportResponse>
 {
     public required string ExportId { get; init; }
@@ -226,6 +226,10 @@ public sealed class GetAnalyticsExportQueryHandler
 /// handler is the check, and it never answers without one of the two.
 /// </para>
 /// </summary>
+[AllowAnonymous(
+    "The token in the link is the credential. A browser or share sheet following it holds no " +
+    "session, and the handler answers only to that token or to the owner's own session, never to " +
+    "neither.")]
 public sealed record GetAnalyticsExportFileQuery : IQuery<AnalyticsExportFile>
 {
     public required string ExportId { get; init; }

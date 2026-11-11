@@ -9,7 +9,7 @@ using Diaspora.SharedKernel.Results;
 namespace Diaspora.Modules.Bookmarks.Application;
 
 /// <summary>Removes one of the signed-in member's bookmarks.</summary>
-[Authorize(Permission = BookmarkPermissions.Manage)]
+[RequirePermission(BookmarkPermissions.Manage)]
 public sealed record RemoveBookmarkCommand : ICommand
 {
     public required Guid BookmarkId { get; init; }
