@@ -51,7 +51,7 @@ namespace Diaspora.Application.Behaviors;
 /// compile — and the old attribute was deleted rather than deprecated, which is what let the
 /// compiler prove all 863 of its uses had been migrated. <c>Roles</c> went with it: the field had
 /// zero users, every <c>Roles =</c> in the repository being <c>PermissionDefinition.Roles</c>, so
-/// the finding's "type the role" item had nothing to type. DSP4005 reports an undeclared request
+/// the finding's "type the role" item had nothing to type. DSP4006 reports an undeclared request
 /// at the keystroke; this behaviour refuses one at runtime. Belt and brace.
 /// </para>
 /// </summary>
@@ -94,7 +94,7 @@ public sealed class AuthorizationBehavior<TRequest, TResponse> : IPipelineBehavi
             _logger.LogError(
                 "{RequestName} declares no authorization requirement and no [AllowAnonymous], and "
                 + "was refused. This is a gap in the platform rather than anything the caller did: "
-                + "the architecture rules and DSP4005 both reject an unannotated request type, so "
+                + "the architecture rules and DSP4006 both reject an unannotated request type, so "
                 + "a passing build should make this unreachable.",
                 requestType.Name);
 
