@@ -143,25 +143,50 @@ public class WithdrawalTests
     /// <summary>
     /// Every transition announces itself, so B13 can notify and automation can observe — and the
     /// announcement carries the masked label rather than anything that could reach a bank.
+    /// <para>
+    /// <b>Three events, not two, since BSEC-007 (10 Nov 2026).</b> This test's own summary has
+    /// always said "every transition announces itself", and it asserted two after three state
+    /// changes — so the sentence was true of the two it checked and false of the platform. The
+    /// request raised nothing, which meant the one moment a member could still cancel a payout they
+    /// did not ask for was the only moment in the lifecycle that told nobody.
+    /// </para>
     /// </summary>
     [Fact]
     public void Every_transition_raises_an_event_carrying_only_the_masked_label()
     {
         var withdrawal = Request();
 
+        withdrawal.DomainEvents.Should().HaveCount(
+            1, "asking to take money out is itself a transition, and the first one");
+
         withdrawal.MarkProcessing("test-settlement", "ref-1", Now);
         withdrawal.MarkCompleted(Now);
 
-        withdrawal.DomainEvents.Should().HaveCount(2);
+        withdrawal.DomainEvents.Should().HaveCount(3);
         withdrawal.DomainEvents.Should().AllSatisfy(raised =>
             raised.Should().BeOfType<Modules.Financial.Domain.Events.WithdrawalStatusChangedDomainEvent>());
 
-        var last = withdrawal.DomainEvents
+        var raised = withdrawal.DomainEvents
             .OfType<Modules.Financial.Domain.Events.WithdrawalStatusChangedDomainEvent>()
-            .Last();
+            .ToList();
+
+        // The request: Requested, from nothing. A null previous status is how a consumer tells the
+        // request apart from a later move, and it is the only event that can carry one.
+        raised[0].Status.Should().Be(WithdrawalStatus.Requested);
+        raised[0].PreviousStatus.Should().BeNull("the request had no status before it");
+
+        raised.Skip(1).Should().OnlyContain(
+            later => later.PreviousStatus != null, "every later move came from somewhere");
+
+        var last = raised[^1];
 
         last.DestinationLabel.Should().Be("Barclays ••••4417");
         last.Status.Should().Be(WithdrawalStatus.Completed);
+
+        raised.Should().OnlyContain(
+            every => every.DestinationLabel == "Barclays ••••4417",
+            "no event on this aggregate has ever carried anything a bank would accept, the new one "
+            + "included");
     }
 
     private static Withdrawal Request(long gross = 10_000, long fee = 250) =>

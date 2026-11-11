@@ -1,4 +1,5 @@
-﻿using Diaspora.Contracts.Identity.V1.Requests;
+﻿using System.Net.Http.Json;
+using Diaspora.Contracts.Identity.V1.Requests;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -294,6 +295,40 @@ public abstract class IdentityTestCore<TFactory> : IDisposable
             Reason = reason,
             DecidedBy = "integration-test"
         });
+    }
+
+    /// <summary>
+    /// Walks the signed-in caller through step-up for a scope, and returns when the grant is held
+    /// (BSEC-007).
+    /// <para>
+    /// <b>The real flow, not a shortcut.</b> It asks for a code over HTTP, reads the code the
+    /// capturing SMS transport recorded, and redeems it over HTTP — so the grant it produces is
+    /// bound to whatever session the caller's bearer token names, exactly as it would be in
+    /// production. Writing the grant row directly would bind it to a session chosen by the test and
+    /// would prove nothing about the binding, which is the part of this control that matters.
+    /// </para>
+    /// <para>
+    /// <b>The caller must already be authenticated on <see cref="HttpClient"/>.</b> Both endpoints
+    /// require a member token, and a grant has nowhere to attach without one.
+    /// </para>
+    /// </summary>
+    protected async Task StepUpAsync(string phoneNumber, string scope)
+    {
+        var requested = await HttpClient.PostAsJsonAsync(
+            new Uri("/api/v1/auth/step-up", UriKind.Relative), new { scope });
+
+        requested.StatusCode.Should().Be(
+            System.Net.HttpStatusCode.OK,
+            "a signed-in member must always be able to ask for a step-up code — it is the only "
+            + "route past the refusal");
+
+        var code = Factory.OtpCodes.LatestFor(phoneNumber, OtpPurpose.StepUpAuthentication);
+
+        var verified = await HttpClient.PostAsJsonAsync(
+            new Uri("/api/v1/auth/step-up/verify", UriKind.Relative), new { scope, code });
+
+        verified.StatusCode.Should().Be(
+            System.Net.HttpStatusCode.OK, "the code the transport recorded is the code that was sent");
     }
 
     public void Dispose()

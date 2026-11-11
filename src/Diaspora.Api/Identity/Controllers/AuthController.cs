@@ -16,6 +16,7 @@ using Diaspora.Application.Identity.Commands.Passwords.ResetPassword;
 using Diaspora.Application.Identity.Commands.PhoneVerification.ResendOtp;
 using Diaspora.Application.Identity.Commands.PhoneVerification.VerifyPhone;
 using Diaspora.Application.Identity.Commands.Registration;
+using Diaspora.Application.Identity.Commands.StepUp;
 using Diaspora.Application.Identity.Queries.GetCurrentUser;
 using Diaspora.Contracts.Identity.V1.Requests;
 using Diaspora.Contracts.Identity.V1.Responses;
@@ -283,6 +284,72 @@ public sealed class AuthController : ApiController
         {
             CurrentPassword = request.CurrentPassword,
             NewPassword = request.NewPassword
+        }, cancellationToken);
+
+        return HandleResult(result);
+    }
+
+    // ─── Step-up authentication (BSEC-007) ──────────────────────────────────────────────────
+    //
+    // Two actions, and between them they are the only route past a step-up refusal. Both are
+    // authenticated with a bare [Authorize] rather than a policy, deliberately: a member who can be
+    // refused a withdrawal must always be able to ask for the code that lets them through, and a
+    // policy here would create an account that is permanently stuck at the refusal.
+
+    /// <summary>Sends a code to confirm a sensitive operation, such as a payout.</summary>
+    /// <remarks>
+    /// To the registered phone, never to the email — a code arriving in the mailbox that would also
+    /// receive a password reset is not a second factor.
+    /// <para>
+    /// Throttled on the one-time-code budget rather than the authenticated one, because this sends
+    /// an SMS: the cost of an unchecked request is the platform's, not the caller's.
+    /// </para>
+    /// </remarks>
+    [HttpPost("step-up")]
+    [Authorize]
+    [EnableRateLimiting(RateLimitingRegistration.OneTimeCodePolicy)]
+    [ProducesResponseType<ApiResponse<OtpChallengeResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status429TooManyRequests)]
+    public async Task<IActionResult> RequestStepUpAsync(
+        [FromBody] RequestStepUpRequest request,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var result = await _sender.Send(new RequestStepUpCommand
+        {
+            Scope = request.Scope
+        }, cancellationToken);
+
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Redeems a step-up code. The grant it earns belongs to this session and no other.
+    /// </summary>
+    /// <remarks>
+    /// Throttled on the sign-in budget, which is the code-guessing budget: this is a surface where
+    /// the caller supplies six digits and asks whether they are right.
+    /// </remarks>
+    [HttpPost("step-up/verify")]
+    [Authorize]
+    [EnableRateLimiting(RateLimitingRegistration.SignInPolicy)]
+    [ProducesResponseType<ApiResponse<StepUpGrantResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status429TooManyRequests)]
+    public async Task<IActionResult> CompleteStepUpAsync(
+        [FromBody] CompleteStepUpRequest request,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var result = await _sender.Send(new CompleteStepUpCommand
+        {
+            Scope = request.Scope,
+            Code = request.Code
         }, cancellationToken);
 
         return HandleResult(result);

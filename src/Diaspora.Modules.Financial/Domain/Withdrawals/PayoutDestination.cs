@@ -1,5 +1,6 @@
 using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Financial.Domain.Enums;
+using Diaspora.Modules.Financial.Domain.Events;
 using Diaspora.Modules.Financial.Domain.Identifiers;
 using Diaspora.SharedKernel.Primitives;
 
@@ -116,7 +117,7 @@ public sealed class PayoutDestination : AggregateRoot<PayoutDestinationId>, IAud
                 $"'{currency}' is not an ISO 4217 currency code.",
                 FinancialErrorCodes.CurrencyInvalid);
 
-        return new PayoutDestination(
+        var destination = new PayoutDestination(
             id, ownerUserId, accountId, kind, label.Trim(), normalized, createdAt)
         {
             Provider = Trimmed(provider),
@@ -125,6 +126,24 @@ public sealed class PayoutDestination : AggregateRoot<PayoutDestinationId>, IAud
                 ? null
                 : countryCode.Trim().ToUpperInvariant()
         };
+
+        // BSEC-007, 10 Nov 2026. This aggregate raised nothing, ever, so a new payout destination
+        // was the quietest change on the platform — and the loudest signal that an account has been
+        // taken over. The label, not the token: what travels is the masked label the member would
+        // recognise, and nothing a provider would accept.
+        destination.RaiseDomainEvent(new PayoutDestinationRegisteredDomainEvent
+        {
+            DestinationId = destination.Id,
+            OwnerUserId = destination.OwnerUserId,
+            Kind = destination.Kind,
+            Label = destination.Label,
+            Currency = destination.Currency,
+            Provider = destination.Provider,
+            CountryCode = destination.CountryCode,
+            RegisteredAt = createdAt
+        });
+
+        return destination;
     }
 
     /// <summary>Records that somebody who could check did.</summary>

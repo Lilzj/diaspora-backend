@@ -5,7 +5,7 @@ BSEC-003,HIGH,0,3,backend,"Authorization fails open: 430 of 951 endpoints have n
 BSEC-004,MEDIUM,1,,backend,"Unauthenticated, unthrottled engagement writes inflate counters that feed trending and creator recognition",OPEN,,,
 BSEC-005,MEDIUM,1,,backend,Media served Content-Disposition inline although the code's own comment forbids it and names stored XSS as the reason,OPEN,,,
 BSEC-006,MEDIUM,1,,backend,No request-body size limit is configured; the upload route's documented cap does not exist,OPEN,,,
-BSEC-007,HIGH,0,4,backend,No MFA and no step-up authentication: a single bearer token can register a payout destination and request a withdrawal,OPEN,,,
+BSEC-007,HIGH,0,4,backend,No MFA and no step-up authentication: a single bearer token can register a payout destination and request a withdrawal,FIXED,,test:StepUpBehaviorTests;test:FinancialMovementTests,2026-11-10
 BSEC-008,MEDIUM,1,,backend,"Live production database, object-storage and JWT signing secrets sit in the working tree, with no rotation mechanism",OPEN,,,
 BSEC-009,LOW,3,,backend,Unauthenticated endpoints disclose the module inventory and the realtime runtime configuration,OPEN,,,
 BSEC-010,LOW,3,,backend,No Content-Security-Policy although the host now serves four HTML surfaces,OPEN,,,

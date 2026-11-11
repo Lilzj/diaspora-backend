@@ -3,6 +3,10 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using Diaspora.Application.Abstractions;
+using Diaspora.Contracts.Identity.V1.Requests;
+using Diaspora.Contracts.Identity.V1.Responses;
+using Diaspora.Domain.Identity.Verification;
+using Diaspora.Platform.Http;
 using Diaspora.Contracts.Financial.V1.Events;
 using Diaspora.Domain.Abstractions;
 using Diaspora.IntegrationTests.Common;
@@ -2922,9 +2926,330 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
 
     // ── Helpers ──────────────────────────────────────────────────────────────────────────────
 
+    // ─── BSEC-007: step-up authentication on the payout surface ─────────────────────────────────
+    //
+    // The finding: "No MFA and no step-up authentication: a single bearer token can register a
+    // payout destination and request a withdrawal." These are its three verification criteria plus
+    // the one design decision the finding did not make, which is that a grant belongs to a session
+    // and not to a member.
+
+    /// <summary>
+    /// <b>Criterion one, first half: a withdrawal on a valid token alone is refused, with a code the
+    /// client can act on.</b>
+    /// <para>
+    /// The code is the point. Every refusal on the platform used to be
+    /// <c>Platform.Auth.Forbidden</c>, which tells a client to stop; this one tells it to collect a
+    /// code and retry, and the <c>stepUpScope</c> extension says which code to ask for.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task A_withdrawal_on_a_bare_token_is_refused_and_says_what_is_missing()
+    {
+        var (phone, userId) = await AuthenticateWithoutStepUpAsync();
+
+        await FundAsync(userId, 100m);
+
+        // The destination needs its own grant, so it is arranged through the real flow first. This
+        // test is about the withdrawal, and the withdrawal scope is deliberately left unearned.
+        await StepUpAsync(phone, StepUpScopes.PayoutDestination);
+        var destinationId = await RegisterVerifiedDestinationAsync();
+
+        var response = await HttpClient.PostAsJsonAsync(
+            new Uri("/api/v1/financial/wallets/me/withdrawals", UriKind.Relative),
+            new
+            {
+                amount = 10m,
+                currency = "GBP",
+                destinationId,
+                idempotencyKey = Guid.NewGuid().ToString("N")
+            });
+
+        response.StatusCode.Should().Be(
+            HttpStatusCode.Forbidden, "a valid token is no longer enough to move money");
+
+        // Read once. CodeAsync consumes the content stream, and asking the same response for its
+        // body twice fails on a closed stream rather than on anything about the platform.
+        var problem = await response.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
+
+        problem.GetProperty("code").GetString().Should().Be(
+            PlatformErrorCodes.StepUpRequired,
+            "the client has to be able to tell this apart from a permission it will never have");
+
+        problem.TryGetProperty("stepUpScope", out var scope).Should().BeTrue(
+            "the refusal names the scope so the client does not have to guess which code to ask for");
+
+        scope.GetString().Should().Be(StepUpScopes.Withdrawal);
+
+        (await ReservedAsync(userId)).Should().Be(
+            0, "a refused withdrawal holds nothing — the gate runs before the transaction");
+    }
+
+    /// <summary>
+    /// <b>Criterion one, second half: the same request succeeds once the session has stepped up.</b>
+    /// A control that refuses everything is not a control, and this is the half that proves the
+    /// member can still reach their own money.
+    /// </summary>
+    [Fact]
+    public async Task A_withdrawal_succeeds_once_the_session_has_stepped_up()
+    {
+        var (phone, userId) = await AuthenticateWithoutStepUpAsync();
+
+        await FundAsync(userId, 100m);
+
+        await StepUpAsync(phone, StepUpScopes.PayoutDestination);
+        var destinationId = await RegisterVerifiedDestinationAsync();
+
+        await StepUpAsync(phone, StepUpScopes.Withdrawal);
+
+        var response = await HttpClient.PostAsJsonAsync(
+            new Uri("/api/v1/financial/wallets/me/withdrawals", UriKind.Relative),
+            new
+            {
+                amount = 10m,
+                currency = "GBP",
+                destinationId,
+                idempotencyKey = Guid.NewGuid().ToString("N")
+            });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var withdrawal = await ReadDataAsync<WithdrawalShape>(response);
+        withdrawal.Status.Should().Be("Requested");
+    }
+
+    /// <summary>
+    /// <b>Criterion two: a grant for one scope does not satisfy another.</b>
+    /// <para>
+    /// This is what makes a scope a blast radius rather than a label. A member who confirmed adding
+    /// a payout account has not confirmed a payout to it, so an attacker who somehow obtained one
+    /// code holds one of the two things they need rather than both.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task A_grant_for_one_scope_does_not_satisfy_another()
+    {
+        var (phone, userId) = await AuthenticateWithoutStepUpAsync();
+
+        await FundAsync(userId, 100m);
+
+        // A real, live grant — for the wrong thing.
+        await StepUpAsync(phone, StepUpScopes.PayoutDestination);
+
+        var destinationId = await RegisterVerifiedDestinationAsync();
+
+        destinationId.Should().NotBeEmpty(
+            "the destination scope really is satisfied, or the refusal below proves nothing");
+
+        var response = await HttpClient.PostAsJsonAsync(
+            new Uri("/api/v1/financial/wallets/me/withdrawals", UriKind.Relative),
+            new
+            {
+                amount = 10m,
+                currency = "GBP",
+                destinationId,
+                idempotencyKey = Guid.NewGuid().ToString("N")
+            });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await CodeAsync(response)).Should().Be(PlatformErrorCodes.StepUpRequired);
+    }
+
+    /// <summary>
+    /// <b>A grant belongs to the session that earned it, not to the member.</b>
+    /// <para>
+    /// The decision BSEC-007 left open, and the one that makes a time-windowed grant safe at all.
+    /// Bound to the member, this control would be defeated by the exact attack it exists to stop: an
+    /// attacker holding a stolen refresh token waits for the member to approve their own withdrawal
+    /// and spends the window. Two sessions for one member, a grant on the first, and the second is
+    /// still refused.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task A_step_up_grant_does_not_travel_to_another_session_of_the_same_member()
+    {
+        var (phone, userId) = await AuthenticateWithoutStepUpAsync();
+
+        await FundAsync(userId, 100m);
+
+        await StepUpAsync(phone, StepUpScopes.PayoutDestination);
+        var destinationId = await RegisterVerifiedDestinationAsync();
+
+        // Session one earns the withdrawal grant.
+        await StepUpAsync(phone, StepUpScopes.Withdrawal);
+
+        // Session two: the same member signing in again, which is what a second device — or a
+        // stolen refresh token — amounts to.
+        var second = await ReadDataAsync<AuthenticationResponse>(
+            await Api.LoginAsync(new LoginRequest
+            {
+                Email = EmailFor(phone),
+                Password = ValidPassword
+            }));
+
+        HttpClient.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue(
+                "Bearer", second.Tokens.AccessToken);
+
+        var response = await HttpClient.PostAsJsonAsync(
+            new Uri("/api/v1/financial/wallets/me/withdrawals", UriKind.Relative),
+            new
+            {
+                amount = 10m,
+                currency = "GBP",
+                destinationId,
+                idempotencyKey = Guid.NewGuid().ToString("N")
+            });
+
+        response.StatusCode.Should().Be(
+            HttpStatusCode.Forbidden,
+            "the first session proved itself; this one has not, and they are the same member");
+
+        (await CodeAsync(response)).Should().Be(PlatformErrorCodes.StepUpRequired);
+    }
+
+    /// <summary>
+    /// <b>A code minted for another purpose is not a step-up.</b>
+    /// <para>
+    /// OTP lookups are scoped by purpose, so a password-reset code is not merely rejected — it is
+    /// never considered. Asserted rather than assumed, because the whole control rests on it: a
+    /// step-up that accepted any outstanding code would be satisfiable through the unauthenticated
+    /// recovery endpoint, which is reachable by anyone who knows a phone number.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task A_code_minted_for_recovery_cannot_be_redeemed_as_a_step_up()
+    {
+        var (phone, _) = await AuthenticateWithoutStepUpAsync();
+
+        // A real code, for something else.
+        await Api.ForgotPasswordAsync(EmailFor(phone));
+        var recoveryCode = Factory.OtpCodes.LatestFor(phone, OtpPurpose.PasswordReset);
+
+        recoveryCode.Should().NotBeNullOrWhiteSpace("the recovery code has to exist to be refused");
+
+        var response = await HttpClient.PostAsJsonAsync(
+            new Uri("/api/v1/auth/step-up/verify", UriKind.Relative),
+            new { scope = StepUpScopes.Withdrawal, code = recoveryCode });
+
+        response.StatusCode.Should().NotBe(
+            HttpStatusCode.OK, "a code is only ever good for the purpose it was minted under");
+    }
+
+    /// <summary>
+    /// <b>Criterion three: a new payout destination reaches the member.</b>
+    /// <para>
+    /// <c>PayoutDestination</c> raised no domain event at all before this phase, so the single most
+    /// valuable fact on the platform to tell somebody about was silent. The announcement commits
+    /// with the destination row through the outbox, which is what the criterion means by "the same
+    /// transaction boundary" — there is no state in which the destination exists and the obligation
+    /// to mention it does not.
+    /// </para>
+    /// <para>
+    /// Routed through the <b>security</b> category rather than billing, so it reaches a member who
+    /// has muted their money messages — which is the member an attacker hopes for.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task Registering_a_payout_destination_tells_the_member()
+    {
+        var (phone, _) = await AuthenticateWithoutStepUpAsync();
+
+        await StepUpAsync(phone, StepUpScopes.PayoutDestination);
+
+        // Everything queued so far belongs to registration. Drain it so the assertion is about this.
+        await Factory.DrainOutboxAsync();
+
+        var destinationId = await RegisterDestinationAsync();
+
+        await Factory.DrainOutboxAsync();
+
+        var inbox = await ReadDataAsync<InboxPage>(
+            await HttpClient.GetAsync(new Uri("/api/v1/notifications?take=50", UriKind.Relative)));
+
+        inbox.Items.Should().Contain(
+            item => item.EntityType == "payout-destination"
+                && item.EntityId == destinationId.ToString(),
+            "a member who did not add this destination has to hear before it becomes payable");
+    }
+
+    /// <summary>
+    /// <b>A withdrawal request reaches the member, at the one moment they can still cancel it.</b>
+    /// <para>
+    /// <c>Withdrawal.Request</c> raised nothing, and no handler existed to carry the transitions it
+    /// did raise — the relay's overload for that domain event had no caller anywhere. So the whole
+    /// member-initiated half of the lifecycle announced nothing, while the integration contract had
+    /// described itself as covering "requested" the entire time.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task Requesting_a_withdrawal_tells_the_member()
+    {
+        var (phone, userId) = await AuthenticateWithoutStepUpAsync();
+
+        await FundAsync(userId, 100m);
+
+        await StepUpAsync(phone, StepUpScopes.PayoutDestination);
+        var destinationId = await RegisterVerifiedDestinationAsync();
+
+        await StepUpAsync(phone, StepUpScopes.Withdrawal);
+
+        await Factory.DrainOutboxAsync();
+
+        var withdrawal = await ReadDataAsync<WithdrawalShape>(
+            await HttpClient.PostAsJsonAsync(
+                new Uri("/api/v1/financial/wallets/me/withdrawals", UriKind.Relative),
+                new
+                {
+                    amount = 10m,
+                    currency = "GBP",
+                    destinationId,
+                    idempotencyKey = Guid.NewGuid().ToString("N")
+                }));
+
+        await Factory.DrainOutboxAsync();
+
+        var inbox = await ReadDataAsync<InboxPage>(
+            await HttpClient.GetAsync(new Uri("/api/v1/notifications?take=50", UriKind.Relative)));
+
+        inbox.Items.Should().Contain(
+            item => item.EntityType == "withdrawal"
+                && item.EntityId == withdrawal.WithdrawalId.ToString(),
+            "the request is the last moment a member can stop a payout they did not ask for");
+    }
+
+    private sealed record InboxPage(List<InboxEntry> Items);
+
+    private sealed record InboxEntry(Guid Id, string? EntityType, string? EntityId, string? Title);
+
     private async Task<Guid> AuthenticateAsync()
     {
-        var (_, auth) = await RegisterVerifiedMemberAsync();
+        var (phone, userId) = await AuthenticateWithoutStepUpAsync();
+
+        // BSEC-007, 10 Nov 2026. Registering a payout destination and requesting a withdrawal both
+        // need a fresh proof of identity now, so the arrangement for a suite about money movement
+        // includes holding one. Both scopes, because different tests in here reach both — and one
+        // step-up per scope covers every request a test makes inside the grant's window.
+        //
+        // The real flow over HTTP, deliberately: these tests do not assert on the gate (the
+        // region below does), but they must not pass by sidestepping it either, or the day it
+        // breaks the only failures would be in one place.
+        await StepUpAsync(phone, StepUpScopes.PayoutDestination);
+        await StepUpAsync(phone, StepUpScopes.Withdrawal);
+
+        return userId;
+    }
+
+    /// <summary>
+    /// Everything <see cref="AuthenticateAsync"/> arranges except the step-up, plus the phone number
+    /// the codes will arrive on.
+    /// <para>
+    /// Split out for the BSEC-007 tests, which are about what a caller who has <em>not</em> stepped
+    /// up can do. Every other test in this suite wants the grant and goes through the wrapper.
+    /// </para>
+    /// </summary>
+    private async Task<(string Phone, Guid UserId)> AuthenticateWithoutStepUpAsync()
+    {
+        var (phone, auth) = await RegisterVerifiedMemberAsync();
 
         Api.Authenticate(auth.Tokens.AccessToken);
 
@@ -2937,7 +3262,7 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
 
         await ActivateFinancialIdentityAsync(auth.User.Id);
 
-        return auth.User.Id;
+        return (phone, auth.User.Id);
     }
 
     /// <summary>

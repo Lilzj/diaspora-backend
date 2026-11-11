@@ -15,6 +15,16 @@ public static class PlatformErrorCodes
     public const string Validation = "Platform.Validation.Failed";
     public const string Unauthorized = "Platform.Auth.Unauthorized";
     public const string Forbidden = "Platform.Auth.Forbidden";
+
+    /// <summary>
+    /// The caller may do this but has not re-proved their identity recently enough.
+    /// <para>
+    /// Distinct from <see cref="Forbidden"/> on purpose, and the distinction is the whole reason
+    /// this code exists: one is a dead end and the other is an instruction to ask the member for a
+    /// code and retry. The response carries a <c>stepUpScope</c> extension naming what to ask for.
+    /// </para>
+    /// </summary>
+    public const string StepUpRequired = "Identity.StepUp.Required";
     public const string NotFound = "Platform.Resource.NotFound";
     public const string Conflict = "Platform.Resource.Conflict";
     public const string ConcurrencyConflict = "Platform.Resource.ConcurrencyConflict";

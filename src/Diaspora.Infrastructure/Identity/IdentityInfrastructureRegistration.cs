@@ -52,6 +52,11 @@ public static class IdentityInfrastructureRegistration
         services.AddSingleton<IAccessGateway, AccessGateway>();
 
         services.AddScoped<IOtpChallengeService, OtpChallengeService>();
+
+        // BSEC-007. Registered here beside the OTP service it builds on, and NOT optional: the
+        // step-up gate resolves it with GetRequiredService, so a host that composes Identity
+        // without this line refuses every guarded command rather than admitting them.
+        services.AddScoped<IStepUpService, StepUpService>();
         services.AddScoped<ITokenIssuanceService, TokenIssuanceService>();
         services.AddScoped<ISessionRevocationService, SessionRevocationService>();
         services.AddScoped<IDeviceRegistrationService, DeviceRegistrationService>();

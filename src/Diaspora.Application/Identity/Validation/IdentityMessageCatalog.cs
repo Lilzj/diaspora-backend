@@ -90,6 +90,7 @@ public static class IdentityMessageCatalog
             [IdentityMessageKeys.OtpRequired] = "A verification code is required.",
             [IdentityMessageKeys.OtpFormat] = "The verification code must be {0} digits.",
             [IdentityMessageKeys.OtpPurposeUnknown] = "That verification purpose is not recognised.",
+            [IdentityMessageKeys.StepUpScopeUnknown] = "That is not something we ask you to confirm.",
             [IdentityMessageKeys.OtpSmsBody] =
                 "Your Diaspora code is {0}. It expires in {1} minutes. Never share it with anyone.",
             [IdentityMessageKeys.OtpEmailSubject] = "Your Diaspora verification code",
@@ -157,6 +158,7 @@ public static class IdentityMessageCatalog
             [IdentityMessageKeys.OtpRequired] = "Un code de vérification est requis.",
             [IdentityMessageKeys.OtpFormat] = "Le code de vérification doit comporter {0} chiffres.",
             [IdentityMessageKeys.OtpPurposeUnknown] = "Ce type de vérification n'est pas reconnu.",
+            [IdentityMessageKeys.StepUpScopeUnknown] = "Ce n'est pas une opération que nous vous demandons de confirmer.",
             [IdentityMessageKeys.OtpSmsBody] =
                 "Votre code Diaspora est {0}. Il expire dans {1} minutes. Ne le partagez avec personne.",
             [IdentityMessageKeys.OtpEmailSubject] = "Votre code de vérification Diaspora",
@@ -225,6 +227,7 @@ public static class IdentityMessageCatalog
             [IdentityMessageKeys.OtpRequired] = "É necessário um código de verificação.",
             [IdentityMessageKeys.OtpFormat] = "O código de verificação deve ter {0} dígitos.",
             [IdentityMessageKeys.OtpPurposeUnknown] = "Esse tipo de verificação não é reconhecido.",
+            [IdentityMessageKeys.StepUpScopeUnknown] = "Isso não é algo que pedimos para você confirmar.",
             [IdentityMessageKeys.OtpSmsBody] =
                 "O seu código Diaspora é {0}. Expira em {1} minutos. Nunca o partilhe com ninguém.",
             [IdentityMessageKeys.OtpEmailSubject] = "O seu código de verificação Diaspora",
@@ -293,6 +296,7 @@ public static class IdentityMessageCatalog
             [IdentityMessageKeys.OtpRequired] = "رمز التحقق مطلوب.",
             [IdentityMessageKeys.OtpFormat] = "يجب أن يتكون رمز التحقق من {0} أرقام.",
             [IdentityMessageKeys.OtpPurposeUnknown] = "غرض التحقق هذا غير معروف.",
+            [IdentityMessageKeys.StepUpScopeUnknown] = "هذا ليس إجراءً نطلب منك تأكيده.",
             [IdentityMessageKeys.OtpSmsBody] =
                 "رمز Diaspora الخاص بك هو {0}. تنتهي صلاحيته خلال {1} دقيقة. لا تشاركه مع أحد.",
             [IdentityMessageKeys.OtpEmailSubject] = "رمز التحقق الخاص بك في Diaspora",
