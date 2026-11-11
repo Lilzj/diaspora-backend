@@ -28,8 +28,14 @@ internal static class Rules
     private const string Contributors = "Diaspora.Contributors";
     private const string Readiness = "Diaspora.Readiness";
 
+    // Every descriptor's HelpLinkUri. It was
+    // https://github.com/diaspora/backend/blob/main/docs/platform/b1.4-analyzer-catalog.md, which
+    // was wrong three ways at once and had never resolved: the repository is Lilzj/diaspora-backend,
+    // the default branch is master, and docs/ is not committed so the path could not exist on any
+    // branch. A help link is the one part of a diagnostic a reader follows when they do not already
+    // know the rule. Corrected 11 November 2026, when the catalogue became a committed file.
     private const string CatalogUrl =
-        "https://github.com/diaspora/backend/blob/main/docs/platform/b1.4-analyzer-catalog.md";
+        "https://github.com/Lilzj/diaspora-backend/blob/master/src/Diaspora.Analyzers/AnalyzerCatalog.md";
 
     // ── Domain event safety ──────────────────────────────────────────────
 

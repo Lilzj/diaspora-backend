@@ -14,7 +14,7 @@ public sealed class CqrsGuardrailAnalyzerTests
     /// </summary>
     /// <remarks>
     /// <b>Each one declares its authorization, because since BSOLID-001 one that does not is not
-    /// valid platform code.</b> DSP4005 would otherwise fire on every probe here and bury the rule
+    /// valid platform code.</b> DSP4006 would otherwise fire on every probe here and bury the rule
     /// each test is actually about. A fixture that could not exist in the platform is a fixture
     /// testing something else.
     /// </remarks>

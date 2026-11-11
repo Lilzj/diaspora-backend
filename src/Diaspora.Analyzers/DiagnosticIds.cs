@@ -37,7 +37,7 @@ internal static class DiagnosticIds
     public const string SequentialSavesWithoutTransaction = "DSP4002";
     public const string CommandHandlerNeverSaves = "DSP4003";
     public const string TransactionalOnHandler = "DSP4004";
-    public const string RequestDeclaresNoAuthorization = "DSP4005";
+    public const string RequestDeclaresNoAuthorization = "DSP4006";
 
     // ── Contributor model ────────────────────────────────────────────────
     public const string FeatureGateName = "DSP5001";
