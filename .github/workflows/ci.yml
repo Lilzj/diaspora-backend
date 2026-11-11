@@ -80,6 +80,23 @@ jobs:
             exit 1
           fi
 
+      # The analyzer pack's own tests, which CI did not run. Four of the five test projects were
+      # listed here and this was the missing one, which matters in one direction only: a rule that
+      # fires wrongly already reddens every build, because the pack's diagnostics are warnings and
+      # warnings are errors. A rule that STOPS firing is invisible -- remove DSP4005's registration
+      # and the Release build above stays green, while the only thing that objects is a suite
+      # nothing ran. That is a guardrail whose proof was not wired to anything, which is the
+      # complaint the pre-launch audit opened with.
+      #
+      # First among the suites because it takes seconds, and because it proves the rules the build
+      # above was already relying on.
+      - name: Analyzer tests
+        run: >
+          dotnet test tests/Diaspora.AnalyzerTests/Diaspora.AnalyzerTests.csproj
+          -c Release --no-build
+          --logger "trx;LogFileName=analyzer.trx"
+          --results-directory ./test-results
+
       - name: Unit tests
         run: >
           dotnet test tests/Diaspora.UnitTests/Diaspora.UnitTests.csproj
