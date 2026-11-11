@@ -97,6 +97,45 @@ public sealed class MediaValueObjectTests
     }
 
     /// <summary>
+    /// <b>Nothing that would break a <c>Content-Disposition</c> header survives sanitisation.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// BSEC-005 reports that <c>MediaContentEndpoints</c> interpolates this name into the header
+    /// without escaping, and that a quote or a CR/LF would break its parsing or throw. It cannot:
+    /// <c>Sanitize</c> keeps only <c>char.IsLetterOrDigit</c>, excluding the Format, Control,
+    /// Surrogate and PrivateUse categories, and maps space, hyphen, underscore and dot to a single
+    /// hyphen. A quote is not a letter or digit; CR and LF are Control.
+    /// </para>
+    /// <para>
+    /// <b>This is a unit test rather than an integration test on purpose, and the reason is
+    /// instructive.</b> The first attempt asserted it over HTTP and could not run:
+    /// <c>MultipartFormDataContent.Add</c> rejects such a filename client-side, before a request
+    /// exists. .NET's own client will not build the input, so an integration test there would
+    /// have been testing <c>HttpClient</c>'s validation rather than the platform's. The guarantee
+    /// is this type's, so it is asserted on this type.
+    /// </para>
+    /// </remarks>
+    [Theory]
+    [InlineData("ev\"il.png")]
+    [InlineData("line\r\nX-Injected: yes.png")]
+    [InlineData("null\0byte.png")]
+    [InlineData("semi;colon.png")]
+    public void A_file_name_cannot_carry_a_header_breaking_character(string hostile)
+    {
+        var safe = SafeFileName.Create(hostile);
+
+        safe.Value.Should().NotContain("\"");
+        safe.Value.Should().NotContain("\r");
+        safe.Value.Should().NotContain("\n");
+        safe.Value.Should().NotContain("\0");
+        safe.Value.Should().NotContain(";");
+
+        safe.Value.Should().NotBeNullOrEmpty(
+            "a name that survives nothing becomes the fallback rather than an empty header value");
+    }
+
+    /// <summary>
     /// A member who uploaded a French filename should see it back. Sanitisation is for the
     /// storage key and the header, not for what the member reads.
     /// </summary>
