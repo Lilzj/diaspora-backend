@@ -82,7 +82,7 @@ public sealed class AnalyzerCatalogTests
                 "{0} must say what failure it prevents", descriptor.Id);
 
             descriptor.HelpLinkUri.Should().Contain(
-                "b1.4-analyzer-catalog", "{0} must link the catalogue", descriptor.Id);
+                "AnalyzerCatalog.md", "{0} must link the catalogue", descriptor.Id);
 
             descriptor.IsEnabledByDefault.Should().BeTrue(
                 "{0} would otherwise ship switched off", descriptor.Id);
@@ -119,7 +119,8 @@ public sealed class AnalyzerCatalogTests
     public void The_published_catalogue_documents_every_rule()
     {
         var document = File.ReadAllText(
-            Path.Combine(RepositoryRoot().FullName, "docs", "platform", "b1.4-analyzer-catalog.md"));
+            Path.Combine(
+                RepositoryRoot().FullName, "src", "Diaspora.Analyzers", "AnalyzerCatalog.md"));
 
         foreach (var descriptor in Descriptors)
         {

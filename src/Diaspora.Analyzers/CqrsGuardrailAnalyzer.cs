@@ -56,7 +56,7 @@ public sealed class CqrsGuardrailAnalyzer : DiagnosticAnalyzer
         context.RegisterSyntaxNodeAction(
             node => AnalyzeType(node, symbols), SyntaxKind.ClassDeclaration);
 
-        // DSP4005 looks at the REQUEST rather than the handler, and a request is almost always a
+        // DSP4006 looks at the REQUEST rather than the handler, and a request is almost always a
         // record -- so this needs its own registration. Records were outside this analyzer
         // entirely until BSOLID-001, which is why a rule about the request type could not simply
         // be added to AnalyzeType.
@@ -218,7 +218,7 @@ public sealed class CqrsGuardrailAnalyzer : DiagnosticAnalyzer
                 .Any(invocation => Settlement.IsSave(invocation, model)));
 
     /// <summary>
-    /// DSP4005 — a request that says nothing about who may send it.
+    /// DSP4006 — a request that says nothing about who may send it.
     /// </summary>
     /// <remarks>
     /// <para>

@@ -148,7 +148,7 @@ public class AuthorizationBehaviorTests
     /// A request type nobody classified: the state BSEC-003 made unreachable at runtime.
     /// </summary>
     /// <remarks>
-    /// <b>A real <c>ICommand</c>, and DSP4005 is suppressed for exactly one declaration.</b> The
+    /// <b>A real <c>ICommand</c>, and DSP4006 is suppressed for exactly one declaration.</b> The
     /// analyzer forbids this shape, which is the point of the analyzer — and this test needs the
     /// shape in order to prove the runtime refuses it too. Suppressing rather than sidestepping
     /// (by declaring a record that implements nothing) keeps the fixture faithful to the case: the
@@ -159,9 +159,9 @@ public class AuthorizationBehaviorTests
     /// assertions below pass for free.
     /// </para>
     /// </remarks>
-#pragma warning disable DSP4005
+#pragma warning disable DSP4006
     private sealed record UnclassifiedCommand : ICommand;
-#pragma warning restore DSP4005
+#pragma warning restore DSP4006
 
     [AllowAnonymous("A test double standing in for published reference content.")]
     private sealed record PublicQuery;

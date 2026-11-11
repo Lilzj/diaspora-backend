@@ -4,7 +4,7 @@ using Xunit;
 namespace Diaspora.AnalyzerTests;
 
 /// <summary>
-/// DSP4005 — a request must declare what it requires of its caller (BSOLID-001).
+/// DSP4006 — a request must declare what it requires of its caller (BSOLID-001).
 /// <para>
 /// <b>Why an analyzer when the runtime already refuses it.</b> <c>AuthorizationBehavior</c> throws
 /// on an unannotated request, so the platform is safe either way. What the analyzer buys is
@@ -23,7 +23,7 @@ public sealed class AuthorizationDeclarationAnalyzerTests
             public sealed record DoThingCommand : ICommand<string>;
             """));
 
-        ids.Should().Contain("DSP4005");
+        ids.Should().Contain("DSP4006");
     }
 
     [Fact]
@@ -34,7 +34,7 @@ public sealed class AuthorizationDeclarationAnalyzerTests
             public sealed record ReadThingQuery : IQuery<string>;
             """));
 
-        ids.Should().Contain("DSP4005");
+        ids.Should().Contain("DSP4006");
     }
 
     /// <summary>
@@ -49,7 +49,7 @@ public sealed class AuthorizationDeclarationAnalyzerTests
             public sealed record DoThingCommand : ICommand;
             """));
 
-        ids.Should().Contain("DSP4005");
+        ids.Should().Contain("DSP4006");
     }
 
     [Theory]
@@ -65,7 +65,7 @@ public sealed class AuthorizationDeclarationAnalyzerTests
             public sealed record ReadThingQuery : IQuery<string>;
             """));
 
-        ids.Should().NotContain("DSP4005");
+        ids.Should().NotContain("DSP4006");
     }
 
     /// <summary>
@@ -82,7 +82,7 @@ public sealed class AuthorizationDeclarationAnalyzerTests
             public sealed record ThingResponse(string Name);
             """));
 
-        ids.Should().NotContain("DSP4005");
+        ids.Should().NotContain("DSP4006");
     }
 
     /// <summary>
@@ -105,6 +105,6 @@ public sealed class AuthorizationDeclarationAnalyzerTests
             }
             """));
 
-        ids.Should().NotContain("DSP4005");
+        ids.Should().NotContain("DSP4006");
     }
 }

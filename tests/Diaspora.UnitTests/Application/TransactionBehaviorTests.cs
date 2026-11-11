@@ -88,7 +88,7 @@ public class TransactionBehaviorTests
         new(_unitOfWork, _requestContext,
             NullLogger<TransactionBehavior<TRequest, Result>>.Instance);
 
-    // Both declare their authorization because DSP4005 requires it of any ICommand, and in Release
+    // Both declare their authorization because DSP4006 requires it of any ICommand, and in Release
     // a warning is an error. A fixture that could not exist in the platform would be testing
     // something the platform cannot do.
     [RequirePermission("probe:things:write")]
