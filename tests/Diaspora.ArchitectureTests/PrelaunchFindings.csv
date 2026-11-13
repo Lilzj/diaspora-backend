@@ -61,7 +61,7 @@ FBL-003,MEDIUM,1,,frontend,"The AccessState to AccountState mapping is hand-main
 FBL-004,LOW,2,,frontend,"Backend validation limits are duplicated as client constants, correlated only by a comment",OPEN,,,
 FBL-005,LOW,3,,frontend,The open-route deep link discards the query string the server took care to preserve,OPEN,,,
 FBL-006,MEDIUM,2,,frontend,"Coverage measurement excludes all 327 screens and all 52 hook modules; the screens' exclusion is reasoned, the hooks' is not",OPEN,,,
-FBL-007,LOW-HIGH,0,5,frontend,Three UI surfaces promise capabilities that do not exist; one of them is the security claim tracked as FSEC-002,OPEN,,,
+FBL-007,LOW-HIGH,0,5,frontend,Three UI surfaces promise capabilities that do not exist; one of them is the security claim tracked as FSEC-002,FIXED,,frontend:src/lib/__tests__/capability-claims.test.ts;frontend:src/lib/__tests__/security-claims.test.ts,2026-11-13
 FARCH-001,MEDIUM,1,,frontend,"No circular-dependency detection, no linter and no bundle analysis: three of the architecture report's questions cannot be answered with the project's tooling",OPEN,,,
 FARCH-002,MEDIUM,2,,frontend,"src/lib is a 491-file, 157,819-line layer carrying four unrelated concerns, with the good pattern applied only to the five newest domains",OPEN,,,
 FARCH-003,MEDIUM,2,,frontend,Server state is split across 23 Zustand stores and 33 React Query modules with no stated ownership rule; 5 of 8 large domains have no query-key factory,OPEN,,,
