@@ -9,7 +9,31 @@
 
     <!-- File-scoped namespaces enforced -->
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-    <AnalysisLevel>latest</AnalysisLevel>
+
+    <!--
+      BARCH-003. `latest` meant "whatever rules the installed SDK happens to ship", and
+      global.json asked for the newest SDK in existence including prereleases. Together with
+      TreatWarningsAsErrors below, that is a build which fails whenever Microsoft ships a new
+      rule, on a date nobody chose.
+
+      It stopped being theoretical on 13 November 2026: a GitHub runner image picked up a
+      .NET 11 prerelease, master went red with eight CA2026 errors, and no commit had been
+      made. The same eight had been failing local Release builds for weeks, which is how the
+      `-p:WarningsNotAsErrors=CA2026%3BCA2027` folklore started.
+
+      Pinned to the feature band the platform targets. Adopting a newer analyzer surface is now
+      a reviewable commit rather than a side effect of installing an SDK.
+
+      global.json changes only the two settings that caused this — latestMajor becomes
+      latestFeature, allowPrerelease becomes false — and keeps the 10.0.100 floor the
+      repository already chose. Not the audit's `10.0.203` + `latestPatch`: docker/Dockerfile
+      builds from the floating `sdk:10.0` tag, a tighter floor could be refused there, and the
+      daemon was not running here to check which patch that tag serves. The defect is the
+      prerelease of the next major; that is what is excluded. BARCH-003 items 3 and 4 — pinning
+      the container image and the runner to one patch — are what would make the reported SDK
+      version identical in all three places, and they are not done here.
+    -->
+    <AnalysisLevel>10.0</AnalysisLevel>
     <AnalysisMode>Recommended</AnalysisMode>
 
     <!-- Treat warnings as errors in CI/Release -->

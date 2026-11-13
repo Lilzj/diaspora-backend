@@ -115,7 +115,11 @@ public sealed class StripeSettlementStatusProvider : ISettlementStatusProvider
 
         try
         {
-            root = JsonDocument.Parse(payload).RootElement.Clone();
+            // The document owns a pooled buffer and must be returned; the clone is what
+            // outlives it. Parsing and dereferencing in one expression leaked the buffer
+            // on every webhook (CA2026, BARCH-003).
+            using var document = JsonDocument.Parse(payload);
+            root = document.RootElement.Clone();
         }
         catch (JsonException)
         {
