@@ -37,7 +37,7 @@ BARCH-007,MEDIUM,2,,backend,No circuit breakers; timeouts and retries are provid
 BARCH-008,MEDIUM,1,,backend,"Observability is wired but has no exporter configured, so production emits traces and metrics to nothing",OPEN,,,
 BARCH-009,MEDIUM,1,,backend,"The integration suite -- the platform's main behavioural gate -- fails about 18 of 2,176 tests under machine contention and passes cleanly when idle",OPEN,,,
 FSEC-001,HIGH,0,6,frontend,"35 npm vulnerabilities (1 critical, 17 high) including axios and zod as direct runtime dependencies with non-breaking fixes available, and the frontend CI has no dependency-audit gate",OPEN,,,
-FSEC-002,HIGH,0,5,frontend,The client tells the member they have SMS multi-factor login configured while sign-in is single-factor,OPEN,,,
+FSEC-002,HIGH,0,5,frontend,The client tells the member they have SMS multi-factor login configured while sign-in is single-factor,FIXED,,frontend:src/lib/__tests__/security-claims.test.ts;frontend:src/lib/__tests__/step-up-claims-drift.test.ts,2026-11-13
 FSEC-003,MEDIUM-HIGH,1,,frontend,"About 940 KB and 12,656 lines of internal engineering prose, naming missing controls and credential-storage decisions, is imported by production screens and ships in the APK",OPEN,,,
 FSEC-004,MEDIUM,1,,frontend,"The entire src/mocks tree (60 files, 44,125 lines) and the axios-mock-adapter devDependency are statically imported from the app root and ship in the production bundle",OPEN,,,
 FSEC-005,MEDIUM,1,,frontend,gap-preview.ts documents three safety properties that eas.json no longer satisfies; the net posture is safe but the stated invariant is broken,OPEN,,,
