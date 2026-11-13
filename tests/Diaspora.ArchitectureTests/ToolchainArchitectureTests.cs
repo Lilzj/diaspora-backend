@@ -86,4 +86,97 @@ public sealed class ToolchainArchitectureTests
             "the property must still be set: its default follows the target framework, which "
             + "would reintroduce the same drift more quietly");
     }
+
+    /// <summary>
+    /// <b>The container builds from a named patch, not a moving tag.</b>
+    /// </summary>
+    /// <remarks>
+    /// <c>sdk:10.0</c> served 10.0.404 when this was pinned, and would have served something else
+    /// later: the same commit compiling against a different compiler and a different analyzer set,
+    /// which is the finding in one line. The runtime image is numbered on its own scale
+    /// (<c>aspnet:10.0.15</c>), so these two tags are not expected to match each other — only to
+    /// be patches rather than bands.
+    /// </remarks>
+    [Fact]
+    public void The_container_images_are_pinned_to_a_patch()
+    {
+        var floating = DockerImages()
+            .Where(image => image.Tag.Count(character => character == '.') < 2)
+            .Select(image => $"{image.Repository}:{image.Tag}")
+            .ToList();
+
+        floating.Should().BeEmpty(
+            "a moving tag means the deployed artefact is not reproducible: the same commit builds "
+            + "against a different SDK next month, and nothing records which one");
+    }
+
+    /// <summary>
+    /// <b>The two automated build paths compile with the same SDK.</b>
+    /// </summary>
+    /// <remarks>
+    /// CI and the container are the builds nobody watches by hand. A developer machine is allowed
+    /// to differ — <c>global.json</c> bounds it to the same major with the analyzer level fixed —
+    /// but these two agreeing is what makes "it passed in CI" say anything about the image that
+    /// ships.
+    /// </remarks>
+    [Fact]
+    public void The_runner_and_the_container_name_the_same_sdk()
+    {
+        var container = DockerImages()
+            .Where(image => image.Repository.EndsWith("/sdk", StringComparison.Ordinal))
+            .Select(image => image.Tag)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        container.Should().ContainSingle("the build stage is the only SDK image");
+
+        var runner = WorkflowValues("dotnet-version:");
+
+        runner.Should().NotBeEmpty(
+            "global-json-file alone installs a floor rather than a toolchain, so the runner must "
+            + "name its SDK");
+
+        runner.Distinct(StringComparer.Ordinal).Should().BeEquivalentTo(
+            container,
+            "raise docker/Dockerfile and ci.yml together, or CI stops proving anything about the "
+            + "image that ships");
+    }
+
+    private static List<(string Repository, string Tag)> DockerImages()
+    {
+        const string prefix = "FROM mcr.microsoft.com/dotnet/";
+        var images = new List<(string, string)>();
+
+        foreach (var line in File.ReadAllLines(
+            Path.Combine(SourceTree.Root.FullName, "docker", "Dockerfile")))
+        {
+            var trimmed = line.Trim();
+
+            if (!trimmed.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var reference = trimmed["FROM ".Length..].Split(' ')[0];
+            var separator = reference.LastIndexOf(':');
+
+            images.Add(separator < 0
+                ? (reference, string.Empty)
+                : (reference[..separator], reference[(separator + 1)..]));
+        }
+
+        return images;
+    }
+
+    private static List<string> WorkflowValues(string key)
+    {
+        return
+        [
+            .. File.ReadAllLines(
+                    Path.Combine(SourceTree.Root.FullName, ".github", "workflows", "ci.yml"))
+                .Select(line => line.Trim())
+                .Where(line => line.StartsWith(key, StringComparison.Ordinal))
+                .Select(line => line[key.Length..].Trim())
+        ];
+    }
 }

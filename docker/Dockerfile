@@ -1,5 +1,15 @@
 # ─── Build ────────────────────────────────────────────────────────────
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+#
+# BARCH-003 item 3. `sdk:10.0` is a moving tag: it served 10.0.404 when this was
+# pinned, and the same commit would have built against a different compiler and a
+# different analyzer set next month. That is the defect that took master down on
+# 13 November 2026 from the other direction — global.json asked for the newest SDK
+# anywhere, a runner image obliged with a .NET 11 prerelease, and eight CA2026
+# errors appeared on a commit nobody had touched.
+#
+# Raise this and .github/workflows/ci.yml's dotnet-version together: they are the
+# two automated build paths and the point is that they agree.
+FROM mcr.microsoft.com/dotnet/sdk:10.0.404 AS build
 WORKDIR /source
 
 # Copy solution and project files first for layer caching
@@ -68,7 +78,11 @@ RUN dotnet publish src/Diaspora.Api/Diaspora.Api.csproj \
     -p:UseSharedCompilation=false
 
 # ─── Runtime ──────────────────────────────────────────────────────────
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+#
+# Pinned for the same reason, and numbered on its own scale: the runtime ships
+# patches (10.0.15) where the SDK ships feature bands (10.0.404), so these two
+# versions are not meant to match each other.
+FROM mcr.microsoft.com/dotnet/aspnet:10.0.15 AS runtime
 WORKDIR /app
 
 # ── Non-root, using the user the base image already ships ──────────────────
