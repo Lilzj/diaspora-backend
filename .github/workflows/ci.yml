@@ -27,6 +27,12 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
         with:
+          # BARCH-003 item 4. global-json-file alone installs the `version` field,
+          # which is a floor rather than the toolchain: the runner would then build
+          # on whatever that resolved to. Named explicitly so a runner-image change
+          # cannot move it, and kept equal to docker/Dockerfile's build stage so the
+          # two automated paths compile with the same SDK. Raise them together.
+          dotnet-version: 10.0.404
           global-json-file: global.json
 
       # BARCH-003. The toolchain used for a given artefact was not recoverable from
@@ -170,6 +176,12 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
         with:
+          # BARCH-003 item 4. global-json-file alone installs the `version` field,
+          # which is a floor rather than the toolchain: the runner would then build
+          # on whatever that resolved to. Named explicitly so a runner-image change
+          # cannot move it, and kept equal to docker/Dockerfile's build stage so the
+          # two automated paths compile with the same SDK. Raise them together.
+          dotnet-version: 10.0.404
           global-json-file: global.json
 
       # BARCH-003. The toolchain used for a given artefact was not recoverable from
