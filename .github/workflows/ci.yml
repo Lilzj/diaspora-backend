@@ -29,6 +29,13 @@ jobs:
         with:
           global-json-file: global.json
 
+      # BARCH-003. The toolchain used for a given artefact was not recoverable from
+      # its own log. On 13 November 2026 a runner image picked up a .NET 11 prerelease
+      # and master went red with no commit; global.json asked for the newest SDK in
+      # existence, so nothing recorded which one had been used, or that it had changed.
+      - name: Which SDK
+        run: dotnet --version
+
       - name: Cache NuGet packages
         uses: actions/cache@v4
         with:
@@ -164,6 +171,13 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
+
+      # BARCH-003. The toolchain used for a given artefact was not recoverable from
+      # its own log. On 13 November 2026 a runner image picked up a .NET 11 prerelease
+      # and master went red with no commit; global.json asked for the newest SDK in
+      # existence, so nothing recorded which one had been used, or that it had changed.
+      - name: Which SDK
+        run: dotnet --version
 
       - name: Cache NuGet packages
         uses: actions/cache@v4
