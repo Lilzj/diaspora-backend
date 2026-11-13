@@ -111,16 +111,24 @@ public sealed class ToolchainArchitectureTests
     }
 
     /// <summary>
-    /// <b>The two automated build paths compile with the same SDK.</b>
+    /// <b>Every build path names the same SDK.</b>
     /// </summary>
     /// <remarks>
-    /// CI and the container are the builds nobody watches by hand. A developer machine is allowed
-    /// to differ — <c>global.json</c> bounds it to the same major with the analyzer level fixed —
-    /// but these two agreeing is what makes "it passed in CI" say anything about the image that
-    /// ships.
+    /// <para>
+    /// Three paths compile this solution: a developer machine through <c>global.json</c>, the CI
+    /// runner, and <c>docker/Dockerfile</c>. On 13 November 2026 they were on 10.0.203, 10.0.100
+    /// and 10.0.404 — three feature bands for one commit, which is what BARCH-003 meant by "the
+    /// build is not reproducible".
+    /// </para>
+    /// <para>
+    /// This rule previously exempted the developer machine, on the grounds that requiring an SDK
+    /// is something to ask for rather than impose. It was asked for; the exemption is gone.
+    /// Raising one of the three now fails here rather than quietly separating the build that
+    /// gates a merge from the image that ships.
+    /// </para>
     /// </remarks>
     [Fact]
-    public void The_runner_and_the_container_name_the_same_sdk()
+    public void Every_build_path_names_the_same_sdk()
     {
         var container = DockerImages()
             .Where(image => image.Repository.EndsWith("/sdk", StringComparison.Ordinal))
@@ -133,13 +141,27 @@ public sealed class ToolchainArchitectureTests
         var runner = WorkflowValues("dotnet-version:");
 
         runner.Should().NotBeEmpty(
-            "global-json-file alone installs a floor rather than a toolchain, so the runner must "
-            + "name its SDK");
+            "global-json-file alone installs the version field, which is a floor rather than a "
+            + "toolchain, so the runner must name its SDK");
 
         runner.Distinct(StringComparer.Ordinal).Should().BeEquivalentTo(
             container,
             "raise docker/Dockerfile and ci.yml together, or CI stops proving anything about the "
             + "image that ships");
+
+        DeclaredSdkVersion().Should().Be(
+            container[0],
+            "global.json is what a developer machine resolves against, and a floor below the two "
+            + "automated paths lets it compile with a different compiler than either of them");
+    }
+
+    /// <summary>The SDK <c>global.json</c> names.</summary>
+    private static string DeclaredSdkVersion()
+    {
+        using var document = JsonDocument.Parse(
+            File.ReadAllText(Path.Combine(SourceTree.Root.FullName, "global.json")));
+
+        return document.RootElement.GetProperty("sdk").GetProperty("version").GetString()!;
     }
 
     private static List<(string Repository, string Tag)> DockerImages()

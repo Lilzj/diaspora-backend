@@ -24,14 +24,16 @@
       Pinned to the feature band the platform targets. Adopting a newer analyzer surface is now
       a reviewable commit rather than a side effect of installing an SDK.
 
-      global.json changes only the two settings that caused this — latestMajor becomes
-      latestFeature, allowPrerelease becomes false — and keeps the 10.0.100 floor the
-      repository already chose. Not the audit's `10.0.203` + `latestPatch`: docker/Dockerfile
-      builds from the floating `sdk:10.0` tag, a tighter floor could be refused there, and the
-      daemon was not running here to check which patch that tag serves. The defect is the
-      prerelease of the next major; that is what is excluded. BARCH-003 items 3 and 4 — pinning
-      the container image and the runner to one patch — are what would make the reported SDK
-      version identical in all three places, and they are not done here.
+      global.json names one SDK: 10.0.404, latestPatch, no prereleases. docker/Dockerfile and
+      the CI runner name the same one, and ToolchainArchitectureTests refuses a tree where the
+      three disagree, so there is no longer a build path that chooses its own compiler.
+
+      This arrived in three steps rather than one, and the order is the lesson. First the
+      policy, because the prerelease was what broke master. Then the container and the runner,
+      once MCR's tag API was read instead of guessed at: sdk:10.0 was serving 10.0.404 while CI
+      built on 10.0.100 and a developer machine on 10.0.203, three feature bands for one commit.
+      Only then this version, because naming it means every machine must have it, and that is a
+      thing to ask for rather than to spring on somebody mid-build.
     -->
     <AnalysisLevel>10.0</AnalysisLevel>
     <AnalysisMode>Recommended</AnalysisMode>
