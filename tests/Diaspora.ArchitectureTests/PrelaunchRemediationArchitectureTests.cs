@@ -74,6 +74,22 @@ public sealed class PrelaunchRemediationArchitectureTests
         ("FARCH", 7)
     ];
 
+    /// <summary>
+    /// Findings the remediation raised rather than the audit, declared the same way and for the
+    /// same reason.
+    /// <para>
+    /// Kept apart from <see cref="Families"/> deliberately. That array's counts come from outside
+    /// this repository — each report's own findings table — which is what makes it an anti-skip
+    /// mechanism rather than a tautology, and folding a locally chosen number into it would blunt
+    /// exactly the property it exists for. This one claims less: it only has to make deleting a row
+    /// a deliberate act in tracked code, which it does.
+    /// </para>
+    /// </summary>
+    private static readonly (string Prefix, int Count)[] RaisedDuringRemediation =
+    [
+        ("RMD", 2)
+    ];
+
     private static readonly string[] States =
         ["OPEN", "FIXED", "VERIFIED", "ACCEPTED", "SUPERSEDED"];
 
@@ -85,6 +101,14 @@ public sealed class PrelaunchRemediationArchitectureTests
     private static readonly Lazy<Dictionary<string, HashSet<string>>> DeclaredTests =
         new(LoadDeclaredTests);
 
+    /// <summary>Expands a declared identifier space into the identifiers it names.</summary>
+    private static HashSet<string> Identifiers((string Prefix, int Count)[] families) =>
+        families
+            .SelectMany(family => Enumerable
+                .Range(1, family.Count)
+                .Select(n => $"{family.Prefix}-{n:D3}"))
+            .ToHashSet(StringComparer.Ordinal);
+
     // ─── The ledger holds every finding, and only those findings ────────────────────────────
 
     /// <summary>
@@ -93,26 +117,30 @@ public sealed class PrelaunchRemediationArchitectureTests
     [Fact]
     public void Every_finding_the_audit_raised_has_exactly_one_row()
     {
-        var expected = Families
-            .SelectMany(family => Enumerable
-                .Range(1, family.Count)
-                .Select(n => $"{family.Prefix}-{n:D3}"))
-            .ToHashSet(StringComparer.Ordinal);
+        var fromTheAudit = Identifiers(Families);
+        var raisedSince = Identifiers(RaisedDuringRemediation);
+        var expected = fromTheAudit.Union(raisedSince).ToHashSet(StringComparer.Ordinal);
 
         var actual = Ledger.Value.Select(finding => finding.Id).ToList();
 
         actual.Should().OnlyHaveUniqueItems("a finding tracked twice can be closed once and left open once");
 
-        expected.Except(actual).Should().BeEmpty(
+        fromTheAudit.Should().HaveCount(70, "the index's severity summary");
+
+        fromTheAudit.Except(actual).Should().BeEmpty(
             "a finding with no row is a finding nobody is accounting for — restore the row rather "
             + "than the count, and if the audit genuinely retired it, record it as SUPERSEDED with "
             + "a date and a reason");
 
+        raisedSince.Except(actual).Should().BeEmpty(
+            "a finding is no less deleted for having been raised by the remediation rather than "
+            + "by the audit");
+
         actual.Except(expected).Should().BeEmpty(
-            "{0} describes seventy findings and this ledger tracks something it does not define",
+            "{0} tracks what the audit raised and what remediation raised, and this is neither",
             LedgerPath);
 
-        actual.Should().HaveCount(70);
+        actual.Should().HaveCount(fromTheAudit.Count + raisedSince.Count);
     }
 
     /// <summary>
@@ -125,7 +153,11 @@ public sealed class PrelaunchRemediationArchitectureTests
     [Fact]
     public void The_nine_high_findings_and_all_eight_launch_blockers_are_present()
     {
-        Ledger.Value.Where(finding => finding.Severity == "HIGH")
+        var fromTheAudit = Identifiers(Families);
+
+        Ledger.Value
+            .Where(finding => fromTheAudit.Contains(finding.Id))
+            .Where(finding => finding.Severity == "HIGH")
             .Should().HaveCount(9, "the index records nine HIGH findings across eight distinct issues");
 
         Ledger.Value

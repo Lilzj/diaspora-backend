@@ -69,3 +69,5 @@ FARCH-004,MEDIUM,2,,frontend,FlatList is used in 36 files and FlashList in 4 alt
 FARCH-005,MEDIUM,1,,frontend,"44,125 lines of fixtures and about 940 KB of engineering prose are in the production module graph; reported fully as FSEC-003 and FSEC-004",OPEN,,,
 FARCH-006,LOW,3,,frontend,Route protection is a single useEffect chain in the root layout rather than a layout-level guard; 14 layout files declare no auth requirement,OPEN,,,
 FARCH-007,LOW,3,,frontend,"The design system is 770 lines and real, but 36 list screens and the large create flows bypass its layout primitives",OPEN,,,
+RMD-001,MEDIUM,0,,frontend,No branch protection rule or ruleset exists on master so every check is advisory and a pull request with a failing check can still be merged,OPEN,,,
+RMD-002,MEDIUM,0,,backend,No branch protection rule or ruleset exists on master so a red Release build contract drift gate or migration check does not prevent a merge,OPEN,,,
