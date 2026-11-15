@@ -74,6 +74,52 @@ public sealed class PrelaunchRemediationArchitectureTests
         ("FARCH", 7)
     ];
 
+    /// <summary>
+    /// Findings the remediation raised rather than the audit, declared the same way and for the
+    /// same reason.
+    /// <para>
+    /// Kept apart from <see cref="Families"/> deliberately. That array's counts come from outside
+    /// this repository — each report's own findings table — which is what makes it an anti-skip
+    /// mechanism rather than a tautology, and folding a locally chosen number into it would blunt
+    /// exactly the property it exists for. This one claims less: it only has to make deleting a row
+    /// a deliberate act in tracked code, which it does.
+    /// </para>
+    /// </summary>
+    private static readonly (string Prefix, int Count)[] RaisedDuringRemediation =
+    [
+        ("RMD", 2)
+    ];
+
+    /// <summary>
+    /// Backend findings that close on evidence this solution cannot produce, named one at a time.
+    /// <para>
+    /// <see cref="A_closed_backend_finding_names_a_test_that_exists"/> demands a resolving
+    /// <c>test:</c> from every backend row that leaves OPEN, and that is the right default: XC-007,
+    /// the root cause behind roughly a third of the audit, is safety properties written in prose,
+    /// and a closure on prose reproduces the defect it was meant to fix. What the rule could not
+    /// express was a finding genuinely fixed by something no offline test can observe. RMD-002 is
+    /// the first — a branch ruleset is GitHub configuration, and nothing under <c>tests/</c> can
+    /// see it without a network call this suite will not make.
+    /// </para>
+    /// <para>
+    /// So the exemption is a list rather than a loosened predicate, which is the technique this
+    /// repository already uses for the 25 deprecated permission keys and ADR-020's 16 retirements.
+    /// The default stays strict and each exception is a deliberate act in tracked code with its
+    /// reason beside it. An exempted row must still carry a <c>probe:</c> naming what was run, and
+    /// <see cref="An_exemption_from_the_test_rule_is_still_earned"/> fails the moment one stops
+    /// being true — including when a test finally does exist, which retires the entry.
+    /// </para>
+    /// </summary>
+    private static readonly Dictionary<string, string> ClosedWithoutATest =
+        new(StringComparer.Ordinal)
+        {
+            ["RMD-002"] =
+                "2026-11-14: a branch ruleset is repository configuration rather than code. "
+                + "Verified by an unauthenticated GET of "
+                + "/repos/Lilzj/diaspora-backend/rules/branches/master, which is what the probe: "
+                + "entry on the row names. No test in this solution can observe it."
+        };
+
     private static readonly string[] States =
         ["OPEN", "FIXED", "VERIFIED", "ACCEPTED", "SUPERSEDED"];
 
@@ -85,6 +131,14 @@ public sealed class PrelaunchRemediationArchitectureTests
     private static readonly Lazy<Dictionary<string, HashSet<string>>> DeclaredTests =
         new(LoadDeclaredTests);
 
+    /// <summary>Expands a declared identifier space into the identifiers it names.</summary>
+    private static HashSet<string> Identifiers((string Prefix, int Count)[] families) =>
+        families
+            .SelectMany(family => Enumerable
+                .Range(1, family.Count)
+                .Select(n => $"{family.Prefix}-{n:D3}"))
+            .ToHashSet(StringComparer.Ordinal);
+
     // ─── The ledger holds every finding, and only those findings ────────────────────────────
 
     /// <summary>
@@ -93,26 +147,30 @@ public sealed class PrelaunchRemediationArchitectureTests
     [Fact]
     public void Every_finding_the_audit_raised_has_exactly_one_row()
     {
-        var expected = Families
-            .SelectMany(family => Enumerable
-                .Range(1, family.Count)
-                .Select(n => $"{family.Prefix}-{n:D3}"))
-            .ToHashSet(StringComparer.Ordinal);
+        var fromTheAudit = Identifiers(Families);
+        var raisedSince = Identifiers(RaisedDuringRemediation);
+        var expected = fromTheAudit.Union(raisedSince).ToHashSet(StringComparer.Ordinal);
 
         var actual = Ledger.Value.Select(finding => finding.Id).ToList();
 
         actual.Should().OnlyHaveUniqueItems("a finding tracked twice can be closed once and left open once");
 
-        expected.Except(actual).Should().BeEmpty(
+        fromTheAudit.Should().HaveCount(70, "the index's severity summary");
+
+        fromTheAudit.Except(actual).Should().BeEmpty(
             "a finding with no row is a finding nobody is accounting for — restore the row rather "
             + "than the count, and if the audit genuinely retired it, record it as SUPERSEDED with "
             + "a date and a reason");
 
+        raisedSince.Except(actual).Should().BeEmpty(
+            "a finding is no less deleted for having been raised by the remediation rather than "
+            + "by the audit");
+
         actual.Except(expected).Should().BeEmpty(
-            "{0} describes seventy findings and this ledger tracks something it does not define",
+            "{0} tracks what the audit raised and what remediation raised, and this is neither",
             LedgerPath);
 
-        actual.Should().HaveCount(70);
+        actual.Should().HaveCount(fromTheAudit.Count + raisedSince.Count);
     }
 
     /// <summary>
@@ -125,7 +183,11 @@ public sealed class PrelaunchRemediationArchitectureTests
     [Fact]
     public void The_nine_high_findings_and_all_eight_launch_blockers_are_present()
     {
-        Ledger.Value.Where(finding => finding.Severity == "HIGH")
+        var fromTheAudit = Identifiers(Families);
+
+        Ledger.Value
+            .Where(finding => fromTheAudit.Contains(finding.Id))
+            .Where(finding => finding.Severity == "HIGH")
             .Should().HaveCount(9, "the index records nine HIGH findings across eight distinct issues");
 
         Ledger.Value
@@ -232,11 +294,19 @@ public sealed class PrelaunchRemediationArchitectureTests
     /// the evidence lives in sibling test projects this assembly deliberately does not reference.
     /// </para>
     /// <para>
-    /// Where a finding genuinely cannot be closed by a test — rotating a credential, a recorded
-    /// decision, a probe against a deployed host — the evidence uses the <c>probe:</c>,
-    /// <c>decision:</c> or <c>superseded:</c> prefix instead and is checked for shape only. That is
-    /// a narrower exemption than it looks: it still requires a date, and it still requires somebody
-    /// to have written what was done.
+    /// A finding in a state other than FIXED or VERIFIED — ACCEPTED, SUPERSEDED — is not closed by
+    /// code at all, and its evidence uses the <c>decision:</c> or <c>superseded:</c> prefix,
+    /// checked for shape only. That is a narrower exemption than it looks: it still requires a
+    /// date, and it still requires somebody to have written what was done.
+    /// </para>
+    /// <para>
+    /// <b>Corrected 14 November 2026.</b> This paragraph used to say that a backend finding which
+    /// genuinely could not be closed by a test could use <c>probe:</c> instead. The code never did
+    /// that — the predicate below bound every backend row in FIXED or VERIFIED, with no way out —
+    /// and the gap surfaced the first time a backend finding was fixed by something outside the
+    /// repository. <b>A comment asserting a guarantee the code does not have is XC-007 itself</b>,
+    /// which makes it a poor thing to find in the suite written to enforce against it. The
+    /// exemption now exists, narrowly and by name, in <see cref="ClosedWithoutATest"/>.
     /// </para>
     /// </summary>
     [Fact]
@@ -250,7 +320,9 @@ public sealed class PrelaunchRemediationArchitectureTests
                 .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .ToList();
 
-            if (finding.Repo == "backend" && !references.Exists(IsTestReference))
+            if (finding.Repo == "backend"
+                && !references.Exists(IsTestReference)
+                && !ClosedWithoutATest.ContainsKey(finding.Id))
             {
                 unresolved.Add(
                     $"{finding.Id}: {finding.State} with no test: reference ({finding.Evidence})");
@@ -271,7 +343,76 @@ public sealed class PrelaunchRemediationArchitectureTests
             "a finding closes on something that executes, or it does not close. Evidence is "
             + "semicolon-separated and each entry is test:Type, test:Type.Method, probe:what-was-run, "
             + "decision:what-was-decided, superseded:why, or frontend:where — and a backend finding "
-            + "in FIXED or VERIFIED needs at least one test: that resolves");
+            + "in FIXED or VERIFIED needs at least one test: that resolves, unless it is named in "
+            + "ClosedWithoutATest");
+    }
+
+    /// <summary>
+    /// An exemption from the test rule stays earned, or it fails here rather than going quiet.
+    /// <para>
+    /// An exemption list is only safe while it expires. This one does: an entry has to name a row
+    /// that exists, is closed by code, is a backend row, carries a <c>probe:</c> saying what was
+    /// run, and does <b>not</b> name a test — because the day a test exists, the reason for the
+    /// exemption is gone and the entry should go with it. Each of those failing is louder than the
+    /// entry quietly outliving its justification, which is how exemption lists normally rot.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void An_exemption_from_the_test_rule_is_still_earned()
+    {
+        var problems = new List<string>();
+
+        foreach (var (id, reason) in ClosedWithoutATest)
+        {
+            var finding = Ledger.Value.Find(candidate => candidate.Id == id);
+
+            if (finding is null)
+            {
+                problems.Add($"{id}: exempted here but absent from the ledger");
+                continue;
+            }
+
+            if (!IsClosedByCode(finding))
+            {
+                problems.Add(
+                    $"{id}: exempted here but {finding.State} — an exemption is for a closure");
+            }
+
+            if (finding.Repo != "backend")
+            {
+                problems.Add(
+                    $"{id}: exempted here but Repo is {finding.Repo}, and the rule it is exempt "
+                    + "from binds backend rows only");
+            }
+
+            var references = finding.Evidence
+                .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .ToList();
+
+            if (!references.Exists(reference =>
+                    reference.StartsWith("probe:", StringComparison.Ordinal)))
+            {
+                problems.Add(
+                    $"{id}: exempted from naming a test and names no probe: either, so it closes "
+                    + "on nothing");
+            }
+
+            if (references.Exists(IsTestReference))
+            {
+                problems.Add(
+                    $"{id}: names a test: after all, so this exemption is stale — delete the entry "
+                    + "and let the rule apply");
+            }
+
+            if (reason.Length < 40)
+            {
+                problems.Add($"{id}: the exemption carries no reason worth reading");
+            }
+        }
+
+        problems.Should().BeEmpty(
+            "an exemption from XC-007's rule is a deliberate act with a reason, and it retires "
+            + "itself the moment a test can do the job instead");
     }
 
     // ─── Order ──────────────────────────────────────────────────────────────────────────────
