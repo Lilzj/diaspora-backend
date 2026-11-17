@@ -13,6 +13,7 @@ using Diaspora.Platform.Http;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 
 namespace Diaspora.Modules.Guides.Api;
@@ -43,6 +44,27 @@ namespace Diaspora.Modules.Guides.Api;
 /// </summary>
 internal static class GuideEndpoints
 {
+    /// <summary>The largest authoring request the host will read on a guide route.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This figure is a policy choice, and deliberately not derived.</b> Every other
+    /// ceiling on this platform is computed from the limits class that governs it. That
+    /// cannot work here: <see cref="Domain.Policies.GuideLimits"/> permits
+    /// <c>MaxSections</c> (100) × <c>MaxBlocksPerSection</c> (200) ×
+    /// <c>MaxBlockLength</c> (20,000), which is four hundred million characters, and
+    /// <c>SaveGuideDraftRequest</c> carries the whole section list — so the aggregate
+    /// maximum really is reachable in one body.
+    /// </para>
+    /// <para>
+    /// Those caps bound an <i>aggregate</i>, not a request; GuideLimits' own documentation
+    /// says they exist "so loading one guide is a predictable amount of work". A transport
+    /// ceiling is a different question, and conflating the two is what left this route
+    /// unbounded. 8 MiB is roughly eight million characters: far beyond any guide anyone
+    /// has written, and fifty times tighter than the aggregate would allow. A draft that
+    /// genuinely exceeds it must be saved in more than one request.
+    /// </para>
+    /// </remarks>
+    private const long AuthoringRequestCeiling = 8L * 1024 * 1024;
     public static void Map(RouteGroupBuilder group)
     {
         ArgumentNullException.ThrowIfNull(group);
@@ -178,6 +200,7 @@ internal static class GuideEndpoints
                         new UpdateGuideCommand { GuideId = guideId, Request = request },
                         cancellationToken)))
             .RequireAuthorization(GuidePolicies.EditOwn)
+            .WithMetadata(new RequestSizeLimitAttribute(AuthoringRequestCeiling))
             .WithName("UpdateGuide")
             .WithSummary("The editor's save: metadata, and the whole structure when one is sent.");
 
@@ -193,6 +216,7 @@ internal static class GuideEndpoints
                         new SaveGuideDraftCommand { GuideId = guideId, Request = request },
                         cancellationToken)))
             .RequireAuthorization(GuidePolicies.EditOwn)
+            .WithMetadata(new RequestSizeLimitAttribute(AuthoringRequestCeiling))
             .WithName("SaveGuideDraft")
             .WithSummary("The editor's auto-save. Kept aside; it never touches the guide.");
 

@@ -260,6 +260,22 @@ builder.Services.AddOptions<TrustedProxyOptions>()
 
 builder.Services.AddSingleton<IValidateOptions<TrustedProxyOptions>, TrustedProxyOptionsValidator>();
 
+// BSEC-006. Nothing set a request-body ceiling, so Kestrel's own 30,000,000-byte default was
+// the only bound on every route — a number nobody here chose. Bound through options rather
+// than a constant because a wrong value is a 413 for an author mid-draft, and that is found
+// out in production; a setting can be raised in one line. The two route families that
+// legitimately need more declare it at their own registration, beside the contract it bounds.
+builder.Services.AddOptions<RequestBodyLimitOptions>()
+    .Bind(builder.Configuration.GetSection(RequestBodyLimitOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+builder.Services.AddOptions<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions>()
+    .Configure<IOptions<RequestBodyLimitOptions>>((kestrel, bodyLimit) =>
+    {
+        kestrel.Limits.MaxRequestBodySize = bodyLimit.Value.MaxBodyBytes;
+    });
+
 // Projected onto the framework's options rather than bound to them, so the validated strings
 // are parsed in one place and Parse may be used without a fallback. That is safe in this
 // order and only this order: GenericWebHostService.StartAsync runs the startup validator
