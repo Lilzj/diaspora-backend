@@ -240,6 +240,30 @@ public sealed class GlobalExceptionHandlingMiddleware
                  "The write could not be completed because of a transient database failure. " +
                  "Nothing was changed; please try again."),
 
+            // BBL-001. Thrown in 108 places across Financial, Trust and Recommendations, and
+            // mapped nowhere until now, so a domain invariant its handler did not catch came back
+            // as 500 Platform.Unexpected "An unexpected error occurred." The client could not tell
+            // "you cannot do that" from "the server broke", and the domain code — the thing the
+            // client's error vocabulary is built on — was discarded.
+            //
+            // 409 with the exception's own Code, because that is already the convention: 23 files
+            // catch this themselves at 33 sites, and 16 of those return
+            // Error.Conflict(exception.Code, exception.Message). The fallback now agrees with them
+            // instead of contradicting them, which is the whole point. The defect was never that
+            // business refusals returned 500 — the careful modules caught them — it was that
+            // nothing made that true, across three modules and 108 throw sites with no test, no
+            // analyzer and no behaviour enforcing it.
+            //
+            // It also moves the log line from Error to Warning, because HandleExceptionAsync
+            // branches on status. That is the other half of the finding: a legitimate rule refusal
+            // and a genuine fault were the same alerting signal.
+            //
+            // Last among the specific arms on purpose. Nothing derives from DomainException today,
+            // so the position is not currently load-bearing — but it is the base of a family, and
+            // anything above it here stays reachable if that changes. An arm for a subclass would
+            // go above this one and keep working; this one above it would silently swallow it.
+            DomainException ex => ((int)HttpStatusCode.Conflict, ex.Code, "Conflict", ex.Message),
+
             _ => ((int)HttpStatusCode.InternalServerError,
                   PlatformErrorCodes.Unexpected,
                   "Unexpected error",
