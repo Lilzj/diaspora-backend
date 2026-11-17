@@ -8,6 +8,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!--
+      BARCH-009. xunit.runner.json only does anything if it sits beside the test assembly, and a
+      config that is silently not deployed is worse than none: longRunningTestSeconds would appear
+      to be set and nothing would ever report.
+    -->
+    <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio">
