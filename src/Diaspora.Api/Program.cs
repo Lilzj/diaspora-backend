@@ -231,8 +231,21 @@ builder.Services.AddEndpointsApiExplorer();
 // The schema transformer publishes the values behind string-typed enum properties.
 // Without it the document describes `objective` as an unconstrained string and the
 // four legal values live only in C# — see OpenApiEnumValuesAttribute.
+//
+// BSEC-011 / BBL-003. The other two say which operations need a token. Before them the
+// contract described 1,092 operations and declared no security at all, so anything
+// generated from it — an SDK, a Postman collection, a partner integration — sent no
+// Authorization header anywhere. The document transformer registers the scheme and makes
+// it the default; the operation transformer gives each operation its own explicit answer,
+// and resolves an endpoint that declares nothing to "token required" rather than to
+// public. EndpointSecurityOperationTransformer's remarks say why that direction is the
+// only safe one on this host.
 builder.Services.AddOpenApi(options =>
-    options.AddSchemaTransformer<Diaspora.Api.OpenApi.EnumValuesSchemaTransformer>());
+{
+    options.AddSchemaTransformer<Diaspora.Api.OpenApi.EnumValuesSchemaTransformer>();
+    options.AddDocumentTransformer<Diaspora.Api.OpenApi.BearerSecuritySchemeTransformer>();
+    options.AddOperationTransformer<Diaspora.Api.OpenApi.EndpointSecurityOperationTransformer>();
+});
 
 // Forwarded headers. Without this, every security event, session record and rate-limit
 // partition behind a load balancer sees the proxy's address instead of the client's —
@@ -456,13 +469,22 @@ app.MapModuleEndpoints();
 
 // Platform info endpoint. The environment name is deliberately not reported: an
 // unauthenticated caller has no need to know which deployment they reached.
+//
+// AllowAnonymous says what the comment above already assumed, and it is load-bearing in three
+// places (BSEC-011). This endpoint reaches no CQRS request, so AuthorizationBehavior never runs
+// and nothing downstream would refuse it; the route is the only place its public reach can be
+// stated. RouteAuthorizationCoverageTests asserts that the endpoints in that position are the
+// health probes and these three, EndpointSecurityOperationTransformer reads this to decide what
+// the published contract says, and without it the contract declares a token is needed to read a
+// version number.
 hostEndpoints.MapGet("/", (PlatformManifest manifest) => new
 {
     platform = "Diaspora",
     version = "1.0.0",
     modules = manifest.GetRegisteredModules(),
     health = "/health/live"
-});
+})
+    .AllowAnonymous();
 
 // Stripe Checkout return pages.
 //
@@ -511,15 +533,20 @@ static IResult CheckoutReturn(string heading, string message, string deepLink)
     return Results.Content(html, "text/html; charset=utf-8");
 }
 
+// Both are AllowAnonymous for the reason the pages exist: Stripe sends the member's own browser
+// here, which carries no token and cannot be given one. Declaring it is what keeps the published
+// contract honest about them — see the platform info endpoint above.
 hostEndpoints.MapGet("/payments/checkout/complete", () => CheckoutReturn(
     "Payment received",
     "Your wallet will update as soon as Diaspora has confirmed it with your bank. You can close this page.",
-    "diaspora://wallet"));
+    "diaspora://wallet"))
+    .AllowAnonymous();
 
 hostEndpoints.MapGet("/payments/checkout/cancelled", () => CheckoutReturn(
     "Payment cancelled",
     "Nothing was charged. You can try again from your wallet whenever you are ready.",
-    "diaspora://wallet"));
+    "diaspora://wallet"))
+    .AllowAnonymous();
 
 // The page an email verification link opens. It verifies only on its button's POST, because mail
 // scanners open every link in a message. See EmailConfirmationPages.
