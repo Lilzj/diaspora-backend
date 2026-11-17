@@ -102,7 +102,14 @@ public sealed class CreateContributionCommandHandler
         }
 
         var now = _clock.UtcNow;
-        var receipt = _receipts.Next("CON", now);
+        // BBL-004. An anonymous gift stores no giver, so nothing can compare a caller against
+        // it and the reference becomes the whole of the access decision.
+        var receipt = _receipts.Next(
+            "CON",
+            now,
+            command.IsAnonymous
+                ? ReceiptReferenceStrength.Credential
+                : ReceiptReferenceStrength.Handle);
 
         return kind == ContributionKind.Monetary
             ? await MonetaryAsync(command, fund, caller.Value, receipt, now, cancellationToken)

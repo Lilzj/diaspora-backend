@@ -388,7 +388,7 @@ public sealed class FinancialModule : IPlatformModule
         // The replaceable singles. See the method summary.
         services.AddScoped<IRevenueDistributionStrategy, PlatformCommissionDistributionStrategy>();
         services.AddScoped<IWalletProvisioningPolicy, DefaultWalletProvisioningPolicy>();
-        services.AddScoped<IReceiptReferenceGenerator, SequentialReceiptReferenceGenerator>();
+        services.AddScoped<IReceiptReferenceGenerator, ReceiptReferenceGenerator>();
         services.AddScoped<IFinancialSearchProjector, NoOpFinancialSearchProjector>();
 
         // A singleton, and safe as such: a concurrent dictionary, no scoped dependency, and the one
