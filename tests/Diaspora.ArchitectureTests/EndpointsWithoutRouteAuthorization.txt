@@ -23,6 +23,16 @@
 # readiness probes, which an orchestrator calls with no credential and which BSEC-002 also exempted
 # from the transport rate limiter.
 #
+# 17 November 2026: 478 -> 475. BSEC-011 had to decide what the published contract says about every
+# endpoint, and the three the host maps itself -- GET /, and the two Stripe checkout return pages --
+# turned out to be in the same position as the probes rather than the position this file assumes:
+# no route authorization AND no request type behind them, so nothing enforced anything. They were
+# safe (a version number and two static pages) and deliberately public, but the sentence above was
+# false for them and the rule that was supposed to notice reads only the entries with no HTTP method
+# constraint, which these three are not. They now declare .AllowAnonymous() and so have left this
+# file. Every remaining line is an /api/v1/ route with a request type behind it, which
+# The_baseline_is_module_routes_and_the_two_probes now checks rather than assumes.
+#
 # Format: <METHOD[,METHOD]> <route pattern>
 ANY /health/live
 ANY /health/ready
@@ -47,7 +57,6 @@ DELETE /api/v1/financial/placements/{placementId:guid}
 DELETE /api/v1/notifications/devices/{id:guid}
 DELETE /api/v1/notifications/{id:guid}
 DELETE /api/v1/recommendations/preferences/blocks/{targetType}/{targetId:guid}
-GET /
 GET /api/v1/academy/certificates/me
 GET /api/v1/academy/courses
 GET /api/v1/academy/courses/{courseId:guid}
@@ -289,8 +298,6 @@ GET /api/v1/rewards/redemptions
 GET /api/v1/rewards/redemptions/me
 GET /api/v1/rewards/rules
 GET /api/v1/rewards/signup-bonus/me
-GET /payments/checkout/cancelled
-GET /payments/checkout/complete
 PATCH /api/v1/community-life/events/{eventId:guid}
 PATCH /api/v1/community-life/organizations/{organizationId:guid}
 POST /api/v1/academy/lessons/{lessonId:guid}/complete

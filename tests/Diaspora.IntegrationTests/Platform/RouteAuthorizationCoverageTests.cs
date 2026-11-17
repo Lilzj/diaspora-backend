@@ -142,6 +142,48 @@ public sealed class RouteAuthorizationCoverageTests
                 + "two are the orchestrator's probes and a third would need explaining");
     }
 
+    /// <summary>
+    /// <b>Everything else on the baseline is a module route, which is what makes the file safe to
+    /// hold.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The claim above it — "every other line delegates to a request type whose attribute the
+    /// pipeline enforces" — was prose, and the rule beside it reads only the entries with no HTTP
+    /// method constraint. Three entries were neither: <c>GET /</c> and the two Stripe checkout
+    /// return pages, mapped by the host itself with no authorization and no request type, so
+    /// nothing enforced anything. They were safe and meant to be public, and they sat here for a
+    /// week because the sentence that would have caught them was not a test. BSEC-011 found them by
+    /// asking what the published contract should say about every operation.
+    /// </para>
+    /// <para>
+    /// They now declare <c>.AllowAnonymous()</c> and have left the file. This asserts the property
+    /// that was being assumed: a line here is either one of the two probes or a route under
+    /// <c>/api/v1/</c>, and a module route reaches its module through <c>ISender</c>, so the
+    /// pipeline does run. An endpoint the host maps itself cannot join this list again without
+    /// failing here.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_baseline_is_module_routes_and_the_two_probes()
+    {
+        var baseline = Baseline();
+
+        baseline.Should().HaveCountGreaterThan(
+            400, "the set is around 475 entries; an empty file would satisfy the filter below");
+
+        baseline
+            .Where(entry => !entry.StartsWith("ANY /health/", StringComparison.Ordinal))
+            .Where(entry => !entry.Contains(" /api/v1/", StringComparison.Ordinal))
+            .OrderBy(entry => entry, StringComparer.Ordinal)
+            .Should().BeEmpty(
+                "an endpoint outside /api/v1/ is one this host maps itself, so there is no request "
+                + "type behind it and nothing in the CQRS pipeline would refuse it. It is "
+                + "unprotected unless its route says otherwise — declare .AllowAnonymous() if that "
+                + "is intended, which also tells the published contract, or RequireAuthorization "
+                + "if it is not");
+    }
+
     private IEnumerable<string> Undeclared() =>
         _endpoints
             .Where(endpoint => endpoint.Metadata.GetMetadata<IAuthorizeData>() is null

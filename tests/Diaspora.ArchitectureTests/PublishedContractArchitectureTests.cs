@@ -41,6 +41,15 @@ namespace Diaspora.ArchitectureTests;
 /// its own header: a route absent from the list is not passed through to the network, so both
 /// step-up endpoints are answerable from a fixture in a preview build today.
 /// </para>
+/// <para>
+/// <b>17 November 2026 — the document now describes its own authorization (BSEC-011, BBL-003).</b>
+/// It did not before: 1,092 operations, no security schemes, no document default and not one
+/// operation declaring anything, so every client generated from it sent no <c>Authorization</c>
+/// header anywhere. The rules below hold both of that finding's verification criteria — every
+/// operation carries an explicit answer, and the operations needing no token are named rather than
+/// counted. The test that used to assert the absence is gone; see
+/// <see cref="The_contract_declares_one_bearer_scheme"/> for why its deletion is the record.
+/// </para>
 /// </summary>
 public class PublishedContractArchitectureTests
 {
@@ -122,29 +131,242 @@ public class PublishedContractArchitectureTests
     }
 
     /// <summary>
-    /// <b>The contract declares no security schemes, and that is BSEC-011 and BBL-003 rather than
-    /// a surprise.</b>
+    /// <b>The contract declares exactly one security scheme, and it is HTTP bearer — BSEC-011 and
+    /// BBL-003, closed 17 November 2026.</b>
     /// <para>
-    /// Asserted as it stands, deliberately. The document cannot say which of its 1,092 operations
-    /// need a bearer token, so a client generated from it gets no authorization at all — and this
-    /// test is what makes closing those two findings turn a green rule red, with a message saying
-    /// which way to update it. A rule that silently started passing for the right reason would
-    /// record nothing.
+    /// This replaces a test that asserted the opposite. That one held the absence in place on
+    /// purpose, so that closing the findings would turn a green rule red rather than let the
+    /// document quietly change shape; deleting it is the record that the change was deliberate.
+    /// </para>
+    /// <para>
+    /// The name is asserted as the literal <c>bearer</c> rather than read from
+    /// <c>BearerSecuritySchemeTransformer.SchemeId</c>, because it is published surface. Every
+    /// consumer generated from this document names it, so renaming the constant is a breaking
+    /// change to them and should fail here rather than compile quietly.
     /// </para>
     /// </summary>
     [Fact]
-    public void The_contract_declares_no_security_schemes_which_is_a_tracked_finding()
+    public void The_contract_declares_one_bearer_scheme()
     {
-        var schemes = Contract.Value.RootElement.TryGetProperty("components", out var components)
-                      && components.TryGetProperty("securitySchemes", out var declared)
-            ? declared.EnumerateObject().Select(scheme => scheme.Name).ToList()
+        Schemes().Should().ContainSingle().Which.Name.Should().Be("bearer");
+
+        var scheme = Schemes().Single().Value;
+
+        scheme.GetProperty("type").GetString().Should().Be("http");
+        scheme.GetProperty("scheme").GetString().Should().Be("bearer");
+        scheme.GetProperty("bearerFormat").GetString().Should().Be("JWT");
+    }
+
+    /// <summary>
+    /// <b>The document requires that scheme by default</b>, so the fallback for anything that
+    /// loses its own declaration is "a token is needed".
+    /// </summary>
+    /// <remarks>
+    /// Every operation states its own answer, which makes this redundant for a consumer that reads
+    /// them — and that is the point. A tool that honours only document-level security, or a reader
+    /// skimming the head of the file, is told the API needs a token, which is true of 1,028 of its
+    /// 1,092 operations. Both halves fail closed in the same direction.
+    /// </remarks>
+    [Fact]
+    public void The_document_requires_that_scheme_by_default()
+    {
+        var root = Contract.Value.RootElement;
+
+        root.TryGetProperty("security", out var security).Should().BeTrue(
+            "a document with no default leaves an operation that lost its own declaration reading "
+            + "as public");
+
+        security.EnumerateArray()
+            .SelectMany(requirement => requirement.EnumerateObject().Select(scheme => scheme.Name))
+            .Should().BeEquivalentTo(["bearer"]);
+    }
+
+    /// <summary>
+    /// <b>Every operation says whether it needs a token.</b> This is the finding's first
+    /// verification criterion.
+    /// </summary>
+    /// <remarks>
+    /// An absent <c>security</c> means "inherit the default", which is indistinguishable from
+    /// nobody having decided — the same ambiguity <c>[AllowAnonymous]</c> was introduced to remove
+    /// in the CQRS layer. A new endpoint cannot be added to this platform without an answer here,
+    /// because the transformer gives every operation one and this counts them.
+    /// </remarks>
+    [Fact]
+    public void Every_operation_states_whether_it_needs_a_token()
+    {
+        var operations = Operations();
+
+        // Asserted before the filter below, which an empty document would satisfy just as happily
+        // as a correct one.
+        operations.Should().HaveCountGreaterThan(
+            1_000, "the host composes around 1,100 endpoints across 21 modules");
+
+        operations
+            .Where(operation => !operation.Value.TryGetProperty("security", out _))
+            .Select(operation => operation.Key)
+            .OrderBy(key => key, StringComparer.Ordinal)
+            .Should().BeEmpty("an operation with no security declaration has not been decided");
+    }
+
+    /// <summary>
+    /// <b>Every requirement names the scheme the document defines.</b>
+    /// </summary>
+    /// <remarks>
+    /// A requirement naming an unregistered scheme is a dangling reference: valid-looking JSON that
+    /// no generator can resolve. It is the specific failure mode of composing this across two
+    /// transformers — the operation transformer writes the name before the document transformer
+    /// registers the component, because document transformers run last.
+    /// </remarks>
+    [Fact]
+    public void Every_requirement_names_a_declared_scheme()
+    {
+        var declared = Schemes().Select(scheme => scheme.Name).ToHashSet(StringComparer.Ordinal);
+
+        Operations()
+            .SelectMany(operation => operation.Value.GetProperty("security").EnumerateArray()
+                .SelectMany(requirement => requirement.EnumerateObject())
+                .Where(scheme => !declared.Contains(scheme.Name))
+                .Select(scheme => operation.Key + " -> " + scheme.Name))
+            .Distinct()
+            .OrderBy(entry => entry, StringComparer.Ordinal)
+            .Should().BeEmpty("this names a security scheme the document does not define");
+    }
+
+    /// <summary>
+    /// <b>These are the operations a caller reaches without a token, by name.</b> This is the
+    /// finding's second verification criterion, and the reason it is a list rather than a count.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The useful failure is not "there are 65 now" but "there is a new one and it is this". A
+    /// route becoming public is a decision, and it belongs in a diff where somebody has to agree
+    /// to it. The set is also the platform's published public surface — the thing BSEC-003 found
+    /// nobody could enumerate.
+    /// </para>
+    /// <para>
+    /// Four groups, and each is deliberate: the ten credential-exchange routes under
+    /// <c>/auth</c>, which cannot require the token they exist to issue; the three provider
+    /// webhooks, which are authenticated by payload signature rather than by a bearer; published
+    /// discovery — communities, events, housing, marketplace, media content and the reference
+    /// catalogues — which is public because the platform's purpose is that someone can read the
+    /// answer before being asked to sign up; and the three surfaces the host maps itself, which
+    /// are the only unversioned paths in the document and are named again by
+    /// <see cref="The_only_operations_outside_the_versioned_namespace_are_the_hosts_own_html_surfaces"/>.
+    /// </para>
+    /// <para>
+    /// <b>The one that is not discovery is the export download</b>, and it is worth knowing why it
+    /// belongs: the share link's <c>token</c> query parameter is the credential, so the route is
+    /// anonymous at the gateway while the handler answers only to that token or to the owner's own
+    /// session. <c>security: []</c> is accurate — no declared scheme is required — and the
+    /// parameter is in the contract for a reader to find.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_operations_reachable_without_a_token_are_these()
+    {
+        string[] expected =
+        [
+            // The three the host maps itself, and the reason this list is 67 rather than 64. All
+            // three reach no request type, so nothing behind the route would refuse them either;
+            // they declared nothing until BSEC-011 asked what the contract should say about them.
+            "GET /",
+            "GET /payments/checkout/cancelled",
+            "GET /payments/checkout/complete",
+
+            "GET /api/v1/analytics/exports/{exportId}/download",
+            "GET /api/v1/communities",
+            "GET /api/v1/communities/compare",
+            "GET /api/v1/communities/{idOrSlug}",
+            "GET /api/v1/communities/{idOrSlug}/capabilities",
+            "GET /api/v1/communities/{idOrSlug}/initiatives",
+            "GET /api/v1/communities/{idOrSlug}/initiatives/{initiativeId}",
+            "GET /api/v1/communities/{idOrSlug}/initiatives/{initiativeId}/participants",
+            "GET /api/v1/communities/{idOrSlug}/initiatives/{initiativeId}/updates",
+            "GET /api/v1/communities/{idOrSlug}/notices",
+            "GET /api/v1/communities/{idOrSlug}/roles",
+            "GET /api/v1/communities/{idOrSlug}/rules",
+            "GET /api/v1/communities/{idOrSlug}/statistics",
+            "GET /api/v1/community-life/area/activity",
+            "GET /api/v1/community-life/calendar",
+            "GET /api/v1/community-life/catalogue",
+            "GET /api/v1/community-life/events",
+            "GET /api/v1/community-life/events/occurrences/{occurrenceId}",
+            "GET /api/v1/community-life/events/series",
+            "GET /api/v1/community-life/events/series/{idOrSlug}",
+            "GET /api/v1/community-life/events/series/{seriesId}/occurrences",
+            "GET /api/v1/community-life/events/{idOrSlug}",
+            "GET /api/v1/community-life/neighborhoods/{areaId}/activity",
+            "GET /api/v1/community-life/neighborhoods/{areaId}/events",
+            "GET /api/v1/community-life/organizations",
+            "GET /api/v1/community-life/organizations/{idOrSlug}",
+            "GET /api/v1/creators/content-health/rubric",
+            "GET /api/v1/housing/accommodation-types",
+            "GET /api/v1/housing/amenities",
+            "GET /api/v1/housing/area/insights",
+            "GET /api/v1/housing/landlords/{idOrSlug}",
+            "GET /api/v1/housing/landlords/{landlordId}/reviews",
+            "GET /api/v1/housing/listing-options",
+            "GET /api/v1/housing/listings/{idOrSlug}",
+            "GET /api/v1/housing/neighborhoods",
+            "GET /api/v1/housing/neighborhoods/insights",
+            "GET /api/v1/housing/neighborhoods/{idOrSlug}",
+            "GET /api/v1/housing/search",
+            "GET /api/v1/jobs/employers/{idOrSlug}",
+            "GET /api/v1/marketplace",
+            "GET /api/v1/marketplace/categories",
+            "GET /api/v1/marketplace/categories/{key}/attributes",
+            "GET /api/v1/marketplace/listings/by-slug/{slug}",
+            "GET /api/v1/marketplace/listings/{listingId}",
+            "GET /api/v1/marketplace/sellers/by-slug/{slug}",
+            "GET /api/v1/marketplace/sellers/{sellerId}",
+            "GET /api/v1/marketplace/sellers/{sellerId}/reviews",
+            "GET /api/v1/media/{mediaId}/content",
+            "GET /api/v1/media/{mediaId}/variants/{variant}",
+            "POST /api/v1/auth/email/change/confirm",
+            "POST /api/v1/auth/email/confirm",
+            "POST /api/v1/auth/forgot-password",
+            "POST /api/v1/auth/login",
+            "POST /api/v1/auth/password-check",
+            "POST /api/v1/auth/refresh",
+            "POST /api/v1/auth/register",
+            "POST /api/v1/auth/resend-otp",
+            "POST /api/v1/auth/reset-password",
+            "POST /api/v1/auth/verify-phone",
+            "POST /api/v1/financial/webhooks/{provider}",
+            "POST /api/v1/financial/webhooks/{provider}/payouts",
+            "POST /api/v1/integrations/webhooks/{provider}",
+            "POST /api/v1/marketplace/search",
+            "POST /api/v1/notifications/unsubscribe"
+        ];
+
+        Operations()
+            .Where(operation => operation.Value.GetProperty("security").GetArrayLength() == 0)
+            .Select(operation => operation.Key)
+            .OrderBy(key => key, StringComparer.Ordinal)
+            .Should().BeEquivalentTo(
+                expected,
+                "an operation joining this list is a route that became publicly reachable, and one "
+                + "leaving it is a public route that now demands a token — both are decisions, and "
+                + "neither should reach a consumer without somebody agreeing to it here");
+    }
+
+    private static List<JsonProperty> Schemes() =>
+        Contract.Value.RootElement.TryGetProperty("components", out var components)
+        && components.TryGetProperty("securitySchemes", out var declared)
+            ? [.. declared.EnumerateObject()]
             : [];
 
-        schemes.Should().BeEmpty(
-            "BSEC-011 and BBL-003 are open against exactly this. When a bearer scheme is added, "
-            + "this test is the one to delete — and its deletion is the record that the findings "
-            + "were closed deliberately rather than by a document that quietly changed shape");
-    }
+    /// <summary>
+    /// Every operation in the document, keyed <c>METHOD /path</c> the way a route table reads.
+    /// </summary>
+    private static List<KeyValuePair<string, JsonElement>> Operations() =>
+        [.. Contract.Value.RootElement.GetProperty("paths")
+            .EnumerateObject()
+            .SelectMany(path => path.Value.EnumerateObject()
+                .Where(member => IsOperation(member.Name))
+                .Select(member => new KeyValuePair<string, JsonElement>(
+                    member.Name.ToUpperInvariant() + " " + path.Name,
+                    member.Value)))];
 
     private static bool IsOperation(string name) =>
         name is "get" or "put" or "post" or "delete" or "patch" or "head" or "options" or "trace";
