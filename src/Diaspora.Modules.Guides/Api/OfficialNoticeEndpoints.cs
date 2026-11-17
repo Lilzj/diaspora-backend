@@ -5,6 +5,7 @@ using Diaspora.Platform.Http;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 
 namespace Diaspora.Modules.Guides.Api;
@@ -25,6 +26,30 @@ namespace Diaspora.Modules.Guides.Api;
 /// </summary>
 internal static class OfficialNoticeEndpoints
 {
+    /// <summary>Headroom over the content itself: field names, framing and JSON escaping.</summary>
+    private const long RequestFramingHeadroom = 256 * 1024;
+
+    /// <summary>
+    /// One UTF-8 character can occupy four bytes, and the limits below count characters.
+    /// </summary>
+    /// <remarks>
+    /// A notice is the one contract here whose content is routinely not Latin script, so the
+    /// worst case is the realistic one rather than a theoretical allowance. Budgeting one
+    /// byte per character would 413 exactly the notices this module exists to carry.
+    /// </remarks>
+    private const long Utf8WorstCaseBytesPerCharacter = 4;
+
+    /// <summary>The largest notice body the host will read, derived from the content caps.</summary>
+    /// <remarks>
+    /// <c>MaxNoticeLocalizations</c> (24) localisations plus the notice's own content, each
+    /// bounded by <c>MaxNoticeContent</c> (40,000). Derived rather than chosen, so the
+    /// relationship survives a change to either cap.
+    /// </remarks>
+    private const long NoticeRequestCeiling =
+        (Domain.Policies.IntelligenceLimits.MaxNoticeLocalizations + 1L)
+        * Domain.Policies.IntelligenceLimits.MaxNoticeContent
+        * Utf8WorstCaseBytesPerCharacter
+        + RequestFramingHeadroom;
     public static void Map(RouteGroupBuilder group)
     {
         ArgumentNullException.ThrowIfNull(group);
@@ -136,6 +161,7 @@ internal static class OfficialNoticeEndpoints
                         new CreateOfficialNoticeCommand { Request = request },
                         cancellationToken)))
             .RequireAuthorization(IntelligencePolicies.ManageNotices)
+            .WithMetadata(new RequestSizeLimitAttribute(NoticeRequestCeiling))
             .WithName("CreateOfficialNotice")
             .WithSummary("Open a draft. The authority must issue for the notice's country.");
 
@@ -155,6 +181,7 @@ internal static class OfficialNoticeEndpoints
                         },
                         cancellationToken)))
             .RequireAuthorization(IntelligencePolicies.ManageNotices)
+            .WithMetadata(new RequestSizeLimitAttribute(NoticeRequestCeiling))
             .WithName("UpdateOfficialNotice")
             .WithSummary(
                 "Rewrite a notice. Editing verified text returns it to draft; published text is " +
