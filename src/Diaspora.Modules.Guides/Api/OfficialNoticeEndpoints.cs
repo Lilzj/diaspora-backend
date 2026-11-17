@@ -143,6 +143,8 @@ internal static class OfficialNoticeEndpoints
                             Request = request
                         },
                         cancellationToken)))
+            .AllowAnonymous()
+            .RequireRateLimiting(RateLimitPolicyNames.Engagement)
             .WithName("RecordNoticeActivity")
             .WithSummary(
                 "Record a view, a click-through, a read completion or a crossing into a guide.");

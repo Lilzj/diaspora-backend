@@ -117,6 +117,13 @@ internal static class GuideEngagementEndpoints
                     await sender.Send(
                         new RecordGuideViewCommand { GuideId = guideId, Request = request },
                         cancellationToken)))
+            // BSEC-004. The anonymity was real but implicit: the command carries
+            // [AllowAnonymous] with its reason, and the route carried nothing — so the published
+            // contract, whose default is fail-closed since BBL-003, told every client this
+            // endpoint needs a bearer token. Declaring it here is what makes the contract agree
+            // with the decision the code had already made.
+            .AllowAnonymous()
+            .RequireRateLimiting(RateLimitPolicyNames.Engagement)
             .WithName("RecordGuideView")
             .WithSummary("A reader opened the guide, and how thoroughly they read it.");
 
@@ -129,6 +136,8 @@ internal static class GuideEngagementEndpoints
                     context,
                     await sender.Send(
                         new ShareGuideCommand { GuideId = guideId }, cancellationToken)))
+            .AllowAnonymous()
+            .RequireRateLimiting(RateLimitPolicyNames.Engagement)
             .WithName("ShareGuide")
             .WithSummary("A reader shared it. The client reports what the platform cannot see.");
 

@@ -67,6 +67,12 @@ internal static class KnowledgeAnalyticsEndpoints
                             Request = request
                         },
                         cancellationToken)))
+            // BSEC-004. Four routes through one command, and the one the finding's file list
+            // does not name — although its impact note is about exactly this: forged activity
+            // propagating into the country-level intelligence figures. Bounded and declared with
+            // the other three because it is the same kind of write.
+            .AllowAnonymous()
+            .RequireRateLimiting(RateLimitPolicyNames.Engagement)
             .WithName(name)
             .WithSummary(summary);
 }

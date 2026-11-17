@@ -33,6 +33,14 @@
 # file. Every remaining line is an /api/v1/ route with a request type behind it, which
 # The_baseline_is_module_routes_and_the_two_probes now checks rather than assumes.
 #
+# 17 November 2026: 475 -> 468. BSEC-004. Seven engagement writes -- a guide view, a guide
+# share, a notice activity signal and the four country knowledge signals -- were deliberately
+# anonymous and said so only on the command, which carries [AllowAnonymous] with its reason.
+# The route said nothing, so the contract's fail-closed default (BBL-003) told every client a
+# counter bump needed a bearer token, and this file could not tell a deliberate omission from
+# an oversight. They now declare .AllowAnonymous() and RateLimitPolicyNames.Engagement, so the
+# decision is visible in three places that agree: the command, the route and the contract.
+#
 # Format: <METHOD[,METHOD]> <route pattern>
 ANY /health/live
 ANY /health/ready
@@ -426,14 +434,7 @@ POST /api/v1/grants/applications/{applicationId:guid}/reports
 POST /api/v1/grants/applications/{applicationId:guid}/withdraw
 POST /api/v1/grants/{grantId:guid}/applications
 POST /api/v1/grants/{grantId:guid}/applications/submit
-POST /api/v1/guides/{guideId:guid}/share
-POST /api/v1/guides/{guideId:guid}/view
-POST /api/v1/intelligence/notices/{noticeId:guid}/activity
 POST /api/v1/jobs/search
-POST /api/v1/knowledge/countries/{countryCode}/activity/completed
-POST /api/v1/knowledge/countries/{countryCode}/activity/discovered
-POST /api/v1/knowledge/countries/{countryCode}/activity/path-completed
-POST /api/v1/knowledge/countries/{countryCode}/activity/path-started
 POST /api/v1/notifications/devices/deactivate-others
 POST /api/v1/notifications/digests
 POST /api/v1/notifications/read-all

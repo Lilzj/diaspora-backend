@@ -59,6 +59,31 @@ public static class RateLimitPolicyNames
     public const string Search = "diaspora-search";
 
     /// <summary>
+    /// Anonymous engagement writes: the counters a reader bumps without signing in.
+    /// <para>
+    /// BSEC-004. Seven routes across four commands — a guide view, a guide share, a notice
+    /// activity signal and the four country knowledge signals — each of which is deliberately
+    /// anonymous because a figure that counted only members would understate the one number that
+    /// measures whether the knowledge base works. They feed trending, discovery and the
+    /// country-level intelligence the Analytics module projects, so an unbounded one is
+    /// content-ranking manipulation at no cost and with no attribution.
+    /// </para>
+    /// <para>
+    /// <b>Tighter than <see cref="Anonymous"/> because a refusal here is cheap.</b> A 429 on a
+    /// search costs the visitor the first page they asked for; a 429 on a view counter costs one
+    /// analytics increment and nothing the reader can see — the guide was already served by a
+    /// different request. That asymmetry is what lets this budget be strict.
+    /// </para>
+    /// <para>
+    /// And it is why the budget is not stricter still: under carrier-grade NAT a popular guide is
+    /// read by many people from one address, so an over-tight bound would make the counters
+    /// systematically <i>under</i>-report. The finding is about inflation, and trading it for
+    /// deflation would not be a fix.
+    /// </para>
+    /// </summary>
+    public const string Engagement = "diaspora-engagement";
+
+    /// <summary>
     /// Provider callbacks. Unauthenticated by nature — the signature is checked inside the
     /// handler, after the body has been read — so the budget is what bounds the cost of an
     /// unsigned request.
