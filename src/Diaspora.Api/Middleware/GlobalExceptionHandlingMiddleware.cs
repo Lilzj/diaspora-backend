@@ -187,6 +187,17 @@ public sealed class GlobalExceptionHandlingMiddleware
                  "Conflict",
                  "The record was modified by another request. Reload and try again."),
 
+            // BBL-002. Its sibling above says "reload and try again"; this one must not, because
+            // the request will be refused the same way next time. Before DiasporaDbContext began
+            // translating unique-index violations both were a 500, and the instruction to the
+            // caller is the whole difference between them.
+            //
+            // The exception's own message rather than a literal, so the detail stays with the type
+            // that knows what happened: a duplicate raised by a module's own code can say more
+            // than persistence can.
+            DuplicateRecordException ex =>
+                ((int)HttpStatusCode.Conflict, PlatformErrorCodes.Duplicate, "Already exists", ex.Message),
+
             Application.Exceptions.UnauthorizedException ex =>
                 ((int)HttpStatusCode.Unauthorized, PlatformErrorCodes.Unauthorized, "Unauthorized", ex.Message),
 

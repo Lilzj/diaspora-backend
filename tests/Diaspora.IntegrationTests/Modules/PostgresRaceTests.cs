@@ -180,7 +180,10 @@ public sealed class PostgresRaceTests : IdentityTestBase<PostgresWebApplicationF
             var outcomes = await Task.WhenAll(DeliverAsync(deleted), DeliverAsync(deleted));
 
             outcomes.Where(outcome => outcome is not null).Should().OnlyContain(
-                outcome => outcome is DbUpdateException || outcome is ConcurrencyConflictException,
+                // BBL-002: DbUpdateException was the first arm. A unique violation can no
+                // longer leave persistence under that type, and this is the one suite that races
+                // for real against PostgreSQL rather than SQLite.
+                outcome => outcome is DuplicateRecordException || outcome is ConcurrencyConflictException,
                 "the losing delivery fails on the database's guard and is retried (round {0})", round);
 
             // The outbox retries a delivery that threw. The retry must find nothing left to undo.

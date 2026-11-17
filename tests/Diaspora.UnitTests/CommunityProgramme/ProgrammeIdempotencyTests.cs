@@ -126,7 +126,14 @@ public sealed class ProgrammeIdempotencyTests
         await guarded.Should().ThrowAsync<ConcurrencyConflictException>();
     }
 
-    private static DbUpdateException UniqueViolation() =>
-        new("Saving failed.", new InvalidOperationException(
-            "23505: duplicate key value violates unique constraint \"ux_community_programme_poll_responses_voter\""));
+    /// <summary>
+    /// What the store now catches, wrapping what the database actually said. BBL-002 moved the
+    /// message-matching out of this module and into <c>DiasporaDbContext</c>, so the save no longer
+    /// hands a module a provider's exception to interpret — but the inner chain is kept faithful,
+    /// because that is what production wraps.
+    /// </summary>
+    private static DuplicateRecordException UniqueViolation() =>
+        new("A record with those details already exists.",
+            new DbUpdateException("Saving failed.", new InvalidOperationException(
+                "23505: duplicate key value violates unique constraint \"ux_community_programme_poll_responses_voter\"")));
 }

@@ -16,7 +16,6 @@ using Diaspora.Modules.Financial.Observability;
 using Diaspora.Modules.Financial.Options;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Results;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace Diaspora.Modules.Financial.Application.Rewards;
@@ -740,7 +739,7 @@ public sealed class ConvertRewardPointsCommandHandler
         // failed Result would be committed rather than rolled back. Rethrown as the platform's
         // concurrency conflict: the transaction rolls back, the client gets 409, and its retry with
         // the same key replays the conversion that won.
-        catch (DbUpdateException exception) when (UniqueIndexViolation.Is(exception))
+        catch (DuplicateRecordException exception)
         {
             throw new ConcurrencyConflictException(
                 "A conversion with this idempotency key is still being processed. Try again in a moment.",

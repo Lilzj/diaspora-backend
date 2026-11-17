@@ -1,3 +1,4 @@
+using Diaspora.Domain.Abstractions;
 using Diaspora.Persistence.Outbox;
 using Diaspora.Platform.Messaging.Outbox.Model;
 using Diaspora.UnitTests.Persistence;
@@ -195,6 +196,9 @@ public sealed class OutboxTransactionalityTests
 
         var act = async () => await host.EnqueueAsync(integrationEvent);
 
-        await act.Should().ThrowAsync<DbUpdateException>();
+        // BBL-002: was ThrowAsync<DbUpdateException>(). This is the platform's own unique
+        // index on a production table, so it is also the proof that the translation applies to a
+        // real index rather than only to a primary key.
+        await act.Should().ThrowAsync<DuplicateRecordException>();
     }
 }

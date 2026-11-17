@@ -1,7 +1,6 @@
 using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Creator.Domain.Errors;
 using Diaspora.SharedKernel.Results;
-using Microsoft.EntityFrameworkCore;
 
 namespace Diaspora.Modules.Creator.Application.Services;
 
@@ -125,12 +124,17 @@ public sealed class CreatorIdempotency
         // `key is not null`, which let a keyless concurrent join escape as a 500 — the natural
         // (challenge, creator) index refused the second insert and nothing caught it. A concurrency
         // test found it; a suite that only raced keyed writes would not have.
-        catch (DbUpdateException exception) when (inTransaction && IsUniqueViolation(exception))
+        //
+        // BBL-002: the predicate that used to decide this lived here as a private copy, one of
+        // three identical ones. DiasporaDbContext now answers the question and throws
+        // DuplicateRecordException, so this catches a fact instead of re-deriving it from a
+        // provider's message — and EF Core no longer appears in this module's application layer.
+        catch (DuplicateRecordException exception) when (inTransaction)
         {
             throw new ConcurrencyConflictException(
                 "An identical request is still being processed. Try again in a moment.", exception);
         }
-        catch (DbUpdateException exception) when (IsUniqueViolation(exception))
+        catch (DuplicateRecordException)
         {
             // The index refused a duplicate. Either the first request has landed — in which case its
             // record is the answer — or it has not, in which case saying so beats a 500.
@@ -140,33 +144,6 @@ public sealed class CreatorIdempotency
                 ? Result.Failure<IdempotentCommit<TAggregate>>(CreatorErrors.IdempotencyKeyInFlight)
                 : Result.Success(IdempotentCommit<TAggregate>.Replay(existing));
         }
-    }
-
-    /// <summary>
-    /// Whether a failed save was a unique-index violation rather than something else.
-    /// <para>
-    /// Matched on the message rather than a provider error code, for the reason B18 records: the
-    /// platform runs on Npgsql in production and SQLite in the test suite, the two report this
-    /// differently, and referencing either provider's exception type from a module would put a
-    /// database driver in the application layer. A miss costs a 500 where a 409 was meant — the same
-    /// answer as not catching at all, rather than a wrong success.
-    /// </para>
-    /// </summary>
-    private static bool IsUniqueViolation(DbUpdateException exception)
-    {
-        for (Exception? current = exception; current is not null; current = current.InnerException)
-        {
-            var message = current.Message;
-
-            if (message.Contains("UNIQUE constraint failed", StringComparison.OrdinalIgnoreCase)
-                || message.Contains("duplicate key value", StringComparison.OrdinalIgnoreCase)
-                || message.Contains("23505", StringComparison.Ordinal))
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 }
 

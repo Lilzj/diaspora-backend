@@ -14,7 +14,6 @@ using Diaspora.Modules.Financial.Infrastructure.Payouts;
 using Diaspora.Modules.Financial.Observability;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Results;
-using Microsoft.EntityFrameworkCore;
 
 namespace Diaspora.Modules.Financial.Application.Withdrawals;
 
@@ -284,7 +283,7 @@ public sealed class CreateWithdrawalCommandHandler
         // violation has aborted the transaction and a failed Result would be committed, not rolled
         // back. Rethrown as the platform's concurrency conflict: rollback, 409, and the client's
         // retry with the same key replays the withdrawal that won.
-        catch (DbUpdateException exception) when (UniqueIndexViolation.Is(exception))
+        catch (DuplicateRecordException exception)
         {
             throw new ConcurrencyConflictException(
                 "A withdrawal with this idempotency key is still being processed. Try again in a moment.",

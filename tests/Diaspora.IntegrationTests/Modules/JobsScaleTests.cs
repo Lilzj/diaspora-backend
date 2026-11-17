@@ -1,19 +1,20 @@
-using System.Diagnostics;
+
+using Diaspora.Domain.Abstractions;
 using Diaspora.IntegrationTests.Common;
 using Diaspora.Modules.Jobs.Domain.Applications;
 using Diaspora.Modules.Jobs.Domain.Enums;
 using Diaspora.Modules.Jobs.Domain.Identifiers;
 using Diaspora.Modules.Jobs.Domain.Postings;
 using Diaspora.Modules.Jobs.Domain.Saved;
-
 using Diaspora.Modules.Jobs.Domain.ValueObjects;
 using Diaspora.Persistence;
 using Diaspora.SharedKernel.Identity;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
+using System.Diagnostics;
 using Xunit.Abstractions;
+using Xunit;
 
 namespace Diaspora.IntegrationTests.Modules;
 
@@ -400,7 +401,9 @@ public sealed class JobsScaleTests : IntegrationTestBase
 
         var write = async () => await dbContext.SaveChangesAsync();
 
-        await write.Should().ThrowAsync<DbUpdateException>(
+        // BBL-002: was ThrowAsync<DbUpdateException>(). DiasporaDbContext now names the
+        // failure, so the race settles as a 409 rather than as a 500.
+        await write.Should().ThrowAsync<DuplicateRecordException>(
             "the unique index on (candidate, posting) is the only thing that can settle a race");
     }
 

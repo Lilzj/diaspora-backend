@@ -1,6 +1,7 @@
+using Diaspora.Domain.Abstractions;
 using FluentAssertions;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 namespace Diaspora.UnitTests.Persistence.Transactions;
@@ -54,7 +55,11 @@ public sealed class EfCoreExecutionSemanticsTests
         // does — therefore tries to insert it again.
         var act = () => context.SaveChanges(acceptAllChangesOnSuccess: false);
 
-        act.Should().Throw<DbUpdateException>(
+        // BBL-002: was Throw<DbUpdateException>(). A re-sent INSERT collides with the primary
+        // key, which neither provider distinguishes from any other unique violation, so it is
+        // translated along with them. The semantics this test is about are unchanged — the second
+        // save still re-sends the first save's writes, which is the whole point.
+        act.Should().Throw<DuplicateRecordException>(
             "the row is already there; EF re-sends the INSERT because the entry is still Added");
     }
 

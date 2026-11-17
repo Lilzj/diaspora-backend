@@ -1,7 +1,6 @@
 using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.CommunityProgramme.Domain.Errors;
 using Diaspora.SharedKernel.Results;
-using Microsoft.EntityFrameworkCore;
 
 namespace Diaspora.Modules.CommunityProgramme.Application.Services;
 
@@ -165,12 +164,17 @@ public sealed class ProgrammeIdempotency
         }
         // Any unique violation, keyed or not: a keyless request that loses a race on a natural index
         // — (organization, member), (poll, fingerprint) — is the same aborted transaction.
-        catch (DbUpdateException exception) when (inTransaction && IsUniqueViolation(exception))
+        //
+        // BBL-002: the predicate that used to decide this lived here as a private copy, one of
+        // three identical ones. DiasporaDbContext now answers the question and throws
+        // DuplicateRecordException, so this catches a fact instead of re-deriving it from a
+        // provider's message — and EF Core no longer appears in this module's application layer.
+        catch (DuplicateRecordException exception) when (inTransaction)
         {
             throw new ConcurrencyConflictException(
                 "An identical request is still being processed. Try again in a moment.", exception);
         }
-        catch (DbUpdateException exception) when (key is not null && IsUniqueViolation(exception))
+        catch (DuplicateRecordException) when (key is not null)
         {
             // The index refused a duplicate. Either the first request has landed — in which case its
             // record is the answer — or it has not, in which case saying so is better than a 500.
@@ -181,41 +185,6 @@ public sealed class ProgrammeIdempotency
                     CommunityProgrammeErrors.IdempotencyKeyInFlight)
                 : Result.Success(IdempotentCommit<TAggregate>.Replay(existing));
         }
-    }
-
-    /// <summary>
-    /// Whether a failed save was a unique-index violation rather than something else.
-    /// <para>
-    /// <b>Matched on the message rather than on a provider error code, and the reason is honest
-    /// rather than lazy.</b> The platform runs on Npgsql in production and SQLite in the test suite,
-    /// and the two report this differently — <c>23505</c> against <c>SQLITE_CONSTRAINT_UNIQUE</c>.
-    /// Referencing either provider's exception type from a module would put a database driver in the
-    /// application layer, which is the dependency the persistence abstraction exists to prevent.
-    /// The substrings below are the ones both providers put in the inner exception's message, and the
-    /// consequence of a miss is a 500 where a 409 was meant — the same answer as not catching at all,
-    /// rather than a wrong success.
-    /// </para>
-    /// </summary>
-    internal static bool IsUniqueViolation(Exception exception)
-    {
-        if (exception is not DbUpdateException)
-        {
-            return false;
-        }
-
-        for (Exception? current = exception; current is not null; current = current.InnerException)
-        {
-            var message = current.Message;
-
-            if (message.Contains("UNIQUE constraint failed", StringComparison.OrdinalIgnoreCase)
-                || message.Contains("duplicate key value", StringComparison.OrdinalIgnoreCase)
-                || message.Contains("23505", StringComparison.Ordinal))
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 }
 

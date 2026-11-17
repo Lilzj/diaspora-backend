@@ -418,6 +418,71 @@ public class DiasporaDbContext : DbContext, IUnitOfWork
             throw new ConcurrencyConflictException(
                 "The record was modified by another request.", exception);
         }
+
+        // BBL-002. The platform declares 234 unique indexes outside migrations across 142
+        // configuration files. Three modules translated this themselves - Financial through an
+        // internal UniqueIndexViolation helper, Creator and CommunityProgramme each through a
+        // private copy of the same predicate - and every other index answered a concurrent
+        // duplicate with 500 Platform.Unexpected. Translating here rather than relocating that
+        // helper means no module has to ask the question, which is also what makes
+        // ConcurrencyConflictException's claim that EF Core does not travel upward true: six catch
+        // sites in three modules' Application folders were catching DbUpdateException.
+        //
+        // **Second, and the order is defence rather than the guard.** DbUpdateConcurrencyException
+        // derives from DbUpdateException, so a reader expects the derived arm first and gets it.
+        // But swapping them changes nothing measurable today, and that was checked rather than
+        // assumed: EF's concurrency message is about how many rows an operation affected and
+        // carries none of the three substrings below, so the filter excludes it wherever it sits.
+        // The order costs nothing and stops mattering only until somebody widens the filter.
+        catch (DbUpdateException exception) when (IsUniqueViolation(exception))
+        {
+            // The message is deliberately generic. A constraint name is the most useful thing a
+            // developer can be told here and the least safe thing to tell a caller - it names a
+            // table and its columns. The inner exception carries it, and TransactionBehavior logs
+            // the exception object on rollback, so it survives in logs without being published.
+            throw new DuplicateRecordException(
+                "A record with those details already exists.", exception);
+        }
+    }
+
+    /// <summary>
+    /// Whether a failed save was a unique-index violation.
+    /// <para>
+    /// <b>Matched on the message rather than on a provider error code, which is a decision rather
+    /// than a shortcut.</b> Production runs Npgsql and the suite SQLite, and the two report this
+    /// differently - <c>23505</c> against <c>SQLITE_CONSTRAINT_UNIQUE</c>. The substrings below
+    /// are the ones both put in the inner exception's message. A miss costs a 500 where a 409 was
+    /// meant, which is the same answer as not catching at all rather than a wrong success - so the
+    /// failure mode of a message match is the status quo, never a wrong status on a different kind
+    /// of <see cref="DbUpdateException"/>.
+    /// </para>
+    /// <para>
+    /// This was three identical private copies, one per module that had noticed the problem. It is
+    /// private here because nothing outside this class needs to ask any more.
+    /// </para>
+    /// <para>
+    /// <b>A primary-key collision matches too, and that is intended.</b> Neither provider
+    /// distinguishes it in the message, and a caller-supplied id that is already taken is a
+    /// duplicate in exactly the sense the 409 describes. The one case it reads oddly is a platform
+    /// bug that re-sends an already-inserted row, which now surfaces as a 409 rather than a 500;
+    /// the inner exception still names the table.
+    /// </para>
+    /// </summary>
+    private static bool IsUniqueViolation(DbUpdateException exception)
+    {
+        for (Exception? current = exception; current is not null; current = current.InnerException)
+        {
+            var message = current.Message;
+
+            if (message.Contains("UNIQUE constraint failed", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("duplicate key value", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("23505", StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public bool HasActiveTransaction => Database.CurrentTransaction is not null;
