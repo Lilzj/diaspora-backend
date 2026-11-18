@@ -28,6 +28,35 @@ public sealed class ConversationMessageRepository : IConversationMessageReposito
         return await Messages.FirstOrDefaultAsync(message => message.Id == id, cancellationToken);
     }
 
+    /// <summary>
+    /// One <c>WHERE Id IN (…)</c>, and nothing at all when there is nothing to ask for.
+    /// <para>
+    /// Tracked rather than <c>AsNoTracking</c>, which keeps this the same read the loop it replaces
+    /// was performing: the conversation list hands these messages to a projection that reads them,
+    /// and a caller that later edits one through this context must not find a second, untracked
+    /// copy of it.
+    /// </para>
+    /// </summary>
+    public async Task<IReadOnlyDictionary<ConversationMessageId, ConversationMessage>> GetManyAsync(
+        IReadOnlyCollection<ConversationMessageId> ids,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+
+        if (ids.Count == 0)
+        {
+            return new Dictionary<ConversationMessageId, ConversationMessage>();
+        }
+
+        var wanted = ids.Distinct().ToList();
+
+        var messages = await Messages
+            .Where(message => wanted.Contains(message.Id))
+            .ToListAsync(cancellationToken);
+
+        return messages.ToDictionary(message => message.Id);
+    }
+
     public async Task<ConversationMessage?> GetInConversationAsync(
         ConversationId conversationId,
         ConversationMessageId messageId,

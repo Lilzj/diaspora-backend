@@ -90,6 +90,24 @@ public interface ITrustProfileRepository
     Task<TrustProfile?> GetByUserReadOnlyAsync(
         UserId userId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// The tier of many members, in one query.
+    /// <para>
+    /// <b>Tiers rather than profiles, because the caller wants a number and a profile costs two
+    /// joins.</b> <see cref="GetByUserReadOnlyAsync"/> includes badges and country standings, which
+    /// is right for the single-member path that renders them and wasteful for
+    /// <c>ITrustService.GetTrustLevelsAsync</c>, which reads one property and discards the rest.
+    /// Multiplied across a feed page that is the difference between one narrow select and fifty
+    /// wide ones.
+    /// </para>
+    /// <para>
+    /// A member with no profile is simply absent from the result; the caller decides what that
+    /// means, and for the trust seam it means <c>None</c>.
+    /// </para>
+    /// </summary>
+    Task<IReadOnlyDictionary<UserId, TrustTier>> GetTiersAsync(
+        IReadOnlyCollection<UserId> userIds, CancellationToken cancellationToken = default);
+
     Task AddAsync(TrustProfile profile, CancellationToken cancellationToken = default);
 
     /// <summary>

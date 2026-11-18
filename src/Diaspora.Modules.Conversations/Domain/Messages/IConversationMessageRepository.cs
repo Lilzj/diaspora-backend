@@ -20,6 +20,25 @@ public interface IConversationMessageRepository
         ConversationMessageId id, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Several messages by identifier, in one query.
+    /// <para>
+    /// <b>The conversation list is why this exists.</b> Rendering it means the last message of each
+    /// thread, and loading them one at a time was a hundred primary-key lookups on the
+    /// second-most-used screen — bounded, honest about itself in a comment, and recorded as an
+    /// intended follow-up in the persistence guide. The audit raised it as half of BBL-005 and the
+    /// bound is the reason: a hundred round trips is not a scan, but it is still a hundred.
+    /// </para>
+    /// <para>
+    /// Ids that name no message are absent from the result rather than present as null, because
+    /// the caller is building a lookup and a missing last message is a thread with no messages,
+    /// which it already has to handle.
+    /// </para>
+    /// </summary>
+    Task<IReadOnlyDictionary<ConversationMessageId, ConversationMessage>> GetManyAsync(
+        IReadOnlyCollection<ConversationMessageId> ids,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// The message, only if it belongs to the named conversation.
     /// <para>
     /// The conversation is checked here rather than by the caller comparing afterwards, because a

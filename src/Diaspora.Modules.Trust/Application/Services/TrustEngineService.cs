@@ -58,6 +58,40 @@ public sealed class TrustEngineService : ITrustService
     }
 
     /// <summary>
+    /// The same answer for many members, in one query.
+    /// <para>
+    /// <b>This override is the fix; the interface default would have been the defect one layer
+    /// down.</b> <see cref="ITrustService"/> supplies a looping default so that doubles and the
+    /// kernel placeholder need write nothing, which is right for them and would be exactly wrong
+    /// here — a feed page would still issue a round trip per author and the finding would read as
+    /// closed. A unit test counts the commands this issues for fifty members and expects one.
+    /// </para>
+    /// <para>
+    /// A member with no profile is <see cref="TrustLevel.None"/>, which is what
+    /// <see cref="GetTrustLevelAsync"/> answers for them, so the batch and the single form cannot
+    /// disagree about anyone.
+    /// </para>
+    /// </summary>
+    public async Task<IReadOnlyDictionary<UserId, TrustLevel>> GetTrustLevelsAsync(
+        IReadOnlyCollection<UserId> userIds, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(userIds);
+
+        var tiers = await _profiles.GetTiersAsync(userIds, cancellationToken);
+
+        var levels = new Dictionary<UserId, TrustLevel>();
+
+        foreach (var userId in userIds)
+        {
+            levels[userId] = tiers.TryGetValue(userId, out var tier)
+                ? ToPlatformLevel(tier)
+                : TrustLevel.None;
+        }
+
+        return levels;
+    }
+
+    /// <summary>
     /// Whether the member may publish.
     /// <para>
     /// Delegates to <see cref="TrustProfile.CanPublish"/> so there is one definition of the

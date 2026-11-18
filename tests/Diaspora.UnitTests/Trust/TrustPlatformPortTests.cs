@@ -61,6 +61,134 @@ public sealed class TrustPlatformPortTests
         (await service.GetAccountStandingAsync(Member)).Should().Be(AccountStanding.Unknown);
     }
 
+    // ── The batch form (BBL-005 / BARCH-005) ─────────────────────────────
+
+    /// <summary>
+    /// <b>The batch and the single form must not disagree about anybody</b>, or a feed would rank
+    /// an author differently from the way the member's own profile screen describes them. A member
+    /// with no profile is the case that would drift: the batch asks a repository that simply
+    /// omits them, and omission has to become <c>None</c> here rather than an absent key the
+    /// caller is left to interpret.
+    /// </summary>
+    [Theory]
+    [InlineData(TrustTier.Untrusted, TrustLevel.None)]
+    [InlineData(TrustTier.Basic, TrustLevel.Basic)]
+    [InlineData(TrustTier.Provisional, TrustLevel.Basic)]
+    [InlineData(TrustTier.Verified, TrustLevel.Verified)]
+    [InlineData(TrustTier.Trusted, TrustLevel.Premium)]
+    [InlineData(TrustTier.Steward, TrustLevel.Premium)]
+    public async Task The_batch_projects_a_tier_the_same_way_the_single_form_does(
+        TrustTier tier, TrustLevel expected)
+    {
+        var profiles = Substitute.For<ITrustProfileRepository>();
+        profiles.GetTiersAsync(Arg.Any<IReadOnlyCollection<UserId>>(), Arg.Any<CancellationToken>())
+            .Returns(new Dictionary<UserId, TrustTier> { [Member] = tier });
+
+        var service = new TrustEngineService(profiles, Clock());
+
+        var levels = await service.GetTrustLevelsAsync([Member]);
+
+        levels[Member].Should().Be(expected);
+        levels[Member].Should().Be(TrustEngineService.ToPlatformLevel(tier));
+    }
+
+    /// <summary>
+    /// Every member asked about is answered for, so the obvious indexer is safe on the one case
+    /// callers forget — and a feed page of brand-new authors is an ordinary page.
+    /// </summary>
+    [Fact]
+    public async Task A_member_with_no_profile_is_answered_None_rather_than_left_out()
+    {
+        var stranger = UserId.From(Guid.Parse("55555555-5555-5555-5555-555555555555"));
+
+        var profiles = Substitute.For<ITrustProfileRepository>();
+        profiles.GetTiersAsync(Arg.Any<IReadOnlyCollection<UserId>>(), Arg.Any<CancellationToken>())
+            .Returns(new Dictionary<UserId, TrustTier> { [Member] = TrustTier.Verified });
+
+        var service = new TrustEngineService(profiles, Clock());
+
+        var levels = await service.GetTrustLevelsAsync([Member, stranger]);
+
+        levels.Should().HaveCount(2);
+        levels[Member].Should().Be(TrustLevel.Verified);
+        levels[stranger].Should().Be(
+            TrustLevel.None, "which is what the single-subject form answers for them");
+    }
+
+    /// <summary>
+    /// <b>One call to the repository, whatever the caller passes.</b> The finding was a seam that
+    /// could only be asked about one member, so an implementation that asked the repository once
+    /// per member would be the same defect moved one layer down and would still read as fixed.
+    /// </summary>
+    [Fact]
+    public async Task The_batch_asks_the_repository_once_for_the_whole_page()
+    {
+        var authors = Enumerable.Range(0, 50).Select(_ => UserId.New()).ToList();
+
+        var profiles = Substitute.For<ITrustProfileRepository>();
+        profiles.GetTiersAsync(Arg.Any<IReadOnlyCollection<UserId>>(), Arg.Any<CancellationToken>())
+            .Returns(new Dictionary<UserId, TrustTier>());
+
+        var service = new TrustEngineService(profiles, Clock());
+
+        await service.GetTrustLevelsAsync(authors);
+
+        await profiles.Received(1).GetTiersAsync(
+            Arg.Any<IReadOnlyCollection<UserId>>(), Arg.Any<CancellationToken>());
+
+        await profiles.DidNotReceive().GetByUserReadOnlyAsync(
+            Arg.Any<UserId>(), Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>
+    /// <b>The interface default is correct, and correctness is the whole reason it is allowed to
+    /// loop.</b> It exists so doubles and the kernel placeholder need write nothing; what it must
+    /// never do is be the implementation a hot path reaches, which is why Trust overrides it and
+    /// a query-budget test counts the statements that override issues.
+    /// </summary>
+    [Fact]
+    public async Task The_interface_default_answers_every_member_including_a_repeat()
+    {
+        var other = UserId.From(Guid.Parse("66666666-6666-6666-6666-666666666666"));
+
+        // Through the interface, and it has to be: a default interface member is not inherited
+        // into the implementing type, so the concrete class does not have this method at all. That
+        // is also why it is safe to add one to a published seam — nothing a caller holds by
+        // concrete type can change behaviour underneath it — and why Trust's override has to be a
+        // real public method rather than a shadowing one.
+        ITrustService service = new OneAtATimeTrustService();
+
+        var levels = await service.GetTrustLevelsAsync([Member, other, Member]);
+
+        levels.Should().HaveCount(2, "a repeated member is one answer");
+        levels[Member].Should().Be(TrustLevel.Verified);
+        levels[other].Should().Be(TrustLevel.None);
+
+        ((OneAtATimeTrustService)service).Asked.Should().Be(
+            2, "the default loops, and it loops over the distinct members");
+    }
+
+    /// <summary>A port with only the single-subject method, which is what the default is for.</summary>
+    private sealed class OneAtATimeTrustService : ITrustService
+    {
+        private static readonly UserId Known =
+            UserId.From(Guid.Parse("44444444-4444-4444-4444-444444444444"));
+
+        public int Asked { get; private set; }
+
+        public Task<TrustLevel> GetTrustLevelAsync(
+            UserId userId, CancellationToken cancellationToken = default)
+        {
+            Asked++;
+
+            return Task.FromResult(userId == Known ? TrustLevel.Verified : TrustLevel.None);
+        }
+
+        public Task<bool> IsPublishingEligibleAsync(
+            UserId userId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(true);
+    }
+
     [Fact]
     public async Task A_suspended_profile_reports_a_suspension_through_the_kernel_port()
     {

@@ -253,6 +253,39 @@ public sealed class TrustProfileRepository : ITrustProfileRepository
             .Include(profile => profile.Countries)
             .FirstOrDefaultAsync(profile => profile.UserId == userId, cancellationToken);
 
+    /// <summary>
+    /// One <c>WHERE UserId IN (…)</c> rather than one query per member.
+    /// <para>
+    /// Projected to the two columns the caller reads, so no badge or country standing is loaded to
+    /// be thrown away, and <c>AsNoTracking</c> because nothing here is written back.
+    /// </para>
+    /// <para>
+    /// <b>An empty request is answered without going to the database at all.</b> EF would translate
+    /// it to <c>WHERE 1 = 0</c>, which is one perfectly correct round trip to learn nothing — and a
+    /// feed of posts with no authors is a real page, not an error.
+    /// </para>
+    /// </summary>
+    public async Task<IReadOnlyDictionary<UserId, TrustTier>> GetTiersAsync(
+        IReadOnlyCollection<UserId> userIds, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(userIds);
+
+        if (userIds.Count == 0)
+        {
+            return new Dictionary<UserId, TrustTier>();
+        }
+
+        var wanted = userIds.Distinct().ToList();
+
+        var tiers = await Profiles
+            .AsNoTracking()
+            .Where(profile => wanted.Contains(profile.UserId))
+            .Select(profile => new { profile.UserId, profile.Tier })
+            .ToListAsync(cancellationToken);
+
+        return tiers.ToDictionary(row => row.UserId, row => row.Tier);
+    }
+
     public async Task AddAsync(TrustProfile profile, CancellationToken cancellationToken = default) =>
         await Profiles.AddAsync(profile, cancellationToken);
 
