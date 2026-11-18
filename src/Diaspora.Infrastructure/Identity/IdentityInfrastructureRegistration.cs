@@ -77,7 +77,13 @@ public static class IdentityInfrastructureRegistration
         services.AddSingleton<IPasswordHasher, PbkdfPasswordHasher>();
         services.AddSingleton<IAccessTokenIssuer, JwtAccessTokenIssuer>();
         services.AddSingleton<IRefreshTokenIssuer, RefreshTokenIssuer>();
-        services.AddSingleton<IServiceTokenIssuer, ServiceTokenIssuer>();
+
+        // IServiceTokenIssuer is deliberately not registered (BSEC-013, 18 Nov 2026). Nothing in
+        // this platform mints a service token: the Trust Engine runs outside the process and signs
+        // its own with the shared key, so the registration had no caller and existed only as a way
+        // to obtain a principal that skips every live-state check. Validation of service tokens is
+        // unchanged and still exercised. Both the interface and the implementation carry
+        // [Obsolete(error: true)] under DSP7001; an architecture rule asserts this line stays gone.
         services.AddSingleton<IOtpCodeGenerator, SecureOtpCodeGenerator>();
         services.AddSingleton<IIdentityPolicyProvider, IdentityPolicyProvider>();
 

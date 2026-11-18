@@ -1,11 +1,16 @@
+using System.Security.Claims;
+using System.Text;
 using Diaspora.Application.Identity.Authorization;
 using Diaspora.Application.Identity.Models;
 using Diaspora.Infrastructure.Identity.Options;
 using Diaspora.Infrastructure.Identity.Tokens;
 using Diaspora.UnitTests.Common;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Diaspora.IntegrationTests.Common;
+
 
 /// <summary>
 /// Mints the service token the Trust &amp; Verification Engine would present.
@@ -20,21 +25,10 @@ public static class TrustEngineTokenFactory
 
     public static string Create(Guid subjectUserId)
     {
-        var issuer = new ServiceTokenIssuer(
-            Options.Create(new JwtOptions
-            {
-                Issuer = "https://identity.diaspora.test",
-                Audience = "https://api.diaspora.test",
-                SigningKey = CustomWebApplicationFactory.TestSigningKey
-            }),
-            new FakeClock(DateTimeOffset.UtcNow));
-
-        return issuer.Issue(new ServiceTokenRequest
-        {
-            ServiceName = ServiceName,
-            Permissions = [IdentityPermissions.ApplyTrustDecision],
-            CorrelationId = subjectUserId.ToString()
-        }).Token;
+        return Mint(
+            ServiceName,
+            [IdentityPermissions.ApplyTrustDecision],
+            correlationId: subjectUserId.ToString());
     }
 
     /// <summary>
@@ -90,19 +84,65 @@ public static class TrustEngineTokenFactory
     /// </summary>
     public static string CreateWithoutPermissions()
     {
-        var issuer = new ServiceTokenIssuer(
-            Options.Create(new JwtOptions
-            {
-                Issuer = "https://identity.diaspora.test",
-                Audience = "https://api.diaspora.test",
-                SigningKey = CustomWebApplicationFactory.TestSigningKey
-            }),
-            new FakeClock(DateTimeOffset.UtcNow));
+        return Mint("unprivileged-service", []);
+    }
 
-        return issuer.Issue(new ServiceTokenRequest
+    /// <summary>
+    /// Signs the token an outside service would present.
+    /// <para>
+    /// <b>Minted here rather than by the platform's issuer, and that is a correction rather than a
+    /// shortcut.</b> This used to construct <c>ServiceTokenIssuer</c>, justified as using "the same
+    /// issuer the platform uses" so the tests would exercise the real path. The premise was wrong:
+    /// the platform never used it. BSEC-013 found that the issuer had no production caller at all,
+    /// because the Trust &amp; Verification Engine runs outside this process and signs its own
+    /// token with the shared key, by an implementation this repository does not contain. So the
+    /// issuer was never the reference for what actually arrives — minting here models the real
+    /// arrangement, where somebody else signs and this platform only validates.
+    /// </para>
+    /// <para>
+    /// <b>Nothing about the validation path changes.</b> What these tests exercise is
+    /// <c>AccessTokenValidationHandler</c>'s service-token branch, which is production code and
+    /// untouched; a token that was shaped wrongly would be refused by it, which is the assertion.
+    /// The claims below are the ones that branch reads: the token-type claim it switches on, the
+    /// permission claims the endpoint is gated by, and deliberately no session claim — a service
+    /// token carrying one is malformed and the handler refuses it.
+    /// </para>
+    /// </summary>
+    private static string Mint(
+        string serviceName, IReadOnlyCollection<string> permissions, string? correlationId = null)
+    {
+        var now = DateTimeOffset.UtcNow;
+
+        var claims = new List<Claim>
         {
-            ServiceName = "unprivileged-service",
-            Permissions = []
-        }).Token;
+            new(JwtRegisteredClaimNames.Sub, serviceName),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
+            new(DiasporaClaimTypes.TokenType, DiasporaClaimTypes.ServiceTokenType)
+        };
+
+        claims.AddRange(permissions.Select(
+            permission => new Claim(DiasporaClaimTypes.Permission, permission)));
+
+        if (!string.IsNullOrWhiteSpace(correlationId))
+        {
+            claims.Add(new Claim(DiasporaClaimTypes.CorrelationId, correlationId));
+        }
+
+        var descriptor = new SecurityTokenDescriptor
+        {
+            Issuer = "https://identity.diaspora.test",
+            Audience = "https://api.diaspora.test",
+            Subject = new ClaimsIdentity(claims),
+            IssuedAt = now.UtcDateTime,
+            NotBefore = now.UtcDateTime,
+            Expires = now.AddMinutes(5).UtcDateTime,
+            SigningCredentials = new SigningCredentials(
+                new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(CustomWebApplicationFactory.TestSigningKey)),
+                SecurityAlgorithms.HmacSha256)
+        };
+
+        return new JsonWebTokenHandler { SetDefaultTimesOnTokenCreation = false }
+            .CreateToken(descriptor);
     }
 }
