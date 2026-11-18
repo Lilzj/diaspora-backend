@@ -99,6 +99,7 @@ public static class RateLimitingRegistration
         RateLimitPolicyNames.Authenticated,
         RateLimitPolicyNames.Anonymous,
         RateLimitPolicyNames.Search,
+        RateLimitPolicyNames.Engagement,
         RateLimitPolicyNames.Webhook,
         RateLimitPolicyNames.Upload
     };
@@ -144,6 +145,7 @@ public static class RateLimitingRegistration
             // without naming it.
             AddFixedWindow(limiter, RateLimitPolicyNames.Anonymous, options => options.Anonymous);
             AddFixedWindow(limiter, RateLimitPolicyNames.Search, options => options.Search);
+            AddFixedWindow(limiter, RateLimitPolicyNames.Engagement, options => options.Engagement);
             AddFixedWindow(limiter, RateLimitPolicyNames.Webhook, options => options.Webhook);
             AddFixedWindow(limiter, RateLimitPolicyNames.Upload, options => options.Upload);
         });

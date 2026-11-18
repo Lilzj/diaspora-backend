@@ -111,6 +111,28 @@ public sealed class RateLimitingOptions
     public RateLimitPolicyOptions Search { get; set; } = new() { PermitLimit = 60, WindowSeconds = 60 };
 
     /// <summary>
+    /// Anonymous engagement writes — the counters a reader bumps without signing in.
+    /// <para>
+    /// BSEC-004. Before this they fell to <see cref="Anonymous"/> at 240 a minute, which is 345,600
+    /// counter increments a day from one address against a figure that drives trending, discovery
+    /// and the country intelligence the Analytics module projects. The finding called them
+    /// unthrottled; since BSEC-002 they are bounded, just not bounded at anything that reflects
+    /// what a reader does.
+    /// </para>
+    /// <para>
+    /// Sixty, matching <see cref="Search"/>, and the sizing argument is the same one inverted. A
+    /// refusal here is cheaper than a refused search — nothing the reader can see fails, only an
+    /// analytics increment is lost — which is why it may be four times tighter than
+    /// <see cref="Anonymous"/>. It is not tighter still because this budget belongs to an
+    /// <i>address</i>, and under carrier-grade NAT a popular guide is read by many people through
+    /// one: an over-tight bound would turn the inflation this finding is about into systematic
+    /// under-reporting. A judgement, not a measurement, and the first number to revisit once there
+    /// is real traffic.
+    /// </para>
+    /// </summary>
+    public RateLimitPolicyOptions Engagement { get; set; } = new() { PermitLimit = 60, WindowSeconds = 60 };
+
+    /// <summary>
     /// Provider callbacks.
     /// <para>
     /// These are the platform's only endpoints that are unauthenticated <i>by design</i> and

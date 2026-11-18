@@ -171,6 +171,77 @@ public sealed class RateLimitingTests : IClassFixture<CustomWebApplicationFactor
             + "while everything else is refused");
     }
 
+    /// <summary>
+    /// BSEC-004. An anonymous engagement write is refused once <em>its own</em> budget is spent.
+    /// <para>
+    /// <b>The anonymous tier is set deliberately loose here, and that is the test.</b> These
+    /// routes used to inherit it: before they named a policy, BSEC-002's coverage default gave
+    /// them <c>Anonymous</c> at 240 a minute. With that tier at a thousand, five requests against
+    /// a budget of two can only be refused by the engagement budget — so a green here means the
+    /// route is metered where this finding says it should be, not merely that it is metered.
+    /// </para>
+    /// <para>
+    /// No body and no token. <c>UseRateLimiter</c> runs before model binding as well as before
+    /// authentication, so whatever the handler would have made of the request is not reached and
+    /// not relevant: the limiter is what answers.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task An_engagement_write_is_refused_once_its_own_budget_is_spent()
+    {
+        using var throttled = Throttled(
+            ("RateLimiting:Engagement:PermitLimit", "2"),
+            ("RateLimiting:Engagement:WindowSeconds", "60"),
+            ("RateLimiting:Anonymous:PermitLimit", "1000"),
+            ("RateLimiting:Anonymous:WindowSeconds", "60"));
+
+        using var client = throttled.CreateClient();
+
+        var route = $"/api/v1/guides/{Guid.NewGuid()}/share";
+
+        var statuses = await Hammer(client, HttpMethod.Post, route, 5);
+
+        statuses.Should().Contain(
+            HttpStatusCode.TooManyRequests,
+            "two a minute is the budget, and the anonymous tier is a thousand — only the "
+            + "engagement budget can produce a refusal here");
+
+        statuses.Count(status => status != HttpStatusCode.TooManyRequests).Should().Be(
+            2, "exactly the permitted number gets through, and the rest are refused");
+
+        using var refused = new HttpRequestMessage(HttpMethod.Post, new Uri(route, UriKind.Relative));
+        using var response = await client.SendAsync(refused);
+
+        response.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+        (await response.Content.ReadAsStringAsync()).Should().Contain("Platform.RateLimit.Exceeded");
+        response.Headers.Should().ContainKey("Retry-After");
+    }
+
+    /// <summary>
+    /// The other direction, which is what makes the pair a measurement rather than a coincidence:
+    /// with the anonymous tier at one and the engagement budget loose, the engagement route is
+    /// <em>not</em> refused. It is no longer metered on the bucket it used to share.
+    /// </summary>
+    [Fact]
+    public async Task An_engagement_write_is_not_metered_on_the_anonymous_bucket()
+    {
+        using var throttled = Throttled(
+            ("RateLimiting:Engagement:PermitLimit", "1000"),
+            ("RateLimiting:Engagement:WindowSeconds", "60"),
+            ("RateLimiting:Anonymous:PermitLimit", "1"),
+            ("RateLimiting:Anonymous:WindowSeconds", "60"));
+
+        using var client = throttled.CreateClient();
+
+        var statuses = await Hammer(
+            client, HttpMethod.Post, $"/api/v1/guides/{Guid.NewGuid()}/share", 5);
+
+        statuses.Should().NotContain(
+            HttpStatusCode.TooManyRequests,
+            "the anonymous budget is one, and if this route were still inheriting it the second "
+            + "request would have been refused");
+    }
+
     private static async Task<List<HttpStatusCode>> Hammer(
         HttpClient client, HttpMethod method, string path, int times)
     {

@@ -25770,11 +25770,7 @@
             "description": "OK"
           }
         },
-        "security": [
-          {
-            "bearer": [ ]
-          }
-        ]
+        "security": [ ]
       }
     },
     "/api/v1/guides/{guideId}/share": {
@@ -25800,11 +25796,7 @@
             "description": "OK"
           }
         },
-        "security": [
-          {
-            "bearer": [ ]
-          }
-        ]
+        "security": [ ]
       }
     },
     "/api/v1/guides/{guideId}/report": {
@@ -26676,11 +26668,7 @@
             "description": "OK"
           }
         },
-        "security": [
-          {
-            "bearer": [ ]
-          }
-        ]
+        "security": [ ]
       }
     },
     "/api/v1/intelligence/notices/{noticeId}/review": {
@@ -30031,11 +30019,7 @@
             "description": "OK"
           }
         },
-        "security": [
-          {
-            "bearer": [ ]
-          }
-        ]
+        "security": [ ]
       }
     },
     "/api/v1/knowledge/countries/{countryCode}/activity/completed": {
@@ -30070,11 +30054,7 @@
             "description": "OK"
           }
         },
-        "security": [
-          {
-            "bearer": [ ]
-          }
-        ]
+        "security": [ ]
       }
     },
     "/api/v1/knowledge/countries/{countryCode}/activity/path-started": {
@@ -30109,11 +30089,7 @@
             "description": "OK"
           }
         },
-        "security": [
-          {
-            "bearer": [ ]
-          }
-        ]
+        "security": [ ]
       }
     },
     "/api/v1/knowledge/countries/{countryCode}/activity/path-completed": {
@@ -30148,11 +30124,7 @@
             "description": "OK"
           }
         },
-        "security": [
-          {
-            "bearer": [ ]
-          }
-        ]
+        "security": [ ]
       }
     },
     "/api/v1/housing/dashboard": {

@@ -266,7 +266,7 @@ public class PublishedContractArchitectureTests
     {
         string[] expected =
         [
-            // The three the host maps itself, and the reason this list is 67 rather than 64. All
+            // The three the host maps itself, and the reason this list was 67 rather than 64. All
             // three reach no request type, so nothing behind the route would refuse them either;
             // they declared nothing until BSEC-011 asked what the contract should say about them.
             "GET /",
@@ -334,7 +334,26 @@ public class PublishedContractArchitectureTests
             "POST /api/v1/auth/verify-phone",
             "POST /api/v1/financial/webhooks/{provider}",
             "POST /api/v1/financial/webhooks/{provider}/payouts",
+
+            // BSEC-004. Seven engagement writes, joining because they were always anonymous and
+            // only now say so. The command behind each one has carried [AllowAnonymous] with its
+            // reason since BSEC-003; the route carried nothing, so the contract's fail-closed
+            // default told every client they needed a token for a counter bump. Declaring the
+            // anonymity moves them here, where the decision is reviewable — which is the whole
+            // point of pinning this list rather than counting it.
+            //
+            // They are the only entries here that are neither credential exchange nor a
+            // signature-verified callback, so they are also the only ones a stranger can call
+            // repeatedly to change what the platform shows. RateLimitPolicyNames.Engagement is
+            // what bounds them.
+            "POST /api/v1/guides/{guideId}/share",
+            "POST /api/v1/guides/{guideId}/view",
             "POST /api/v1/integrations/webhooks/{provider}",
+            "POST /api/v1/intelligence/notices/{noticeId}/activity",
+            "POST /api/v1/knowledge/countries/{countryCode}/activity/completed",
+            "POST /api/v1/knowledge/countries/{countryCode}/activity/discovered",
+            "POST /api/v1/knowledge/countries/{countryCode}/activity/path-completed",
+            "POST /api/v1/knowledge/countries/{countryCode}/activity/path-started",
             "POST /api/v1/marketplace/search",
             "POST /api/v1/notifications/unsubscribe"
         ];
