@@ -10,6 +10,7 @@ using Diaspora.Modules.Financial.Domain.ValueObjects;
 using Diaspora.Modules.Financial.Domain.Wallets;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Results;
+using Microsoft.Extensions.Logging;
 
 namespace Diaspora.Modules.Financial.Application.Wallets;
 
@@ -106,12 +107,27 @@ public sealed class GetTransactionQueryHandler
 }
 
 /// <summary>
-/// A receipt, by its reference.
+/// A receipt, by its reference — and only to somebody entitled to it.
 /// <para>
-/// <b>Resolvable by reference alone, and the response carries no donor.</b> An anonymous gift stores
-/// no giver, so requiring ownership would make its own receipt notification lead nowhere. The cost is
-/// that a reference is a bearer token for one receipt; the mitigation is that the generator makes
-/// them unguessable and this response says only what was given, to what, and when.
+/// <b>Two different answers to "who may read this", because there are two different receipts.</b> A
+/// gift with a giver is served to that giver and to nobody else. A gift with no giver cannot be
+/// scoped to anybody, so it is served to whoever presents the reference — which is sound only
+/// because such a reference is minted at 130 bits and is the single handle its giver was ever
+/// issued.
+/// </para>
+/// <para>
+/// <b>Until BBL-004 the first case did not exist.</b> Any member holding
+/// <c>FinancialPermissions.GivingRead</c> could read any receipt, and the comment that stood here
+/// defended that by asserting "the generator makes them unguessable" — which was untrue. The
+/// reference was six characters from a 32-symbol alphabet: a uniform 30 bits, so roughly a million
+/// requests found a given day's receipts and an afternoon harvested the population. The response
+/// carries no donor and no message, so what that bought was not personal data but the platform's
+/// funding intelligence: which causes attract money, in what amounts, from where.
+/// </para>
+/// <para>
+/// <b>A refusal and a miss are the same answer</b>, from <see cref="NoSuchReceipt"/>, so a caller
+/// cannot use the difference to confirm that a reference exists. That is the only reason refusing
+/// with <c>404</c> rather than <c>403</c> is right here.
 /// </para>
 /// </summary>
 public sealed class GetReceiptQueryHandler : IQueryHandler<GetReceiptQuery, ReceiptResponse>
@@ -121,19 +137,25 @@ public sealed class GetReceiptQueryHandler : IQueryHandler<GetReceiptQuery, Rece
     private readonly ICommunityContributionRepository _contributions;
     private readonly IContributionFundRepository _funds;
     private readonly CurrencyCatalog _currencies;
+    private readonly FinancialAuthorizationService _authorization;
+    private readonly ILogger<GetReceiptQueryHandler> _logger;
 
     public GetReceiptQueryHandler(
         IDonationRepository donations,
         IDonationCauseRepository causes,
         ICommunityContributionRepository contributions,
         IContributionFundRepository funds,
-        CurrencyCatalog currencies)
+        CurrencyCatalog currencies,
+        FinancialAuthorizationService authorization,
+        ILogger<GetReceiptQueryHandler> logger)
     {
         _donations = donations;
         _causes = causes;
         _contributions = contributions;
         _funds = funds;
         _currencies = currencies;
+        _authorization = authorization;
+        _logger = logger;
     }
 
     public async Task<Result<ReceiptResponse>> Handle(
@@ -143,14 +165,25 @@ public sealed class GetReceiptQueryHandler : IQueryHandler<GetReceiptQuery, Rece
 
         if (string.IsNullOrWhiteSpace(query.ReceiptReference))
         {
-            return Result.Failure<ReceiptResponse>(Error.NotFound(
-                FinancialErrorCodes.DonationNotFound, "No receipt has that reference."));
+            return NoSuchReceipt();
+        }
+
+        var caller = _authorization.RequireUserId();
+
+        if (caller.IsFailure)
+        {
+            return Result.Failure<ReceiptResponse>(caller.Error);
         }
 
         var reference = query.ReceiptReference.Trim();
 
         if (await _donations.FindByReceiptAsync(reference, cancellationToken) is { } donation)
         {
+            if (!MayRead(donation.DonorUserId, caller.Value))
+            {
+                return Refuse("donation", caller.Value);
+            }
+
             var cause = donation.CauseId is { } causeId
                 ? await _causes.FindAsync(causeId, cancellationToken)
                 : null;
@@ -176,6 +209,11 @@ public sealed class GetReceiptQueryHandler : IQueryHandler<GetReceiptQuery, Rece
         if (await _contributions.FindByReceiptAsync(reference, cancellationToken)
             is { } contribution)
         {
+            if (!MayRead(contribution.ContributorUserId, caller.Value))
+            {
+                return Refuse("contribution", caller.Value);
+            }
+
             var fund = await _funds.FindAsync(contribution.FundId, cancellationToken);
             var symbol = contribution.Amount is { } money
                 ? await _currencies.SymbolAsync(money.Currency, cancellationToken)
@@ -200,9 +238,57 @@ public sealed class GetReceiptQueryHandler : IQueryHandler<GetReceiptQuery, Rece
             });
         }
 
-        return Result.Failure<ReceiptResponse>(Error.NotFound(
-            FinancialErrorCodes.DonationNotFound, "No receipt has that reference."));
+        _logger.LogWarning(
+            "Receipt lookup by {Caller} matched no receipt. Repeated misses from one caller are "
+            + "what enumeration looks like.",
+            caller.Value);
+
+        return NoSuchReceipt();
     }
+
+    /// <summary>
+    /// Whether <paramref name="caller"/> may read a receipt owned by <paramref name="owner"/>.
+    /// <para>
+    /// <b>Keyed on the identifier rather than on <c>IsAnonymous</c>, which is the stronger of the
+    /// two tests</b> — the same reasoning B13's receipt notification uses. Both aggregates store
+    /// <c>isAnonymous ? null : id</c>, so an anonymous gift always lacks the identifier; keying on
+    /// the flag would serve a receipt to the world if a future path ever set one without the other.
+    /// </para>
+    /// </summary>
+    private static bool MayRead(Guid? owner, Guid caller) => owner is null || owner == caller;
+
+    /// <summary>
+    /// Logs the refusal and returns the same answer a miss returns.
+    /// <para>
+    /// <b>The reference is deliberately not in the log line.</b> For an ownerless receipt the
+    /// reference is the credential, so writing it to a log would move the secret somewhere with a
+    /// different and longer-lived audience — which is the whole mistake this finding is about,
+    /// repeated into the observability stack. The caller and the kind are enough to see a probe.
+    /// </para>
+    /// </summary>
+    private Result<ReceiptResponse> Refuse(string kind, Guid caller)
+    {
+        _logger.LogWarning(
+            "Receipt lookup refused: {Caller} presented a reference for a {Kind} receipt belonging "
+            + "to somebody else.",
+            caller,
+            kind);
+
+        return NoSuchReceipt();
+    }
+
+    /// <summary>
+    /// The one answer for every failure: no such reference, a wrong owner, and a blank string.
+    /// <para>
+    /// One method rather than three call sites so the three cannot drift apart. A refusal that
+    /// differed from a miss in its code, its message or its status would tell a caller which
+    /// references exist, and the enumeration this finding is about would survive the fix that was
+    /// supposed to end it.
+    /// </para>
+    /// </summary>
+    private static Result<ReceiptResponse> NoSuchReceipt() =>
+        Result.Failure<ReceiptResponse>(Error.NotFound(
+            FinancialErrorCodes.DonationNotFound, "No receipt has that reference."));
 }
 
 /// <summary>

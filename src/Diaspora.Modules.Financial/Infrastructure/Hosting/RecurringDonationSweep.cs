@@ -192,7 +192,8 @@ public sealed class RecurringDonationSweep : FinancialSweep
                 isAnonymous: false,
                 cause.BeneficiaryType,
                 schedule.Amount,
-                receipts.Next("DON", now),
+                // isAnonymous: false above, so this reference is never the access decision.
+                receipts.Next("DON", now, ReceiptReferenceStrength.Handle),
                 now,
                 cause.BeneficiaryId,
                 cause.Id,

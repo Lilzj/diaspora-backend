@@ -99,8 +99,9 @@ internal static class GivingEndpoints
                         cancellationToken)))
             .WithName("GetReceipt")
             .WithSummary(
-                "A receipt by its reference alone. An anonymous gift is in nobody's history and "
-                + "the reference is the only handle its giver was ever issued.");
+                "A receipt. One with a giver is served to that giver alone; an anonymous gift has "
+                + "no giver to compare a caller against, so its reference is the credential and is "
+                + "minted long enough to be one.");
 
         group.MapGet("/contributions/funds", async (
                 [FromQuery] string? country,

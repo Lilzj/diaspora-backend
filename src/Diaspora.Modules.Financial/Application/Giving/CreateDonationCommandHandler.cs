@@ -142,7 +142,14 @@ public sealed class CreateDonationCommandHandler
             command.IsAnonymous,
             beneficiaryType,
             amount,
-            _receipts.Next("DON", now),
+            // BBL-004. An anonymous gift stores no giver, so nothing can compare a caller
+            // against it and the reference becomes the whole of the access decision.
+            _receipts.Next(
+                "DON",
+                now,
+                command.IsAnonymous
+                    ? ReceiptReferenceStrength.Credential
+                    : ReceiptReferenceStrength.Handle),
             now,
             command.BeneficiaryId ?? cause?.BeneficiaryId,
             cause?.Id,
