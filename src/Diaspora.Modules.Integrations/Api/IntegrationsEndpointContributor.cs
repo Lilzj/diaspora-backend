@@ -521,18 +521,3 @@ public sealed class IntegrationsEndpointContributor : IEndpointContributor
             ExternalEventId = externalEventId
         };
 }
-
-/// <summary>Reads the <c>Idempotency-Key</c> header.</summary>
-internal static class IdempotencyHeader
-{
-    private const string Name = "Idempotency-Key";
-
-    public static string? From(HttpContext context)
-    {
-        ArgumentNullException.ThrowIfNull(context);
-
-        return context.Request.Headers.TryGetValue(Name, out var values)
-            ? values.FirstOrDefault()
-            : null;
-    }
-}

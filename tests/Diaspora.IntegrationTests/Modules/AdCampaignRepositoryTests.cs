@@ -62,7 +62,10 @@ public sealed class AdCampaignRepositoryTests : IClassFixture<CustomWebApplicati
             await unitOfWork.SaveChangesAsync();
         });
 
-        await second.Should().ThrowAsync<DbUpdateException>();
+        // BBL-002: was ThrowAsync<DbUpdateException>(). The index still refuses the insert;
+        // what changed is that the refusal reaches the caller as 409 Platform.Resource.Duplicate
+        // instead of 500 Platform.Unexpected.
+        await second.Should().ThrowAsync<DuplicateRecordException>();
     }
 
     [Fact]

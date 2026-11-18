@@ -28,6 +28,18 @@ public static class PlatformErrorCodes
     public const string NotFound = "Platform.Resource.NotFound";
     public const string Conflict = "Platform.Resource.Conflict";
     public const string ConcurrencyConflict = "Platform.Resource.ConcurrencyConflict";
+
+    /// <summary>
+    /// A unique index refused the write: the record is already there.
+    /// <para>
+    /// Distinct from <see cref="ConcurrencyConflict"/> because the two ask the client for opposite
+    /// things. A concurrency conflict means reload and try again; a duplicate means the work has
+    /// already happened - or the identifier is taken - and retrying the same request unchanged
+    /// will fail the same way. Both are 409, and collapsing them loses the only part a client can
+    /// act on.
+    /// </para>
+    /// </summary>
+    public const string Duplicate = "Platform.Resource.Duplicate";
     public const string BusinessRule = "Platform.Domain.RuleViolation";
     public const string RateLimited = "Platform.RateLimit.Exceeded";
     public const string ServiceUnavailable = "Platform.Dependency.Unavailable";

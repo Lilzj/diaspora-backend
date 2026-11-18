@@ -483,7 +483,18 @@ public sealed class JoinCommunityInitiativeCommandHandler
             {
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
             }
-            catch (Exception exception) when (ProgrammeIdempotency.IsUniqueViolation(exception))
+            // BBL-002: was `catch (Exception) when (ProgrammeIdempotency.IsUniqueViolation(…))`,
+            // the only caller outside that class and the reason its predicate was internal rather
+            // than private. DiasporaDbContext now names the failure, so the broad catch with a
+            // filter becomes a catch of the thing itself.
+            //
+            // **Swallowing is safe here only because this command is not [Transactional].** EF
+            // rolls back the implicit transaction it opened for the save, the connection is clean,
+            // and the read below works. Inside an explicit transaction PostgreSQL would have
+            // aborted the whole block and every later statement would fail with 25P02 — which is
+            // exactly why ProgrammeIdempotency rethrows when `inTransaction`, and why SQLite could
+            // never have shown the difference: it rolls back the statement, not the block.
+            catch (DuplicateRecordException)
             {
                 // Two joins raced: both found no row, and the unique index refused the second
                 // insert. The other request's row is the member's participation, so this is a
