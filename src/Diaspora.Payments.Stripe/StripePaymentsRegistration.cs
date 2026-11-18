@@ -2,6 +2,8 @@ using Diaspora.Modules.Financial.Extensibility.Gateways;
 using Diaspora.Modules.Financial.Extensibility.Payouts;
 using Diaspora.Modules.Financial.Extensibility.Settlement;
 using Diaspora.Platform.Services.Abstractions;
+using Diaspora.Platform.Operations.Policies;
+using Diaspora.Platform.Operations.Resilience;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -60,20 +62,36 @@ public static class StripePaymentsRegistration
         // before this runs.
         services.TryAddSingleton<IStripeAccountResolver, StripeDestinationAccountResolver>();
 
+        // Every client below is routed through the platform's payment breaker. B17 declared
+        // financial.payment-provider -- the strictest breaker on the platform -- and until now
+        // nothing ran under it: these clients set a transport timeout and nothing else, so a
+        // provider that went slow held a thread and a connection per call until the pool was gone.
+        // The retry policy for that dependency is MaxAttempts = 0 and must stay that way; the
+        // handler refuses to be constructed otherwise.
         services.AddHttpClient(StripeSettlementProvider.HttpClientName, (provider, client) =>
-            client.Timeout = TransportTimeout(provider));
+            client.Timeout = TransportTimeout(provider))
+            .WithPlatformResilience(
+                OperationalPolicyNames.CircuitBreaker.PaymentProvider);
 
         services.AddHttpClient(StripeConnectVerificationSource.HttpClientName, (provider, client) =>
-            client.Timeout = TransportTimeout(provider));
+            client.Timeout = TransportTimeout(provider))
+            .WithPlatformResilience(
+                OperationalPolicyNames.CircuitBreaker.PaymentProvider);
 
         services.AddHttpClient(StripePayoutOnboarding.HttpClientName, (provider, client) =>
-            client.Timeout = TransportTimeout(provider));
+            client.Timeout = TransportTimeout(provider))
+            .WithPlatformResilience(
+                OperationalPolicyNames.CircuitBreaker.PaymentProvider);
 
         services.AddHttpClient(StripeSettlementStatusProvider.HttpClientName, (provider, client) =>
-            client.Timeout = TransportTimeout(provider));
+            client.Timeout = TransportTimeout(provider))
+            .WithPlatformResilience(
+                OperationalPolicyNames.CircuitBreaker.PaymentProvider);
 
         services.AddHttpClient(StripePaymentGateway.HttpClientName, (provider, client) =>
-            client.Timeout = TransportTimeout(provider));
+            client.Timeout = TransportTimeout(provider))
+            .WithPlatformResilience(
+                OperationalPolicyNames.CircuitBreaker.PaymentProvider);
 
         // ── The charge half ──────────────────────────────────────────────────────
         //

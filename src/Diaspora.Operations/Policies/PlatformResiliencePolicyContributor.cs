@@ -56,6 +56,29 @@ public sealed class PlatformResiliencePolicyContributor : IOperationalPolicyCont
             OverallTimeout = TimeSpan.FromSeconds(20)
         },
 
+        new RetryPolicy(OperationalPolicyNames.CircuitBreaker.PaymentProvider)
+        {
+            // Zero, and it is the most important number in this file.
+            //
+            // The breaker below says why: duplicate charges are created by retries against a
+            // provider that is timing out after it has already taken the money. The executor
+            // cannot know that — it retries whatever its policy allows — so the policy has to be
+            // the thing that knows, and the absence of one is not neutral. RetryFor falls back to
+            // Retry.Default, which is three attempts, so a payment client routed to the breaker
+            // without this line would quietly gain two retries on every charge.
+            //
+            // Named for the dependency rather than sitting under Retry.*, because the executor
+            // resolves both policies from the one dependency name, and a retry policy filed
+            // somewhere else is a retry policy the executor never finds.
+            //
+            // Retry is not forbidden for payments, only automatic retry at the transport. A caller
+            // that knows an operation is idempotent — a status read, a webhook replay — retries
+            // above this layer where it can build a fresh request and decide.
+            Description = "Payment gateways. Never retried at the transport: a charge is not idempotent.",
+            MaxAttempts = 0,
+            OverallTimeout = TimeSpan.FromSeconds(25)
+        },
+
         new RetryPolicy(OperationalPolicyNames.Retry.DatabaseTransient)
         {
             // Matches what the EF execution strategy already does, expressed here so the number is

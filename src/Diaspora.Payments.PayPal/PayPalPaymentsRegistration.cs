@@ -1,6 +1,8 @@
 using Diaspora.Modules.Financial.Extensibility.Payouts;
 using Diaspora.Modules.Financial.Extensibility.Settlement;
 using Diaspora.Platform.Services.Abstractions;
+using Diaspora.Platform.Operations.Policies;
+using Diaspora.Platform.Operations.Resilience;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -47,14 +49,26 @@ public static class PayPalPaymentsRegistration
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
+        // Every client below is routed through the platform's payment breaker. B17 declared
+        // financial.payment-provider -- the strictest breaker on the platform -- and until now
+        // nothing ran under it: these clients set a transport timeout and nothing else, so a
+        // provider that went slow held a thread and a connection per call until the pool was gone.
+        // The retry policy for that dependency is MaxAttempts = 0 and must stay that way; the
+        // handler refuses to be constructed otherwise.
         services.AddHttpClient(PayPalAccessTokenCache.HttpClientName, (provider, client) =>
-            client.Timeout = TransportTimeout(provider));
+            client.Timeout = TransportTimeout(provider))
+            .WithPlatformResilience(
+                OperationalPolicyNames.CircuitBreaker.PaymentProvider);
 
         services.AddHttpClient(PayPalSettlementProvider.HttpClientName, (provider, client) =>
-            client.Timeout = TransportTimeout(provider));
+            client.Timeout = TransportTimeout(provider))
+            .WithPlatformResilience(
+                OperationalPolicyNames.CircuitBreaker.PaymentProvider);
 
         services.AddHttpClient(PayPalPayoutWebhookProcessor.HttpClientName, (provider, client) =>
-            client.Timeout = TransportTimeout(provider));
+            client.Timeout = TransportTimeout(provider))
+            .WithPlatformResilience(
+                OperationalPolicyNames.CircuitBreaker.PaymentProvider);
 
         // Singleton because the token it holds is account-wide and refreshing it is single-flight.
         // A scoped cache would mint a token per request, which is the behaviour it exists to avoid.
