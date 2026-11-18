@@ -175,13 +175,14 @@ public sealed class FeedComposer
             .Distinct()
             .ToList();
 
-        var trustLevels = new Dictionary<Guid, int>();
+        // One call for the page, not one per author. The loop that used to be here was BBL-005 and
+        // BARCH-005: with a page of fifty mostly distinct authors it was fifty sequential round
+        // trips to Trust before a single post could be ranked, on the primary screen. The two
+        // calls above were already batched, which is what made the third one worth noticing.
+        var levels = await _trust.GetTrustLevelsAsync(authorIds, cancellationToken);
 
-        foreach (var authorId in authorIds)
-        {
-            trustLevels[authorId.Value] = (int)await _trust.GetTrustLevelAsync(
-                authorId, cancellationToken);
-        }
+        var trustLevels = levels.ToDictionary(
+            entry => entry.Key.Value, entry => (int)entry.Value);
 
         return new RankingContext
         {

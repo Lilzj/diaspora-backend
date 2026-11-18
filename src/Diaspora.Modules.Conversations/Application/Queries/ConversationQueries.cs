@@ -126,26 +126,20 @@ public sealed class ListConversationsQueryHandler
     private async Task<Dictionary<ConversationMessageId, ConversationMessage>> LoadLastMessagesAsync(
         IReadOnlyList<Conversation> conversations, CancellationToken cancellationToken)
     {
-        var map = new Dictionary<ConversationMessageId, ConversationMessage>();
+        // The batched "get many" the loop that used to be here named as its own intended follow-up.
+        // It was never a scan — bounded at the page size, primary-key lookups, and cheaper still on
+        // a repeated identifier because the change tracker already held it — but the bound was a
+        // hundred round trips on the second-most-used screen, which is what the audit raised as the
+        // other half of BBL-005.
+        var ids = conversations
+            .Select(conversation => conversation.LastMessageId)
+            .OfType<ConversationMessageId>()
+            .Distinct()
+            .ToList();
 
-        foreach (var conversation in conversations)
-        {
-            if (conversation.LastMessageId is not { } id || map.ContainsKey(id))
-            {
-                continue;
-            }
+        var map = await _messages.GetManyAsync(ids, cancellationToken);
 
-            // Tracked by the change tracker after the first load, so a repeated identifier costs
-            // nothing. A batched "get many" would be better still and is recorded as a follow-up in
-            // the persistence guide; the page is bounded at a hundred rows, so this is a hundred
-            // primary-key lookups at worst, not a scan.
-            if (await _messages.GetAsync(id, cancellationToken) is { } message)
-            {
-                map[id] = message;
-            }
-        }
-
-        return map;
+        return new Dictionary<ConversationMessageId, ConversationMessage>(map);
     }
 
     private static bool Is(string? filter, string value) =>
