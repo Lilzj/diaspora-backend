@@ -111,6 +111,40 @@ public sealed class PlatformStartupValidationTests : IClassFixture<CustomWebAppl
     }
 
     /// <summary>
+    /// The two validators that are not the kernel's, asserted by name rather than by type.
+    /// <para>
+    /// <b>By name on purpose.</b> This project references neither <c>Diaspora.Observability</c> nor
+    /// anything that would guarantee it is loaded, and that is the situation production is in: the
+    /// assembly reaches the host through <c>Diaspora.Api</c> and the validator reaches the container
+    /// through a scan of the dependency context. A project reference here would load the assembly
+    /// and so would help the mechanism under test pass, which is the opposite of what a test of
+    /// discovery should do.
+    /// </para>
+    /// <para>
+    /// <b>Why it is worth a test at all.</b> A validator nothing registers is also a validator
+    /// nothing notices the absence of. <c>ObservabilityExportValidator</c> is the only thing
+    /// standing between a deployment and running blind (BARCH-008), and if the scan stopped
+    /// reaching its assembly the platform would validate just as cleanly and refuse nothing.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_validators_outside_the_kernel_are_running_too()
+    {
+        using var scope = _factory.Services.CreateScope();
+
+        var running = scope.ServiceProvider.GetServices<IStartupValidator>()
+            .Select(validator => validator.Name)
+            .ToList();
+
+        running.Should().Contain("CommunicationRuntimeValidator",
+            "the first module-owned validator, discovered by the same scan");
+
+        running.Should().Contain("ObservabilityExportValidator",
+            "nothing lists it and nothing registers it, so a scan that stopped finding it would " +
+            "leave a production host free to export its telemetry to nothing");
+    }
+
+    /// <summary>
     /// The reflective catalogue sweep can be switched off, and switching it off must not make the
     /// rest of the report disappear with it — the option is a scalpel, not a mute button.
     /// </summary>

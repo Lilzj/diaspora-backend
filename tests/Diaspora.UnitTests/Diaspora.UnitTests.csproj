@@ -35,6 +35,12 @@
     <ProjectReference Include="..\..\src\Diaspora.Persistence\Diaspora.Persistence.csproj" />
     <ProjectReference Include="..\..\src\Diaspora.Infrastructure\Diaspora.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Diaspora.Operations\Diaspora.Operations.csproj" />
+    <!--
+      Observability is an adapter, which modules may not reference and tests may. The export
+      target and its startup validator decide whether a production host is allowed to run blind,
+      so they are worth unit tests rather than only the integration suite's boot.
+    -->
+    <ProjectReference Include="..\..\src\Diaspora.Observability\Diaspora.Observability.csproj" />
     <ProjectReference Include="..\..\src\Diaspora.Sms\Diaspora.Sms.csproj" />
     <ProjectReference Include="..\..\src\Diaspora.Email\Diaspora.Email.csproj" />
     <ProjectReference Include="..\..\src\Diaspora.Maps.Google\Diaspora.Maps.Google.csproj" />

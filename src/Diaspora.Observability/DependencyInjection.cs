@@ -43,21 +43,50 @@ public static class DependencyInjection
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
-        var otlpEndpoint = configuration["OpenTelemetry:OtlpEndpoint"];
-        var hasOtlp = !string.IsNullOrWhiteSpace(otlpEndpoint);
+        // Registered as an options type like every other configuration section, which is what
+        // puts it in the generated configuration reference and lets the startup validator resolve
+        // the very values this method was built from. Until BARCH-008 these three keys were read
+        // raw, so the one section that decides whether a production host may start was the one
+        // section an operator could not look up.
+        services.AddOptions<OpenTelemetryOptions>()
+            .Bind(configuration.GetSection(OpenTelemetryOptions.SectionName));
+
+        // And bound again, eagerly, because the exporters are chosen here and now: IOptions
+        // cannot be resolved from a service collection that is still being filled.
+        var options = configuration
+            .GetSection(OpenTelemetryOptions.SectionName)
+            .Get<OpenTelemetryOptions>() ?? new OpenTelemetryOptions();
+
+        // Read through the type ObservabilityExportValidator also reads, so that "an exporter is
+        // configured" has exactly one definition and the host's refusal to start cannot disagree
+        // with what this method actually attached.
+        //
+        // Parsed rather than tested for emptiness. An endpoint written as host and port with the
+        // scheme left off is a valid absolute Uri with an empty host, so the old
+        // string.IsNullOrWhiteSpace check attached an OTLP exporter that delivered nothing and
+        // said nothing; and a bare name threw UriFormatException from inside the callbacks below,
+        // which is a crash naming OpenTelemetry rather than a configuration key. Both now arrive
+        // here as "no usable endpoint" and leave as a startup finding.
+        var target = ObservabilityExportTarget.Read(options);
 
         // Console exporters are a development convenience and a production hazard: B2 fell
         // back to them whenever the OTLP endpoint was unset, which is the shipped default,
         // so a deployment that forgot the variable wrote every span and every metric to
         // stdout. An unconfigured endpoint now means no exporter unless one is asked for.
-        var useConsole = !hasOtlp &&
-            configuration.GetValue("OpenTelemetry:UseConsoleExporter", defaultValue: false);
+        //
+        // An endpoint that was set and cannot be used counts as unconfigured here. That only
+        // changes behaviour for a host started with platform validation switched off, since
+        // otherwise SV9001 has already refused the boot — but between emitting nothing and
+        // emitting to stdout, a host nobody is allowed to fix should still say something.
+        var useConsole = target.Otlp is null && target.ConsoleExporterRequested;
 
         services.AddOpenTelemetry()
             .ConfigureResource(resource =>
             {
                 resource.AddService(
-                    serviceName: configuration["OpenTelemetry:ServiceName"] ?? ServiceName,
+                    serviceName: string.IsNullOrWhiteSpace(options.ServiceName)
+                        ? ServiceName
+                        : options.ServiceName,
                     serviceVersion: typeof(DependencyInjection).Assembly.GetName().Version?.ToString() ?? "1.0.0");
             })
             .WithTracing(tracing =>
@@ -77,9 +106,9 @@ public static class DependencyInjection
                     tracing.AddSource(source);
                 }
 
-                if (hasOtlp)
+                if (target.Otlp is not null)
                 {
-                    tracing.AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint!));
+                    tracing.AddOtlpExporter(exporter => exporter.Endpoint = target.Otlp);
                 }
                 else if (useConsole)
                 {
@@ -97,9 +126,9 @@ public static class DependencyInjection
                     metrics.AddMeter(meter);
                 }
 
-                if (hasOtlp)
+                if (target.Otlp is not null)
                 {
-                    metrics.AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint!));
+                    metrics.AddOtlpExporter(exporter => exporter.Endpoint = target.Otlp);
                 }
                 else if (useConsole)
                 {

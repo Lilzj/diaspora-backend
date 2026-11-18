@@ -120,6 +120,41 @@ primary_region = 'iad'
   # Measured on .NET 10.0.13. With the validator in place that mistake now refuses to boot.
   ForwardedHeaders__KnownIPNetworks__0 = '172.16.0.0/12'
 
+  # ── Where telemetry goes, and why this app will not boot without it ───────
+  #
+  # NOT SET HERE, AND REQUIRED. `OpenTelemetry__OtlpEndpoint` is a Fly secret, set out of
+  # band like the payment credentials below, because a collector's address usually carries a
+  # token:
+  #
+  #   fly secrets set OpenTelemetry__OtlpEndpoint='https://otlp.<collector>/v1/…'
+  #
+  # Until it is set, `ObservabilityExportValidator` refuses to start this app (SV9002). That
+  # is deliberate and it is new — see BARCH-008. The platform computes a great deal of
+  # telemetry: every module contributes its own activity sources and meters, the Financial
+  # module counts webhook signatures by outcome, the outbox counts dead letters. With no
+  # exporter all of it is computed and dropped, and that failure has no symptom — nothing
+  # breaks, nothing slows down, and the first person to notice is whoever is trying to run an
+  # incident on a payment platform with nothing but logs.
+  #
+  # The alternative, if a collector is genuinely not wanted yet, is
+  # `OpenTelemetry__UseConsoleExporter = 'true'`: spans and metrics go to stdout with the
+  # logs, the app starts, and it warns on every boot (SV9003). That is a staging answer rather
+  # than a production one — it multiplies log volume by the whole span rate, and a log
+  # aggregator cannot aggregate a histogram.
+  #
+  # ── Write the scheme ──────────────────────────────────────────────────────
+  #
+  # The same shape of mistake as the `ForwardedHeaders` one above, and quieter.
+  # `collector:4317` is a *valid* absolute URI: scheme `collector`, empty host, port -1.
+  # Nothing throws, the OTLP exporter is attached to it, and not one span is ever delivered.
+  # A check for an empty setting would pass that deployment, so the value is parsed instead
+  # and SV9001 refuses a declared endpoint it cannot use. `http://` or `https://`, always —
+  # OTLP over gRPC is gRPC over HTTP/2 and its endpoint is an http one too.
+  #
+  # Logs are not covered by any of this. Serilog writes to stdout by design, which is the
+  # container contract, and whether stdout reaches somewhere queryable is a Fly-side decision
+  # this file cannot make.
+
   # ── Media needs somewhere it may write ─────────────────────────────────────
   #
   # `FilesystemStorageProvider` resolves a relative `FilesystemRoot` against
