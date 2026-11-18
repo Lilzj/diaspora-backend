@@ -31,7 +31,7 @@ namespace Diaspora.ArchitectureTests;
 /// folders to use. <c>[InternalsVisibleTo]</c> grants more access rather than less, so it inverts
 /// the problem. The boundary is a convention about namespaces, which makes a test the only
 /// mechanism that can hold it — which is why the audit recommended exactly this and why it is a
-/// ratchet rather than a clean assertion: there are 107 crossings today and a rule that simply
+/// ratchet rather than a clean assertion: there are 138 crossings today and a rule that simply
 /// failed would be deleted by the end of the week.
 /// </para>
 /// <para>
@@ -57,6 +57,13 @@ namespace Diaspora.ArchitectureTests;
 public sealed class ModuleEncapsulationArchitectureTests
 {
     private const string ModulePrefix = "Diaspora.Modules.";
+
+    /// <summary>
+    /// The same prefix as C# sees it from inside a module: <c>Diaspora</c> is an enclosing
+    /// namespace, so <c>Modules</c> alone binds to <c>Diaspora.Modules</c>.
+    /// </summary>
+    private const string RelativeModulePrefix = "Modules.";
+
     private const string ModuleSourcePrefix = "src/Diaspora.Modules.";
 
     /// <summary>What a module publishes. Everything else in it is its own business.</summary>
@@ -72,12 +79,12 @@ public sealed class ModuleEncapsulationArchitectureTests
     /// value objects and strongly typed identifiers.
     /// <para>
     /// <b>This distinction is the one the audit collapsed, and it decides the remediation.</b> The
-    /// finding counted all 107 crossings together and prescribed a read-model port for each. 59 of
-    /// them reach only the namespaces below: <c>CommuteMode</c>, <c>DistanceUnit</c>,
+    /// finding counted all 107 crossings together and prescribed a read-model port for each. 58 of
+    /// the 138 reach only the namespaces below: <c>CommuteMode</c>, <c>DistanceUnit</c>,
     /// <c>GeoCoordinate</c>, <c>ProviderId</c>. A port around an enumeration buys nothing — the fix
     /// is to publish the type, because a name several modules must agree on is by definition not
-    /// internal to one of them. Three edges reach actual aggregates and four reach another module's
-    /// application layer; those are the ones a port is the right answer for.
+    /// internal to one of them. Three edges reach actual aggregates and eleven reach another
+    /// module's application layer; those are the ones a port is the right answer for.
     /// </para>
     /// </summary>
     private static readonly string[] VocabularySegments =
@@ -105,11 +112,25 @@ public sealed class ModuleEncapsulationArchitectureTests
     /// How many <c>using</c> directives make up the edge. Exact, not a ceiling — see
     /// <see cref="A_module_reaches_another_module_only_through_its_published_seams"/>.
     /// </param>
+    /// <param name="InCode">
+    /// How many crossings are written inline instead, with no directive to show for them.
+    /// <para>
+    /// <b>Its own column because this is the half nobody could see.</b> A reader checking whether a
+    /// module reaches another one looks at the top of the file, and 28 of these crossings are not
+    /// there — they are <c>Modules.Media.Application.Assets.AttachMediaCommand</c> in the middle of
+    /// a method. Counting them in with the directives would have recorded the total and hidden the
+    /// fact that the usual way of finding them does not work.
+    /// </para>
+    /// </param>
     /// <param name="Reach">What the edge reaches, and therefore what would close it.</param>
-    private sealed record InternalEdge(string Consumer, string Producer, int Directives, Reach Reach);
+    private sealed record InternalEdge(
+        string Consumer, string Producer, int Directives, int InCode, Reach Reach)
+    {
+        public int Crossings => Directives + InCode;
+    }
 
     /// <summary>
-    /// The 110 crossings that exist, by edge, measured 18 November 2026.
+    /// The 138 crossings that exist, by edge, measured 18 November 2026.
     /// <para>
     /// <b>A dated exemption list, which is the technique this repository already uses for a
     /// boundary it has decided to hold without having finished moving behind it</b> —
@@ -126,22 +147,31 @@ public sealed class ModuleEncapsulationArchitectureTests
     /// removal is a named commit</em> — from a process promise into a build failure.
     /// </para>
     /// <para>
-    /// <b>The audit counted 107 and there are 110, because three crossings are written as using
-    /// aliases.</b> Both reports describe extracting <q>every <c>using Diaspora.Modules.X.…</c>
-    /// directive</q>, which is a pattern anchored on the name following <c>using</c> — and
-    /// <c>using GuideId = Diaspora.Modules.Guides.Domain.Identifiers.GuideId;</c> puts an alias in
-    /// between. The three are that one in <c>JobGuideResolver</c> and
-    /// <c>MarketplaceGuideResolver</c>, and
-    /// <c>using LocationCountryCode = Diaspora.Modules.Location.Domain.ValueObjects.CountryCode;</c>
-    /// in <c>GetHeatLayerQuery</c>. Two of them are whole edges missing from the finding
-    /// (Jobs → Guides, Marketplace → Guides), which is why the audit reports 36 edges where there
-    /// are 38.
+    /// <b>The audit counted 107 and there are 138. Both measurements that produced 107 were
+    /// written the same way, and that is the whole explanation.</b> The reports describe extracting
+    /// <q>every <c>using Diaspora.Modules.X.…</c> directive</q> — a pattern anchored on the name
+    /// following <c>using</c>, in files whose imports are fully qualified. It is exactly right
+    /// about the crossings that look like that and blind to every other kind:
+    /// <list type="bullet">
+    ///   <item><b>+3 written as aliases.</b>
+    ///   <c>using GuideId = Diaspora.Modules.Guides.Domain.Identifiers.GuideId;</c> puts a name
+    ///   between <c>using</c> and the namespace. Two of the three are whole edges missing from the
+    ///   finding — Jobs → Guides and Marketplace → Guides — which is why it reports 36 edges where
+    ///   there are 38.</item>
+    ///   <item><b>+28 that are not directives at all.</b>
+    ///   <c>Modules.Media.Application.Assets.AttachMediaCommand</c> in the middle of a method, or
+    ///   <c>Location.Domain.ValueObjects.GeoCoordinate</c>, both of which compile from inside
+    ///   <c>Diaspora.Modules</c>. <c>FeedComposer</c> reaches Location six times this way and has
+    ///   no directive naming it.</item>
+    /// </list>
     /// <br/>
-    /// The form matters more than the arithmetic: an alias is what you reach for when the imported
-    /// type's name <em>collides</em> with one of your own, so these are the most deliberate
-    /// crossings in the codebase, and they were the ones the measurement could not see. Recorded
-    /// here rather than corrected silently, because a scan and the number it produced belong
-    /// together.
+    /// <b>Neither blind spot is random, and that is what made them expensive.</b> An alias is what
+    /// you write when the imported name <em>collides</em> with one of your own; an inline reference
+    /// is what you write when you need one type and do not want the import. Both are the
+    /// <em>deliberate</em> crossings. And the 28 change the finding rather than its arithmetic:
+    /// seven module → Media edges are <see cref="Reach.Application"/> entirely because of them,
+    /// because every module with media attachments constructs Media's application command directly
+    /// — which is a thing worth knowing and which no count of imports could show.
     /// </para>
     /// <para>
     /// Two rows of the audit's sample table are also low against a full count — it lists 15 for
@@ -151,49 +181,51 @@ public sealed class ModuleEncapsulationArchitectureTests
     /// </summary>
     private static readonly InternalEdge[] EdgesStillOwed =
     [
-        // Application — another module's commands, queries or services (4 edges, 31 directives).
-        new("GeographicIntelligence", "Location", 18, Reach.Application),
-        new("Housing", "Location", 8, Reach.Application),
-        new("CommunityProgramme", "Financial", 4, Reach.Application),
-        new("Creator", "Media", 1, Reach.Application),
+        // Application -- another module's commands, queries or services (11 edges, 62 crossings).
+        // Seven of these are new: every module with media attachments constructs
+        // Modules.Media.Application.Assets.AttachMediaCommand inline, which no directive shows.
+        new("GeographicIntelligence", "Location", 18, 1, Reach.Application),
+        new("Housing", "Location", 8, 2, Reach.Application),
+        new("Providers", "Media", 3, 6, Reach.Application),
+        new("Community", "Media", 4, 1, Reach.Application),
+        new("CommunityProgramme", "Financial", 4, 0, Reach.Application),
+        new("Housing", "Media", 3, 1, Reach.Application),
+        new("Marketplace", "Media", 3, 1, Reach.Application),
+        new("CommunityLife", "Media", 1, 1, Reach.Application),
+        new("Guides", "Media", 1, 1, Reach.Application),
+        new("Jobs", "Media", 1, 1, Reach.Application),
+        new("Creator", "Media", 1, 0, Reach.Application),
 
-        // Aggregate — another module's entities (3 edges, 18 directives).
-        new("Guides", "Community", 10, Reach.Aggregate),
-        new("CommunityLife", "Location", 6, Reach.Aggregate),
-        new("Creator", "Community", 2, Reach.Aggregate),
+        // Aggregate -- another module's entities (3 edges, 18 crossings).
+        new("Guides", "Community", 10, 0, Reach.Aggregate),
+        new("CommunityLife", "Location", 6, 0, Reach.Aggregate),
+        new("Creator", "Community", 2, 0, Reach.Aggregate),
 
-        // Vocabulary — enumerations, value objects, identifiers (31 edges, 61 directives).
-        new("Community", "Media", 4, Reach.Vocabulary),
-        new("CommunityLife", "Community", 4, Reach.Vocabulary),
-        new("Providers", "Community", 4, Reach.Vocabulary),
-        new("Housing", "Media", 3, Reach.Vocabulary),
-        new("Jobs", "Location", 3, Reach.Vocabulary),
-        new("Marketplace", "Location", 3, Reach.Vocabulary),
-        new("Marketplace", "Media", 3, Reach.Vocabulary),
-        new("Providers", "Media", 3, Reach.Vocabulary),
-        new("Community", "Location", 2, Reach.Vocabulary),
-        new("CommunityLife", "Providers", 2, Reach.Vocabulary),
-        new("CommunityProgramme", "Community", 2, Reach.Vocabulary),
-        new("Conversations", "Community", 2, Reach.Vocabulary),
-        new("Guides", "Location", 2, Reach.Vocabulary),
-        new("Housing", "Community", 2, Reach.Vocabulary),
-        new("Housing", "Providers", 2, Reach.Vocabulary),
-        new("Integrations", "Notifications", 2, Reach.Vocabulary),
-        new("Jobs", "Community", 2, Reach.Vocabulary),
-        new("Marketplace", "Community", 2, Reach.Vocabulary),
-        new("Providers", "Location", 2, Reach.Vocabulary),
-        new("Automation", "Notifications", 1, Reach.Vocabulary),
-        new("CommunityLife", "Guides", 1, Reach.Vocabulary),
-        new("CommunityLife", "Media", 1, Reach.Vocabulary),
-        new("Conversations", "Notifications", 1, Reach.Vocabulary),
-        new("Guides", "Media", 1, Reach.Vocabulary),
-        new("Guides", "Providers", 1, Reach.Vocabulary),
-        new("Housing", "Guides", 1, Reach.Vocabulary),
-        new("Jobs", "Guides", 1, Reach.Vocabulary),
-        new("Jobs", "Media", 1, Reach.Vocabulary),
-        new("Jobs", "Providers", 1, Reach.Vocabulary),
-        new("Marketplace", "Guides", 1, Reach.Vocabulary),
-        new("Marketplace", "Providers", 1, Reach.Vocabulary)
+        // Vocabulary -- enumerations, value objects, identifiers (24 edges, 58 crossings).
+        new("Community", "Location", 2, 8, Reach.Vocabulary),
+        new("Providers", "Location", 2, 5, Reach.Vocabulary),
+        new("CommunityLife", "Community", 4, 0, Reach.Vocabulary),
+        new("Providers", "Community", 4, 0, Reach.Vocabulary),
+        new("Jobs", "Location", 3, 0, Reach.Vocabulary),
+        new("Marketplace", "Location", 3, 0, Reach.Vocabulary),
+        new("CommunityLife", "Providers", 2, 0, Reach.Vocabulary),
+        new("CommunityProgramme", "Community", 2, 0, Reach.Vocabulary),
+        new("Conversations", "Community", 2, 0, Reach.Vocabulary),
+        new("Guides", "Location", 2, 0, Reach.Vocabulary),
+        new("Housing", "Community", 2, 0, Reach.Vocabulary),
+        new("Housing", "Providers", 2, 0, Reach.Vocabulary),
+        new("Integrations", "Notifications", 2, 0, Reach.Vocabulary),
+        new("Jobs", "Community", 2, 0, Reach.Vocabulary),
+        new("Marketplace", "Community", 2, 0, Reach.Vocabulary),
+        new("Automation", "Notifications", 1, 0, Reach.Vocabulary),
+        new("CommunityLife", "Guides", 1, 0, Reach.Vocabulary),
+        new("Conversations", "Notifications", 1, 0, Reach.Vocabulary),
+        new("Guides", "Providers", 1, 0, Reach.Vocabulary),
+        new("Housing", "Guides", 1, 0, Reach.Vocabulary),
+        new("Jobs", "Guides", 1, 0, Reach.Vocabulary),
+        new("Jobs", "Providers", 1, 0, Reach.Vocabulary),
+        new("Marketplace", "Guides", 1, 0, Reach.Vocabulary),
+        new("Marketplace", "Providers", 1, 0, Reach.Vocabulary)
     ];
 
     /// <summary>
@@ -204,16 +236,35 @@ public sealed class ModuleEncapsulationArchitectureTests
 
     /// <summary>
     /// The three the audit's directive pattern could not see, because they are written as using
-    /// aliases. Declared as its own number rather than folded into the total, so that the next
-    /// person to re-measure and get 110 can see which 3 are the difference.
+    /// aliases — <c>using GuideId = Diaspora.Modules.Guides.Domain.Identifiers.GuideId;</c> puts a
+    /// name between <c>using</c> and the namespace, and the pattern was anchored on what follows
+    /// <c>using</c>.
     /// </summary>
     private const int AliasedCrossingsTheAuditMissed = 3;
+
+    /// <summary>
+    /// The twenty-eight that are not directives at all.
+    /// <para>
+    /// <b>Nothing had counted these, including the first version of this rule.</b> They are written
+    /// inline — <c>Modules.Media.Application.Assets.AttachMediaCommand</c>,
+    /// <c>Location.Domain.ValueObjects.GeoCoordinate</c> — and inside a <c>Diaspora.Modules.*</c>
+    /// namespace both short spellings compile, because C# resolves a namespace by walking outwards.
+    /// So a reader auditing imports sees none of them, and neither did two measurements written to
+    /// find exactly this.
+    /// </para>
+    /// <para>
+    /// They are also not evenly spread: seven module → Media edges are <see cref="Reach.Application"/>
+    /// entirely because of them, which is a different finding from the one the audit wrote down.
+    /// </para>
+    /// </summary>
+    private const int InlineCrossingsNobodyCounted = 28;
 
     /// <summary>
     /// The ceiling the list may never exceed. A list that sums above this means crossings were
     /// added after the finding was raised, which is the thing the ratchet exists to prevent.
     /// </summary>
-    private const int CrossingsFound = CrossingsTheAuditCounted + AliasedCrossingsTheAuditMissed;
+    private const int CrossingsFound =
+        CrossingsTheAuditCounted + AliasedCrossingsTheAuditMissed + InlineCrossingsNobodyCounted;
 
     private static readonly Lazy<Crossings> Scanned = new(ScanTheModules);
 
@@ -221,14 +272,14 @@ public sealed class ModuleEncapsulationArchitectureTests
     private sealed record Crossing(string Consumer, string Producer, string Reached, string Where);
 
     /// <summary>
-    /// What the scan found. <paramref name="Internal"/> and <paramref name="WrittenInFull"/> are
-    /// the same violation written two different ways, kept apart because only the first is
-    /// exempted — see
-    /// <see cref="No_crossing_is_hidden_behind_a_fully_qualified_name"/>.
+    /// What the scan found. <paramref name="Internal"/> is the crossings declared as using
+    /// directives and <paramref name="InCode"/> the ones written inline with no directive to show
+    /// for them; both are counted against the exemption list, and they are kept apart because the
+    /// second kind is invisible to the eye and to every scan this platform had.
     /// </summary>
     private sealed record Crossings(
         List<Crossing> Internal,
-        List<Crossing> WrittenInFull,
+        List<Crossing> InCode,
         List<Crossing> Published,
         HashSet<string> Modules,
         int Files);
@@ -247,51 +298,56 @@ public sealed class ModuleEncapsulationArchitectureTests
     [Fact]
     public void A_module_reaches_another_module_only_through_its_published_seams()
     {
-        var declared = EdgesStillOwed.ToDictionary(
-            edge => (edge.Consumer, edge.Producer),
-            edge => edge.Directives);
+        var declared = EdgesStillOwed.ToDictionary(edge => (edge.Consumer, edge.Producer));
 
-        var found = Scanned.Value.Internal
-            .GroupBy(crossing => (crossing.Consumer, crossing.Producer))
+        var found = Scanned.Value.Internal.Select(crossing => (crossing, viaDirective: true))
+            .Concat(Scanned.Value.InCode.Select(crossing => (crossing, viaDirective: false)))
+            .GroupBy(entry => (entry.crossing.Consumer, entry.crossing.Producer))
             .ToDictionary(group => group.Key, group => group.ToList());
 
         var offenders = new List<string>();
 
         foreach (var (edge, crossings) in found.OrderBy(entry => entry.Key))
         {
+            var directives = crossings.Count(entry => entry.viaDirective);
+            var inCode = crossings.Count - directives;
+            var where = string.Join(
+                ", ", crossings.Select(entry => entry.crossing.Where).Order(StringComparer.Ordinal));
+
             if (!declared.TryGetValue(edge, out var allowed))
             {
                 offenders.Add(
-                    $"NEW EDGE {edge.Consumer} -> {edge.Producer} ({crossings.Count}): reach " +
-                    $"{edge.Producer} through its Contracts, Extensibility or Integration " +
-                    $"namespace. If it genuinely cannot be reached that way, the seam is missing " +
-                    $"and adding the edge to EdgesStillOwed is a decision, not a formality. " +
-                    string.Join(", ", crossings.Select(crossing => crossing.Where)));
+                    $"NEW EDGE {edge.Consumer} -> {edge.Producer} ({directives} directives, " +
+                    $"{inCode} in code): reach {edge.Producer} through its Contracts, " +
+                    "Extensibility or Integration namespace. If it genuinely cannot be reached " +
+                    "that way, the seam is missing, and adding the edge to EdgesStillOwed is a " +
+                    $"decision rather than a formality. {where}");
 
                 continue;
             }
 
-            if (crossings.Count > allowed)
+            if (directives != allowed.Directives || inCode != allowed.InCode)
             {
+                var grew = directives + inCode > allowed.Crossings;
+
                 offenders.Add(
-                    $"GREW {edge.Consumer} -> {edge.Producer}: {allowed} recorded, " +
-                    $"{crossings.Count} found. Added: " +
-                    string.Join(", ", crossings.Select(crossing => crossing.Where)));
-            }
-            else if (crossings.Count < allowed)
-            {
-                offenders.Add(
-                    $"SHRANK {edge.Consumer} -> {edge.Producer}: {allowed} recorded, " +
-                    $"{crossings.Count} found. Decrement it in the commit that closed them, so " +
-                    "the list stays the record of what is still owed.");
+                    (grew ? "GREW " : "SHRANK ") +
+                    $"{edge.Consumer} -> {edge.Producer}: recorded " +
+                    $"{allowed.Directives} directives and {allowed.InCode} in code, found " +
+                    $"{directives} and {inCode}. " +
+                    (grew
+                        ? "Reach it through a published seam instead."
+                        : "Decrement it in the commit that closed them, so the list stays the " +
+                          "record of what is still owed.") +
+                    $" {where}");
             }
         }
 
         foreach (var edge in declared.Keys.Except(found.Keys).OrderBy(edge => edge))
         {
             offenders.Add(
-                $"CLOSED {edge.Consumer} -> {edge.Producer}: {declared[edge]} recorded, none " +
-                "found. Remove the entry in the commit that closed the edge.");
+                $"CLOSED {edge.Consumer} -> {edge.Producer}: {declared[edge].Crossings} recorded, " +
+                "none found. Remove the entry in the commit that closed the edge.");
         }
 
         offenders.Should().BeEmpty(
@@ -301,28 +357,44 @@ public sealed class ModuleEncapsulationArchitectureTests
     }
 
     /// <summary>
-    /// <b>The exemption is for an edge, not for a spelling.</b> Every crossing on the list is a
-    /// <c>using</c> directive, so a rule that only read <c>using</c> directives could be satisfied
-    /// by writing the type's full name instead — the same dependency, invisible to the ratchet, and
-    /// the obvious thing to reach for when the build goes red.
+    /// <b>A global using is counted once and reaches everywhere, so it is the one spelling the
+    /// ratchet cannot measure.</b> Every other crossing is local: a directive opens one file and an
+    /// inline name opens one expression, so counting them says something true about how much of a
+    /// module depends on another. <c>global using</c> is assembly-scoped — one line in one file
+    /// would let all 600 of a module's files name another module's aggregates, and the exemption
+    /// list would record it as a 1.
     /// <para>
-    /// There are none today, which is the point of asserting it now: this costs nothing while it is
-    /// true and would cost a redesign later.
+    /// The platform already uses global aliases deliberately —
+    /// <c>Automation/Extensibility/Scopes/AutomationSeamAliases.cs</c> declares a dozen — and every
+    /// one of them names <c>Diaspora.Contracts</c>, which is exactly right and exactly the reason
+    /// to pin it before somebody reaches for the same trick against a module.
     /// </para>
     /// </summary>
     [Fact]
-    public void No_crossing_is_hidden_behind_a_fully_qualified_name()
+    public void A_global_using_never_opens_another_modules_internals()
     {
-        var offenders = Scanned.Value.WrittenInFull
-            .Select(crossing =>
-                $"{crossing.Where}: {crossing.Consumer} names " +
-                $"{ModulePrefix}{crossing.Producer}.{crossing.Reached} in full")
-            .Order(StringComparer.Ordinal)
-            .ToList();
+        var offenders = new List<string>();
+
+        foreach (var file in SourceTree.ProductionFiles
+            .Where(file => file.Path.StartsWith(ModuleSourcePrefix, StringComparison.Ordinal)))
+        {
+            var consumer = file.Path[ModuleSourcePrefix.Length..].Split('/')[0];
+
+            offenders.AddRange(file.Root.DescendantNodes()
+                .OfType<UsingDirectiveSyntax>()
+                .Where(directive => !directive.GlobalKeyword.IsKind(SyntaxKind.None))
+                .Where(directive => TryReadCrossing(
+                    directive.Name?.ToString(),
+                    consumer,
+                    Scanned.Value.Modules,
+                    out _,
+                    out var reached) && !IsPublished(reached))
+                .Select(directive => $"{file.Locate(directive)}: {directive}"));
+        }
 
         offenders.Should().BeEmpty(
-            "a fully qualified name is the same crossing with the using directive left out:\n" +
-            string.Join("\n", offenders));
+            "a global using opens every file in the assembly at once, which is a dependency the " +
+            "per-edge counts cannot describe:\n" + string.Join("\n", offenders));
     }
 
     /// <summary>
@@ -383,30 +455,86 @@ public sealed class ModuleEncapsulationArchitectureTests
             }
             """;
 
+        // The two spellings C# allows from inside Diaspora.Modules, and the reason this rule was
+        // reporting a third of the truth.
+        const string viaTheModulesPrefix = """
+            namespace Diaspora.Modules.Housing.Probe;
+            internal sealed class Probe
+            {
+                public object? Value => Modules.Location.Domain.Areas.Area.Create();
+            }
+            """;
+
+        const string viaTheBareModuleName = """
+            namespace Diaspora.Modules.Housing.Probe;
+            internal sealed class Probe
+            {
+                public object? Value => Location.Domain.Areas.Area.Create();
+            }
+            """;
+
+        // Neither of these is a reference: one is prose, the other is a module's own folder whose
+        // first segment is not a module at all.
+        const string inADocComment = """
+            namespace Diaspora.Modules.Housing.Probe;
+            /// <summary>See <c>Location.Domain.Areas.Area</c> for the shape.</summary>
+            internal sealed class Probe { public int Value { get; set; } }
+            """;
+
+        const string aLocalNameThatLooksLikeOne = """
+            namespace Diaspora.Modules.Housing.Probe;
+            internal sealed class Probe
+            {
+                public object? Value => Domain.Listings.Listing.Create();
+                public object? Other => Location.Resolve();
+            }
+            """;
+
         var byDirective = Probe(viaUsingDirective);
         byDirective.Internal.Should().ContainSingle(
-            "the directive form is what the exemption list is written in");
-        byDirective.WrittenInFull.Should().BeEmpty("the type is reached through the directive");
+            "the directive form is what most of the exemption list is written in");
+        byDirective.InCode.Should().BeEmpty("the type is reached through the directive");
 
         var byAlias = Probe(viaAlias);
         byAlias.Internal.Should().ContainSingle(
             "an alias is a using directive, and three of the platform's crossings are written " +
             "this way — the form the audit's own measurement could not see");
-        byAlias.WrittenInFull.Should().BeEmpty("the alias target is the directive's own name");
+        byAlias.InCode.Should().BeEmpty("the alias target is the directive's own name");
 
         var byStaticImport = Probe(viaStaticImport);
         byStaticImport.Internal.Should().ContainSingle(
             "a static import reaches a type the same as any other directive");
 
         var byFullName = Probe(viaFullName);
-        byFullName.WrittenInFull.Should().ContainSingle(
-            "a fully qualified name is a crossing the exemption list cannot describe");
+        byFullName.InCode.Should().ContainSingle(
+            "a name written inline is a crossing with no directive to show for it");
         byFullName.Internal.Should().BeEmpty("there is no directive to attribute it to");
+
+        var byModulesPrefix = Probe(viaTheModulesPrefix);
+        byModulesPrefix.InCode.Should().ContainSingle(
+            "Modules.Location binds to Diaspora.Modules.Location from inside a module, and 18 of " +
+            "the platform's crossings are written exactly this way");
+
+        var byBareName = Probe(viaTheBareModuleName);
+        byBareName.InCode.Should().ContainSingle(
+            "Location alone binds the same way one namespace further out, and 11 more are this");
 
         var bySeam = Probe(viaThePublishedSeam);
         bySeam.Internal.Should().BeEmpty("Extensibility is published");
-        bySeam.WrittenInFull.Should().BeEmpty("Contracts is published, written in full or not");
+        bySeam.InCode.Should().BeEmpty("Contracts is published, written in full or not");
         bySeam.Published.Should().HaveCount(2, "both spellings name a published namespace");
+
+        var fromProse = Probe(inADocComment);
+        fromProse.InCode.Should().BeEmpty(
+            "a doc comment is trivia and DescendantNodes does not descend into it — without " +
+            "which the short form would report a crossing for every <c>Module.Domain.Thing</c> " +
+            "ever written in a summary");
+
+        var fromALocalName = Probe(aLocalNameThatLooksLikeOne);
+        fromALocalName.InCode.Should().BeEmpty(
+            "Domain.Listings is the module's own folder and Location.Resolve() is a local " +
+            "identifier whose second segment is not a module's folder: the short form needs both " +
+            "halves of its guard, and this is the half that stops it over-matching");
     }
 
     /// <summary>
@@ -422,7 +550,7 @@ public sealed class ModuleEncapsulationArchitectureTests
             .Should().OnlyHaveUniqueItems("one entry per edge, or two entries disagree silently");
 
         EdgesStillOwed.Should().OnlyContain(
-            edge => edge.Directives > 0, "an edge with no crossings is a closed edge");
+            edge => edge.Crossings > 0, "an edge with no crossings is a closed edge");
 
         var known = Scanned.Value.Modules;
 
@@ -433,15 +561,17 @@ public sealed class ModuleEncapsulationArchitectureTests
                 "an entry naming a module that does not exist exempts nothing. Modules: " +
                 string.Join(", ", known.Order(StringComparer.Ordinal)));
 
-        EdgesStillOwed.Sum(edge => edge.Directives)
+        EdgesStillOwed.Sum(edge => edge.Crossings)
             .Should().BeLessThanOrEqualTo(
                 CrossingsFound,
                 "the list may shrink below the {0} measured here and must never exceed it: a " +
                 "higher number means crossings were added after the finding was raised. The " +
-                "audit's own figure was {1}, short by the {2} written as using aliases",
+                "audit's own figure was {1}, short by {2} written as using aliases and {3} " +
+                "written inline with no directive at all",
                 CrossingsFound,
                 CrossingsTheAuditCounted,
-                AliasedCrossingsTheAuditMissed);
+                AliasedCrossingsTheAuditMissed,
+                InlineCrossingsNobodyCounted);
     }
 
     /// <summary>
@@ -459,7 +589,7 @@ public sealed class ModuleEncapsulationArchitectureTests
     [Fact]
     public void Every_exemption_declares_what_would_close_it()
     {
-        var reached = Scanned.Value.Internal
+        var reached = Scanned.Value.Internal.Concat(Scanned.Value.InCode)
             .GroupBy(crossing => (crossing.Consumer, crossing.Producer))
             .ToDictionary(
                 group => group.Key,
@@ -501,30 +631,36 @@ public sealed class ModuleEncapsulationArchitectureTests
 
         Scanned.Value.Internal.Should().HaveCountGreaterThan(
             0, "a scan that finds no crossings at all has stopped reading the source");
+
+        Scanned.Value.InCode.Should().HaveCountGreaterThan(
+            0,
+            "the inline crossings are the ones a reader of the imports cannot see, and a scan " +
+            "that reports none of them is the scan this rule shipped with the first time");
     }
 
     // ── The scan ─────────────────────────────────────────────────────────
 
     private static Crossings ScanTheModules()
     {
-        var crossings = new Crossings([], [], [], new HashSet<string>(StringComparer.Ordinal), 0);
-        var files = 0;
+        var files = SourceTree.ProductionFiles
+            .Where(file => file.Path.StartsWith(ModuleSourcePrefix, StringComparison.Ordinal))
+            .ToList();
 
-        foreach (var file in SourceTree.ProductionFiles)
+        // The module names are needed before the first file is read, not accumulated as it goes:
+        // resolving the short form below asks "is this first segment a module?", and a set built
+        // in scan order would answer no for every module the walk has not reached yet.
+        var modules = files
+            .Select(file => file.Path[ModuleSourcePrefix.Length..].Split('/')[0])
+            .ToHashSet(StringComparer.Ordinal);
+
+        var crossings = new Crossings([], [], [], modules, files.Count);
+
+        foreach (var file in files)
         {
-            if (!file.Path.StartsWith(ModuleSourcePrefix, StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            var consumer = file.Path[ModuleSourcePrefix.Length..].Split('/')[0];
-            crossings.Modules.Add(consumer);
-            files++;
-
-            ReadOneFile(file, consumer, crossings);
+            ReadOneFile(file, file.Path[ModuleSourcePrefix.Length..].Split('/')[0], crossings);
         }
 
-        return crossings with { Files = files };
+        return crossings;
     }
 
     /// <summary>
@@ -543,7 +679,7 @@ public sealed class ModuleEncapsulationArchitectureTests
         {
             var named = directive.Name?.ToString();
 
-            if (!TryReadCrossing(named, consumer, out var producer, out var reached))
+            if (!TryReadCrossing(named, consumer, into.Modules, out var producer, out var reached))
             {
                 continue;
             }
@@ -583,7 +719,7 @@ public sealed class ModuleEncapsulationArchitectureTests
 
             var written = Unspaced(node.ToString());
 
-            if (!TryReadCrossing(written, consumer, out var producer, out var reached))
+            if (!TryReadCrossing(written, consumer, into.Modules, out var producer, out var reached))
             {
                 continue;
             }
@@ -596,35 +732,86 @@ public sealed class ModuleEncapsulationArchitectureTests
                 continue;
             }
 
-            // A full name whose namespace this file already imports is the directive's crossing
-            // written out again, not a second one, and the directive is already recorded.
+            // A name whose namespace this file already imports is the directive's crossing written
+            // out again — to disambiguate a collision, usually — not a second one, and the
+            // directive is already recorded. Compared in canonical form, because the name in code
+            // may be written relatively and the directive never is.
+            var canonical = $"{ModulePrefix}{producer}.{reached}";
+
             var alreadyImported = imported.Any(namespaceName =>
-                string.Equals(written, namespaceName, StringComparison.Ordinal) ||
-                written.StartsWith(namespaceName + ".", StringComparison.Ordinal));
+                string.Equals(canonical, namespaceName, StringComparison.Ordinal) ||
+                canonical.StartsWith(namespaceName + ".", StringComparison.Ordinal));
 
             if (!alreadyImported)
             {
-                into.WrittenInFull.Add(crossing);
+                into.InCode.Add(crossing);
             }
         }
     }
 
     /// <summary>
-    /// Splits a name of the form <c>Diaspora.Modules.{Producer}.{Reached}</c>, rejecting anything
-    /// that is not another module's.
+    /// Resolves a written name to the module it reaches and the namespace inside it, rejecting
+    /// anything that is not another module's.
+    /// <para>
+    /// <b>Three spellings, because C# resolves a namespace by walking outwards and all three
+    /// compile.</b> Inside <c>Diaspora.Modules.Community.Application.Services</c>, the identifier
+    /// <c>Modules</c> finds no member until the walk reaches <c>Diaspora</c>, where it binds to
+    /// <c>Diaspora.Modules</c>; one step further out, <c>Location</c> binds to
+    /// <c>Diaspora.Modules.Location</c> the same way. So
+    /// <c>Diaspora.Modules.Location.Domain.ValueObjects.GeoCoordinate</c>,
+    /// <c>Modules.Location.Domain.…</c> and <c>Location.Domain.…</c> are one dependency written
+    /// three ways, and the short two are the ones an editor offers.
+    /// </para>
+    /// <para>
+    /// <b>All three are in use, and reading only the first is how 28 crossings stayed invisible</b>
+    /// — to the audit, and to the first version of this rule. <c>FeedComposer</c> reaches
+    /// <c>GeoCoordinate</c> four times with no directive to show for it, and six modules construct
+    /// <c>Modules.Media.Application.Assets.AttachMediaCommand</c>, which is an application-layer
+    /// reach that nothing had counted.
+    /// </para>
+    /// <para>
+    /// The short form is the only one that needs a guard, since its first segment is an ordinary
+    /// identifier: it must name a module, and the segment after it must be one of a module's own
+    /// folders. A doc comment writing <c>Community.Domain.Polls.Poll</c> is not a reference and is
+    /// excluded already, because <c>DescendantNodes()</c> does not descend into trivia.
+    /// </para>
     /// </summary>
     private static bool TryReadCrossing(
-        string? named, string consumer, out string producer, out string reached)
+        string? named,
+        string consumer,
+        HashSet<string> modules,
+        out string producer,
+        out string reached)
     {
         producer = string.Empty;
         reached = string.Empty;
 
-        if (named is null || !named.StartsWith(ModulePrefix, StringComparison.Ordinal))
+        if (named is null)
         {
             return false;
         }
 
-        var segments = named[ModulePrefix.Length..].Split('.');
+        string[] segments;
+
+        if (named.StartsWith(ModulePrefix, StringComparison.Ordinal))
+        {
+            segments = named[ModulePrefix.Length..].Split('.');
+        }
+        else if (named.StartsWith(RelativeModulePrefix, StringComparison.Ordinal))
+        {
+            segments = named[RelativeModulePrefix.Length..].Split('.');
+        }
+        else
+        {
+            segments = named.Split('.');
+
+            if (segments.Length < 2 ||
+                !modules.Contains(segments[0]) ||
+                !IsAModulesOwnFolder(segments[1]))
+            {
+                return false;
+            }
+        }
 
         // "Diaspora.Modules.Location" on its own names no namespace inside the module.
         if (segments.Length < 2)
@@ -636,6 +823,8 @@ public sealed class ModuleEncapsulationArchitectureTests
 
         if (string.Equals(producer, consumer, StringComparison.Ordinal))
         {
+            producer = string.Empty;
+
             return false;
         }
 
@@ -643,6 +832,17 @@ public sealed class ModuleEncapsulationArchitectureTests
 
         return true;
     }
+
+    /// <summary>
+    /// Whether a segment is one of the folders every module has, which is what tells the short
+    /// form apart from an ordinary dotted expression whose first name happens to match a module.
+    /// </summary>
+    private static bool IsAModulesOwnFolder(string segment) =>
+        PublishedSegments.Contains(segment, StringComparer.Ordinal) ||
+        LayerSegments.Contains(segment, StringComparer.Ordinal) ||
+        string.Equals(segment, "Domain", StringComparison.Ordinal) ||
+        string.Equals(segment, "Catalog", StringComparison.Ordinal) ||
+        string.Equals(segment, "Api", StringComparison.Ordinal);
 
     private static bool IsPublished(string reached) =>
         PublishedSegments.Contains(FirstSegmentOf(reached), StringComparer.Ordinal);
@@ -679,9 +879,11 @@ public sealed class ModuleEncapsulationArchitectureTests
         var file = new SourceFile(
             "probe/Probe.cs", CSharpSyntaxTree.ParseText(source).GetRoot());
 
-        var crossings = new Crossings([], [], [], new HashSet<string>(StringComparer.Ordinal), 0);
+        // Every probe is written as if it were a Housing file reaching Location. The module set is
+        // supplied rather than scanned, because the short form resolves against it.
+        var crossings = new Crossings(
+            [], [], [], ["Housing", "Location", "Community", "Media"], 0);
 
-        // Every probe is written as if it were a Housing file reaching Location.
         ReadOneFile(file, "Housing", crossings);
 
         return crossings;
