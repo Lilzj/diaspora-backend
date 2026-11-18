@@ -1,6 +1,9 @@
 using Diaspora.Modules.Financial.Extensibility.Gateways;
 using Diaspora.Modules.Financial.Extensibility.Settlement;
 using Diaspora.Payments.Stripe;
+using Diaspora.Operations.Policies;
+using Diaspora.Platform.Operations.Policies;
+using Diaspora.Platform.Operations.Resilience;
 using Diaspora.Platform.Services.Abstractions;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
@@ -93,6 +96,32 @@ public class StripeRegistrationTests
         gateway.SupportedMethods.Should().NotBeEmpty();
     }
 
+    /// <summary>
+    /// <b>A deployment that would retry a charge cannot create a Stripe client at all.</b> The
+    /// executor resolves retry by dependency name and falls back to three attempts for a name that
+    /// declares none, so the policy is what stands between a timing-out provider and a duplicate
+    /// charge. Asserted through the real registration rather than against the handler directly,
+    /// because the thing worth knowing is that the guard survives the DI graph the adapter is
+    /// actually composed in.
+    /// </summary>
+    [Fact]
+    public void A_policy_that_would_retry_a_charge_stops_the_client_being_created()
+    {
+        using var provider = Build(
+            new Dictionary<string, string?>(StringComparer.Ordinal)
+            {
+                ["Payments:Stripe:Provider"] = "stripe",
+                ["Payments:Stripe:ApiBase"] = "https://stripe.test",
+                ["Payments:Stripe:SecretKey"] = "sk_test_stub"
+            },
+            new RetryingPaymentPolicyContributor());
+
+        var create = () => provider.GetServices<IPaymentGateway>().ToList();
+
+        create.Should().Throw<InvalidOperationException>()
+            .WithMessage("*allowing 2 retries*");
+    }
+
     private static ServiceProvider Build(string? secretKey)
     {
         var settings = new Dictionary<string, string?>(StringComparer.Ordinal)
@@ -110,12 +139,65 @@ public class StripeRegistrationTests
             .AddInMemoryCollection(settings)
             .Build();
 
+        return Build(settings, new PlatformResiliencePolicyContributor());
+    }
+
+    /// <summary>
+    /// <b>The adapter requires the platform's resilience services, and that is new.</b> Every
+    /// Stripe client is routed through <c>IResilienceExecutor</c> under
+    /// <c>financial.payment-provider</c>, so creating one resolves the executor and the policy
+    /// catalogue. Before BARCH-007 these clients needed nothing but a timeout; a deployment that
+    /// registers the adapter without <c>AddProductionPlatform</c> now fails when the first client
+    /// is created rather than when the first charge is refused, which is the better of the two.
+    /// </summary>
+    private static ServiceProvider Build(
+        Dictionary<string, string?> settings, IOperationalPolicyContributor policies)
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(settings)
+            .Build();
+
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton<IClock, FixedClock>();
+        services.AddSingleton<IOperationalPolicyCatalog>(new OperationalPolicyCatalog([policies]));
+        services.AddSingleton<IResilienceExecutor, PassThroughExecutor>();
         services.AddStripePayments(configuration);
 
         return services.BuildServiceProvider();
+    }
+
+    /// <summary>
+    /// Runs the operation. The executor's own behaviour is tested where it lives; what these
+    /// tests need is a registration that resolves.
+    /// </summary>
+    private sealed class PassThroughExecutor : IResilienceExecutor
+    {
+        public Task<TResult> ExecuteAsync<TResult>(
+            string dependency,
+            Func<CancellationToken, Task<TResult>> operation,
+            CancellationToken cancellationToken = default) =>
+            operation(cancellationToken);
+
+        public Task ExecuteAsync(
+            string dependency,
+            Func<CancellationToken, Task> operation,
+            CancellationToken cancellationToken = default) =>
+            operation(cancellationToken);
+    }
+
+    /// <summary>A catalogue that declares a payment retry policy permitting a retry.</summary>
+    private sealed class RetryingPaymentPolicyContributor : IOperationalPolicyContributor
+    {
+        public string Module => "Financial";
+
+        public IEnumerable<OperationalPolicy> Policies =>
+        [
+            new RetryPolicy(OperationalPolicyNames.CircuitBreaker.PaymentProvider)
+            {
+                MaxAttempts = 2
+            }
+        ];
     }
 
     private sealed class FixedClock : IClock
