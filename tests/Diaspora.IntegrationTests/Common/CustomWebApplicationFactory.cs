@@ -46,6 +46,60 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Api.Program>
     private DbConnection? _connection;
     private bool _schemaCreated;
 
+    /// <summary>
+    /// BARCH-009. Two defaults that this suite has no use for, turned off in one place because
+    /// every specialised factory in the suite derives from this one.
+    /// </summary>
+    // Public, not protected: the suite constrains its factories with new(), so a protected
+    // constructor removes the implicit public one and 61 test classes stop compiling.
+    public CustomWebApplicationFactory()
+    {
+        // <b>Nothing on this platform returns a 3xx.</b> A search of the whole source tree for
+        // Results.Redirect, RedirectResult and a manual Location header finds none, and no test
+        // asserts on one. So following redirects cannot do anything useful here, and leaving it on
+        // has a real cost: AllowAutoRedirect puts RedirectHandler into the call stack of every
+        // request whether or not a redirect happens, and the pre-launch audit read that frame in a
+        // failing stack as evidence that "the tests that follow a redirect" were the problem. They
+        // were not; there are none. The frame is removed so the next reader cannot make the same
+        // inference.
+        //
+        // UseHttpsRedirection *is* mounted for this suite -- Program.cs mounts it for every
+        // environment that is not Development, and the suite runs in Testing -- and it is inert
+        // only because HttpsRedirectionMiddleware cannot discover an https port under TestServer
+        // and skips. That is a thin reason for 2,000 tests to see a 200 rather than a 307, so
+        // SuiteReliabilityTests pins it.
+        ClientOptions.AllowAutoRedirect = false;
+    }
+
+    /// <summary>
+    /// Every client this factory hands out, with no wall-clock limit on a request — BARCH-009.
+    /// <para>
+    /// <b>HttpClient.Timeout defaults to 100 seconds, and that number was the suite's flakiness.</b>
+    /// Building one of these applications costs 32 seconds, 61 test classes still build one of their
+    /// own, and xUnit builds as many at once as the machine has processors — so a request issued
+    /// during that storm can wait minutes for a response that is perfectly correct when it arrives.
+    /// At 100 seconds the client gave up first and threw TaskCanceledException, which is why the
+    /// failures were always cancellations and never assertions, and why a different set failed each
+    /// time.
+    /// </para>
+    /// <para>
+    /// <b>A test client has no business imposing a deadline at all.</b> It is not a user and it is
+    /// not a service-level objective; the only honest statements about time here belong to the test
+    /// runner (longRunningTestSeconds in xunit.runner.json, which reports rather than fails) and to
+    /// the CI job budget. Any finite number set here is a guess about how fast the machine will be,
+    /// and the whole finding is what happens when that guess is wrong.
+    /// </para>
+    /// </summary>
+    protected override void ConfigureClient(HttpClient client)
+    {
+        ArgumentNullException.ThrowIfNull(client);
+
+        // Sets BaseAddress from ClientOptions. Skipping it leaves every relative request unroutable.
+        base.ConfigureClient(client);
+
+        client.Timeout = Timeout.InfiniteTimeSpan;
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);

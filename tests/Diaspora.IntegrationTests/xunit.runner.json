@@ -1,0 +1,9 @@
+{
+  "$schema": "https://xunit.net/schema/current/xunit.runner.schema.json",
+
+  "//longRunningTestSeconds": "BARCH-009. The test clients impose no wall-clock limit any more, so nothing interrupts a test that has genuinely stopped making progress. This is what replaces that: the runner reports any test still running after two minutes, repeatedly, by name. Two minutes is deliberately just above the 100-second HttpClient default that used to fail these tests, so the information the old timeout produced is not lost -- it is downgraded from a failure into a report, which is the right register for a number that is really a guess about how fast the machine is.",
+  "longRunningTestSeconds": 120,
+
+  "//diagnosticMessages": "Required for longRunningTestSeconds to reach the output at all. It costs some discovery noise on every run, which is the price of a hang that names itself.",
+  "diagnosticMessages": true
+}

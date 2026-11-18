@@ -80,12 +80,24 @@ public sealed class AreaAroundAPointTests : PooledIdentityTestBase
         area.GetProperty("countryCode").GetString().Should().Be("KE");
 
         var counts = area.GetProperty("resourceCounts");
+
+        // **Asserted before the counts, not after them** - BARCH-009. The comment below already
+        // knew that an absent key means "could not ask"; this assertion was three GetProperty
+        // calls too late to say so. Under a contended full suite a counter throws, the aggregator
+        // omits its key exactly as its contract says it should, and the first count assertion then
+        // died with KeyNotFoundException from deep inside System.Text.Json - a stack trace that
+        // names neither the counter that gave up nor the fact that one did. Ordered this way the
+        // same failure reads "expected unavailableResourceTypes to be empty but found {events}",
+        // which is the whole diagnosis. Measured 17 Nov 2026: 1 failure in 2,234 under one busy
+        // process per processor, twice, and an hour to work out what it was.
+        area.GetProperty("unavailableResourceTypes").GetArrayLength().Should().Be(
+            0, "a counter that could not answer is omitted below rather than reported as zero");
+
         counts.GetProperty("housing").GetInt32().Should().Be(2, "two homes are inside the circle and one is in Thika");
         counts.GetProperty("events").GetInt32().Should().Be(1);
 
         // The public traffic update and the police report are both public, published posts.
         counts.GetProperty("updates").GetInt32().Should().Be(2);
-        area.GetProperty("unavailableResourceTypes").GetArrayLength().Should().Be(0);
 
         // Every vertical with coordinates answered, a zero included: none of these seeded rows is a job
         // or a marketplace listing, and an absent key would mean "could not ask", not "none".
