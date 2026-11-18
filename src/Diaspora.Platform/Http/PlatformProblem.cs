@@ -106,6 +106,17 @@ public static class PlatformProblem
         problem.Extensions["traceId"] = context.TraceId();
         problem.Extensions["timestamp"] = DateTimeOffset.UtcNow.ToString("O");
 
+        // Counted here because here is where both factories converge and where the code is already
+        // in hand. Three of the platform's five launch alerts read the resulting instrument, and
+        // one of them — the 429 rate — is produced by the rate limiter's rejection callback, which
+        // never reaches the exception middleware. See PlatformHttpTelemetry.
+        //
+        // This counts a problem document being *built* rather than written. The two differ only
+        // for a caller that constructs one and discards it, which nothing does today; WriteAsync's
+        // own early return on a started response happens before anything is built, so a response
+        // that could not be sent is not counted.
+        PlatformHttpTelemetry.Record(code, problem.Status ?? 0);
+
         if (extensions is null)
         {
             return;

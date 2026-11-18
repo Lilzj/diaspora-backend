@@ -121,6 +121,20 @@ docs/
 # The rule is the one the note above states: a guardrail's input must be in
 # the repository, or the guardrail is a comment.
 !src/Diaspora.Analyzers/AnalyzerCatalog.md
+
+# -- ...and a fourth, the same rule a third time ------------------------------
+#
+# AlertCatalog.md is the platform's alert definitions (BARCH-008 step 3), read
+# by AlertCatalogArchitectureTests to prove that every alert names an
+# instrument that exists, every meter it names is subscribed by a contributor,
+# and no instrument documenting itself as worth alerting on has been left out.
+#
+# It was written into src/Diaspora.Observability/ specifically to avoid the
+# docs/ trap above, and the blanket extension rule caught it anyway -- the
+# tests passed locally while the file would not have existed on a clean
+# checkout, where File.ReadAllText throws rather than skips. Found before the
+# commit this time rather than by CI.
+!src/Diaspora.Observability/AlertCatalog.md
 .neon
 .env.local
 node_modules/
