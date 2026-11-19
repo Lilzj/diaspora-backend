@@ -12,8 +12,16 @@ namespace Diaspora.Modules.Location.Api;
 /// <summary>
 /// The country catalogue's routes.
 /// <para>
-/// These replace the 195-country array bundled into the mobile app, and the three
-/// level-scoped sub-routes replace the hierarchy the app currently does not have at all.
+/// These serve the country array the mobile app bundles — which is generated from
+/// <see cref="Persistence.Seeding.WorldCountryData"/>, so the two cannot disagree — and the
+/// level-scoped sub-routes serve the hierarchy the app does not bundle at all.
+/// </para>
+/// <para>
+/// They do not replace the app's bundled copy, and that is deliberate rather than
+/// outstanding work. Every route here requires authorisation, and the screens that need the
+/// country list most — choose-country, choose-origin, eligibility-error — run before the
+/// member has a token. The registration funnel cannot call these routes, so for the funnel the
+/// bundled list is not a fallback but the only source.
 /// </para>
 /// </summary>
 internal static class CountryEndpoints

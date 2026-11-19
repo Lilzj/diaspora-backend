@@ -54,10 +54,17 @@ public sealed record CommunityOriginResponse
     /// <summary>
     /// Left null by this module rather than looked up.
     /// <para>
-    /// The client already carries all 192 countries with their names and flags in
-    /// <c>mocks/countries.ts</c> and renders from the code. Serving a name here would be a second
-    /// source of truth for a string the device already has, in one language, with no way to
-    /// localise it — §58 forbids exactly that.
+    /// The client already carries every country with its name and flag in
+    /// <c>src/lib/reference/countries.ts</c> and renders from the code. Serving a name here would
+    /// be a second source of truth for a string the device already has, in one language, with no
+    /// way to localise it — §58 forbids exactly that.
+    /// </para>
+    /// <para>
+    /// The device's copy is generated from this platform's own
+    /// <c>WorldCountryData</c> and checked against it on every client build, so "the client
+    /// already has it" is now a guarantee rather than an observation. The file moved out of
+    /// <c>src/mocks</c> on 18 November 2026 and the count that used to be quoted here was wrong
+    /// in both repositories' comments, which is why none is quoted now.
     /// </para>
     /// </summary>
     public string? CountryName { get; init; }
