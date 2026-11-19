@@ -3,11 +3,26 @@ namespace Diaspora.Modules.Location.Persistence.Seeding;
 /// <summary>
 /// The shipped country table: ISO alpha-2 code, English name, and E.164 calling code.
 /// <para>
-/// Transcribed from the frontend's <c>src/mocks/countries.ts</c> so the two lists cannot
-/// disagree. That matters more than it sounds: the app bundles this list today and renders it
-/// on the origin, residence and phone-input screens, so a name here that differed from a name
-/// there would show a member two spellings of their own country depending on which screen
-/// they were on. The parity is asserted by test.
+/// <b>This table is the source, and the frontend's list is generated from it.</b> That is the
+/// reverse of how it started: this was transcribed from the app's own
+/// <c>src/mocks/countries.ts</c>, and until 19 November 2026 nothing kept the two in step.
+/// The app bundles the list and renders it on the origin, residence and phone-input screens,
+/// so a name here that differed from a name there would show a member two spellings of their
+/// own country depending on which screen they were on.
+/// </para>
+/// <para>
+/// The check is in the client repository, not this one: <c>Lilzj/diaspora-app</c> generates
+/// <c>src/lib/reference/countries.ts</c> from this file with
+/// <c>scripts/generate-countries.js</c>, and <c>countries-drift.test.ts</c> fails when the two
+/// disagree. It runs in that repository's <c>contract-drift</c> job, which checks this
+/// repository out. It lives there because that is where the derived artefact lives and where
+/// the cross-repository machinery already is — this repository's CI does not check the client
+/// out, so a parity test written here would skip rather than run.
+/// </para>
+/// <para>
+/// The frontend's fourth field, the flag, is not stored on either side: Unicode encodes every
+/// ISO alpha-2 code as its pair of regional indicator symbols, so the generator computes it.
+/// Three columns here are enough for four there.
 /// </para>
 /// <para>
 /// Names are display text, not contract — a country renamed by ISO is edited here without a
@@ -31,7 +46,10 @@ public static class WorldCountryData
     public static readonly IReadOnlySet<string> FeaturedAtLaunch =
         new HashSet<string>(StringComparer.Ordinal) { "GB", "MU", "NG", "GH", "KE", "ZA" };
 
-    /// <summary>Code, name, calling code — 195 entries, in the frontend's own order.</summary>
+    /// <summary>
+    /// Code, name, calling code. The order is the order the frontend renders, because the
+    /// frontend's list is written out from this one.
+    /// </summary>
     public static readonly IReadOnlyList<WorldCountryRecord> All =
     [
         new("AF", "Afghanistan", "+93"), new("AL", "Albania", "+355"),
