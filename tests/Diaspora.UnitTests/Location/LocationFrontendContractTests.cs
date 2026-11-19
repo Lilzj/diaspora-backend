@@ -120,7 +120,7 @@ public sealed class LocationFrontendContractTests
     // ── CountryItem / CountryRef ─────────────────────────────────────────
 
     /// <summary>
-    /// <c>CountryItem</c> (mocks/countries.ts) is code, name, flag, callingCode.
+    /// <c>CountryItem</c> (lib/reference/countries.ts) is code, name, flag, callingCode.
     /// <c>CountryRef</c> (types/guide.ts) is code, name, flag. One superset binds both.
     /// </summary>
     [Theory]
@@ -270,14 +270,29 @@ public sealed class LocationFrontendContractTests
     // ── The country catalogue ────────────────────────────────────────────
 
     /// <summary>
-    /// The shipped table is transcribed from <c>src/mocks/countries.ts</c>, which carries 191
-    /// entries. A count mismatch means a country was dropped or added on one side only, which
-    /// shows up as a member being unable to find their own country on a picker.
+    /// A floor, not a count — and the distinction is the point.
+    /// <para>
+    /// This assertion used to read <c>HaveCount(191)</c> under the name
+    /// <c>The_shipped_country_table_matches_the_frontends_length</c>, and the class comment on
+    /// <see cref="WorldCountryData"/> cited it as the test that asserted parity with the
+    /// frontend. It did not: 191 is a number typed into this file. Both sides of the
+    /// comparison were ours, so it could not fail for the reason it existed. Adding a country
+    /// to the frontend alone — the drift it was named for — changed nothing here; adding one
+    /// to this table failed it, and the only available fix was to raise the literal, which is
+    /// how a divergence gets blessed rather than caught.
+    /// </para>
+    /// <para>
+    /// The parity check is in the client repository, where the derived artefact lives:
+    /// <c>src/lib/reference/countries.ts</c> is generated from this table and
+    /// <c>countries-drift.test.ts</c> compares them entry for entry. What is worth asserting
+    /// here is that the table has not been emptied or gutted — a failure the client could only
+    /// report on its own next build.
+    /// </para>
     /// </summary>
     [Fact]
-    public void The_shipped_country_table_matches_the_frontends_length()
+    public void The_shipped_country_table_is_a_world_list_rather_than_a_remnant()
     {
-        WorldCountryData.All.Should().HaveCount(191);
+        WorldCountryData.All.Should().HaveCountGreaterThan(150);
     }
 
     [Fact]
@@ -303,7 +318,17 @@ public sealed class LocationFrontendContractTests
             .Should().OnlyHaveUniqueItems();
     }
 
-    /// <summary>Spot checks against the frontend's own entries, including the launch markets.</summary>
+    /// <summary>
+    /// The entries worth pinning: the two launch markets, and four names whose spelling is a
+    /// decision rather than a transcription — ICU renders them "Bosnia and Herzegovina",
+    /// "Congo (Kinshasa)" and so on, and the class comment on <see cref="WorldCountryData"/>
+    /// explains why this table does not follow ICU.
+    /// <para>
+    /// These are literals here and in the table, so this is a freeze rather than a comparison:
+    /// it catches a silent edit, not a divergence from the client. The client comparison is
+    /// <c>countries-drift.test.ts</c> in the app repository.
+    /// </para>
+    /// </summary>
     [Theory]
     [InlineData("GB", "United Kingdom", "+44")]
     [InlineData("MU", "Mauritius", "+230")]
@@ -311,7 +336,7 @@ public sealed class LocationFrontendContractTests
     [InlineData("CI", "Côte d'Ivoire", "+225")]
     [InlineData("BA", "Bosnia & Herzegovina", "+387")]
     [InlineData("CD", "Congo - Kinshasa", "+243")]
-    public void Country_entries_match_the_frontends_verbatim(
+    public void The_pinned_country_entries_are_unchanged(
         string code, string name, string callingCode)
     {
         var record = WorldCountryData.All.Single(entry => entry.Code == code);
