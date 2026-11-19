@@ -22,12 +22,13 @@ can call the analyzers.
 **Ids are permanent.** A retired rule keeps its number. Reusing one would silence a rule nobody
 chose to silence, years after the suppression was written.
 
-**Five ids in this space are not analyzer rules.** `DSP2004`, `DSP1005`, `DSP3005`, `DSP3006` and
-`DSP4005` are *compiler obsoletions* — the `DiagnosticId` on an `[Obsolete(error: true)]` attribute a
+**Six ids in this space are not analyzer rules.** `DSP2004`, `DSP1005`, `DSP3005`, `DSP3006`,
+`DSP4005` and `DSP7001` are *compiler obsoletions* — the `DiagnosticId` on an `[Obsolete(error: true)]` attribute a
 retired type carries — so they appear in no `AnalyzerReleases` file and no analyzer emits them. They
 are reserved here under the same permanence rule, because a suppression written against one must
 silence the thing it was written for. `DSP2004` is B1.4.1's dormant notification port and its two
-model types; the other four cover the **fifteen** types PSR-1 Final Certification retired. See
+model types, `DSP7001` is BSEC-013's unreachable service-token issuer; the other four cover the
+**fifteen** types PSR-1 Final Certification retired. See
 [DSP2004](#dsp2004--the-dormant-notification-port-reserved) and
 [Retirements](#retirements--compiler-obsoletions).
 
@@ -443,6 +444,42 @@ of the pull request that adds the `using`.
 
 **Fix.** Implement the seam in an adapter assembly and register it after the module. Infrastructure
 assemblies are not flagged — that is where a model client belongs.
+
+---
+
+## DSP7xxx — Identity and authorization
+
+A block opened by BSEC-013 for the one id below. No analyzer rule lives here yet; the space is
+reserved so that an identity retirement is numbered where a reader would look for it rather than
+borrowed from a block about something else.
+
+### DSP7001 — The service-token issuer with no caller
+**Severity:** Error · **Emitted by:** the C# compiler, not this pack
+
+Not an analyzer rule. `DSP7001` is the `DiagnosticId` on the `[Obsolete(error: true)]` attribute
+carried by `IServiceTokenIssuer` and `ServiceTokenIssuer` since 18 November 2026. Naming either,
+from anywhere, is a compile error.
+
+**Why it was retired.** BSEC-013 and BSOLID-007 of the November 2026 pre-launch audit. The issuer
+was registered as a singleton and had no production caller anywhere in the repository: the Trust &
+Verification Engine runs outside this process and signs its own token with the shared key. What it
+produced was a principal that skips every live-state check by design — no session, no account
+lookup, no security stamp — so a registered, unreachable component existed whose only purpose was
+to mint one. A declared-but-unused *security* capability also reads as an implemented control
+during review, which the audit records happening to this type and to
+`OtpPurpose.StepUpAuthentication` in the same pass.
+
+**What is unchanged.** The platform still *validates* service tokens.
+`AccessTokenValidationHandler`'s service-token branch is production code, is untouched, and is
+exercised by the integration suite — which now mints the token itself, as an outside service would.
+
+**What would revive it.** Hosting a service caller inside this process. It should be revived
+together with a `kid`-scoped signing key, so the member signing key cannot mint a service token;
+that half of BSEC-013 is key material and belongs with BSEC-008.
+
+**It cannot be suppressed**, for the reason given under [DSP2004](#dsp2004--the-dormant-notification-port-reserved):
+a pragma suppresses warnings and this is an error. Both were tried here and neither does anything —
+`#pragma warning disable DSP7001` and a file-scoped `dotnet_diagnostic.DSP7001.severity = none`.
 
 ---
 

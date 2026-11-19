@@ -18,7 +18,21 @@ namespace Diaspora.Infrastructure.Identity.Tokens;
 /// session. Validation branches on that claim, so a service token can never satisfy a
 /// member-scoped endpoint and a member's token can never reach a service-only one.
 /// </para>
+/// <para>
+/// <b>Retired with its interface, 18 November 2026 (BSEC-013).</b> The class is kept rather than
+/// deleted because the integration suite mints a Trust Engine token with it, deliberately: that is
+/// what lets those tests exercise the real validation branch instead of a bypass that would prove
+/// nothing about it. The one file allowed to construct this says so, and is the only suppression of
+/// <c>DSP7001</c> in the repository.
+/// </para>
 /// </summary>
+/// <seealso cref="IServiceTokenIssuer"/>
+[Obsolete(
+    "ServiceTokenIssuer is retired with IServiceTokenIssuer: nothing in this platform mints a " +
+    "service token. It is kept so the integration suite can mint the token the Trust Engine " +
+    "would present and exercise the real validation path. See ADR-020 and BSEC-013.",
+    error: true,
+    DiagnosticId = "DSP7001")]
 public sealed class ServiceTokenIssuer : IServiceTokenIssuer
 {
     /// <summary>
