@@ -139,7 +139,12 @@ internal static class CampaignEndpoints
 
                     if (result.IsFailure)
                     {
-                        return PlatformResults.Ok(context, result);
+                        // RMD-003. Re-typed rather than forwarded: the page this loop reads is a
+                        // `CursorPagedResult<CampaignResponse>` and the route answers a flat list.
+                        // Same problem document either way; the route can now name one response
+                        // type instead of two.
+                        return PlatformResults.Ok(
+                            context, Result.Failure<IReadOnlyList<CampaignResponse>>(result.Error));
                     }
 
                     campaigns.AddRange(result.Value.Items);
