@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using Diaspora.Modules.CommunityProgramme.Domain.Communities;
 using Diaspora.Modules.CommunityProgramme.Domain.Errors;
 using Diaspora.Modules.CommunityProgramme.Domain.Events;
@@ -270,26 +269,6 @@ public sealed class CommunityAdministrationTests
         community.HighestMemberMilestone.Should().Be(10);
     }
 
-    [Fact]
-    public void The_migration_backfills_with_the_same_milestones_the_domain_uses()
-    {
-        // A backfill with a different list would leave existing communities either announcing a
-        // milestone they passed long ago or never announcing one they have not.
-        var migration = Directory
-            .EnumerateFiles(
-                Path.Combine(RepositoryRoot(), "src", "Diaspora.Persistence", "Migrations"),
-                "*_CommunityMemberMilestone.cs")
-            .Single();
-
-        var backfilled = Regex
-            .Matches(File.ReadAllText(migration), @">= (\d+) THEN")
-            .Select(match => int.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture))
-            .OrderBy(value => value)
-            .ToArray();
-
-        backfilled.Should().Equal(CommunityAggregate.MemberMilestones);
-    }
-
     // ── Builders ────────────────────────────────────────────────────────────────────────────
 
     private static CommunityAggregate Proposed() =>
@@ -316,17 +295,4 @@ public sealed class CommunityAdministrationTests
         return (community, member);
     }
 
-    private static string RepositoryRoot()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Diaspora.slnx"))
-               && !Directory.Exists(Path.Combine(directory.FullName, ".git")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName
-            ?? throw new InvalidOperationException("The repository root could not be found.");
-    }
 }

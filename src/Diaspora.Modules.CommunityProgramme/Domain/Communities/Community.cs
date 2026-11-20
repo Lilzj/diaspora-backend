@@ -433,6 +433,16 @@ public sealed class Community : AggregateRoot<CommunityId>, IAuditableEntity
 
     /// <summary>
     /// The sizes worth marking. A milestone is reached the first time the count arrives at one.
+    /// <para>
+    /// Communities that existed before this column had their <c>HighestMemberMilestone</c> set from
+    /// this list by <c>20260911102455_CommunityMemberMilestone</c>, so that the next member to join a
+    /// community already past 100 did not set off "this community reached 100 members". That migration
+    /// was squashed into <c>20261120140702_PlatformBaseline</c> on 20 Nov 2026 and its backfill is not
+    /// carried forward — it had already run everywhere, and a fresh database has no rows to backfill.
+    /// <b>Changing this list therefore does not revisit any existing row.</b> A new entry below an
+    /// existing count will not be announced retrospectively, which is the intended behaviour and the
+    /// reason the original backfill had to match this list exactly.
+    /// </para>
     /// </summary>
     public static readonly IReadOnlyList<int> MemberMilestones =
         [10, 25, 50, 100, 250, 500, 1_000, 2_500, 5_000, 10_000, 25_000, 50_000, 100_000];
