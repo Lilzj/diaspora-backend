@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Location.V1;
 using System.Globalization;
 using Diaspora.Application.Abstractions;
 using Diaspora.Modules.Community.Integration;
@@ -13,7 +14,7 @@ using Diaspora.Modules.Location.Application.Services;
 using Diaspora.Modules.Location.Extensibility;
 using Diaspora.SharedKernel.Results;
 using Microsoft.Extensions.Options;
-using LocationCountryCode = Diaspora.Modules.Location.Domain.ValueObjects.CountryCode;
+using LocationCountryCode = Diaspora.Contracts.Location.V1.CountryCode;
 
 namespace Diaspora.Modules.GeographicIntelligence.Application.Heat;
 

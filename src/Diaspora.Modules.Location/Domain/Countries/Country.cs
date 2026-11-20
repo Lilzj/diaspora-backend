@@ -1,5 +1,5 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Domain.Abstractions;
-using Diaspora.Modules.Location.Domain.Enums;
 using Diaspora.Modules.Location.Domain.Events;
 using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.SharedKernel.Identity;

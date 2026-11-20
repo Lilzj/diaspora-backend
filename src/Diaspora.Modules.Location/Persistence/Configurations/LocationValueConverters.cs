@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Location.V1;
 using System.Globalization;
 using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Persistence;
@@ -39,7 +40,7 @@ public static class LocationValueConverters
 
     public static ValueConverter CountryCode { get; } =
         new ValueConverter<CountryCode, string>(
-            code => code.Value, value => Domain.ValueObjects.CountryCode.Create(value));
+            code => code.Value, value => Diaspora.Contracts.Location.V1.CountryCode.Create(value));
 
     public static ValueConverter Slug { get; } =
         new ValueConverter<LocationSlug, string>(

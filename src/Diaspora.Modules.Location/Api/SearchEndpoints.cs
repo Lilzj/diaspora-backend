@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Application.Search;
 using Diaspora.Modules.Location.Application.Towns;
 using Diaspora.Platform.Http;

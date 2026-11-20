@@ -1,9 +1,9 @@
+using Diaspora.Contracts.Location.V1;
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Nodes;
 using Diaspora.Modules.GeographicIntelligence.Domain.Routing;
-using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Platform.Usage;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;

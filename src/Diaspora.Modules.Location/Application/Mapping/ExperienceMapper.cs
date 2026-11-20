@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Contracts.V1.Responses;
 using Diaspora.Modules.Location.Domain.Enums;
 using Diaspora.Modules.Location.Domain.Experience;

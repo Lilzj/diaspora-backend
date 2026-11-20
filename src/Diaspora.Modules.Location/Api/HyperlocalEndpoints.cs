@@ -1,6 +1,6 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Application.Nearby;
 using Diaspora.Modules.Location.Contracts.V1.Requests;
-using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Platform.Http;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
@@ -217,7 +217,7 @@ internal static class HyperlocalEndpoints
             ? []
             : value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-    private static IReadOnlyList<Domain.Enums.AdministrativeLevel> ParseLevelList(
+    private static IReadOnlyList<AdministrativeLevel> ParseLevelList(
         IReadOnlyList<string>? levels) =>
         levels is null || levels.Count == 0
             ? []

@@ -1,8 +1,7 @@
+using Diaspora.Contracts.Location.V1;
 using System.Diagnostics.CodeAnalysis;
 using Diaspora.Modules.Location.Domain.Areas;
-using Diaspora.Modules.Location.Domain.Enums;
 using Diaspora.Modules.Location.Domain.Search;
-using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Persistence;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Pagination;

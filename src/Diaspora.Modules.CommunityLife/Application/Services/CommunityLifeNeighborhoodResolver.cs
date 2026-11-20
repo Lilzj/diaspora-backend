@@ -1,10 +1,9 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.CommunityLife.Domain.Errors;
 using Diaspora.Modules.CommunityLife.Domain.ValueObjects;
 using Diaspora.Modules.Housing.Integration;
 using Diaspora.Modules.Location.Domain.Areas;
 using Diaspora.Modules.Location.Domain.Countries;
-using Diaspora.Modules.Location.Domain.Enums;
-using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Results;
 
@@ -107,7 +106,7 @@ public sealed class CommunityLifeNeighborhoodResolver
         // Fully qualified: both Location and the platform Domain declare a CountryCode, and the
         // repository takes Location's. An unqualified name here resolves to whichever using
         // directive happens to come first, which is a bug that compiles. B11 records the same trap.
-        var code = Modules.Location.Domain.ValueObjects.CountryCode.TryCreate(
+        var code = CountryCode.TryCreate(
             countryCode.Trim().ToUpperInvariant());
 
         if (code.IsFailure)

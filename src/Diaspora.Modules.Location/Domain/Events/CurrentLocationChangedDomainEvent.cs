@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Domain.Profiles;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Primitives;

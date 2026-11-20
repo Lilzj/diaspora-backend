@@ -1,4 +1,4 @@
-namespace Diaspora.Modules.Location.Domain.Enums;
+namespace Diaspora.Contracts.Location.V1;
 
 /// <summary>
 /// The rung a geographic node occupies in the administrative hierarchy.

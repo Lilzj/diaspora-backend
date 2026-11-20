@@ -1,7 +1,7 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Guides.Domain.Enums;
 using Diaspora.Modules.Guides.Domain.Guides;
 using Diaspora.Modules.Guides.Domain.Policies;
-using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Modules.Location.Extensibility;
 using Diaspora.SharedKernel.Identity;
 

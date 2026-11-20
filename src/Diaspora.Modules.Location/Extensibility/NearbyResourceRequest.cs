@@ -1,5 +1,5 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Domain.Search;
-using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.SharedKernel.Identity;
 
 namespace Diaspora.Modules.Location.Extensibility;
@@ -47,7 +47,7 @@ public sealed record NearbyResourceRequest
     /// stored coordinates, with the corners trimmed by distance — rather than a town- or
     /// country-wide question answered by <see cref="CityName"/> and <see cref="CountryCode"/>.
     /// </summary>
-    public bool IsCircle => Search.Radius.Scope == Domain.Enums.RadiusScope.Radius;
+    public bool IsCircle => Search.Radius.Scope == RadiusScope.Radius;
 
     /// <summary>
     /// The town the request named, by name, matched case-insensitively against the town an owner

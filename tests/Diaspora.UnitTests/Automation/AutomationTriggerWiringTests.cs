@@ -1,5 +1,6 @@
 using Diaspora.Contracts.Automation.V1.Extensibility;
 using Diaspora.Contracts.Events;
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Automation.Domain.Catalog;
 using Diaspora.Modules.CommunityProgramme.Domain.Communities;
 using Diaspora.Modules.CommunityProgramme.Domain.Events;

@@ -1,6 +1,6 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Application.Areas;
 using Diaspora.Modules.Location.Application.Countries;
-using Diaspora.Modules.Location.Domain.Enums;
 using Diaspora.Platform.Http;
 using MediatR;
 using Microsoft.AspNetCore.Builder;

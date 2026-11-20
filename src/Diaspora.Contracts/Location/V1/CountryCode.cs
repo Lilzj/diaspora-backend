@@ -1,7 +1,7 @@
 using Diaspora.SharedKernel.Primitives;
 using Diaspora.SharedKernel.Results;
 
-namespace Diaspora.Modules.Location.Domain.ValueObjects;
+namespace Diaspora.Contracts.Location.V1;
 
 /// <summary>
 /// An ISO 3166-1 alpha-2 country code, normalised to upper case.
@@ -16,7 +16,7 @@ namespace Diaspora.Modules.Location.Domain.ValueObjects;
 /// Validated on shape, not against a fixed list. ISO reassigns codes, and a hard-coded set
 /// in this file would be wrong within a year and wrong in a way nobody notices. Whether a
 /// well-formed code names a country the platform actually serves is
-/// <see cref="Countries.Country"/>'s question.
+/// <c>Country</c>'s question.
 /// </para>
 /// </summary>
 public sealed class CountryCode : ValueObject

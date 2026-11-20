@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Contracts.V1.Responses;
 using Diaspora.Modules.Location.Domain.Profiles;
 
@@ -50,7 +51,7 @@ public static class ProfileMapper
     }
 
     public static SavedLocationResponse ToResponse(
-        SavedLocation saved, Domain.Enums.CoordinatePrecision precision)
+        SavedLocation saved, CoordinatePrecision precision)
     {
         ArgumentNullException.ThrowIfNull(saved);
 

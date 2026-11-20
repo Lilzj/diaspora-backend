@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Location.V1;
 using System.Reflection;
 using System.Text.Json;
 using Diaspora.Modules.Location;

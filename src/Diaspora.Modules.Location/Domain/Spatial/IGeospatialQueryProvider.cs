@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Domain.Areas;
 using Diaspora.Modules.Location.Domain.Search;
 
@@ -9,7 +10,7 @@ namespace Diaspora.Modules.Location.Domain.Spatial;
 /// The seam the brief exists to require: "future support should be possible for PostGIS, SQL
 /// Server Spatial, Elasticsearch, OpenSearch, Google Places, Mapbox and OpenStreetMap without
 /// changing the domain". Everything above this interface deals in
-/// <see cref="Domain.ValueObjects.GeoCoordinate"/>, <see cref="Domain.ValueObjects.Distance"/>
+/// <see cref="GeoCoordinate"/>, <see cref="Distance"/>
 /// and <see cref="AdministrativeArea"/>; nothing above it knows whether the filtering
 /// happened in a <c>WHERE</c> clause, in an ST_DWithin call, in a geo_distance aggregation, or
 /// in this process.

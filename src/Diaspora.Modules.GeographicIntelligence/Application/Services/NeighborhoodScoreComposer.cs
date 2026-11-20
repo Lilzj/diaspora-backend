@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.GeographicIntelligence.Contracts.V1.Responses;
 using Diaspora.Modules.GeographicIntelligence.Domain.Scores;
 using Diaspora.Modules.GeographicIntelligence.Observability;
@@ -5,7 +6,6 @@ using Diaspora.Modules.GeographicIntelligence.Options;
 using Diaspora.Modules.Housing.Integration;
 using Diaspora.Modules.Location.Application.Services;
 using Diaspora.Modules.Location.Domain.Areas;
-using Diaspora.Modules.Location.Domain.Enums;
 using Diaspora.SharedKernel.Pagination;
 using Microsoft.Extensions.Options;
 

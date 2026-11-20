@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Location.V1;
 using System.Globalization;
 using Diaspora.Application.Abstractions;
 using Diaspora.Modules.Community.Integration;
@@ -191,7 +192,7 @@ public sealed class GetSafetyScoreQueryHandler
     }
 
     private async Task<SafetyCountResponse> PoliceCountAsync(
-        Location.Domain.ValueObjects.GeoCoordinate? centre, string name, CancellationToken cancellationToken)
+        GeoCoordinate? centre, string name, CancellationToken cancellationToken)
     {
         var area = string.Format(CultureInfo.InvariantCulture, "Within one mile of {0}'s centre", name);
 

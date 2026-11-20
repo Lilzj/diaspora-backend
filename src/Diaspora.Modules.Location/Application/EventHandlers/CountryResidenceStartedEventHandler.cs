@@ -1,8 +1,8 @@
 using Diaspora.Application.Abstractions;
 using Diaspora.Contracts.Location.V1.Events;
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Application.Services;
 using Diaspora.Modules.Location.Domain.Events;
-using Diaspora.Modules.Location.Domain.ValueObjects;
 
 namespace Diaspora.Modules.Location.Application.EventHandlers;
 

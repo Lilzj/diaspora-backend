@@ -1,4 +1,4 @@
-using Diaspora.Modules.Location.Domain.ValueObjects;
+using Diaspora.Contracts.Location.V1;
 using Diaspora.SharedKernel.Identity;
 
 namespace Diaspora.Modules.Location.Domain.Areas;
@@ -25,7 +25,7 @@ public sealed record AreaRelocation
     public required CountryId NewCountryId { get; init; }
 
     /// <summary>That country's ISO code, for the denormalised column on every descendant.</summary>
-    public required Domain.ValueObjects.CountryCode NewCountryCode { get; init; }
+    public required CountryCode NewCountryCode { get; init; }
 
     /// <summary>The prefix a descendant path currently starts with.</summary>
     public string PreviousDescendantPrefix => PreviousPath.DescendantPrefix;

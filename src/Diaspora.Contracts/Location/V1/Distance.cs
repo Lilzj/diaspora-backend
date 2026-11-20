@@ -1,7 +1,6 @@
-using Diaspora.Modules.Location.Domain.Enums;
 using Diaspora.SharedKernel.Primitives;
 
-namespace Diaspora.Modules.Location.Domain.ValueObjects;
+namespace Diaspora.Contracts.Location.V1;
 
 /// <summary>
 /// A non-negative distance, stored in kilometres and rendered in whatever unit the member reads.

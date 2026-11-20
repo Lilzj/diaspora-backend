@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Location.V1;
 using System.Globalization;
 using Diaspora.Modules.Community.Integration;
 using Diaspora.Modules.GeographicIntelligence.Application.Intelligence;
@@ -9,7 +10,6 @@ using Diaspora.Modules.GeographicIntelligence.Observability;
 using Diaspora.Modules.GeographicIntelligence.Options;
 using Diaspora.Modules.Housing.Integration;
 using Diaspora.Modules.Location.Domain.Countries;
-using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Modules.Location.Extensibility;
 using Diaspora.SharedKernel.Geography;
 using Diaspora.SharedKernel.Results;

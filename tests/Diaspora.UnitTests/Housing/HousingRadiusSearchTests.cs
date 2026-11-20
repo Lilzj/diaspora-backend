@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Housing.Application.Services;
 using Diaspora.Modules.Housing.Domain.Enums;
 using Diaspora.Modules.Housing.Domain.Listings;
