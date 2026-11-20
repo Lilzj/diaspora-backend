@@ -1,4 +1,4 @@
-namespace Diaspora.Modules.Community.Domain.Enums;
+namespace Diaspora.Contracts.Community.V1;
 
 /// <summary>
 /// The kind of thing a social interaction points at.

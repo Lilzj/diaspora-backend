@@ -1,10 +1,10 @@
+using Diaspora.Contracts.Community.V1;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Diaspora.IntegrationTests.Common;
 using Diaspora.Modules.Community.Domain.Enums;
 using Diaspora.Modules.Community.Domain.Moderation;
-using Diaspora.Modules.Community.Domain.ValueObjects;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;

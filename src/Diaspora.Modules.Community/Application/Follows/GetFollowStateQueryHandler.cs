@@ -1,7 +1,7 @@
 using Diaspora.Application.Abstractions;
+using Diaspora.Contracts.Community.V1;
 using Diaspora.Modules.Community.Application.Services;
 using Diaspora.Modules.Community.Contracts.V1.Responses;
-using Diaspora.Modules.Community.Domain.Enums;
 using Diaspora.Modules.Community.Domain.Errors;
 using Diaspora.Modules.Community.Domain.Follows;
 using Diaspora.Platform.Services.Abstractions;

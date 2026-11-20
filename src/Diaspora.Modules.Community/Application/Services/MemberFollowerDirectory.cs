@@ -1,5 +1,5 @@
 using Diaspora.Contracts.Community.V1.Follows;
-using Diaspora.Modules.Community.Domain.Enums;
+using Diaspora.Contracts.Community.V1;
 using Diaspora.Modules.Community.Domain.Follows;
 
 namespace Diaspora.Modules.Community.Application.Services;

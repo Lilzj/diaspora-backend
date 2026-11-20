@@ -1,5 +1,4 @@
-using Diaspora.Modules.Community.Domain.Enums;
-using Diaspora.Modules.Community.Domain.ValueObjects;
+using Diaspora.Contracts.Community.V1;
 
 namespace Diaspora.Modules.Community.Extensibility.Content;
 

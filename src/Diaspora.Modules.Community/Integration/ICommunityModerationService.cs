@@ -1,6 +1,5 @@
-using Diaspora.Modules.Community.Domain.Enums;
+using Diaspora.Contracts.Community.V1;
 using Diaspora.Modules.Community.Domain.Moderation;
-using Diaspora.Modules.Community.Domain.ValueObjects;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Results;
 

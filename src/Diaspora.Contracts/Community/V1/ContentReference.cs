@@ -1,7 +1,6 @@
-using Diaspora.Modules.Community.Domain.Enums;
 using Diaspora.SharedKernel.Primitives;
 
-namespace Diaspora.Modules.Community.Domain.ValueObjects;
+namespace Diaspora.Contracts.Community.V1;
 
 /// <summary>
 /// A pointer to any addressable piece of content on the platform.

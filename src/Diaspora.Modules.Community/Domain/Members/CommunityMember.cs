@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Community.V1;
 using Diaspora.SharedKernel.Identity;
 
 namespace Diaspora.Modules.Community.Domain.Members;

@@ -1,4 +1,4 @@
-using Diaspora.Modules.Community.Domain.Enums;
+using Diaspora.Contracts.Community.V1;
 using Diaspora.Modules.Community.Domain.Follows;
 using Diaspora.Modules.Location.Integration;
 using Diaspora.Platform.Services.Abstractions;

@@ -1,8 +1,7 @@
+using Diaspora.Contracts.Community.V1;
 using Diaspora.Modules.CommunityLife.Domain.CommunityEvents;
 using Diaspora.Modules.CommunityLife.Domain.Enums;
 using Diaspora.Modules.CommunityLife.Domain.Identifiers;
-using Diaspora.Modules.Community.Domain.Enums;
-using Diaspora.Modules.Community.Domain.ValueObjects;
 using Diaspora.Modules.Community.Extensibility.Content;
 
 namespace Diaspora.Modules.CommunityLife.Infrastructure.Community;

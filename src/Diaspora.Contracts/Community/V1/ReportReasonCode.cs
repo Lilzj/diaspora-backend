@@ -1,4 +1,4 @@
-namespace Diaspora.Modules.Community.Domain.Enums;
+namespace Diaspora.Contracts.Community.V1;
 
 /// <summary>
 /// Why a member reported a piece of content.

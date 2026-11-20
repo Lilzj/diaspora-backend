@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Community.V1;
 using System.Reflection;
 using Diaspora.Modules.CommunityProgramme;
 using Diaspora.Modules.CommunityProgramme.Domain.Polls;

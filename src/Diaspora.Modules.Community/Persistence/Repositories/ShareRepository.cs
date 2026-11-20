@@ -1,5 +1,5 @@
+using Diaspora.Contracts.Community.V1;
 using Diaspora.Modules.Community.Domain.Shares;
-using Diaspora.Modules.Community.Domain.ValueObjects;
 using Diaspora.Persistence;
 using Diaspora.SharedKernel.Identity;
 using Microsoft.EntityFrameworkCore;

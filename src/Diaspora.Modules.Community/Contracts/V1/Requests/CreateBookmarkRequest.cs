@@ -1,3 +1,5 @@
+using Diaspora.Contracts.Community.V1;
+
 namespace Diaspora.Modules.Community.Contracts.V1.Requests;
 
 /// <summary>Saving something.</summary>

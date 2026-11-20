@@ -1,4 +1,4 @@
-using Diaspora.Modules.Community.Domain.ValueObjects;
+using Diaspora.Contracts.Community.V1;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Results;
 

@@ -1,8 +1,8 @@
+using Diaspora.Contracts.Community.V1;
 using Diaspora.Modules.Community.Domain.Bookmarks;
 using Diaspora.Modules.Community.Domain.Comments;
 using Diaspora.Modules.Community.Domain.Reactions;
 using Diaspora.Modules.Community.Domain.Shares;
-using Diaspora.Modules.Community.Domain.ValueObjects;
 using Diaspora.Modules.Community.Integration;
 using Diaspora.SharedKernel.Identity;
 
