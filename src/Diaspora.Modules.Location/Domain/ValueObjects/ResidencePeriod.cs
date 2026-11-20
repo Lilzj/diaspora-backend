@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Domain.Enums;
 using Diaspora.SharedKernel.Primitives;
 using Diaspora.SharedKernel.Results;

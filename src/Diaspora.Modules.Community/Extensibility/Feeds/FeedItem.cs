@@ -1,5 +1,5 @@
+using Diaspora.Contracts.Community.V1;
 using Diaspora.Modules.Community.Domain.Posts;
-using Diaspora.Modules.Community.Domain.ValueObjects;
 
 namespace Diaspora.Modules.Community.Extensibility.Feeds;
 

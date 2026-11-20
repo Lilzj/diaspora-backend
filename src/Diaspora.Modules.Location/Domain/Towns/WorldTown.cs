@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.SharedKernel.Primitives;
 
 namespace Diaspora.Modules.Location.Domain.Towns;

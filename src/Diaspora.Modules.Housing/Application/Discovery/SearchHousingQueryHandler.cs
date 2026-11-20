@@ -1,4 +1,5 @@
 using Diaspora.Application.Abstractions;
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Housing.Application.Services;
 using Diaspora.Modules.Housing.Contracts.V1.Requests;
 using Diaspora.Modules.Housing.Contracts.V1.Responses;
@@ -101,7 +102,7 @@ public sealed class SearchHousingQueryHandler
         // measured from the same point, and cut at the same edge, as the distances on the cards.
         var circle = aroundPoint
             && scope.Value is { Center: { } centre, IsViewport: false } resolved
-            && resolved.Radius.Scope == Location.Domain.Enums.RadiusScope.Radius
+            && resolved.Radius.Scope == RadiusScope.Radius
                 ? (Latitude: centre.Latitude, Longitude: centre.Longitude, Kilometres: resolved.Radius.Distance.Kilometers)
                 : ((double Latitude, double Longitude, double Kilometres)?)null;
 

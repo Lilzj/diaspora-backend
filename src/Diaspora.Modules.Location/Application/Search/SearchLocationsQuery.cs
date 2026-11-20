@@ -1,6 +1,6 @@
 using Diaspora.Application.Abstractions;
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Contracts.V1.Responses;
-using Diaspora.Modules.Location.Domain.Enums;
 
 namespace Diaspora.Modules.Location.Application.Search;
 

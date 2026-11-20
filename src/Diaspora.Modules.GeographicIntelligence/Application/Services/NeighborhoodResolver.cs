@@ -1,6 +1,5 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Domain.Areas;
-using Diaspora.Modules.Location.Domain.Enums;
-using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.SharedKernel.Identity;
 
 namespace Diaspora.Modules.GeographicIntelligence.Application.Services;

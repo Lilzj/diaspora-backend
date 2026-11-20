@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Domain.Towns;
 using Diaspora.Persistence;
 using Microsoft.EntityFrameworkCore;

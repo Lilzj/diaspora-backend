@@ -1,5 +1,5 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Domain.Countries;
-using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Persistence;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Pagination;

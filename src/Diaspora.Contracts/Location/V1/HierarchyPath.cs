@@ -1,7 +1,7 @@
 using Diaspora.SharedKernel.Primitives;
 using Diaspora.SharedKernel.Results;
 
-namespace Diaspora.Modules.Location.Domain.ValueObjects;
+namespace Diaspora.Contracts.Location.V1;
 
 /// <summary>
 /// A materialised path naming every ancestor of an area, root first — for example
@@ -25,7 +25,7 @@ public sealed class HierarchyPath : ValueObject
     public const char Separator = '/';
 
     /// <summary>
-    /// Eight levels of <see cref="Enums.AdministrativeLevel"/> at the slug limit, plus
+    /// Eight levels of <see cref="AdministrativeLevel"/> at the slug limit, plus
     /// separators. Sized so the column can be indexed on every supported provider.
     /// </summary>
     public const int MaxLength = 1024;

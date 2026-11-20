@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Location.V1;
 using System.Diagnostics;
 using Diaspora.Application.Abstractions;
 using Diaspora.Modules.GeographicIntelligence.Contracts.V1.Responses;
@@ -6,7 +7,6 @@ using Diaspora.Modules.GeographicIntelligence.Domain.Routing;
 using Diaspora.Modules.GeographicIntelligence.Observability;
 using Diaspora.Modules.GeographicIntelligence.Options;
 using Diaspora.Modules.Location.Domain.Spatial;
-using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.SharedKernel.Results;
 using Microsoft.Extensions.Options;
 

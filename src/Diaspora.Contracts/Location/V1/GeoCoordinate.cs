@@ -1,7 +1,6 @@
-using Diaspora.Modules.Location.Domain.Enums;
 using Diaspora.SharedKernel.Primitives;
 
-namespace Diaspora.Modules.Location.Domain.ValueObjects;
+namespace Diaspora.Contracts.Location.V1;
 
 /// <summary>
 /// A point on the Earth's surface: latitude and longitude in decimal degrees, WGS 84.
@@ -16,7 +15,7 @@ namespace Diaspora.Modules.Location.Domain.ValueObjects;
 /// <para>
 /// Distance is deliberately absent from this type. Two points do not know how far apart they
 /// are — that depends on the earth model in use, which is
-/// <see cref="Spatial.IGeoDistanceCalculator"/>'s business precisely so a future switch from
+/// <c>IGeoDistanceCalculator</c>'s business precisely so a future switch from
 /// spherical to ellipsoidal maths touches one class rather than every call site.
 /// </para>
 /// </summary>

@@ -1,3 +1,5 @@
+using Diaspora.Contracts.Location.V1;
+
 namespace Diaspora.Modules.Location.Contracts.V1.Responses;
 
 /// <summary>The member's "when the app is open" setting, and the last area it resolved to.</summary>

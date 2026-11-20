@@ -1,7 +1,6 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Jobs.Domain.Postings;
 using Diaspora.Modules.Jobs.Extensibility.Search;
-using Diaspora.Modules.Location.Domain.Enums;
-using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Modules.Location.Integration;
 using Diaspora.SharedKernel.Identity;
 

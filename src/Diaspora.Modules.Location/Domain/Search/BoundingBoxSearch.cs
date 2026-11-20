@@ -1,5 +1,4 @@
-using Diaspora.Modules.Location.Domain.Enums;
-using Diaspora.Modules.Location.Domain.ValueObjects;
+using Diaspora.Contracts.Location.V1;
 using Diaspora.SharedKernel.Results;
 
 namespace Diaspora.Modules.Location.Domain.Search;

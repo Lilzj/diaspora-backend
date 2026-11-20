@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Community.V1;
 using Diaspora.Modules.Community.Domain.Enums;
 using Diaspora.Modules.Community.Domain.Follows;
 using Diaspora.Modules.Community.Domain.Posts;

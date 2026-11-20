@@ -1,7 +1,7 @@
 using Diaspora.SharedKernel.Primitives;
 using Diaspora.SharedKernel.Results;
 
-namespace Diaspora.Modules.Location.Domain.ValueObjects;
+namespace Diaspora.Contracts.Location.V1;
 
 /// <summary>
 /// An axis-aligned latitude/longitude rectangle.

@@ -1,4 +1,4 @@
-using Diaspora.Modules.Location.Domain.ValueObjects;
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Extensibility;
 using Diaspora.SharedKernel.Identity;
 using Microsoft.Extensions.Logging;

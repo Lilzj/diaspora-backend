@@ -1,9 +1,9 @@
+using Diaspora.Contracts.Location.V1;
 using System.Diagnostics;
 using Diaspora.Application.Abstractions;
 using Diaspora.Modules.Location.Application.Services;
 using Diaspora.Modules.Location.Contracts.V1.Responses;
 using Diaspora.Modules.Location.Domain.Countries;
-using Diaspora.Modules.Location.Domain.Enums;
 using Diaspora.Modules.Location.Domain.Errors;
 using Diaspora.Modules.Location.Domain.Search;
 using Diaspora.Modules.Location.Extensibility;

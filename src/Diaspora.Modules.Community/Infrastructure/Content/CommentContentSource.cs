@@ -1,5 +1,5 @@
+using Diaspora.Contracts.Community.V1;
 using Diaspora.Modules.Community.Domain.Comments;
-using Diaspora.Modules.Community.Domain.Enums;
 using Diaspora.Modules.Community.Domain.Identifiers;
 using Diaspora.Modules.Community.Extensibility.Content;
 

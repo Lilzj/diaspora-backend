@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Location.V1;
 using System.Globalization;
 using Diaspora.Modules.Location.Extensibility;
 using Diaspora.Modules.Location.Integration;
@@ -81,7 +82,7 @@ public sealed class ProviderNearbyResourceProvider : INearbyResourceProvider
                 || !provider.Location.HasCoordinates
                 || _location.DistanceBetween(
                     origin,
-                    Modules.Location.Domain.ValueObjects.GeoCoordinate.Create(
+                    GeoCoordinate.Create(
                         provider.Location.Latitude!.Value,
                         provider.Location.Longitude!.Value)).Kilometers <= edge)
             .Select(provider => new NearbyResourceItem
@@ -92,7 +93,7 @@ public sealed class ProviderNearbyResourceProvider : INearbyResourceProvider
                 DistanceKm = provider.Location.HasCoordinates
                     ? _location.DistanceBetween(
                         origin,
-                        Modules.Location.Domain.ValueObjects.GeoCoordinate.Create(
+                        GeoCoordinate.Create(
                             provider.Location.Latitude!.Value,
                             provider.Location.Longitude!.Value)).Kilometers
                     : 0d,

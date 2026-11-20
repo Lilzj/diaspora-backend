@@ -1,6 +1,6 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Housing.Application.Services;
 using Diaspora.Modules.Housing.Domain.Listings;
-using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Modules.Location.Integration;
 using FluentAssertions;
 using Xunit;

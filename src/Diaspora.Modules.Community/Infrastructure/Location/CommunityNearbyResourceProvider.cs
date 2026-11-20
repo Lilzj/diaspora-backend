@@ -1,10 +1,11 @@
+using Diaspora.Contracts.Community.V1;
+using Diaspora.Contracts.Location.V1;
 using System.Globalization;
 using Diaspora.Modules.Community.Application.Services;
 using Diaspora.Modules.Community.Domain.Enums;
 using Diaspora.Modules.Community.Domain.Policies;
 using Diaspora.Modules.Community.Domain.Posts;
 using Diaspora.Modules.Location.Extensibility;
-using Diaspora.Modules.Location.Domain.Enums;
 using Diaspora.Modules.Location.Integration;
 
 namespace Diaspora.Modules.Community.Infrastructure.Location;
@@ -107,7 +108,7 @@ public sealed class CommunityNearbyResourceProvider : INearbyResourceProvider
                 DistanceKm: post.Location.HasCoordinates
                     ? _location.DistanceBetween(
                         origin,
-                        Modules.Location.Domain.ValueObjects.GeoCoordinate.Create(
+                        GeoCoordinate.Create(
                             post.Location.Latitude!.Value, post.Location.Longitude!.Value)).Kilometers
                     : 0d))
             // The corners of the rectangle are not within the circle. Trimmed against the radius the
@@ -205,7 +206,7 @@ public sealed class CommunityNearbyResourceProvider : INearbyResourceProvider
     /// </para>
     /// </summary>
     private static (double MinLatitude, double MinLongitude, double MaxLatitude, double MaxLongitude)
-        GrowBy(Modules.Location.Domain.ValueObjects.BoundingBox bounds, double kilometres)
+        GrowBy(BoundingBox bounds, double kilometres)
     {
         const double kilometresPerDegree = 111d;
 

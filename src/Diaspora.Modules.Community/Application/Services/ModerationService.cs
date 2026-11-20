@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Community.V1;
 using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Community.Domain.Comments;
 using Diaspora.Modules.Community.Domain.Enums;
@@ -5,7 +6,6 @@ using Diaspora.Modules.Community.Domain.Errors;
 using Diaspora.Modules.Community.Domain.Identifiers;
 using Diaspora.Modules.Community.Domain.Moderation;
 using Diaspora.Modules.Community.Domain.Posts;
-using Diaspora.Modules.Community.Domain.ValueObjects;
 using Diaspora.Modules.Community.Extensibility.Content;
 using Diaspora.Modules.Community.Integration;
 using Diaspora.Platform.Services.Abstractions;

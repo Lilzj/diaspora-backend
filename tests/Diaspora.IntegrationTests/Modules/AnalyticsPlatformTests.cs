@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Community.V1;
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
@@ -10,7 +11,6 @@ using Diaspora.Domain.Abstractions;
 using Diaspora.IntegrationTests.Common;
 using Diaspora.Modules.Analytics.Application.Projection;
 using Diaspora.Modules.Community.Application.Services;
-using Diaspora.Modules.Community.Domain.Enums;
 using Diaspora.Platform.Messaging;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;

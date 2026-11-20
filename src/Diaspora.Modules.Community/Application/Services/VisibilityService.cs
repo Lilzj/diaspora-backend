@@ -1,4 +1,5 @@
-using Diaspora.Modules.Community.Domain.Enums;
+using Diaspora.Contracts.Community.V1;
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Community.Domain.Identifiers;
 using Diaspora.Modules.Community.Domain.ValueObjects;
 using Diaspora.Modules.Community.Domain.Visibility;
@@ -164,8 +165,8 @@ public sealed class VisibilityService : ICommunityVisibilityService
             return null;
         }
 
-        var from = Location.Domain.ValueObjects.GeoCoordinate.TryCreate(fromLat, fromLng);
-        var to = Location.Domain.ValueObjects.GeoCoordinate.TryCreate(toLat, toLng);
+        var from = GeoCoordinate.TryCreate(fromLat, fromLng);
+        var to = GeoCoordinate.TryCreate(toLat, toLng);
 
         return from.IsSuccess && to.IsSuccess
             ? _location.DistanceBetween(from.Value, to.Value).Kilometers

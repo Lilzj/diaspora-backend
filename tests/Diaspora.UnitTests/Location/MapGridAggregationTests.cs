@@ -1,6 +1,5 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Application.Services;
-using Diaspora.Modules.Location.Domain.Enums;
-using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Modules.Location.Extensibility;
 using Diaspora.SharedKernel.Identity;
 using FluentAssertions;

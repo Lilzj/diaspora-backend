@@ -1,11 +1,11 @@
 using Diaspora.Application.Abstractions;
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Application.Mapping;
 using Diaspora.Modules.Location.Contracts.V1.Responses;
 using Diaspora.Modules.Location.Domain.Areas;
 using Diaspora.Modules.Location.Domain.Errors;
 using Diaspora.Modules.Location.Domain.Search;
 using Diaspora.Modules.Location.Domain.Spatial;
-using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Modules.Location.Extensibility;
 using Diaspora.Modules.Location.Observability;
 using Diaspora.SharedKernel.Results;

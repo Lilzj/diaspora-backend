@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Community.V1;
 using Diaspora.Modules.Guides.Domain.Enums;
 using Diaspora.Modules.Guides.Domain.Policies;
 

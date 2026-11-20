@@ -1,9 +1,9 @@
 using Diaspora.Application.Abstractions;
+using Diaspora.Contracts.Community.V1;
 using Diaspora.Contracts.Moderation.V1;
 using Diaspora.Contracts.Moderation.V1.Events;
 using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Community.Domain.Comments;
-using Diaspora.Modules.Community.Domain.Enums;
 using Diaspora.Modules.Community.Domain.Identifiers;
 using Diaspora.Modules.Community.Domain.Moderation;
 using Diaspora.Modules.Community.Domain.Policies;

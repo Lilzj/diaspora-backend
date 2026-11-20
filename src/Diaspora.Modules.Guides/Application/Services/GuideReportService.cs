@@ -1,4 +1,4 @@
-using Diaspora.Modules.Community.Domain.Enums;
+using Diaspora.Contracts.Community.V1;
 using Diaspora.Modules.Community.Integration;
 using Diaspora.Modules.Guides.Domain.Errors;
 using Diaspora.SharedKernel.Identity;

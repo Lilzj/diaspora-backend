@@ -1,5 +1,5 @@
+using Diaspora.Contracts.Community.V1;
 using Diaspora.Modules.Community.Domain.Identifiers;
-using Diaspora.Modules.Community.Domain.ValueObjects;
 using Diaspora.SharedKernel.Primitives;
 
 namespace Diaspora.Modules.Community.Domain.Events;

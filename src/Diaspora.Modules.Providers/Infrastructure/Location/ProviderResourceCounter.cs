@@ -1,4 +1,4 @@
-using Diaspora.Modules.Location.Domain.ValueObjects;
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Extensibility;
 using Diaspora.Modules.Providers.Domain.Enums;
 using Diaspora.Modules.Providers.Domain.Providers;

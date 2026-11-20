@@ -1,7 +1,6 @@
+using Diaspora.Contracts.Location.V1;
 using System.Globalization;
-using Diaspora.Modules.Location.Domain.Enums;
 using Diaspora.Modules.Location.Domain.Search;
-using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Modules.Location.Extensibility;
 using Diaspora.SharedKernel.Results;
 using Microsoft.Extensions.Options;

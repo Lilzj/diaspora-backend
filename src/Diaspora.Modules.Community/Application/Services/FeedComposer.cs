@@ -1,3 +1,5 @@
+using Diaspora.Contracts.Community.V1;
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Community.Domain.Comments;
 using Diaspora.Modules.Community.Domain.Errors;
 using Diaspora.Modules.Community.Domain.Policies;
@@ -133,7 +135,7 @@ public sealed class FeedComposer
         var kept = page.Items
             .Where(item =>
                 item.Post is not { } post
-                || post.Audience.Level != Domain.Enums.VisibilityLevel.Neighborhood
+                || post.Audience.Level != VisibilityLevel.Neighborhood
                 || !post.Location.HasCoordinates
                 || (viewer.UserId is not null && post.AuthorId == viewer.UserId)
                 || IsNear(viewer, post.Location.Latitude!.Value, post.Location.Longitude!.Value))
@@ -149,8 +151,8 @@ public sealed class FeedComposer
             return false;
         }
 
-        var origin = Modules.Location.Domain.ValueObjects.GeoCoordinate.TryCreate(viewerLatitude, viewerLongitude);
-        var destination = Modules.Location.Domain.ValueObjects.GeoCoordinate.TryCreate(latitude, longitude);
+        var origin = GeoCoordinate.TryCreate(viewerLatitude, viewerLongitude);
+        var destination = GeoCoordinate.TryCreate(latitude, longitude);
 
         return origin.IsSuccess
                && destination.IsSuccess
@@ -214,7 +216,7 @@ public sealed class FeedComposer
             return distances;
         }
 
-        var origin = Modules.Location.Domain.ValueObjects.GeoCoordinate.Create(
+        var origin = GeoCoordinate.Create(
             request.Latitude!.Value, request.Longitude!.Value);
 
         foreach (var item in page.Items)
@@ -224,7 +226,7 @@ public sealed class FeedComposer
                 continue;
             }
 
-            var destination = Modules.Location.Domain.ValueObjects.GeoCoordinate.Create(
+            var destination = GeoCoordinate.Create(
                 location.Latitude!.Value, location.Longitude!.Value);
 
             distances[item.Reference.Key] = _location.DistanceBetween(origin, destination).Kilometers;

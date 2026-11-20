@@ -1,8 +1,8 @@
 using Diaspora.Application.Abstractions;
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Location.Domain.Errors;
 using Diaspora.Modules.Location.Domain.Experience;
-using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Results;
 

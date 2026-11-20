@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Community.V1;
 using System.Diagnostics.CodeAnalysis;
 using Diaspora.Modules.Community.Domain.Enums;
 using Diaspora.Modules.Community.Domain.Identifiers;

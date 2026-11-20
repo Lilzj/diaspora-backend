@@ -1,5 +1,5 @@
+using Diaspora.Contracts.Community.V1;
 using System.Text;
-using Diaspora.Modules.Community.Domain.Enums;
 using Diaspora.Modules.Community.Domain.Errors;
 using Diaspora.SharedKernel.Results;
 

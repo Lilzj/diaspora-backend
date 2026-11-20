@@ -1,4 +1,4 @@
-using Diaspora.Modules.Location.Domain.Enums;
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Integration;
 using Diaspora.Modules.Providers.Contracts.V1.Requests;
 using Diaspora.Modules.Providers.Domain.Providers;
@@ -176,7 +176,7 @@ public sealed class GeographicScopeAdapter
         if (scope.Center is not { } origin
             || latitude is not { } lat
             || longitude is not { } lng
-            || Location.Domain.ValueObjects.GeoCoordinate.TryCreate(lat, lng) is not { IsSuccess: true } destination)
+            || GeoCoordinate.TryCreate(lat, lng) is not { IsSuccess: true } destination)
         {
             return null;
         }
@@ -204,7 +204,7 @@ public sealed class GeographicScopeAdapter
                 continue;
             }
 
-            var destination = Location.Domain.ValueObjects.GeoCoordinate.Create(
+            var destination = GeoCoordinate.Create(
                 provider.Location.Latitude!.Value, provider.Location.Longitude!.Value);
 
             distances[provider.Id.Value] = _directory.DistanceBetween(origin, destination).Kilometers;

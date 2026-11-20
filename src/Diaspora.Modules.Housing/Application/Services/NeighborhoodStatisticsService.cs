@@ -1,10 +1,10 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Housing.Application.Mapping;
 using Diaspora.Modules.Housing.Contracts.V1.Responses;
 using Diaspora.Modules.Housing.Domain.Analytics;
 using Diaspora.Modules.Housing.Domain.Listings;
 using Diaspora.Modules.Housing.Domain.Neighborhoods;
 using Diaspora.Modules.Location.Application.Services;
-using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Identity;
 

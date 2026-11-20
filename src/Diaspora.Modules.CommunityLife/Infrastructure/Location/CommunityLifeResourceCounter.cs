@@ -1,7 +1,7 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.CommunityLife.Domain.CommunityEvents;
 using Diaspora.Modules.CommunityLife.Domain.Enums;
 using Diaspora.Modules.CommunityLife.Domain.Policies;
-using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Modules.Location.Extensibility;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Identity;
