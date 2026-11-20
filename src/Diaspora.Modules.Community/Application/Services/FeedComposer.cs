@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Community.V1;
 using Diaspora.Modules.Community.Domain.Comments;
 using Diaspora.Modules.Community.Domain.Errors;
 using Diaspora.Modules.Community.Domain.Policies;
@@ -133,7 +134,7 @@ public sealed class FeedComposer
         var kept = page.Items
             .Where(item =>
                 item.Post is not { } post
-                || post.Audience.Level != Domain.Enums.VisibilityLevel.Neighborhood
+                || post.Audience.Level != VisibilityLevel.Neighborhood
                 || !post.Location.HasCoordinates
                 || (viewer.UserId is not null && post.AuthorId == viewer.UserId)
                 || IsNear(viewer, post.Location.Latitude!.Value, post.Location.Longitude!.Value))

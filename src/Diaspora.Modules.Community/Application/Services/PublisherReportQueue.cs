@@ -1,4 +1,5 @@
 using Diaspora.Contracts.Community.V1.Moderation;
+using Diaspora.Contracts.Community.V1;
 using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Community.Domain.Comments;
 using Diaspora.Modules.Community.Domain.Enums;

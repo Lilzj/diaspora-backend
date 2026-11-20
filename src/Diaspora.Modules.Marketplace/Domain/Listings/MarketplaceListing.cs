@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Community.V1;
 using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Marketplace.Domain.Enums;
 using Diaspora.Modules.Marketplace.Domain.Errors;

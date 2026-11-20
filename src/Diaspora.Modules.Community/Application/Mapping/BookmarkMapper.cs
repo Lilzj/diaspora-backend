@@ -1,7 +1,7 @@
+using Diaspora.Contracts.Community.V1;
 using Diaspora.Modules.Community.Application.Services;
 using Diaspora.Modules.Community.Contracts.V1.Responses;
 using Diaspora.Modules.Community.Domain.Bookmarks;
-using Diaspora.Modules.Community.Domain.Enums;
 
 namespace Diaspora.Modules.Community.Application.Mapping;
 

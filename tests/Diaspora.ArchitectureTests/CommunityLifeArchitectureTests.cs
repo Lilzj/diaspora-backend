@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Community.V1;
 using System.Reflection;
 using Diaspora.Contracts.CommunityLife.V1.Events;
 using Diaspora.Contracts.Events;

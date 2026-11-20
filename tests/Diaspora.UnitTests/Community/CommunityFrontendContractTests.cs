@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Community.V1;
 using Diaspora.Modules.Community;
 
 using Diaspora.Modules.Community.Application.Services;

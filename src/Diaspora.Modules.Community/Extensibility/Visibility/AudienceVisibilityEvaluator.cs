@@ -1,4 +1,4 @@
-using Diaspora.Modules.Community.Domain.Enums;
+using Diaspora.Contracts.Community.V1;
 
 namespace Diaspora.Modules.Community.Extensibility.Visibility;
 

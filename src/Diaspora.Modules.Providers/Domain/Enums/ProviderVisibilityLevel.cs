@@ -1,3 +1,5 @@
+using Diaspora.Contracts.Community.V1;
+
 namespace Diaspora.Modules.Providers.Domain.Enums;
 
 /// <summary>

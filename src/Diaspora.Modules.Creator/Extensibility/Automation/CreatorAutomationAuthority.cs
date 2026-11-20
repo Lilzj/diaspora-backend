@@ -1,6 +1,6 @@
+using Diaspora.Contracts.Community.V1;
 using System.Globalization;
 using Diaspora.Contracts.Automation.V1.Extensibility;
-using Diaspora.Modules.Community.Domain.Enums;
 using Diaspora.Modules.Community.Domain.Follows;
 using Diaspora.Modules.Creator.Domain.Enums;
 using Diaspora.Modules.Creator.Domain.Repositories;

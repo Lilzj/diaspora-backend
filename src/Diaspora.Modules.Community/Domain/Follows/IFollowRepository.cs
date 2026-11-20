@@ -1,4 +1,4 @@
-using Diaspora.Modules.Community.Domain.Enums;
+using Diaspora.Contracts.Community.V1;
 using Diaspora.SharedKernel.Identity;
 
 namespace Diaspora.Modules.Community.Domain.Follows;

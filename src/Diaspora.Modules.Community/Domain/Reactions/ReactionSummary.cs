@@ -1,7 +1,7 @@
+using Diaspora.Contracts.Community.V1;
 using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Community.Domain.Enums;
 using Diaspora.Modules.Community.Domain.Identifiers;
-using Diaspora.Modules.Community.Domain.ValueObjects;
 using Diaspora.SharedKernel.Primitives;
 
 namespace Diaspora.Modules.Community.Domain.Reactions;

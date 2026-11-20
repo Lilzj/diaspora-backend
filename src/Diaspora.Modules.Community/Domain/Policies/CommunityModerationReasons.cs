@@ -1,5 +1,5 @@
+using Diaspora.Contracts.Community.V1;
 using Diaspora.Contracts.Moderation.V1;
-using Diaspora.Modules.Community.Domain.Enums;
 
 namespace Diaspora.Modules.Community.Domain.Policies;
 

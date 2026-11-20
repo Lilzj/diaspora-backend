@@ -1,7 +1,7 @@
+using Diaspora.Contracts.Community.V1;
 using Diaspora.Modules.Analytics.Domain.Enums;
 using Diaspora.Modules.Analytics.Domain.Policies;
 using Diaspora.Modules.Community.Application.Services;
-using Diaspora.Modules.Community.Domain.Enums;
 using FluentAssertions;
 using Xunit;
 

@@ -1,9 +1,9 @@
+using Diaspora.Contracts.Community.V1;
 using System.Reflection;
 using Diaspora.Contracts.Authorization;
 using Diaspora.Modules.Community;
 using Diaspora.Modules.Community.Api;
 using Diaspora.Modules.Community.Authorization;
-using Diaspora.Modules.Community.Domain.Enums;
 using Diaspora.Modules.Community.Extensibility.Content;
 using Diaspora.Modules.Community.Extensibility.Feeds;
 using Diaspora.Modules.Community.Extensibility.Moderation;

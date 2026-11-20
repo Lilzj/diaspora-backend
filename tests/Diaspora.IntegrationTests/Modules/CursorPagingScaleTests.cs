@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Community.V1;
 using Diaspora.IntegrationTests.Common;
 using Diaspora.Modules.Community.Domain.Bookmarks;
 using Diaspora.Modules.Community.Domain.Comments;
