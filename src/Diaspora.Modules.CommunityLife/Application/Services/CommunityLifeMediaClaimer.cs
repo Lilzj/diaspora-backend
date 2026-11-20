@@ -1,6 +1,6 @@
+using Diaspora.Contracts.Media.V1;
 using Diaspora.Modules.Media.Contracts.V1.Requests;
-using Diaspora.Modules.Media.Domain.Enums;
-using MediatR;
+using Diaspora.Modules.Media.Integration;
 using Microsoft.Extensions.Logging;
 
 namespace Diaspora.Modules.CommunityLife.Application.Services;
@@ -24,12 +24,12 @@ namespace Diaspora.Modules.CommunityLife.Application.Services;
 /// </summary>
 public sealed class CommunityLifeMediaClaimer
 {
-    private readonly ISender _sender;
+    private readonly IMediaAttachments _media;
     private readonly ILogger<CommunityLifeMediaClaimer> _logger;
 
-    public CommunityLifeMediaClaimer(ISender sender, ILogger<CommunityLifeMediaClaimer> logger)
+    public CommunityLifeMediaClaimer(IMediaAttachments media, ILogger<CommunityLifeMediaClaimer> logger)
     {
-        _sender = sender;
+        _media = media;
         _logger = logger;
     }
 
@@ -118,20 +118,17 @@ public sealed class CommunityLifeMediaClaimer
 
         try
         {
-            await _sender.Send(
-                new Modules.Media.Application.Assets.AttachMediaCommand
+            await _media.AttachAsync(
+                new AttachMediaRequest
                 {
-                    Request = new AttachMediaRequest
-                    {
-                        MediaId = mediaId,
+                    MediaId = mediaId,
 
-                        // Media's own enum already carries a value for both of this module's
-                        // subjects, so B12 edits nothing in B5.
-                        OwnerType = ownerType,
-                        OwnerId = ownerId,
-                        Role = role ?? nameof(Domain.Enums.CommunityLifeMediaRole.Gallery),
-                        Position = position
-                    }
+                    // Media's own enum already carries a value for both of this module's
+                    // subjects, so B12 edits nothing in B5.
+                    OwnerType = ownerType,
+                    OwnerId = ownerId,
+                    Role = role ?? nameof(Domain.Enums.CommunityLifeMediaRole.Gallery),
+                    Position = position
                 },
                 cancellationToken);
         }

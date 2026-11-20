@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Media.V1;
 using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Media.Domain.Enums;
 using Diaspora.Modules.Media.Domain.Errors;

@@ -1,9 +1,9 @@
+using Diaspora.Contracts.Media.V1;
 using Diaspora.Modules.Media.Contracts.V1.Requests;
-using Diaspora.Modules.Media.Domain.Enums;
+using Diaspora.Modules.Media.Integration;
 using Diaspora.Modules.Providers.Observability;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Results;
-using MediatR;
 using Microsoft.Extensions.Logging;
 
 namespace Diaspora.Modules.Providers.Application.Services;
@@ -32,12 +32,12 @@ namespace Diaspora.Modules.Providers.Application.Services;
 /// </summary>
 public sealed class ProviderMediaClaimer
 {
-    private readonly ISender _sender;
+    private readonly IMediaAttachments _media;
     private readonly ILogger<ProviderMediaClaimer> _logger;
 
-    public ProviderMediaClaimer(ISender sender, ILogger<ProviderMediaClaimer> logger)
+    public ProviderMediaClaimer(IMediaAttachments media, ILogger<ProviderMediaClaimer> logger)
     {
-        _sender = sender;
+        _media = media;
         _logger = logger;
     }
 
@@ -56,17 +56,14 @@ public sealed class ProviderMediaClaimer
         int position,
         CancellationToken cancellationToken = default)
     {
-        var attached = await _sender.Send(
-            new Modules.Media.Application.Assets.AttachMediaCommand
+        var attached = await _media.AttachAsync(
+                new AttachMediaRequest
             {
-                Request = new AttachMediaRequest
-                {
-                    MediaId = mediaId,
-                    OwnerType = nameof(MediaOwnerType.Provider),
-                    OwnerId = providerId,
-                    Role = role,
-                    Position = position
-                }
+                MediaId = mediaId,
+                OwnerType = nameof(MediaOwnerType.Provider),
+                OwnerId = providerId,
+                Role = role,
+                Position = position
             },
             cancellationToken);
 
@@ -84,20 +81,17 @@ public sealed class ProviderMediaClaimer
 
         try
         {
-            await _sender.Send(
-                new Modules.Media.Application.Assets.AttachMediaCommand
+            await _media.AttachAsync(
+                new AttachMediaRequest
                 {
-                    Request = new AttachMediaRequest
-                    {
-                        MediaId = mediaId.Value,
+                    MediaId = mediaId.Value,
 
-                        // Media's own enum already carries a value for this module. B7 adds
-                        // nothing to Media and edits nothing in it.
-                        OwnerType = nameof(MediaOwnerType.Provider),
-                        OwnerId = providerId,
-                        Role = role,
-                        Position = position
-                    }
+                    // Media's own enum already carries a value for this module. B7 adds
+                    // nothing to Media and edits nothing in it.
+                    OwnerType = nameof(MediaOwnerType.Provider),
+                    OwnerId = providerId,
+                    Role = role,
+                    Position = position
                 },
                 cancellationToken);
         }

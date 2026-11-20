@@ -1,4 +1,5 @@
 using Diaspora.Application.Abstractions;
+using Diaspora.Contracts.Media.V1;
 using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Media.Application.Services;
 using Diaspora.Modules.Media.Contracts.V1.Responses;

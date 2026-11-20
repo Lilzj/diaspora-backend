@@ -239,6 +239,25 @@ public sealed class ModuleEncapsulationArchitectureTests
     /// consumers receive rather than to where a type lives.
     /// </para>
     /// <para>
+    /// <b>The fourth wave closed every edge into Media, and with them the last inline crossing on
+    /// the platform.</b> B5 had published the payload and never published the operation: seven
+    /// verticals each built a frozen <c>AttachMediaRequest</c> — B5's own V1 contract — then
+    /// wrapped it in <c>AttachMediaCommand</c>, B5's <em>application</em> layer, and dispatched
+    /// that. Each of those seven classes carries a doc comment saying the module consumes B5's
+    /// frozen contract and edits nothing in B5, and each was right about the intent; the envelope
+    /// was the leak, and it is the reason seven edges were classified
+    /// <see cref="Reach.Application"/> rather than <see cref="Reach.Vocabulary"/>.
+    /// <c>Media.Integration.IMediaAttachments</c> now carries the request, and
+    /// <c>MediaOwnerType</c>, <c>MediaAccessLevel</c> and <c>MediaReferenceRoles</c> are published
+    /// beside it. <b>No module reaches into Media, Guides or Providers at all.</b>
+    /// </para>
+    /// <para>
+    /// <see cref="InlineCrossingsNobodyCounted"/> is therefore now zero in the source, and the
+    /// constant stays because it records what the audit's measurement could not see rather than
+    /// what is there today. <see cref="The_scan_read_the_platforms_modules"/> asserts the
+    /// emptiness instead of a count above zero, which makes it a ratchet against the next one.
+    /// </para>
+    /// <para>
     /// <b>That is the shape of the rest of this finding rather than a special case.</b> Both
     /// reports prescribed a read-model port for each of the 107 crossings — and these nine
     /// consumers were already using the port. Where a published seam names an internal type, no
@@ -253,20 +272,13 @@ public sealed class ModuleEncapsulationArchitectureTests
     /// </summary>
     private static readonly InternalEdge[] EdgesStillOwed =
     [
-        // Application -- another module's commands, queries or services (11 edges, 46 crossings).
-        // Seven of these are new: every module with media attachments constructs
-        // Modules.Media.Application.Assets.AttachMediaCommand inline, which no directive shows.
+        // Application -- another module's commands, queries or services (3 edges, 17 crossings).
+        // The eight module -> Media edges closed 20 November 2026, and with them the last
+        // inline crossing on the platform: B5 published an operation to carry the request it
+        // had already published, and the seven *MediaClaimer classes call it.
         new("GeographicIntelligence", "Location", 10, 0, Reach.Application),
         new("Housing", "Location", 3, 0, Reach.Application),
-        new("Providers", "Media", 3, 6, Reach.Application),
-        new("Community", "Media", 4, 1, Reach.Application),
         new("CommunityProgramme", "Financial", 4, 0, Reach.Application),
-        new("Housing", "Media", 3, 1, Reach.Application),
-        new("Marketplace", "Media", 3, 1, Reach.Application),
-        new("CommunityLife", "Media", 1, 1, Reach.Application),
-        new("Guides", "Media", 1, 1, Reach.Application),
-        new("Jobs", "Media", 1, 1, Reach.Application),
-        new("Creator", "Media", 1, 0, Reach.Application),
 
         // Aggregate -- another module's entities (3 edges, 4 crossings).
         new("Guides", "Community", 1, 0, Reach.Aggregate),
@@ -802,6 +814,86 @@ public sealed class ModuleEncapsulationArchitectureTests
     }
 
     /// <summary>
+    /// <b>A published seam is registered by the module that publishes it.</b>
+    /// <para>
+    /// A seam is only as real as its registration. An interface in <c>Integration</c> that no
+    /// module registers compiles, satisfies every rule above, and fails at the first resolution —
+    /// or worse, is quietly never resolved because nothing ever asked. This platform has met both
+    /// shapes: a payment seam that was registered, tested and unrouted, and a circuit breaker with
+    /// every piece present and nothing running under it.
+    /// </para>
+    /// <para>
+    /// <b>The build already catches half of this, and it is worth knowing which half.</b> The
+    /// OpenAPI document generator runs the API host during every build and composes the container
+    /// with validation on, so a seam that something <em>injects</em> and nobody registers fails
+    /// the build with <c>Unable to resolve service for type</c> — verified by removing this
+    /// module's registration and watching it do exactly that.
+    /// </para>
+    /// <para>
+    /// This rule is the other half: a seam published and registered nowhere that <em>nothing
+    /// injects yet</em> compiles, builds clean and is simply dead until its first consumer
+    /// arrives — and then fails in that consumer's PR rather than in the one that shipped the
+    /// seam. Added with <c>IMediaAttachments</c>, which is the first seam written here for
+    /// consumers that already existed.
+    /// </para>
+    /// <para>
+    /// Matched on <c>&lt;IName&gt;</c> or <c>typeof(IName)</c> rather than on the name alone, so a
+    /// mention in a comment is not mistaken for a registration.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_published_seam_is_registered_by_the_module_that_publishes_it()
+    {
+        var modules = SourceTree.ProductionFiles
+            .Where(file => file.Path.StartsWith(ModuleSourcePrefix, StringComparison.Ordinal))
+            .GroupBy(file => file.Path[ModuleSourcePrefix.Length..].Split('/')[0], StringComparer.Ordinal);
+
+        var unregistered = new List<string>();
+        var seams = 0;
+
+        foreach (var module in modules)
+        {
+            var composition = module.FirstOrDefault(
+                file => file.Path.EndsWith($"/{module.Key}Module.cs", StringComparison.Ordinal));
+
+            if (composition is null)
+            {
+                continue;
+            }
+
+            var registrations = composition.Root.ToFullString();
+
+            var published = module.Where(file =>
+                file.Path[ModuleSourcePrefix.Length..].Split('/') is [_, "Integration", ..]);
+
+            foreach (var declared in published
+                .SelectMany(file => file.Root.DescendantNodes().OfType<InterfaceDeclarationSyntax>())
+                .Where(declared => declared.Modifiers.Any(SyntaxKind.PublicKeyword))
+                .Select(declared => declared.Identifier.Text))
+            {
+                seams++;
+
+                if (!registrations.Contains($"<{declared}>", StringComparison.Ordinal)
+                    && !registrations.Contains($"<{declared},", StringComparison.Ordinal)
+                    && !registrations.Contains($"typeof({declared})", StringComparison.Ordinal))
+                {
+                    unregistered.Add(
+                        $"{module.Key}.Integration.{declared} is published and " +
+                        $"{module.Key}Module registers no implementation for it: a consumer that " +
+                        "injects it cannot be constructed.");
+                }
+            }
+        }
+
+        seams.Should().BeGreaterThan(
+            20, "twenty-four published seams were counted when this rule was written, and a scan " +
+                "that finds almost none has stopped reading the Integration namespaces");
+
+        unregistered.Should().BeEmpty(
+            "a seam nothing registers is a seam nothing can use:\n" + string.Join("\n", unregistered));
+    }
+
+    /// <summary>
     /// <b>What the scan read, so that none of the rules above can pass by having found nothing.</b>
     /// Every one of them is an assertion that a collection is empty or that a dictionary agrees
     /// with a list, and all of those are satisfied by a scan that read no files at all — a renamed
@@ -824,10 +916,14 @@ public sealed class ModuleEncapsulationArchitectureTests
         Scanned.Value.Internal.Should().HaveCountGreaterThan(
             0, "a scan that finds no crossings at all has stopped reading the source");
 
-        Scanned.Value.InCode.Should().HaveCountGreaterThan(
-            0,
-            "the inline crossings are the ones a reader of the imports cannot see, and a scan " +
-            "that reports none of them is the scan this rule shipped with the first time");
+        Scanned.Value.InCode.Should().BeEmpty(
+            "all 28 inline crossings are closed, so this now ratchets the other way: a crossing " +
+            "written inline is one a reader of the imports cannot see, and the next one to appear " +
+            "fails here rather than waiting to be discovered by a scan written to look for it. " +
+            "That this rule can still see one is proved by " +
+            nameof(The_scanner_sees_a_crossing_however_it_is_written) + ", on source written for " +
+            "the purpose — which is the only evidence available once the production population is " +
+            "empty, and better evidence than a count that happened to be above zero");
     }
 
     // ── The scan ─────────────────────────────────────────────────────────

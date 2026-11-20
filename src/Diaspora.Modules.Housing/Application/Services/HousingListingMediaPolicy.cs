@@ -1,7 +1,6 @@
+using Diaspora.Contracts.Media.V1;
 using Diaspora.Modules.Housing.Domain.Identifiers;
 using Diaspora.Modules.Housing.Domain.Listings;
-using Diaspora.Modules.Media.Domain.Enums;
-using Diaspora.Modules.Media.Domain.ValueObjects;
 using Diaspora.Modules.Media.Extensibility.Access;
 
 namespace Diaspora.Modules.Housing.Application.Services;

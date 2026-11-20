@@ -8,7 +8,6 @@ using Diaspora.Modules.Community.Extensibility.Enrichment;
 using Diaspora.Modules.Community.Extensibility.Hashtags;
 using Diaspora.Modules.Community.Extensibility.Mentions;
 using Diaspora.Modules.Community.Contracts.V1.Requests;
-using Diaspora.Modules.Media.Domain.ValueObjects;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Results;

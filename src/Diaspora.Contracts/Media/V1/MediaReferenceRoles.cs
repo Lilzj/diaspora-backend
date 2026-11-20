@@ -1,9 +1,9 @@
-namespace Diaspora.Modules.Media.Domain.ValueObjects;
+namespace Diaspora.Contracts.Media.V1;
 
 /// <summary>
 /// The reference roles the frontend contract report found in use.
 /// <para>
-/// Not a closed set — <see cref="MediaReference"/> accepts any slug, because a vertical that
+/// Not a closed set — <c>MediaReference</c> accepts any slug, because a vertical that
 /// needs <c>menu-photo</c> should not need a Media release to get it. These are the names the
 /// existing client already implies, published so that Housing and Marketplace do not invent
 /// <c>cover</c>, <c>coverImage</c> and <c>cover_photo</c> independently — which is precisely

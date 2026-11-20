@@ -1,3 +1,5 @@
+using Diaspora.Contracts.Media.V1;
+
 namespace Diaspora.Modules.Providers.Domain.Enums;
 
 /// <summary>
@@ -19,16 +21,16 @@ namespace Diaspora.Modules.Providers.Domain.Enums;
 public static class ProviderMediaRole
 {
     /// <summary>The card and header image. B5's <c>cover</c>.</summary>
-    public const string Cover = Media.Domain.ValueObjects.MediaReferenceRoles.Cover;
+    public const string Cover = MediaReferenceRoles.Cover;
 
     /// <summary>The provider's mark. B5's <c>logo</c>.</summary>
-    public const string Logo = Media.Domain.ValueObjects.MediaReferenceRoles.Logo;
+    public const string Logo = MediaReferenceRoles.Logo;
 
     /// <summary>The photo gallery. B5's <c>gallery</c>.</summary>
-    public const string Gallery = Media.Domain.ValueObjects.MediaReferenceRoles.Gallery;
+    public const string Gallery = MediaReferenceRoles.Gallery;
 
     /// <summary>A supporting document. B5's <c>document</c>.</summary>
-    public const string Document = Media.Domain.ValueObjects.MediaReferenceRoles.Document;
+    public const string Document = MediaReferenceRoles.Document;
 
     /// <summary>A food or service menu.</summary>
     public const string Menu = "menu";

@@ -1,4 +1,4 @@
-using Diaspora.Modules.Media.Domain.Enums;
+using Diaspora.Contracts.Media.V1;
 using Diaspora.SharedKernel.Identity;
 
 namespace Diaspora.Modules.Media.Extensibility.Access;

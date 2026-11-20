@@ -1,6 +1,6 @@
+using Diaspora.Contracts.Media.V1;
 using Diaspora.Modules.Media.Contracts.V1.Requests;
-using Diaspora.Modules.Media.Domain.Enums;
-using MediatR;
+using Diaspora.Modules.Media.Integration;
 using Microsoft.Extensions.Logging;
 
 namespace Diaspora.Modules.Marketplace.Application.Services;
@@ -27,12 +27,12 @@ namespace Diaspora.Modules.Marketplace.Application.Services;
 /// </summary>
 public sealed class MarketplaceMediaClaimer
 {
-    private readonly ISender _sender;
+    private readonly IMediaAttachments _media;
     private readonly ILogger<MarketplaceMediaClaimer> _logger;
 
-    public MarketplaceMediaClaimer(ISender sender, ILogger<MarketplaceMediaClaimer> logger)
+    public MarketplaceMediaClaimer(IMediaAttachments media, ILogger<MarketplaceMediaClaimer> logger)
     {
-        _sender = sender;
+        _media = media;
         _logger = logger;
     }
 
@@ -51,20 +51,17 @@ public sealed class MarketplaceMediaClaimer
 
         try
         {
-            await _sender.Send(
-                new Modules.Media.Application.Assets.AttachMediaCommand
+            await _media.AttachAsync(
+                new AttachMediaRequest
                 {
-                    Request = new AttachMediaRequest
-                    {
-                        MediaId = mediaId,
+                    MediaId = mediaId,
 
-                        // Media's own enum already carries a value for this module. B10 adds
-                        // nothing to Media and edits nothing in it.
-                        OwnerType = nameof(MediaOwnerType.MarketplaceListing),
-                        OwnerId = ownerId,
-                        Role = role,
-                        Position = position
-                    }
+                    // Media's own enum already carries a value for this module. B10 adds
+                    // nothing to Media and edits nothing in it.
+                    OwnerType = nameof(MediaOwnerType.MarketplaceListing),
+                    OwnerId = ownerId,
+                    Role = role,
+                    Position = position
                 },
                 cancellationToken);
         }

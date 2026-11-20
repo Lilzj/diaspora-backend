@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Media.V1;
 using Diaspora.Modules.Media.Application.Mapping;
 using Diaspora.Modules.Media.Contracts.V1.Responses;
 using Diaspora.Modules.Media.Domain.Enums;

@@ -1,5 +1,4 @@
-using Diaspora.Modules.Media.Domain.Enums;
-using Diaspora.Modules.Media.Domain.ValueObjects;
+using Diaspora.Contracts.Media.V1;
 using Diaspora.Modules.Media.Extensibility.Access;
 using Diaspora.Modules.Providers.Domain.Enums;
 using Diaspora.Modules.Providers.Domain.Identifiers;

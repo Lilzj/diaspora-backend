@@ -1,7 +1,7 @@
 using Diaspora.Application.Abstractions;
+using Diaspora.Contracts.Media.V1;
 using Diaspora.Modules.Media.Contracts.V1.Responses;
 using Diaspora.Modules.Media.Domain.Assets;
-using Diaspora.Modules.Media.Domain.Enums;
 using Diaspora.SharedKernel.Results;
 
 namespace Diaspora.Modules.Media.Application.Processing;

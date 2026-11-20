@@ -1,7 +1,7 @@
+using Diaspora.Contracts.Media.V1;
 using Diaspora.Modules.Community.Domain.Enums;
 using Diaspora.Modules.Community.Domain.Identifiers;
 using Diaspora.Modules.Community.Domain.ValueObjects;
-using Diaspora.Modules.Media.Domain.ValueObjects;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Primitives;
 

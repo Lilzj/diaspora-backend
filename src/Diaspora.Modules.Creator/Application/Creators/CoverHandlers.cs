@@ -1,3 +1,5 @@
+using Diaspora.Contracts.Media.V1;
+using Diaspora.Modules.Media.Integration;
 using System.Text.RegularExpressions;
 using Diaspora.Application.Abstractions;
 using Diaspora.Domain.Abstractions;
@@ -8,11 +10,9 @@ using Diaspora.Modules.Creator.Contracts.V1.Responses;
 using Diaspora.Modules.Creator.Domain.Creators;
 using Diaspora.Modules.Creator.Domain.Policies;
 using Diaspora.Modules.Creator.Domain.Repositories;
-using Diaspora.Modules.Media.Application.Assets;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Results;
 using FluentValidation;
-using MediatR;
 
 namespace Diaspora.Modules.Creator.Application.Creators;
 
@@ -139,20 +139,20 @@ public sealed partial class CreatorCoverWriter
     private readonly ICreatorProfileRepository _creators;
     private readonly CreatorStatusService _status;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly ISender _sender;
+    private readonly IMediaAttachments _media;
     private readonly IClock _clock;
 
     public CreatorCoverWriter(
         ICreatorProfileRepository creators,
         CreatorStatusService status,
         IUnitOfWork unitOfWork,
-        ISender sender,
+        IMediaAttachments media,
         IClock clock)
     {
         _creators = creators;
         _status = status;
         _unitOfWork = unitOfWork;
-        _sender = sender;
+        _media = media;
         _clock = clock;
     }
 
@@ -162,9 +162,8 @@ public sealed partial class CreatorCoverWriter
     /// </summary>
     public async Task<Result<string>> PublishAsync(Guid mediaId, CancellationToken cancellationToken)
     {
-        var published = await _sender.Send(
-            new PublishProfileImageCommand { MediaId = mediaId, Role = ProfileImageRoles.Cover },
-            cancellationToken);
+        var published = await _media.PublishProfileImageAsync(
+            mediaId, MediaReferenceRoles.Cover, cancellationToken);
 
         return published.IsFailure
             ? Result.Failure<string>(published.Error)
@@ -186,9 +185,8 @@ public sealed partial class CreatorCoverWriter
 
         if (previous is { } previousId && previousId != MediaIdIn(coverImageUrl))
         {
-            await _sender.Send(
-                new WithdrawProfileImageCommand { MediaId = previousId, Role = ProfileImageRoles.Cover },
-                cancellationToken);
+            await _media.WithdrawProfileImageAsync(
+                previousId, MediaReferenceRoles.Cover, cancellationToken);
         }
 
         return Result.Success(creator.ToResponse([]));
