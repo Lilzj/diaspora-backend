@@ -1,4 +1,4 @@
-using Diaspora.Modules.Community.Domain.Enums;
+using Diaspora.Contracts.Community.V1;
 using Diaspora.Modules.Community.Domain.Reactions;
 
 namespace Diaspora.Modules.Community.Extensibility.Reactions;

@@ -1,11 +1,11 @@
-using Diaspora.Modules.Community.Domain.Enums;
-using Diaspora.Modules.Community.Domain.ValueObjects;
+using Diaspora.Contracts.Community.V1;
 using Diaspora.Modules.Community.Extensibility.Content;
 using Diaspora.Modules.CommunityProgramme.Domain.Enums;
 
-// Both modules declare a `PollStatus`, and this file needs both namespaces — Community's for the
-// content-type vocabulary, this module's for the aggregate. Aliased rather than fully qualified at
-// the two use sites, so the ambiguity is resolved once and named where a reader meets it.
+// Both modules declare a `PollStatus`. The ambiguity no longer arises here — B6's content-type
+// vocabulary is published as Diaspora.Contracts.Community.V1, so this file imports none of B6's
+// internals — but the duplicate itself still exists, and naming this module's enumeration once is
+// cheaper than discovering the collision again if anything re-imports B6's Domain.Enums.
 using ProgrammePollStatus = Diaspora.Modules.CommunityProgramme.Domain.Enums.PollStatus;
 using Diaspora.Modules.CommunityProgramme.Domain.Identifiers;
 using Diaspora.Modules.CommunityProgramme.Domain.Polls;

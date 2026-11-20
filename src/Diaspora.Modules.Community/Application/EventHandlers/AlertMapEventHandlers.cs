@@ -1,5 +1,6 @@
 using Diaspora.Application.Abstractions;
 using Diaspora.Contracts.Community.V1.Events;
+using Diaspora.Contracts.Community.V1;
 using Diaspora.Modules.Community.Domain.Enums;
 using Diaspora.Modules.Community.Domain.Events;
 using Diaspora.Modules.Community.Domain.Identifiers;

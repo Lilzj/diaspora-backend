@@ -193,6 +193,25 @@ public sealed class ModuleEncapsulationArchitectureTests
     /// over 29.
     /// </para>
     /// <para>
+    /// <b>The second wave closed seven more by publishing a vocabulary rather than changing a
+    /// signature.</b> B6's <c>ContentReference</c> — a <c>(CommunityContentType, Guid)</c> pair —
+    /// is named by seven of B6's ten published files, and its own summary calls it <q>the type
+    /// that makes B6 reusable</q>: every module that contributes content to the social surface
+    /// implements <c>ICommunityContentSource</c> and must construct one. <b>No primitive can
+    /// stand in for it</b>, so the wave-1 move does not apply; the answer is the one the audit's
+    /// own vocabulary class prescribes, which is to publish the type. <c>ContentReference</c>,
+    /// <c>CommunityContentType</c>, <c>VisibilityLevel</c>, <c>FollowTargetType</c> and
+    /// <c>ReportReasonCode</c> are now <c>Diaspora.Contracts.Community.V1</c>, and B6's published
+    /// surface went from thirteen internal references to four.
+    /// </para>
+    /// <para>
+    /// <c>PollStatus</c> was deliberately <em>not</em> published. B6 and B10 both declare one, and
+    /// the single file that meets both aliases its own — so B6's is reached by nobody, and
+    /// publishing it would have created a fresh ambiguity in the one file that already works
+    /// around the duplicate. <b>A name only one module uses is not shared vocabulary</b>, however
+    /// much it looks like its neighbours.
+    /// </para>
+    /// <para>
     /// <b>That is the shape of the rest of this finding rather than a special case.</b> Both
     /// reports prescribed a read-model port for each of the 107 crossings — and these nine
     /// consumers were already using the port. Where a published seam names an internal type, no
@@ -222,27 +241,21 @@ public sealed class ModuleEncapsulationArchitectureTests
         new("Jobs", "Media", 1, 1, Reach.Application),
         new("Creator", "Media", 1, 0, Reach.Application),
 
-        // Aggregate -- another module's entities (3 edges, 18 crossings).
-        new("Guides", "Community", 10, 0, Reach.Aggregate),
+        // Aggregate -- another module's entities (3 edges, 8 crossings).
+        new("Guides", "Community", 1, 0, Reach.Aggregate),
         new("CommunityLife", "Location", 6, 0, Reach.Aggregate),
-        new("Creator", "Community", 2, 0, Reach.Aggregate),
+        new("Creator", "Community", 1, 0, Reach.Aggregate),
 
-        // Vocabulary -- enumerations, value objects, identifiers (15 edges, 47 crossings).
+        // Vocabulary -- enumerations, value objects, identifiers (8 edges, 29 crossings).
         // Nine edges closed 20 November 2026: every crossing into Guides and into Providers.
         // All nine were forced by those two modules' own published seams -- see the summary.
+        // Seven more closed the same day when B6's content vocabulary was published.
         new("Community", "Location", 2, 8, Reach.Vocabulary),
         new("Providers", "Location", 2, 5, Reach.Vocabulary),
-        new("CommunityLife", "Community", 4, 0, Reach.Vocabulary),
-        new("Providers", "Community", 4, 0, Reach.Vocabulary),
         new("Jobs", "Location", 3, 0, Reach.Vocabulary),
         new("Marketplace", "Location", 3, 0, Reach.Vocabulary),
-        new("CommunityProgramme", "Community", 2, 0, Reach.Vocabulary),
-        new("Conversations", "Community", 2, 0, Reach.Vocabulary),
         new("Guides", "Location", 2, 0, Reach.Vocabulary),
-        new("Housing", "Community", 2, 0, Reach.Vocabulary),
         new("Integrations", "Notifications", 2, 0, Reach.Vocabulary),
-        new("Jobs", "Community", 2, 0, Reach.Vocabulary),
-        new("Marketplace", "Community", 2, 0, Reach.Vocabulary),
         new("Automation", "Notifications", 1, 0, Reach.Vocabulary),
         new("Conversations", "Notifications", 1, 0, Reach.Vocabulary)
     ];
@@ -264,7 +277,7 @@ public sealed class ModuleEncapsulationArchitectureTests
     /// </summary>
     private static readonly SeamDebt[] SurfacesStillLeaking =
     [
-        new("Community", 13),
+        new("Community", 4),
         new("Location", 10),
         new("Conversations", 4),
         new("Providers", 2)

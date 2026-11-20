@@ -1,8 +1,8 @@
+using Diaspora.Contracts.Community.V1;
 using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Community.Domain.Enums;
 using Diaspora.Modules.Community.Domain.Errors;
 using Diaspora.Modules.Community.Domain.Identifiers;
-using Diaspora.Modules.Community.Domain.ValueObjects;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Primitives;
 using Diaspora.SharedKernel.Results;

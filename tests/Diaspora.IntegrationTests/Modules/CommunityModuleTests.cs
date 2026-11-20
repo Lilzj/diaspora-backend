@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using Diaspora.Contracts.Community.V1;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Diaspora.Contracts.Identity.V1.Responses;
