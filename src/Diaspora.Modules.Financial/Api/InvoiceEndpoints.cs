@@ -39,7 +39,15 @@ internal static class InvoiceEndpoints
 
                 if (issued.IsFailure)
                 {
-                    return PlatformResults.Ok(context, issued);
+                    // RMD-003. Re-typed rather than forwarded: `issued` is a non-generic
+                    // `Result` and this route answers a list of invoices. Same problem
+                    // document either way; the difference is that the route can now name one
+                    // response type instead of two.
+                    return PlatformResults.Ok(
+                        context,
+                        SharedKernel.Results.Result
+                            .Failure<IReadOnlyList<Contracts.V1.Responses.InvoiceResponse>>(
+                                issued.Error));
                 }
 
                 return PlatformResults.Ok(

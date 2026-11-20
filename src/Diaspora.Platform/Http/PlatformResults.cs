@@ -16,38 +16,45 @@ namespace Diaspora.Platform.Http;
 /// </summary>
 public static class PlatformResults
 {
-    public static IResult Ok<T>(HttpContext context, Result<T> result)
+    public static PlatformOk<T> Ok<T>(HttpContext context, Result<T> result)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(result);
 
-        return result.IsSuccess
+        return new PlatformOk<T>(result.IsSuccess
             ? TypedResults.Ok(new ApiResponse<T>(result.Value, ApiMeta.For(context)))
-            : Problem(context, result.Error);
+            : Problem(context, result.Error));
     }
 
-    public static IResult Ok(HttpContext context, Result result)
+    /// <remarks>
+    /// Typed <c>PlatformOk&lt;object&gt;</c> rather than <c>PlatformOk&lt;object?&gt;</c>: the body
+    /// really is <c>ApiResponse&lt;object?&gt;</c>, but a nullable annotation is not part of the
+    /// runtime type, so <c>typeof</c> would report the same either way. The document names it
+    /// <c>ApiResponseOfObject</c>, which is what the controllers' acknowledgement responses are
+    /// already called.
+    /// </remarks>
+    public static PlatformOk<object> Ok(HttpContext context, Result result)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(result);
 
-        return result.IsSuccess
+        return new PlatformOk<object>(result.IsSuccess
             ? TypedResults.Ok(new ApiResponse<object?>(null, ApiMeta.For(context)))
-            : Problem(context, result.Error);
+            : Problem(context, result.Error));
     }
 
-    public static IResult Created<T>(HttpContext context, Result<T> result)
+    public static PlatformCreated<T> Created<T>(HttpContext context, Result<T> result)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(result);
 
         if (result.IsFailure)
         {
-            return Problem(context, result.Error);
+            return new PlatformCreated<T>(Problem(context, result.Error));
         }
 
-        return TypedResults.Created(
-            (string?)null, new ApiResponse<T>(result.Value, ApiMeta.For(context)));
+        return new PlatformCreated<T>(TypedResults.Created(
+            (string?)null, new ApiResponse<T>(result.Value, ApiMeta.For(context))));
     }
 
     private static IResult Problem(HttpContext context, Error error)

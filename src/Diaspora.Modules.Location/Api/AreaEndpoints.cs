@@ -57,10 +57,19 @@ internal static class AreaEndpoints
                 // The detail response already carries the breadcrumb, so the ancestors route is
                 // a projection of the same query rather than a second one. One code path means
                 // the breadcrumb cannot differ between the two endpoints that serve it.
+                // RMD-003. The failure is re-typed rather than forwarded. `result` is a
+                // `Result<AreaDetailResponse>` and this route answers a list of ancestors, so
+                // forwarding it declared one shape for the success and another for the error.
+                // Both produce the same problem document, so nothing changes on the wire — but
+                // a route cannot state its response type while its two arms disagree about it.
                 return result.IsSuccess
                     ? PlatformResults.Ok(
                         context, SharedKernel.Results.Result.Success(result.Value.Ancestors))
-                    : PlatformResults.Ok(context, result);
+                    : PlatformResults.Ok(
+                        context,
+                        SharedKernel.Results.Result
+                            .Failure<IReadOnlyList<Contracts.V1.Responses.AreaSummaryResponse>>(
+                                result.Error));
             })
             .RequireAuthorization(LocationPolicies.ReadCatalog)
             .WithName("GetAreaAncestors")

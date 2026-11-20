@@ -195,10 +195,11 @@ internal static class UploadEndpoints
             {
                 if (!httpRequest.HasFormContentType)
                 {
-                    return PlatformResults.Ok(
+                    return PlatformResults.Created(
                         context,
-                        SharedKernel.Results.Result.Failure(
-                            Domain.Errors.MediaErrors.UploadEmpty));
+                        SharedKernel.Results.Result
+                            .Failure<Contracts.V1.Responses.MediaAssetResponse>(
+                                Domain.Errors.MediaErrors.UploadEmpty));
                 }
 
                 var form = await httpRequest.ReadFormAsync(cancellationToken);
@@ -206,10 +207,11 @@ internal static class UploadEndpoints
 
                 if (file is null)
                 {
-                    return PlatformResults.Ok(
+                    return PlatformResults.Created(
                         context,
-                        SharedKernel.Results.Result.Failure(
-                            Domain.Errors.MediaErrors.UploadEmpty));
+                        SharedKernel.Results.Result
+                            .Failure<Contracts.V1.Responses.MediaAssetResponse>(
+                                Domain.Errors.MediaErrors.UploadEmpty));
                 }
 
                 await using var content = file.OpenReadStream();

@@ -369,6 +369,85 @@ public class PublishedContractArchitectureTests
                 + "neither should reach a consumer without somebody agreeing to it here");
     }
 
+    /// <summary>
+    /// <b>Every 2xx response names the shape of its body, except the seventeen routes that do not
+    /// answer the platform envelope (RMD-003).</b>
+    /// <para>
+    /// Until 20 November 2026 this document described <b>82</b> of its 1,093 2xx responses. The
+    /// reason on record — in this repository and in the client's own
+    /// <c>backend-openapi-contract-drift.test.ts</c> — was that minimal-API endpoints return
+    /// <c>IResult</c>, so the generator has no return type to read. That was a symptom. The cause
+    /// was that <c>[ProducesResponseType]</c> had been written 200 times in <c>Diaspora.Api</c>,
+    /// whose MVC controllers return <c>Task&lt;IActionResult&gt;</c> and are exactly as untyped,
+    /// and zero times across the 29 module projects. The document described a body wherever
+    /// somebody had typed the type by hand.
+    /// </para>
+    /// <para>
+    /// <b>The worse half was not the silence.</b> A generator with nothing to read emits a default
+    /// success response, and the default is <c>200</c> — so all 89 <c>Created</c> endpoints were
+    /// documented as answering 200 when they answer <b>201</b>. The document was not merely quiet
+    /// about them, it was wrong, and a route-and-verb comparison cannot see a status code. Fixing
+    /// that moved the histogram from <c>200: 1080 / 201: 1</c> to <c>200: 991 / 201: 90</c>.
+    /// </para>
+    /// <para>
+    /// Named individually rather than counted, for the reason the rest of this file gives: the
+    /// useful failure is not "there are eighteen now" but "there is an eighteenth and it is this
+    /// one". An entry joining this list is a route that stopped describing its body — almost always
+    /// because a handler stopped going through <c>PlatformResults</c>. An entry leaving it is a
+    /// route that started, which is usually good and still worth a diff.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Every_successful_response_names_its_body_except_the_routes_that_send_no_envelope()
+    {
+        string[] expected =
+        [
+            "DELETE /api/v1/platform/operations/configuration/{key} [204]",       // bodiless by design
+            "DELETE /api/v1/platform/operations/jobs/{jobId} [204]",              // bodiless by design
+            "GET /api/v1/analytics/exports/{exportId}/download [200]",            // a file
+            "GET /api/v1/media/{mediaId}/content [200]",                          // bytes
+            "GET /api/v1/media/{mediaId}/variants/{variant} [200]",               // bytes
+            "GET /payments/checkout/cancelled [200]",                             // the host's own HTML
+            "GET /payments/checkout/complete [200]",                              // the host's own HTML
+            "POST /api/v1/financial/webhooks/{provider} [200]",                   // a provider's callback
+            "POST /api/v1/financial/webhooks/{provider}/payouts [200]",           // a provider's callback
+            "POST /api/v1/integrations/webhooks/{provider} [200]",                // a provider's callback
+            "POST /api/v1/platform/operations/cache/invalidate [204]",            // bodiless by design
+            "POST /api/v1/platform/operations/kill-switch [204]",                 // bodiless by design
+            "POST /api/v1/platform/operations/resilience/{dependency}/isolate [204]",  // bodiless
+            "POST /api/v1/platform/operations/resilience/{dependency}/reset [204]",    // bodiless
+            "POST /api/v1/telemetry/events [200]",                                // an acknowledgement
+            "PUT /api/v1/platform/operations/configuration/{key} [204]",          // bodiless by design
+            "PUT /api/v1/platform/operations/feature-flags/{flag} [204]"          // bodiless by design
+        ];
+
+        Operations()
+            .SelectMany(operation => operation.Value.GetProperty("responses")
+                .EnumerateObject()
+                .Where(response => response.Name.StartsWith('2'))
+                .Where(response => !NamesABody(response.Value))
+                .Select(response => $"{operation.Key} [{response.Name}]"))
+            .OrderBy(key => key, StringComparer.Ordinal)
+            .Should().BeEquivalentTo(
+                expected,
+                "a 2xx that names no schema is a response shape no consumer can check and no gate "
+                + "can see rename a field — which is the whole of RMD-003, found twice by hand "
+                + "before anything was written down about it");
+    }
+
+    /// <summary>
+    /// A body is a schema, not a <c>content</c> block.
+    /// </summary>
+    /// <remarks>
+    /// Eight responses in this document carry a media type with nothing under it. Counting blocks
+    /// rather than schemas reported 90 described responses where 82 bodies were actually named, and
+    /// the difference between those two numbers is the difference between a measurement and a
+    /// number that looks like one.
+    /// </remarks>
+    private static bool NamesABody(JsonElement response) =>
+        response.TryGetProperty("content", out var content)
+        && content.EnumerateObject().Any(media => media.Value.TryGetProperty("schema", out _));
+
     private static List<JsonProperty> Schemes() =>
         Contract.Value.RootElement.TryGetProperty("components", out var components)
         && components.TryGetProperty("securitySchemes", out var declared)

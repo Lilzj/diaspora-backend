@@ -87,7 +87,7 @@ public sealed class PrelaunchRemediationArchitectureTests
     /// </summary>
     private static readonly (string Prefix, int Count)[] RaisedDuringRemediation =
     [
-        ("RMD", 4)
+        ("RMD", 5)
     ];
 
     /// <summary>
