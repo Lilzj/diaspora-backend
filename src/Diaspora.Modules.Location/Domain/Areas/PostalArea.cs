@@ -1,4 +1,4 @@
-using Diaspora.Modules.Location.Domain.Enums;
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Domain.ValueObjects;
 
 namespace Diaspora.Modules.Location.Domain.Areas;

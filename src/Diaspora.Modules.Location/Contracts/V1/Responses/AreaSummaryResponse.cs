@@ -1,3 +1,5 @@
+using Diaspora.Contracts.Location.V1;
+
 namespace Diaspora.Modules.Location.Contracts.V1.Responses;
 
 /// <summary>A hierarchy node as it appears in a list or a search result.</summary>

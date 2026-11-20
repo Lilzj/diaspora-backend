@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Location.V1;
 using System.Diagnostics;
 using System.Text.Json;
 using Diaspora.IntegrationTests.Common;
@@ -8,7 +9,6 @@ using Diaspora.Modules.Housing.Domain.Neighborhoods;
 using Diaspora.Modules.Housing.Domain.ValueObjects;
 using Diaspora.Modules.Location.Domain.Areas;
 using Diaspora.Modules.Location.Domain.Countries;
-using Diaspora.Modules.Location.Domain.Enums;
 using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Persistence;
 using Diaspora.SharedKernel.Identity;

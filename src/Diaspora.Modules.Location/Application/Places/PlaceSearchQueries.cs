@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Location.V1;
 using System.Text.RegularExpressions;
 using Diaspora.Application.Abstractions;
 using Diaspora.Modules.Location.Contracts.V1.Responses;

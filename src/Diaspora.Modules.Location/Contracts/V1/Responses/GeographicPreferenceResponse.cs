@@ -1,3 +1,5 @@
+using Diaspora.Contracts.Location.V1;
+
 namespace Diaspora.Modules.Location.Contracts.V1.Responses;
 
 /// <summary>How a member wants geography to behave for them.</summary>

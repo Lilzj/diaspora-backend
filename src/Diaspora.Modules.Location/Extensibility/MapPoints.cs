@@ -1,3 +1,5 @@
+using Diaspora.Contracts.Location.V1;
+
 namespace Diaspora.Modules.Location.Extensibility;
 
 /// <summary>

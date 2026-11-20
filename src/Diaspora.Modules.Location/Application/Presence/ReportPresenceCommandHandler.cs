@@ -1,6 +1,7 @@
 using Diaspora.Application.Abstractions;
 using Diaspora.Contracts.Automation.V1.Extensibility;
 using Diaspora.Contracts.Location.V1.Events;
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Location.Application.EventHandlers;
 using Diaspora.Modules.Location.Contracts.V1.Responses;

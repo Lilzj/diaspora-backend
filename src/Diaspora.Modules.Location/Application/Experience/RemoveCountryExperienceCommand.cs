@@ -1,4 +1,5 @@
 using Diaspora.Application.Abstractions;
+using Diaspora.Contracts.Location.V1;
 
 namespace Diaspora.Modules.Location.Application.Experience;
 

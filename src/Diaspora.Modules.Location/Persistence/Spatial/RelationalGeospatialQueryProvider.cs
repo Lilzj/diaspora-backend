@@ -1,5 +1,5 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Domain.Areas;
-using Diaspora.Modules.Location.Domain.Enums;
 using Diaspora.Modules.Location.Domain.Search;
 using Diaspora.Modules.Location.Domain.Spatial;
 

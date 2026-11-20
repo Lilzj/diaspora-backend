@@ -1,4 +1,5 @@
 using Diaspora.Application.Abstractions;
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Location.Application.Mapping;
 using Diaspora.Modules.Location.Application.Services;

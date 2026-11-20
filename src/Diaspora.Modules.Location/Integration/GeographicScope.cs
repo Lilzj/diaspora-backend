@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Domain.Search;
 using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.SharedKernel.Identity;
@@ -122,7 +123,7 @@ public sealed record GeographicScope
     /// </summary>
     public bool IsAroundPoint =>
         !IsViewport && Center is not null && Bounds is not null
-        && Radius.Scope == Domain.Enums.RadiusScope.Radius;
+        && Radius.Scope == RadiusScope.Radius;
 
     public static GeographicScope Unbounded { get; } = new();
 }

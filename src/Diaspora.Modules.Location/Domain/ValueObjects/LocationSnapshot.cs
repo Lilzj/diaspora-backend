@@ -1,4 +1,4 @@
-using Diaspora.Modules.Location.Domain.Enums;
+using Diaspora.Contracts.Location.V1;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Primitives;
 using Diaspora.SharedKernel.Results;

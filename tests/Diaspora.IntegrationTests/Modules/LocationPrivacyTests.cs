@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.IntegrationTests.Common;
 using Diaspora.Modules.Location.Domain.Profiles;
 using Diaspora.Modules.Location.Domain.ValueObjects;

@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.SharedKernel.Identity;
 
 namespace Diaspora.Modules.Location.Integration;

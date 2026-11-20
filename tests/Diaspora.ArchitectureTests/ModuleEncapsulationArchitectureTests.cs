@@ -212,6 +212,33 @@ public sealed class ModuleEncapsulationArchitectureTests
     /// much it looks like its neighbours.
     /// </para>
     /// <para>
+    /// <b>The third wave published B4's vocabulary and closed five more.</b> Eleven types —
+    /// <c>CountryCode</c>, <c>GeoCoordinate</c>, <c>BoundingBox</c>, <c>Distance</c>,
+    /// <c>HierarchyPath</c>, <c>LocationSlug</c> and the five enumerations they and their callers
+    /// need — are now <c>Diaspora.Contracts.Location.V1</c>. The dependency closure decided the
+    /// list rather than the crossing counts did: <c>Distance</c> needs <c>DistanceUnit</c> and
+    /// <c>GeoCoordinate</c> needs <c>CoordinatePrecision</c>, and <b>a leaf assembly cannot
+    /// reach back into the module it was extracted from</b>, so those two travel whether or not
+    /// anyone else names them. That is a different reason from the one that keeps
+    /// <c>PollStatus</c> in B6 — necessity rather than demand.
+    /// </para>
+    /// <para>
+    /// <c>LocationErrorCodes</c> moved for the same reason. <c>CountryCode</c> and its neighbours
+    /// return <c>Result</c> failures carrying those codes, so <b>a published type has to be able
+    /// to state its failures in published terms</b>. The file already described itself as frozen
+    /// alongside the API and changed only with a new API version, which is what <c>V1</c> means;
+    /// the strings are untouched. The other twenty modules keep theirs at their own root, and the
+    /// asymmetry is real: B4 is simply the first module whose vocabulary was published.
+    /// </para>
+    /// <para>
+    /// <b>Both of B4's remaining consumers reach past the vocabulary, which is why they survive.</b>
+    /// <c>ILocationDirectory</c> returns <c>Country</c> and <c>AdministrativeArea</c> — whole
+    /// aggregates — so GeographicIntelligence and Housing still reach <c>Domain.Countries</c> and
+    /// <c>Domain.Areas</c>, and CommunityLife reaches both. No amount of vocabulary publishing
+    /// touches that; it needs the seam to answer with a projection, which is a change to what
+    /// consumers receive rather than to where a type lives.
+    /// </para>
+    /// <para>
     /// <b>That is the shape of the rest of this finding rather than a special case.</b> Both
     /// reports prescribed a read-model port for each of the 107 crossings — and these nine
     /// consumers were already using the port. Where a published seam names an internal type, no
@@ -226,11 +253,11 @@ public sealed class ModuleEncapsulationArchitectureTests
     /// </summary>
     private static readonly InternalEdge[] EdgesStillOwed =
     [
-        // Application -- another module's commands, queries or services (11 edges, 62 crossings).
+        // Application -- another module's commands, queries or services (11 edges, 46 crossings).
         // Seven of these are new: every module with media attachments constructs
         // Modules.Media.Application.Assets.AttachMediaCommand inline, which no directive shows.
-        new("GeographicIntelligence", "Location", 18, 1, Reach.Application),
-        new("Housing", "Location", 8, 2, Reach.Application),
+        new("GeographicIntelligence", "Location", 10, 0, Reach.Application),
+        new("Housing", "Location", 3, 0, Reach.Application),
         new("Providers", "Media", 3, 6, Reach.Application),
         new("Community", "Media", 4, 1, Reach.Application),
         new("CommunityProgramme", "Financial", 4, 0, Reach.Application),
@@ -241,20 +268,16 @@ public sealed class ModuleEncapsulationArchitectureTests
         new("Jobs", "Media", 1, 1, Reach.Application),
         new("Creator", "Media", 1, 0, Reach.Application),
 
-        // Aggregate -- another module's entities (3 edges, 8 crossings).
+        // Aggregate -- another module's entities (3 edges, 4 crossings).
         new("Guides", "Community", 1, 0, Reach.Aggregate),
-        new("CommunityLife", "Location", 6, 0, Reach.Aggregate),
+        new("CommunityLife", "Location", 2, 0, Reach.Aggregate),
         new("Creator", "Community", 1, 0, Reach.Aggregate),
 
-        // Vocabulary -- enumerations, value objects, identifiers (8 edges, 29 crossings).
+        // Vocabulary -- enumerations, value objects, identifiers (3 edges, 4 crossings).
         // Nine edges closed 20 November 2026: every crossing into Guides and into Providers.
         // All nine were forced by those two modules' own published seams -- see the summary.
-        // Seven more closed the same day when B6's content vocabulary was published.
-        new("Community", "Location", 2, 8, Reach.Vocabulary),
-        new("Providers", "Location", 2, 5, Reach.Vocabulary),
-        new("Jobs", "Location", 3, 0, Reach.Vocabulary),
-        new("Marketplace", "Location", 3, 0, Reach.Vocabulary),
-        new("Guides", "Location", 2, 0, Reach.Vocabulary),
+        // Seven more closed the same day when B6's content vocabulary was published, and
+        // five more when B4's did. Every vocabulary edge left is into Notifications.
         new("Integrations", "Notifications", 2, 0, Reach.Vocabulary),
         new("Automation", "Notifications", 1, 0, Reach.Vocabulary),
         new("Conversations", "Notifications", 1, 0, Reach.Vocabulary)
@@ -278,7 +301,7 @@ public sealed class ModuleEncapsulationArchitectureTests
     private static readonly SeamDebt[] SurfacesStillLeaking =
     [
         new("Community", 4),
-        new("Location", 10),
+        new("Location", 5),
         new("Conversations", 4),
         new("Providers", 2)
     ];

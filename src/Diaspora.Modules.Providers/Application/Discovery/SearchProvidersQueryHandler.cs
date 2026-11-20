@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.SharedKernel.Search;
 using System.Diagnostics;
 using System.Globalization;
@@ -175,7 +176,7 @@ public sealed class SearchProvidersQueryHandler
         ProviderQueryFilter filter, GeographicScope scope, CancellationToken cancellationToken)
     {
         if (scope is not { Center: not null, IsViewport: false }
-            || scope.Radius.Scope != Location.Domain.Enums.RadiusScope.Radius)
+            || scope.Radius.Scope != RadiusScope.Radius)
         {
             return null;
         }

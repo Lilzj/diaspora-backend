@@ -1,10 +1,10 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Housing.Domain.Errors;
 using Diaspora.Modules.Housing.Domain.Identifiers;
 using Diaspora.Modules.Housing.Domain.Neighborhoods;
 using Diaspora.Modules.Housing.Domain.ValueObjects;
 using Diaspora.Modules.Location.Domain.Areas;
 using Diaspora.Modules.Location.Domain.Countries;
-using Diaspora.Modules.Location.Domain.Enums;
 using Diaspora.Modules.Location.Integration;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Identity;
@@ -286,7 +286,7 @@ public sealed class HousingNeighborhoodResolver
         // Fully qualified: both Location and the platform Domain declare a CountryCode, and the
         // repository takes Location's. An unqualified name here resolves to whichever using
         // directive happens to come first, which is a bug that compiles.
-        var parsed = Modules.Location.Domain.ValueObjects.CountryCode.TryCreate(normalized);
+        var parsed = CountryCode.TryCreate(normalized);
 
         return parsed.IsSuccess
             && await _countries.GetByCodeAsync(parsed.Value, cancellationToken) is not null;

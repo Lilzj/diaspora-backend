@@ -1,8 +1,8 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Domain.Countries;
 using Diaspora.Modules.Location.Domain.Enums;
 using Diaspora.Modules.Location.Domain.Experience;
 using Diaspora.Modules.Location.Domain.Residency;
-using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Modules.Location.Integration;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Identity;

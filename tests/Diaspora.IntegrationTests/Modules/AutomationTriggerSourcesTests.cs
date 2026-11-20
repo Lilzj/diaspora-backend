@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Location.V1;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -8,7 +9,6 @@ using Diaspora.Modules.CommunityProgramme.Domain.Communities;
 using Diaspora.Modules.CommunityProgramme.Domain.Identifiers;
 using Diaspora.Modules.CommunityProgramme.Domain.Repositories;
 using Diaspora.Modules.Location.Domain.Areas;
-using Diaspora.Modules.Location.Domain.Enums;
 using Diaspora.Modules.Location.Domain.Presence;
 using Diaspora.Persistence;
 using Diaspora.Platform.Operations.Privacy;

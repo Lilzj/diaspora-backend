@@ -1,10 +1,18 @@
-namespace Diaspora.Modules.Location;
+namespace Diaspora.Contracts.Location.V1;
 
 /// <summary>
 /// Stable, client-facing error codes for the module's problem documents.
 /// <para>
 /// Frozen alongside the API: a client branching on <c>location.area.not-found</c> must keep
 /// working across releases, so these strings change only with a new API version.
+/// </para>
+/// <para>
+/// <b>Published with B4's vocabulary rather than left in the module.</b> A type that other
+/// modules are given has to be able to state its failures in terms they can also be given:
+/// <c>CountryCode</c>, <c>GeoCoordinate</c> and the rest return <c>Result</c> failures
+/// carrying these codes, and a leaf assembly cannot reach back into the module that owns
+/// them. The strings are unchanged, and this file already described itself as frozen
+/// alongside the API — which is what <c>V1</c> means. BARCH-001 / BSOLID-003.
 /// </para>
 /// </summary>
 public static class LocationErrorCodes

@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Location.V1;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Diaspora.IntegrationTests.Common;

@@ -1,10 +1,10 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.IntegrationTests.Common;
 using Diaspora.Modules.Community.Domain.Enums;
 using Diaspora.Modules.Community.Domain.Policies;
 using Diaspora.Modules.Community.Domain.Posts;
 using Diaspora.Modules.Community.Domain.ValueObjects;
 using Diaspora.Modules.Location.Domain.Areas;
-using Diaspora.Modules.Location.Domain.Enums;
 using Diaspora.Persistence;
 using Diaspora.SharedKernel.Identity;
 using FluentAssertions;

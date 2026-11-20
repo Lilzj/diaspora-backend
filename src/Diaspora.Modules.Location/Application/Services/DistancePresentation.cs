@@ -1,6 +1,6 @@
+using Diaspora.Contracts.Location.V1;
 using System.Globalization;
 using Diaspora.Modules.Location.Domain.Enums;
-using Diaspora.Modules.Location.Domain.ValueObjects;
 
 namespace Diaspora.Modules.Location.Application.Services;
 

@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Application.Experience;
 using Diaspora.Modules.Location.Domain.Experience;
 using FluentValidation;

@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Location.V1;
 using System.Globalization;
 using System.Text;
 

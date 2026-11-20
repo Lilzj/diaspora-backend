@@ -1,5 +1,5 @@
+using Diaspora.Contracts.Location.V1;
 using System.Text.Json;
-using Diaspora.Modules.Location.Domain.Enums;
 using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Modules.Location.Extensibility;
 using Microsoft.Extensions.Logging;

@@ -3,7 +3,7 @@ using System.Text;
 using Diaspora.SharedKernel.Primitives;
 using Diaspora.SharedKernel.Results;
 
-namespace Diaspora.Modules.Location.Domain.ValueObjects;
+namespace Diaspora.Contracts.Location.V1;
 
 /// <summary>
 /// A URL-safe, lower-case, hyphenated name for a place — <c>peckham</c>, <c>rose-hill</c>.

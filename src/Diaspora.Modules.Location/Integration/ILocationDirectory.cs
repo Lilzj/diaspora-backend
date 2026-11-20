@@ -1,6 +1,6 @@
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Domain.Areas;
 using Diaspora.Modules.Location.Domain.Countries;
-using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.SharedKernel.Identity;
 
 namespace Diaspora.Modules.Location.Integration;
@@ -51,7 +51,7 @@ public interface ILocationDirectory
     /// </summary>
     Task<AdministrativeArea?> FindNearestAreaAsync(
         GeoCoordinate coordinate,
-        Domain.Enums.AdministrativeLevel? level = null,
+        AdministrativeLevel? level = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>The distance between two points, by the platform's active earth model.</summary>
