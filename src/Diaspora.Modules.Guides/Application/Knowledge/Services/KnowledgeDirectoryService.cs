@@ -232,10 +232,10 @@ public sealed class KnowledgeDirectoryService : IKnowledgeDirectory
     }
 
     public async Task<IReadOnlyList<GuideSummary>> ListRecommendedReadsAsync(
-        GuideId sourceGuideId, int limit = 5, CancellationToken cancellationToken = default)
+        Guid sourceGuideId, int limit = 5, CancellationToken cancellationToken = default)
     {
         var recommendation = await _recommendations.GetBySourceForReadAsync(
-            sourceGuideId, cancellationToken);
+            GuideId.From(sourceGuideId), cancellationToken);
 
         if (recommendation is null || recommendation.Reads.Count == 0)
         {
@@ -268,7 +268,7 @@ public sealed class KnowledgeDirectoryService : IKnowledgeDirectory
         }
 
         var resolved = await _guides.FindManyAsync(
-            [.. guideIds.Select(GuideId.From)], cancellationToken);
+            [.. guideIds], cancellationToken);
 
         var ordered = new List<GuideSummary>(guideIds.Count);
 

@@ -1,6 +1,5 @@
 using Diaspora.Modules.CommunityLife.Domain.CommunityEvents;
 using Diaspora.Modules.CommunityLife.Domain.Organizations;
-using Diaspora.Modules.Guides.Domain.Identifiers;
 using Diaspora.Modules.Guides.Integration;
 
 namespace Diaspora.Modules.CommunityLife.Application.Services;
@@ -61,7 +60,6 @@ public sealed class CommunityLifeGuideResolver
         var wanted = guideIds
             .Where(id => id != Guid.Empty)
             .Distinct()
-            .Select(GuideId.From)
             .ToList();
 
         return wanted.Count == 0

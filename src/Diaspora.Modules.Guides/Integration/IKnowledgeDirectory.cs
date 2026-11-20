@@ -1,5 +1,3 @@
-using Diaspora.Modules.Guides.Domain.Identifiers;
-
 namespace Diaspora.Modules.Guides.Integration;
 
 /// <summary>
@@ -24,6 +22,11 @@ namespace Diaspora.Modules.Guides.Integration;
 /// what <em>they</em> should read: personalized onboarding is out of scope for this phase, and a
 /// signature that accepted a user identifier would be an invitation to build it behind this
 /// interface where no consumer could see it happening.
+/// </para>
+/// <para>
+/// <b>The source guide crosses as a <see cref="Guid"/>, not as B8's <c>GuideId</c>.</b> B11 and
+/// B12 are the consumers this interface was written for, and a seam that names an internal type
+/// obliges each of them to import B8's internals in order to call it. BARCH-001 / BSOLID-003.
 /// </para>
 /// </summary>
 public interface IKnowledgeDirectory
@@ -92,5 +95,5 @@ public interface IKnowledgeDirectory
     /// </para>
     /// </summary>
     Task<IReadOnlyList<GuideSummary>> ListRecommendedReadsAsync(
-        GuideId sourceGuideId, int limit = 5, CancellationToken cancellationToken = default);
+        Guid sourceGuideId, int limit = 5, CancellationToken cancellationToken = default);
 }

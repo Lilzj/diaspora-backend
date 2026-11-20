@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Providers.V1;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using Diaspora.Modules.Providers.Domain.Enums;

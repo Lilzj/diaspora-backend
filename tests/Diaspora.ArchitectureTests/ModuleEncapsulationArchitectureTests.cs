@@ -178,6 +178,32 @@ public sealed class ModuleEncapsulationArchitectureTests
     /// GeographicIntelligence → Location where there are 18, and 7 for Housing → Location where
     /// there are 8 — so that table is a sample of the heaviest edges rather than a census.
     /// </para>
+    /// <para>
+    /// <b>The first wave closed nine edges by changing two seams, not nine call sites.</b> Every
+    /// crossing into Guides and into Providers was <em>forced</em> by a published seam:
+    /// <c>IGuideDirectory</c> was typed on B8's <c>GuideId</c>, and <c>IProviderDirectory</c> on
+    /// B7's <c>ProviderId</c> and <c>ProviderRole</c>, so a consumer could not call the seam it
+    /// had been given without importing the internals behind it. Each of the nine consumers is a
+    /// resolver that already held a <see cref="Guid"/> and converted it up to satisfy the
+    /// signature — and both seams already returned dictionaries keyed by <see cref="Guid"/>, so
+    /// each spoke the published type in one direction and the internal one in the other.
+    /// Identifiers now cross as <see cref="Guid"/>, converted on the owning module's side, and
+    /// the role is published as <c>Diaspora.Contracts.Providers.V1.ProviderRole</c>. <b>No module
+    /// reaches into Guides or into Providers at all.</b> 138 crossings over 38 edges became 127
+    /// over 29.
+    /// </para>
+    /// <para>
+    /// <b>That is the shape of the rest of this finding rather than a special case.</b> Both
+    /// reports prescribed a read-model port for each of the 107 crossings — and these nine
+    /// consumers were already using the port. Where a published seam names an internal type, no
+    /// amount of work at the call site can close the edge, and one change to the seam closes
+    /// every consumer of it at once. Two such types are left in B7's surface:
+    /// <c>IProviderCatalog</c> names <c>ServiceCategoryId</c> and
+    /// <c>IProviderDirectory.IsVerifiedAsync</c> names <c>ProviderVerificationKind</c>. Both are
+    /// recorded in those files; no module reaches either today, and
+    /// <see cref="A_published_read_surface_does_not_oblige_a_consumer_to_reach_past_it"/> holds
+    /// the line at the count that is there.
+    /// </para>
     /// </summary>
     private static readonly InternalEdge[] EdgesStillOwed =
     [
@@ -201,32 +227,52 @@ public sealed class ModuleEncapsulationArchitectureTests
         new("CommunityLife", "Location", 6, 0, Reach.Aggregate),
         new("Creator", "Community", 2, 0, Reach.Aggregate),
 
-        // Vocabulary -- enumerations, value objects, identifiers (24 edges, 58 crossings).
+        // Vocabulary -- enumerations, value objects, identifiers (15 edges, 47 crossings).
+        // Nine edges closed 20 November 2026: every crossing into Guides and into Providers.
+        // All nine were forced by those two modules' own published seams -- see the summary.
         new("Community", "Location", 2, 8, Reach.Vocabulary),
         new("Providers", "Location", 2, 5, Reach.Vocabulary),
         new("CommunityLife", "Community", 4, 0, Reach.Vocabulary),
         new("Providers", "Community", 4, 0, Reach.Vocabulary),
         new("Jobs", "Location", 3, 0, Reach.Vocabulary),
         new("Marketplace", "Location", 3, 0, Reach.Vocabulary),
-        new("CommunityLife", "Providers", 2, 0, Reach.Vocabulary),
         new("CommunityProgramme", "Community", 2, 0, Reach.Vocabulary),
         new("Conversations", "Community", 2, 0, Reach.Vocabulary),
         new("Guides", "Location", 2, 0, Reach.Vocabulary),
         new("Housing", "Community", 2, 0, Reach.Vocabulary),
-        new("Housing", "Providers", 2, 0, Reach.Vocabulary),
         new("Integrations", "Notifications", 2, 0, Reach.Vocabulary),
         new("Jobs", "Community", 2, 0, Reach.Vocabulary),
         new("Marketplace", "Community", 2, 0, Reach.Vocabulary),
         new("Automation", "Notifications", 1, 0, Reach.Vocabulary),
-        new("CommunityLife", "Guides", 1, 0, Reach.Vocabulary),
-        new("Conversations", "Notifications", 1, 0, Reach.Vocabulary),
-        new("Guides", "Providers", 1, 0, Reach.Vocabulary),
-        new("Housing", "Guides", 1, 0, Reach.Vocabulary),
-        new("Jobs", "Guides", 1, 0, Reach.Vocabulary),
-        new("Jobs", "Providers", 1, 0, Reach.Vocabulary),
-        new("Marketplace", "Guides", 1, 0, Reach.Vocabulary),
-        new("Marketplace", "Providers", 1, 0, Reach.Vocabulary)
+        new("Conversations", "Notifications", 1, 0, Reach.Vocabulary)
     ];
+
+    /// <summary>One module's published read surface, and the internal references left in it.</summary>
+    /// <param name="Module">The module that publishes the surface.</param>
+    /// <param name="References">
+    /// How many times its <c>Integration</c> namespace reaches its own internals. Exact rather
+    /// than a ceiling, for the same reason the edge counts are.
+    /// </param>
+    private sealed record SeamDebt(string Module, int References);
+
+    /// <summary>
+    /// The published read surfaces that still name a type behind them, by module.
+    /// <para>
+    /// Measured by the rule that enforces it rather than by a second scan written to agree with
+    /// it. Guides and Providers are absent because the first wave emptied them.
+    /// </para>
+    /// </summary>
+    private static readonly SeamDebt[] SurfacesStillLeaking =
+    [
+        new("Community", 13),
+        new("Location", 10),
+        new("Conversations", 4),
+        new("Providers", 2)
+    ];
+
+    /// <summary>A module's own layers. Reaching one of these from its own seam is the debt.</summary>
+    private static readonly string[] InnerSegments =
+        ["Domain", "Application", "Persistence", "Infrastructure"];
 
     /// <summary>
     /// What both audit reports counted, independently of the table above. Pinned so that a wave
@@ -610,6 +656,116 @@ public sealed class ModuleEncapsulationArchitectureTests
     }
 
     /// <summary>
+    /// <b>A published read surface does not oblige a consumer to reach past it.</b>
+    /// <para>
+    /// The first wave's nine edges were not nine careless consumers. Every one was a module
+    /// calling the seam it had been handed and finding an internal type in the signature:
+    /// <c>IGuideDirectory</c> named B8's <c>GuideId</c>; <c>IProviderDirectory</c> named B7's
+    /// <c>ProviderId</c> and <c>ProviderRole</c>. <b>A crossing of that kind cannot be closed
+    /// where it is written</b>, and the list above was recording nine debts for two defects.
+    /// </para>
+    /// <para>
+    /// So it is counted where it is owed. <c>Integration</c> is what a module publishes for other
+    /// modules to <em>call</em>, and a reference from there into its own <c>Domain</c>,
+    /// <c>Application</c>, <c>Persistence</c> or <c>Infrastructure</c> is a consumer's crossing
+    /// with the consumer not yet written. The other two published segments are deliberately out
+    /// of scope: <c>Extensibility</c> hands a contributor the module's own aggregate on purpose —
+    /// a ranking strategy ranks a <c>Provider</c> — and <c>Contracts</c> is frozen payloads.
+    /// </para>
+    /// <para>
+    /// Exact in both directions, for the reason the edge counts are: a surface that stops leaking
+    /// and is not decremented here fails, so the number is what is owed today rather than what
+    /// was owed in November. The numbers also predict the rest of the finding — the edges left
+    /// above are overwhelmingly into Community and Location, and those are the two surfaces with
+    /// the most left in them.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_published_read_surface_does_not_oblige_a_consumer_to_reach_past_it()
+    {
+        var declared = SurfacesStillLeaking.ToDictionary(
+            debt => debt.Module, StringComparer.Ordinal);
+
+        var found = ScanPublishedSurfaces();
+        var offenders = new List<string>();
+
+        foreach (var (module, references) in found.OrderBy(
+            entry => entry.Key, StringComparer.Ordinal))
+        {
+            var where = string.Join(", ", references.Order(StringComparer.Ordinal));
+
+            if (!declared.TryGetValue(module, out var allowed))
+            {
+                offenders.Add(
+                    $"NEW LEAK {module}.Integration reaches its own internals {references.Count} " +
+                    "time(s), so a consumer calling that seam is obliged to import them. Publish " +
+                    $"the type, or take the primitive and convert inside {module}. {where}");
+
+                continue;
+            }
+
+            if (references.Count != allowed.References)
+            {
+                var direction = references.Count > allowed.References ? "GREW" : "SHRANK";
+
+                offenders.Add(
+                    $"{direction} {module}.Integration: {allowed.References} recorded, " +
+                    $"{references.Count} found. {where}");
+            }
+        }
+
+        foreach (var debt in SurfacesStillLeaking.Where(debt => !found.ContainsKey(debt.Module)))
+        {
+            offenders.Add(
+                $"CLOSED {debt.Module}.Integration: {debt.References} recorded, none found. " +
+                "Remove the entry in the commit that cleaned the surface.");
+        }
+
+        offenders.Should().BeEmpty(
+            "a published seam that names an internal type cannot be fixed at the call site:\n" +
+            string.Join("\n", offenders));
+    }
+
+    /// <summary>
+    /// <b>The surface scan sees an internal reach however it is written.</b>
+    /// <para>
+    /// The same probe the crossing scanner needed, for the same reason and against the same
+    /// mistake. A scan of the published surfaces written as a regex over the fully qualified
+    /// prefix reported Location as leaking 8 times; this one reports 10. The two it missed are
+    /// <c>Domain.Enums.RadiusScope.Radius</c> in <c>GeographicScope</c> and
+    /// <c>Domain.Enums.AdministrativeLevel</c> in <c>ILocationDirectory</c> — written with no
+    /// module name at all, because from inside <c>Diaspora.Modules.Location.Integration</c> the
+    /// walk outwards reaches <c>Diaspora.Modules.Location</c> and <c>Domain</c> binds there.
+    /// </para>
+    /// <para>
+    /// That is the <see cref="InlineCrossingsNobodyCounted"/> lesson a second time, in a second
+    /// scan, on the same afternoon the first one was being relied upon. The last case is the one
+    /// that keeps the rule honest in the other direction: another module's internals are not this
+    /// module's debt, and counting them here would charge Location for Community's leak.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [InlineData("Diaspora.Modules.Location.Domain.ValueObjects", true, "fully qualified")]
+    [InlineData("Modules.Location.Domain.ValueObjects", true, "relative to Diaspora")]
+    [InlineData("Domain.Enums.AdministrativeLevel", true, "relative to the module itself")]
+    [InlineData("Application.Areas.FindAreaQuery", true, "a layer other than Domain")]
+    [InlineData("Diaspora.Modules.Community.Domain.ValueObjects", false, "another module's")]
+    [InlineData("Diaspora.Contracts.Location.V1.Events", false, "published, and not a module's")]
+    [InlineData("Diaspora.Modules.Location.Integration", false, "the surface's own namespace")]
+    [InlineData("System.Collections.Generic", false, "not this platform's at all")]
+    public void The_surface_scan_sees_an_internal_reach_however_it_is_written(
+        string written, bool isDebt, string why)
+    {
+        TryReadOwnInternal(written, "Location", out var reached)
+            .Should().Be(isDebt, "{0} is written {1}", written, why);
+
+        if (isDebt)
+        {
+            reached.Should().NotBeEmpty("an unnamed reach cannot be chased to its statement");
+        }
+    }
+
+    /// <summary>
     /// <b>What the scan read, so that none of the rules above can pass by having found nothing.</b>
     /// Every one of them is an assertion that a collection is empty or that a dictionary agrees
     /// with a list, and all of those are satisfied by a scan that read no files at all — a renamed
@@ -661,6 +817,101 @@ public sealed class ModuleEncapsulationArchitectureTests
         }
 
         return crossings;
+    }
+
+    /// <summary>
+    /// Every reference from a module's <c>Integration</c> namespace into its own internals, by
+    /// module, with where each one is written.
+    /// <para>
+    /// Both spellings, for the reason <see cref="ReadOneFile"/> counts both. Inside
+    /// <c>Diaspora.Modules.Providers.Integration</c> the walk outwards reaches
+    /// <c>Diaspora.Modules.Providers</c>, so <c>Domain.Enums.ProviderRole</c> compiles with no
+    /// import naming it — and that spelling is what three files in B7 used, which a scan looking
+    /// only for the fully qualified form would have called clean.
+    /// </para>
+    /// </summary>
+    private static Dictionary<string, List<string>> ScanPublishedSurfaces()
+    {
+        var found = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+
+        foreach (var file in SourceTree.ProductionFiles)
+        {
+            if (!file.Path.StartsWith(ModuleSourcePrefix, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var segments = file.Path[ModuleSourcePrefix.Length..].Split('/');
+
+            if (segments.Length < 2
+                || !string.Equals(segments[1], "Integration", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var module = segments[0];
+
+            foreach (var node in file.Root.DescendantNodes())
+            {
+                var written = node switch
+                {
+                    UsingDirectiveSyntax directive => directive.Name?.ToString(),
+                    QualifiedNameSyntax or MemberAccessExpressionSyntax
+                        when node.Parent is not (QualifiedNameSyntax
+                            or MemberAccessExpressionSyntax
+                            or UsingDirectiveSyntax
+                            or NamespaceDeclarationSyntax
+                            or FileScopedNamespaceDeclarationSyntax) => Unspaced(node.ToString()),
+                    _ => null
+                };
+
+                if (!TryReadOwnInternal(written, module, out var reached))
+                {
+                    continue;
+                }
+
+                if (!found.TryGetValue(module, out var references))
+                {
+                    references = [];
+                    found[module] = references;
+                }
+
+                references.Add($"{file.Locate(node)} reaches {reached}");
+            }
+        }
+
+        return found;
+    }
+
+    /// <summary>
+    /// Whether <paramref name="written"/> names this module's own internals, in any of the
+    /// spellings that compile from inside its <c>Integration</c> namespace.
+    /// </summary>
+    private static bool TryReadOwnInternal(string? written, string module, out string reached)
+    {
+        reached = string.Empty;
+
+        if (string.IsNullOrEmpty(written))
+        {
+            return false;
+        }
+
+        var qualified = $"{ModulePrefix}{module}.";
+        var relative = $"{RelativeModulePrefix}{module}.";
+
+        var tail =
+            written.StartsWith(qualified, StringComparison.Ordinal) ? written[qualified.Length..]
+            : written.StartsWith(relative, StringComparison.Ordinal) ? written[relative.Length..]
+            : written;
+
+        if (!InnerSegments.Contains(tail.Split('.')[0], StringComparer.Ordinal))
+        {
+            return false;
+        }
+
+        reached = tail;
+
+        return true;
     }
 
     /// <summary>

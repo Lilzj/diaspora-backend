@@ -36,9 +36,9 @@ public sealed class GuideDirectoryService : IGuideDirectory
     public GuideDirectoryService(IGuideRepository guides) => _guides = guides;
 
     public async Task<GuideSummary?> FindAsync(
-        GuideId guideId, CancellationToken cancellationToken = default)
+        Guid guideId, CancellationToken cancellationToken = default)
     {
-        var guide = await _guides.GetForReadAsync(guideId, cancellationToken);
+        var guide = await _guides.GetForReadAsync(GuideId.From(guideId), cancellationToken);
 
         return guide is null || !IsResolvable(guide) ? null : ToSummary(guide);
     }
@@ -59,7 +59,7 @@ public sealed class GuideDirectoryService : IGuideDirectory
     }
 
     public async Task<IReadOnlyDictionary<Guid, GuideSummary>> FindManyAsync(
-        IReadOnlyCollection<GuideId> guideIds, CancellationToken cancellationToken = default)
+        IReadOnlyCollection<Guid> guideIds, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(guideIds);
 
@@ -67,7 +67,7 @@ public sealed class GuideDirectoryService : IGuideDirectory
 
         foreach (var guideId in guideIds.Distinct())
         {
-            var guide = await _guides.GetForReadAsync(guideId, cancellationToken);
+            var guide = await _guides.GetForReadAsync(GuideId.From(guideId), cancellationToken);
 
             if (guide is not null && IsResolvable(guide))
             {
@@ -79,9 +79,9 @@ public sealed class GuideDirectoryService : IGuideDirectory
     }
 
     public async Task<bool> ExistsAsync(
-        GuideId guideId, CancellationToken cancellationToken = default)
+        Guid guideId, CancellationToken cancellationToken = default)
     {
-        var guide = await _guides.GetForReadAsync(guideId, cancellationToken);
+        var guide = await _guides.GetForReadAsync(GuideId.From(guideId), cancellationToken);
 
         return guide is not null && IsResolvable(guide);
     }

@@ -88,7 +88,7 @@ public sealed class FeatureKnowledgeGuideCommandHandler
 
         var guideId = GuideId.From(request.GuideId);
 
-        var guide = await _guides.FindAsync(guideId, cancellationToken);
+        var guide = await _guides.FindAsync(request.GuideId, cancellationToken);
 
         if (guide is null)
         {

@@ -69,7 +69,7 @@ public sealed class SetRecommendedReadsCommandHandler : ICommandHandler<SetRecom
 
         var sourceId = GuideId.From(command.GuideId);
 
-        if (!await _guides.ExistsAsync(sourceId, cancellationToken))
+        if (!await _guides.ExistsAsync(command.GuideId, cancellationToken))
         {
             return Result.Failure(KnowledgeErrors.GuideNotDiscoverable);
         }
@@ -81,7 +81,7 @@ public sealed class SetRecommendedReadsCommandHandler : ICommandHandler<SetRecom
             // One batched resolution for the whole list. A twelve-entry set must not be twelve
             // round trips to save once.
             var resolved = await _guides.FindManyAsync(
-                [.. requested.Select(read => GuideId.From(read.GuideId))], cancellationToken);
+                [.. requested.Select(read => read.GuideId)], cancellationToken);
 
             if (requested.Any(read => !resolved.ContainsKey(read.GuideId)))
             {

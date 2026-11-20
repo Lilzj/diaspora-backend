@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Providers.V1;
 using System.Reflection;
 using Diaspora.Contracts.Authorization;
 using Diaspora.Contracts.Trust.V1.Submission;

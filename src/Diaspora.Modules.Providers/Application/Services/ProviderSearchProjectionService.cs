@@ -57,9 +57,9 @@ public sealed class ProviderSearchProjectionService : IProviderSearchProjectionS
     }
 
     public async Task<ProviderSearchProjection?> ProjectAsync(
-        ProviderId providerId, CancellationToken cancellationToken = default)
+        Guid providerId, CancellationToken cancellationToken = default)
     {
-        var provider = await _providers.GetForReadAsync(providerId, cancellationToken);
+        var provider = await _providers.GetForReadAsync(ProviderId.From(providerId), cancellationToken);
 
         if (provider is null || !IsIndexable(provider))
         {
@@ -73,7 +73,7 @@ public sealed class ProviderSearchProjectionService : IProviderSearchProjectionS
     }
 
     public async Task<IReadOnlyList<ProviderSearchProjection>> ProjectManyAsync(
-        IReadOnlyCollection<ProviderId> providerIds, CancellationToken cancellationToken = default)
+        IReadOnlyCollection<Guid> providerIds, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(providerIds);
 
@@ -82,7 +82,8 @@ public sealed class ProviderSearchProjectionService : IProviderSearchProjectionS
             return [];
         }
 
-        var providers = (await _providers.GetManyAsync(providerIds, cancellationToken))
+        var providers = (await _providers.GetManyAsync(
+                [.. providerIds.Select(ProviderId.From)], cancellationToken))
             .Where(IsIndexable)
             .ToList();
 

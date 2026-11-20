@@ -1,7 +1,15 @@
-namespace Diaspora.Modules.Providers.Domain.Enums;
+namespace Diaspora.Contracts.Providers.V1;
 
 /// <summary>
 /// What one person may do to one provider.
+/// <para>
+/// <b>Published rather than module-internal, because five modules have to agree on it.</b>
+/// <c>IProviderDirectory.HasRoleAsync</c> is B7's answer to "may this person act as this
+/// provider", and a consumer cannot ask it without naming a level of authority. While this
+/// enumeration lived in B7's <c>Domain.Enums</c>, every vertical that asked had to import B7's
+/// internals to do so, which is the opposite of what a published seam is for — a name several
+/// modules must agree on is by definition not internal to one of them. BARCH-001 / BSOLID-003.
+/// </para>
 /// <para>
 /// The first four members are the frontend's <c>OrganizationRole</c> union
 /// (<c>owner | manager | moderator | contributor</c>) exactly, and they serialise lowercase so

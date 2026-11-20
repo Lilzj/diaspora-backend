@@ -1,3 +1,4 @@
+
 using Diaspora.Modules.Providers.Domain.Identifiers;
 
 namespace Diaspora.Modules.Providers.Integration;
@@ -17,6 +18,12 @@ namespace Diaspora.Modules.Providers.Integration;
 /// <see cref="ResolveAsync"/> is the method that pays for the whole design: it matches on name,
 /// slug or any registered alias, so a consumer holding a legacy string — the frontend's
 /// <c>OrgCategory</c> values, an imported dataset's labels — resolves without a migration.
+/// </para>
+/// <para>
+/// <b>Still names B7's <c>ServiceCategoryId</c>, which is internal.</b> Unlike
+/// <c>IProviderDirectory</c>, whose identifiers now cross as <see cref="Guid"/>, this seam would
+/// need its category identifier published to be callable from outside B7. No module asks it
+/// today; recorded here rather than left to be rediscovered. BARCH-001 / BSOLID-003.
 /// </para>
 /// </summary>
 public interface IProviderCatalog

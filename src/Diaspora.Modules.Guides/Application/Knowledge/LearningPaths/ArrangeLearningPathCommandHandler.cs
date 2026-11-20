@@ -84,7 +84,7 @@ public sealed class ArrangeLearningPathCommandHandler
         if (namedGuides.Count > 0)
         {
             var resolved = await _guides.FindManyAsync(
-                [.. namedGuides.Select(GuideId.From)], cancellationToken);
+                [.. namedGuides], cancellationToken);
 
             if (namedGuides.Any(guideId => !resolved.ContainsKey(guideId)))
             {

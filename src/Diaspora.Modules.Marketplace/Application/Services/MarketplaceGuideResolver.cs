@@ -1,6 +1,5 @@
 using Diaspora.Modules.Guides.Integration;
 using Microsoft.Extensions.Logging;
-using GuideId = Diaspora.Modules.Guides.Domain.Identifiers.GuideId;
 
 namespace Diaspora.Modules.Marketplace.Application.Services;
 
@@ -50,7 +49,7 @@ public sealed class MarketplaceGuideResolver
 
         try
         {
-            return await _guides.FindManyAsync([.. ids.Select(GuideId.From)], cancellationToken);
+            return await _guides.FindManyAsync([.. ids], cancellationToken);
         }
         catch (OperationCanceledException)
         {
@@ -74,7 +73,7 @@ public sealed class MarketplaceGuideResolver
     public async Task<bool> ExistsAsync(
         Guid guideId, CancellationToken cancellationToken = default) =>
         guideId != Guid.Empty
-        && await _guides.ExistsAsync(GuideId.From(guideId), cancellationToken);
+        && await _guides.ExistsAsync(guideId, cancellationToken);
 
     // ────────────────────────────────────────────────────────────────────────────────────────
     // Automatic suggestion is deliberately absent, exactly as it is in B9.

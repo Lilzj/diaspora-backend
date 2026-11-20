@@ -1,4 +1,3 @@
-using Diaspora.Modules.Guides.Domain.Identifiers;
 using Diaspora.Modules.Guides.Integration;
 using Diaspora.Modules.Housing.Domain.Listings;
 using Diaspora.Modules.Housing.Options;
@@ -103,7 +102,6 @@ public sealed class HousingGuideResolver
             .Where(id => id != Guid.Empty)
             .Distinct()
             .Take(MaxGuides)
-            .Select(GuideId.From)
             .ToList();
 
         if (keys.Count == 0)
@@ -121,10 +119,10 @@ public sealed class HousingGuideResolver
             [
                 .. keys
                     .Select((key, index) => (Key: key, Index: index))
-                    .Where(entry => found.ContainsKey(entry.Key.Value))
+                    .Where(entry => found.ContainsKey(entry.Key))
                     .Select(entry =>
                     {
-                        var guide = found[entry.Key.Value];
+                        var guide = found[entry.Key];
 
                         return HousingGuideReference.Create(
                             guide.GuideId, guide.Title, guide.Slug, entry.Index);
