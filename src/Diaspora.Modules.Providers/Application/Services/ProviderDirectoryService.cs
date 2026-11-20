@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Providers.V1;
 using Diaspora.Modules.Providers.Domain.Enums;
 using Diaspora.Modules.Providers.Domain.Identifiers;
 using Diaspora.Modules.Providers.Domain.Providers;
@@ -39,9 +40,9 @@ public sealed class ProviderDirectoryService : IProviderDirectory
     }
 
     public async Task<ProviderSummary?> FindAsync(
-        ProviderId providerId, CancellationToken cancellationToken = default)
+        Guid providerId, CancellationToken cancellationToken = default)
     {
-        var provider = await _providers.GetForReadAsync(providerId, cancellationToken);
+        var provider = await _providers.GetForReadAsync(ProviderId.From(providerId), cancellationToken);
 
         return provider is null ? null : await ToSummaryAsync(provider, cancellationToken);
     }
@@ -62,7 +63,7 @@ public sealed class ProviderDirectoryService : IProviderDirectory
     }
 
     public async Task<IReadOnlyDictionary<Guid, ProviderSummary>> FindManyAsync(
-        IReadOnlyCollection<ProviderId> providerIds, CancellationToken cancellationToken = default)
+        IReadOnlyCollection<Guid> providerIds, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(providerIds);
 
@@ -71,7 +72,8 @@ public sealed class ProviderDirectoryService : IProviderDirectory
             return new Dictionary<Guid, ProviderSummary>();
         }
 
-        var providers = await _providers.GetManyAsync(providerIds, cancellationToken);
+        var providers = await _providers.GetManyAsync(
+            [.. providerIds.Select(ProviderId.From)], cancellationToken);
 
         // One category lookup for the whole batch, not one per provider. The resolver caches for
         // the request, so a consuming vertical rendering fifty listings costs one extra query.
@@ -85,15 +87,16 @@ public sealed class ProviderDirectoryService : IProviderDirectory
 
     public async Task<bool> HasRoleAsync(
         UserId userId,
-        ProviderId providerId,
+        Guid providerId,
         ProviderRole minimumRole,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(userId);
 
-        var roles = await _providers.GetRolesForAsync(userId, [providerId], cancellationToken);
+        var roles = await _providers.GetRolesForAsync(
+            userId, [ProviderId.From(providerId)], cancellationToken);
 
-        return roles.TryGetValue(providerId.Value, out var role) && role >= minimumRole;
+        return roles.TryGetValue(providerId, out var role) && role >= minimumRole;
     }
 
     public async Task<IReadOnlyList<ProviderSummary>> ListForMemberAsync(
@@ -117,11 +120,11 @@ public sealed class ProviderDirectoryService : IProviderDirectory
     }
 
     public async Task<bool> IsVerifiedAsync(
-        ProviderId providerId,
+        Guid providerId,
         ProviderVerificationKind? kind = null,
         CancellationToken cancellationToken = default)
     {
-        var provider = await _providers.GetForReadAsync(providerId, cancellationToken);
+        var provider = await _providers.GetForReadAsync(ProviderId.From(providerId), cancellationToken);
 
         if (provider is null)
         {
@@ -141,9 +144,9 @@ public sealed class ProviderDirectoryService : IProviderDirectory
     }
 
     public async Task<bool?> IsOpenNowAsync(
-        ProviderId providerId, CancellationToken cancellationToken = default)
+        Guid providerId, CancellationToken cancellationToken = default)
     {
-        var provider = await _providers.GetForReadAsync(providerId, cancellationToken);
+        var provider = await _providers.GetForReadAsync(ProviderId.From(providerId), cancellationToken);
 
         if (provider is null)
         {

@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Providers.V1;
 using Diaspora.Modules.Providers.Domain.Identifiers;
 using Diaspora.Modules.Providers.Domain.ValueObjects;
 using Diaspora.SharedKernel.Identity;
@@ -78,7 +79,7 @@ public interface IProviderRepository
     /// and loading twenty aggregates to read twenty roles is the shape that makes a list slow.
     /// </para>
     /// </summary>
-    Task<IReadOnlyDictionary<Guid, Enums.ProviderRole>> GetRolesForAsync(
+    Task<IReadOnlyDictionary<Guid, ProviderRole>> GetRolesForAsync(
         UserId userId,
         IReadOnlyCollection<ProviderId> providerIds,
         CancellationToken cancellationToken = default);

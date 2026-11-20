@@ -1,6 +1,5 @@
 using Diaspora.Modules.Guides.Integration;
 using Microsoft.Extensions.Logging;
-using GuideId = Diaspora.Modules.Guides.Domain.Identifiers.GuideId;
 
 namespace Diaspora.Modules.Jobs.Application.Services;
 
@@ -52,7 +51,7 @@ public sealed class JobGuideResolver
         try
         {
             return await _guides.FindManyAsync(
-                [.. guideIds.Select(GuideId.From)], cancellationToken);
+                [.. guideIds], cancellationToken);
         }
         catch (OperationCanceledException)
         {
@@ -75,7 +74,7 @@ public sealed class JobGuideResolver
     /// </summary>
     public async Task<bool> ExistsAsync(
         Guid guideId, CancellationToken cancellationToken = default) =>
-        await _guides.ExistsAsync(GuideId.From(guideId), cancellationToken);
+        await _guides.ExistsAsync(guideId, cancellationToken);
 
     /// <summary>
     /// The guide categories this deployment offers, for an employer choosing a link to attach.

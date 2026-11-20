@@ -1,5 +1,5 @@
+using Diaspora.Contracts.Providers.V1;
 using Diaspora.Modules.Providers.Domain.Enums;
-using Diaspora.Modules.Providers.Domain.Identifiers;
 using Diaspora.SharedKernel.Identity;
 
 namespace Diaspora.Modules.Providers.Integration;
@@ -11,7 +11,7 @@ namespace Diaspora.Modules.Providers.Integration;
 /// must never implement their own provider model". A Marketplace listing sold by a shop, a Job
 /// posted by an employer, a Housing listing let by an agency and an Event hosted by an
 /// association are all "a provider did this", and each of those modules stores a
-/// <see cref="ProviderId"/> and asks here rather than growing a provider table of its own.
+/// provider's identifier and asks here rather than growing a provider table of its own.
 /// </para>
 /// <para>
 /// Deliberately narrower than <c>IProviderRepository</c>. A consuming vertical needs to resolve
@@ -25,12 +25,22 @@ namespace Diaspora.Modules.Providers.Integration;
 /// vertical that wants to iterate the directory is about to do something B7 should be doing for
 /// it.
 /// </para>
+/// <para>
+/// <b>Identifiers cross this seam as <see cref="Guid"/>, not as B7's <c>ProviderId</c>, and the
+/// role is a published type.</b> A seam that names a module-internal type obliges every consumer
+/// to import that module's internals in order to call it. All five verticals already held a
+/// <see cref="Guid"/> and converted it up to satisfy these signatures — <c>FindManyAsync</c> has
+/// always keyed its answer by <see cref="Guid"/> — so the conversion belongs on B7's side, where
+/// the identifier is owned. <c>ProviderVerificationKind</c> is the one internal type left here;
+/// it is an optional argument that no consumer passes, and publishing it is a separate change.
+/// BARCH-001 / BSOLID-003.
+/// </para>
 /// </summary>
 public interface IProviderDirectory
 {
     /// <summary>One provider, or null when it does not exist or is not visible.</summary>
     Task<ProviderSummary?> FindAsync(
-        ProviderId providerId, CancellationToken cancellationToken = default);
+        Guid providerId, CancellationToken cancellationToken = default);
 
     /// <summary>One provider by its deep-link handle.</summary>
     Task<ProviderSummary?> FindBySlugAsync(string slug, CancellationToken cancellationToken = default);
@@ -40,7 +50,7 @@ public interface IProviderDirectory
     /// each name a provider — which is every listing screen in every future vertical.
     /// </summary>
     Task<IReadOnlyDictionary<Guid, ProviderSummary>> FindManyAsync(
-        IReadOnlyCollection<ProviderId> providerIds, CancellationToken cancellationToken = default);
+        IReadOnlyCollection<Guid> providerIds, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Whether a member may act on behalf of a provider at a given level of authority.
@@ -53,7 +63,7 @@ public interface IProviderDirectory
     /// </summary>
     Task<bool> HasRoleAsync(
         UserId userId,
-        ProviderId providerId,
+        Guid providerId,
         ProviderRole minimumRole,
         CancellationToken cancellationToken = default);
 
@@ -72,11 +82,11 @@ public interface IProviderDirectory
     /// </para>
     /// </summary>
     Task<bool> IsVerifiedAsync(
-        ProviderId providerId,
+        Guid providerId,
         ProviderVerificationKind? kind = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>Whether the provider is open right now. Null when the question does not apply.</summary>
     Task<bool?> IsOpenNowAsync(
-        ProviderId providerId, CancellationToken cancellationToken = default);
+        Guid providerId, CancellationToken cancellationToken = default);
 }

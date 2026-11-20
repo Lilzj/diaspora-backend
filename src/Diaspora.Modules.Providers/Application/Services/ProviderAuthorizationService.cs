@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Providers.V1;
 using Diaspora.Modules.Providers.Domain.Enums;
 using Diaspora.Modules.Providers.Domain.Errors;
 using Diaspora.Modules.Providers.Domain.Providers;

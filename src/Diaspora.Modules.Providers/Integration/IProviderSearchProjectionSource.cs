@@ -1,4 +1,3 @@
-using Diaspora.Modules.Providers.Domain.Identifiers;
 
 namespace Diaspora.Modules.Providers.Integration;
 
@@ -21,11 +20,11 @@ public interface IProviderSearchProjectionSource
 {
     /// <summary>One provider's document, or null when it does not exist or is not indexable.</summary>
     Task<ProviderSearchProjection?> ProjectAsync(
-        ProviderId providerId, CancellationToken cancellationToken = default);
+        Guid providerId, CancellationToken cancellationToken = default);
 
     /// <summary>Several documents at once.</summary>
     Task<IReadOnlyList<ProviderSearchProjection>> ProjectManyAsync(
-        IReadOnlyCollection<ProviderId> providerIds, CancellationToken cancellationToken = default);
+        IReadOnlyCollection<Guid> providerIds, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Every indexable provider, in batches.

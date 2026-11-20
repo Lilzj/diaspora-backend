@@ -1,8 +1,7 @@
+using Diaspora.Contracts.Providers.V1;
 using Diaspora.Modules.Housing.Domain.Errors;
 using Diaspora.Modules.Housing.Domain.Landlords;
 using Diaspora.Modules.Housing.Domain.Listings;
-using Diaspora.Modules.Providers.Domain.Enums;
-using Diaspora.Modules.Providers.Domain.Identifiers;
 using Diaspora.Modules.Providers.Integration;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Results;
@@ -88,7 +87,7 @@ public sealed class HousingProviderResolver
         try
         {
             var permitted = await _providers.HasRoleAsync(
-                callerId, ProviderId.From(providerId), RequiredRole, cancellationToken);
+                callerId, providerId, RequiredRole, cancellationToken);
 
             if (!permitted)
             {
@@ -134,7 +133,6 @@ public sealed class HousingProviderResolver
         var keys = providerIds
             .Where(id => id != Guid.Empty)
             .Distinct()
-            .Select(ProviderId.From)
             .ToList();
 
         if (keys.Count == 0)

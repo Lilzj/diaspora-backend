@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Providers.V1;
 using Diaspora.Modules.Providers.Contracts.V1.Responses;
 using Diaspora.Modules.Providers.Domain.Categories;
 using Diaspora.Modules.Providers.Extensibility.Availability;
@@ -45,8 +46,8 @@ public sealed record ProviderReadContext
         new Dictionary<Guid, AvailabilityAnswer>();
 
     /// <summary>The viewer's role on each provider they hold one on.</summary>
-    public IReadOnlyDictionary<Guid, Domain.Enums.ProviderRole> ViewerRoles { get; init; } =
-        new Dictionary<Guid, Domain.Enums.ProviderRole>();
+    public IReadOnlyDictionary<Guid, ProviderRole> ViewerRoles { get; init; } =
+        new Dictionary<Guid, ProviderRole>();
 
     /// <summary>Providers the viewer has bookmarked. Sourced from Community.</summary>
     public IReadOnlySet<Guid> BookmarkedProviderIds { get; init; } = new HashSet<Guid>();

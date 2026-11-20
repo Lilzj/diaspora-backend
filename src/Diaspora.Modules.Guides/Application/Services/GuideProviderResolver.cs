@@ -1,4 +1,3 @@
-using Diaspora.Modules.Providers.Domain.Identifiers;
 using Diaspora.Modules.Providers.Integration;
 using Microsoft.Extensions.Logging;
 
@@ -45,7 +44,7 @@ public sealed class GuideProviderResolver
         try
         {
             return await _providers.FindManyAsync(
-                providerIds.Select(ProviderId.From).ToList(), cancellationToken);
+                providerIds.ToList(), cancellationToken);
         }
         catch (OperationCanceledException)
         {
@@ -69,7 +68,7 @@ public sealed class GuideProviderResolver
     public async Task<bool> ExistsAsync(
         Guid providerId, CancellationToken cancellationToken = default)
     {
-        var found = await _providers.FindAsync(ProviderId.From(providerId), cancellationToken);
+        var found = await _providers.FindAsync(providerId, cancellationToken);
 
         return found is not null;
     }

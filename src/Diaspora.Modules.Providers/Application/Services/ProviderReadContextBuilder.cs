@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Providers.V1;
 using Diaspora.Modules.Location.Integration;
 using Diaspora.Modules.Providers.Domain.Identifiers;
 using Diaspora.Modules.Providers.Domain.Providers;
@@ -80,7 +81,7 @@ public sealed class ProviderReadContextBuilder
             providers, viewerId, now, cancellationToken);
 
         var roles = viewerId is null
-            ? new Dictionary<Guid, Domain.Enums.ProviderRole>()
+            ? new Dictionary<Guid, ProviderRole>()
             : await _providers.GetRolesForAsync(viewerId, ids, cancellationToken);
 
         var bookmarked = await _bookmarks.FilterSavedAsync(viewerId, ids, cancellationToken);

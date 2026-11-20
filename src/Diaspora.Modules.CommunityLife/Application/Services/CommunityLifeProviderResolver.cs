@@ -1,6 +1,5 @@
+using Diaspora.Contracts.Providers.V1;
 using Diaspora.Modules.CommunityLife.Domain.CommunityEvents;
-using Diaspora.Modules.Providers.Domain.Enums;
-using Diaspora.Modules.Providers.Domain.Identifiers;
 using Diaspora.Modules.Providers.Integration;
 using Diaspora.SharedKernel.Identity;
 
@@ -38,7 +37,6 @@ public sealed class CommunityLifeProviderResolver
         var wanted = providerIds
             .Where(id => id != Guid.Empty)
             .Distinct()
-            .Select(ProviderId.From)
             .ToList();
 
         if (wanted.Count == 0)
@@ -71,7 +69,7 @@ public sealed class CommunityLifeProviderResolver
             return null;
         }
 
-        var provider = await _providers.FindAsync(ProviderId.From(id), cancellationToken);
+        var provider = await _providers.FindAsync(id, cancellationToken);
 
         return provider?.Name;
     }
@@ -101,6 +99,6 @@ public sealed class CommunityLifeProviderResolver
         }
 
         return await _providers.HasRoleAsync(
-            userId, ProviderId.From(providerId), ProviderRole.Editor, cancellationToken);
+            userId, providerId, ProviderRole.Editor, cancellationToken);
     }
 }
