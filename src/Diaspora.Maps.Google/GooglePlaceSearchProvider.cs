@@ -1,8 +1,8 @@
 using Diaspora.Contracts.Location.V1;
+using Diaspora.Modules.Location.Extensibility;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Nodes;
-using Diaspora.Modules.Location.Domain.Places;
 using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Platform.Usage;
 using Microsoft.Extensions.Logging;

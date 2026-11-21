@@ -92,13 +92,13 @@ public sealed class CountryExperienceTests
     /// and cannot be self-inflated.
     /// </summary>
     [Theory]
-    [InlineData(2026, ExperienceLevel.Settling)]
-    [InlineData(2025, ExperienceLevel.Settling)]
-    [InlineData(2023, ExperienceLevel.Established)]
-    [InlineData(2019, ExperienceLevel.Seasoned)]
-    [InlineData(2005, ExperienceLevel.Native)]
+    [InlineData(2026, CountryExperienceLevel.Settling)]
+    [InlineData(2025, CountryExperienceLevel.Settling)]
+    [InlineData(2023, CountryExperienceLevel.Established)]
+    [InlineData(2019, CountryExperienceLevel.Seasoned)]
+    [InlineData(2005, CountryExperienceLevel.Native)]
     public void Experience_level_is_derived_from_time_in_country(
-        int arrivalYear, ExperienceLevel expected)
+        int arrivalYear, CountryExperienceLevel expected)
     {
         Declare(arrivalYear).LevelAsAt(Today).Should().Be(expected);
     }
@@ -113,7 +113,7 @@ public sealed class CountryExperienceTests
         var period = ResidencePeriod.TryCreate(
             Today.AddMonths(-1), null, Today).Value;
 
-        period.ExperienceAsAt(Today).Should().Be(ExperienceLevel.Newcomer);
+        period.ExperienceAsAt(Today).Should().Be(CountryExperienceLevel.Newcomer);
     }
 
     [Fact]

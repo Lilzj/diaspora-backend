@@ -1,4 +1,4 @@
-using Diaspora.Modules.Location.Domain.Places;
+using Diaspora.Modules.Location.Extensibility;
 
 namespace Diaspora.Modules.Location.Infrastructure.Places;
 

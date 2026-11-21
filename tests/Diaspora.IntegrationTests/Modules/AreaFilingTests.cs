@@ -9,7 +9,6 @@ using Diaspora.Modules.Housing.Domain.Listings;
 using Diaspora.Modules.Housing.Domain.ValueObjects;
 using Diaspora.Modules.Jobs.Application.Services;
 using Diaspora.Modules.Location.Domain.Areas;
-using Diaspora.Modules.Location.Domain.Enums;
 using Diaspora.Modules.Location.Extensibility;
 using Diaspora.Modules.Location.Infrastructure.Hosting;
 using Diaspora.Modules.Location.Integration;

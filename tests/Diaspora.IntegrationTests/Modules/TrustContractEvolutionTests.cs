@@ -1,7 +1,6 @@
 using Diaspora.Contracts.Location.V1;
 using Diaspora.Contracts.Trust.V1.Events;
 using Diaspora.IntegrationTests.Common;
-using Diaspora.Modules.Location.Domain.Enums;
 using Diaspora.Modules.Location.Domain.Residency;
 using Diaspora.Platform.Messaging;
 using Diaspora.SharedKernel.Identity;

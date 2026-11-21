@@ -1,4 +1,5 @@
 using Diaspora.Contracts.Location.V1;
+using Diaspora.Modules.Location.Integration;
 using System.Globalization;
 using Diaspora.Application.Abstractions;
 using Diaspora.Modules.Community.Integration;
@@ -9,7 +10,6 @@ using Diaspora.Modules.GeographicIntelligence.Domain.Safety;
 using Diaspora.Modules.GeographicIntelligence.Domain.Scores;
 using Diaspora.Modules.GeographicIntelligence.Observability;
 using Diaspora.Modules.GeographicIntelligence.Options;
-using Diaspora.Modules.Location.Domain.Countries;
 using Diaspora.SharedKernel.Results;
 using Microsoft.Extensions.Options;
 
@@ -63,7 +63,7 @@ public sealed class GetSafetyScoreQueryHandler
     private readonly NeighborhoodResolver _resolver;
     private readonly ICommunitySafetyReports _reports;
     private readonly IPoliceCrimeData _police;
-    private readonly ICountryRepository _countries;
+    private readonly ILocationDirectory _locations;
     private readonly IOptions<GeographicIntelligenceOptions> _options;
     private readonly TimeProvider _clock;
 
@@ -71,14 +71,14 @@ public sealed class GetSafetyScoreQueryHandler
         NeighborhoodResolver resolver,
         ICommunitySafetyReports reports,
         IPoliceCrimeData police,
-        ICountryRepository countries,
+        ILocationDirectory locations,
         IOptions<GeographicIntelligenceOptions> options,
         TimeProvider clock)
     {
         _resolver = resolver;
         _reports = reports;
         _police = police;
-        _countries = countries;
+        _locations = locations;
         _options = options;
         _clock = clock;
     }
@@ -107,7 +107,7 @@ public sealed class GetSafetyScoreQueryHandler
                 "reason", DimensionUnavailableReason.NoDataSource.ToString()));
 
         var now = _clock.GetUtcNow();
-        var name = area.Name.Value;
+        var name = area.Name;
 
         var counts = new List<SafetyCountResponse>
         {
@@ -120,15 +120,15 @@ public sealed class GetSafetyScoreQueryHandler
         }
         else
         {
-            var country = await _countries.GetByCodeAsync(area.CountryCode, cancellationToken);
+            var country = await _locations.FindCountryAsync(area.CountryCode, cancellationToken);
 
-            counts.Add(PoliceNotPublished(country?.Name.Value ?? area.CountryCode.Value));
+            counts.Add(PoliceNotPublished(country?.Name ?? area.CountryCode.Value));
         }
 
         return Result.Success(new SafetyScoreResponse
         {
-            NeighborhoodId = area.Slug.Value,
-            AreaId = area.Id.Value,
+            NeighborhoodId = area.Slug,
+            AreaId = area.AreaId.Value,
             Name = name,
             IsAvailable = false,
             Score = null,

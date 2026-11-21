@@ -1,11 +1,11 @@
 ﻿using Diaspora.Modules.Location.Application.EventHandlers;
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Application.Services;
 using Diaspora.Modules.Location.Domain.Areas;
 using Diaspora.Modules.Location.Domain.Countries;
 using Diaspora.Modules.Location.Domain.Experience;
 using Diaspora.Modules.Location.Domain.Profiles;
 using Diaspora.Modules.Location.Domain.Residency;
-using Diaspora.Modules.Location.Domain.Places;
 using Diaspora.Modules.Location.Domain.Spatial;
 using Diaspora.Modules.Location.Extensibility;
 using Diaspora.Modules.Location.Infrastructure.Places;
@@ -172,6 +172,12 @@ public sealed class LocationModule : IPlatformModule
         services.AddScoped<ResidencyProjector>();
         services.AddScoped<NearbyAggregator>();
         services.AddScoped<ResourceCountAggregator>();
+
+        // The counts, as another module asks for them. Registered against the interface so
+        // a vertical depends on Integration rather than on the aggregator; the same instance
+        // answers both, because two would fan out to the registered counters twice.
+        services.AddScoped<IResourceCounts>(
+            provider => provider.GetRequiredService<ResourceCountAggregator>());
 
         // The viewport aggregation, extracted so the map-cluster contract and B21's density layer
         // share one implementation of the cell cap and the suppression floor rather than two.

@@ -7,7 +7,6 @@ using Diaspora.Modules.Housing.Domain.Identifiers;
 using Diaspora.Modules.Housing.Domain.Listings;
 using Diaspora.Modules.Housing.Domain.ValueObjects;
 using Diaspora.Modules.Location.Domain.Areas;
-using Diaspora.Modules.Location.Domain.Enums;
 using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Modules.Location.Extensibility;
 using Diaspora.Modules.Marketplace.Domain.Enums;

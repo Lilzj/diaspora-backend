@@ -1,8 +1,7 @@
-using Diaspora.Contracts.Location.V1;
 using Diaspora.SharedKernel.Primitives;
 using Diaspora.SharedKernel.Results;
 
-namespace Diaspora.Modules.Location.Domain.ValueObjects;
+namespace Diaspora.Contracts.Location.V1;
 
 /// <summary>
 /// How wide a discovery query reaches: either a real distance, or the whole containing city

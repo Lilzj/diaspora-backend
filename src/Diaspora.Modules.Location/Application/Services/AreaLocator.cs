@@ -1,6 +1,5 @@
 using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Domain.Areas;
-using Diaspora.Modules.Location.Domain.Spatial;
 using Diaspora.Modules.Location.Integration;
 using Diaspora.SharedKernel.Identity;
 

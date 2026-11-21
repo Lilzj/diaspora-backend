@@ -5,7 +5,6 @@ using Diaspora.Modules.Location.Application.Services;
 using Diaspora.Modules.Location.Contracts.V1.Responses;
 using Diaspora.Modules.Location.Domain.Countries;
 using Diaspora.Modules.Location.Domain.Errors;
-using Diaspora.Modules.Location.Domain.Search;
 using Diaspora.Modules.Location.Extensibility;
 using Diaspora.Modules.Location.Integration;
 using Diaspora.Modules.Location.Observability;

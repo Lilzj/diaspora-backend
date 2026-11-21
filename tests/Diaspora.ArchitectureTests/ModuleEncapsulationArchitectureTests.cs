@@ -259,6 +259,23 @@ public sealed class ModuleEncapsulationArchitectureTests
     /// emptiness instead of a count above zero, which makes it a ratchet against the next one.
     /// </para>
     /// <para>
+    /// <b>The seventh wave closed B4's read surface and fourteen of its fifteen crossings.</b>
+    /// The keystone was the largest yet and the cheapest to fix: every aggregate-returning
+    /// method on <c>ILocationDirectory</c> <b>had no caller outside B4 at all</b> — all eleven
+    /// external consumers called <c>DistanceBetween</c> and nothing else — while three modules
+    /// had given up on the seam and injected <c>IAdministrativeAreaRepository</c> directly,
+    /// which is the one thing that interface's own summary says it exists to prevent.
+    /// <c>AreaDescriptor</c> and <c>CountryDescriptor</c> are the projections, and the four
+    /// country consumers between them read <b>one field</b>.
+    /// </para>
+    /// <para>
+    /// <b>A crossing scan sees none of that, which is why debt is counted where it is owed.</b>
+    /// A consumer writing <c>var area = await _directory.FindAreaAsync(...)</c> uses B4's
+    /// aggregate without ever naming it, so no directive and no qualification is recorded
+    /// anywhere. <see cref="SurfacesStillLeaking"/> counted it in the one place it could be
+    /// fixed, and the eleven consumers cost nothing to carry across.
+    /// </para>
+    /// <para>
     /// <b>The sixth wave closed B15, and it took three remedies rather than one.</b> Four
     /// crossings, three shapes. <c>CommunityTargetingContributors</c> was the keystone again:
     /// <c>IAdTargetingOptionProvider.Dimension</c> is an <c>AdTargetingDimension</c> and
@@ -316,19 +333,22 @@ public sealed class ModuleEncapsulationArchitectureTests
     /// </summary>
     private static readonly InternalEdge[] EdgesStillOwed =
     [
-        // Application -- another module's commands, queries or services (2 edges, 13 crossings).
-        // No module now crosses into Guides, Providers, Media, Notifications or Financial at all,
-        // and every edge left on the platform points at Location or Community.
+        // Application -- another module's commands, queries or services (1 edge, 1 crossing).
+        // The one left is GetHeatLayerQuery naming MapCellAggregator for four static grid
+        // methods -- Plan, CellOf, Frame, Marker -- which are pure geometry entangled with that
+        // service's private constants and with Domain.Search's bounds parsing. Separating them
+        // is a change to B4's map internals rather than an encapsulation move, and it is
+        // recorded here at the exact count instead of being done badly on the way past.
+        // Everything else into Guides, Providers, Media, Notifications, Financial and Location
+        // is closed.
         // The eight module -> Media edges closed 20 November 2026, and with them the last inline
         // crossing on the platform: B5 published an operation to carry the request it had already
         // published, and the seven *MediaClaimer classes call it. B15's four closed on 21 November
         // the same way, and needed three remedies between them -- see the summary.
-        new("GeographicIntelligence", "Location", 10, 0, Reach.Application),
-        new("Housing", "Location", 3, 0, Reach.Application),
+        new("GeographicIntelligence", "Location", 1, 0, Reach.Application),
 
-        // Aggregate -- another module's entities (3 edges, 4 crossings).
+        // Aggregate -- another module's entities (2 edges, 2 crossings).
         new("Guides", "Community", 1, 0, Reach.Aggregate),
-        new("CommunityLife", "Location", 2, 0, Reach.Aggregate),
         new("Creator", "Community", 1, 0, Reach.Aggregate),
 
         // Vocabulary -- enumerations, value objects, identifiers (0 edges).
@@ -353,7 +373,10 @@ public sealed class ModuleEncapsulationArchitectureTests
     /// The published read surfaces that still name a type behind them, by module.
     /// <para>
     /// Measured by the rule that enforces it rather than by a second scan written to agree with
-    /// it. Guides is absent because the first wave emptied it; Providers is still here at two,
+    /// it. Guides is absent because the first wave emptied it, and Location because the seventh
+    /// did -- <c>ILocationDirectory</c> answered with <c>Country</c> and <c>AdministrativeArea</c>
+    /// until 21 November 2026, which is the seam written to stop a vertical reading B4's
+    /// internals handing them over. Providers is still here at two,
     /// which is what the summary above records and what this sentence said otherwise until
     /// 21 November 2026.
     /// </para>
@@ -361,7 +384,6 @@ public sealed class ModuleEncapsulationArchitectureTests
     private static readonly SeamDebt[] SurfacesStillLeaking =
     [
         new("Community", 4),
-        new("Location", 5),
         new("Conversations", 4),
         new("Providers", 2)
     ];

@@ -1,5 +1,4 @@
 using Diaspora.Contracts.Location.V1;
-using Diaspora.Modules.Location.Domain.Enums;
 using Diaspora.SharedKernel.Primitives;
 using Diaspora.SharedKernel.Results;
 
@@ -15,7 +14,7 @@ namespace Diaspora.Modules.Location.Domain.ValueObjects;
 /// true.
 /// </para>
 /// <para>
-/// <see cref="ExperienceLevel"/> is derived from this rather than declared, so a member's
+/// <see cref="CountryExperienceLevel"/> is derived from this rather than declared, so a member's
 /// standing in a country grows with the calendar and cannot be self-inflated.
 /// </para>
 /// </summary>
@@ -127,13 +126,13 @@ public sealed class ResidencePeriod : ValueObject
     /// tell the difference between three and four years of local knowledge, which it cannot.
     /// </para>
     /// </summary>
-    public ExperienceLevel ExperienceAsAt(DateOnly today) => MonthsAsAt(today) switch
+    public CountryExperienceLevel ExperienceAsAt(DateOnly today) => MonthsAsAt(today) switch
     {
-        < 6 => ExperienceLevel.Newcomer,
-        < 24 => ExperienceLevel.Settling,
-        < 60 => ExperienceLevel.Established,
-        < 120 => ExperienceLevel.Seasoned,
-        _ => ExperienceLevel.Native
+        < 6 => CountryExperienceLevel.Newcomer,
+        < 24 => CountryExperienceLevel.Settling,
+        < 60 => CountryExperienceLevel.Established,
+        < 120 => CountryExperienceLevel.Seasoned,
+        _ => CountryExperienceLevel.Native
     };
 
     protected override IEnumerable<object?> GetEqualityComponents()

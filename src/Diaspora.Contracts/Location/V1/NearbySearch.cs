@@ -1,9 +1,7 @@
-using Diaspora.Contracts.Location.V1;
-using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Results;
 
-namespace Diaspora.Modules.Location.Domain.Search;
+namespace Diaspora.Contracts.Location.V1;
 
 /// <summary>
 /// A proximity question: what is near this point, how near counts, and what kinds of thing
@@ -76,7 +74,7 @@ public sealed class NearbySearch
     public static Result<NearbySearch> Create(
         GeoCoordinate center,
         SearchRadius radius,
-        Spatial.IGeoDistanceCalculator calculator,
+        IGeoDistanceCalculator calculator,
         IEnumerable<AdministrativeLevel>? levels = null,
         CountryCode? countryCode = null,
         HierarchyPath? withinPath = null,
@@ -104,7 +102,7 @@ public sealed class NearbySearch
     }
 
     /// <summary>Whether a point is in range under this search's scope.</summary>
-    public bool Includes(GeoCoordinate candidate, Spatial.IGeoDistanceCalculator calculator)
+    public bool Includes(GeoCoordinate candidate, IGeoDistanceCalculator calculator)
     {
         ArgumentNullException.ThrowIfNull(candidate);
         ArgumentNullException.ThrowIfNull(calculator);

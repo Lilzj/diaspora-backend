@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Location.V1;
 using System.Reflection;
 using Diaspora.Contracts.Authorization;
 using Diaspora.Modules.Location;

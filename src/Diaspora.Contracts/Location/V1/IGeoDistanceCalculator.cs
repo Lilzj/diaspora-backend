@@ -1,6 +1,6 @@
-using Diaspora.Contracts.Location.V1;
 
-namespace Diaspora.Modules.Location.Domain.Spatial;
+
+namespace Diaspora.Contracts.Location.V1;
 
 /// <summary>
 /// How far apart two points are.

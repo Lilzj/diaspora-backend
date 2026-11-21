@@ -1,4 +1,4 @@
-namespace Diaspora.Modules.Location.Domain.Spatial;
+namespace Diaspora.Modules.Location.Extensibility;
 
 /// <summary>
 /// A spatial operation a query provider may or may not be able to perform.

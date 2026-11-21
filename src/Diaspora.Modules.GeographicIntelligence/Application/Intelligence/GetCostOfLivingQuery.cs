@@ -1,3 +1,4 @@
+using Diaspora.Modules.Location.Integration;
 using System.Globalization;
 using Diaspora.Application.Abstractions;
 using Diaspora.Modules.GeographicIntelligence.Application.Services;
@@ -7,7 +8,6 @@ using Diaspora.Modules.GeographicIntelligence.Domain.Scores;
 using Diaspora.Modules.GeographicIntelligence.Observability;
 using Diaspora.Modules.GeographicIntelligence.Options;
 using Diaspora.Modules.Housing.Integration;
-using Diaspora.Modules.Location.Domain.Countries;
 using Diaspora.SharedKernel.Results;
 using Microsoft.Extensions.Options;
 
@@ -52,7 +52,7 @@ public sealed class GetCostOfLivingQueryHandler
     private readonly NeighborhoodResolver _resolver;
     private readonly INeighborhoodDirectory _profiles;
     private readonly IRentStatistics _rents;
-    private readonly ICountryRepository _countries;
+    private readonly ILocationDirectory _locations;
     private readonly IOptions<GeographicIntelligenceOptions> _options;
     private readonly TimeProvider _clock;
 
@@ -60,14 +60,14 @@ public sealed class GetCostOfLivingQueryHandler
         NeighborhoodResolver resolver,
         INeighborhoodDirectory profiles,
         IRentStatistics rents,
-        ICountryRepository countries,
+        ILocationDirectory locations,
         IOptions<GeographicIntelligenceOptions> options,
         TimeProvider clock)
     {
         _resolver = resolver;
         _profiles = profiles;
         _rents = rents;
-        _countries = countries;
+        _locations = locations;
         _options = options;
         _clock = clock;
     }
@@ -92,15 +92,15 @@ public sealed class GetCostOfLivingQueryHandler
         var now = _clock.GetUtcNow();
         var options = _options.Value;
 
-        var profile = await _profiles.GetAsync(area.Id.Value, cancellationToken);
+        var profile = await _profiles.GetAsync(area.AreaId.Value, cancellationToken);
         var bandName = profile?.CostOfLivingBand;
         var band = BandScale.ParseBand(bandName);
 
         var rents = await _rents.CompareMonthlyRentAsync(
             area.CountryCode.Value, area.Path.Value, cancellationToken);
 
-        var country = await _countries.GetByCodeAsync(area.CountryCode, cancellationToken);
-        var countryName = country?.Name.Value ?? area.CountryCode.Value;
+        var country = await _locations.FindCountryAsync(area.CountryCode, cancellationToken);
+        var countryName = country?.Name ?? area.CountryCode.Value;
 
         var indexed = rents.Currency is not null
             && rents.AreaMedianMonthlyRent is > 0m
@@ -110,9 +110,9 @@ public sealed class GetCostOfLivingQueryHandler
 
         var response = new CostOfLivingResponse
         {
-            NeighborhoodId = area.Slug.Value,
-            AreaId = area.Id.Value,
-            Name = area.Name.Value,
+            NeighborhoodId = area.Slug,
+            AreaId = area.AreaId.Value,
+            Name = area.Name,
 
             // True when at least one category is published — housing, today, where the samples
             // allow. The band beside it is real either way.
@@ -145,8 +145,8 @@ public sealed class GetCostOfLivingQueryHandler
                 : [],
 
             Freshness = indexed
-                ? RentFreshness(rents, area.Name.Value, countryName, now, options)
-                : Unindexed(rents, band is not null, bandName, profile, area.Name.Value, now, options)
+                ? RentFreshness(rents, area.Name, countryName, now, options)
+                : Unindexed(rents, band is not null, bandName, profile, area.Name, now, options)
         };
 
         return Result.Success(response);

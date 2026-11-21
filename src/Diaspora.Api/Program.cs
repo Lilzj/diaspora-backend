@@ -1,3 +1,4 @@
+using Diaspora.Modules.Location.Extensibility;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Diaspora.Api.Identity;
 using Asp.Versioning;

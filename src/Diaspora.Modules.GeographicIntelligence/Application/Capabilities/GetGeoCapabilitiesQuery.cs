@@ -4,8 +4,6 @@ using Diaspora.Modules.GeographicIntelligence.Domain.Heat;
 using Diaspora.Modules.GeographicIntelligence.Domain.Routing;
 using Diaspora.Modules.GeographicIntelligence.Domain.Scores;
 using Diaspora.Modules.GeographicIntelligence.Options;
-using Diaspora.Modules.Location.Domain.Places;
-using Diaspora.Modules.Location.Domain.Spatial;
 using Diaspora.Modules.Location.Extensibility;
 using Diaspora.SharedKernel.Results;
 using Microsoft.Extensions.Options;
