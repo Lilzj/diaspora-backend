@@ -36,12 +36,26 @@ namespace Diaspora.Modules.CommunityLife.Application.EventHandlers;
 /// own identifier is <c>CommunityEventId</c> throughout.
 /// </para>
 /// <para>
-/// <b>Four domain events are deliberately never published.</b> A verification <em>request</em> is
-/// Trust's to announce, not this module's — publishing it would tell every subscriber that a body is
-/// under review before anybody has decided anything. A membership <em>role</em> change is internal
-/// bookkeeping inside one organization and of no use to another module. A media <em>detachment</em>
-/// is the absence of a fact rather than a fact. And a restore-from-archive is followed by a
-/// publication if it matters, so announcing it separately would double-count.
+/// <b>Eleven of the module's thirty-three domain events are never published, and four reasons
+/// cover seven of them.</b> A verification <em>request</em> is Trust's to announce, not this
+/// module's — publishing it would tell every subscriber that a body is under review before anybody
+/// has decided anything (<c>OrganizationVerificationRequested</c>). A membership <em>role</em>
+/// change is internal bookkeeping inside one organization and of no use to another module
+/// (<c>OrganizationMembershipRoleChanged</c>). A media <em>detachment</em> is the absence of a fact
+/// rather than a fact (<c>CommunityEventMediaDetached</c>, <c>OrganizationMediaDetached</c>). And a
+/// restore-from-archive is followed by a publication if it matters, so announcing it separately
+/// would double-count (<c>CommunityEventRestored</c>, <c>OrganizationRestored</c>).
+/// </para>
+/// <para>
+/// <b>The remaining four are not decisions, and saying so is the point of counting them.</b>
+/// <c>EventRsvpCreated</c> is handled inside the module to move the event's own counter and needs
+/// no subscriber. The three <c>EventSeries</c> events — created, updated, status changed — are
+/// raised by the aggregate and consumed by nothing at all, which is a series being invisible to
+/// every module that can already see its occurrences. <c>OrganizationUpdated</c> is the same gap
+/// with a sharper edge: <c>CommunityEventUpdated</c> <em>is</em> published, so an event's rename
+/// propagates and an organization's does not. Both are contract additions rather than refactors,
+/// so BSOLID-005 records them here rather than inventing the events; what the finding fixed is the
+/// link that was simply missing, which was in B9 rather than here.
 /// </para>
 /// </summary>
 public sealed class CommunityLifeIntegrationEventRelay
