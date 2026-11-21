@@ -1,8 +1,6 @@
 using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Application.Services;
-using Diaspora.Modules.Location.Domain.Search;
 using Diaspora.Modules.Location.Domain.Spatial;
-using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Modules.Location.Extensibility;
 using Diaspora.SharedKernel.Identity;
 using FluentAssertions;

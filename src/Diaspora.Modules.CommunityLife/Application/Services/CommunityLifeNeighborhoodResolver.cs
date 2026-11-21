@@ -2,8 +2,7 @@ using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.CommunityLife.Domain.Errors;
 using Diaspora.Modules.CommunityLife.Domain.ValueObjects;
 using Diaspora.Modules.Housing.Integration;
-using Diaspora.Modules.Location.Domain.Areas;
-using Diaspora.Modules.Location.Domain.Countries;
+using Diaspora.Modules.Location.Integration;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Results;
 
@@ -34,17 +33,14 @@ namespace Diaspora.Modules.CommunityLife.Application.Services;
 /// </summary>
 public sealed class CommunityLifeNeighborhoodResolver
 {
-    private readonly IAdministrativeAreaRepository _areas;
-    private readonly ICountryRepository _countries;
+    private readonly ILocationDirectory _locations;
     private readonly INeighborhoodDirectory? _neighborhoods;
 
     public CommunityLifeNeighborhoodResolver(
-        IAdministrativeAreaRepository areas,
-        ICountryRepository countries,
+        ILocationDirectory locations,
         INeighborhoodDirectory? neighborhoods = null)
     {
-        _areas = areas;
-        _countries = countries;
+        _locations = locations;
         _neighborhoods = neighborhoods;
     }
 
@@ -89,7 +85,7 @@ public sealed class CommunityLifeNeighborhoodResolver
             return null;
         }
 
-        var area = await _areas.GetByIdAsync(AreaId.From(id), cancellationToken);
+        var area = await _locations.FindAreaAsync(AreaId.From(id), cancellationToken);
 
         return area?.Path.Value;
     }
@@ -114,7 +110,7 @@ public sealed class CommunityLifeNeighborhoodResolver
             return false;
         }
 
-        var country = await _countries.GetByCodeAsync(code.Value, cancellationToken);
+        var country = await _locations.FindCountryAsync(code.Value, cancellationToken);
 
         return country is not null;
     }

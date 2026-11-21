@@ -3,8 +3,6 @@ using Diaspora.Modules.Housing.Domain.Errors;
 using Diaspora.Modules.Housing.Domain.Identifiers;
 using Diaspora.Modules.Housing.Domain.Neighborhoods;
 using Diaspora.Modules.Housing.Domain.ValueObjects;
-using Diaspora.Modules.Location.Domain.Areas;
-using Diaspora.Modules.Location.Domain.Countries;
 using Diaspora.Modules.Location.Integration;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Identity;
@@ -35,24 +33,21 @@ namespace Diaspora.Modules.Housing.Application.Services;
 /// </summary>
 public sealed class HousingNeighborhoodResolver
 {
-    private readonly IAdministrativeAreaRepository _areas;
+    private readonly ILocationDirectory _locations;
     private readonly IAreaLocator _locator;
-    private readonly ICountryRepository _countries;
     private readonly INeighborhoodProfileRepository _profiles;
     private readonly IGuidGenerator _guids;
     private readonly IClock _clock;
 
     public HousingNeighborhoodResolver(
-        IAdministrativeAreaRepository areas,
+        ILocationDirectory locations,
         IAreaLocator locator,
-        ICountryRepository countries,
         INeighborhoodProfileRepository profiles,
         IGuidGenerator guids,
         IClock clock)
     {
-        _areas = areas;
+        _locations = locations;
         _locator = locator;
-        _countries = countries;
         _profiles = profiles;
         _guids = guids;
         _clock = clock;
@@ -78,7 +73,7 @@ public sealed class HousingNeighborhoodResolver
             return Result.Success(context);
         }
 
-        var area = await _areas.GetByIdAsync(AreaId.From(id), cancellationToken);
+        var area = await _locations.FindAreaAsync(AreaId.From(id), cancellationToken);
 
         if (area is null)
         {
@@ -96,7 +91,7 @@ public sealed class HousingNeighborhoodResolver
         // stated country disagrees with the neighbourhood it names is a listing in the wrong place,
         // and B4 is the authority on which.
         var resolved = context.WithNeighborhood(
-            area.Id.Value, area.Path.Value, area.Name.Value);
+            area.AreaId.Value, area.Path.Value, area.Name);
 
         return Result.Success(resolved);
     }
@@ -124,7 +119,7 @@ public sealed class HousingNeighborhoodResolver
             return Result.Success(existing);
         }
 
-        var area = await _areas.GetByIdAsync(AreaId.From(areaId), cancellationToken);
+        var area = await _locations.FindAreaAsync(AreaId.From(areaId), cancellationToken);
 
         if (area is null)
         {
@@ -137,20 +132,20 @@ public sealed class HousingNeighborhoodResolver
                 HousingErrors.NeighborhoodAreaInvalid);
         }
 
-        var ancestors = await _areas.GetAncestorsAsync(area, cancellationToken);
+        var ancestors = await _locations.GetBreadcrumbAsync(area.AreaId, cancellationToken);
         var city = ancestors.FirstOrDefault(node => node.Level == AdministrativeLevel.City);
         var region = ancestors.FirstOrDefault(node => node.Level == AdministrativeLevel.Region);
 
         var profile = NeighborhoodProfile.Create(
             NeighborhoodProfileId.From(_guids.NewSequentialGuid()),
-            area.Id.Value,
+            area.AreaId.Value,
             area.CountryCode.Value,
-            area.Name.Value,
-            area.Slug.Value,
+            area.Name,
+            area.Slug,
             _clock.UtcNow,
             createdBy,
-            city?.Name.Value,
-            region?.Name.Value,
+            city?.Name,
+            region?.Name,
             area.Path.Value);
 
         if (profile.IsFailure)
@@ -178,20 +173,20 @@ public sealed class HousingNeighborhoodResolver
     {
         ArgumentNullException.ThrowIfNull(profile);
 
-        var area = await _areas.GetByIdAsync(AreaId.From(profile.AreaId), cancellationToken);
+        var area = await _locations.FindAreaAsync(AreaId.From(profile.AreaId), cancellationToken);
 
         if (area is null)
         {
             return;
         }
 
-        var ancestors = await _areas.GetAncestorsAsync(area, cancellationToken);
+        var ancestors = await _locations.GetBreadcrumbAsync(area.AreaId, cancellationToken);
 
         profile.RefreshPlace(
-            area.Name.Value,
-            area.Slug.Value,
-            ancestors.FirstOrDefault(node => node.Level == AdministrativeLevel.City)?.Name.Value,
-            ancestors.FirstOrDefault(node => node.Level == AdministrativeLevel.Region)?.Name.Value,
+            area.Name,
+            area.Slug,
+            ancestors.FirstOrDefault(node => node.Level == AdministrativeLevel.City)?.Name,
+            ancestors.FirstOrDefault(node => node.Level == AdministrativeLevel.Region)?.Name,
             area.Path.Value);
 
         profile.SetPoint(area.Center?.Latitude, area.Center?.Longitude);
@@ -289,6 +284,6 @@ public sealed class HousingNeighborhoodResolver
         var parsed = CountryCode.TryCreate(normalized);
 
         return parsed.IsSuccess
-            && await _countries.GetByCodeAsync(parsed.Value, cancellationToken) is not null;
+            && await _locations.FindCountryAsync(parsed.Value, cancellationToken) is not null;
     }
 }

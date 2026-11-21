@@ -4,8 +4,7 @@ using Diaspora.Modules.GeographicIntelligence.Domain.Scores;
 using Diaspora.Modules.GeographicIntelligence.Observability;
 using Diaspora.Modules.GeographicIntelligence.Options;
 using Diaspora.Modules.Housing.Integration;
-using Diaspora.Modules.Location.Application.Services;
-using Diaspora.Modules.Location.Domain.Areas;
+using Diaspora.Modules.Location.Integration;
 using Diaspora.SharedKernel.Pagination;
 using Microsoft.Extensions.Options;
 
@@ -78,22 +77,22 @@ public sealed class NeighborhoodScoreComposer
     private const int ComparisonPopulationLimit = 50;
 
     private readonly NeighborhoodResolver _resolver;
-    private readonly IAdministrativeAreaRepository _areas;
+    private readonly ILocationDirectory _locations;
     private readonly INeighborhoodDirectory _profiles;
-    private readonly ResourceCountAggregator _counts;
+    private readonly IResourceCounts _counts;
     private readonly IOptions<GeographicIntelligenceOptions> _options;
     private readonly TimeProvider _clock;
 
     public NeighborhoodScoreComposer(
         NeighborhoodResolver resolver,
-        IAdministrativeAreaRepository areas,
+        ILocationDirectory locations,
         INeighborhoodDirectory profiles,
-        ResourceCountAggregator counts,
+        IResourceCounts counts,
         IOptions<GeographicIntelligenceOptions> options,
         TimeProvider clock)
     {
         _resolver = resolver;
-        _areas = areas;
+        _locations = locations;
         _profiles = profiles;
         _counts = counts;
         _options = options;
@@ -118,16 +117,16 @@ public sealed class NeighborhoodScoreComposer
     /// </para>
     /// </summary>
     public async Task<NeighborhoodScoreResponse> ComposeAsync(
-        AdministrativeArea area, CancellationToken cancellationToken = default)
+        AreaDescriptor area, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(area);
 
         var now = _clock.GetUtcNow();
         var settings = _options.Value;
 
-        var profile = await _profiles.GetAsync(area.Id.Value, cancellationToken);
+        var profile = await _profiles.GetAsync(area.AreaId.Value, cancellationToken);
 
-        var counts = await _counts.CountInAreaAsync(area.Id, area.Path, cancellationToken);
+        var counts = await _counts.CountInAreaAsync(area.AreaId, area.Path, cancellationToken);
 
         var population = await _profiles.FindAsync(
             area.CountryCode.Value,
@@ -192,9 +191,9 @@ public sealed class NeighborhoodScoreComposer
 
         return new NeighborhoodScoreResponse
         {
-            NeighborhoodId = area.Slug.Value,
-            AreaId = area.Id.Value,
-            Name = area.Name.Value,
+            NeighborhoodId = area.Slug,
+            AreaId = area.AreaId.Value,
+            Name = area.Name,
             CityName = profile?.CityName,
             CountryCode = area.CountryCode.Value,
             Latitude = area.Center?.Latitude,
@@ -439,25 +438,24 @@ public sealed class NeighborhoodScoreComposer
     /// </para>
     /// </summary>
     private async Task<IReadOnlyList<string>> NearbyAsync(
-        AdministrativeArea area, CancellationToken cancellationToken)
+        AreaDescriptor area, CancellationToken cancellationToken)
     {
         if (area.ParentId is null)
         {
             return [];
         }
 
-        var siblings = await _areas.GetChildrenAsync(
-            area.CountryId,
+        var siblings = await _locations.GetChildAreasAsync(
             area.ParentId,
             AdministrativeLevel.Neighborhood,
-            new PaginationRequest { Page = 1, PageSize = 20 },
+            limit: 20,
             cancellationToken);
 
         return
         [
-            .. siblings.Items
-                .Where(sibling => sibling.Id != area.Id)
-                .Select(sibling => sibling.Slug.Value)
+            .. siblings
+                .Where(sibling => sibling.AreaId != area.AreaId)
+                .Select(sibling => sibling.Slug)
         ];
     }
 }

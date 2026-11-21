@@ -1,12 +1,11 @@
 using Diaspora.Contracts.Location.V1;
+using Diaspora.Modules.Location.Extensibility;
 using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Text;
 using System.Text.Json.Nodes;
 using Diaspora.Maps.Google;
 using Diaspora.Modules.GeographicIntelligence.Domain.Routing;
-using Diaspora.Modules.Location.Domain.Places;
-using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Platform.Usage;
 using Diaspora.UnitTests.Common;
 using FluentAssertions;

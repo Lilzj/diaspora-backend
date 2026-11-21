@@ -1,7 +1,7 @@
 using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Domain.ValueObjects;
 
-namespace Diaspora.Modules.Location.Domain.Places;
+namespace Diaspora.Modules.Location.Extensibility;
 
 /// <summary>
 /// Street addresses and points of interest, from a vendor.

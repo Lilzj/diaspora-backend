@@ -1,5 +1,4 @@
 using Diaspora.Contracts.Location.V1;
-using Diaspora.Modules.Location.Domain.Enums;
 
 namespace Diaspora.Modules.Location.Integration;
 
@@ -28,7 +27,7 @@ public sealed record ResidencySummary
 
     public required int Years { get; init; }
 
-    public required ExperienceLevel ExperienceLevel { get; init; }
+    public required CountryExperienceLevel ExperienceLevel { get; init; }
 
     /// <summary>
     /// Trust's decision, as last heard. <see cref="ResidencyVerificationState.Verified"/> here

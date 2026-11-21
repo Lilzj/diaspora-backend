@@ -60,7 +60,7 @@ public sealed class CatalogGeocodingProvider : IGeocodingProvider
     {
         ArgumentNullException.ThrowIfNull(coordinate);
 
-        var radius = Domain.ValueObjects.SearchRadius.FromKilometers(MaxReverseGeocodeRadiusKm);
+        var radius = SearchRadius.FromKilometers(MaxReverseGeocodeRadiusKm);
 
         if (radius.IsFailure)
         {

@@ -1,6 +1,6 @@
 using Diaspora.Application.Abstractions;
+using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Contracts.V1.Responses;
-using Diaspora.Modules.Location.Domain.Spatial;
 using Diaspora.Modules.Location.Extensibility;
 using Diaspora.SharedKernel.Results;
 

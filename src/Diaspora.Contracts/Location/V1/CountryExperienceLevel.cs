@@ -1,4 +1,4 @@
-namespace Diaspora.Modules.Location.Domain.Enums;
+namespace Diaspora.Contracts.Location.V1;
 
 /// <summary>
 /// How deeply a member knows a country, derived from how long they have lived there.
@@ -9,7 +9,7 @@ namespace Diaspora.Modules.Location.Domain.Enums;
 /// this from the residence period, so it cannot be set directly.
 /// </para>
 /// </summary>
-public enum ExperienceLevel
+public enum CountryExperienceLevel
 {
     /// <summary>Under six months. Still finding the supermarket.</summary>
     Newcomer = 0,

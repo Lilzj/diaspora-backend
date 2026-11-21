@@ -1,5 +1,5 @@
 using Diaspora.Contracts.Location.V1;
-using Diaspora.Modules.Location.Domain.Areas;
+using Diaspora.Modules.Location.Integration;
 using Diaspora.SharedKernel.Identity;
 
 namespace Diaspora.Modules.GeographicIntelligence.Application.Services;
@@ -22,11 +22,11 @@ namespace Diaspora.Modules.GeographicIntelligence.Application.Services;
 /// </summary>
 public sealed class NeighborhoodResolver
 {
-    private readonly IAdministrativeAreaRepository _areas;
+    private readonly ILocationDirectory _locations;
 
-    public NeighborhoodResolver(IAdministrativeAreaRepository areas) => _areas = areas;
+    public NeighborhoodResolver(ILocationDirectory locations) => _locations = locations;
 
-    public async Task<AdministrativeArea?> ResolveAsync(
+    public async Task<AreaDescriptor?> ResolveAsync(
         string? idOrSlug, string? countryCode, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(idOrSlug))
@@ -36,7 +36,7 @@ public sealed class NeighborhoodResolver
 
         if (Guid.TryParse(idOrSlug, out var id))
         {
-            var byId = await _areas.GetByIdAsync(AreaId.From(id), cancellationToken);
+            var byId = await _locations.FindAreaAsync(AreaId.From(id), cancellationToken);
 
             if (byId?.Level == AdministrativeLevel.Neighborhood)
             {
@@ -57,7 +57,7 @@ public sealed class NeighborhoodResolver
                 ? parsed.Value
                 : null;
 
-        return await _areas.GetBySlugAsync(
+        return await _locations.FindAreaBySlugAsync(
             slug.Value, AdministrativeLevel.Neighborhood, country, cancellationToken);
     }
 }

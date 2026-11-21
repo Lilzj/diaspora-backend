@@ -128,7 +128,7 @@ public sealed class CountryExperience : AggregateRoot<CountryExperienceId>, IAud
     /// have to be re-saved on the anniversary to become Seasoned.
     /// </para>
     /// </summary>
-    public ExperienceLevel LevelAsAt(DateOnly today) => Period.ExperienceAsAt(today);
+    public CountryExperienceLevel LevelAsAt(DateOnly today) => Period.ExperienceAsAt(today);
 
     public int YearsAsAt(DateOnly today) => Period.YearsAsAt(today);
 

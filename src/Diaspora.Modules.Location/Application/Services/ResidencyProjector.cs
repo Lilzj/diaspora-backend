@@ -1,5 +1,4 @@
 using Diaspora.Contracts.Location.V1;
-using Diaspora.Modules.Location.Domain.Enums;
 using Diaspora.Modules.Location.Domain.Residency;
 using Diaspora.Modules.Location.Observability;
 using Diaspora.SharedKernel.Identity;

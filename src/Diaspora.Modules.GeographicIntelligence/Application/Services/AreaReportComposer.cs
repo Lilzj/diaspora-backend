@@ -1,4 +1,5 @@
 using Diaspora.Contracts.Location.V1;
+using Diaspora.Modules.Location.Integration;
 using System.Globalization;
 using Diaspora.Modules.Community.Integration;
 using Diaspora.Modules.GeographicIntelligence.Application.Intelligence;
@@ -9,7 +10,6 @@ using Diaspora.Modules.GeographicIntelligence.Domain.Scores;
 using Diaspora.Modules.GeographicIntelligence.Observability;
 using Diaspora.Modules.GeographicIntelligence.Options;
 using Diaspora.Modules.Housing.Integration;
-using Diaspora.Modules.Location.Domain.Countries;
 using Diaspora.Modules.Location.Extensibility;
 using Diaspora.SharedKernel.Geography;
 using Diaspora.SharedKernel.Results;
@@ -63,7 +63,7 @@ public sealed class AreaReportComposer
     private readonly IRentStatistics _rents;
     private readonly ICommunitySafetyReports _reports;
     private readonly IPoliceCrimeData _police;
-    private readonly ICountryRepository _countries;
+    private readonly ILocationDirectory _locations;
     private readonly IOptions<GeographicIntelligenceOptions> _options;
     private readonly TimeProvider _clock;
     private readonly ILogger<AreaReportComposer> _logger;
@@ -73,7 +73,7 @@ public sealed class AreaReportComposer
         IRentStatistics rents,
         ICommunitySafetyReports reports,
         IPoliceCrimeData police,
-        ICountryRepository countries,
+        ILocationDirectory locations,
         IOptions<GeographicIntelligenceOptions> options,
         TimeProvider clock,
         ILogger<AreaReportComposer> logger)
@@ -82,7 +82,7 @@ public sealed class AreaReportComposer
         _rents = rents;
         _reports = reports;
         _police = police;
-        _countries = countries;
+        _locations = locations;
         _options = options;
         _clock = clock;
         _logger = logger;
@@ -130,8 +130,8 @@ public sealed class AreaReportComposer
         var settings = _options.Value;
         var now = _clock.GetUtcNow();
 
-        var country = await _countries.GetByCodeAsync(countryCode, cancellationToken);
-        var countryName = country?.Name.Value ?? countryCode.Value;
+        var country = await _locations.FindCountryAsync(countryCode, cancellationToken);
+        var countryName = country?.Name ?? countryCode.Value;
 
         var name = Clean(point.Name);
         var displayName = name ?? string.Format(

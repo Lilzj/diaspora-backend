@@ -2,6 +2,7 @@ using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Domain.Areas;
 using Diaspora.Modules.Location.Domain.Search;
 using Diaspora.Modules.Location.Domain.Spatial;
+using Diaspora.Modules.Location.Extensibility;
 
 namespace Diaspora.Modules.Location.Persistence.Spatial;
 
@@ -126,7 +127,7 @@ public sealed class RelationalGeospatialQueryProvider : IGeospatialQueryProvider
         // pays for the last one.
         foreach (var radiusKm in NearestProbeRadii)
         {
-            var radius = Domain.ValueObjects.SearchRadius.FromKilometers(radiusKm);
+            var radius = SearchRadius.FromKilometers(radiusKm);
 
             if (radius.IsFailure)
             {

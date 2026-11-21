@@ -6,7 +6,6 @@ using Diaspora.Modules.Location.Contracts.V1.Responses;
 using Diaspora.Modules.Location.Domain.Areas;
 using Diaspora.Modules.Location.Domain.Countries;
 using Diaspora.Modules.Location.Domain.Errors;
-using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Results;
 

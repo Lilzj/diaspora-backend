@@ -4,7 +4,7 @@ using Diaspora.Modules.Housing.Contracts.V1.Responses;
 using Diaspora.Modules.Housing.Domain.Analytics;
 using Diaspora.Modules.Housing.Domain.Listings;
 using Diaspora.Modules.Housing.Domain.Neighborhoods;
-using Diaspora.Modules.Location.Application.Services;
+using Diaspora.Modules.Location.Integration;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Identity;
 
@@ -39,13 +39,13 @@ public sealed class NeighborhoodStatisticsService
 
     private readonly IHousingAnalyticsRepository _analytics;
     private readonly IHousingListingRepository _listings;
-    private readonly ResourceCountAggregator _resourceCounts;
+    private readonly IResourceCounts _resourceCounts;
     private readonly IClock _clock;
 
     public NeighborhoodStatisticsService(
         IHousingAnalyticsRepository analytics,
         IHousingListingRepository listings,
-        ResourceCountAggregator resourceCounts,
+        IResourceCounts resourceCounts,
         IClock clock)
     {
         _analytics = analytics;

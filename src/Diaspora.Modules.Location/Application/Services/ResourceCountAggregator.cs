@@ -1,5 +1,6 @@
 using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Extensibility;
+using Diaspora.Modules.Location.Integration;
 using Diaspora.SharedKernel.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -16,7 +17,7 @@ namespace Diaspora.Modules.Location.Application.Services;
 /// renders a dash rather than a confident and wrong "0 homes available".
 /// </para>
 /// </summary>
-public sealed class ResourceCountAggregator
+public sealed class ResourceCountAggregator : IResourceCounts
 {
     private readonly LocationResourceCounterRegistry _registry;
     private readonly IOptions<LocationSpatialOptions> _options;

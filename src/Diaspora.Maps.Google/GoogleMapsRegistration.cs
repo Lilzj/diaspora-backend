@@ -1,5 +1,5 @@
 using Diaspora.Modules.GeographicIntelligence.Domain.Routing;
-using Diaspora.Modules.Location.Domain.Places;
+using Diaspora.Modules.Location.Extensibility;
 using Diaspora.Platform.Usage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

@@ -2,7 +2,6 @@ using Diaspora.Contracts.Location.V1;
 using System.Text.RegularExpressions;
 using Diaspora.Application.Abstractions;
 using Diaspora.Modules.Location.Contracts.V1.Responses;
-using Diaspora.Modules.Location.Domain.Places;
 using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Modules.Location.Extensibility;
 using Diaspora.Platform.Services.Abstractions;

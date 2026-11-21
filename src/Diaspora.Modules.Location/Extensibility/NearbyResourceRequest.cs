@@ -1,5 +1,4 @@
 using Diaspora.Contracts.Location.V1;
-using Diaspora.Modules.Location.Domain.Search;
 using Diaspora.SharedKernel.Identity;
 
 namespace Diaspora.Modules.Location.Extensibility;

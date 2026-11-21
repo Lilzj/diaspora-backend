@@ -1,4 +1,4 @@
-namespace Diaspora.Modules.Location.Domain.Enums;
+namespace Diaspora.Contracts.Location.V1;
 
 /// <summary>
 /// The state of a residency claim as far as the Trust Engine has told this module.

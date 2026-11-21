@@ -1,7 +1,5 @@
 using Diaspora.Contracts.Location.V1;
-using Diaspora.Modules.Location.Domain.Search;
 using Diaspora.Modules.Location.Domain.Spatial;
-using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Modules.Location.Integration;
 using Diaspora.Modules.Providers.Application.Services;
 using Diaspora.Modules.Providers.Domain.Providers;

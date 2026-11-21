@@ -6,7 +6,6 @@ using Diaspora.Modules.Location.Application.Services;
 using Diaspora.Modules.Location.Contracts.V1.Responses;
 using Diaspora.Modules.Location.Domain.Enums;
 using Diaspora.Modules.Location.Domain.Errors;
-using Diaspora.Modules.Location.Domain.ValueObjects;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Results;
