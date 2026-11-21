@@ -183,6 +183,11 @@ public sealed class LocationModule : IPlatformModule
         // share one implementation of the cell cap and the suppression floor rather than two.
         services.AddScoped<MapCellAggregator>();
 
+        // The counting half of the map, as another module asks for it. The geometry beside
+        // it is MapGrid, which is static and needs nothing registered.
+        services.AddScoped<IMapCells>(
+            provider => provider.GetRequiredService<MapCellAggregator>());
+
         // The contracts other modules consume. Registered against their interfaces so a
         // consumer depends on the seam rather than on the implementation.
         services.AddScoped<ILocationDirectory, LocationDirectory>();

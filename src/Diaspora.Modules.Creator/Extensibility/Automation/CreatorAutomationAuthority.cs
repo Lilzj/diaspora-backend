@@ -1,7 +1,7 @@
 using Diaspora.Contracts.Community.V1;
+using Diaspora.Modules.Community.Integration;
 using System.Globalization;
 using Diaspora.Contracts.Automation.V1.Extensibility;
-using Diaspora.Modules.Community.Domain.Follows;
 using Diaspora.Modules.Creator.Domain.Enums;
 using Diaspora.Modules.Creator.Domain.Repositories;
 using Diaspora.SharedKernel.Identity;
@@ -57,10 +57,10 @@ public sealed class CreatorAutomationAuthority : IAutomationScopeAuthority
     ];
 
     private readonly ICreatorProfileRepository _creators;
-    private readonly IFollowRepository _follows;
+    private readonly ICommunityFollowers _follows;
 
     public CreatorAutomationAuthority(
-        ICreatorProfileRepository creators, IFollowRepository follows)
+        ICreatorProfileRepository creators, ICommunityFollowers follows)
     {
         _creators = creators;
         _follows = follows;

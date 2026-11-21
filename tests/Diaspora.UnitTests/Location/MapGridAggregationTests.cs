@@ -159,17 +159,17 @@ public sealed class MapGridAggregationTests
     [Fact]
     public void A_grid_frame_is_the_same_cell_the_aggregator_draws()
     {
-        var plan = MapCellAggregator.Plan(KenyaSouth, "City").Value;
-        var (row, column) = MapCellAggregator.CellOf(plan.CellSizeDegrees, MombasaOldTown.Latitude, MombasaOldTown.Longitude);
-        var frame = MapCellAggregator.Frame(plan.Exponent, row, column);
+        var plan = MapGrid.Plan(KenyaSouth, "City").Value;
+        var (row, column) = MapGrid.CellOf(plan.CellSizeDegrees, MombasaOldTown.Latitude, MombasaOldTown.Longitude);
+        var frame = MapGrid.Frame(plan.Exponent, row, column);
 
         frame.Key.Should().Be($"{plan.Exponent}:{row}:{column}");
-        frame.Id.Should().Be(MapCellAggregator.CellId(plan.Exponent, row, column));
+        frame.Id.Should().Be(MapGrid.CellId(plan.Exponent, row, column));
         MombasaOldTown.Latitude.Should().BeInRange(frame.South, frame.North);
         MombasaOldTown.Longitude.Should().BeInRange(frame.West, frame.East);
 
         // Two rows is not enough for a mean that hides them, so the marker goes to the cell's centre.
-        MapCellAggregator.Marker(frame, 2, -8.1, 79.3)
+        MapGrid.Marker(frame, 2, -8.1, 79.3)
             .Should().Be((Math.Round(frame.CentreLatitude, 6), Math.Round(frame.CentreLongitude, 6)));
     }
 
@@ -192,18 +192,18 @@ public sealed class MapGridAggregationTests
         var country = BoundingBox.Create(north: 5, south: -5, east: 42, west: 33);
         var town = BoundingBox.Create(north: -4.0, south: -4.1, east: 39.75, west: 39.6);
 
-        var coarse = MapCellAggregator.ChooseExponent(country, AdministrativeLevel.City);
-        var fine = MapCellAggregator.ChooseExponent(country, AdministrativeLevel.Neighborhood);
-        var street = MapCellAggregator.ChooseExponent(town, AdministrativeLevel.Neighborhood);
+        var coarse = MapGrid.ChooseExponent(country, AdministrativeLevel.City);
+        var fine = MapGrid.ChooseExponent(country, AdministrativeLevel.Neighborhood);
+        var street = MapGrid.ChooseExponent(town, AdministrativeLevel.Neighborhood);
 
         coarse.Should().BeGreaterThan(fine);
         fine.Should().BeGreaterThan(street);
 
         // A one-kilometre cell over a whole country would be thousands of cells: it is coarsened.
-        var forced = MapCellAggregator.ChooseExponent(country, AdministrativeLevel.City, cellSizeKm: 1);
+        var forced = MapGrid.ChooseExponent(country, AdministrativeLevel.City, cellSizeKm: 1);
         var side = Math.Pow(2, forced);
         ((Math.Ceiling(10 / side) + 1) * (Math.Ceiling(9 / side) + 1))
-            .Should().BeLessThanOrEqualTo(MapCellAggregator.MaxCells);
+            .Should().BeLessThanOrEqualTo(MapGrid.MaxCells);
     }
 
     [Fact]

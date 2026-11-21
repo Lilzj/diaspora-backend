@@ -1,4 +1,5 @@
 using Diaspora.Contracts.Location.V1;
+using Diaspora.Modules.Location.Integration;
 using System.Globalization;
 using Diaspora.Modules.Location.Domain.Search;
 using Diaspora.Modules.Location.Extensibility;
@@ -17,7 +18,7 @@ namespace Diaspora.Modules.Location.Application.Services;
 /// <param name="Id">The same key as a GUID, for clients that key markers by an identifier.</param>
 /// <param name="Latitude">
 /// Where the marker goes: the mean of the rows in the cell when it holds at least
-/// <see cref="MapCellAggregator.MinimumMembersForCentroid"/>, otherwise the cell's centre — so a
+/// <see cref="MapGrid.MinimumMembersForCentroid"/>, otherwise the cell's centre — so a
 /// marker never sits on one row's pin.
 /// </param>
 /// <param name="Longitude">See <paramref name="Latitude"/>.</param>
@@ -28,18 +29,7 @@ namespace Diaspora.Modules.Location.Application.Services;
 /// <param name="Label">A plain description of where the cell is, for an accessible label.</param>
 /// <param name="Counts">Per-resource counts. An absent key means that vertical could not be asked.</param>
 /// <param name="Total">The sum across the counted verticals.</param>
-public sealed record MapCell(
-    string Key,
-    Guid Id,
-    double Latitude,
-    double Longitude,
-    double South,
-    double West,
-    double North,
-    double East,
-    string Label,
-    IReadOnlyDictionary<string, int> Counts,
-    int Total);
+
 
 /// <summary>
 /// Where one grid cell is, without anything about what is in it (21 Oct 2026).
@@ -48,57 +38,13 @@ public sealed record MapCell(
 /// say "withheld here" without the count that would defeat the floor.
 /// </para>
 /// </summary>
-public sealed record MapCellFrame(
-    string Key,
-    Guid Id,
-    double South,
-    double West,
-    double North,
-    double East,
-    string Label)
-{
-    public double CentreLatitude => (South + North) / 2d;
 
-    public double CentreLongitude => (West + East) / 2d;
-}
 
 /// <summary>A viewport parsed and fitted to the world grid: the box, the rung and the cell side.</summary>
-public sealed record MapGridPlan(BoundingBox Box, AdministrativeLevel Level, int Exponent)
-{
-    public double CellSizeDegrees => Math.Pow(2d, Exponent);
-}
+
 
 /// <summary>The cells for a viewport, with everything a caller needs to describe what it got.</summary>
-public sealed record MapCellPage
-{
-    public required IReadOnlyList<MapCell> Cells { get; init; }
 
-    public required BoundingBox Bounds { get; init; }
-
-    /// <summary>The granularity asked for: <c>Neighborhood</c> (finer) or <c>City</c> (coarser).</summary>
-    public required AdministrativeLevel Level { get; init; }
-
-    /// <summary>The side of every cell, in degrees of latitude and of longitude.</summary>
-    public required double CellSizeDegrees { get; init; }
-
-    public required IReadOnlyList<string> ResourceTypes { get; init; }
-
-    public required int MinimumCellCount { get; init; }
-
-    public required int SuppressedCells { get; init; }
-
-    /// <summary>
-    /// Added 21 Oct 2026. Which cells the floor withheld — their place on the grid, never their
-    /// count — so a client can draw "withheld" where it would otherwise draw nothing.
-    /// </summary>
-    public IReadOnlyList<MapCellFrame> WithheldCells { get; init; } = [];
-
-    /// <summary>
-    /// True when at least one vertical had more rows in the viewport than it reads for one
-    /// request, so the totals are lower bounds. Zooming in makes them exact.
-    /// </summary>
-    public required bool Truncated { get; init; }
-}
 
 /// <summary>
 /// Aggregates a viewport into square grid cells over the rows' own coordinates.
@@ -113,7 +59,7 @@ public sealed record MapCellPage
 /// <b>The grid is a world grid, not a viewport grid.</b> Cells are anchored at 0°,0° with a side of
 /// a power of two degrees, so panning never moves a cell boundary and the same place lands in the
 /// same cell on every request. The side is chosen from the viewport's span — about
-/// <see cref="CityDivisions"/> cells across for <c>City</c>, <see cref="NeighborhoodDivisions"/>
+/// <see cref="MapGrid.CityDivisions"/> cells across for <c>City</c>, <see cref="MapGrid.NeighborhoodDivisions"/>
 /// for <c>Neighborhood</c> — or from a size the client names.
 /// </para>
 /// <para>
@@ -122,30 +68,30 @@ public sealed record MapCellPage
 /// gave: two privacy thresholds that disagree are worse than either.
 /// </para>
 /// </summary>
-public sealed class MapCellAggregator
+public sealed class MapCellAggregator : IMapCells
 {
     /// <summary>The most cells one response carries. The cell side doubles until the grid fits.</summary>
-    public const int MaxCells = 256;
+
 
     /// <summary>Cells across the wider side of the viewport at <c>City</c> granularity.</summary>
-    public const int CityDivisions = 6;
+
 
     /// <summary>Cells across the wider side of the viewport at <c>Neighborhood</c> granularity.</summary>
-    public const int NeighborhoodDivisions = 12;
+
 
     /// <summary>
     /// Fewer rows than this in a cell and the marker goes at the cell's centre rather than at the
     /// rows' mean — with one or two rows the mean is a row's own pin, or the midpoint of two.
     /// </summary>
-    public const int MinimumMembersForCentroid = 3;
+
 
     /// <summary>The finest cell side: 2^-12° ≈ 27 m of latitude.</summary>
-    public const int MinimumExponent = -12;
+
 
     /// <summary>The coarsest cell side: 2^5° = 32°.</summary>
-    public const int MaximumExponent = 5;
 
-    private const double KilometresPerDegree = 111.32d;
+
+
 
     private readonly ResourceCountAggregator _counts;
     private readonly IOptions<LocationSpatialOptions> _options;
@@ -159,11 +105,7 @@ public sealed class MapCellAggregator
     }
 
     /// <summary>The granularity a caller may ask for, defaulting to the finer one.</summary>
-    public static AdministrativeLevel ParseLevel(string? value) =>
-        Enum.TryParse<AdministrativeLevel>(value, ignoreCase: true, out var parsed)
-        && parsed is AdministrativeLevel.Neighborhood or AdministrativeLevel.City
-            ? parsed
-            : AdministrativeLevel.Neighborhood;
+
 
     public Task<Result<MapCellPage>> AggregateAsync(
         string bounds,
@@ -179,71 +121,19 @@ public sealed class MapCellAggregator
     /// applies. Public so a layer that buckets its own points (a rent, a safety report) lands them
     /// in exactly the cells the counts use (21 Oct 2026).
     /// </summary>
-    public static Result<MapGridPlan> Plan(string bounds, string? level, double? cellSizeKm = null)
-    {
-        var parsed = BoundingBox.TryParse(bounds);
 
-        if (parsed.IsFailure)
-        {
-            return Result.Failure<MapGridPlan>(parsed.Error);
-        }
-
-        var box = parsed.Value;
-
-        // The same continental cap every viewport read on this module applies: wider than that is
-        // a request to browse by country, not a map.
-        if (box.North - box.South > BoundingBoxSearch.MaxLatitudeSpan)
-        {
-            return Result.Failure<MapGridPlan>(Error.Validation(
-                LocationErrorCodes.BoundsInvalid,
-                $"A viewport may not span more than {BoundingBoxSearch.MaxLatitudeSpan} degrees of "
-                + "latitude. Zoom in, or browse by country."));
-        }
-
-        var rung = ParseLevel(level);
-
-        return Result.Success(new MapGridPlan(box, rung, ChooseExponent(box, rung, cellSizeKm)));
-    }
 
     /// <summary>The cell a point falls in, on the grid whose side is <paramref name="size"/> degrees.</summary>
-    public static (long Row, long Column) CellOf(double size, double latitude, double longitude) =>
-        ((long)Math.Floor(latitude / size), (long)Math.Floor(longitude / size));
+
 
     /// <summary>A cell's place on the grid: key, id, edges and a plain label.</summary>
-    public static MapCellFrame Frame(int exponent, long row, long column)
-    {
-        var size = Math.Pow(2d, exponent);
 
-        var south = Math.Max(row * size, -90d);
-        var north = Math.Min((row + 1) * size, 90d);
-        var west = Math.Max(column * size, -180d);
-        var east = Math.Min((column + 1) * size, 180d);
-
-        return new MapCellFrame(
-            Key: string.Create(CultureInfo.InvariantCulture, $"{exponent}:{row}:{column}"),
-            Id: CellId(exponent, row, column),
-            South: south,
-            West: west,
-            North: north,
-            East: east,
-            Label: Describe((south + north) / 2d, (west + east) / 2d));
-    }
 
     /// <summary>
     /// Where a cell's marker goes: the mean of its rows when there are at least
-    /// <see cref="MinimumMembersForCentroid"/>, otherwise the cell's centre.
+    /// <see cref="MapGrid.MinimumMembersForCentroid"/>, otherwise the cell's centre.
     /// </summary>
-    public static (double Latitude, double Longitude) Marker(
-        MapCellFrame frame, int members, double latitudeSum, double longitudeSum)
-    {
-        ArgumentNullException.ThrowIfNull(frame);
 
-        var (latitude, longitude) = members >= MinimumMembersForCentroid
-            ? (latitudeSum / members, longitudeSum / members)
-            : (frame.CentreLatitude, frame.CentreLongitude);
-
-        return (Math.Round(latitude, 6), Math.Round(longitude, 6));
-    }
 
     /// <summary>
     /// The cells for a viewport, counting only rows whose own time is inside
@@ -261,7 +151,7 @@ public sealed class MapCellAggregator
         DateTimeOffset? to,
         CancellationToken cancellationToken)
     {
-        var plan = Plan(bounds, level, cellSizeKm);
+        var plan = MapGrid.Plan(bounds, level, cellSizeKm);
 
         if (plan.IsFailure)
         {
@@ -311,7 +201,7 @@ public sealed class MapCellAggregator
         {
             foreach (var point in page.Points)
             {
-                var key = CellOf(size, point.Latitude, point.Longitude);
+                var key = MapGrid.CellOf(size, point.Latitude, point.Longitude);
 
                 if (!buckets.TryGetValue(key, out var bucket))
                 {
@@ -330,7 +220,7 @@ public sealed class MapCellAggregator
         {
             if (bucket.Total < minimum)
             {
-                withheld.Add(Frame(exponent, row, column));
+                withheld.Add(MapGrid.Frame(exponent, row, column));
                 continue;
             }
 
@@ -358,40 +248,11 @@ public sealed class MapCellAggregator
 
     /// <summary>
     /// The cell side, as a power of two degrees: from a size the client named, else from the
-    /// viewport's span; then doubled until the viewport holds no more than <see cref="MaxCells"/>.
+    /// viewport's span; then doubled until the viewport holds no more than <see cref="MapGrid.MaxCells"/>.
     /// </summary>
-    public static int ChooseExponent(BoundingBox box, AdministrativeLevel level, double? cellSizeKm = null)
-    {
-        ArgumentNullException.ThrowIfNull(box);
 
-        var latitudeSpan = Math.Max(box.North - box.South, 1e-9);
-        var longitudeSpan = Math.Max(
-            box.CrossesAntimeridian ? 360d - (box.West - box.East) : box.East - box.West,
-            1e-9);
 
-        var target = cellSizeKm is { } km && km > 0 && double.IsFinite(km)
-            ? km / KilometresPerDegree
-            : Math.Max(latitudeSpan, longitudeSpan)
-              / (level == AdministrativeLevel.City ? CityDivisions : NeighborhoodDivisions);
 
-        var exponent = (int)Math.Ceiling(Math.Log2(target));
-        exponent = Math.Clamp(exponent, MinimumExponent, MaximumExponent);
-
-        while (exponent < MaximumExponent && CellsAcross(latitudeSpan, longitudeSpan, exponent) > MaxCells)
-        {
-            exponent++;
-        }
-
-        return exponent;
-    }
-
-    private static double CellsAcross(double latitudeSpan, double longitudeSpan, int exponent)
-    {
-        var size = Math.Pow(2d, exponent);
-
-        // +1 on each axis: a viewport rarely starts on a cell boundary.
-        return (Math.Ceiling(latitudeSpan / size) + 1) * (Math.Ceiling(longitudeSpan / size) + 1);
-    }
 
     private static MapCell ToCell(
         int exponent,
@@ -400,8 +261,8 @@ public sealed class MapCellAggregator
         Bucket bucket,
         IReadOnlyList<string> answered)
     {
-        var frame = Frame(exponent, row, column);
-        var (latitude, longitude) = Marker(frame, bucket.Total, bucket.LatitudeSum, bucket.LongitudeSum);
+        var frame = MapGrid.Frame(exponent, row, column);
+        var (latitude, longitude) = MapGrid.Marker(frame, bucket.Total, bucket.LatitudeSum, bucket.LongitudeSum);
 
         // A vertical that answered with nothing in this cell is a zero; one that did not answer
         // at all is an absent key. The difference is the whole point of the counts contract.
@@ -425,18 +286,9 @@ public sealed class MapCellAggregator
     }
 
     /// <summary>A deterministic GUID for a cell, so the same cell has the same id on every request.</summary>
-    public static Guid CellId(int exponent, long row, long column)
-    {
-        var tail = BitConverter.GetBytes(column);
 
-        return new Guid((int)row, (short)exponent, (short)(row >> 32), tail);
-    }
 
-    private static string Describe(double latitude, double longitude) =>
-        string.Create(
-            CultureInfo.InvariantCulture,
-            $"Area around {Math.Abs(latitude):0.00}°{(latitude < 0 ? "S" : "N")}, "
-            + $"{Math.Abs(longitude):0.00}°{(longitude < 0 ? "W" : "E")}");
+
 
     private sealed class Bucket
     {

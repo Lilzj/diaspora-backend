@@ -215,6 +215,10 @@ public sealed class CommunityModule : IPlatformModule
     private static void RegisterConsumerContracts(IServiceCollection services)
     {
         services.AddScoped<ICommunitySocialService, SocialSummaryService>();
+
+        // The follow graph as another module reads it. Registered against the interface so a
+        // vertical estimating an audience never holds the repository that can also mute.
+        services.AddScoped<ICommunityFollowers, CommunityFollowers>();
         services.AddScoped<ICommunityCommentService>(
             provider => provider.GetRequiredService<CommentService>());
         services.AddScoped<ICommunityReactionService>(
