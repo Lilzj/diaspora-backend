@@ -23,13 +23,13 @@ public sealed class ListModerationQueueQueryHandler
     : IQueryHandler<ListModerationQueueQuery, CursorPagedResult<ListingReportResponse>>
 {
     private readonly IListingReportRepository _reports;
-    private readonly IMarketplaceListingRepository _listings;
+    private readonly IMarketplaceListingSearch _listings;
     private readonly ISellerProfileRepository _sellers;
     private readonly MarketplaceAuthorizationService _authorization;
 
     public ListModerationQueueQueryHandler(
         IListingReportRepository reports,
-        IMarketplaceListingRepository listings,
+        IMarketplaceListingSearch listings,
         ISellerProfileRepository sellers,
         MarketplaceAuthorizationService authorization)
     {

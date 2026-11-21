@@ -26,11 +26,11 @@ public sealed class HousingSlugAllocator
     /// </summary>
     private const int MaxAttempts = 6;
 
-    private readonly IHousingListingRepository _listings;
+    private readonly IHousingListingGuards _listings;
     private readonly ILandlordProfileRepository _landlords;
 
     public HousingSlugAllocator(
-        IHousingListingRepository listings, ILandlordProfileRepository landlords)
+        IHousingListingGuards listings, ILandlordProfileRepository landlords)
     {
         _listings = listings;
         _landlords = landlords;

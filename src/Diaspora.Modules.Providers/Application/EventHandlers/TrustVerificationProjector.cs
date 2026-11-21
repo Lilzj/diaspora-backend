@@ -33,15 +33,18 @@ namespace Diaspora.Modules.Providers.Application.EventHandlers;
 public sealed class TrustVerificationProjector
 {
     private readonly IProviderRepository _providers;
+    private readonly IProviderMembership _membership;
     private readonly IGuidGenerator _guids;
     private readonly ILogger<TrustVerificationProjector> _logger;
 
     public TrustVerificationProjector(
         IProviderRepository providers,
+        IProviderMembership membership,
         IGuidGenerator guids,
         ILogger<TrustVerificationProjector> logger)
     {
         _providers = providers;
+        _membership = membership;
         _guids = guids;
         _logger = logger;
     }
@@ -66,7 +69,7 @@ public sealed class TrustVerificationProjector
 
         // Trust reviews people, not rows, so its event names a member. The claim belongs to
         // whichever of that member's providers carries Trust's identifier.
-        var candidates = await _providers.ListForMemberAsync(
+        var candidates = await _membership.ListForMemberAsync(
             UserId.From(userId), ProviderLimits.MaxProvidersPerOwner, cancellationToken);
 
         var matched = 0;

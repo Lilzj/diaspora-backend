@@ -33,6 +33,7 @@ public sealed class PublishListingCommandHandler
     : ICommandHandler<PublishListingCommand, ListingResponse>
 {
     private readonly IMarketplaceListingRepository _listings;
+    private readonly IMarketplaceListingSellerFacts _sellerFacts;
     private readonly IUnitOfWork _unitOfWork;
     private readonly MarketplaceAuthorizationService _authorization;
     private readonly ListingCategoryResolver _categories;
@@ -44,6 +45,7 @@ public sealed class PublishListingCommandHandler
 
     public PublishListingCommandHandler(
         IMarketplaceListingRepository listings,
+        IMarketplaceListingSellerFacts sellerFacts,
         IUnitOfWork unitOfWork,
         MarketplaceAuthorizationService authorization,
         ListingCategoryResolver categories,
@@ -54,6 +56,7 @@ public sealed class PublishListingCommandHandler
         IClock clock)
     {
         _listings = listings;
+        _sellerFacts = sellerFacts;
         _unitOfWork = unitOfWork;
         _authorization = authorization;
         _categories = categories;
@@ -157,7 +160,7 @@ public sealed class PublishListingCommandHandler
             return;
         }
 
-        var activeListings = await _listings.CountActiveBySellerAsync(seller.Id, cancellationToken);
+        var activeListings = await _sellerFacts.CountActiveBySellerAsync(seller.Id, cancellationToken);
 
         var assessment = await _fraud.AssessAsync(
             listing, seller, "publish", activeListings, now, cancellationToken);

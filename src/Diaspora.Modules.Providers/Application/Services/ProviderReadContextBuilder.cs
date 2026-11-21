@@ -28,7 +28,7 @@ public sealed class ProviderReadContextBuilder
     private readonly ServiceCategoryResolver _categories;
     private readonly AvailabilityCalculator _availability;
     private readonly ProviderBookmarkService _bookmarks;
-    private readonly IProviderRepository _providers;
+    private readonly IProviderMembership _providers;
     private readonly IProviderReviewRepository _reviews;
     private readonly ProviderAuthorizationService _authorization;
     private readonly IClock _clock;
@@ -37,7 +37,7 @@ public sealed class ProviderReadContextBuilder
         ServiceCategoryResolver categories,
         AvailabilityCalculator availability,
         ProviderBookmarkService bookmarks,
-        IProviderRepository providers,
+        IProviderMembership providers,
         IProviderReviewRepository reviews,
         ProviderAuthorizationService authorization,
         IClock clock)

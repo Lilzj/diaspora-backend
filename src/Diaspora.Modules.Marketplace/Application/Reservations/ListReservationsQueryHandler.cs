@@ -16,13 +16,13 @@ public sealed class ListReservationsQueryHandler
     : IQueryHandler<ListReservationsQuery, CursorPagedResult<ReservationResponse>>
 {
     private readonly IListingReservationRepository _reservations;
-    private readonly IMarketplaceListingRepository _listings;
+    private readonly IMarketplaceListingSearch _listings;
     private readonly ISellerProfileRepository _sellers;
     private readonly MarketplaceAuthorizationService _authorization;
 
     public ListReservationsQueryHandler(
         IListingReservationRepository reservations,
-        IMarketplaceListingRepository listings,
+        IMarketplaceListingSearch listings,
         ISellerProfileRepository sellers,
         MarketplaceAuthorizationService authorization)
     {

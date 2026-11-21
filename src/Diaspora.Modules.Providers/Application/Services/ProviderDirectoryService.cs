@@ -26,15 +26,18 @@ namespace Diaspora.Modules.Providers.Application.Services;
 public sealed class ProviderDirectoryService : IProviderDirectory
 {
     private readonly IProviderRepository _providers;
+    private readonly IProviderMembership _membership;
     private readonly ServiceCategoryResolver _categories;
     private readonly AvailabilityCalculator _availability;
 
     public ProviderDirectoryService(
         IProviderRepository providers,
+        IProviderMembership membership,
         ServiceCategoryResolver categories,
         AvailabilityCalculator availability)
     {
         _providers = providers;
+        _membership = membership;
         _categories = categories;
         _availability = availability;
     }
@@ -93,7 +96,7 @@ public sealed class ProviderDirectoryService : IProviderDirectory
     {
         ArgumentNullException.ThrowIfNull(userId);
 
-        var roles = await _providers.GetRolesForAsync(
+        var roles = await _membership.GetRolesForAsync(
             userId, [ProviderId.From(providerId)], cancellationToken);
 
         return roles.TryGetValue(providerId, out var role) && role >= minimumRole;
@@ -106,7 +109,7 @@ public sealed class ProviderDirectoryService : IProviderDirectory
     {
         ArgumentNullException.ThrowIfNull(userId);
 
-        var providers = await _providers.ListForMemberAsync(
+        var providers = await _membership.ListForMemberAsync(
             userId, Domain.Policies.ProviderLimits.MaxProvidersPerOwner, cancellationToken);
 
         var eligible = providers

@@ -28,11 +28,11 @@ namespace Diaspora.Modules.Housing.Application.Services;
 /// </summary>
 public sealed class LandlordListingCountRefresher
 {
-    private readonly IHousingListingRepository _listings;
+    private readonly IHousingListingGuards _listings;
     private readonly ILandlordProfileRepository _landlords;
 
     public LandlordListingCountRefresher(
-        IHousingListingRepository listings, ILandlordProfileRepository landlords)
+        IHousingListingGuards listings, ILandlordProfileRepository landlords)
     {
         _listings = listings;
         _landlords = landlords;

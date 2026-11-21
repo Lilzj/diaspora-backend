@@ -46,12 +46,12 @@ public sealed class EfHousingSearchEngine : IHousingSearchEngine
     /// </summary>
     internal const int NearestCandidateLimit = 1_000;
 
-    private readonly IHousingListingRepository _listings;
+    private readonly IHousingListingSearch _listings;
     private readonly IHousingAmenityRepository _amenities;
     private readonly HousingGeographicScopeAdapter _geography;
 
     public EfHousingSearchEngine(
-        IHousingListingRepository listings,
+        IHousingListingSearch listings,
         IHousingAmenityRepository amenities,
         HousingGeographicScopeAdapter geography)
     {

@@ -26,9 +26,9 @@ public sealed class MarketplaceResourceCounter : ILocationResourceCounter
     /// <summary>The resource-count key B4's contract freeze reserved for the marketplace.</summary>
     public const string Key = "marketplace";
 
-    private readonly IMarketplaceListingRepository _listings;
+    private readonly IMarketplaceListingStatistics _listings;
 
-    public MarketplaceResourceCounter(IMarketplaceListingRepository listings) =>
+    public MarketplaceResourceCounter(IMarketplaceListingStatistics listings) =>
         _listings = listings;
 
     public string ResourceType => Key;

@@ -25,9 +25,9 @@ public sealed class ProviderResourceCounter : ILocationResourceCounter
     /// <summary>One of the six keys the client's <c>resourceCounts</c> already expects.</summary>
     public const string Key = "providers";
 
-    private readonly IProviderRepository _providers;
+    private readonly IProviderStatistics _providers;
 
-    public ProviderResourceCounter(IProviderRepository providers) => _providers = providers;
+    public ProviderResourceCounter(IProviderStatistics providers) => _providers = providers;
 
     public string ResourceType => Key;
 

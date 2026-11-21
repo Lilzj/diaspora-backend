@@ -23,12 +23,12 @@ public sealed class ListHousingReportsQueryHandler
     : IQueryHandler<ListHousingReportsQuery, IReadOnlyList<HousingReportResponse>>
 {
     private readonly IHousingReportRepository _reports;
-    private readonly IHousingListingRepository _listings;
+    private readonly IHousingListingSearch _listings;
     private readonly ILandlordProfileRepository _landlords;
 
     public ListHousingReportsQueryHandler(
         IHousingReportRepository reports,
-        IHousingListingRepository listings,
+        IHousingListingSearch listings,
         ILandlordProfileRepository landlords)
     {
         _reports = reports;

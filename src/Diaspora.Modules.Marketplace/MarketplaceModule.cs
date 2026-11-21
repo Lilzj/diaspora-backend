@@ -158,7 +158,11 @@ public sealed class MarketplaceModule : IPlatformModule
     /// <summary>One repository per aggregate. Scoped, like the context they share.</summary>
     private static void RegisterRepositories(IServiceCollection services)
     {
-        services.AddScoped<IMarketplaceListingRepository, MarketplaceListingRepository>();
+        services.AddScoped<MarketplaceListingRepository>();
+        services.AddScoped<IMarketplaceListingRepository>(services => services.GetRequiredService<MarketplaceListingRepository>());
+        services.AddScoped<IMarketplaceListingSearch>(services => services.GetRequiredService<MarketplaceListingRepository>());
+        services.AddScoped<IMarketplaceListingSellerFacts>(services => services.GetRequiredService<MarketplaceListingRepository>());
+        services.AddScoped<IMarketplaceListingStatistics>(services => services.GetRequiredService<MarketplaceListingRepository>());
         services.AddScoped<ISellerProfileRepository, SellerProfileRepository>();
         services.AddScoped<IListingOfferRepository, ListingOfferRepository>();
         services.AddScoped<IListingReservationRepository, ListingReservationRepository>();

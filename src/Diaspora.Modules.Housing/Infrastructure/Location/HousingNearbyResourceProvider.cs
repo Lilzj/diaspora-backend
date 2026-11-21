@@ -29,9 +29,9 @@ public sealed class HousingNearbyResourceProvider : INearbyResourceProvider
     /// <summary>One of the resource-type keys Location froze. Not a new one.</summary>
     public const string Key = "housing";
 
-    private readonly IHousingListingRepository _listings;
+    private readonly IHousingListingSearch _listings;
 
-    public HousingNearbyResourceProvider(IHousingListingRepository listings) =>
+    public HousingNearbyResourceProvider(IHousingListingSearch listings) =>
         _listings = listings;
 
     public string ResourceType => Key;

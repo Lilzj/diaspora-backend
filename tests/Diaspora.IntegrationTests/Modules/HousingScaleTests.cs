@@ -108,7 +108,7 @@ public sealed class HousingScaleTests : IntegrationTestBase
         var landlord = await SeedListingsAsync(ListingCount);
 
         using var scope = Factory.Services.CreateScope();
-        var listings = scope.ServiceProvider.GetRequiredService<IHousingListingRepository>();
+        var listings = scope.ServiceProvider.GetRequiredService<IHousingListingSearch>();
 
         var seen = new HashSet<Guid>();
         var pages = 0;
@@ -165,7 +165,7 @@ public sealed class HousingScaleTests : IntegrationTestBase
         var landlord = await SeedListingsAsync(ListingCount);
 
         using var scope = Factory.Services.CreateScope();
-        var listings = scope.ServiceProvider.GetRequiredService<IHousingListingRepository>();
+        var listings = scope.ServiceProvider.GetRequiredService<IHousingListingSearch>();
 
         var page = await listings.QueryAsync(
             new HousingListingQueryFilter { LandlordId = landlord }, cursor: null, limit: 20);
@@ -184,7 +184,7 @@ public sealed class HousingScaleTests : IntegrationTestBase
         var landlord = await SeedListingsAsync(ListingCount);
 
         using var scope = Factory.Services.CreateScope();
-        var listings = scope.ServiceProvider.GetRequiredService<IHousingListingRepository>();
+        var listings = scope.ServiceProvider.GetRequiredService<IHousingListingSearch>();
 
         var page = await listings.QueryAsync(
             new HousingListingQueryFilter { LandlordId = landlord }, cursor: null, limit: 5_000);
@@ -204,7 +204,7 @@ public sealed class HousingScaleTests : IntegrationTestBase
         var landlord = await SeedListingsAsync(ListingCount);
 
         using var scope = Factory.Services.CreateScope();
-        var listings = scope.ServiceProvider.GetRequiredService<IHousingListingRepository>();
+        var listings = scope.ServiceProvider.GetRequiredService<IHousingListingSearch>();
 
         var page = await listings.QueryAsync(
             new HousingListingQueryFilter
@@ -237,7 +237,7 @@ public sealed class HousingScaleTests : IntegrationTestBase
         var landlord = await SeedListingsAsync(ListingCount);
 
         using var scope = Factory.Services.CreateScope();
-        var listings = scope.ServiceProvider.GetRequiredService<IHousingListingRepository>();
+        var listings = scope.ServiceProvider.GetRequiredService<IHousingListingSearch>();
 
         var page = await listings.QueryAsync(
             new HousingListingQueryFilter
@@ -275,7 +275,7 @@ public sealed class HousingScaleTests : IntegrationTestBase
         var landlord = await SeedListingsAsync(ListingCount);
 
         using var scope = Factory.Services.CreateScope();
-        var listings = scope.ServiceProvider.GetRequiredService<IHousingListingRepository>();
+        var listings = scope.ServiceProvider.GetRequiredService<IHousingListingSearch>();
 
         var page = await listings.QueryAsync(
             new HousingListingQueryFilter
@@ -303,7 +303,7 @@ public sealed class HousingScaleTests : IntegrationTestBase
         var landlord = await SeedListingsAsync(200);
 
         using var scope = Factory.Services.CreateScope();
-        var listings = scope.ServiceProvider.GetRequiredService<IHousingListingRepository>();
+        var listings = scope.ServiceProvider.GetRequiredService<IHousingListingSearch>();
 
         var page = await listings.QueryAsync(
             new HousingListingQueryFilter
@@ -327,7 +327,7 @@ public sealed class HousingScaleTests : IntegrationTestBase
         var landlord = await SeedListingsAsync(ListingCount);
 
         using var scope = Factory.Services.CreateScope();
-        var listings = scope.ServiceProvider.GetRequiredService<IHousingListingRepository>();
+        var listings = scope.ServiceProvider.GetRequiredService<IHousingListingSearch>();
 
         var stopwatch = Stopwatch.StartNew();
         var count = await listings.CountAsync(

@@ -20,11 +20,11 @@ namespace Diaspora.Modules.Marketplace.Application.Listings;
 public sealed class ListMyListingsQueryHandler
     : IQueryHandler<ListMyListingsQuery, CursorPagedResult<ListingCardResponse>>
 {
-    private readonly IMarketplaceListingRepository _listings;
+    private readonly IMarketplaceListingSearch _listings;
     private readonly MarketplaceAuthorizationService _authorization;
 
     public ListMyListingsQueryHandler(
-        IMarketplaceListingRepository listings,
+        IMarketplaceListingSearch listings,
         MarketplaceAuthorizationService authorization)
     {
         _listings = listings;

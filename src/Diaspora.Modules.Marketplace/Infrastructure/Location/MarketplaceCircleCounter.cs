@@ -16,9 +16,9 @@ namespace Diaspora.Modules.Marketplace.Infrastructure.Location;
 /// </summary>
 public sealed class MarketplaceCircleCounter : ICircleResourceCounter
 {
-    private readonly IMarketplaceListingRepository _listings;
+    private readonly IMarketplaceListingSearch _listings;
 
-    public MarketplaceCircleCounter(IMarketplaceListingRepository listings) => _listings = listings;
+    public MarketplaceCircleCounter(IMarketplaceListingSearch listings) => _listings = listings;
 
     public string ResourceType => MarketplaceResourceCounter.Key;
 

@@ -22,9 +22,9 @@ namespace Diaspora.Modules.Housing.Infrastructure.Location;
 /// </summary>
 public sealed class HousingCircleCounter : ICircleResourceCounter
 {
-    private readonly IHousingListingRepository _listings;
+    private readonly IHousingListingSearch _listings;
 
-    public HousingCircleCounter(IHousingListingRepository listings) => _listings = listings;
+    public HousingCircleCounter(IHousingListingSearch listings) => _listings = listings;
 
     public string ResourceType => HousingResourceCounter.Key;
 

@@ -6,15 +6,11 @@ using Diaspora.SharedKernel.Pagination;
 namespace Diaspora.Modules.Marketplace.Domain.Listings;
 
 /// <summary>
-/// How the application layer reaches listings.
+/// How the module loads and stores a listing it is about to change.
 /// <para>
-/// <b>Three read shapes, because the graphs genuinely differ.</b> <c>GetAsync</c> loads everything,
-/// because a command needs an aggregate that can enforce its own invariants — a partially loaded
-/// listing cannot validate an attribute replacement against attributes it never loaded.
-/// <c>GetForReadAsync</c> loads the same graph untracked, because the detail screen renders all of
-/// it. <c>QueryAsync</c> loads the <em>card</em> graph: the cover image and the tags, and nothing
-/// else. A results page of twenty cards that eagerly loaded twenty full listings would be several
-/// thousand rows to render twenty titles.
+/// Identity-based access, the slug uniqueness check that guards it, and the two batch loads whose
+/// callers mutate what they loaded — expiry and the publish sweep. Those return tracked
+/// aggregates and are writes, whatever their names suggest.
 /// </para>
 /// </summary>
 public interface IMarketplaceListingRepository
@@ -46,16 +42,6 @@ public interface IMarketplaceListingRepository
     Task<MarketplaceListing?> GetByVerificationIdAsync(
         Guid verificationId, CancellationToken cancellationToken = default);
 
-    /// <summary>A page of cards, cursor-paged.</summary>
-    Task<CursorPagedResult<MarketplaceListing>> QueryAsync(
-        ListingQueryFilter filter,
-        string? cursor,
-        int limit,
-        CancellationToken cancellationToken = default);
-
-    Task<int> CountAsync(
-        ListingQueryFilter filter, CancellationToken cancellationToken = default);
-
     /// <summary>
     /// Whether a handle is taken, deleted rows included: a deleted listing keeps its slug, and
     /// handing it to a new listing would break every link ever shared to the old one.
@@ -71,6 +57,47 @@ public interface IMarketplaceListingRepository
     Task<IReadOnlyList<MarketplaceListing>> GetPublishedSinceAsync(
         DateTimeOffset since, int limit, CancellationToken cancellationToken = default);
 
+    Task AddAsync(MarketplaceListing listing, CancellationToken cancellationToken = default);
+
+    void Remove(MarketplaceListing listing);
+}
+
+/// <summary>
+/// The browse path: a page of listings and how many match.
+/// <para>
+/// Changes when a screen gains a filter or a sort, which is not a reason for the aggregate's
+/// persistence contract to change. <see cref="GetManyAsync"/> is declared here as well, because
+/// hydrating the ids a search returned is the same operation as loading a batch by id.
+/// </para>
+/// </summary>
+public interface IMarketplaceListingSearch
+{
+    /// <summary>A page of cards, cursor-paged.</summary>
+    Task<CursorPagedResult<MarketplaceListing>> QueryAsync(
+        ListingQueryFilter filter,
+        string? cursor,
+        int limit,
+        CancellationToken cancellationToken = default);
+
+    Task<int> CountAsync(
+        ListingQueryFilter filter, CancellationToken cancellationToken = default);
+
+    /// <summary>Card graphs for a set of identifiers. What a search engine's answer is hydrated with.</summary>
+    Task<IReadOnlyList<MarketplaceListing>> GetManyAsync(
+        IReadOnlyCollection<MarketplaceListingId> ids,
+        CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// What a seller currently has on the marketplace.
+/// <para>
+/// The active-listing questions a create, duplicate or publish command asks before it writes, and
+/// the seller's own list. Domain invariants rather than reports: they change when the selling
+/// rules change.
+/// </para>
+/// </summary>
+public interface IMarketplaceListingSellerFacts
+{
     /// <summary>Every live listing of one seller. What a suspension cascade acts on.</summary>
     Task<IReadOnlyList<MarketplaceListing>> GetActiveBySellerAsync(
         SellerProfileId sellerId, int limit, CancellationToken cancellationToken = default);
@@ -88,7 +115,18 @@ public interface IMarketplaceListingRepository
         string title,
         MarketplaceListingId? excluding = null,
         CancellationToken cancellationToken = default);
+}
 
+/// <summary>
+/// How many listings are in a place.
+/// <para>
+/// What B4's resource counters ask when they compose an area's page. <see cref="QueryAsync"/> is
+/// declared here as well as on the search interface, because the counter reaches a place's
+/// listings through the same filtered query a browse screen uses.
+/// </para>
+/// </summary>
+public interface IMarketplaceListingStatistics
+{
     /// <summary>
     /// Live listings in an area, counted by materialised path prefix. Location's neighbourhood hub
     /// reads this.
@@ -97,7 +135,10 @@ public interface IMarketplaceListingRepository
 
     Task<int> CountInCountryAsync(string countryCode, CancellationToken cancellationToken = default);
 
-    Task AddAsync(MarketplaceListing listing, CancellationToken cancellationToken = default);
-
-    void Remove(MarketplaceListing listing);
+    /// <summary>A page of cards, cursor-paged.</summary>
+    Task<CursorPagedResult<MarketplaceListing>> QueryAsync(
+        ListingQueryFilter filter,
+        string? cursor,
+        int limit,
+        CancellationToken cancellationToken = default);
 }
