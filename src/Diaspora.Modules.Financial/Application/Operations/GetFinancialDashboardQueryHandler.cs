@@ -10,6 +10,7 @@ using Diaspora.Modules.Financial.Domain.Policies;
 using Diaspora.Modules.Financial.Domain.Revenue;
 using Diaspora.Modules.Financial.Domain.Subscriptions;
 using Diaspora.Modules.Financial.Domain.ValueObjects;
+using Diaspora.Modules.Financial.Integration;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Results;
 
@@ -125,7 +126,7 @@ public sealed class GetFinancialDashboardQueryHandler
     private static List<GivingSummaryResponse> BuildGiving(
         IReadOnlyList<ContributionFund> funds,
         IReadOnlyList<DonationCause> causes,
-        IReadOnlyDictionary<string, CurrencyCatalog.CurrencyFacts> facts,
+        IReadOnlyDictionary<string, CurrencyFacts> facts,
         int nonMonetaryContributions)
     {
         var currencies = funds.Select(fund => fund.Currency)

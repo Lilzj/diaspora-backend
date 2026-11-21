@@ -47,6 +47,7 @@ using Diaspora.Modules.Financial.Infrastructure.Provisioning;
 using Diaspora.Modules.Financial.Infrastructure.Receipts;
 using Diaspora.Modules.Financial.Infrastructure.Search;
 using Diaspora.Modules.Financial.Infrastructure.Settlement;
+using Diaspora.Modules.Financial.Integration;
 using Diaspora.Modules.Financial.Options;
 using Diaspora.Modules.Financial.Persistence.Repositories;
 using Diaspora.Platform.Modules;
@@ -189,6 +190,12 @@ public sealed class FinancialModule : IPlatformModule
     {
         services.AddScoped<FinancialAuthorizationService>();
         services.AddScoped<CurrencyCatalog>();
+
+        // The two questions another module may ask about a currency. Registered against the
+        // interface so B18 depends on Integration and never on the catalogue behind it; the
+        // same instance answers both, because a second one would cache the catalogue twice.
+        services.AddScoped<ICurrencies>(
+            provider => provider.GetRequiredService<CurrencyCatalog>());
 
         // The one door into "this owner now has somewhere to keep money". Registered explicitly
         // rather than scanned because a second implementation appearing by accident would provision
@@ -421,6 +428,14 @@ public sealed class FinancialModule : IPlatformModule
         // service rather than a handler because the route that needs it belongs to another module
         // and DSP1001 refuses a handler that can reach another handler — see the class summary.
         services.AddScoped<Application.Memberships.MembershipPaymentBinder>();
+        services.AddScoped<IMembershipPayments>(
+            provider =>
+                provider.GetRequiredService<Application.Memberships.MembershipPaymentBinder>());
+
+        // B15's campaign operations, for the module that owns the URL they are served under.
+        // Thirteen of them, because the register puts the campaign surface under another
+        // module's prefix and this platform allows one module per prefix -- see ICampaigns.
+        services.AddScoped<ICampaigns, Application.Campaigns.Campaigns>();
     }
 
     private static void RegisterHostedServices(IServiceCollection services)

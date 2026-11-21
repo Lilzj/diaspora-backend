@@ -1,5 +1,6 @@
 using Diaspora.Modules.Financial.Domain.Currencies;
 using Diaspora.Modules.Financial.Extensibility.Caching;
+using Diaspora.Modules.Financial.Integration;
 using Diaspora.Modules.Financial.Options;
 using Microsoft.Extensions.Options;
 
@@ -18,7 +19,7 @@ namespace Diaspora.Modules.Financial.Application.Services;
 /// that has nothing to do with the wallet.
 /// </para>
 /// </summary>
-public sealed class CurrencyCatalog
+public sealed class CurrencyCatalog : ICurrencies
 {
     private const string CacheKey = "financial:currencies";
 
@@ -88,9 +89,6 @@ public sealed class CurrencyCatalog
     /// <summary>Drops the cached catalogue. Called after a currency changes.</summary>
     public Task InvalidateAsync(CancellationToken cancellationToken = default) =>
         _cache.RemoveAsync(CacheKey, cancellationToken);
-
-    /// <summary>What a client needs to render an amount.</summary>
-    public sealed record CurrencyFacts(string Code, string Symbol, int Exponent);
 
     /// <summary>The cached shape. A class because the cache stores reference types.</summary>
     private sealed record CurrencyFactsBundle(IReadOnlyDictionary<string, CurrencyFacts> ByCode);

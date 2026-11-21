@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Financial.V1.Advertising;
 using FluentAssertions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -258,6 +259,26 @@ public sealed class ModuleEncapsulationArchitectureTests
     /// emptiness instead of a count above zero, which makes it a ratchet against the next one.
     /// </para>
     /// <para>
+    /// <b>The sixth wave closed B15, and it took three remedies rather than one.</b> Four
+    /// crossings, three shapes. <c>CommunityTargetingContributors</c> was the keystone again:
+    /// <c>IAdTargetingOptionProvider.Dimension</c> is an <c>AdTargetingDimension</c> and
+    /// <c>IAdAudienceSizer.EstimateAsync</c> takes an <c>AdAudience</c>, both internal, so the
+    /// contributor seam obliged its own implementor while its summary argued that B15 <i>defines
+    /// the shape</i> and <i>whoever owns the data implements it</i>. Both are published now.
+    /// <c>MembershipSettlement</c> and <c>SaveMembershipProgramme</c> injected two concrete
+    /// service classes, which became <c>IMembershipPayments</c> and <c>ICurrencies</c>. And
+    /// <c>CampaignEndpoints</c> constructed thirteen of B15's command envelopes, which is wave
+    /// four's shape exactly: <b>B15 had published every request and response they carry and had
+    /// nowhere to put the operation</b>, having — like B5 and B13 before it — no
+    /// <c>Integration</c> namespace at all.
+    /// </para>
+    /// <para>
+    /// <b>That is three producers in a row whose keystone was the absence of a namespace.</b> A
+    /// module that publishes payloads and contributor seams but never an operation leaves its
+    /// consumers no way to call it except through its application layer — and the count then
+    /// records three careless consumers where there was one producer with nowhere to be called.
+    /// </para>
+    /// <para>
     /// <b>The fifth wave closed the vocabulary class entirely.</b> B13's published
     /// <c>Extensibility</c> seams named seven of its own <c>Domain.Enums</c> types across sixteen
     /// files, so every notification-category contributor was obliged to import them:
@@ -295,15 +316,15 @@ public sealed class ModuleEncapsulationArchitectureTests
     /// </summary>
     private static readonly InternalEdge[] EdgesStillOwed =
     [
-        // Application -- another module's commands, queries or services (3 edges, 17 crossings).
-        // The last three kinds of reach left on the platform are all here or below: no module
-        // now crosses into Guides, Providers, Media or Notifications at all.
-        // The eight module -> Media edges closed 20 November 2026, and with them the last
-        // inline crossing on the platform: B5 published an operation to carry the request it
-        // had already published, and the seven *MediaClaimer classes call it.
+        // Application -- another module's commands, queries or services (2 edges, 13 crossings).
+        // No module now crosses into Guides, Providers, Media, Notifications or Financial at all,
+        // and every edge left on the platform points at Location or Community.
+        // The eight module -> Media edges closed 20 November 2026, and with them the last inline
+        // crossing on the platform: B5 published an operation to carry the request it had already
+        // published, and the seven *MediaClaimer classes call it. B15's four closed on 21 November
+        // the same way, and needed three remedies between them -- see the summary.
         new("GeographicIntelligence", "Location", 10, 0, Reach.Application),
         new("Housing", "Location", 3, 0, Reach.Application),
-        new("CommunityProgramme", "Financial", 4, 0, Reach.Application),
 
         // Aggregate -- another module's entities (3 edges, 4 crossings).
         new("Guides", "Community", 1, 0, Reach.Aggregate),

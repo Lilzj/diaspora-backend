@@ -1,3 +1,4 @@
+using Diaspora.Modules.Financial.Integration;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
@@ -2756,7 +2757,7 @@ public sealed class FinancialMovementTests : IdentityTestBase<FinancialMovementW
         {
             await PublishConversionRateAsync(minorUnitsPerPoint: 1m, currency);
 
-            CurrencyCatalog.CurrencyFacts facts;
+            CurrencyFacts facts;
             using (var scope = Factory.Services.CreateScope())
             {
                 facts = await scope.ServiceProvider.GetRequiredService<CurrencyCatalog>().FactsAsync(currency);

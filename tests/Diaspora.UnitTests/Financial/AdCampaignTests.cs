@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Financial.V1.Advertising;
 using Diaspora.Modules.Financial;
 using Diaspora.Modules.Financial.Domain.Advertising;
 using Diaspora.Modules.Financial.Domain.Events;

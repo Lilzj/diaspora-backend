@@ -1,9 +1,8 @@
-using Diaspora.Modules.Financial.Application.Campaigns;
 using Diaspora.Modules.Financial.Contracts.V1.Requests;
 using Diaspora.Modules.Financial.Contracts.V1.Responses;
+using Diaspora.Modules.Financial.Integration;
 using Diaspora.Platform.Http;
 using Diaspora.SharedKernel.Results;
-using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -70,13 +69,12 @@ internal static class CampaignEndpoints
     {
         group.MapPost("/campaigns", async (
                 CreateCampaignRequest request,
-                ISender sender,
+                ICampaigns campaigns,
                 HttpContext context,
                 CancellationToken cancellationToken) =>
                 PlatformResults.Ok(
                     context,
-                    await sender.Send(
-                        new CreateCampaignCommand { Request = request }, cancellationToken)))
+                    await campaigns.CreateAsync(request, cancellationToken)))
             .WithName("CreateCampaign")
             .WithSummary(
                 "Creates a fundraising campaign, in draft. Terms acceptance is refused here, not "
@@ -90,13 +88,13 @@ internal static class CampaignEndpoints
                 [FromQuery] bool? mine,
                 [FromQuery] string? cursor,
                 [FromQuery] int? take,
-                ISender sender,
+                ICampaigns campaigns,
                 HttpContext context,
                 CancellationToken cancellationToken) =>
                 PlatformResults.Ok(
                     context,
-                    await sender.Send(
-                        new SearchCampaignsQuery
+                    await campaigns.SearchAsync(
+                        new CampaignSearch
                         {
                             State = state,
                             Category = category,
@@ -117,21 +115,21 @@ internal static class CampaignEndpoints
         // with /campaigns/{campaignId:guid}, which only matches a Guid.
         group.MapGet("/campaigns/me", async (
                 [FromQuery] Guid? organizationId,
-                ISender sender,
+                ICampaigns campaigns,
                 HttpContext context,
                 CancellationToken cancellationToken) =>
             {
-                var campaigns = new List<CampaignResponse>();
+                var mine = new List<CampaignResponse>();
                 string? cursor = null;
 
                 // Bounded: an organiser with more than this is paging, and should use the search.
                 for (var page = 0; page < MyCampaignPages; page++)
                 {
-                    var result = await sender.Send(
-                        new SearchCampaignsQuery
+                    var result = await campaigns.SearchAsync(
+                        new CampaignSearch
                         {
-                            MineOnly = true,
                             OrganizationId = organizationId,
+                            MineOnly = true,
                             Cursor = cursor,
                             Take = 100
                         },
@@ -147,7 +145,7 @@ internal static class CampaignEndpoints
                             context, Result.Failure<IReadOnlyList<CampaignResponse>>(result.Error));
                     }
 
-                    campaigns.AddRange(result.Value.Items);
+                    mine.AddRange(result.Value.Items);
 
                     if (!result.Value.HasMore || string.IsNullOrEmpty(result.Value.NextCursor))
                     {
@@ -158,7 +156,7 @@ internal static class CampaignEndpoints
                 }
 
                 return PlatformResults.Ok(
-                    context, Result.Success<IReadOnlyList<CampaignResponse>>(campaigns));
+                    context, Result.Success<IReadOnlyList<CampaignResponse>>(mine));
             })
             .WithName("ListMyCampaigns")
             .WithSummary(
@@ -167,27 +165,25 @@ internal static class CampaignEndpoints
 
         group.MapGet("/campaigns/{campaignId:guid}", async (
                 Guid campaignId,
-                ISender sender,
+                ICampaigns campaigns,
                 HttpContext context,
                 CancellationToken cancellationToken) =>
                 PlatformResults.Ok(
                     context,
-                    await sender.Send(
-                        new GetCampaignQuery { CampaignId = campaignId }, cancellationToken)))
+                    await campaigns.GetAsync(campaignId, cancellationToken)))
             .WithName("GetCampaign")
             .WithSummary("One campaign, with server-computed progress and canDonate.");
 
         group.MapPut("/campaigns/{campaignId:guid}", async (
                 Guid campaignId,
                 UpdateCampaignRequest request,
-                ISender sender,
+                ICampaigns campaigns,
                 HttpContext context,
                 CancellationToken cancellationToken) =>
                 PlatformResults.Ok(
                     context,
-                    await sender.Send(
-                        new UpdateCampaignCommand { CampaignId = campaignId, Request = request },
-                        cancellationToken)))
+                    await campaigns.UpdateAsync(
+                        campaignId, request, cancellationToken)))
             .WithName("UpdateCampaign")
             .WithSummary("Edits a campaign's own text. Nothing financial moves through it.");
     }
@@ -203,19 +199,13 @@ internal static class CampaignEndpoints
             group.MapPost($"/campaigns/{{campaignId:guid}}/{verb}", async (
                     Guid campaignId,
                     CampaignTransitionRequest? request,
-                    ISender sender,
+                    ICampaigns campaigns,
                     HttpContext context,
                     CancellationToken cancellationToken) =>
                     PlatformResults.Ok(
                         context,
-                        await sender.Send(
-                            new TransitionCampaignCommand
-                            {
-                                CampaignId = campaignId,
-                                Target = destination,
-                                Request = request
-                            },
-                            cancellationToken)))
+                        await campaigns.TransitionAsync(
+                            campaignId, destination, request, cancellationToken)))
                 .WithName($"Campaign{char.ToUpperInvariant(verb[0])}{verb[1..]}")
                 .WithSummary(
                     $"Moves a campaign to {destination}. Answers 409 when the state machine "
@@ -229,50 +219,37 @@ internal static class CampaignEndpoints
                 Guid campaignId,
                 [FromQuery] string? cursor,
                 [FromQuery] int? take,
-                ISender sender,
+                ICampaigns campaigns,
                 HttpContext context,
                 CancellationToken cancellationToken) =>
                 PlatformResults.Ok(
                     context,
-                    await sender.Send(
-                        new GetCampaignUpdatesQuery
-                        {
-                            CampaignId = campaignId,
-                            Cursor = cursor,
-                            Take = take
-                        },
-                        cancellationToken)))
+                    await campaigns.GetUpdatesAsync(
+                        campaignId, cursor, take, cancellationToken)))
             .WithName("GetCampaignUpdates")
             .WithSummary("A campaign's timeline, newest first. Cursor-paged.");
 
         group.MapPost("/campaigns/{campaignId:guid}/updates", async (
                 Guid campaignId,
                 CreateCampaignUpdateRequest request,
-                ISender sender,
+                ICampaigns campaigns,
                 HttpContext context,
                 CancellationToken cancellationToken) =>
                 PlatformResults.Ok(
                     context,
-                    await sender.Send(
-                        new PublishCampaignUpdateCommand
-                        {
-                            CampaignId = campaignId,
-                            Request = request
-                        },
-                        cancellationToken)))
+                    await campaigns.PublishUpdateAsync(
+                        campaignId, request, cancellationToken)))
             .WithName("PublishCampaignUpdate")
             .WithSummary("Publishes an update to a campaign's supporters. Idempotent.");
 
         group.MapGet("/campaigns/{campaignId:guid}/milestones", async (
                 Guid campaignId,
-                ISender sender,
+                ICampaigns campaigns,
                 HttpContext context,
                 CancellationToken cancellationToken) =>
                 PlatformResults.Ok(
                     context,
-                    await sender.Send(
-                        new GetCampaignMilestonesQuery { CampaignId = campaignId },
-                        cancellationToken)))
+                    await campaigns.GetMilestonesAsync(campaignId, cancellationToken)))
             .WithName("GetCampaignMilestones")
             .WithSummary(
                 "A campaign's milestones. Whether one is reached is the server's own stamp, taken "
@@ -281,18 +258,13 @@ internal static class CampaignEndpoints
         group.MapPut("/campaigns/{campaignId:guid}/milestones", async (
                 Guid campaignId,
                 SetCampaignMilestonesRequest request,
-                ISender sender,
+                ICampaigns campaigns,
                 HttpContext context,
                 CancellationToken cancellationToken) =>
                 PlatformResults.Ok(
                     context,
-                    await sender.Send(
-                        new SetCampaignMilestonesCommand
-                        {
-                            CampaignId = campaignId,
-                            Request = request
-                        },
-                        cancellationToken)))
+                    await campaigns.SetMilestonesAsync(
+                        campaignId, request, cancellationToken)))
             .WithName("SetCampaignMilestones")
             .WithSummary("Declares a campaign's milestones. Reached-ness is never the caller's.");
 
@@ -300,19 +272,13 @@ internal static class CampaignEndpoints
                 Guid campaignId,
                 [FromQuery] string? cursor,
                 [FromQuery] int? take,
-                ISender sender,
+                ICampaigns campaigns,
                 HttpContext context,
                 CancellationToken cancellationToken) =>
                 PlatformResults.Ok(
                     context,
-                    await sender.Send(
-                        new GetCampaignSupportersQuery
-                        {
-                            CampaignId = campaignId,
-                            Cursor = cursor,
-                            Take = take
-                        },
-                        cancellationToken)))
+                    await campaigns.GetSupportersAsync(
+                        campaignId, cursor, take, cancellationToken)))
             .WithName("GetCampaignSupporters")
             .WithSummary(
                 "A campaign's supporters, anonymised at the source. An anonymous supporter carries "
@@ -324,14 +290,13 @@ internal static class CampaignEndpoints
         group.MapGet("/campaigns/{campaignId:guid}/donations/me", async (
                 Guid campaignId,
                 [FromQuery] int? take,
-                ISender sender,
+                ICampaigns campaigns,
                 HttpContext context,
                 CancellationToken cancellationToken) =>
                 PlatformResults.Ok(
                     context,
-                    await sender.Send(
-                        new GetMyCampaignDonationsQuery { CampaignId = campaignId, Take = take },
-                        cancellationToken)))
+                    await campaigns.GetMyDonationsAsync(
+                        campaignId, take, cancellationToken)))
             .WithName("GetMyCampaignDonations")
             .WithSummary(
                 "The caller's own donations to one campaign, newest first. Anonymous donations are "
@@ -339,14 +304,12 @@ internal static class CampaignEndpoints
 
         group.MapGet("/campaigns/{campaignId:guid}/fund-usage", async (
                 Guid campaignId,
-                ISender sender,
+                ICampaigns campaigns,
                 HttpContext context,
                 CancellationToken cancellationToken) =>
                 PlatformResults.Ok(
                     context,
-                    await sender.Send(
-                        new GetCampaignFundUsageQuery { CampaignId = campaignId },
-                        cancellationToken)))
+                    await campaigns.GetFundUsageAsync(campaignId, cancellationToken)))
             .WithName("GetCampaignFundUsage")
             .WithSummary(
                 "Raised, allocated, disbursed and remaining — each labelled with the authority "
@@ -355,18 +318,13 @@ internal static class CampaignEndpoints
         group.MapPut("/campaigns/{campaignId:guid}/fund-usage", async (
                 Guid campaignId,
                 SetCampaignFundUsageRequest request,
-                ISender sender,
+                ICampaigns campaigns,
                 HttpContext context,
                 CancellationToken cancellationToken) =>
                 PlatformResults.Ok(
                     context,
-                    await sender.Send(
-                        new SetCampaignFundUsageCommand
-                        {
-                            CampaignId = campaignId,
-                            Request = request
-                        },
-                        cancellationToken)))
+                    await campaigns.SetFundUsageAsync(
+                        campaignId, request, cancellationToken)))
             .WithName("SetCampaignFundUsage")
             .WithSummary(
                 "Declares how a campaign's money is allocated. A spend is marked verified only "

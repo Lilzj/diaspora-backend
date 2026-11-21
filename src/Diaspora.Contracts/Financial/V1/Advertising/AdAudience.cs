@@ -1,6 +1,6 @@
 using Diaspora.SharedKernel.Primitives;
 
-namespace Diaspora.Modules.Financial.Domain.Advertising;
+namespace Diaspora.Contracts.Financial.V1.Advertising;
 
 /// <summary>
 /// Who a campaign is aimed at.
