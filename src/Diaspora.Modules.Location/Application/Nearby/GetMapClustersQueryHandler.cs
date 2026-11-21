@@ -3,6 +3,7 @@ using Diaspora.Contracts.Location.V1;
 using Diaspora.Modules.Location.Application.Mapping;
 using Diaspora.Modules.Location.Application.Services;
 using Diaspora.Modules.Location.Contracts.V1.Responses;
+using Diaspora.Modules.Location.Extensibility;
 using Diaspora.Modules.Location.Observability;
 using Diaspora.SharedKernel.Results;
 
@@ -24,7 +25,7 @@ public sealed class GetMapClustersQueryHandler
     /// Kept as a public constant because it is part of what this route promises a client, and a
     /// test asserts against it. The implementation moved; the promise did not.
     /// </summary>
-    public const int MaxCells = MapCellAggregator.MaxCells;
+    public const int MaxCells = MapGrid.MaxCells;
 
     /// <summary>What every cell's <c>level</c> says: it is a grid square, not a place.</summary>
     public const string GridLevel = "Grid";

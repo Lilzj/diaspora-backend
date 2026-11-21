@@ -1,4 +1,5 @@
 using Diaspora.Contracts.Location.V1;
+using Diaspora.Modules.Location.Integration;
 using System.Globalization;
 using Diaspora.Application.Abstractions;
 using Diaspora.Modules.Community.Integration;
@@ -10,7 +11,6 @@ using Diaspora.Modules.GeographicIntelligence.Domain.Safety;
 using Diaspora.Modules.GeographicIntelligence.Observability;
 using Diaspora.Modules.GeographicIntelligence.Options;
 using Diaspora.Modules.Housing.Integration;
-using Diaspora.Modules.Location.Application.Services;
 using Diaspora.Modules.Location.Extensibility;
 using Diaspora.SharedKernel.Results;
 using Microsoft.Extensions.Options;
@@ -84,9 +84,9 @@ public sealed record GetHeatLayerQuery : IQuery<HeatLayerResponse>
 /// <summary>
 /// Serves the density layer the frontend has been simulating since Phase 8.
 /// <para>
-/// <b>Every layer lands on B4's world grid.</b> The count layers take <see cref="MapCellAggregator"/>'s
+/// <b>Every layer lands on B4's world grid.</b> The count layers take <see cref="IMapCells"/>'s
 /// cells as they are; the rent and safety layers bucket their own points with the same grid
-/// (<see cref="MapCellAggregator.Plan"/>, <see cref="MapCellAggregator.CellOf"/>), so a cell key means
+/// (<see cref="MapGrid.Plan"/>, <see cref="MapGrid.CellOf"/>), so a cell key means
 /// the same square on every layer and every pan.
 /// </para>
 /// <para>
@@ -116,7 +116,7 @@ public sealed class GetHeatLayerQueryHandler : IQueryHandler<GetHeatLayerQuery, 
 
     private const string ListingsSourceKind = "listings";
 
-    private readonly MapCellAggregator _cells;
+    private readonly IMapCells _cells;
     private readonly IRentStatistics _rents;
     private readonly ICommunitySafetyReports _reports;
     private readonly IPoliceCrimeData _police;
@@ -126,7 +126,7 @@ public sealed class GetHeatLayerQueryHandler : IQueryHandler<GetHeatLayerQuery, 
     private readonly TimeProvider _clock;
 
     public GetHeatLayerQueryHandler(
-        MapCellAggregator cells,
+        IMapCells cells,
         IRentStatistics rents,
         ICommunitySafetyReports reports,
         IPoliceCrimeData police,
@@ -351,7 +351,7 @@ public sealed class GetHeatLayerQueryHandler : IQueryHandler<GetHeatLayerQuery, 
     private async Task<Result<HeatLayerResponse>> RentLayerAsync(
         HeatContext context, CancellationToken cancellationToken)
     {
-        var plan = MapCellAggregator.Plan(context.Request.Bounds, context.Request.ResolvedLevel);
+        var plan = MapGrid.Plan(context.Request.Bounds, context.Request.ResolvedLevel);
 
         if (plan.IsFailure)
         {
@@ -378,7 +378,7 @@ public sealed class GetHeatLayerQueryHandler : IQueryHandler<GetHeatLayerQuery, 
                 continue;
             }
 
-            var key = MapCellAggregator.CellOf(grid.CellSizeDegrees, point.Latitude, point.Longitude);
+            var key = MapGrid.CellOf(grid.CellSizeDegrees, point.Latitude, point.Longitude);
 
             if (!buckets.TryGetValue(key, out var bucket))
             {
@@ -402,7 +402,7 @@ public sealed class GetHeatLayerQueryHandler : IQueryHandler<GetHeatLayerQuery, 
 
         foreach (var ((row, column), bucket) in buckets)
         {
-            var frame = MapCellAggregator.Frame(grid.Exponent, row, column);
+            var frame = MapGrid.Frame(grid.Exponent, row, column);
 
             if (index && baseline is null)
             {
@@ -438,7 +438,7 @@ public sealed class GetHeatLayerQueryHandler : IQueryHandler<GetHeatLayerQuery, 
                 ? (int)Math.Round(100m * median / baseline!.Value, MidpointRounding.AwayFromZero)
                 : (int)Math.Round(median, 0, MidpointRounding.AwayFromZero);
 
-            var (latitude, longitude) = MapCellAggregator.Marker(
+            var (latitude, longitude) = MapGrid.Marker(
                 frame, bucket.Rents.Count, bucket.LatitudeSum, bucket.LongitudeSum);
 
             cells.Add(new HeatCell(frame, latitude, longitude, value, bucket.Rents.Count, null));
@@ -529,7 +529,7 @@ public sealed class GetHeatLayerQueryHandler : IQueryHandler<GetHeatLayerQuery, 
     private async Task<Result<HeatLayerResponse>> CommunitySafetyLayerAsync(
         HeatContext context, CancellationToken cancellationToken)
     {
-        var plan = MapCellAggregator.Plan(context.Request.Bounds, context.Request.ResolvedLevel);
+        var plan = MapGrid.Plan(context.Request.Bounds, context.Request.ResolvedLevel);
 
         if (plan.IsFailure)
         {
@@ -598,7 +598,7 @@ public sealed class GetHeatLayerQueryHandler : IQueryHandler<GetHeatLayerQuery, 
     private async Task<Result<HeatLayerResponse>> PoliceLayerAsync(
         HeatContext context, CancellationToken cancellationToken)
     {
-        var plan = MapCellAggregator.Plan(context.Request.Bounds, context.Request.ResolvedLevel);
+        var plan = MapGrid.Plan(context.Request.Bounds, context.Request.ResolvedLevel);
 
         if (plan.IsFailure)
         {
@@ -718,7 +718,7 @@ public sealed class GetHeatLayerQueryHandler : IQueryHandler<GetHeatLayerQuery, 
 
         foreach (var point in points)
         {
-            var key = MapCellAggregator.CellOf(grid.CellSizeDegrees, point.Latitude, point.Longitude);
+            var key = MapGrid.CellOf(grid.CellSizeDegrees, point.Latitude, point.Longitude);
 
             if (!buckets.TryGetValue(key, out var bucket))
             {
@@ -734,7 +734,7 @@ public sealed class GetHeatLayerQueryHandler : IQueryHandler<GetHeatLayerQuery, 
 
         foreach (var ((row, column), bucket) in buckets)
         {
-            var frame = MapCellAggregator.Frame(grid.Exponent, row, column);
+            var frame = MapGrid.Frame(grid.Exponent, row, column);
 
             if (bucket.Total < minimum)
             {
@@ -749,7 +749,7 @@ public sealed class GetHeatLayerQueryHandler : IQueryHandler<GetHeatLayerQuery, 
                 continue;
             }
 
-            var (latitude, longitude) = MapCellAggregator.Marker(
+            var (latitude, longitude) = MapGrid.Marker(
                 frame, bucket.Total, bucket.LatitudeSum, bucket.LongitudeSum);
 
             cells.Add(new HeatCell(frame, latitude, longitude, bucket.Total, bucket.Total, bucket.Categories));

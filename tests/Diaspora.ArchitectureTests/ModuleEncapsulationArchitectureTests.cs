@@ -259,6 +259,26 @@ public sealed class ModuleEncapsulationArchitectureTests
     /// emptiness instead of a count above zero, which makes it a ratchet against the next one.
     /// </para>
     /// <para>
+    /// <b>The eighth wave closed the last three, and the list is empty.</b> Each needed a
+    /// different answer, which is a fair summary of the whole finding. <c>Creator</c> injected
+    /// B6's <c>IFollowRepository</c> — the type that can also follow, unfollow and mute — to ask
+    /// two read questions, so <c>ICommunityFollowers</c> publishes the three that are reads.
+    /// <c>GuideDiscussionService</c> named B6's <c>CommentThread</c> in a <c>GetThreadAsync</c>
+    /// <b>that had no caller</b>: the thread is served to clients by B6's own endpoint and B8 only
+    /// ever needed the count, so the shortest honest way to stop naming another module's aggregate
+    /// was to stop asking for one. And <c>GetHeatLayerQuery</c> named <c>MapCellAggregator</c>
+    /// seven times for four static grid methods, which is <see cref="MapGrid"/> now — pure
+    /// geometry, in <c>Extensibility</c>, shared with the cluster endpoint so that a cell key
+    /// means one thing on this platform.
+    /// </para>
+    /// <para>
+    /// <b>That extraction was attempted and reverted a day earlier</b>, because the geometry was
+    /// entangled with the service's private constants and with the bounds parsing in
+    /// <c>Domain.Search</c>. It is here now because the constants came with it and
+    /// <c>BoundingBoxSearch</c> was published beside the box it parses — which is the general
+    /// shape of this finding's last two waves: <b>the thing in the way was never the consumer</b>.
+    /// </para>
+    /// <para>
     /// <b>The seventh wave closed B4's read surface and fourteen of its fifteen crossings.</b>
     /// The keystone was the largest yet and the cheapest to fix: every aggregate-returning
     /// method on <c>ILocationDirectory</c> <b>had no caller outside B4 at all</b> — all eleven
@@ -331,35 +351,13 @@ public sealed class ModuleEncapsulationArchitectureTests
     /// the line at the count that is there.
     /// </para>
     /// </summary>
-    private static readonly InternalEdge[] EdgesStillOwed =
-    [
-        // Application -- another module's commands, queries or services (1 edge, 1 crossing).
-        // The one left is GetHeatLayerQuery naming MapCellAggregator for four static grid
-        // methods -- Plan, CellOf, Frame, Marker -- which are pure geometry entangled with that
-        // service's private constants and with Domain.Search's bounds parsing. Separating them
-        // is a change to B4's map internals rather than an encapsulation move, and it is
-        // recorded here at the exact count instead of being done badly on the way past.
-        // Everything else into Guides, Providers, Media, Notifications, Financial and Location
-        // is closed.
-        // The eight module -> Media edges closed 20 November 2026, and with them the last inline
-        // crossing on the platform: B5 published an operation to carry the request it had already
-        // published, and the seven *MediaClaimer classes call it. B15's four closed on 21 November
-        // the same way, and needed three remedies between them -- see the summary.
-        new("GeographicIntelligence", "Location", 1, 0, Reach.Application),
-
-        // Aggregate -- another module's entities (2 edges, 2 crossings).
-        new("Guides", "Community", 1, 0, Reach.Aggregate),
-        new("Creator", "Community", 1, 0, Reach.Aggregate),
-
-        // Vocabulary -- enumerations, value objects, identifiers (0 edges).
-        // Twenty-four edges closed between 20 and 21 November 2026, and this class is now empty:
-        // nine into Guides and Providers, seven when B6's content vocabulary was published, five
-        // when B4's was, and the last three on 21 November when B13's was. Every one of the
-        // twenty-four was forced by the producer's own published surface naming its own internals,
-        // and not one was closable where it was written. Reach.Vocabulary stays declared, and the
-        // classifier that assigns it stays, because the next crossing of this shape must land here
-        // rather than be reclassified into a kind that still has entries to hide in.
-    ];
+    /// <summary>
+    /// <b>Empty, since 21 November 2026.</b> Every entry that was here has been closed, and the
+    /// list stays as a list because a <see cref="InternalEdge"/> appearing in it again is how the
+    /// next one would be recorded — deliberately, with a date and a remediation, rather than by
+    /// quietly widening a rule.
+    /// </summary>
+    private static readonly InternalEdge[] EdgesStillOwed = [];
 
     /// <summary>One module's published read surface, and the internal references left in it.</summary>
     /// <param name="Module">The module that publishes the surface.</param>
@@ -1074,8 +1072,14 @@ public sealed class ModuleEncapsulationArchitectureTests
             "the published seams are used more often than they are bypassed, which is what makes " +
             "this a boundary that exists rather than one that was never built");
 
-        Scanned.Value.Internal.Should().HaveCountGreaterThan(
-            0, "a scan that finds no crossings at all has stopped reading the source");
+        Scanned.Value.Internal.Should().BeEmpty(
+            "the 110 crossings this rule shipped with are closed, so it ratchets the other way, " +
+            "as the inline count already did on 20 November. A scan that finds none is no longer " +
+            "evidence that it has stopped reading the source: " +
+            nameof(Scanned.Value.Published) + " above is above a hundred and " +
+            nameof(The_scanner_sees_a_crossing_however_it_is_written) + " runs source written " +
+            "for the purpose through this same reader, which together say the scan works and the " +
+            "platform is clean rather than the scan being broken");
 
         Scanned.Value.InCode.Should().BeEmpty(
             "all 28 inline crossings are closed, so this now ratchets the other way: a crossing " +

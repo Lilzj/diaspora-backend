@@ -1,7 +1,6 @@
-using Diaspora.Contracts.Location.V1;
 using Diaspora.SharedKernel.Results;
 
-namespace Diaspora.Modules.Location.Domain.Search;
+namespace Diaspora.Contracts.Location.V1;
 
 /// <summary>
 /// A viewport question: what is inside this rectangle.

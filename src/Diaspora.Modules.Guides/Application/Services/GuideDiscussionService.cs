@@ -1,4 +1,3 @@
-using Diaspora.Modules.Community.Domain.Comments;
 using Diaspora.Modules.Community.Integration;
 using Microsoft.Extensions.Logging;
 
@@ -18,9 +17,16 @@ namespace Diaspora.Modules.Guides.Application.Services;
 /// comments live there.
 /// </para>
 /// <para>
-/// Reads fail soft. A guide whose discussion cannot be fetched renders with an empty thread
-/// and a zero count — a knowledge page taken down by a comments outage would be the tail
-/// wagging the dog.
+/// Reads fail soft. A guide whose count cannot be fetched renders without one — a knowledge
+/// page taken down by a comments outage would be the tail wagging the dog.
+/// </para>
+/// <para>
+/// <b>It reads the count and nothing else.</b> A <c>GetThreadAsync</c> here returned B6's
+/// <c>CommentThread</c> — an aggregate — and had no caller: the thread itself is served to
+/// clients by B6's own endpoint, and the only thing B8 ever needed in-process was the number
+/// its engagement rollup is replaced from. It was removed on 21 November 2026 with the last
+/// crossings into B6, and the shortest honest way to stop naming another module's aggregate
+/// turned out to be not to call for one.
 /// </para>
 /// </summary>
 public sealed class GuideDiscussionService
@@ -33,35 +39,6 @@ public sealed class GuideDiscussionService
     {
         _comments = comments;
         _logger = logger;
-    }
-
-    /// <summary>The assembled thread — pinned floats, deep replies flatten, orphans adopt.</summary>
-    public async Task<CommentThread> GetThreadAsync(
-        GuideId guideId,
-        int rootLimit,
-        bool includeHidden = false,
-        CancellationToken cancellationToken = default)
-    {
-        var reference = GuideBookmarkService.ReferenceFor(guideId);
-
-        try
-        {
-            return await _comments.GetThreadAsync(
-                reference, rootLimit, includeHidden, cancellationToken);
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-#pragma warning disable CA1031 // A comments outage renders an empty thread, not a failed guide page.
-        catch (Exception exception)
-        {
-            _logger.LogWarning(
-                exception, "Reading the discussion for guide {GuideId} failed.", guideId.Value);
-
-            return CommentThread.Assemble(reference, []);
-        }
-#pragma warning restore CA1031
     }
 
     /// <summary>
