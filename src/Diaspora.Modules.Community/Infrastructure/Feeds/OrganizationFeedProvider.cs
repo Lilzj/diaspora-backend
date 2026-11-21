@@ -7,7 +7,7 @@ namespace Diaspora.Modules.Community.Infrastructure.Feeds;
 /// <summary>One organization's published content.</summary>
 public sealed class OrganizationFeedProvider : PostFeedProvider
 {
-    public OrganizationFeedProvider(ICommunityPostRepository posts) : base(posts) { }
+    public OrganizationFeedProvider(ICommunityPostSearch posts) : base(posts) { }
 
     public override string FeedKey => FeedKeys.Organization;
 

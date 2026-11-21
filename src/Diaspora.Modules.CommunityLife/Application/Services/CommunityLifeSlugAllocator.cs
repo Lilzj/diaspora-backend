@@ -23,12 +23,12 @@ public sealed class CommunityLifeSlugAllocator
 {
     private const int MaxAttempts = 12;
 
-    private readonly IOrganizationRepository _organizations;
+    private readonly IOrganizationGuards _organizations;
     private readonly ICommunityEventGuards _events;
     private readonly IEventSeriesRepository _series;
 
     public CommunityLifeSlugAllocator(
-        IOrganizationRepository organizations,
+        IOrganizationGuards organizations,
         ICommunityEventGuards events,
         IEventSeriesRepository series)
     {

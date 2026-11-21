@@ -65,7 +65,7 @@ public sealed class InboxReconciliationSweep : BackgroundService
             var services = scope.ServiceProvider;
 
             var inboxes = services.GetRequiredService<IUserInboxRepository>();
-            var notifications = services.GetRequiredService<INotificationRepository>();
+            var notifications = services.GetRequiredService<INotificationChannels>();
             var unitOfWork = services.GetRequiredService<IUnitOfWork>();
             var guids = services.GetRequiredService<IGuidGenerator>();
             var clock = services.GetRequiredService<IClock>();

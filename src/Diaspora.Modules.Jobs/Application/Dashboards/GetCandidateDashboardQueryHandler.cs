@@ -45,7 +45,7 @@ public sealed class GetCandidateDashboardQueryHandler
     private readonly IInterviewRepository _interviews;
     private readonly ISavedJobRepository _saved;
     private readonly IJobAlertRepository _alerts;
-    private readonly IJobPostingRepository _postings;
+    private readonly IJobPostingReader _postings;
     private readonly IEmployerProfileRepository _employers;
     private readonly IEnumerable<IJobRecommendationProvider> _recommenders;
     private readonly JobAuthorizationService _authorization;
@@ -58,7 +58,7 @@ public sealed class GetCandidateDashboardQueryHandler
         IInterviewRepository interviews,
         ISavedJobRepository saved,
         IJobAlertRepository alerts,
-        IJobPostingRepository postings,
+        IJobPostingReader postings,
         IEmployerProfileRepository employers,
         IEnumerable<IJobRecommendationProvider> recommenders,
         JobAuthorizationService authorization,

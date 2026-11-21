@@ -34,17 +34,20 @@ public sealed class FinancialModerationActionTakenConsumer
     : IntegrationEventHandler<ModerationActionTakenIntegrationEvent>
 {
     private readonly IPlacementRepository _placements;
+    private readonly IPlacementSchedule _placementSchedule;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
     private readonly ILogger<FinancialModerationActionTakenConsumer> _logger;
 
     public FinancialModerationActionTakenConsumer(
         IPlacementRepository placements,
+        IPlacementSchedule placementSchedule,
         IUnitOfWork unitOfWork,
         IClock clock,
         ILogger<FinancialModerationActionTakenConsumer> logger)
     {
         _placements = placements;
+    _placementSchedule = placementSchedule;
         _unitOfWork = unitOfWork;
         _clock = clock;
         _logger = logger;
@@ -70,7 +73,7 @@ public sealed class FinancialModerationActionTakenConsumer
         {
             case ModerationOutcome.HidePendingReview:
             case ModerationOutcome.Remove:
-                foreach (var placement in await _placements.ListRunningOrScheduledForSubjectAsync(
+                foreach (var placement in await _placementSchedule.ListRunningOrScheduledForSubjectAsync(
                              subject, cancellationToken))
                 {
                     if (placement.PauseForModeration(integrationEvent.CaseId, now))
@@ -84,7 +87,7 @@ public sealed class FinancialModerationActionTakenConsumer
 
             case ModerationOutcome.Restore:
             case ModerationOutcome.NoAction:
-                foreach (var placement in await _placements.ListPausedForModerationAsync(
+                foreach (var placement in await _placementSchedule.ListPausedForModerationAsync(
                              subject, cancellationToken))
                 {
                     // Restored content is back in view whichever case hid it. A case closed with no

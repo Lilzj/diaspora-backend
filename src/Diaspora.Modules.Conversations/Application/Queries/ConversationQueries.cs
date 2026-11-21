@@ -35,7 +35,7 @@ public sealed record ListConversationsQuery : IQuery<ConversationPageResponse>
 public sealed class ListConversationsQueryHandler
     : IQueryHandler<ListConversationsQuery, ConversationPageResponse>
 {
-    private readonly IConversationRepository _conversations;
+    private readonly IConversationInbox _conversations;
     private readonly IConversationMessageRepository _messages;
     private readonly ConversationAccessService _access;
     private readonly ConversationMapper _mapper;
@@ -43,7 +43,7 @@ public sealed class ListConversationsQueryHandler
     private readonly IClock _clock;
 
     public ListConversationsQueryHandler(
-        IConversationRepository conversations,
+        IConversationInbox conversations,
         IConversationMessageRepository messages,
         ConversationAccessService access,
         ConversationMapper mapper,
@@ -313,13 +313,13 @@ public sealed record ListConversationRequestsQuery
 public sealed class ListConversationRequestsQueryHandler
     : IQueryHandler<ListConversationRequestsQuery, IReadOnlyList<ConversationRequestResponse>>
 {
-    private readonly IConversationRepository _conversations;
+    private readonly IConversationInbox _conversations;
     private readonly IConversationMessageRepository _messages;
     private readonly ConversationAccessService _access;
     private readonly ConversationMapper _mapper;
 
     public ListConversationRequestsQueryHandler(
-        IConversationRepository conversations,
+        IConversationInbox conversations,
         IConversationMessageRepository messages,
         ConversationAccessService access,
         ConversationMapper mapper)
@@ -604,12 +604,12 @@ public sealed record GetConversationUnreadCountQuery : IQuery<ConversationUnread
 public sealed class GetConversationUnreadCountQueryHandler
     : IQueryHandler<GetConversationUnreadCountQuery, ConversationUnreadCountResponse>
 {
-    private readonly IConversationRepository _conversations;
+    private readonly IConversationInbox _conversations;
     private readonly ConversationAccessService _access;
     private readonly IClock _clock;
 
     public GetConversationUnreadCountQueryHandler(
-        IConversationRepository conversations, ConversationAccessService access, IClock clock)
+        IConversationInbox conversations, ConversationAccessService access, IClock clock)
     {
         _conversations = conversations;
         _access = access;

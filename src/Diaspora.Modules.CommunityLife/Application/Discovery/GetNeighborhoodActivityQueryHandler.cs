@@ -33,13 +33,13 @@ public sealed class GetNeighborhoodActivityQueryHandler
     private const int DefaultWindowDays = 365;
 
     private readonly IEventAnalyticsRepository _analytics;
-    private readonly IOrganizationRepository _organizations;
+    private readonly IOrganizationStatistics _organizations;
     private readonly CommunityLifeNeighborhoodResolver _neighborhoods;
     private readonly IClock _clock;
 
     public GetNeighborhoodActivityQueryHandler(
         IEventAnalyticsRepository analytics,
-        IOrganizationRepository organizations,
+        IOrganizationStatistics organizations,
         CommunityLifeNeighborhoodResolver neighborhoods,
         IClock clock)
     {

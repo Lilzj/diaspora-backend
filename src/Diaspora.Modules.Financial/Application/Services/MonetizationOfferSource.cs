@@ -38,7 +38,7 @@ public sealed class MonetizationOfferSource : IMonetizationOfferSource
     private readonly ISubscriptionPlanRepository _plans;
     private readonly ISubscriptionRepository _subscriptions;
     private readonly IMonetizationPurchaseRepository _purchases;
-    private readonly IPlacementRepository _placements;
+    private readonly IPlacementFacts _placements;
     private readonly IProductEligibilityEvaluator _eligibility;
     private readonly FinancialAuthorizationService _authorization;
     private readonly IClock _clock;
@@ -48,7 +48,7 @@ public sealed class MonetizationOfferSource : IMonetizationOfferSource
         ISubscriptionPlanRepository plans,
         ISubscriptionRepository subscriptions,
         IMonetizationPurchaseRepository purchases,
-        IPlacementRepository placements,
+        IPlacementFacts placements,
         IProductEligibilityEvaluator eligibility,
         FinancialAuthorizationService authorization,
         IClock clock)

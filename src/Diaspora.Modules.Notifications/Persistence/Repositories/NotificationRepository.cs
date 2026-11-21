@@ -26,7 +26,7 @@ namespace Diaspora.Modules.Notifications.Persistence.Repositories;
 /// inbox means the member never sees a message and has no way to know.
 /// </para>
 /// </summary>
-public sealed class NotificationRepository : INotificationRepository
+public sealed class NotificationRepository : INotificationRepository, INotificationChannels, INotificationInbox
 {
     private static readonly NotificationStatus[] ArchivedStatuses =
     [

@@ -17,7 +17,7 @@ namespace Diaspora.Modules.Community.Application.Services;
 internal static class CommunityCircleReader
 {
     public static async Task<(IReadOnlyList<CommunityPost> Posts, int Read)> ReadAsync(
-        ICommunityPostRepository posts,
+        ICommunityPostSearch posts,
         PostQueryFilter filter,
         CircleArea circle,
         CancellationToken cancellationToken)

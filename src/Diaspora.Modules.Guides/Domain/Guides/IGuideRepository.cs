@@ -11,27 +11,27 @@ using GuideId = Diaspora.Modules.Guides.Domain.Identifiers.GuideId;
 namespace Diaspora.Modules.Guides.Domain.Guides;
 
 /// <summary>
-/// Reads and writes guides.
+/// How the module loads and stores a guide it is about to change.
 /// <para>
-/// <b>Three shapes of read, and the split is load-bearing.</b> <see cref="GetAsync"/>
-/// materialises the whole aggregate — sections, blocks, tags, references, notes — because a
-/// command about to mutate it needs all of it, and a partially loaded aggregate cannot enforce
-/// its own invariants. <see cref="GetForReadAsync"/> materialises the same graph without
-/// tracking, for the detail screen. <see cref="QueryAsync"/> materialises the <em>card</em>
-/// graph, because a discovery page of twenty cards that eagerly loaded twenty full documents
-/// would be several thousand rows to render twenty titles.
+/// <b>Three shapes of read, and the split is load-bearing — these three roles are those three
+/// shapes.</b> <see cref="GetAsync"/> materialises the whole aggregate — sections, blocks, tags,
+/// references, notes — because a command about to mutate it needs all of it, and a partially
+/// loaded aggregate cannot enforce its own invariants.
+/// <see cref="IGuideReader.GetForReadAsync"/> materialises the same graph without tracking, for
+/// the detail screen. <see cref="IGuideSearch.QueryAsync"/> materialises the <em>card</em> graph,
+/// because a discovery page of twenty cards that eagerly loaded twenty full documents would be
+/// several thousand rows to render twenty titles.
+/// </para>
+/// <para>
+/// Twenty-three of this interface's sixty-nine consumer classes call <see cref="GetAsync"/> and
+/// nothing else, which is the measurement that made this split worth doing rather than a size
+/// complaint. <see cref="GetScheduledDueAsync"/> is a write: its caller publishes what it loaded.
 /// </para>
 /// </summary>
 public interface IGuideRepository
 {
     /// <summary>The full aggregate, tracked. For commands.</summary>
     Task<Guide?> GetAsync(GuideId id, CancellationToken cancellationToken = default);
-
-    /// <summary>The full graph, untracked. Everything the detail screen renders.</summary>
-    Task<Guide?> GetForReadAsync(GuideId id, CancellationToken cancellationToken = default);
-
-    /// <summary>The full graph, by the deep-link handle.</summary>
-    Task<Guide?> GetBySlugAsync(GuideSlug slug, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// The full graph, tracked, including a soft-deleted guide.
@@ -48,6 +48,66 @@ public interface IGuideRepository
     /// </summary>
     Task<Guide?> GetIncludingDeletedAsync(GuideId id, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// The guide holding Trust's verification identifier, tracked.
+    /// <para>
+    /// <b>How an outcome finds the claim that raised it.</b> Trust reviews people and its events
+    /// name a member, but a member may have many guides and only one of them raised this case —
+    /// so the correlation is the identifier B8 stored when it submitted, not the author. It also
+    /// works for a claim this deployment never saw submitted: after a replay, or a decision that
+    /// arrives across a deployment gap.
+    /// </para>
+    /// </summary>
+    Task<Guide?> GetByVerificationIdAsync(
+        Guid verificationId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Drafts whose scheduled publication instant has passed. The scheduled publisher's query —
+    /// batch-bounded so a backlog after downtime is worked through rather than swallowed whole.
+    /// </summary>
+    Task<IReadOnlyList<Guide>> GetScheduledDueAsync(
+        DateTimeOffset now, int batchSize, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Whether a slug is free. Advisory, not authoritative — the unique index is what actually
+    /// guarantees it. Exists so the allocator can pick a free suffix before writing, rather
+    /// than catching a constraint violation and retrying.
+    /// </summary>
+    Task<bool> SlugExistsAsync(GuideSlug slug, CancellationToken cancellationToken = default);
+
+    /// <summary>How many guides a member has authored. Enforces the per-author ceiling.</summary>
+    Task<int> CountByAuthorAsync(UserId authorId, CancellationToken cancellationToken = default);
+
+    Task AddAsync(Guide guide, CancellationToken cancellationToken = default);
+
+    void Remove(Guide guide);
+}
+
+/// <summary>
+/// One guide, untracked, for a screen: by id or by slug. The same graph
+/// <see cref="IGuideRepository.GetAsync"/> loads, without the tracking a command needs.
+/// <para>
+/// Fifteen consumer classes need exactly this and nothing else.
+/// </para>
+/// </summary>
+public interface IGuideReader
+{
+    /// <summary>The full graph, untracked. Everything the detail screen renders.</summary>
+    Task<Guide?> GetForReadAsync(GuideId id, CancellationToken cancellationToken = default);
+
+    /// <summary>The full graph, by the deep-link handle.</summary>
+    Task<Guide?> GetBySlugAsync(GuideSlug slug, CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// Discovery: a page of guides and the counts beside it, by area and by country.
+/// <para>
+/// <see cref="QueryAsync"/> materialises the card graph rather than the whole document, for the
+/// reason <see cref="IGuideRepository"/> records. Sixteen consumer classes call it alone.
+/// </para>
+/// </summary>
+public interface IGuideSearch
+{
     /// <summary>The one query discovery, browse and "mine" all run. Card graph.</summary>
     Task<CursorPagedResult<Guide>> QueryAsync(
         GuideQueryFilter filter,
@@ -75,38 +135,6 @@ public interface IGuideRepository
         GuideQueryFilter filter, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Whether a slug is free. Advisory, not authoritative — the unique index is what actually
-    /// guarantees it. Exists so the allocator can pick a free suffix before writing, rather
-    /// than catching a constraint violation and retrying.
-    /// </summary>
-    Task<bool> SlugExistsAsync(GuideSlug slug, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// The guide holding Trust's verification identifier, tracked.
-    /// <para>
-    /// <b>How an outcome finds the claim that raised it.</b> Trust reviews people and its events
-    /// name a member, but a member may have many guides and only one of them raised this case —
-    /// so the correlation is the identifier B8 stored when it submitted, not the author. It also
-    /// works for a claim this deployment never saw submitted: after a replay, or a decision that
-    /// arrives across a deployment gap.
-    /// </para>
-    /// </summary>
-    Task<Guide?> GetByVerificationIdAsync(
-        Guid verificationId, CancellationToken cancellationToken = default);
-
-    /// <summary>How many guides a member has authored. Enforces the per-author ceiling.</summary>
-    Task<int> CountByAuthorAsync(UserId authorId, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// How many published guides apply to a country. Location's country page renders it.
-    /// <para>
-    /// A single aggregate rather than a page the caller counts: a headline number must not cost
-    /// a hundred rows, which is the reason B4 separated counting from listing in the first place.
-    /// </para>
-    /// </summary>
-    Task<int> CountInCountryAsync(string countryCode, CancellationToken cancellationToken = default);
-
-    /// <summary>
     /// How many published guides are scoped to an area, by materialised-path prefix.
     /// <para>
     /// Prefix-matched against the plain <c>AreaPath</c> column, which exists precisely so this
@@ -117,13 +145,11 @@ public interface IGuideRepository
     Task<int> CountInAreaAsync(string areaPathPrefix, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Drafts whose scheduled publication instant has passed. The scheduled publisher's query —
-    /// batch-bounded so a backlog after downtime is worked through rather than swallowed whole.
+    /// How many published guides apply to a country. Location's country page renders it.
+    /// <para>
+    /// A single aggregate rather than a page the caller counts: a headline number must not cost
+    /// a hundred rows, which is the reason B4 separated counting from listing in the first place.
+    /// </para>
     /// </summary>
-    Task<IReadOnlyList<Guide>> GetScheduledDueAsync(
-        DateTimeOffset now, int batchSize, CancellationToken cancellationToken = default);
-
-    Task AddAsync(Guide guide, CancellationToken cancellationToken = default);
-
-    void Remove(Guide guide);
+    Task<int> CountInCountryAsync(string countryCode, CancellationToken cancellationToken = default);
 }

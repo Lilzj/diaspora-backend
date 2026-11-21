@@ -32,9 +32,9 @@ public sealed class JobResourceCounter : ILocationResourceCounter
     /// <summary>The key B4 reserved for jobs. Not a new one.</summary>
     public const string Key = "jobs";
 
-    private readonly IJobPostingRepository _postings;
+    private readonly IJobPostingSearch _postings;
 
-    public JobResourceCounter(IJobPostingRepository postings) => _postings = postings;
+    public JobResourceCounter(IJobPostingSearch postings) => _postings = postings;
 
     public string ResourceType => Key;
 

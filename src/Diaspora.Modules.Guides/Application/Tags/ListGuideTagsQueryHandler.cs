@@ -36,11 +36,11 @@ public sealed class ListGuideTagsQueryHandler
     /// <summary>Pages of guides sampled. Ten pages of fifty is the recent window.</summary>
     private const int SamplePages = 10;
 
-    private readonly IGuideRepository _guides;
+    private readonly IGuideSearch _guides;
     private readonly GuideAuthorizationService _authorization;
 
     public ListGuideTagsQueryHandler(
-        IGuideRepository guides, GuideAuthorizationService authorization)
+        IGuideSearch guides, GuideAuthorizationService authorization)
     {
         _guides = guides;
         _authorization = authorization;

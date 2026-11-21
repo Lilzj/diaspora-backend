@@ -42,12 +42,13 @@ public sealed class PlacementLifecycleSweep : FinancialSweep
         using var scope = Scopes.CreateScope();
 
         var placements = scope.ServiceProvider.GetRequiredService<IPlacementRepository>();
+        var schedule = scope.ServiceProvider.GetRequiredService<IPlacementSchedule>();
         var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
         var clock = scope.ServiceProvider.GetRequiredService<IClock>();
         var now = clock.UtcNow;
         var handled = 0;
 
-        foreach (var placement in await placements.ListDueAsync(
+        foreach (var placement in await schedule.ListDueAsync(
             now, Options.SweepBatchSize, cancellationToken))
         {
             placement.Activate(now);
@@ -55,7 +56,7 @@ public sealed class PlacementLifecycleSweep : FinancialSweep
             handled++;
         }
 
-        foreach (var placement in await placements.ListLapsedAsync(
+        foreach (var placement in await schedule.ListLapsedAsync(
             now, Options.SweepBatchSize, cancellationToken))
         {
             placement.Expire(now);

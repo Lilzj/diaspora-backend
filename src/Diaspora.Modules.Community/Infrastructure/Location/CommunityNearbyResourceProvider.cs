@@ -28,11 +28,11 @@ public sealed class CommunityNearbyResourceProvider : INearbyResourceProvider
     /// <summary>One of the six resource-type keys Location froze. Not a new one.</summary>
     public const string Key = "updates";
 
-    private readonly ICommunityPostRepository _posts;
+    private readonly ICommunityPostSearch _posts;
     private readonly ILocationDirectory _location;
 
     public CommunityNearbyResourceProvider(
-        ICommunityPostRepository posts, ILocationDirectory location)
+        ICommunityPostSearch posts, ILocationDirectory location)
     {
         _posts = posts;
         _location = location;

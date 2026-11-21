@@ -26,9 +26,9 @@ public sealed class GuideResourceCounter : ILocationResourceCounter
     /// <summary>The resource-count key B4's contract freeze reserved for guides.</summary>
     public const string Key = "guides";
 
-    private readonly IGuideRepository _guides;
+    private readonly IGuideSearch _guides;
 
-    public GuideResourceCounter(IGuideRepository guides) => _guides = guides;
+    public GuideResourceCounter(IGuideSearch guides) => _guides = guides;
 
     public string ResourceType => Key;
 

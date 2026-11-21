@@ -24,7 +24,7 @@ namespace Diaspora.Modules.Financial.Application.Sponsorship;
 /// </summary>
 public sealed class SponsoredContentDirectory : ISponsoredContentDirectory
 {
-    private readonly IPlacementRepository _placements;
+    private readonly IPlacementFacts _placements;
     private readonly IAdCampaignRepository _campaigns;
     private readonly IMonetizationPurchaseRepository _purchases;
     private readonly IMonetizationProductRepository _products;
@@ -32,7 +32,7 @@ public sealed class SponsoredContentDirectory : ISponsoredContentDirectory
     private readonly IClock _clock;
 
     public SponsoredContentDirectory(
-        IPlacementRepository placements,
+        IPlacementFacts placements,
         IAdCampaignRepository campaigns,
         IMonetizationPurchaseRepository purchases,
         IMonetizationProductRepository products,

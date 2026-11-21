@@ -36,12 +36,12 @@ namespace Diaspora.Modules.Guides.Application.Discovery;
 /// </summary>
 public sealed class GetGuideQueryHandler : IQueryHandler<GetGuideQuery, GuideResponse>
 {
-    private readonly IGuideRepository _guides;
+    private readonly IGuideReader _guides;
     private readonly GuideAuthorizationService _authorization;
     private readonly GuideReadComposer _composer;
 
     public GetGuideQueryHandler(
-        IGuideRepository guides,
+        IGuideReader guides,
         GuideAuthorizationService authorization,
         GuideReadComposer composer)
     {

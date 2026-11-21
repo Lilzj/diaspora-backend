@@ -6,14 +6,15 @@ using Diaspora.SharedKernel.Pagination;
 namespace Diaspora.Modules.Conversations.Domain.Conversations;
 
 /// <summary>
-/// How conversations are loaded and stored.
+/// How the module loads and stores a conversation: by id, for a participant, by the thing it is
+/// about, and the share that adds one.
 /// <para>
-/// <b>Every read that returns conversations takes a viewer.</b> There is no "get by id" that does
-/// not — a repository method that could load a conversation without saying who is asking is a method
-/// somebody eventually calls from a query handler, and the leak is silent because the row comes back
-/// looking perfectly ordinary. <see cref="GetForParticipantAsync"/> is the only door for member
-/// traffic; <see cref="GetAsync"/> exists for moderation and for the integration consumers, and
-/// its callers are counted by an architecture test.
+/// <b>Every read here that returns conversations takes a viewer.</b> There is no "get by id" that
+/// does not — a repository method that could load a conversation without saying who is asking is a
+/// method somebody eventually calls from a query handler, and the leak is silent because the row
+/// comes back looking perfectly ordinary. <see cref="GetForParticipantAsync"/> is the only door for
+/// member traffic; <see cref="GetAsync"/> exists for moderation and for the integration consumers,
+/// and its callers are counted by an architecture test.
 /// </para>
 /// </summary>
 public interface IConversationRepository
@@ -50,22 +51,6 @@ public interface IConversationRepository
         UserId recipientUserId,
         CancellationToken cancellationToken = default);
 
-    /// <summary>One page of a member's inbox, newest activity first, pinned first.</summary>
-    Task<CursorPagedResult<Conversation>> ListForUserAsync(
-        ConversationQueryFilter filter, CancellationToken cancellationToken = default);
-
-    /// <summary>How many conversations this member currently has pinned. Enforces the limit.</summary>
-    Task<int> CountPinnedAsync(UserId userId, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// The member's total unread, excluding muted and archived conversations.
-    /// <para>
-    /// One indexed aggregate rather than a count per row, because it is read on every inbox render
-    /// and on every realtime badge update.
-    /// </para>
-    /// </summary>
-    Task<int> CountUnreadAsync(UserId userId, DateTimeOffset now, CancellationToken cancellationToken = default);
-
     /// <summary>
     /// Every open conversation naming this external entity, whoever is in them.
     /// <para>
@@ -81,6 +66,43 @@ public interface IConversationRepository
     Task<bool> ShareConversationAsync(
         UserId first, UserId second, CancellationToken cancellationToken = default);
 
+    void Add(Conversation conversation);
+
+    void Update(Conversation conversation);
+}
+
+/// <summary>
+/// The member's own conversation list and the two counts beside it.
+/// </summary>
+public interface IConversationInbox
+{
+    /// <summary>One page of a member's inbox, newest activity first, pinned first.</summary>
+    Task<CursorPagedResult<Conversation>> ListForUserAsync(
+        ConversationQueryFilter filter, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The member's total unread, excluding muted and archived conversations.
+    /// <para>
+    /// One indexed aggregate rather than a count per row, because it is read on every inbox render
+    /// and on every realtime badge update.
+    /// </para>
+    /// </summary>
+    Task<int> CountUnreadAsync(UserId userId, DateTimeOffset now, CancellationToken cancellationToken = default);
+
+    /// <summary>How many conversations this member currently has pinned. Enforces the limit.</summary>
+    Task<int> CountPinnedAsync(UserId userId, CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// What the nudge sweep asks: quiet conversations, unread backlogs, and the set-based write that
+/// records a nudge as reported.
+/// <para>
+/// A sweep on its own schedule, changing when the nudge policy changes rather than when a
+/// conversation does.
+/// </para>
+/// </summary>
+public interface IConversationNudges
+{
     /// <summary>
     /// Active conversations whose last message is older than a cutoff — B23.x Wave 12.
     /// <para>
@@ -131,10 +153,6 @@ public interface IConversationRepository
         IReadOnlyList<Guid> memberUserIds,
         DateTimeOffset at,
         CancellationToken cancellationToken = default);
-
-    void Add(Conversation conversation);
-
-    void Update(Conversation conversation);
 }
 
 /// <summary>

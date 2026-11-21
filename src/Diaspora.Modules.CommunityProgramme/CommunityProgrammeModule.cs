@@ -87,7 +87,10 @@ public sealed class CommunityProgrammeModule : IPlatformModule
         services.AddScoped<ICommunityMembershipStatistics, CommunityMembershipStatistics>();
 
         // 21 Oct 2026. Initiatives, their participants and their progress updates.
-        services.AddScoped<ICommunityInitiativeRepository, CommunityInitiativeRepository>();
+        services.AddScoped<CommunityInitiativeRepository>();
+        services.AddScoped<ICommunityInitiativeRepository>(services => services.GetRequiredService<CommunityInitiativeRepository>());
+        services.AddScoped<ICommunityInitiativeParticipants>(services => services.GetRequiredService<CommunityInitiativeRepository>());
+        services.AddScoped<ICommunityInitiativeUpdates>(services => services.GetRequiredService<CommunityInitiativeRepository>());
 
         // Privacy. Preferences and participations leave with the member; notices, updates and
         // initiatives stay with the community without them in it. Older data sets are reported as
@@ -98,11 +101,17 @@ public sealed class CommunityProgrammeModule : IPlatformModule
             Infrastructure.Privacy.CommunityProgrammeDataExportProvider>();
 
         services.AddScoped<IMembershipProgrammeRepository, MembershipProgrammeRepository>();
-        services.AddScoped<IProgrammeMembershipRepository, ProgrammeMembershipRepository>();
+        services.AddScoped<ProgrammeMembershipRepository>();
+        services.AddScoped<IProgrammeMembershipRepository>(services => services.GetRequiredService<ProgrammeMembershipRepository>());
+        services.AddScoped<IProgrammeMembershipRenewals>(services => services.GetRequiredService<ProgrammeMembershipRepository>());
+        services.AddScoped<IProgrammeMembershipReports>(services => services.GetRequiredService<ProgrammeMembershipRepository>());
         services.AddScoped<IVolunteerOpportunityRepository, VolunteerOpportunityRepository>();
         services.AddScoped<IVolunteerApplicationRepository, VolunteerApplicationRepository>();
         services.AddScoped<IVolunteerAssignmentRepository, VolunteerAssignmentRepository>();
-        services.AddScoped<ICommunityPollRepository, CommunityPollRepository>();
+        services.AddScoped<CommunityPollRepository>();
+        services.AddScoped<ICommunityPollRepository>(services => services.GetRequiredService<CommunityPollRepository>());
+        services.AddScoped<ICommunityPollResponses>(services => services.GetRequiredService<CommunityPollRepository>());
+        services.AddScoped<ICommunityPollResults>(services => services.GetRequiredService<CommunityPollRepository>());
         services.AddScoped<ICommunityAnnouncementRepository, CommunityAnnouncementRepository>();
     }
 

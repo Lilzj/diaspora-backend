@@ -102,7 +102,7 @@ public sealed class SaveMembershipProgrammeCommandHandler
     : ICommandHandler<SaveMembershipProgrammeCommand, MembershipProgrammeResponse>
 {
     private readonly IMembershipProgrammeRepository _programmes;
-    private readonly IProgrammeMembershipRepository _memberships;
+    private readonly IProgrammeMembershipReports _memberships;
     private readonly CommunityProgrammeAccessService _access;
     private readonly MembershipEligibilityEvaluator _eligibility;
     private readonly ICurrencies _currencies;
@@ -113,7 +113,7 @@ public sealed class SaveMembershipProgrammeCommandHandler
 
     public SaveMembershipProgrammeCommandHandler(
         IMembershipProgrammeRepository programmes,
-        IProgrammeMembershipRepository memberships,
+        IProgrammeMembershipReports memberships,
         CommunityProgrammeAccessService access,
         MembershipEligibilityEvaluator eligibility,
         ICurrencies currencies,

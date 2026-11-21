@@ -34,7 +34,7 @@ public sealed class ScheduleInterviewCommandHandler
 {
     private readonly IInterviewRepository _interviews;
     private readonly IJobApplicationRepository _applications;
-    private readonly IJobPostingRepository _postings;
+    private readonly IJobPostingReader _postings;
     private readonly IUnitOfWork _unitOfWork;
     private readonly JobAuthorizationService _authorization;
     private readonly IGuidGenerator _guids;
@@ -43,7 +43,7 @@ public sealed class ScheduleInterviewCommandHandler
     public ScheduleInterviewCommandHandler(
         IInterviewRepository interviews,
         IJobApplicationRepository applications,
-        IJobPostingRepository postings,
+        IJobPostingReader postings,
         IUnitOfWork unitOfWork,
         JobAuthorizationService authorization,
         IGuidGenerator guids,

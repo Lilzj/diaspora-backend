@@ -16,7 +16,7 @@ namespace Diaspora.Modules.Community.Infrastructure.Feeds;
 /// </summary>
 public sealed class ProfileFeedProvider : PostFeedProvider
 {
-    public ProfileFeedProvider(ICommunityPostRepository posts) : base(posts) { }
+    public ProfileFeedProvider(ICommunityPostSearch posts) : base(posts) { }
 
     public override string FeedKey => FeedKeys.Profile;
 

@@ -12,10 +12,11 @@ public sealed class ListingArchivedConsumer : SubjectRetirementConsumer<ListingA
 {
     public ListingArchivedConsumer(
         IPlacementRepository placements,
+        IPlacementFacts placementFacts,
         IUnitOfWork unitOfWork,
         IClock clock,
         ILogger<ListingArchivedConsumer> logger)
-        : base(placements, unitOfWork, clock, logger)
+        : base(placements, placementFacts, unitOfWork, clock, logger)
     {
     }
 

@@ -15,7 +15,7 @@ namespace Diaspora.Modules.Financial.Persistence.Repositories;
 /// sweep or an operator surface.
 /// </para>
 /// </summary>
-public sealed class PlacementRepository : IPlacementRepository
+public sealed class PlacementRepository : IPlacementRepository, IPlacementSchedule, IPlacementFacts
 {
     private readonly DiasporaDbContext _dbContext;
 

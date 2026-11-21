@@ -27,7 +27,7 @@ namespace Diaspora.Modules.Guides.Application.Discovery;
 public sealed class ListGuidesByCategoryQueryHandler
     : IQueryHandler<ListGuidesByCategoryQuery, CursorPagedResult<GuideCardResponse>>
 {
-    private readonly IGuideRepository _guides;
+    private readonly IGuideSearch _guides;
     private readonly GuideCategoryResolver _categories;
     private readonly GuideAuthorizationService _authorization;
     private readonly GuideRankingStrategyRegistry _rankings;
@@ -35,7 +35,7 @@ public sealed class ListGuidesByCategoryQueryHandler
     private readonly GuideAuthorNames _authorNames;
 
     public ListGuidesByCategoryQueryHandler(
-        IGuideRepository guides,
+        IGuideSearch guides,
         GuideCategoryResolver categories,
         GuideAuthorizationService authorization,
         GuideRankingStrategyRegistry rankings,

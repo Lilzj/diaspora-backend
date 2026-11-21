@@ -566,7 +566,7 @@ public sealed class AnalyticsContentDimensionRepository : IAnalyticsContentDimen
 }
 
 /// <summary>Reads and writes the daily rollups.</summary>
-public sealed class AnalyticsRollupRepository : IAnalyticsRollupRepository
+public sealed class AnalyticsRollupRepository : IAnalyticsRollupRepository, IAnalyticsRollupReports, IAnalyticsRollupHousekeeping
 {
     private readonly DiasporaDbContext _dbContext;
 

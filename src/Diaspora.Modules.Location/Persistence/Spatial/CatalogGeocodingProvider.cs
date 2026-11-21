@@ -34,13 +34,13 @@ public sealed class CatalogGeocodingProvider : IGeocodingProvider
     /// </summary>
     public const double MaxReverseGeocodeRadiusKm = 150d;
 
-    private readonly IAdministrativeAreaRepository _areas;
+    private readonly IAdministrativeAreaSearch _areas;
     private readonly ICountryRepository _countries;
     private readonly IGeospatialQueryProvider _spatial;
     private readonly IGeoDistanceCalculator _calculator;
 
     public CatalogGeocodingProvider(
-        IAdministrativeAreaRepository areas,
+        IAdministrativeAreaSearch areas,
         ICountryRepository countries,
         IGeospatialQueryProvider spatial,
         IGeoDistanceCalculator calculator)

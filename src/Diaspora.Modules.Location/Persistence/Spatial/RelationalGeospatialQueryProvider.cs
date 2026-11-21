@@ -35,11 +35,11 @@ public sealed class RelationalGeospatialQueryProvider : IGeospatialQueryProvider
     /// <summary>The radii tried in turn by <see cref="FindNearestAsync"/>, in kilometres.</summary>
     private static readonly double[] NearestProbeRadii = [2d, 10d, 50d, 250d, 1000d];
 
-    private readonly IAdministrativeAreaRepository _areas;
+    private readonly IAdministrativeAreaGeometry _areas;
     private readonly IGeoDistanceCalculator _calculator;
 
     public RelationalGeospatialQueryProvider(
-        IAdministrativeAreaRepository areas, IGeoDistanceCalculator calculator)
+        IAdministrativeAreaGeometry areas, IGeoDistanceCalculator calculator)
     {
         _areas = areas;
         _calculator = calculator;

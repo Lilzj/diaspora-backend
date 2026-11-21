@@ -6,10 +6,16 @@ using Diaspora.SharedKernel.Pagination;
 namespace Diaspora.Modules.Notifications.Domain.Notifications;
 
 /// <summary>
-/// The notification aggregate's persistence port.
+/// The notification aggregate's persistence port, and the two batches the delivery sweep mutates:
+/// those due to send and those that have expired.
 /// <para>
 /// Declared in the domain and implemented in <c>Persistence</c>, so the aggregate's collaborators
-/// are expressed in the domain's own language and no handler ever holds a <c>DbContext</c>.
+/// are expressed in the domain's own language and no handler ever holds a <c>DbContext</c>. That
+/// holds for all three roles here.
+/// </para>
+/// <para>
+/// Those two return tracked aggregates whose caller moves them through their delivery states, so
+/// they belong with the writes rather than on a role that reports.
 /// </para>
 /// </summary>
 public interface INotificationRepository
@@ -26,9 +32,6 @@ public interface INotificationRepository
     Task<Notification?> GetIncludingDeletedAsync(
         NotificationId id, CancellationToken cancellationToken = default);
 
-    Task<CursorPagedResult<Notification>> SearchAsync(
-        NotificationQueryFilter filter, CancellationToken cancellationToken = default);
-
     /// <summary>
     /// Whether an equivalent message already reached this member inside the window.
     /// <para>
@@ -43,6 +46,25 @@ public interface INotificationRepository
         DateTimeOffset since,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Deliveries the dispatcher should act on now, across every member.</summary>
+    Task<IReadOnlyList<Notification>> ListDueForDeliveryAsync(
+        DateTimeOffset asOf, int limit, CancellationToken cancellationToken = default);
+
+    /// <summary>Messages the retention sweep should age out.</summary>
+    Task<IReadOnlyList<Notification>> ListExpiredAsync(
+        DateTimeOffset asOf, int limit, CancellationToken cancellationToken = default);
+
+    Task AddAsync(Notification notification, CancellationToken cancellationToken = default);
+
+    void Update(Notification notification);
+}
+
+/// <summary>
+/// What the channel fan-out asks: the digest batch, notifications in a channel state, and the
+/// reconciliation count that catches a channel drifting from the record.
+/// </summary>
+public interface INotificationChannels
+{
     /// <summary>Everything a digest window holds, oldest first, already limited.</summary>
     Task<IReadOnlyList<Notification>> ListForDigestAsync(
         UserId recipientUserId,
@@ -52,26 +74,6 @@ public interface INotificationRepository
         int limit,
         CancellationToken cancellationToken = default);
 
-    /// <summary>Deliveries the dispatcher should act on now, across every member.</summary>
-    Task<IReadOnlyList<Notification>> ListDueForDeliveryAsync(
-        DateTimeOffset asOf, int limit, CancellationToken cancellationToken = default);
-
-    /// <summary>Messages the retention sweep should age out.</summary>
-    Task<IReadOnlyList<Notification>> ListExpiredAsync(
-        DateTimeOffset asOf, int limit, CancellationToken cancellationToken = default);
-
-    /// <summary>Everything still unread, for "mark all as read". Loaded in batches by the caller.</summary>
-    Task<IReadOnlyList<Notification>> ListUnreadAsync(
-        UserId recipientUserId, int limit, CancellationToken cancellationToken = default);
-
-    /// <summary>The measured counts the reconciliation sweep compares the counters against.</summary>
-    Task<InboxCountSnapshot> CountForReconciliationAsync(
-        UserId recipientUserId, CancellationToken cancellationToken = default);
-
-    Task<int> CountPinnedAsync(UserId recipientUserId, CancellationToken cancellationToken = default);
-
-    Task<int> CountUnreadAsync(UserId recipientUserId, CancellationToken cancellationToken = default);
-
     Task<IReadOnlyList<Notification>> ListByChannelStatusAsync(
         UserId recipientUserId,
         NotificationChannelKind channel,
@@ -79,7 +81,24 @@ public interface INotificationRepository
         int limit,
         CancellationToken cancellationToken = default);
 
-    Task AddAsync(Notification notification, CancellationToken cancellationToken = default);
+    /// <summary>The measured counts the reconciliation sweep compares the counters against.</summary>
+    Task<InboxCountSnapshot> CountForReconciliationAsync(
+        UserId recipientUserId, CancellationToken cancellationToken = default);
+}
 
-    void Update(Notification notification);
+/// <summary>
+/// The member's own inbox: the page, the unread list, and the two counts a badge shows.
+/// </summary>
+public interface INotificationInbox
+{
+    Task<CursorPagedResult<Notification>> SearchAsync(
+        NotificationQueryFilter filter, CancellationToken cancellationToken = default);
+
+    /// <summary>Everything still unread, for "mark all as read". Loaded in batches by the caller.</summary>
+    Task<IReadOnlyList<Notification>> ListUnreadAsync(
+        UserId recipientUserId, int limit, CancellationToken cancellationToken = default);
+
+    Task<int> CountUnreadAsync(UserId recipientUserId, CancellationToken cancellationToken = default);
+
+    Task<int> CountPinnedAsync(UserId recipientUserId, CancellationToken cancellationToken = default);
 }

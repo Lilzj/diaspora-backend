@@ -23,12 +23,12 @@ namespace Diaspora.Modules.Guides.Application.Engagement;
 /// </summary>
 public sealed class SetGuideBookmarkCommandHandler : ICommandHandler<SetGuideBookmarkCommand>
 {
-    private readonly IGuideRepository _guides;
+    private readonly IGuideReader _guides;
     private readonly GuideBookmarkService _bookmarks;
     private readonly GuideAuthorizationService _authorization;
 
     public SetGuideBookmarkCommandHandler(
-        IGuideRepository guides,
+        IGuideReader guides,
         GuideBookmarkService bookmarks,
         GuideAuthorizationService authorization)
     {

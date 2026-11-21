@@ -124,7 +124,7 @@ public sealed class CommunityProgrammeReconciliationSweep : BackgroundService
         var clock = services.GetRequiredService<IClock>();
         var unitOfWork = services.GetRequiredService<IUnitOfWork>();
         var programmes = services.GetRequiredService<IMembershipProgrammeRepository>();
-        var memberships = services.GetRequiredService<IProgrammeMembershipRepository>();
+        var memberships = services.GetRequiredService<IProgrammeMembershipReports>();
 
         var now = clock.UtcNow;
         var batch = _options.Value.SweepBatchSize;

@@ -17,12 +17,12 @@ namespace Diaspora.Modules.Jobs.Application.Employers;
 public sealed class GetEmployerQueryHandler : IQueryHandler<GetEmployerQuery, EmployerResponse>
 {
     private readonly IEmployerProfileRepository _employers;
-    private readonly IJobPostingRepository _postings;
+    private readonly IJobPostingSearch _postings;
     private readonly JobAuthorizationService _authorization;
 
     public GetEmployerQueryHandler(
         IEmployerProfileRepository employers,
-        IJobPostingRepository postings,
+        IJobPostingSearch postings,
         JobAuthorizationService authorization)
     {
         _employers = employers;

@@ -55,7 +55,7 @@ public sealed class CreatorRecommendationProvider : ICreatorRecommendationProvid
     private readonly ICreatorChallengeEnrollmentRepository _enrollments;
     private readonly ICommunityGrantRepository _grants;
     private readonly IGrantApplicationRepository _applications;
-    private readonly IAcademyRepository _academy;
+    private readonly IAcademyCatalogue _academy;
     private readonly ICreatorLearningProgressRepository _learning;
     private readonly ICreatorVerificationRepository _verifications;
     private readonly CreatorVerificationRequirements _verificationRequirements;
@@ -72,7 +72,7 @@ public sealed class CreatorRecommendationProvider : ICreatorRecommendationProvid
         ICreatorChallengeEnrollmentRepository enrollments,
         ICommunityGrantRepository grants,
         IGrantApplicationRepository applications,
-        IAcademyRepository academy,
+        IAcademyCatalogue academy,
         ICreatorLearningProgressRepository learning,
         ICreatorVerificationRepository verifications,
         CreatorVerificationRequirements verificationRequirements,

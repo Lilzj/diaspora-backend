@@ -31,7 +31,7 @@ public sealed class GetEmployerDashboardQueryHandler
 {
     private const int RecentJobCount = 5;
 
-    private readonly IJobPostingRepository _postings;
+    private readonly IJobPostingSearch _postings;
     private readonly IJobApplicationSearch _applications;
     private readonly IInterviewRepository _interviews;
     private readonly IJobOfferRepository _offers;
@@ -40,7 +40,7 @@ public sealed class GetEmployerDashboardQueryHandler
     private readonly IClock _clock;
 
     public GetEmployerDashboardQueryHandler(
-        IJobPostingRepository postings,
+        IJobPostingSearch postings,
         IJobApplicationSearch applications,
         IInterviewRepository interviews,
         IJobOfferRepository offers,

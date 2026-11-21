@@ -28,9 +28,9 @@ namespace Diaspora.Modules.Guides.Infrastructure.Community;
 /// </summary>
 public sealed class GuideContentSource : ICommunityContentSource
 {
-    private readonly IGuideRepository _guides;
+    private readonly IGuideReader _guides;
 
-    public GuideContentSource(IGuideRepository guides) => _guides = guides;
+    public GuideContentSource(IGuideReader guides) => _guides = guides;
 
     public CommunityContentType ContentType => CommunityContentType.Guide;
 

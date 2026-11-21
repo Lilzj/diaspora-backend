@@ -37,9 +37,9 @@ public sealed record ListAcademySectionsQuery : IQuery<IReadOnlyList<AcademySect
 public sealed class ListAcademySectionsQueryHandler
     : IQueryHandler<ListAcademySectionsQuery, IReadOnlyList<AcademySectionResponse>>
 {
-    private readonly IAcademyRepository _academy;
+    private readonly IAcademyCatalogue _academy;
 
-    public ListAcademySectionsQueryHandler(IAcademyRepository academy) => _academy = academy;
+    public ListAcademySectionsQueryHandler(IAcademyCatalogue academy) => _academy = academy;
 
     public async Task<Result<IReadOnlyList<AcademySectionResponse>>> Handle(
         ListAcademySectionsQuery query, CancellationToken cancellationToken)
@@ -81,12 +81,12 @@ public sealed class ListAcademyCoursesQueryHandler
     : IQueryHandler<ListAcademyCoursesQuery, IReadOnlyList<CreatorCourseResponse>>
 {
     private readonly CreatorContext _context;
-    private readonly IAcademyRepository _academy;
+    private readonly IAcademyCatalogue _academy;
     private readonly ICreatorLearningProgressRepository _progress;
 
     public ListAcademyCoursesQueryHandler(
         CreatorContext context,
-        IAcademyRepository academy,
+        IAcademyCatalogue academy,
         ICreatorLearningProgressRepository progress)
     {
         _context = context;
@@ -152,12 +152,12 @@ public sealed class ListCourseLessonsQueryHandler
     : IQueryHandler<ListCourseLessonsQuery, IReadOnlyList<CreatorLessonResponse>>
 {
     private readonly CreatorContext _context;
-    private readonly IAcademyRepository _academy;
+    private readonly IAcademyCatalogue _academy;
     private readonly ICreatorLearningProgressRepository _progress;
 
     public ListCourseLessonsQueryHandler(
         CreatorContext context,
-        IAcademyRepository academy,
+        IAcademyCatalogue academy,
         ICreatorLearningProgressRepository progress)
     {
         _context = context;
@@ -227,12 +227,12 @@ public sealed class GetAcademyCourseQueryHandler
     : IQueryHandler<GetAcademyCourseQuery, CreatorCourseResponse>
 {
     private readonly CreatorContext _context;
-    private readonly IAcademyRepository _academy;
+    private readonly IAcademyCatalogue _academy;
     private readonly ICreatorLearningProgressRepository _progress;
 
     public GetAcademyCourseQueryHandler(
         CreatorContext context,
-        IAcademyRepository academy,
+        IAcademyCatalogue academy,
         ICreatorLearningProgressRepository progress)
     {
         _context = context;
@@ -294,12 +294,12 @@ public sealed class GetAcademyLessonQueryHandler
     : IQueryHandler<GetAcademyLessonQuery, CreatorLessonResponse>
 {
     private readonly CreatorContext _context;
-    private readonly IAcademyRepository _academy;
+    private readonly IAcademyCatalogue _academy;
     private readonly ICreatorLearningProgressRepository _progress;
 
     public GetAcademyLessonQueryHandler(
         CreatorContext context,
-        IAcademyRepository academy,
+        IAcademyCatalogue academy,
         ICreatorLearningProgressRepository progress)
     {
         _context = context;
@@ -385,14 +385,14 @@ public sealed class CompleteLessonCommandHandler
     : ICommandHandler<CompleteLessonCommand, CreatorCourseProgressResponse>
 {
     private readonly CreatorContext _context;
-    private readonly IAcademyRepository _academy;
+    private readonly IAcademyCatalogue _academy;
     private readonly CourseCompletionService _completion;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
 
     public CompleteLessonCommandHandler(
         CreatorContext context,
-        IAcademyRepository academy,
+        IAcademyCatalogue academy,
         CourseCompletionService completion,
         IUnitOfWork unitOfWork,
         IClock clock)
@@ -494,14 +494,14 @@ public sealed class SubmitQuizCommandHandler
     : ICommandHandler<SubmitQuizCommand, LessonQuizResultResponse>
 {
     private readonly CreatorContext _context;
-    private readonly IAcademyRepository _academy;
+    private readonly IAcademyCatalogue _academy;
     private readonly CourseCompletionService _completion;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
 
     public SubmitQuizCommandHandler(
         CreatorContext context,
-        IAcademyRepository academy,
+        IAcademyCatalogue academy,
         CourseCompletionService completion,
         IUnitOfWork unitOfWork,
         IClock clock)
@@ -609,7 +609,7 @@ public sealed class SaveCourseCommandHandler
     : ICommandHandler<SaveCourseCommand, CreatorCourseResponse>
 {
     private readonly CreatorContext _context;
-    private readonly IAcademyRepository _academy;
+    private readonly IAcademyCatalogue _academy;
     private readonly CourseCompletionService _completion;
     private readonly ICreatorLearningProgressRepository _progress;
     private readonly IUnitOfWork _unitOfWork;
@@ -617,7 +617,7 @@ public sealed class SaveCourseCommandHandler
 
     public SaveCourseCommandHandler(
         CreatorContext context,
-        IAcademyRepository academy,
+        IAcademyCatalogue academy,
         CourseCompletionService completion,
         ICreatorLearningProgressRepository progress,
         IUnitOfWork unitOfWork,
@@ -722,14 +722,14 @@ public sealed class ListMyCertificatesQueryHandler
 /// </summary>
 public sealed class CourseCompletionService
 {
-    private readonly IAcademyRepository _academy;
+    private readonly IAcademyCatalogue _academy;
     private readonly ICreatorLearningProgressRepository _progress;
     private readonly ICreatorCertificateRepository _certificates;
     private readonly IGuidGenerator _guids;
     private readonly IClock _clock;
 
     public CourseCompletionService(
-        IAcademyRepository academy,
+        IAcademyCatalogue academy,
         ICreatorLearningProgressRepository progress,
         ICreatorCertificateRepository certificates,
         IGuidGenerator guids,

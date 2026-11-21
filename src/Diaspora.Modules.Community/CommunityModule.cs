@@ -94,7 +94,10 @@ public sealed class CommunityModule : IPlatformModule
 
     private static void RegisterRepositories(IServiceCollection services)
     {
-        services.AddScoped<ICommunityPostRepository, CommunityPostRepository>();
+        services.AddScoped<CommunityPostRepository>();
+        services.AddScoped<ICommunityPostRepository>(services => services.GetRequiredService<CommunityPostRepository>());
+        services.AddScoped<ICommunityPostReader>(services => services.GetRequiredService<CommunityPostRepository>());
+        services.AddScoped<ICommunityPostSearch>(services => services.GetRequiredService<CommunityPostRepository>());
         services.AddScoped<ICommentRepository, CommentRepository>();
         services.AddScoped<IReactionRepository, ReactionRepository>();
         services.AddScoped<IReactionDefinitionRepository, ReactionDefinitionRepository>();

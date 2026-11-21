@@ -12,10 +12,11 @@ public sealed class EventCancelledConsumer : SubjectRetirementConsumer<EventCanc
 {
     public EventCancelledConsumer(
         IPlacementRepository placements,
+        IPlacementFacts placementFacts,
         IUnitOfWork unitOfWork,
         IClock clock,
         ILogger<EventCancelledConsumer> logger)
-        : base(placements, unitOfWork, clock, logger)
+        : base(placements, placementFacts, unitOfWork, clock, logger)
     {
     }
 

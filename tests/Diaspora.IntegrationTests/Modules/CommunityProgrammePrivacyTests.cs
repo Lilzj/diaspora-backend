@@ -224,12 +224,13 @@ public sealed class CommunityProgrammePrivacyTests : PooledIdentityTestBase
             .EnsureSuccessStatusCode();
 
         using var scope = Factory.Services.CreateScope();
-        var real = scope.ServiceProvider.GetRequiredService<ICommunityInitiativeRepository>();
+        var real = scope.ServiceProvider.GetRequiredService<ICommunityInitiativeParticipants>();
         var blind = new RaceRepository(real) { HideParticipant = true };
 
         var handler = new JoinCommunityInitiativeCommandHandler(
             scope.ServiceProvider.GetRequiredService<ICommunityRepository>(),
             scope.ServiceProvider.GetRequiredService<ICommunityMembershipRepository>(),
+            scope.ServiceProvider.GetRequiredService<ICommunityInitiativeRepository>(),
             blind,
             Access(scope, memberId),
             scope.ServiceProvider.GetRequiredService<IMemberProfileService>(),
@@ -268,7 +269,7 @@ public sealed class CommunityProgrammePrivacyTests : PooledIdentityTestBase
         (await member.PostAsync(path, null)).EnsureSuccessStatusCode();
 
         using var scope = Factory.Services.CreateScope();
-        var real = scope.ServiceProvider.GetRequiredService<ICommunityInitiativeRepository>();
+        var real = scope.ServiceProvider.GetRequiredService<ICommunityInitiativeParticipants>();
 
         // What the loser loaded before the winner deleted it.
         var stale = await real.FindParticipantAsync(
@@ -281,6 +282,7 @@ public sealed class CommunityProgrammePrivacyTests : PooledIdentityTestBase
         var handler = new LeaveCommunityInitiativeCommandHandler(
             scope.ServiceProvider.GetRequiredService<ICommunityRepository>(),
             scope.ServiceProvider.GetRequiredService<ICommunityMembershipRepository>(),
+            scope.ServiceProvider.GetRequiredService<ICommunityInitiativeRepository>(),
             new RaceRepository(real) { Stale = stale },
             Access(scope, memberId),
             scope.ServiceProvider.GetRequiredService<IMemberProfileService>(),
@@ -463,7 +465,7 @@ public sealed class CommunityProgrammePrivacyTests : PooledIdentityTestBase
     /// row (<see cref="HideParticipant"/>), or one it loaded before the winner deleted it
     /// (<see cref="Stale"/>).
     /// </summary>
-    private sealed class RaceRepository(ICommunityInitiativeRepository inner) : ICommunityInitiativeRepository
+    private sealed class RaceRepository(ICommunityInitiativeParticipants inner) : ICommunityInitiativeParticipants
     {
         public bool HideParticipant { get; init; }
 
@@ -477,27 +479,11 @@ public sealed class CommunityProgrammePrivacyTests : PooledIdentityTestBase
                     ? Task.FromResult<CommunityInitiativeParticipant?>(Stale)
                     : inner.FindParticipantAsync(initiativeId, memberId, cancellationToken);
 
-        public Task<IReadOnlyList<CommunityInitiative>> ListAsync(
-            CommunityId communityId, CommunityInitiativeStatus? status, int limit, CancellationToken cancellationToken = default) =>
-            inner.ListAsync(communityId, status, limit, cancellationToken);
 
-        public Task<CommunityInitiative?> GetAsync(
-            CommunityId communityId, CommunityInitiativeId id, CancellationToken cancellationToken = default) =>
-            inner.GetAsync(communityId, id, cancellationToken);
 
-        public void Add(CommunityInitiative initiative) => inner.Add(initiative);
 
-        public Task<IReadOnlyDictionary<Guid, int>> CountParticipantsAsync(
-            CommunityId communityId, IReadOnlyCollection<CommunityInitiativeId> initiativeIds, CancellationToken cancellationToken = default) =>
-            inner.CountParticipantsAsync(communityId, initiativeIds, cancellationToken);
 
-        public Task<IReadOnlyDictionary<Guid, int>> CountUpdatesAsync(
-            IReadOnlyCollection<CommunityInitiativeId> initiativeIds, CancellationToken cancellationToken = default) =>
-            inner.CountUpdatesAsync(initiativeIds, cancellationToken);
 
-        public Task<IReadOnlySet<Guid>> ListJoinedAsync(
-            UserId memberId, IReadOnlyCollection<CommunityInitiativeId> initiativeIds, CancellationToken cancellationToken = default) =>
-            inner.ListJoinedAsync(memberId, initiativeIds, cancellationToken);
 
         public void AddParticipant(CommunityInitiativeParticipant participant) => inner.AddParticipant(participant);
 
@@ -510,15 +496,8 @@ public sealed class CommunityProgrammePrivacyTests : PooledIdentityTestBase
             CancellationToken cancellationToken = default) =>
             inner.ListVisibleParticipantsAsync(communityId, initiativeId, includeCommunityOnly, viewer, limit, cancellationToken);
 
-        public Task<IReadOnlyList<CommunityInitiativeUpdate>> ListUpdatesAsync(
-            CommunityInitiativeId initiativeId, int limit, CancellationToken cancellationToken = default) =>
-            inner.ListUpdatesAsync(initiativeId, limit, cancellationToken);
 
-        public void AddUpdate(CommunityInitiativeUpdate update) => inner.AddUpdate(update);
 
-        public Task<IReadOnlyList<CommunityMembership>> ListMembershipsAsync(
-            CommunityId communityId, IReadOnlyCollection<UserId> memberIds, CancellationToken cancellationToken = default) =>
-            inner.ListMembershipsAsync(communityId, memberIds, cancellationToken);
     }
 
     // ── Wire shapes ─────────────────────────────────────────────────────────────────────────

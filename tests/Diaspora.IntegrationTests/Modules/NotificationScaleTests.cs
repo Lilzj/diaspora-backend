@@ -93,7 +93,7 @@ public sealed class NotificationScaleTests : IntegrationTestBase
         await SeedAsync(recipient, NotificationCount);
 
         using var scope = Factory.Services.CreateScope();
-        var notifications = scope.ServiceProvider.GetRequiredService<INotificationRepository>();
+        var notifications = scope.ServiceProvider.GetRequiredService<INotificationInbox>();
 
         var seen = new HashSet<Guid>();
         var duplicates = 0;
@@ -148,7 +148,7 @@ public sealed class NotificationScaleTests : IntegrationTestBase
         await SeedAsync(recipient, 400);
 
         using var scope = Factory.Services.CreateScope();
-        var notifications = scope.ServiceProvider.GetRequiredService<INotificationRepository>();
+        var notifications = scope.ServiceProvider.GetRequiredService<INotificationChannels>();
         var inboxes = scope.ServiceProvider.GetRequiredService<IUserInboxRepository>();
 
         var stopwatch = Stopwatch.StartNew();
@@ -201,7 +201,7 @@ public sealed class NotificationScaleTests : IntegrationTestBase
         await SeedAsync(recipient, NotificationCount);
 
         using var scope = Factory.Services.CreateScope();
-        var notifications = scope.ServiceProvider.GetRequiredService<INotificationRepository>();
+        var notifications = scope.ServiceProvider.GetRequiredService<INotificationInbox>();
 
         var stopwatch = Stopwatch.StartNew();
 

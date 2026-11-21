@@ -28,9 +28,9 @@ public sealed class GuideNearbyResourceProvider : INearbyResourceProvider
     /// <summary>One of the resource-type keys Location froze. Not a new one.</summary>
     public const string Key = "guides";
 
-    private readonly IGuideRepository _guides;
+    private readonly IGuideSearch _guides;
 
-    public GuideNearbyResourceProvider(IGuideRepository guides) => _guides = guides;
+    public GuideNearbyResourceProvider(IGuideSearch guides) => _guides = guides;
 
     public string ResourceType => Key;
 

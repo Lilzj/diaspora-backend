@@ -28,12 +28,12 @@ namespace Diaspora.Modules.Guides.Application.Suggestions;
 public sealed class ListGuideSuggestionsQueryHandler
     : IQueryHandler<ListGuideSuggestionsQuery, CursorPagedResult<GuideSuggestionResponse>>
 {
-    private readonly IGuideRepository _guides;
+    private readonly IGuideReader _guides;
     private readonly IGuideSuggestionRepository _suggestions;
     private readonly GuideAuthorizationService _authorization;
 
     public ListGuideSuggestionsQueryHandler(
-        IGuideRepository guides,
+        IGuideReader guides,
         IGuideSuggestionRepository suggestions,
         GuideAuthorizationService authorization)
     {

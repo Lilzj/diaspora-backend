@@ -31,14 +31,14 @@ namespace Diaspora.Modules.Guides.Application.Authoring;
 /// </summary>
 public sealed class PreviewGuideQueryHandler : IQueryHandler<PreviewGuideQuery, GuideResponse>
 {
-    private readonly IGuideRepository _guides;
+    private readonly IGuideReader _guides;
     private readonly IGuideAuthorStandingRepository _standings;
     private readonly GuideAuthorizationService _authorization;
     private readonly GuideProviderResolver _providers;
     private readonly GuideAuthorNames _authorNames;
 
     public PreviewGuideQueryHandler(
-        IGuideRepository guides,
+        IGuideReader guides,
         IGuideAuthorStandingRepository standings,
         GuideAuthorizationService authorization,
         GuideProviderResolver providers,

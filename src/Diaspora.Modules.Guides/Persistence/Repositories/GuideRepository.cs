@@ -39,7 +39,7 @@ namespace Diaspora.Modules.Guides.Persistence.Repositories;
 /// filter owns that predicate.
 /// </para>
 /// </summary>
-public sealed class GuideRepository : IGuideRepository
+public sealed class GuideRepository : IGuideRepository, IGuideReader, IGuideSearch
 {
     private readonly DiasporaDbContext _dbContext;
 

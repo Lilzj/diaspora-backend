@@ -37,7 +37,7 @@ namespace Diaspora.Modules.Jobs.Persistence.Repositories;
 /// owns that predicate.
 /// </para>
 /// </summary>
-public sealed class JobPostingRepository : IJobPostingRepository
+public sealed class JobPostingRepository : IJobPostingRepository, IJobPostingReader, IJobPostingSearch
 {
     private readonly DiasporaDbContext _dbContext;
 

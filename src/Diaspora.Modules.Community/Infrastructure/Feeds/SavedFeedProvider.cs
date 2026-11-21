@@ -29,9 +29,9 @@ namespace Diaspora.Modules.Community.Infrastructure.Feeds;
 public sealed class SavedFeedProvider : IFeedProvider
 {
     private readonly IBookmarkRepository _bookmarks;
-    private readonly ICommunityPostRepository _posts;
+    private readonly ICommunityPostReader _posts;
 
-    public SavedFeedProvider(IBookmarkRepository bookmarks, ICommunityPostRepository posts)
+    public SavedFeedProvider(IBookmarkRepository bookmarks, ICommunityPostReader posts)
     {
         _bookmarks = bookmarks;
         _posts = posts;

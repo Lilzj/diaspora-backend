@@ -23,10 +23,10 @@ namespace Diaspora.Modules.Community.Application.Services;
 public sealed class ContentReferenceResolver
 {
     private readonly CommunityContentSourceRegistry _sources;
-    private readonly ICommunityPostRepository _posts;
+    private readonly ICommunityPostReader _posts;
 
     public ContentReferenceResolver(
-        CommunityContentSourceRegistry sources, ICommunityPostRepository posts)
+        CommunityContentSourceRegistry sources, ICommunityPostReader posts)
     {
         _sources = sources;
         _posts = posts;

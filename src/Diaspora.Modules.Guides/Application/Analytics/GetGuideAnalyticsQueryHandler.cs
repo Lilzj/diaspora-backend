@@ -31,12 +31,12 @@ namespace Diaspora.Modules.Guides.Application.Analytics;
 public sealed class GetGuideAnalyticsQueryHandler
     : IQueryHandler<GetGuideAnalyticsQuery, GuideAnalyticsResponse>
 {
-    private readonly IGuideRepository _guides;
+    private readonly IGuideReader _guides;
     private readonly IGuideAnalyticsRepository _analytics;
     private readonly GuideAuthorizationService _authorization;
 
     public GetGuideAnalyticsQueryHandler(
-        IGuideRepository guides,
+        IGuideReader guides,
         IGuideAnalyticsRepository analytics,
         GuideAuthorizationService authorization)
     {

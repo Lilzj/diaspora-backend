@@ -25,7 +25,7 @@ namespace Diaspora.Modules.Guides.Application.Suggestions;
 public sealed class SubmitGuideSuggestionCommandHandler
     : ICommandHandler<SubmitGuideSuggestionCommand, GuideSuggestionResponse>
 {
-    private readonly IGuideRepository _guides;
+    private readonly IGuideReader _guides;
     private readonly IGuideSuggestionRepository _suggestions;
     private readonly IUnitOfWork _unitOfWork;
     private readonly GuideAuthorizationService _authorization;
@@ -33,7 +33,7 @@ public sealed class SubmitGuideSuggestionCommandHandler
     private readonly IClock _clock;
 
     public SubmitGuideSuggestionCommandHandler(
-        IGuideRepository guides,
+        IGuideReader guides,
         IGuideSuggestionRepository suggestions,
         IUnitOfWork unitOfWork,
         GuideAuthorizationService authorization,

@@ -417,6 +417,7 @@ public sealed class JoinCommunityInitiativeCommandHandler
     private readonly ICommunityRepository _communities;
     private readonly ICommunityMembershipRepository _memberships;
     private readonly ICommunityInitiativeRepository _initiatives;
+    private readonly ICommunityInitiativeParticipants _participants;
     private readonly CommunityProgrammeAccessService _access;
     private readonly IMemberProfileService _profiles;
     private readonly IUnitOfWork _unitOfWork;
@@ -425,6 +426,7 @@ public sealed class JoinCommunityInitiativeCommandHandler
         ICommunityRepository communities,
         ICommunityMembershipRepository memberships,
         ICommunityInitiativeRepository initiatives,
+        ICommunityInitiativeParticipants participants,
         CommunityProgrammeAccessService access,
         IMemberProfileService profiles,
         IUnitOfWork unitOfWork)
@@ -432,6 +434,7 @@ public sealed class JoinCommunityInitiativeCommandHandler
         _communities = communities;
         _memberships = memberships;
         _initiatives = initiatives;
+        _participants = participants;
         _access = access;
         _profiles = profiles;
         _unitOfWork = unitOfWork;
@@ -466,7 +469,7 @@ public sealed class JoinCommunityInitiativeCommandHandler
         }
 
         // Joining twice is joining once: the answer is the same either way.
-        var existing = await _initiatives.FindParticipantAsync(initiative.Id, caller.Value, cancellationToken);
+        var existing = await _participants.FindParticipantAsync(initiative.Id, caller.Value, cancellationToken);
 
         if (existing is null)
         {
@@ -477,7 +480,7 @@ public sealed class JoinCommunityInitiativeCommandHandler
                 return Result.Failure<CommunityInitiativeResponse>(joined.Error);
             }
 
-            _initiatives.AddParticipant(joined.Value);
+            _participants.AddParticipant(joined.Value);
 
             try
             {
@@ -500,7 +503,7 @@ public sealed class JoinCommunityInitiativeCommandHandler
                 // insert. The other request's row is the member's participation, so this is a
                 // repeat join and answers as one. The refused row is let go so nothing later in
                 // this scope tries to write it again; the response below reads the stored state.
-                _initiatives.ForgetParticipant(joined.Value);
+                _participants.ForgetParticipant(joined.Value);
             }
         }
 
@@ -524,6 +527,7 @@ public sealed class LeaveCommunityInitiativeCommandHandler
     private readonly ICommunityRepository _communities;
     private readonly ICommunityMembershipRepository _memberships;
     private readonly ICommunityInitiativeRepository _initiatives;
+    private readonly ICommunityInitiativeParticipants _participants;
     private readonly CommunityProgrammeAccessService _access;
     private readonly IMemberProfileService _profiles;
     private readonly IUnitOfWork _unitOfWork;
@@ -532,6 +536,7 @@ public sealed class LeaveCommunityInitiativeCommandHandler
         ICommunityRepository communities,
         ICommunityMembershipRepository memberships,
         ICommunityInitiativeRepository initiatives,
+        ICommunityInitiativeParticipants participants,
         CommunityProgrammeAccessService access,
         IMemberProfileService profiles,
         IUnitOfWork unitOfWork)
@@ -539,6 +544,7 @@ public sealed class LeaveCommunityInitiativeCommandHandler
         _communities = communities;
         _memberships = memberships;
         _initiatives = initiatives;
+        _participants = participants;
         _access = access;
         _profiles = profiles;
         _unitOfWork = unitOfWork;
@@ -567,11 +573,11 @@ public sealed class LeaveCommunityInitiativeCommandHandler
 
         var (readable, initiative) = target.Value;
 
-        var existing = await _initiatives.FindParticipantAsync(initiative.Id, caller.Value, cancellationToken);
+        var existing = await _participants.FindParticipantAsync(initiative.Id, caller.Value, cancellationToken);
 
         if (existing is not null)
         {
-            _initiatives.RemoveParticipant(existing);
+            _participants.RemoveParticipant(existing);
 
             try
             {
@@ -581,7 +587,7 @@ public sealed class LeaveCommunityInitiativeCommandHandler
             {
                 // Two leaves raced: both found the row, and the second delete matched nothing.
                 // The member is out either way, which is what a repeat leave answers.
-                _initiatives.ForgetParticipant(existing);
+                _participants.ForgetParticipant(existing);
             }
         }
 
@@ -611,6 +617,7 @@ public sealed class ListCommunityInitiativeParticipantsQueryHandler
     private readonly ICommunityRepository _communities;
     private readonly ICommunityMembershipRepository _memberships;
     private readonly ICommunityInitiativeRepository _initiatives;
+    private readonly ICommunityInitiativeParticipants _participants;
     private readonly CommunityProgrammeAccessService _access;
     private readonly IMemberProfileService _profiles;
 
@@ -618,12 +625,14 @@ public sealed class ListCommunityInitiativeParticipantsQueryHandler
         ICommunityRepository communities,
         ICommunityMembershipRepository memberships,
         ICommunityInitiativeRepository initiatives,
+        ICommunityInitiativeParticipants participants,
         CommunityProgrammeAccessService access,
         IMemberProfileService profiles)
     {
         _communities = communities;
         _memberships = memberships;
         _initiatives = initiatives;
+        _participants = participants;
         _access = access;
         _profiles = profiles;
     }
@@ -645,7 +654,7 @@ public sealed class ListCommunityInitiativeParticipantsQueryHandler
         var (readable, initiative) = target.Value;
 
         // Staff get no wider view, as with the roll and the office holders.
-        var participants = await _initiatives.ListVisibleParticipantsAsync(
+        var participants = await _participants.ListVisibleParticipantsAsync(
             readable.Community.Id,
             initiative.Id,
             includeCommunityOnly: readable.Membership?.IsCurrentMember == true,
@@ -692,6 +701,7 @@ public sealed class ListCommunityInitiativeUpdatesQueryHandler
     private readonly ICommunityRepository _communities;
     private readonly ICommunityMembershipRepository _memberships;
     private readonly ICommunityInitiativeRepository _initiatives;
+    private readonly ICommunityInitiativeUpdates _updates;
     private readonly CommunityProgrammeAccessService _access;
     private readonly IMemberProfileService _profiles;
 
@@ -699,12 +709,14 @@ public sealed class ListCommunityInitiativeUpdatesQueryHandler
         ICommunityRepository communities,
         ICommunityMembershipRepository memberships,
         ICommunityInitiativeRepository initiatives,
+        ICommunityInitiativeUpdates updates,
         CommunityProgrammeAccessService access,
         IMemberProfileService profiles)
     {
         _communities = communities;
         _memberships = memberships;
         _initiatives = initiatives;
+        _updates = updates;
         _access = access;
         _profiles = profiles;
     }
@@ -725,7 +737,7 @@ public sealed class ListCommunityInitiativeUpdatesQueryHandler
 
         var (readable, initiative) = target.Value;
 
-        var updates = await _initiatives.ListUpdatesAsync(initiative.Id, Limit, cancellationToken);
+        var updates = await _updates.ListUpdatesAsync(initiative.Id, Limit, cancellationToken);
 
         var names = await CommunityInitiativeAccess.NameableAsync(
             readable, [.. updates.Select(update => update.AuthorId)], _initiatives, _profiles, _access,
@@ -753,6 +765,7 @@ public sealed class PostCommunityInitiativeUpdateCommandHandler
     private readonly ICommunityRepository _communities;
     private readonly ICommunityMembershipRepository _memberships;
     private readonly ICommunityInitiativeRepository _initiatives;
+    private readonly ICommunityInitiativeUpdates _updates;
     private readonly CommunityProgrammeAccessService _access;
     private readonly IMemberProfileService _profiles;
     private readonly IUnitOfWork _unitOfWork;
@@ -761,6 +774,7 @@ public sealed class PostCommunityInitiativeUpdateCommandHandler
         ICommunityRepository communities,
         ICommunityMembershipRepository memberships,
         ICommunityInitiativeRepository initiatives,
+        ICommunityInitiativeUpdates updates,
         CommunityProgrammeAccessService access,
         IMemberProfileService profiles,
         IUnitOfWork unitOfWork)
@@ -768,6 +782,7 @@ public sealed class PostCommunityInitiativeUpdateCommandHandler
         _communities = communities;
         _memberships = memberships;
         _initiatives = initiatives;
+        _updates = updates;
         _access = access;
         _profiles = profiles;
         _unitOfWork = unitOfWork;
@@ -809,7 +824,7 @@ public sealed class PostCommunityInitiativeUpdateCommandHandler
             return Result.Failure<CommunityInitiativeUpdateResponse>(posted.Error);
         }
 
-        _initiatives.AddUpdate(posted.Value);
+        _updates.AddUpdate(posted.Value);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var names = await CommunityInitiativeAccess.NameableAsync(

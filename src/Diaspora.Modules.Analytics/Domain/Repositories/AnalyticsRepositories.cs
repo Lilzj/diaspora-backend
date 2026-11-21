@@ -337,7 +337,13 @@ public interface IAnalyticsContentDimensionRepository
         Guid ownerUserId, CancellationToken cancellationToken = default);
 }
 
-/// <summary>The daily rollups. Written only by the projection, read by every query.</summary>
+/// <summary>
+/// Recording a rollup cell, and finding the one a recompute is about to replace.
+/// <para>
+/// Three members. Everything that reads these cells back does so to answer a dashboard question,
+/// which is a different reason to change and a separate role.
+/// </para>
+/// </summary>
 public interface IAnalyticsRollupRepository
 {
     void Add(ContentDailyRollup rollup);
@@ -352,7 +358,14 @@ public interface IAnalyticsRollupRepository
 
     Task<OwnerDailyRollup?> FindOwnerAsync(
         Guid ownerUserId, DateOnly day, CancellationToken cancellationToken = default);
+}
 
+/// <summary>
+/// The figures a dashboard reads out of the rollup: cells by owner and by content, the
+/// "anything before this date" probes a first-run guard asks, and the platform total.
+/// </summary>
+public interface IAnalyticsRollupReports
+{
     /// <summary>One owner's daily rows across a window, oldest first. The overview and the series.</summary>
     Task<IReadOnlyList<OwnerDailyRollup>> ListOwnerAsync(
         Guid ownerUserId, DateOnly fromDay, DateOnly toDay, CancellationToken cancellationToken = default);
@@ -417,7 +430,17 @@ public interface IAnalyticsRollupRepository
     /// </summary>
     Task<IReadOnlyList<AnalyticsItemTotals>> SumAllContentAsync(
         DateOnly fromDay, DateOnly toDay, CancellationToken cancellationToken = default);
+}
 
+/// <summary>
+/// The retention sweep's bounded delete, and nothing else.
+/// <para>
+/// One member. A hosted service on its own schedule has no business being able to write a cell or
+/// read a dashboard figure.
+/// </para>
+/// </summary>
+public interface IAnalyticsRollupHousekeeping
+{
     /// <summary>Retention. Rollups outlive raw events by design — see the retention policy.</summary>
     Task<int> DeleteExpiredAsync(
         DateOnly olderThan, int batchSize, CancellationToken cancellationToken = default);

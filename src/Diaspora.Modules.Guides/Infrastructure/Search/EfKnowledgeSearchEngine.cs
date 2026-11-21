@@ -32,11 +32,11 @@ namespace Diaspora.Modules.Guides.Infrastructure.Search;
 /// </summary>
 public sealed class EfKnowledgeSearchEngine : IKnowledgeSearchEngine
 {
-    private readonly IGuideRepository _guides;
+    private readonly IGuideSearch _guides;
     private readonly GuideAuthorizationService _authorization;
 
     public EfKnowledgeSearchEngine(
-        IGuideRepository guides, GuideAuthorizationService authorization)
+        IGuideSearch guides, GuideAuthorizationService authorization)
     {
         _guides = guides;
         _authorization = authorization;

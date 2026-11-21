@@ -21,12 +21,12 @@ namespace Diaspora.Modules.Guides.Application.Discovery;
 public sealed class ListFeaturedGuidesQueryHandler
     : IQueryHandler<ListFeaturedGuidesQuery, CursorPagedResult<GuideCardResponse>>
 {
-    private readonly IGuideRepository _guides;
+    private readonly IGuideSearch _guides;
     private readonly GuideAuthorizationService _authorization;
     private readonly GuideAuthorNames _authorNames;
 
     public ListFeaturedGuidesQueryHandler(
-        IGuideRepository guides, GuideAuthorizationService authorization,
+        IGuideSearch guides, GuideAuthorizationService authorization,
         GuideAuthorNames authorNames)
     {
         _guides = guides;

@@ -149,7 +149,7 @@ public sealed class CommunityProgrammeLifecycleSweep : BackgroundService
         var clock = services.GetRequiredService<IClock>();
         var guids = services.GetRequiredService<IGuidGenerator>();
         var unitOfWork = services.GetRequiredService<IUnitOfWork>();
-        var memberships = services.GetRequiredService<IProgrammeMembershipRepository>();
+        var memberships = services.GetRequiredService<IProgrammeMembershipRenewals>();
         var polls = services.GetRequiredService<ICommunityPollRepository>();
         var opportunities = services.GetRequiredService<IVolunteerOpportunityRepository>();
         var communities = services.GetRequiredService<ICommunityRepository>();

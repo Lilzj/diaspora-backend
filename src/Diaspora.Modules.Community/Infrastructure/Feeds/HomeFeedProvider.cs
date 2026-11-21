@@ -19,7 +19,7 @@ namespace Diaspora.Modules.Community.Infrastructure.Feeds;
 /// </summary>
 public sealed class HomeFeedProvider : PostFeedProvider
 {
-    public HomeFeedProvider(ICommunityPostRepository posts) : base(posts) { }
+    public HomeFeedProvider(ICommunityPostSearch posts) : base(posts) { }
 
     public override string FeedKey => FeedKeys.Home;
 

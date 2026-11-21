@@ -144,7 +144,10 @@ public sealed class FinancialModule : IPlatformModule
         services.AddScoped<IFinancialPolicyRepository, FinancialPolicyRepository>();
         services.AddScoped<IMonetizationProductRepository, MonetizationProductRepository>();
         services.AddScoped<IMonetizationPurchaseRepository, MonetizationPurchaseRepository>();
-        services.AddScoped<IPlacementRepository, PlacementRepository>();
+        services.AddScoped<PlacementRepository>();
+        services.AddScoped<IPlacementRepository>(services => services.GetRequiredService<PlacementRepository>());
+        services.AddScoped<IPlacementSchedule>(services => services.GetRequiredService<PlacementRepository>());
+        services.AddScoped<IPlacementFacts>(services => services.GetRequiredService<PlacementRepository>());
         services.AddScoped<IAdCampaignRepository, AdCampaignRepository>();
         services.AddScoped<IAdPerformanceRepository, AdPerformanceRepository>();
         services.AddScoped<AdPerformanceRecorder>();

@@ -16,7 +16,7 @@ namespace Diaspora.Modules.Community.Infrastructure.Feeds;
 /// </summary>
 public sealed class ContributorFeedProvider : PostFeedProvider
 {
-    public ContributorFeedProvider(ICommunityPostRepository posts) : base(posts) { }
+    public ContributorFeedProvider(ICommunityPostSearch posts) : base(posts) { }
 
     public override string FeedKey => FeedKeys.Contributor;
 

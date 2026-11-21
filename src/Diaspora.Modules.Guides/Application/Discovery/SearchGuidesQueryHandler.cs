@@ -48,7 +48,7 @@ public sealed class SearchGuidesQueryHandler
     : IQueryHandler<SearchGuidesQuery, CursorPagedResult<GuideCardResponse>>
 {
     private readonly IGuideSearchEngine _search;
-    private readonly IGuideRepository _guides;
+    private readonly IGuideReader _guides;
     private readonly GuideAuthorizationService _authorization;
     private readonly GuideRankingStrategyRegistry _rankings;
     private readonly IClock _clock;
@@ -56,7 +56,7 @@ public sealed class SearchGuidesQueryHandler
 
     public SearchGuidesQueryHandler(
         IGuideSearchEngine search,
-        IGuideRepository guides,
+        IGuideReader guides,
         GuideAuthorizationService authorization,
         GuideRankingStrategyRegistry rankings,
         IClock clock,

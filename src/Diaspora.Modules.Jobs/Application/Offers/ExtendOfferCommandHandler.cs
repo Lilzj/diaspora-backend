@@ -28,7 +28,7 @@ public sealed class ExtendOfferCommandHandler
 {
     private readonly IJobOfferRepository _offers;
     private readonly IJobApplicationRepository _applications;
-    private readonly IJobPostingRepository _postings;
+    private readonly IJobPostingReader _postings;
     private readonly IUnitOfWork _unitOfWork;
     private readonly JobAuthorizationService _authorization;
     private readonly IGuidGenerator _guids;
@@ -37,7 +37,7 @@ public sealed class ExtendOfferCommandHandler
     public ExtendOfferCommandHandler(
         IJobOfferRepository offers,
         IJobApplicationRepository applications,
-        IJobPostingRepository postings,
+        IJobPostingReader postings,
         IUnitOfWork unitOfWork,
         JobAuthorizationService authorization,
         IGuidGenerator guids,

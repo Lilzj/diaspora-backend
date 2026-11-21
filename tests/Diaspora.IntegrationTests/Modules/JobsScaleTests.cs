@@ -62,7 +62,7 @@ public sealed class JobsScaleTests : IntegrationTestBase
         var employer = await SeedPostingsAsync(PostingCount);
 
         using var scope = Factory.Services.CreateScope();
-        var postings = scope.ServiceProvider.GetRequiredService<IJobPostingRepository>();
+        var postings = scope.ServiceProvider.GetRequiredService<IJobPostingSearch>();
 
         var seen = new HashSet<Guid>();
         var pages = 0;
@@ -116,7 +116,7 @@ public sealed class JobsScaleTests : IntegrationTestBase
         var employer = await SeedPostingsAsync(PostingCount);
 
         using var scope = Factory.Services.CreateScope();
-        var postings = scope.ServiceProvider.GetRequiredService<IJobPostingRepository>();
+        var postings = scope.ServiceProvider.GetRequiredService<IJobPostingSearch>();
 
         var page = await postings.QueryAsync(
             new JobQueryFilter { EmployerId = employer }, cursor: null, limit: 20);
@@ -135,7 +135,7 @@ public sealed class JobsScaleTests : IntegrationTestBase
         var employer = await SeedPostingsAsync(PostingCount);
 
         using var scope = Factory.Services.CreateScope();
-        var postings = scope.ServiceProvider.GetRequiredService<IJobPostingRepository>();
+        var postings = scope.ServiceProvider.GetRequiredService<IJobPostingSearch>();
 
         var stopwatch = Stopwatch.StartNew();
 
@@ -167,7 +167,7 @@ public sealed class JobsScaleTests : IntegrationTestBase
         var employer = await SeedPostingsAsync(PostingCount);
 
         using var scope = Factory.Services.CreateScope();
-        var postings = scope.ServiceProvider.GetRequiredService<IJobPostingRepository>();
+        var postings = scope.ServiceProvider.GetRequiredService<IJobPostingSearch>();
 
         var page = await postings.QueryAsync(
             new JobQueryFilter
@@ -198,7 +198,7 @@ public sealed class JobsScaleTests : IntegrationTestBase
         var employer = await SeedPostingsAsync(200);
 
         using var scope = Factory.Services.CreateScope();
-        var postings = scope.ServiceProvider.GetRequiredService<IJobPostingRepository>();
+        var postings = scope.ServiceProvider.GetRequiredService<IJobPostingSearch>();
 
         var page = await postings.QueryAsync(
             new JobQueryFilter { EmployerId = employer, CountryCode = "AQ" },

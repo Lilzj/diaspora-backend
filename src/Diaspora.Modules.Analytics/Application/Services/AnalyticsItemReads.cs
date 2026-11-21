@@ -15,9 +15,9 @@ namespace Diaspora.Modules.Analytics.Application.Services;
 public sealed class AnalyticsItemReads
 {
     private readonly AnalyticsReadService _reads;
-    private readonly IAnalyticsRollupRepository _rollups;
+    private readonly IAnalyticsRollupReports _rollups;
 
-    public AnalyticsItemReads(AnalyticsReadService reads, IAnalyticsRollupRepository rollups)
+    public AnalyticsItemReads(AnalyticsReadService reads, IAnalyticsRollupReports rollups)
     {
         _reads = reads;
         _rollups = rollups;

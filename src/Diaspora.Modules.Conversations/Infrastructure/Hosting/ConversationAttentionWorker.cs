@@ -137,6 +137,7 @@ public sealed class ConversationAttentionWorker : BackgroundService
         IServiceProvider services, CancellationToken cancellationToken)
     {
         var conversations = services.GetRequiredService<IConversationRepository>();
+        var nudges = services.GetRequiredService<IConversationNudges>();
         var unitOfWork = services.GetRequiredService<IUnitOfWork>();
         var publisher = services.GetRequiredService<IIntegrationEventPublisher>();
         var clock = services.GetRequiredService<IClock>();
@@ -145,7 +146,7 @@ public sealed class ConversationAttentionWorker : BackgroundService
         var options = _options.Value;
         var quietBefore = now.AddDays(-options.InactivityAfterDays);
 
-        var quiet = await conversations.ListQuietAsync(
+        var quiet = await nudges.ListQuietAsync(
             quietBefore, options.AttentionSweepBatchSize, cancellationToken);
 
         if (quiet.Count == 0)
@@ -210,7 +211,7 @@ public sealed class ConversationAttentionWorker : BackgroundService
     private async Task PublishUnreadAsync(
         IServiceProvider services, CancellationToken cancellationToken)
     {
-        var conversations = services.GetRequiredService<IConversationRepository>();
+        var nudges = services.GetRequiredService<IConversationNudges>();
         var unitOfWork = services.GetRequiredService<IUnitOfWork>();
         var publisher = services.GetRequiredService<IIntegrationEventPublisher>();
         var clock = services.GetRequiredService<IClock>();
@@ -218,7 +219,7 @@ public sealed class ConversationAttentionWorker : BackgroundService
         var now = clock.UtcNow;
         var options = _options.Value;
 
-        var backlogs = await conversations.ListUnreadBacklogAsync(
+        var backlogs = await nudges.ListUnreadBacklogAsync(
             options.UnreadThreshold,
             now.AddHours(-options.UnreadAfterHours),
             now.AddHours(-options.UnreadCooldownHours),
@@ -247,7 +248,7 @@ public sealed class ConversationAttentionWorker : BackgroundService
         // The cooldown is marked on every side these members hold, not only on the thread that
         // tipped them over: the backlog is a total across their inbox, so marking one thread would
         // let the next sweep report the same total from another one.
-        await conversations.MarkUnreadReportedAsync(
+        await nudges.MarkUnreadReportedAsync(
             [.. backlogs.Select(backlog => backlog.MemberUserId)], now, cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);

@@ -16,10 +16,10 @@ public sealed class SearchWithinBoundsQueryHandler
     : IQueryHandler<SearchWithinBoundsQuery, IReadOnlyList<AreaSummaryResponse>>
 {
     private readonly GeospatialProviderRegistry _spatial;
-    private readonly IAdministrativeAreaRepository _areas;
+    private readonly IAdministrativeAreaSearch _areas;
 
     public SearchWithinBoundsQueryHandler(
-        GeospatialProviderRegistry spatial, IAdministrativeAreaRepository areas)
+        GeospatialProviderRegistry spatial, IAdministrativeAreaSearch areas)
     {
         _spatial = spatial;
         _areas = areas;

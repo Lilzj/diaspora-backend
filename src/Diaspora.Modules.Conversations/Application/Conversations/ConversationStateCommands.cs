@@ -185,16 +185,19 @@ public sealed class PinConversationCommandValidator : AbstractValidator<PinConve
 public sealed class PinConversationCommandHandler : ICommandHandler<PinConversationCommand>
 {
     private readonly IConversationRepository _conversations;
+    private readonly IConversationInbox _conversationInbox;
     private readonly ConversationAccessService _access;
     private readonly IClock _clock;
     private readonly IUnitOfWork _unitOfWork;
 
     public PinConversationCommandHandler(
-        IConversationRepository conversations, ConversationAccessService access,
+        IConversationRepository conversations,
+        IConversationInbox conversationInbox, ConversationAccessService access,
         IClock clock,
         IUnitOfWork unitOfWork)
     {
         _conversations = conversations;
+    _conversationInbox = conversationInbox;
         _access = access;
         _clock = clock;
         _unitOfWork = unitOfWork;
@@ -232,7 +235,7 @@ public sealed class PinConversationCommandHandler : ICommandHandler<PinConversat
         // The limit spans conversations, so the aggregate cannot see it and the count is supplied.
         // The client enforces five locally and shows "Max 5 pins"; a server that permitted six would
         // let a second device create a state the first refuses to render.
-        var pinned = await _conversations.CountPinnedAsync(caller, cancellationToken);
+        var pinned = await _conversationInbox.CountPinnedAsync(caller, cancellationToken);
 
         var result = loaded.Value.Pin(caller, pinned, now);
 

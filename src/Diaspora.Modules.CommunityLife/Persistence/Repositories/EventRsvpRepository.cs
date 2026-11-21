@@ -24,7 +24,7 @@ namespace Diaspora.Modules.CommunityLife.Persistence.Repositories;
 /// Promoting whoever the database returned first would make a waiting list a lottery.
 /// </para>
 /// </summary>
-public sealed class EventRsvpRepository : IEventRsvpRepository
+public sealed class EventRsvpRepository : IEventRsvpRepository, IEventRsvpSearch, IEventRsvpFacts
 {
     private static readonly RsvpStatus[] LiveStatuses =
     [

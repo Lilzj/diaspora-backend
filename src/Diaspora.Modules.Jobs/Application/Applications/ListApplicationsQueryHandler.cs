@@ -34,7 +34,7 @@ public sealed class ListApplicationsQueryHandler
     : IQueryHandler<ListApplicationsQuery, CursorPagedResult<ApplicationCardResponse>>
 {
     private readonly IJobApplicationSearch _applications;
-    private readonly IJobPostingRepository _postings;
+    private readonly IJobPostingReader _postings;
     private readonly IEmployerProfileRepository _employers;
     private readonly ICandidateProfileRepository _candidates;
     private readonly IMemberProfileService _members;
@@ -43,7 +43,7 @@ public sealed class ListApplicationsQueryHandler
 
     public ListApplicationsQueryHandler(
         IJobApplicationSearch applications,
-        IJobPostingRepository postings,
+        IJobPostingReader postings,
         IEmployerProfileRepository employers,
         ICandidateProfileRepository candidates,
         IMemberProfileService members,

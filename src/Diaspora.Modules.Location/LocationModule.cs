@@ -82,7 +82,10 @@ public sealed class LocationModule : IPlatformModule
     private static void RegisterRepositories(IServiceCollection services)
     {
         services.AddScoped<ICountryRepository, CountryRepository>();
-        services.AddScoped<IAdministrativeAreaRepository, AdministrativeAreaRepository>();
+        services.AddScoped<AdministrativeAreaRepository>();
+        services.AddScoped<IAdministrativeAreaRepository>(services => services.GetRequiredService<AdministrativeAreaRepository>());
+        services.AddScoped<IAdministrativeAreaSearch>(services => services.GetRequiredService<AdministrativeAreaRepository>());
+        services.AddScoped<IAdministrativeAreaGeometry>(services => services.GetRequiredService<AdministrativeAreaRepository>());
         services.AddScoped<ILocationProfileRepository, LocationProfileRepository>();
 
         // Privacy. The module that owns a table is the only one that can erase it, and a saved

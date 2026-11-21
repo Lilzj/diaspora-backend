@@ -14,7 +14,7 @@ namespace Diaspora.Modules.CommunityProgramme.Persistence.Repositories;
 /// property and does not translate.
 /// </para>
 /// </summary>
-public sealed class CommunityInitiativeRepository : ICommunityInitiativeRepository
+public sealed class CommunityInitiativeRepository : ICommunityInitiativeRepository, ICommunityInitiativeParticipants, ICommunityInitiativeUpdates
 {
     private readonly DiasporaDbContext _dbContext;
 

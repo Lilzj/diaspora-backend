@@ -16,9 +16,9 @@ namespace Diaspora.Modules.Community.Infrastructure.Location;
 /// </summary>
 public sealed class CommunityCircleCounter : ICircleResourceCounter
 {
-    private readonly ICommunityPostRepository _posts;
+    private readonly ICommunityPostSearch _posts;
 
-    public CommunityCircleCounter(ICommunityPostRepository posts) => _posts = posts;
+    public CommunityCircleCounter(ICommunityPostSearch posts) => _posts = posts;
 
     public string ResourceType => CommunityNearbyResourceProvider.Key;
 

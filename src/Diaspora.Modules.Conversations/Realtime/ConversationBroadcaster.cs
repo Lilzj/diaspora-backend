@@ -36,14 +36,14 @@ namespace Diaspora.Modules.Conversations.Realtime;
 public sealed class ConversationBroadcaster
 {
     private readonly IRealtimeNotifier _notifier;
-    private readonly IConversationRepository _conversations;
+    private readonly IConversationInbox _conversations;
     private readonly IOptionsMonitor<ConversationOptions> _options;
     private readonly IClock _clock;
     private readonly ILogger<ConversationBroadcaster> _logger;
 
     public ConversationBroadcaster(
         IRealtimeNotifier notifier,
-        IConversationRepository conversations,
+        IConversationInbox conversations,
         IOptionsMonitor<ConversationOptions> options,
         IClock clock,
         ILogger<ConversationBroadcaster> logger)

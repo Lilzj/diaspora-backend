@@ -24,11 +24,11 @@ namespace Diaspora.Modules.CommunityLife.Application.Organizations;
 public sealed class ListMyOrganizationsQueryHandler
     : IQueryHandler<ListMyOrganizationsQuery, OrganizationSearchResultResponse>
 {
-    private readonly IOrganizationRepository _organizations;
+    private readonly IOrganizationSearch _organizations;
     private readonly CommunityLifeAuthorizationService _authorization;
 
     public ListMyOrganizationsQueryHandler(
-        IOrganizationRepository organizations,
+        IOrganizationSearch organizations,
         CommunityLifeAuthorizationService authorization)
     {
         _organizations = organizations;

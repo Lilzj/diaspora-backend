@@ -27,11 +27,11 @@ namespace Diaspora.Modules.Guides.Application.Verification;
 public sealed class GetGuideVerificationStatusQueryHandler
     : IQueryHandler<GetGuideVerificationStatusQuery, GuideVerificationStatusResponse>
 {
-    private readonly IGuideRepository _guides;
+    private readonly IGuideReader _guides;
     private readonly GuideAuthorizationService _authorization;
 
     public GetGuideVerificationStatusQueryHandler(
-        IGuideRepository guides, GuideAuthorizationService authorization)
+        IGuideReader guides, GuideAuthorizationService authorization)
     {
         _guides = guides;
         _authorization = authorization;

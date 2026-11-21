@@ -41,6 +41,8 @@ public sealed class SubmitRsvpCommandHandler : ICommandHandler<SubmitRsvpCommand
 {
     private readonly ICommunityEventRepository _events;
     private readonly IEventRsvpRepository _rsvps;
+    private readonly IEventRsvpSearch _rsvpSearch;
+    private readonly IEventRsvpFacts _rsvpFacts;
     private readonly IEventAnalyticsRepository _analytics;
     private readonly IUnitOfWork _unitOfWork;
     private readonly CommunityLifeAuthorizationService _authorization;
@@ -51,6 +53,8 @@ public sealed class SubmitRsvpCommandHandler : ICommandHandler<SubmitRsvpCommand
     public SubmitRsvpCommandHandler(
         ICommunityEventRepository events,
         IEventRsvpRepository rsvps,
+        IEventRsvpSearch rsvpSearch,
+        IEventRsvpFacts rsvpFacts,
         IEventAnalyticsRepository analytics,
         IUnitOfWork unitOfWork,
         CommunityLifeAuthorizationService authorization,
@@ -60,6 +64,8 @@ public sealed class SubmitRsvpCommandHandler : ICommandHandler<SubmitRsvpCommand
     {
         _events = events;
         _rsvps = rsvps;
+    _rsvpSearch = rsvpSearch;
+    _rsvpFacts = rsvpFacts;
         _analytics = analytics;
         _unitOfWork = unitOfWork;
         _authorization = authorization;
@@ -144,7 +150,7 @@ public sealed class SubmitRsvpCommandHandler : ICommandHandler<SubmitRsvpCommand
         // and making other plans. Read after the save, so the position counts this response's own
         // row correctly rather than the state before it existed.
         var position = rsvp.Value.Status == RsvpStatus.Waitlisted
-            ? await _rsvps.CountWaitlistedAheadAsync(
+            ? await _rsvpFacts.CountWaitlistedAheadAsync(
                 communityEvent.Id, rsvp.Value.CreatedAt, cancellationToken) + 1
             : (int?)null;
 
@@ -195,7 +201,7 @@ public sealed class SubmitRsvpCommandHandler : ICommandHandler<SubmitRsvpCommand
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
-        var live = await _rsvps.SearchAsync(
+        var live = await _rsvpSearch.SearchAsync(
             new RsvpQueryFilter
             {
                 AttendeeUserId = caller.Value,

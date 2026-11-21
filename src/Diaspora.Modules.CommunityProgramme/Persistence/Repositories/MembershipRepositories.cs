@@ -146,7 +146,7 @@ public sealed class MembershipProgrammeRepository : IMembershipProgrammeReposito
 }
 
 /// <summary>Reads and writes programme memberships.</summary>
-public sealed class ProgrammeMembershipRepository : IProgrammeMembershipRepository
+public sealed class ProgrammeMembershipRepository : IProgrammeMembershipRepository, IProgrammeMembershipRenewals, IProgrammeMembershipReports
 {
     private readonly DiasporaDbContext _dbContext;
 

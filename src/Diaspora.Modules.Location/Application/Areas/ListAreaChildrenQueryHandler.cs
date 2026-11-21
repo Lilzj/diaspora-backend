@@ -14,10 +14,12 @@ public sealed class ListAreaChildrenQueryHandler
     : IQueryHandler<ListAreaChildrenQuery, PagedResult<AreaSummaryResponse>>
 {
     private readonly IAdministrativeAreaRepository _areas;
+    private readonly IAdministrativeAreaSearch _areaSearch;
 
-    public ListAreaChildrenQueryHandler(IAdministrativeAreaRepository areas)
+    public ListAreaChildrenQueryHandler(IAdministrativeAreaRepository areas, IAdministrativeAreaSearch areaSearch)
     {
         _areas = areas;
+    _areaSearch = areaSearch;
     }
 
     public async Task<Result<PagedResult<AreaSummaryResponse>>> Handle(
@@ -32,7 +34,7 @@ public sealed class ListAreaChildrenQueryHandler
             return Result.Failure<PagedResult<AreaSummaryResponse>>(LocationErrors.AreaNotFound);
         }
 
-        var page = await _areas.GetChildrenAsync(
+        var page = await _areaSearch.GetChildrenAsync(
             parent.CountryId,
             parent.Id,
             request.Level,
@@ -41,7 +43,7 @@ public sealed class ListAreaChildrenQueryHandler
 
         // The parent's own breadcrumb serves every child: a child's ancestors are the parent's
         // ancestors plus the parent. One fetch for the page rather than one per row.
-        var parentAncestors = await _areas.GetAncestorsAsync(parent, cancellationToken);
+        var parentAncestors = await _areaSearch.GetAncestorsAsync(parent, cancellationToken);
         var childAncestors = new List<AdministrativeArea>(parentAncestors) { parent };
 
         return Result.Success(page.Map(child => LocationMapper.ToSummary(child, childAncestors)));

@@ -210,6 +210,15 @@ public interface IGrantApplicationRepository
         CreatorId creatorId, string key, CancellationToken cancellationToken = default);
 }
 
+/// <summary>
+/// Authoring the academy: adding a section, a course, a lesson or a quiz, and the key lookups a
+/// seeder uses to stay idempotent.
+/// <para>
+/// Changes when the content format changes. <see cref="ListSectionsAsync"/> is declared here as
+/// well as on the catalogue, because the seeder lists the sections it is about to attach courses
+/// to.
+/// </para>
+/// </summary>
 public interface IAcademyRepository
 {
     void AddSection(AcademySection section);
@@ -222,6 +231,27 @@ public interface IAcademyRepository
 
     void UpdateCourse(AcademyCourse course);
 
+    Task<AcademyCourse?> FindCourseBySlugAsync(
+        string slug, CancellationToken cancellationToken = default);
+
+    Task<AcademyLesson?> FindLessonByKeyAsync(
+        AcademyCourseId courseId, string key, CancellationToken cancellationToken = default);
+
+    Task<AcademyQuiz?> FindQuizByKeyAsync(string key, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<AcademySection>> ListSectionsAsync(
+        CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// Browsing the academy: the sections, the courses in one, the lessons in a course, and a quiz.
+/// <para>
+/// What a learner's screens ask. Six of the module's eleven academy consumers need nothing else,
+/// and none of them can write.
+/// </para>
+/// </summary>
+public interface IAcademyCatalogue
+{
     Task<IReadOnlyList<AcademySection>> ListSectionsAsync(
         CancellationToken cancellationToken = default);
 
@@ -231,25 +261,17 @@ public interface IAcademyRepository
     Task<AcademyCourse?> GetCourseAsync(
         AcademyCourseId id, CancellationToken cancellationToken = default);
 
-    Task<AcademyCourse?> FindCourseBySlugAsync(
-        string slug, CancellationToken cancellationToken = default);
-
     Task<IReadOnlyList<AcademyLesson>> ListLessonsAsync(
         AcademyCourseId courseId, CancellationToken cancellationToken = default);
 
     Task<AcademyLesson?> GetLessonAsync(
         AcademyLessonId id, CancellationToken cancellationToken = default);
 
-    Task<AcademyLesson?> FindLessonByKeyAsync(
-        AcademyCourseId courseId, string key, CancellationToken cancellationToken = default);
-
     /// <summary>
     /// The quiz, with its answer key. The only repository method that loads it, and its callers are
     /// the grader and the seeder.
     /// </summary>
     Task<AcademyQuiz?> GetQuizAsync(AcademyQuizId id, CancellationToken cancellationToken = default);
-
-    Task<AcademyQuiz?> FindQuizByKeyAsync(string key, CancellationToken cancellationToken = default);
 }
 
 public interface ICreatorLearningProgressRepository

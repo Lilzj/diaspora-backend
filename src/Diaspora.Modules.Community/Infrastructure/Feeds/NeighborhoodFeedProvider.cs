@@ -15,7 +15,7 @@ namespace Diaspora.Modules.Community.Infrastructure.Feeds;
 /// </summary>
 public sealed class NeighborhoodFeedProvider : PostFeedProvider
 {
-    public NeighborhoodFeedProvider(ICommunityPostRepository posts) : base(posts) { }
+    public NeighborhoodFeedProvider(ICommunityPostSearch posts) : base(posts) { }
 
     public override string FeedKey => FeedKeys.Neighborhood;
 

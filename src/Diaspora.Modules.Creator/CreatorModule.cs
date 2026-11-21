@@ -97,7 +97,9 @@ public sealed class CreatorModule : IPlatformModule
             ICreatorChallengeEnrollmentRepository, CreatorChallengeEnrollmentRepository>();
         services.AddScoped<ICommunityGrantRepository, CommunityGrantRepository>();
         services.AddScoped<IGrantApplicationRepository, GrantApplicationRepository>();
-        services.AddScoped<IAcademyRepository, AcademyRepository>();
+        services.AddScoped<AcademyRepository>();
+        services.AddScoped<IAcademyRepository>(services => services.GetRequiredService<AcademyRepository>());
+        services.AddScoped<IAcademyCatalogue>(services => services.GetRequiredService<AcademyRepository>());
         services.AddScoped<ICreatorLearningProgressRepository, CreatorLearningProgressRepository>();
         services.AddScoped<ICreatorCertificateRepository, CreatorCertificateRepository>();
         services.AddScoped<ICreatorReferralRepository, CreatorReferralRepository>();

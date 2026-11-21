@@ -31,9 +31,9 @@ namespace Diaspora.Modules.Guides.Application.Services;
 /// </summary>
 public sealed class GuideDirectoryService : IGuideDirectory
 {
-    private readonly IGuideRepository _guides;
+    private readonly IGuideReader _guides;
 
-    public GuideDirectoryService(IGuideRepository guides) => _guides = guides;
+    public GuideDirectoryService(IGuideReader guides) => _guides = guides;
 
     public async Task<GuideSummary?> FindAsync(
         Guid guideId, CancellationToken cancellationToken = default)

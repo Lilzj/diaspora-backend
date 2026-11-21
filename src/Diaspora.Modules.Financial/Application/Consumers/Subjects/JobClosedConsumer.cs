@@ -12,10 +12,11 @@ public sealed class JobClosedConsumer : SubjectRetirementConsumer<JobClosedInteg
 {
     public JobClosedConsumer(
         IPlacementRepository placements,
+        IPlacementFacts placementFacts,
         IUnitOfWork unitOfWork,
         IClock clock,
         ILogger<JobClosedConsumer> logger)
-        : base(placements, unitOfWork, clock, logger)
+        : base(placements, placementFacts, unitOfWork, clock, logger)
     {
     }
 

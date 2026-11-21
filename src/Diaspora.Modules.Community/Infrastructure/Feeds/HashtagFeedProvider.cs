@@ -8,7 +8,7 @@ namespace Diaspora.Modules.Community.Infrastructure.Feeds;
 /// <summary>Everything carrying one hashtag.</summary>
 public sealed class HashtagFeedProvider : PostFeedProvider
 {
-    public HashtagFeedProvider(ICommunityPostRepository posts) : base(posts) { }
+    public HashtagFeedProvider(ICommunityPostSearch posts) : base(posts) { }
 
     public override string FeedKey => FeedKeys.Hashtag;
 

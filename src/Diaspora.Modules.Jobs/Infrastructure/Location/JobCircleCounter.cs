@@ -14,9 +14,9 @@ namespace Diaspora.Modules.Jobs.Infrastructure.Location;
 /// </summary>
 public sealed class JobCircleCounter : ICircleResourceCounter
 {
-    private readonly IJobPostingRepository _postings;
+    private readonly IJobPostingSearch _postings;
 
-    public JobCircleCounter(IJobPostingRepository postings) => _postings = postings;
+    public JobCircleCounter(IJobPostingSearch postings) => _postings = postings;
 
     public string ResourceType => JobResourceCounter.Key;
 

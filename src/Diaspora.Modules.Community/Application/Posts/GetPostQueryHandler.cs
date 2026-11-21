@@ -23,7 +23,7 @@ namespace Diaspora.Modules.Community.Application.Posts;
 /// </summary>
 public sealed class GetPostQueryHandler : IQueryHandler<GetPostQuery, CommunityPostResponse>
 {
-    private readonly ICommunityPostRepository _posts;
+    private readonly ICommunityPostReader _posts;
     private readonly IPollVoteRepository _votes;
     private readonly ICommunitySocialService _social;
     private readonly VisibilityService _visibility;
@@ -33,7 +33,7 @@ public sealed class GetPostQueryHandler : IQueryHandler<GetPostQuery, CommunityP
     private readonly ICurrentUser _currentUser;
 
     public GetPostQueryHandler(
-        ICommunityPostRepository posts,
+        ICommunityPostReader posts,
         IPollVoteRepository votes,
         ICommunitySocialService social,
         VisibilityService visibility,

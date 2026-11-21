@@ -28,7 +28,7 @@ namespace Diaspora.Modules.Community.Persistence.Repositories;
 /// two re-shows whatever page one already showed.
 /// </para>
 /// </summary>
-public sealed class CommunityPostRepository : ICommunityPostRepository
+public sealed class CommunityPostRepository : ICommunityPostRepository, ICommunityPostReader, ICommunityPostSearch
 {
     private readonly DiasporaDbContext _dbContext;
 

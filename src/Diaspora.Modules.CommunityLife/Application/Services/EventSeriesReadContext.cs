@@ -27,6 +27,7 @@ public sealed class EventSeriesReadContext
     private readonly IOrganizationRepository _organizations;
     private readonly ICommunityEventSeries _events;
     private readonly IEventRsvpRepository _rsvps;
+    private readonly IEventRsvpSearch _rsvpSearch;
     private readonly CommunityLifeCatalogResolver _catalog;
     private readonly CommunityLifeAuthorizationService _authorization;
     private readonly IClock _clock;
@@ -35,6 +36,7 @@ public sealed class EventSeriesReadContext
         IOrganizationRepository organizations,
         ICommunityEventSeries events,
         IEventRsvpRepository rsvps,
+        IEventRsvpSearch rsvpSearch,
         CommunityLifeCatalogResolver catalog,
         CommunityLifeAuthorizationService authorization,
         IClock clock)
@@ -42,6 +44,7 @@ public sealed class EventSeriesReadContext
         _organizations = organizations;
         _events = events;
         _rsvps = rsvps;
+    _rsvpSearch = rsvpSearch;
         _catalog = catalog;
         _authorization = authorization;
         _clock = clock;
@@ -200,7 +203,7 @@ public sealed class EventSeriesReadContext
             return new Dictionary<CommunityEventId, string>();
         }
 
-        var responses = await _rsvps.FindForAttendeeAsync(
+        var responses = await _rsvpSearch.FindForAttendeeAsync(
             callerId,
             [.. occurrences.Select(occurrence => occurrence.Id)],
             cancellationToken);

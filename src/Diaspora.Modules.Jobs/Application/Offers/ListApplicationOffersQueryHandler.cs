@@ -21,7 +21,7 @@ public sealed class ListApplicationOffersQueryHandler
 {
     private readonly IJobOfferRepository _offers;
     private readonly IJobApplicationRepository _applications;
-    private readonly IJobPostingRepository _postings;
+    private readonly IJobPostingReader _postings;
     private readonly IEmployerProfileRepository _employers;
     private readonly JobAuthorizationService _authorization;
     private readonly IClock _clock;
@@ -29,7 +29,7 @@ public sealed class ListApplicationOffersQueryHandler
     public ListApplicationOffersQueryHandler(
         IJobOfferRepository offers,
         IJobApplicationRepository applications,
-        IJobPostingRepository postings,
+        IJobPostingReader postings,
         IEmployerProfileRepository employers,
         JobAuthorizationService authorization,
         IClock clock)

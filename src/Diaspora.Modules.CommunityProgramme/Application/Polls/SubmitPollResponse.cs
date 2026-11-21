@@ -67,6 +67,7 @@ public sealed class SubmitPollResponseCommandHandler
     private const string Operation = "poll-vote";
 
     private readonly ICommunityPollRepository _polls;
+    private readonly ICommunityPollResponses _responses;
     private readonly CommunityProgrammeAccessService _access;
     private readonly PollAudienceResolver _audience;
     private readonly ProgrammeIdempotency _commit;
@@ -77,6 +78,7 @@ public sealed class SubmitPollResponseCommandHandler
 
     public SubmitPollResponseCommandHandler(
         ICommunityPollRepository polls,
+        ICommunityPollResponses responses,
         CommunityProgrammeAccessService access,
         PollAudienceResolver audience,
         ProgrammeIdempotency commit,
@@ -86,6 +88,7 @@ public sealed class SubmitPollResponseCommandHandler
         IClock clock)
     {
         _polls = polls;
+    _responses = responses;
         _access = access;
         _audience = audience;
         _commit = commit;
@@ -122,7 +125,7 @@ public sealed class SubmitPollResponseCommandHandler
             Operation, fingerprint, command.IdempotencyKeyHeader, command.Request.IdempotencyKey);
 
         if (key is not null
-            && await _polls.FindResponseByIdempotencyKeyAsync(fingerprint, key, cancellationToken) is not null)
+            && await _responses.FindResponseByIdempotencyKeyAsync(fingerprint, key, cancellationToken) is not null)
         {
             // A retried vote is the same vote. Answering with the result rather than a 409 is what
             // makes a flaky connection harmless.
@@ -151,7 +154,7 @@ public sealed class SubmitPollResponseCommandHandler
             return Result.Failure<PollResultResponse>(validated.Error);
         }
 
-        var existing = await _polls.FindResponseAsync(poll.Id, fingerprint, cancellationToken);
+        var existing = await _responses.FindResponseAsync(poll.Id, fingerprint, cancellationToken);
 
         if (existing is not null)
         {
@@ -181,7 +184,7 @@ public sealed class SubmitPollResponseCommandHandler
             _clock.UtcNow,
             key);
 
-        _polls.AddResponse(response);
+        _responses.AddResponse(response);
         poll.RecordResponse(1, _clock.UtcNow);
 
         var committed = await ProgrammeIdempotency.GuardAsync(
@@ -189,7 +192,7 @@ public sealed class SubmitPollResponseCommandHandler
             token => _unitOfWork.SaveChangesAsync(token),
             token => key is null
                 ? Task.FromResult<PollResponse?>(null)
-                : _polls.FindResponseByIdempotencyKeyAsync(fingerprint, key, token),
+                : _responses.FindResponseByIdempotencyKeyAsync(fingerprint, key, token),
             cancellationToken,
             inTransaction: true);
 

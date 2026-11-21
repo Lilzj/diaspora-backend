@@ -62,13 +62,13 @@ public sealed class GetAreaActivityQueryHandler : IQueryHandler<GetAreaActivityQ
 
     private readonly IEventAnalyticsRepository _analytics;
     private readonly ICommunityEventSearch _events;
-    private readonly IOrganizationRepository _organizations;
+    private readonly IOrganizationSearch _organizations;
     private readonly IClock _clock;
 
     public GetAreaActivityQueryHandler(
         IEventAnalyticsRepository analytics,
         ICommunityEventSearch events,
-        IOrganizationRepository organizations,
+        IOrganizationSearch organizations,
         IClock clock)
     {
         _analytics = analytics;

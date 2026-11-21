@@ -25,18 +25,21 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Services;
 /// </summary>
 public sealed class PollResultReader
 {
-    private readonly ICommunityPollRepository _polls;
+    private readonly ICommunityPollResults _polls;
+    private readonly ICommunityPollResponses _responses;
     private readonly PollAudienceResolver _audience;
     private readonly CommunityProgrammeAccessService _access;
     private readonly IClock _clock;
 
     public PollResultReader(
-        ICommunityPollRepository polls,
+        ICommunityPollResults polls,
+        ICommunityPollResponses responses,
         PollAudienceResolver audience,
         CommunityProgrammeAccessService access,
         IClock clock)
     {
         _polls = polls;
+    _responses = responses;
         _audience = audience;
         _access = access;
         _clock = clock;
@@ -78,7 +81,7 @@ public sealed class PollResultReader
         var tally = await _polls.TallyAsync(poll.Id, cancellationToken);
 
         var myResponse = _access.CallerId is { } caller && !poll.IsAnonymous
-            ? await _polls.FindResponseAsync(
+            ? await _responses.FindResponseAsync(
                 poll.Id, _audience.Fingerprint(poll.Id, caller), cancellationToken)
             : null;
 

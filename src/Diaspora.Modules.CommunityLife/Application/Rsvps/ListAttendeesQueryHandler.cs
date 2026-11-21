@@ -30,14 +30,14 @@ public sealed class ListAttendeesQueryHandler
     : IQueryHandler<ListAttendeesQuery, AttendeePageResponse>
 {
     private readonly ICommunityEventRepository _events;
-    private readonly IEventRsvpRepository _rsvps;
+    private readonly IEventRsvpSearch _rsvps;
     private readonly CommunityLifeAuthorizationService _authorization;
     private readonly IMemberProfileService _members;
     private readonly IClock _clock;
 
     public ListAttendeesQueryHandler(
         ICommunityEventRepository events,
-        IEventRsvpRepository rsvps,
+        IEventRsvpSearch rsvps,
         CommunityLifeAuthorizationService authorization,
         IMemberProfileService members,
         IClock clock)

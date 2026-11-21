@@ -15,67 +15,45 @@ namespace Diaspora.ArchitectureTests;
 /// across the tail used exactly one.
 /// </para>
 /// <para>
-/// <b>The finding's three verification criteria do not agree with each other.</b> It asks for no
+/// <b>The finding's three verification criteria did not agree with each other.</b> It asks for no
 /// <c>I*Repository</c> over twelve members, the largest split, and no handler taking a repository
 /// it uses one method of. The third is not reachable by the two-way split the remediation
 /// describes — splitting 24 into 8 writes and 16 queries still hands a consumer that needs one
 /// count a 16-member dependency; only a role per reason-to-change gets there, which is what the
-/// split interfaces are, and <see cref="No_holder_takes_a_role_wider_than_it_uses"/> is its
-/// enforceable form.
+/// roles below are, and <see cref="No_holder_takes_a_role_wider_than_it_uses"/> is its enforceable
+/// form. All three hold now: 228 repository interfaces, none over twelve.
 /// </para>
 /// <para>
-/// <b>The first criterion is right and the remediation beside it is wrong, which took a
-/// measurement to establish.</b> The remediation says to leave the 13–14 band alone unless it is
-/// being touched anyway. Measured on 21 November 2026, that band has the same defect the tail had:
-/// <b>190 of its 295 consumers use exactly one member</b>, 258 use two or fewer, and the heaviest
-/// consumer of the 69-consumer <c>IGuideRepository</c> uses three of its fourteen. Only
-/// <c>ICommunityInitiativeRepository</c> is genuinely cohesive — two consumers, one of which uses
-/// all fourteen. The band is smaller bags rather than smaller contracts, so the list below is what
-/// remains to be split, not debt anybody has agreed to keep.
+/// <b>The first criterion was right and the remediation beside it was wrong, which took a
+/// measurement to establish — and then a second measurement to get right.</b> The remediation says
+/// to leave the 13–14 band alone unless it is being touched anyway. A file-scoped scan of that
+/// band reported 295 consumers, 190 of them using exactly one member, and exactly one interface
+/// that looked cohesive. Re-measured per <em>class</em> on 21 November 2026 — because a file
+/// holding thirteen handlers that share a field name reads as one consumer using the union of
+/// everything they call — the band had <b>340 consumer classes, 228 of them using exactly one
+/// member</b>, 303 using two or fewer, and <b>no cohesive interface at all</b>: the heaviest
+/// consumer anywhere in the band used seven of thirteen, and the apparently cohesive
+/// <c>ICommunityInitiativeRepository</c> turned out to have nine consumers, six of which used one
+/// member each. A file-scoped scan undercounts consumers and overstates what each one uses, and
+/// both errors point the same way: towards leaving a bag alone.
+/// </para>
+/// <para>
+/// Two interfaces over twelve members remain on the platform and are deliberately out of scope:
+/// <c>IMediaStorageProvider</c> at fourteen is a provider contract an implementor satisfies whole,
+/// and <c>ICampaigns</c> at thirteen is a cross-module integration façade. Neither is a
+/// repository, which is what this finding measured.
 /// </para>
 /// </summary>
 public sealed class RepositorySegregationArchitectureTests
 {
     /// <summary>
-    /// The repository interfaces that are still over the finding's ceiling, with their exact
-    /// member counts.
+    /// The role interfaces the oversized repositories were split into, by family.
     /// <para>
-    /// <b>Exact in both directions.</b> A new entry fails, a changed count fails, and so does
-    /// removing one without editing this list — which is how a split gets recorded rather than
-    /// merely happening. Housing, Marketplace and Providers left this list on 21 November 2026.
-    /// </para>
-    /// <para>
-    /// Not a to-do list with a promise attached. The finding's own remediation says to leave the
-    /// 13–14 band alone unless it is being touched anyway, and fourteen of these eighteen are in
-    /// it. What this list does is stop the tail growing while nobody is looking, and make the next
-    /// split a deliberate edit.
-    /// </para>
-    /// </summary>
-    private static readonly (string Interface, int Members)[] RepositoriesStillOverTwelve =
-    [
-        ("IAcademyRepository", 14),
-        ("IAdministrativeAreaRepository", 14),
-        ("ICommunityInitiativeRepository", 14),
-        ("ICommunityPollRepository", 14),
-        ("IGuideRepository", 14),
-        ("IJobPostingRepository", 14),
-        ("INotificationRepository", 14),
-        ("IProgrammeMembershipRepository", 14),
-        ("IAnalyticsRollupRepository", 13),
-        ("ICommunityPostRepository", 13),
-        ("IConversationRepository", 13),
-        ("IEventRsvpRepository", 13),
-        ("IOrganizationRepository", 13),
-        ("IPlacementRepository", 13),
-    ];
-
-    /// <summary>
-    /// The role interfaces Housing, Marketplace and Providers were split into, by family.
-    /// <para>
-    /// A member may be declared on two roles of one family and that is deliberate:
-    /// <c>GetManyAsync</c> is a batch identity load <em>and</em> the hydration step of a search,
-    /// so a caller that only hydrates should not have to take the write side to do it. One
-    /// implementation satisfies both declarations.
+    /// Twenty-one families, sixty-nine roles, none over eleven members. A member may be declared on
+    /// two roles of one family and that is deliberate: <c>GetManyAsync</c> is a batch identity load
+    /// <em>and</em> the hydration step of a list, so a caller that only hydrates should not have to
+    /// take the write side to do it. One implementation satisfies every role of its family, is
+    /// registered once, and each role is forwarded to it.
     /// </para>
     /// </summary>
     private static readonly string[][] Families =
@@ -84,8 +62,7 @@ public sealed class RepositorySegregationArchitectureTests
             "IHousingListingStatistics"],
         ["IMarketplaceListingRepository", "IMarketplaceListingSearch",
             "IMarketplaceListingSellerFacts", "IMarketplaceListingStatistics"],
-        ["IProviderRepository", "IProviderSearch", "IProviderMembership",
-            "IProviderStatistics"],
+        ["IProviderRepository", "IProviderSearch", "IProviderMembership", "IProviderStatistics"],
         ["ICommunityEventRepository", "ICommunityEventSearch", "ICommunityEventGuards",
             "ICommunityEventSeries", "ICommunityEventStatistics"],
         ["IAnalyticsEventRepository", "IAnalyticsCellSource", "IAnalyticsEventReports",
@@ -93,31 +70,56 @@ public sealed class RepositorySegregationArchitectureTests
         ["ICreatorRewardRepository", "ICreatorPointRuleRepository",
             "ICreatorRewardRedemptionRepository"],
         ["IJobApplicationRepository", "IJobApplicationSearch", "IJobApplicationFacts"],
+        ["IAcademyRepository", "IAcademyCatalogue"],
+        ["IAdministrativeAreaRepository", "IAdministrativeAreaSearch",
+            "IAdministrativeAreaGeometry"],
+        ["ICommunityInitiativeRepository", "ICommunityInitiativeParticipants",
+            "ICommunityInitiativeUpdates"],
+        ["ICommunityPollRepository", "ICommunityPollResponses", "ICommunityPollResults"],
+        ["IProgrammeMembershipRepository", "IProgrammeMembershipRenewals",
+            "IProgrammeMembershipReports"],
+        ["IGuideRepository", "IGuideReader", "IGuideSearch"],
+        ["IJobPostingRepository", "IJobPostingReader", "IJobPostingSearch"],
+        ["INotificationRepository", "INotificationChannels", "INotificationInbox"],
+        ["IAnalyticsRollupRepository", "IAnalyticsRollupReports",
+            "IAnalyticsRollupHousekeeping"],
+        ["ICommunityPostRepository", "ICommunityPostReader", "ICommunityPostSearch"],
+        ["IConversationRepository", "IConversationInbox", "IConversationNudges"],
+        ["IEventRsvpRepository", "IEventRsvpSearch", "IEventRsvpFacts"],
+        ["IOrganizationRepository", "IOrganizationSearch", "IOrganizationGuards",
+            "IOrganizationStatistics"],
+        ["IPlacementRepository", "IPlacementSchedule", "IPlacementFacts"],
     ];
 
     private const int Ceiling = 12;
 
-    // ── The tail, recorded exactly ───────────────────────────────────────
+    // ── The ceiling, with nothing above it ───────────────────────────────
 
     /// <summary>
-    /// Every repository interface over the ceiling is on the list, at the count it is on it.
+    /// <b>The finding's first criterion, as a standing rule.</b> No repository interface on the
+    /// platform declares more than twelve members.
+    /// <para>
+    /// This replaced a recorded list of the ones that still did. A list that names its exceptions
+    /// stops a tail growing; an empty ceiling is the thing the list was a step towards, and it
+    /// cannot drift without a failure. A new repository that needs a thirteenth member is a
+    /// repository that is answering two kinds of question.
+    /// </para>
     /// </summary>
     [Fact]
-    public void The_repositories_over_the_ceiling_are_the_ones_recorded()
+    public void No_repository_interface_exceeds_the_ceiling()
     {
-        var found = InterfaceMembers()
-            .Where(pair => pair.Key.StartsWith('I') && pair.Key.EndsWith("Repository", StringComparison.Ordinal))
+        var oversized = InterfaceMembers()
+            .Where(pair => pair.Key.StartsWith('I')
+                && pair.Key.EndsWith("Repository", StringComparison.Ordinal))
             .Where(pair => pair.Value > Ceiling)
-            .Select(pair => (pair.Key, pair.Value))
-            .OrderByDescending(pair => pair.Value)
-            .ThenBy(pair => pair.Key, StringComparer.Ordinal)
+            .Select(pair => $"{pair.Key}={pair.Value}")
+            .Order(StringComparer.Ordinal)
             .ToList();
 
-        found.Should().Equal(
-            RepositoriesStillOverTwelve,
-            "the tail is recorded exactly, so it cannot grow quietly and a split cannot land " +
-            "without this list saying so. Found: {0}",
-            string.Join(", ", found.Select(pair => $"{pair.Item1}={pair.Item2}")));
+        oversized.Should().BeEmpty(
+            "a repository that answers more than twelve kinds of question is answering more than " +
+            "one kind of question, and its consumers depend on all of them. Offenders: {0}",
+            string.Join(", ", oversized));
     }
 
     /// <summary>
@@ -176,9 +178,14 @@ public sealed class RepositorySegregationArchitectureTests
     /// is simply wrong.
     /// </para>
     /// <para>
-    /// Fields only, deliberately. A local resolved from a scope inside a sweep is bound and used
-    /// within a few lines where the mismatch is visible; a constructor-injected field is the one
-    /// that outlives the reason it was added.
+    /// <b>Fields and properties, because a property holder is how the first version of this rule
+    /// was evaded without anybody meaning to.</b> Wave three found two abstract base classes
+    /// exposing their repository as <c>protected IPlacementRepository Placements { get; }</c> and
+    /// <c>protected ICommunityPostRepository Posts { get; }</c>; ten feed providers inherited the
+    /// second one to call a single query method. A field scan sees neither. Locals and parameters
+    /// stay out: a local resolved from a scope inside a sweep is bound and used within a few lines
+    /// where the mismatch is visible, while a field or property is part of the type's shape and
+    /// outlives the reason it was added.
     /// </para>
     /// </summary>
     [Fact]
@@ -194,9 +201,8 @@ public sealed class RepositorySegregationArchitectureTests
 
         foreach (var file in SourceTree.ProductionFiles.Concat(TestFiles()))
         {
-            foreach (var field in file.Root.DescendantNodes().OfType<FieldDeclarationSyntax>())
+            foreach (var (type, name) in Holders(file))
             {
-                var type = field.Declaration.Type.ToString();
                 if (!byFamily.TryGetValue(type, out var family))
                 {
                     continue;
@@ -204,7 +210,6 @@ public sealed class RepositorySegregationArchitectureTests
 
                 holders++;
 
-                var name = field.Declaration.Variables[0].Identifier.ValueText;
                 var used = file.Root.DescendantNodes()
                     .OfType<MemberAccessExpressionSyntax>()
                     .Where(access => access.Expression is IdentifierNameSyntax identifier
@@ -232,8 +237,8 @@ public sealed class RepositorySegregationArchitectureTests
         }
 
         holders.Should().BeGreaterThan(
-            50, "the split families are injected widely; finding almost none means this rule is " +
-                "reading the wrong thing rather than that the platform is clean");
+            150, "the split families are injected widely; finding almost none means this rule is " +
+                 "reading the wrong thing rather than that the platform is clean");
 
         offenders.Should().BeEmpty(
             "a role is the set of questions a consumer actually asks. Offenders: {0}",
@@ -241,6 +246,28 @@ public sealed class RepositorySegregationArchitectureTests
     }
 
     // ── Reading the source ───────────────────────────────────────────────
+
+    /// <summary>
+    /// The long-lived holders in one file: every field and every property, with its declared type.
+    /// </summary>
+    private static IEnumerable<(string Type, string Name)> Holders(SourceFile file)
+    {
+        foreach (var field in file.Root.DescendantNodes().OfType<FieldDeclarationSyntax>())
+        {
+            yield return (field.Declaration.Type.ToString(),
+                field.Declaration.Variables[0].Identifier.ValueText);
+        }
+
+        foreach (var property in file.Root.DescendantNodes().OfType<PropertyDeclarationSyntax>())
+        {
+            if (property.Parent is InterfaceDeclarationSyntax)
+            {
+                continue;
+            }
+
+            yield return (property.Type.ToString(), property.Identifier.ValueText);
+        }
+    }
 
     private static Dictionary<string, int> InterfaceMembers() =>
         SourceTree.ProductionFiles
