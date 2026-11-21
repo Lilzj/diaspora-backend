@@ -36,6 +36,23 @@ namespace Diaspora.Persistence;
 /// lines. The two moved blocks were 76% of the file between them, and the larger of them —
 /// transactional execution — was the one the finding's own remediation list never named.
 /// </para>
+/// <para>
+/// <b>One context for 21 modules is a decision, not an accident (BARCH-004, ADR-022).</b> It buys
+/// the cross-module transaction that makes a CommunityProgramme → Financial settlement atomic, and
+/// it costs the structural boundary: holding this type, a module could read any schema. Two rules
+/// replace that structure. <see cref="ApplyModuleConfigurations"/> refuses at startup a module that
+/// <em>maps</em> into another module's schema, and <c>DatabaseBoundaryArchitectureTests</c> refuses
+/// a module that <em>queries</em> one — every <c>Set&lt;T&gt;</c> outside this project must name an
+/// entity the calling project declares. The second matters most for the seven identity aggregates
+/// in <c>Diaspora.Domain</c>: identity is not a module, so every module may import them and no
+/// module-boundary rule would see the reach.
+/// </para>
+/// <para>
+/// <b>EF caches one model per <c>DbContext</c> CLR type.</b> A test host building this context from
+/// its own contributor set shares that cache with every other host, and whichever runs first wins —
+/// which only fails when the whole suite runs. Any such host replaces
+/// <c>IModelCacheKeyFactory</c> with a key of its own.
+/// </para>
 /// </summary>
 public class DiasporaDbContext : DbContext, IUnitOfWork
 {
