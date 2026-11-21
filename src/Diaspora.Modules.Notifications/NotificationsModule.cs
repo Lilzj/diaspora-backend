@@ -113,7 +113,10 @@ public sealed class NotificationsModule : IPlatformModule
 
     private static void RegisterRepositories(IServiceCollection services)
     {
-        services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<NotificationRepository>();
+        services.AddScoped<INotificationRepository>(services => services.GetRequiredService<NotificationRepository>());
+        services.AddScoped<INotificationChannels>(services => services.GetRequiredService<NotificationRepository>());
+        services.AddScoped<INotificationInbox>(services => services.GetRequiredService<NotificationRepository>());
         services.AddScoped<Realtime.AccessStateRealtimeRelay>();
         services.AddScoped<IUserInboxRepository, UserInboxRepository>();
         services.AddScoped<INotificationPreferenceRepository, NotificationPreferenceRepository>();

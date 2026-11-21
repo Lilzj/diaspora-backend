@@ -33,14 +33,14 @@ namespace Diaspora.Modules.Notifications.Infrastructure.Digests;
 /// </summary>
 public sealed class DefaultDigestGenerator : IDigestGenerator
 {
-    private readonly INotificationRepository _notifications;
+    private readonly INotificationChannels _notifications;
     private readonly INotificationDigestRepository _digests;
     private readonly INotificationPreferenceRepository _preferences;
     private readonly IOptions<NotificationOptions> _options;
     private readonly IGuidGenerator _guids;
 
     public DefaultDigestGenerator(
-        INotificationRepository notifications,
+        INotificationChannels notifications,
         INotificationDigestRepository digests,
         INotificationPreferenceRepository preferences,
         IOptions<NotificationOptions> options,

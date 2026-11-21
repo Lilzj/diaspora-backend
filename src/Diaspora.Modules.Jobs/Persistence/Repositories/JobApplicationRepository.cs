@@ -24,7 +24,7 @@ namespace Diaspora.Modules.Jobs.Persistence.Repositories;
 /// mistake worth leaving to callers to avoid.
 /// </para>
 /// </summary>
-public sealed class JobApplicationRepository : IJobApplicationRepository
+public sealed class JobApplicationRepository : IJobApplicationRepository, IJobApplicationSearch, IJobApplicationFacts
 {
     private readonly DiasporaDbContext _dbContext;
 

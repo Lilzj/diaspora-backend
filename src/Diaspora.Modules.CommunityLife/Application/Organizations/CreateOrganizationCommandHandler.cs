@@ -42,6 +42,7 @@ public sealed class CreateOrganizationCommandHandler
     : ICommandHandler<CreateOrganizationCommand, OrganizationResponse>
 {
     private readonly IOrganizationRepository _organizations;
+    private readonly IOrganizationGuards _organizationGuards;
     private readonly IOrganizationMembershipRepository _memberships;
     private readonly IOrganizationAnalyticsRepository _analytics;
     private readonly IUnitOfWork _unitOfWork;
@@ -58,6 +59,7 @@ public sealed class CreateOrganizationCommandHandler
 
     public CreateOrganizationCommandHandler(
         IOrganizationRepository organizations,
+        IOrganizationGuards organizationGuards,
         IOrganizationMembershipRepository memberships,
         IOrganizationAnalyticsRepository analytics,
         IUnitOfWork unitOfWork,
@@ -73,6 +75,7 @@ public sealed class CreateOrganizationCommandHandler
         IClock clock)
     {
         _organizations = organizations;
+    _organizationGuards = organizationGuards;
         _memberships = memberships;
         _analytics = analytics;
         _unitOfWork = unitOfWork;
@@ -207,14 +210,14 @@ public sealed class CreateOrganizationCommandHandler
         CreateOrganizationRequest request,
         CancellationToken cancellationToken)
     {
-        var held = await _organizations.CountActiveByCreatorAsync(caller, cancellationToken);
+        var held = await _organizationGuards.CountActiveByCreatorAsync(caller, cancellationToken);
 
         if (held >= _options.Value.MaxOrganizationsPerCreator)
         {
             return Result.Failure(CommunityLifeErrors.TooManyOrganizations);
         }
 
-        return await _organizations.HasDuplicateAsync(
+        return await _organizationGuards.HasDuplicateAsync(
             caller, request.Name, excluding: null, cancellationToken)
             ? Result.Failure(CommunityLifeErrors.DuplicateOrganization)
             : Result.Success();

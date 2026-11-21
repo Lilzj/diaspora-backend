@@ -20,10 +20,10 @@ namespace Diaspora.Modules.Community.Application.EventHandlers;
 public sealed class PostPublishedEventHandler : DomainEventHandler<PostPublishedDomainEvent>
 {
     private readonly CommunityIntegrationEventRelay _relay;
-    private readonly ICommunityPostRepository _posts;
+    private readonly ICommunityPostReader _posts;
 
     public PostPublishedEventHandler(
-        CommunityIntegrationEventRelay relay, ICommunityPostRepository posts)
+        CommunityIntegrationEventRelay relay, ICommunityPostReader posts)
     {
         _relay = relay;
         _posts = posts;

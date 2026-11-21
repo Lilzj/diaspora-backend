@@ -209,13 +209,13 @@ public sealed class AnalyticsComparisonHistoryTests
     private static AnalyticsWindowTotals Totals(long views, bool hasData, bool hasHistory) =>
         new(new AnalyticsCounts(views, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), views > 0 ? 1 : 0, 0, hasData, hasHistory);
 
-    private static AnalyticsReadService Reads(IAnalyticsRollupRepository rollups) =>
-        new(rollups, Substitute.For<IAnalyticsEventRepository>());
+    private static AnalyticsReadService Reads(IAnalyticsRollupReports rollups) =>
+        new(rollups, Substitute.For<IAnalyticsEventReports>());
 
     /// <summary>A rollup table holding one owner row, on one day, answering every read truthfully.</summary>
-    private static IAnalyticsRollupRepository OwnerRowsOn(DateOnly day)
+    private static IAnalyticsRollupReports OwnerRowsOn(DateOnly day)
     {
-        var rollups = Substitute.For<IAnalyticsRollupRepository>();
+        var rollups = Substitute.For<IAnalyticsRollupReports>();
 
         IReadOnlyList<OwnerDailyRollup> one = [OwnerDailyRollup.Create(OwnerDailyRollupId.New(), day, Owner)];
         IReadOnlyList<OwnerDailyRollup> none = [];
@@ -230,10 +230,10 @@ public sealed class AnalyticsComparisonHistoryTests
     }
 
     /// <summary>A rollup table holding one content row, on one day, answering every read truthfully.</summary>
-    private static IAnalyticsRollupRepository ContentRowsOn(
+    private static IAnalyticsRollupReports ContentRowsOn(
         DateOnly day, AnalyticsContentType type, Guid contentId)
     {
-        var rollups = Substitute.For<IAnalyticsRollupRepository>();
+        var rollups = Substitute.For<IAnalyticsRollupReports>();
 
         IReadOnlyList<ContentDailyRollup> one =
             [ContentDailyRollup.Create(ContentDailyRollupId.New(), day, type, contentId, Owner)];

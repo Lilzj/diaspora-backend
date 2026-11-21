@@ -36,7 +36,7 @@ namespace Diaspora.Modules.Housing.Persistence.Repositories;
 /// Soft-deleted rows never appear at all — the shared context's global filter owns that predicate.
 /// </para>
 /// </summary>
-public sealed class HousingListingRepository : IHousingListingRepository
+public sealed class HousingListingRepository : IHousingListingRepository, IHousingListingSearch, IHousingListingGuards, IHousingListingStatistics
 {
     private readonly DiasporaDbContext _dbContext;
 

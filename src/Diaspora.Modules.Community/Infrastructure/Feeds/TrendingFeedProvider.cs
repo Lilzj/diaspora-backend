@@ -20,7 +20,7 @@ public sealed class TrendingFeedProvider : PostFeedProvider
 
     private readonly IClock _clock;
 
-    public TrendingFeedProvider(ICommunityPostRepository posts, IClock clock) : base(posts) =>
+    public TrendingFeedProvider(ICommunityPostSearch posts, IClock clock) : base(posts) =>
         _clock = clock;
 
     public override string FeedKey => FeedKeys.Trending;

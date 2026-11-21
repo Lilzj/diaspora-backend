@@ -17,7 +17,7 @@ namespace Diaspora.Modules.Location.Persistence.Repositories;
 /// row, descendants are a prefix match, and the cost does not grow with the depth of the tree.
 /// </para>
 /// </summary>
-public sealed class AdministrativeAreaRepository : IAdministrativeAreaRepository
+public sealed class AdministrativeAreaRepository : IAdministrativeAreaRepository, IAdministrativeAreaSearch, IAdministrativeAreaGeometry
 {
     private readonly DiasporaDbContext _dbContext;
 

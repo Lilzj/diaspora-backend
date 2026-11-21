@@ -6,13 +6,17 @@ using Diaspora.SharedKernel.Pagination;
 namespace Diaspora.Modules.Location.Domain.Areas;
 
 /// <summary>
-/// The hierarchy's persistence boundary.
+/// How the module loads and stores one node of the hierarchy: identity by id, slug or batch, the
+/// ancestor path, the set-based descendant rewrite a relocation performs, and the import's two
+/// writes.
 /// <para>
 /// Note what is not here: no method takes a coordinate. Spatial questions go through
 /// <see cref="Spatial.IGeospatialQueryProvider"/> instead, because the answer may not come
 /// from this database at all — an Elasticsearch or Places-backed provider satisfies the same
 /// question without touching a row. Keeping the two apart is what makes the provider seam
-/// real rather than decorative.
+/// real rather than decorative; the candidate rows such a provider refines are on
+/// <see cref="IAdministrativeAreaGeometry"/>, which is a different thing from answering the
+/// question.
 /// </para>
 /// </summary>
 public interface IAdministrativeAreaRepository
@@ -36,6 +40,38 @@ public interface IAdministrativeAreaRepository
     Task<IReadOnlyList<AdministrativeArea>> GetManyAsync(
         IReadOnlyCollection<AreaId> ids, CancellationToken cancellationToken = default);
 
+    /// <summary>Every node on the path from the root down to — and excluding — this one.</summary>
+    Task<IReadOnlyList<AdministrativeArea>> GetAncestorsAsync(
+        AdministrativeArea area, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Rewrites the path prefix of every descendant after a relocation.
+    /// <para>
+    /// A set-based update rather than a load-and-save loop: a redrawn boundary can move
+    /// thousands of nodes, and materialising them all to change one string each is how a rare
+    /// operation becomes an outage.
+    /// </para>
+    /// </summary>
+    Task<int> RewriteDescendantPathsAsync(
+        AreaRelocation relocation, CancellationToken cancellationToken = default);
+
+    Task AddAsync(AdministrativeArea area, CancellationToken cancellationToken = default);
+
+    Task<bool> AnyAsync(CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// Walking the hierarchy for a screen: the children of a node, every node at a level, a name
+/// search, and the exact-name match that files a row under the place a member typed.
+/// <para>
+/// <see cref="GetAncestorsAsync"/> is declared here too. Twelve of the hierarchy's fifteen
+/// consumers ask for the ancestor path, and a screen that has just listed a node's children needs
+/// it to render the breadcrumb above them -- taking the write side to do that would be the defect
+/// this split exists to remove.
+/// </para>
+/// </summary>
+public interface IAdministrativeAreaSearch
+{
     /// <summary>Every node on the path from the root down to — and excluding — this one.</summary>
     Task<IReadOnlyList<AdministrativeArea>> GetAncestorsAsync(
         AdministrativeArea area, CancellationToken cancellationToken = default);
@@ -76,7 +112,19 @@ public interface IAdministrativeAreaRepository
         CountryCode? countryCode,
         int limit,
         CancellationToken cancellationToken = default);
+}
 
+/// <summary>
+/// The candidate sets a spatial provider refines: centres inside a box, stored outlines
+/// overlapping one, and everything beneath a path.
+/// <para>
+/// Separate because these change with the map, and because the interface's own note says spatial
+/// questions belong to <c>IGeospatialQueryProvider</c> -- these three are the rows it reads, not
+/// the question it answers.
+/// </para>
+/// </summary>
+public interface IAdministrativeAreaGeometry
+{
     /// <summary>
     /// Candidates for a spatial query: everything with a coordinate inside the box, after the
     /// level, country and path filters. The set an in-process provider refines by exact
@@ -114,19 +162,4 @@ public interface IAdministrativeAreaRepository
         IReadOnlyCollection<AdministrativeLevel> levels,
         int limit,
         CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Rewrites the path prefix of every descendant after a relocation.
-    /// <para>
-    /// A set-based update rather than a load-and-save loop: a redrawn boundary can move
-    /// thousands of nodes, and materialising them all to change one string each is how a rare
-    /// operation becomes an outage.
-    /// </para>
-    /// </summary>
-    Task<int> RewriteDescendantPathsAsync(
-        AreaRelocation relocation, CancellationToken cancellationToken = default);
-
-    Task AddAsync(AdministrativeArea area, CancellationToken cancellationToken = default);
-
-    Task<bool> AnyAsync(CancellationToken cancellationToken = default);
 }

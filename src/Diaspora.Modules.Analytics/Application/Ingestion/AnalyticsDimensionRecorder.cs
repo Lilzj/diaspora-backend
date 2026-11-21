@@ -29,12 +29,12 @@ public sealed class AnalyticsDimensionRecorder
     private const int RepairPageSize = 500;
 
     private readonly IAnalyticsContentDimensionRepository _dimensions;
-    private readonly IAnalyticsEventRepository _events;
+    private readonly IAnalyticsEventHousekeeping _events;
     private readonly AnalyticsReportingCalendar _calendar;
 
     public AnalyticsDimensionRecorder(
         IAnalyticsContentDimensionRepository dimensions,
-        IAnalyticsEventRepository events,
+        IAnalyticsEventHousekeeping events,
         AnalyticsReportingCalendar calendar)
     {
         _dimensions = dimensions;

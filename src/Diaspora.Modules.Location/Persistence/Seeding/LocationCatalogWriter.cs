@@ -25,6 +25,7 @@ public sealed class LocationCatalogWriter : ILocationCatalogWriter
 {
     private readonly ICountryRepository _countries;
     private readonly IAdministrativeAreaRepository _areas;
+    private readonly IAdministrativeAreaSearch _areaSearch;
     private readonly IUnitOfWork _unitOfWork;
 
     private readonly Dictionary<string, Country> _pendingCountries = new(StringComparer.Ordinal);
@@ -33,10 +34,12 @@ public sealed class LocationCatalogWriter : ILocationCatalogWriter
     public LocationCatalogWriter(
         ICountryRepository countries,
         IAdministrativeAreaRepository areas,
+        IAdministrativeAreaSearch areaSearch,
         IUnitOfWork unitOfWork)
     {
         _countries = countries;
         _areas = areas;
+    _areaSearch = areaSearch;
         _unitOfWork = unitOfWork;
     }
 
@@ -149,7 +152,7 @@ public sealed class LocationCatalogWriter : ILocationCatalogWriter
             .ToList();
 
         // Two is enough to know a name is not unique.
-        var stored = await _areas.FindByNameAsync(name.Value, [level], countryCode, 2, cancellationToken);
+        var stored = await _areaSearch.FindByNameAsync(name.Value, [level], countryCode, 2, cancellationToken);
 
         var candidates = pending.Select(area => area.Id)
             .Concat(stored.Select(area => area.Id))

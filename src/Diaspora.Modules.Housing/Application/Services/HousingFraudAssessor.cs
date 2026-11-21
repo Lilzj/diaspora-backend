@@ -25,14 +25,14 @@ public sealed class HousingFraudAssessor
 {
     private readonly IEnumerable<IHousingFraudSignalProvider> _providers;
     private readonly IHousingReportRepository _reports;
-    private readonly IHousingListingRepository _listings;
+    private readonly IHousingListingGuards _listings;
     private readonly IClock _clock;
     private readonly ILogger<HousingFraudAssessor> _logger;
 
     public HousingFraudAssessor(
         IEnumerable<IHousingFraudSignalProvider> providers,
         IHousingReportRepository reports,
-        IHousingListingRepository listings,
+        IHousingListingGuards listings,
         IClock clock,
         ILogger<HousingFraudAssessor> logger)
     {

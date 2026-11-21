@@ -36,6 +36,7 @@ public sealed class PublishEventCommandHandler
     : ICommandHandler<PublishEventCommand, EventResponse>
 {
     private readonly ICommunityEventRepository _events;
+    private readonly ICommunityEventGuards _guards;
     private readonly IOrganizationRepository _organizations;
     private readonly IEventAnalyticsRepository _analytics;
     private readonly IUnitOfWork _unitOfWork;
@@ -48,6 +49,7 @@ public sealed class PublishEventCommandHandler
 
     public PublishEventCommandHandler(
         ICommunityEventRepository events,
+        ICommunityEventGuards guards,
         IOrganizationRepository organizations,
         IEventAnalyticsRepository analytics,
         IUnitOfWork unitOfWork,
@@ -59,6 +61,7 @@ public sealed class PublishEventCommandHandler
         IClock clock)
     {
         _events = events;
+        _guards = guards;
         _organizations = organizations;
         _analytics = analytics;
         _unitOfWork = unitOfWork;
@@ -150,7 +153,7 @@ public sealed class PublishEventCommandHandler
             return;
         }
 
-        var live = await _events.CountLiveByOrganizerAsync(
+        var live = await _guards.CountLiveByOrganizerAsync(
             communityEvent.OrganizerUserId, cancellationToken);
 
         var verified = communityEvent.OrganizationId is { } organizationId

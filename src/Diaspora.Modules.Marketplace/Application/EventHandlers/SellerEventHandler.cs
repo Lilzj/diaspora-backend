@@ -38,7 +38,7 @@ public sealed class SellerEventHandler :
 {
     private readonly MarketplaceIntegrationEventRelay _relay;
     private readonly IMarketplaceSearchEngine _search;
-    private readonly IMarketplaceListingRepository _listings;
+    private readonly IMarketplaceListingSellerFacts _listings;
     private readonly ISellerProfileRepository _sellers;
     private readonly IListingCategoryRepository _categories;
     private readonly IOptions<MarketplaceOptions> _options;
@@ -47,7 +47,7 @@ public sealed class SellerEventHandler :
     public SellerEventHandler(
         MarketplaceIntegrationEventRelay relay,
         IMarketplaceSearchEngine search,
-        IMarketplaceListingRepository listings,
+        IMarketplaceListingSellerFacts listings,
         ISellerProfileRepository sellers,
         IListingCategoryRepository categories,
         IOptions<MarketplaceOptions> options,

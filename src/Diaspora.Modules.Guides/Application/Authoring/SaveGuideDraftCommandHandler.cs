@@ -31,7 +31,7 @@ namespace Diaspora.Modules.Guides.Application.Authoring;
 /// </summary>
 public sealed class SaveGuideDraftCommandHandler : ICommandHandler<SaveGuideDraftCommand>
 {
-    private readonly IGuideRepository _guides;
+    private readonly IGuideReader _guides;
     private readonly IGuideDraftSnapshotRepository _snapshots;
     private readonly IUnitOfWork _unitOfWork;
     private readonly GuideAuthorizationService _authorization;
@@ -39,7 +39,7 @@ public sealed class SaveGuideDraftCommandHandler : ICommandHandler<SaveGuideDraf
     private readonly IClock _clock;
 
     public SaveGuideDraftCommandHandler(
-        IGuideRepository guides,
+        IGuideReader guides,
         IGuideDraftSnapshotRepository snapshots,
         IUnitOfWork unitOfWork,
         GuideAuthorizationService authorization,

@@ -46,6 +46,7 @@ public sealed class ApplyToJobCommandHandler
     : ICommandHandler<ApplyToJobCommand, JobApplicationResponse>
 {
     private readonly IJobApplicationRepository _applications;
+    private readonly IJobApplicationFacts _facts;
     private readonly IJobPostingRepository _postings;
     private readonly ICandidateProfileRepository _candidates;
     private readonly IResumeRepository _resumes;
@@ -59,6 +60,7 @@ public sealed class ApplyToJobCommandHandler
 
     public ApplyToJobCommandHandler(
         IJobApplicationRepository applications,
+        IJobApplicationFacts facts,
         IJobPostingRepository postings,
         ICandidateProfileRepository candidates,
         IResumeRepository resumes,
@@ -71,6 +73,7 @@ public sealed class ApplyToJobCommandHandler
         IClock clock)
     {
         _applications = applications;
+        _facts = facts;
         _postings = postings;
         _candidates = candidates;
         _resumes = resumes;
@@ -140,7 +143,7 @@ public sealed class ApplyToJobCommandHandler
             return Result.Failure<JobApplicationResponse>(JobErrors.AlreadyApplied);
         }
 
-        var sentToday = await _applications.CountByApplicantSinceAsync(
+        var sentToday = await _facts.CountByApplicantSinceAsync(
             caller.Value, now.AddDays(-1), cancellationToken);
 
         if (sentToday >= _options.Value.MaxApplicationsPerCandidatePerDay)

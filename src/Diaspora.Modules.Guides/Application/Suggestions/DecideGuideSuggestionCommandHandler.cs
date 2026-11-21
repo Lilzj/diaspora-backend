@@ -23,14 +23,14 @@ public sealed class DecideGuideSuggestionCommandHandler
     : ICommandHandler<DecideGuideSuggestionCommand, GuideSuggestionResponse>
 {
     private readonly IGuideSuggestionRepository _suggestions;
-    private readonly IGuideRepository _guides;
+    private readonly IGuideReader _guides;
     private readonly IUnitOfWork _unitOfWork;
     private readonly GuideAuthorizationService _authorization;
     private readonly IClock _clock;
 
     public DecideGuideSuggestionCommandHandler(
         IGuideSuggestionRepository suggestions,
-        IGuideRepository guides,
+        IGuideReader guides,
         IUnitOfWork unitOfWork,
         GuideAuthorizationService authorization,
         IClock clock)

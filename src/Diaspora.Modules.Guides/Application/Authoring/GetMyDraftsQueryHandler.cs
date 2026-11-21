@@ -20,12 +20,12 @@ namespace Diaspora.Modules.Guides.Application.Authoring;
 public sealed class GetMyDraftsQueryHandler
     : IQueryHandler<GetMyDraftsQuery, CursorPagedResult<GuideCardResponse>>
 {
-    private readonly IGuideRepository _guides;
+    private readonly IGuideSearch _guides;
     private readonly GuideAuthorizationService _authorization;
     private readonly GuideAuthorNames _authorNames;
 
     public GetMyDraftsQueryHandler(
-        IGuideRepository guides, GuideAuthorizationService authorization,
+        IGuideSearch guides, GuideAuthorizationService authorization,
         GuideAuthorNames authorNames)
     {
         _guides = guides;

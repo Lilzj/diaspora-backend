@@ -34,9 +34,9 @@ public sealed class SearchJobsQueryHandler
     : IQueryHandler<SearchJobsQuery, JobSearchResultResponse>
 {
     private readonly IJobSearchEngine _engine;
-    private readonly IJobPostingRepository _postings;
+    private readonly IJobPostingReader _postings;
     private readonly IEmployerProfileRepository _employers;
-    private readonly IJobApplicationRepository _applications;
+    private readonly IJobApplicationFacts _applications;
     private readonly ISavedJobRepository _saved;
     private readonly JobRankingStrategyRegistry _ranking;
     private readonly JobAuthorizationService _authorization;
@@ -45,9 +45,9 @@ public sealed class SearchJobsQueryHandler
 
     public SearchJobsQueryHandler(
         IJobSearchEngine engine,
-        IJobPostingRepository postings,
+        IJobPostingReader postings,
         IEmployerProfileRepository employers,
-        IJobApplicationRepository applications,
+        IJobApplicationFacts applications,
         ISavedJobRepository saved,
         JobRankingStrategyRegistry ranking,
         JobAuthorizationService authorization,

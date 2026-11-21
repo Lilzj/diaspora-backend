@@ -50,7 +50,10 @@ public interface IMembershipProgrammeRepository
     void Add(MembershipProgramme programme);
 }
 
-/// <summary>How the module reads and writes programme memberships.</summary>
+/// <summary>
+/// A membership's own lifecycle: applying, renewing, reading one, and the two idempotency lookups
+/// that keep both operations safe to repeat.
+/// </summary>
 public interface IProgrammeMembershipRepository
 {
     Task<ProgrammeMembership?> GetAsync(
@@ -104,14 +107,19 @@ public interface IProgrammeMembershipRepository
     Task<ProgrammeMembership?> FindByRenewalIdempotencyKeyAsync(
         UserId memberUserId, string idempotencyKey, CancellationToken cancellationToken = default);
 
-    /// <summary>How many memberships hold each tier, counting only those that occupy a place.</summary>
-    Task<IReadOnlyDictionary<MembershipTierId, int>> CountByTierAsync(
-        Guid organizationId, CancellationToken cancellationToken = default);
+    void Add(ProgrammeMembership membership);
+}
 
-    /// <summary>How many memberships an organization has in each state.</summary>
-    Task<IReadOnlyDictionary<ProgrammeMembershipStatus, int>> CountByStatusAsync(
-        Guid organizationId, CancellationToken cancellationToken = default);
-
+/// <summary>
+/// The two batches the renewal sweep walks: memberships due to renew, and memberships that have
+/// expired.
+/// <para>
+/// Tracked aggregates rather than figures -- the sweep moves each one through its states and
+/// saves, so these are writes wearing a query's name and they may not live on the reporting role.
+/// </para>
+/// </summary>
+public interface IProgrammeMembershipRenewals
+{
     /// <summary>Memberships whose renewal window has opened. The sweep's work list.</summary>
     Task<IReadOnlyList<ProgrammeMembership>> FindDueForRenewalAsync(
         DateTimeOffset asOf, int batchSize, CancellationToken cancellationToken = default);
@@ -119,6 +127,21 @@ public interface IProgrammeMembershipRepository
     /// <summary>Memberships past their expiry. The sweep's second work list.</summary>
     Task<IReadOnlyList<ProgrammeMembership>> FindExpiredAsync(
         DateTimeOffset asOf, int batchSize, CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// What the programme's reporting asks: memberships by tier, by status, which organizations have
+/// any, and when members joined.
+/// </summary>
+public interface IProgrammeMembershipReports
+{
+    /// <summary>How many memberships hold each tier, counting only those that occupy a place.</summary>
+    Task<IReadOnlyDictionary<MembershipTierId, int>> CountByTierAsync(
+        Guid organizationId, CancellationToken cancellationToken = default);
+
+    /// <summary>How many memberships an organization has in each state.</summary>
+    Task<IReadOnlyDictionary<ProgrammeMembershipStatus, int>> CountByStatusAsync(
+        Guid organizationId, CancellationToken cancellationToken = default);
 
     /// <summary>Every organization with at least one membership. The reconciliation work list.</summary>
     Task<IReadOnlyList<Guid>> FindOrganizationsWithMembershipsAsync(
@@ -136,8 +159,6 @@ public interface IProgrammeMembershipRepository
         DateTimeOffset from,
         DateTimeOffset to,
         CancellationToken cancellationToken = default);
-
-    void Add(ProgrammeMembership membership);
 }
 
 /// <summary>How the module reads and writes volunteer opportunities.</summary>
@@ -253,7 +274,10 @@ public interface IVolunteerAssignmentRepository
     void AddCertificate(VolunteerCertificate certificate);
 }
 
-/// <summary>How the module reads and writes polls and their responses.</summary>
+/// <summary>
+/// The poll itself: loading one, creating one, the discovery search, the open count, and the two
+/// batches the schedule sweep opens and closes.
+/// </summary>
 public interface ICommunityPollRepository
 {
     Task<CommunityPoll?> GetAsync(
@@ -273,7 +297,18 @@ public interface ICommunityPollRepository
     Task<int> CountOpenAsync(Guid organizationId, CancellationToken cancellationToken = default);
 
     void Add(CommunityPoll poll);
+}
 
+/// <summary>
+/// One voter's response: casting it, finding it again, the idempotency lookup that makes a repeat
+/// vote harmless, and the voter's own history.
+/// <para>
+/// Changes when voting changes. Separate from the tally, which asks about the poll rather than
+/// about a voter.
+/// </para>
+/// </summary>
+public interface ICommunityPollResponses
+{
     // ── Responses ───────────────────────────────────────────────────────────────────────────
 
     /// <summary>
@@ -293,6 +328,28 @@ public interface ICommunityPollRepository
     Task<PollResponse?> FindResponseByIdempotencyKeyAsync(
         string voterFingerprint, string idempotencyKey, CancellationToken cancellationToken = default);
 
+    void AddResponse(PollResponse response);
+
+    /// <summary>Response moments in a window, for the participation series.</summary>
+    Task<IReadOnlyList<DateTimeOffset>> FindResponseMomentsAsync(
+        Guid organizationId,
+        DateTimeOffset from,
+        DateTimeOffset to,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>How many polls the caller has answered. One of the impact figures.</summary>
+    Task<int> CountResponsesForVoterAsync(
+        UserId voterUserId,
+        DateTimeOffset? from = null,
+        DateTimeOffset? to = null,
+        CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// The tally: the counts a settled poll publishes, and the open responses it settles from.
+/// </summary>
+public interface ICommunityPollResults
+{
     /// <summary>
     /// The tally, computed in the database.
     /// <para>
@@ -310,22 +367,6 @@ public interface ICommunityPollRepository
     /// <summary>The free-text answers on an open-response poll. Bounded.</summary>
     Task<IReadOnlyList<string>> ListOpenResponsesAsync(
         CommunityPollId pollId, int limit = 200, CancellationToken cancellationToken = default);
-
-    /// <summary>Response moments in a window, for the participation series.</summary>
-    Task<IReadOnlyList<DateTimeOffset>> FindResponseMomentsAsync(
-        Guid organizationId,
-        DateTimeOffset from,
-        DateTimeOffset to,
-        CancellationToken cancellationToken = default);
-
-    /// <summary>How many polls the caller has answered. One of the impact figures.</summary>
-    Task<int> CountResponsesForVoterAsync(
-        UserId voterUserId,
-        DateTimeOffset? from = null,
-        DateTimeOffset? to = null,
-        CancellationToken cancellationToken = default);
-
-    void AddResponse(PollResponse response);
 }
 
 /// <summary>How the module reads and writes announcements.</summary>

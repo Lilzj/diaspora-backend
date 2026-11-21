@@ -15,13 +15,13 @@ public sealed class ListConversationsQueryHandler
     : IQueryHandler<ListConversationsQuery, CursorPagedResult<ConversationReferenceResponse>>
 {
     private readonly IListingConversationRepository _conversations;
-    private readonly IMarketplaceListingRepository _listings;
+    private readonly IMarketplaceListingSearch _listings;
     private readonly ISellerProfileRepository _sellers;
     private readonly MarketplaceAuthorizationService _authorization;
 
     public ListConversationsQueryHandler(
         IListingConversationRepository conversations,
-        IMarketplaceListingRepository listings,
+        IMarketplaceListingSearch listings,
         ISellerProfileRepository sellers,
         MarketplaceAuthorizationService authorization)
     {

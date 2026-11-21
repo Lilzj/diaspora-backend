@@ -24,9 +24,9 @@ namespace Diaspora.Modules.Community.Application.Services;
 /// </summary>
 public sealed class SearchProjectionService : ICommunitySearchProjectionSource
 {
-    private readonly ICommunityPostRepository _posts;
+    private readonly ICommunityPostSearch _posts;
 
-    public SearchProjectionService(ICommunityPostRepository posts) => _posts = posts;
+    public SearchProjectionService(ICommunityPostSearch posts) => _posts = posts;
 
     public async Task<CursorPagedResult<SearchProjection>> GetChangedAsync(
         DateTimeOffset since,

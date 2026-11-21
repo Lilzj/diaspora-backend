@@ -26,7 +26,7 @@ namespace Diaspora.Modules.CommunityLife.Persistence.Repositories;
 /// including them in the page query would multiply every row by the size of its largest collection.
 /// </para>
 /// </summary>
-public sealed class OrganizationRepository : IOrganizationRepository
+public sealed class OrganizationRepository : IOrganizationRepository, IOrganizationSearch, IOrganizationGuards, IOrganizationStatistics
 {
     private readonly DiasporaDbContext _dbContext;
 

@@ -25,9 +25,9 @@ namespace Diaspora.Modules.Jobs.Application.Discovery;
 /// </summary>
 public sealed class GetJobQueryHandler : IQueryHandler<GetJobQuery, JobResponse>
 {
-    private readonly IJobPostingRepository _postings;
+    private readonly IJobPostingReader _postings;
     private readonly IEmployerProfileRepository _employers;
-    private readonly IJobApplicationRepository _applications;
+    private readonly IJobApplicationFacts _applications;
     private readonly ISavedJobRepository _saved;
     private readonly JobAuthorizationService _authorization;
     private readonly JobProviderResolver _providers;
@@ -35,9 +35,9 @@ public sealed class GetJobQueryHandler : IQueryHandler<GetJobQuery, JobResponse>
     private readonly IClock _clock;
 
     public GetJobQueryHandler(
-        IJobPostingRepository postings,
+        IJobPostingReader postings,
         IEmployerProfileRepository employers,
-        IJobApplicationRepository applications,
+        IJobApplicationFacts applications,
         ISavedJobRepository saved,
         JobAuthorizationService authorization,
         JobProviderResolver providers,

@@ -36,11 +36,11 @@ namespace Diaspora.Modules.Housing.Application.Services;
 /// </summary>
 public sealed class NeighborhoodListingCountRefresher
 {
-    private readonly IHousingListingRepository _listings;
+    private readonly IHousingListingStatistics _listings;
     private readonly INeighborhoodProfileRepository _profiles;
 
     public NeighborhoodListingCountRefresher(
-        IHousingListingRepository listings, INeighborhoodProfileRepository profiles)
+        IHousingListingStatistics listings, INeighborhoodProfileRepository profiles)
     {
         _listings = listings;
         _profiles = profiles;

@@ -124,15 +124,18 @@ public sealed class CommunityEventRealtimeChannelAuthorizer : IRealtimeChannelAu
     public const int MaxAttendeesPerFanOut = 2_000;
 
     private readonly IEventRsvpRepository _rsvps;
+    private readonly IEventRsvpSearch _rsvpSearch;
     private readonly ICommunityEventRepository _events;
     private readonly ILogger<CommunityEventRealtimeChannelAuthorizer> _logger;
 
     public CommunityEventRealtimeChannelAuthorizer(
         IEventRsvpRepository rsvps,
+        IEventRsvpSearch rsvpSearch,
         ICommunityEventRepository events,
         ILogger<CommunityEventRealtimeChannelAuthorizer> logger)
     {
         _rsvps = rsvps;
+    _rsvpSearch = rsvpSearch;
         _events = events;
         _logger = logger;
     }
@@ -213,7 +216,7 @@ public sealed class CommunityEventRealtimeChannelAuthorizer : IRealtimeChannelAu
 
         try
         {
-            var addressable = await _rsvps.FindAddressableAsync(
+            var addressable = await _rsvpSearch.FindAddressableAsync(
                 CommunityEventId.From(parsed), capped, cancellationToken);
 
             return [.. addressable.Select(rsvp => rsvp.AttendeeUserId).Distinct()];

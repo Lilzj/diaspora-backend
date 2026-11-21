@@ -169,7 +169,7 @@ public sealed class GetOrganizationDashboardQueryHandler
     : IQueryHandler<GetOrganizationDashboardQuery, OrganizationDashboardResponse>
 {
     private readonly CommunityProgrammeAccessService _access;
-    private readonly IProgrammeMembershipRepository _memberships;
+    private readonly IProgrammeMembershipReports _memberships;
     private readonly IVolunteerOpportunityRepository _opportunities;
     private readonly IVolunteerApplicationRepository _applications;
     private readonly ICommunityPollRepository _polls;
@@ -179,7 +179,7 @@ public sealed class GetOrganizationDashboardQueryHandler
 
     public GetOrganizationDashboardQueryHandler(
         CommunityProgrammeAccessService access,
-        IProgrammeMembershipRepository memberships,
+        IProgrammeMembershipReports memberships,
         IVolunteerOpportunityRepository opportunities,
         IVolunteerApplicationRepository applications,
         ICommunityPollRepository polls,

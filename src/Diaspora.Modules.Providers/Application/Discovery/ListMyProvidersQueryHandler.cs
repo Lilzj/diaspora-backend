@@ -10,7 +10,7 @@ namespace Diaspora.Modules.Providers.Application.Discovery;
 /// <summary>
 /// Reads the caller's own providers.
 /// <para>
-/// <b>Nothing new in persistence.</b> <see cref="IProviderRepository.ListForMemberAsync"/> already
+/// <b>Nothing new in persistence.</b> <see cref="IProviderMembership.ListForMemberAsync"/> already
 /// existed, documented as *"Every provider a member holds any role on. The 'My Listings' screen."*
 /// No route had ever called it, so the client had no way to find the provider it owns — which is
 /// what made <c>GET /providers/me/reviews</c> a gap in the first place. The capability was one
@@ -28,12 +28,12 @@ public sealed class ListMyProvidersQueryHandler
     private const int DefaultLimit = 25;
     private const int MaxLimit = 100;
 
-    private readonly IProviderRepository _providers;
+    private readonly IProviderMembership _providers;
     private readonly ProviderAuthorizationService _authorization;
     private readonly ProviderReadContextBuilder _context;
 
     public ListMyProvidersQueryHandler(
-        IProviderRepository providers,
+        IProviderMembership providers,
         ProviderAuthorizationService authorization,
         ProviderReadContextBuilder context)
     {

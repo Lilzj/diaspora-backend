@@ -31,20 +31,25 @@ public sealed class GetSellerDashboardQueryHandler
 {
     private const int RailSize = 10;
 
-    private readonly IMarketplaceListingRepository _listings;
+
+    private readonly IMarketplaceListingSellerFacts _sellerFacts;
+
+    private readonly IMarketplaceListingSearch _search;
     private readonly IListingOfferRepository _offers;
     private readonly IListingReservationRepository _reservations;
     private readonly MarketplaceAuthorizationService _authorization;
     private readonly IClock _clock;
 
     public GetSellerDashboardQueryHandler(
-        IMarketplaceListingRepository listings,
+        IMarketplaceListingSellerFacts sellerFacts,
+        IMarketplaceListingSearch search,
         IListingOfferRepository offers,
         IListingReservationRepository reservations,
         MarketplaceAuthorizationService authorization,
         IClock clock)
     {
-        _listings = listings;
+        _sellerFacts = sellerFacts;
+        _search = search;
         _offers = offers;
         _reservations = reservations;
         _authorization = authorization;
@@ -88,10 +93,10 @@ public sealed class GetSellerDashboardQueryHandler
             RailSize,
             cancellationToken);
 
-        var listings = await _listings.GetActiveBySellerAsync(
+        var listings = await _sellerFacts.GetActiveBySellerAsync(
             seller.Id, 500, cancellationToken);
 
-        var recent = await _listings.QueryAsync(
+        var recent = await _search.QueryAsync(
             await _authorization.ApplyAudienceAsync(
                 new ListingQueryFilter
                 {
@@ -152,7 +157,7 @@ public sealed class GetSellerDashboardQueryHandler
             return [];
         }
 
-        var listings = await _listings.GetManyAsync(
+        var listings = await _search.GetManyAsync(
             [.. offers.Select(offer => offer.ListingId).Distinct()], cancellationToken);
 
         var byId = listings.ToDictionary(listing => listing.Id);

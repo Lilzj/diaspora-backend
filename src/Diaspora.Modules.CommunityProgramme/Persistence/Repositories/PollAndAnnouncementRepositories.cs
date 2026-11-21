@@ -19,7 +19,7 @@ namespace Diaspora.Modules.CommunityProgramme.Persistence.Repositories;
 /// matters — and a poll put to a country has as many responses as there are members.
 /// </para>
 /// </summary>
-public sealed class CommunityPollRepository : ICommunityPollRepository
+public sealed class CommunityPollRepository : ICommunityPollRepository, ICommunityPollResponses, ICommunityPollResults
 {
     private readonly DiasporaDbContext _dbContext;
 

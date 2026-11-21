@@ -49,7 +49,7 @@ public sealed class GetPremiumAnalyticsSummaryQueryHandler
 
     private readonly AnalyticsQueryContext _context;
     private readonly AnalyticsReadService _reads;
-    private readonly IAnalyticsEventRepository _events;
+    private readonly IAnalyticsEventReports _events;
     private readonly IAnalyticsContentDimensionRepository _dimensions;
     private readonly IEnumerable<IMemberEntitlementReader> _entitlements;
     private readonly AnalyticsOptions _options;
@@ -57,7 +57,7 @@ public sealed class GetPremiumAnalyticsSummaryQueryHandler
     public GetPremiumAnalyticsSummaryQueryHandler(
         AnalyticsQueryContext context,
         AnalyticsReadService reads,
-        IAnalyticsEventRepository events,
+        IAnalyticsEventReports events,
         IAnalyticsContentDimensionRepository dimensions,
         IEnumerable<IMemberEntitlementReader> entitlements,
         IOptions<AnalyticsOptions> options)

@@ -20,9 +20,9 @@ public sealed class CommunityEventCalendarSource : ICommunityCalendarSource
 {
     private const int WindowLimit = 500;
 
-    private readonly ICommunityEventRepository _events;
+    private readonly ICommunityEventSearch _events;
 
-    public CommunityEventCalendarSource(ICommunityEventRepository events) => _events = events;
+    public CommunityEventCalendarSource(ICommunityEventSearch events) => _events = events;
 
     public string SourceKey => "community-events";
 

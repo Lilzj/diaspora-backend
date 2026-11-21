@@ -1713,7 +1713,7 @@ public sealed class AnalyticsPlatformTests : IdentityTestBase
                 .GetRequiredService<Diaspora.Modules.Analytics.Application.Services.AnalyticsActorHasher>();
 
             var events = scope.ServiceProvider
-                .GetRequiredService<Diaspora.Modules.Analytics.Domain.Repositories.IAnalyticsEventRepository>();
+                .GetRequiredService<Diaspora.Modules.Analytics.Domain.Repositories.IAnalyticsEventHousekeeping>();
 
             var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 

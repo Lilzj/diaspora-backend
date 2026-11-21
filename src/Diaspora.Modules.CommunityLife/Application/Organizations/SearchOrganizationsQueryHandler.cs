@@ -29,14 +29,14 @@ namespace Diaspora.Modules.CommunityLife.Application.Organizations;
 public sealed class SearchOrganizationsQueryHandler
     : IQueryHandler<SearchOrganizationsQuery, OrganizationSearchResultResponse>
 {
-    private readonly IOrganizationRepository _organizations;
+    private readonly IOrganizationSearch _organizations;
     private readonly IOrganizationSearchEngine _engine;
     private readonly CommunityLifeNeighborhoodResolver _neighborhoods;
     private readonly CommunityLifeAuthorizationService _authorization;
     private readonly CommunityLifeGeographicScopeAdapter _geography;
 
     public SearchOrganizationsQueryHandler(
-        IOrganizationRepository organizations,
+        IOrganizationSearch organizations,
         IOrganizationSearchEngine engine,
         CommunityLifeNeighborhoodResolver neighborhoods,
         CommunityLifeAuthorizationService authorization,

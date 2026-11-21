@@ -44,16 +44,16 @@ public sealed record GetOrganizationAnalyticsQuery : IQuery<OrganizationAnalytic
 public sealed class GetOrganizationAnalyticsQueryHandler
     : IQueryHandler<GetOrganizationAnalyticsQuery, OrganizationAnalyticsResponse>
 {
-    private readonly IProgrammeMembershipRepository _memberships;
+    private readonly IProgrammeMembershipReports _memberships;
     private readonly IVolunteerAssignmentRepository _assignments;
-    private readonly ICommunityPollRepository _polls;
+    private readonly ICommunityPollResponses _polls;
     private readonly CommunityProgrammeAccessService _access;
     private readonly IClock _clock;
 
     public GetOrganizationAnalyticsQueryHandler(
-        IProgrammeMembershipRepository memberships,
+        IProgrammeMembershipReports memberships,
         IVolunteerAssignmentRepository assignments,
-        ICommunityPollRepository polls,
+        ICommunityPollResponses polls,
         CommunityProgrammeAccessService access,
         IClock clock)
     {
@@ -127,12 +127,12 @@ public sealed record GetMemberAnalyticsQuery : IQuery<MemberAnalyticsResponse>
 public sealed class GetMemberAnalyticsQueryHandler
     : IQueryHandler<GetMemberAnalyticsQuery, MemberAnalyticsResponse>
 {
-    private readonly IProgrammeMembershipRepository _memberships;
+    private readonly IProgrammeMembershipReports _memberships;
     private readonly CommunityProgrammeAccessService _access;
     private readonly IClock _clock;
 
     public GetMemberAnalyticsQueryHandler(
-        IProgrammeMembershipRepository memberships,
+        IProgrammeMembershipReports memberships,
         CommunityProgrammeAccessService access,
         IClock clock)
     {
@@ -214,14 +214,14 @@ public sealed class GetCommunityImpactQueryHandler
 {
     private readonly IProgrammeMembershipRepository _memberships;
     private readonly IVolunteerAssignmentRepository _assignments;
-    private readonly ICommunityPollRepository _polls;
+    private readonly ICommunityPollResponses _polls;
     private readonly CommunityProgrammeAccessService _access;
     private readonly IClock _clock;
 
     public GetCommunityImpactQueryHandler(
         IProgrammeMembershipRepository memberships,
         IVolunteerAssignmentRepository assignments,
-        ICommunityPollRepository polls,
+        ICommunityPollResponses polls,
         CommunityProgrammeAccessService access,
         IClock clock)
     {

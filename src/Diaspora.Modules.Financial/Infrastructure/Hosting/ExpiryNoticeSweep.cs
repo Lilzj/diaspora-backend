@@ -49,6 +49,7 @@ public sealed class ExpiryNoticeSweep : FinancialSweep
         using var scope = Scopes.CreateScope();
 
         var placements = scope.ServiceProvider.GetRequiredService<IPlacementRepository>();
+        var schedule = scope.ServiceProvider.GetRequiredService<IPlacementSchedule>();
         var subscriptions = scope.ServiceProvider.GetRequiredService<ISubscriptionRepository>();
         var policies = scope.ServiceProvider.GetRequiredService<IFinancialPolicyRepository>();
         var relay = scope.ServiceProvider.GetRequiredService<FinancialIntegrationEventRelay>();
@@ -60,7 +61,7 @@ public sealed class ExpiryNoticeSweep : FinancialSweep
         var until = now.AddDays(leadDays);
         var handled = 0;
 
-        foreach (var placement in await placements.ListExpiringAsync(
+        foreach (var placement in await schedule.ListExpiringAsync(
             now, until, Options.SweepBatchSize, cancellationToken))
         {
             if (!placement.MarkExpiryAnnounced(now))

@@ -56,15 +56,18 @@ public sealed class ListPollsQueryHandler
     : IQueryHandler<ListPollsQuery, CommunityPageResponse<CommunityPollResponse>>
 {
     private readonly ICommunityPollRepository _polls;
+    private readonly ICommunityPollResponses _responses;
     private readonly CommunityProgrammeAccessService _access;
     private readonly PollAudienceResolver _audience;
 
     public ListPollsQueryHandler(
         ICommunityPollRepository polls,
+        ICommunityPollResponses responses,
         CommunityProgrammeAccessService access,
         PollAudienceResolver audience)
     {
         _polls = polls;
+    _responses = responses;
         _access = access;
         _audience = audience;
     }
@@ -146,7 +149,7 @@ public sealed class ListPollsQueryHandler
             return null;
         }
 
-        return await _polls.FindResponseAsync(
+        return await _responses.FindResponseAsync(
             poll.Id, _audience.Fingerprint(poll.Id, caller), cancellationToken);
     }
 
@@ -176,15 +179,18 @@ public sealed record GetPollQuery : IQuery<CommunityPollResponse>
 public sealed class GetPollQueryHandler : IQueryHandler<GetPollQuery, CommunityPollResponse>
 {
     private readonly ICommunityPollRepository _polls;
+    private readonly ICommunityPollResponses _responses;
     private readonly CommunityProgrammeAccessService _access;
     private readonly PollAudienceResolver _audience;
 
     public GetPollQueryHandler(
         ICommunityPollRepository polls,
+        ICommunityPollResponses responses,
         CommunityProgrammeAccessService access,
         PollAudienceResolver audience)
     {
         _polls = polls;
+    _responses = responses;
         _access = access;
         _audience = audience;
     }
@@ -221,7 +227,7 @@ public sealed class GetPollQueryHandler : IQueryHandler<GetPollQuery, CommunityP
             : null;
 
         var myResponse = _access.CallerId is { } caller
-            ? await _polls.FindResponseAsync(
+            ? await _responses.FindResponseAsync(
                 poll.Id, _audience.Fingerprint(poll.Id, caller), cancellationToken)
             : null;
 

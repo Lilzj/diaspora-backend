@@ -43,6 +43,7 @@ public sealed class DuplicateListingCommandHandler
     : ICommandHandler<DuplicateListingCommand, ListingResponse>
 {
     private readonly IMarketplaceListingRepository _listings;
+    private readonly IMarketplaceListingSellerFacts _sellerFacts;
     private readonly IListingAnalyticsRepository _analytics;
     private readonly IUnitOfWork _unitOfWork;
     private readonly MarketplaceAuthorizationService _authorization;
@@ -54,6 +55,7 @@ public sealed class DuplicateListingCommandHandler
 
     public DuplicateListingCommandHandler(
         IMarketplaceListingRepository listings,
+        IMarketplaceListingSellerFacts sellerFacts,
         IListingAnalyticsRepository analytics,
         IUnitOfWork unitOfWork,
         MarketplaceAuthorizationService authorization,
@@ -64,6 +66,7 @@ public sealed class DuplicateListingCommandHandler
         IClock clock)
     {
         _listings = listings;
+        _sellerFacts = sellerFacts;
         _analytics = analytics;
         _unitOfWork = unitOfWork;
         _authorization = authorization;
@@ -101,7 +104,7 @@ public sealed class DuplicateListingCommandHandler
             return Result.Failure<ListingResponse>(MarketplaceErrors.NotListingOwner);
         }
 
-        var openCount = await _listings.CountActiveBySellerAsync(
+        var openCount = await _sellerFacts.CountActiveBySellerAsync(
             seller.Value.Id, cancellationToken);
 
         if (openCount >= _options.Value.MaxActiveListingsPerSeller)
@@ -122,7 +125,7 @@ public sealed class DuplicateListingCommandHandler
         // The create path refuses an exact title repeat as a double-submit. A copy carries the
         // prefix so it does not trip that, but an explicitly supplied title can, and the same rule
         // should apply: two live listings with one name is the seller's mistake either way.
-        if (await _listings.HasDuplicateAsync(
+        if (await _sellerFacts.HasDuplicateAsync(
                 seller.Value.Id, title.Value.Value, excluding: null, cancellationToken))
         {
             return Result.Failure<ListingResponse>(MarketplaceErrors.DuplicateListing);

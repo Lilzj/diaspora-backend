@@ -97,12 +97,17 @@ public sealed class CreatorModule : IPlatformModule
             ICreatorChallengeEnrollmentRepository, CreatorChallengeEnrollmentRepository>();
         services.AddScoped<ICommunityGrantRepository, CommunityGrantRepository>();
         services.AddScoped<IGrantApplicationRepository, GrantApplicationRepository>();
-        services.AddScoped<IAcademyRepository, AcademyRepository>();
+        services.AddScoped<AcademyRepository>();
+        services.AddScoped<IAcademyRepository>(services => services.GetRequiredService<AcademyRepository>());
+        services.AddScoped<IAcademyCatalogue>(services => services.GetRequiredService<AcademyRepository>());
         services.AddScoped<ICreatorLearningProgressRepository, CreatorLearningProgressRepository>();
         services.AddScoped<ICreatorCertificateRepository, CreatorCertificateRepository>();
         services.AddScoped<ICreatorReferralRepository, CreatorReferralRepository>();
         services.AddScoped<ISignupBonusRepository, SignupBonusRepository>();
-        services.AddScoped<ICreatorRewardRepository, CreatorRewardRepository>();
+        services.AddScoped<CreatorRewardRepository>();
+        services.AddScoped<ICreatorRewardRepository>(services => services.GetRequiredService<CreatorRewardRepository>());
+        services.AddScoped<ICreatorPointRuleRepository>(services => services.GetRequiredService<CreatorRewardRepository>());
+        services.AddScoped<ICreatorRewardRedemptionRepository>(services => services.GetRequiredService<CreatorRewardRepository>());
         services.AddScoped<ICreatorActivityRepository, CreatorActivityRepository>();
         services.AddScoped<ICreatorEarningRepository, CreatorEarningRepository>();
         services.AddScoped<

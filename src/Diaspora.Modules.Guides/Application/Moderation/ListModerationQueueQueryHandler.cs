@@ -38,12 +38,12 @@ public sealed class ListModerationQueueQueryHandler
     /// <summary>Open suggestions sampled for the per-guide counts.</summary>
     private const int SuggestionSample = 200;
 
-    private readonly IGuideRepository _guides;
+    private readonly IGuideSearch _guides;
     private readonly IGuideSuggestionRepository _suggestions;
     private readonly GuideAuthorizationService _authorization;
 
     public ListModerationQueueQueryHandler(
-        IGuideRepository guides,
+        IGuideSearch guides,
         IGuideSuggestionRepository suggestions,
         GuideAuthorizationService authorization)
     {

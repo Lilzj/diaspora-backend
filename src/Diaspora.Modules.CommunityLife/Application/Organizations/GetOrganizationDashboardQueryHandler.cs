@@ -34,7 +34,7 @@ public sealed class GetOrganizationDashboardQueryHandler
 
     private readonly IOrganizationRepository _organizations;
     private readonly IOrganizationMembershipRepository _memberships;
-    private readonly ICommunityEventRepository _events;
+    private readonly ICommunityEventSearch _events;
     private readonly IOrganizationAnalyticsRepository _analytics;
     private readonly CommunityLifeAuthorizationService _authorization;
     private readonly CommunityEventReadContext _read;
@@ -43,7 +43,7 @@ public sealed class GetOrganizationDashboardQueryHandler
     public GetOrganizationDashboardQueryHandler(
         IOrganizationRepository organizations,
         IOrganizationMembershipRepository memberships,
-        ICommunityEventRepository events,
+        ICommunityEventSearch events,
         IOrganizationAnalyticsRepository analytics,
         CommunityLifeAuthorizationService authorization,
         CommunityEventReadContext read,

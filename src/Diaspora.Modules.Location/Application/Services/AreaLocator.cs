@@ -64,11 +64,15 @@ public sealed class AreaLocator : IAreaLocator
     private const double KilometresPerDegreeLatitude = 111d;
 
     private readonly IAdministrativeAreaRepository _areas;
+    private readonly IAdministrativeAreaGeometry _areaGeometry;
+    private readonly IAdministrativeAreaSearch _areaSearch;
     private readonly IGeoDistanceCalculator _distances;
 
-    public AreaLocator(IAdministrativeAreaRepository areas, IGeoDistanceCalculator distances)
+    public AreaLocator(IAdministrativeAreaRepository areas, IAdministrativeAreaGeometry areaGeometry, IAdministrativeAreaSearch areaSearch, IGeoDistanceCalculator distances)
     {
         _areas = areas;
+    _areaGeometry = areaGeometry;
+    _areaSearch = areaSearch;
         _distances = distances;
     }
 
@@ -150,7 +154,7 @@ public sealed class AreaLocator : IAreaLocator
                 continue;
             }
 
-            var candidates = await _areas.GetWithinBoundsAsync(
+            var candidates = await _areaGeometry.GetWithinBoundsAsync(
                 box,
                 [level],
                 country,
@@ -202,7 +206,7 @@ public sealed class AreaLocator : IAreaLocator
             return null;
         }
 
-        var outlined = await _areas.GetOutlinedOverlappingAsync(
+        var outlined = await _areaGeometry.GetOutlinedOverlappingAsync(
             here.Value, [], country, CandidateLimit, cancellationToken);
 
         return outlined
@@ -219,7 +223,7 @@ public sealed class AreaLocator : IAreaLocator
     {
         foreach (var (name, levels) in NamedPlaces(request))
         {
-            var matches = await _areas.FindByNameAsync(
+            var matches = await _areaSearch.FindByNameAsync(
                 name, levels, country, CandidateLimit, cancellationToken);
 
             // The repository ranks by prominence, which is the right tie-break between two real

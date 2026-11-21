@@ -28,9 +28,9 @@ namespace Diaspora.Modules.Jobs.Infrastructure.Search;
 /// </summary>
 public sealed class EfJobSearchEngine : IJobSearchEngine
 {
-    private readonly IJobPostingRepository _postings;
+    private readonly IJobPostingSearch _postings;
 
-    public EfJobSearchEngine(IJobPostingRepository postings) => _postings = postings;
+    public EfJobSearchEngine(IJobPostingSearch postings) => _postings = postings;
 
     /// <summary>
     /// A no-op. The write model is the index — see the class summary. Deliberately not throwing:

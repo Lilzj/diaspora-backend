@@ -80,7 +80,10 @@ public sealed class ConversationsModule : IPlatformModule
 
     private static void RegisterRepositories(IServiceCollection services)
     {
-        services.AddScoped<IConversationRepository, ConversationRepository>();
+        services.AddScoped<ConversationRepository>();
+        services.AddScoped<IConversationRepository>(services => services.GetRequiredService<ConversationRepository>());
+        services.AddScoped<IConversationInbox>(services => services.GetRequiredService<ConversationRepository>());
+        services.AddScoped<IConversationNudges>(services => services.GetRequiredService<ConversationRepository>());
         services.AddScoped<IConversationMessageRepository, ConversationMessageRepository>();
         services.AddScoped<IConversationBlockRepository, ConversationBlockRepository>();
         services.AddScoped<IConversationContextTypeRepository, ConversationContextTypeRepository>();

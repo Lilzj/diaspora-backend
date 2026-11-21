@@ -25,8 +25,14 @@ public sealed class CommunityPostModerationTarget : IModerationTarget
     private const int TitleLength = 140;
 
     private readonly ICommunityPostRepository _posts;
+    private readonly ICommunityPostReader _postReader;
 
-    public CommunityPostModerationTarget(ICommunityPostRepository posts) => _posts = posts;
+    public CommunityPostModerationTarget(
+        ICommunityPostRepository posts, ICommunityPostReader postReader)
+    {
+        _posts = posts;
+        _postReader = postReader;
+    }
 
     public string ContentType => ModerationContentTypes.CommunityPost;
 
@@ -35,7 +41,7 @@ public sealed class CommunityPostModerationTarget : IModerationTarget
     public async Task<ModerationTargetSnapshot?> DescribeAsync(
         Guid contentId, CancellationToken cancellationToken = default)
     {
-        var post = await _posts.GetForReadAsync(CommunityPostId.From(contentId), cancellationToken);
+        var post = await _postReader.GetForReadAsync(CommunityPostId.From(contentId), cancellationToken);
 
         return post is null
             ? null

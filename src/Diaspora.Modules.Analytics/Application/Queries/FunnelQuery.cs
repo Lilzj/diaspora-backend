@@ -48,12 +48,12 @@ public sealed class GetAnalyticsFunnelQueryHandler
     : IQueryHandler<GetAnalyticsFunnelQuery, AnalyticsFunnelResponse>
 {
     private readonly AnalyticsQueryContext _context;
-    private readonly IAnalyticsEventRepository _events;
+    private readonly IAnalyticsEventReports _events;
     private readonly AnalyticsOptions _options;
 
     public GetAnalyticsFunnelQueryHandler(
         AnalyticsQueryContext context,
-        IAnalyticsEventRepository events,
+        IAnalyticsEventReports events,
         IOptions<AnalyticsOptions> options)
     {
         ArgumentNullException.ThrowIfNull(options);

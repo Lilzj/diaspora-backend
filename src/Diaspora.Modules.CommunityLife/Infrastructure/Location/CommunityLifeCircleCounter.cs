@@ -19,10 +19,10 @@ public sealed class CommunityLifeCircleCounter : ICircleResourceCounter
     /// <summary>The repository's own cap on one box read.</summary>
     private const int BoxReadCap = 200;
 
-    private readonly ICommunityEventRepository _events;
+    private readonly ICommunityEventSearch _events;
     private readonly IClock _clock;
 
-    public CommunityLifeCircleCounter(ICommunityEventRepository events, IClock clock)
+    public CommunityLifeCircleCounter(ICommunityEventSearch events, IClock clock)
     {
         _events = events;
         _clock = clock;

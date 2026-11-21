@@ -247,11 +247,11 @@ public sealed class ProviderAnalyticsTests
         return row;
     }
 
-    private static (IAnalyticsRollupRepository Rollups, IAnalyticsEventRepository Events)
+    private static (IAnalyticsRollupReports Rollups, IAnalyticsEventReports Events)
         Reads(params ContentDailyRollup[] rows)
     {
-        var rollups = Substitute.For<IAnalyticsRollupRepository>();
-        var events = Substitute.For<IAnalyticsEventRepository>();
+        var rollups = Substitute.For<IAnalyticsRollupReports>();
+        var events = Substitute.For<IAnalyticsEventReports>();
 
         IReadOnlyList<ContentDailyRollup> all = rows;
         IReadOnlyList<ContentDailyRollup> none = [];
@@ -267,8 +267,8 @@ public sealed class ProviderAnalyticsTests
     }
 
     private static async Task<AnalyticsDatasetResponse> Compose(
-        IAnalyticsRollupRepository rollups,
-        IAnalyticsEventRepository events,
+        IAnalyticsRollupReports rollups,
+        IAnalyticsEventReports events,
         IAnalyticsContentDimensionRepository? dimensions = null,
         AnalyticsOwnerDatasetProfile? profile = null)
     {

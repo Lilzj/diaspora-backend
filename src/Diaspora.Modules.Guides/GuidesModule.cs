@@ -120,7 +120,10 @@ public sealed class GuidesModule : IPlatformModule
 
     private static void RegisterRepositories(IServiceCollection services)
     {
-        services.AddScoped<IGuideRepository, GuideRepository>();
+        services.AddScoped<GuideRepository>();
+        services.AddScoped<IGuideRepository>(services => services.GetRequiredService<GuideRepository>());
+        services.AddScoped<IGuideReader>(services => services.GetRequiredService<GuideRepository>());
+        services.AddScoped<IGuideSearch>(services => services.GetRequiredService<GuideRepository>());
 
         // Cross-module content seams in Diaspora.Contracts: the platform overview's counts and
         // a sponsored item's title. Resolved as collections by Analytics and Creator.

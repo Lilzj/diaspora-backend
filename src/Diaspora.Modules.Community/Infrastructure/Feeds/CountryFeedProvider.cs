@@ -7,7 +7,7 @@ namespace Diaspora.Modules.Community.Infrastructure.Feeds;
 /// <summary>Everything happening in one country.</summary>
 public sealed class CountryFeedProvider : PostFeedProvider
 {
-    public CountryFeedProvider(ICommunityPostRepository posts) : base(posts) { }
+    public CountryFeedProvider(ICommunityPostSearch posts) : base(posts) { }
 
     public override string FeedKey => FeedKeys.Country;
 

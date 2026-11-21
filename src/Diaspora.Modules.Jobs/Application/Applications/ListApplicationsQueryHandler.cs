@@ -33,8 +33,8 @@ namespace Diaspora.Modules.Jobs.Application.Applications;
 public sealed class ListApplicationsQueryHandler
     : IQueryHandler<ListApplicationsQuery, CursorPagedResult<ApplicationCardResponse>>
 {
-    private readonly IJobApplicationRepository _applications;
-    private readonly IJobPostingRepository _postings;
+    private readonly IJobApplicationSearch _applications;
+    private readonly IJobPostingReader _postings;
     private readonly IEmployerProfileRepository _employers;
     private readonly ICandidateProfileRepository _candidates;
     private readonly IMemberProfileService _members;
@@ -42,8 +42,8 @@ public sealed class ListApplicationsQueryHandler
     private readonly IClock _clock;
 
     public ListApplicationsQueryHandler(
-        IJobApplicationRepository applications,
-        IJobPostingRepository postings,
+        IJobApplicationSearch applications,
+        IJobPostingReader postings,
         IEmployerProfileRepository employers,
         ICandidateProfileRepository candidates,
         IMemberProfileService members,

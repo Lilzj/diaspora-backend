@@ -5,15 +5,18 @@ using Diaspora.SharedKernel.Pagination;
 namespace Diaspora.Modules.Housing.Domain.Listings;
 
 /// <summary>
-/// How the module reaches its listings.
+/// How the module loads and stores a listing it is about to change.
 /// <para>
 /// <b>Three read shapes, and the graphs really do differ.</b> <see cref="GetAsync"/> loads
 /// everything because a command needs an aggregate that can enforce its own invariants — a
 /// partially loaded listing cannot validate an amenity replacement against amenities it never
 /// loaded. <see cref="GetForReadAsync"/> loads the same graph untracked for the detail screen.
-/// <see cref="QueryAsync"/> loads the <em>card</em> graph: media and amenities, and nothing else.
-/// A results page of twenty cards that eagerly loaded twenty full listings would be several
-/// thousand rows to render twenty titles.
+/// The card graph a results page needs is <see cref="IHousingListingSearch"/>'s.
+/// </para>
+/// <para>
+/// <b><see cref="GetBecomingAvailableAsync"/> is a write, not a report.</b> Its one caller loads
+/// the batch, moves each listing's status and saves — so it returns tracked aggregates and
+/// belongs here rather than with the queries it superficially resembles.
 /// </para>
 /// </summary>
 public interface IHousingListingRepository
@@ -40,14 +43,47 @@ public interface IHousingListingRepository
     Task<HousingListing?> GetBySlugAsync(
         HousingSlug slug, CancellationToken cancellationToken = default);
 
-    /// <summary>Card graphs for a set of identifiers. Batched, for Community's descriptors.</summary>
-    Task<IReadOnlyList<HousingListing>> GetManyAsync(
-        IReadOnlyCollection<HousingListingId> ids, CancellationToken cancellationToken = default);
-
     /// <summary>The listing a Trust outcome correlates to.</summary>
     Task<HousingListing?> GetByVerificationIdAsync(
         Guid verificationId, CancellationToken cancellationToken = default);
 
+    /// <summary>Card graphs for a set of identifiers. Batched, for Community's descriptors.</summary>
+    Task<IReadOnlyList<HousingListing>> GetManyAsync(
+        IReadOnlyCollection<HousingListingId> ids, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Listings whose move-in date has arrived while they were still merely published.
+    /// <para>
+    /// The availability sweep's work list, and the reason the Published/Available split does not
+    /// need a landlord to remember anything: a flat advertised in March for June becomes available
+    /// on its own.
+    /// </para>
+    /// </summary>
+    Task<IReadOnlyList<HousingListing>> GetBecomingAvailableAsync(
+        DateTimeOffset asOf, int limit, CancellationToken cancellationToken = default);
+
+    Task AddAsync(HousingListing listing, CancellationToken cancellationToken = default);
+
+    void Remove(HousingListing listing);
+}
+
+/// <summary>
+/// The browse and discovery path: a page of listings, how many match, and the nearest few.
+/// <para>
+/// Separate from <see cref="IHousingListingRepository"/> because it changes for a different
+/// reason — a new filter, sort or facet is a change to a screen, not to the aggregate's
+/// persistence contract. <see cref="QueryAsync"/> loads the <em>card</em> graph: media and
+/// amenities, and nothing else. A results page of twenty cards that eagerly loaded twenty full
+/// listings would be several thousand rows to render twenty titles.
+/// </para>
+/// <para>
+/// <see cref="GetManyAsync"/> is declared here as well as on the repository, and deliberately:
+/// hydrating the ids a search returned is the same operation as loading a batch by id, and a
+/// caller that does only that should not have to take the write side to get it.
+/// </para>
+/// </summary>
+public interface IHousingListingSearch
+{
     /// <summary>A page of card graphs.</summary>
     Task<CursorPagedResult<HousingListing>> QueryAsync(
         HousingListingQueryFilter filter,
@@ -66,6 +102,23 @@ public interface IHousingListingRepository
     Task<IReadOnlyList<HousingNearestCandidate>> QueryNearestCandidatesAsync(
         HousingListingQueryFilter filter, int limit, CancellationToken cancellationToken = default);
 
+    /// <summary>Card graphs for a set of identifiers. Batched, for Community's descriptors.</summary>
+    Task<IReadOnlyList<HousingListing>> GetManyAsync(
+        IReadOnlyCollection<HousingListingId> ids, CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// The questions a listing command asks before it writes: is this slug free, is this a duplicate,
+/// is this landlord within quota.
+/// <para>
+/// These are domain invariants rather than reports, which is why they are not on the search
+/// interface, and they change when the rules change rather than when the aggregate does, which is
+/// why they are not on the repository. A create handler legitimately depends on this and on the
+/// repository — that pair is the dependency it actually has.
+/// </para>
+/// </summary>
+public interface IHousingListingGuards
+{
     /// <summary>
     /// Whether a slug is taken, ignoring the soft-delete filter.
     /// <para>
@@ -75,6 +128,21 @@ public interface IHousingListingRepository
     /// </para>
     /// </summary>
     Task<bool> SlugExistsAsync(HousingSlug slug, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Whether the landlord already has a live listing with this exact title.
+    /// <para>
+    /// Exact rather than fuzzy, deliberately. Near-duplicate detection is a fraud provider's job
+    /// where a false positive is a moderator's note; a fuzzy match here would be a refusal, and
+    /// refusing an agency's second listing of two genuinely similar flats in one block is worse
+    /// than letting a duplicate through for review.
+    /// </para>
+    /// </summary>
+    Task<bool> HasDuplicateAsync(
+        LandlordProfileId landlordId,
+        string title,
+        HousingListingId? excluding = null,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// What a landlord holds against the creation quota.
@@ -105,47 +173,20 @@ public interface IHousingListingRepository
 
     Task<IReadOnlyList<HousingListing>> GetByLandlordAsync(
         LandlordProfileId landlordId, int limit, CancellationToken cancellationToken = default);
+}
 
-    /// <summary>
-    /// Whether the landlord already has a live listing with this exact title.
-    /// <para>
-    /// Exact rather than fuzzy, deliberately. Near-duplicate detection is a fraud provider's job
-    /// where a false positive is a moderator's note; a fuzzy match here would be a refusal, and
-    /// refusing an agency's second listing of two genuinely similar flats in one block is worse
-    /// than letting a duplicate through for review.
-    /// </para>
-    /// </summary>
-    Task<bool> HasDuplicateAsync(
-        LandlordProfileId landlordId,
-        string title,
-        HousingListingId? excluding = null,
-        CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Listings whose move-in date has arrived while they were still merely published.
-    /// <para>
-    /// The availability sweep's work list, and the reason the Published/Available split does not
-    /// need a landlord to remember anything: a flat advertised in March for June becomes available
-    /// on its own.
-    /// </para>
-    /// </summary>
-    Task<IReadOnlyList<HousingListing>> GetBecomingAvailableAsync(
-        DateTimeOffset asOf, int limit, CancellationToken cancellationToken = default);
-
+/// <summary>
+/// How many listings are in a place, and what they cost.
+/// <para>
+/// The counts B4 and B21 ask for when they compose an area's page, plus the rent sample B21's
+/// cost-of-living index is built from. Nothing here loads an aggregate and nothing here is part
+/// of the module's own screens, so it changes when another module's reporting changes.
+/// </para>
+/// </summary>
+public interface IHousingListingStatistics
+{
     /// <summary>Live listings in an area subtree. The resource counter's query.</summary>
     Task<int> CountInAreaAsync(string areaPath, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// The disclosed asking rents of the live listings in a country: amount, currency, period and
-    /// where each home is filed. The rent statistics' query.
-    /// <para>
-    /// Rows only, no arithmetic. Periods are converted and medians taken in process, because a
-    /// median does not translate to SQL on both providers and the rows are a few decimals each.
-    /// Capped at <paramref name="limit"/>, newest first.
-    /// </para>
-    /// </summary>
-    Task<IReadOnlyList<HousingRentPrice>> GetRentPricesAsync(
-        string countryCode, int limit, CancellationToken cancellationToken = default);
 
     Task<int> CountInCountryAsync(
         string countryCode, CancellationToken cancellationToken = default);
@@ -177,7 +218,23 @@ public interface IHousingListingRepository
     Task<IReadOnlyDictionary<Guid, int>> CountByNeighborhoodAsync(
         IReadOnlyCollection<Guid> areaIds, CancellationToken cancellationToken = default);
 
-    Task AddAsync(HousingListing listing, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// The disclosed asking rents of the live listings in a country: amount, currency, period and
+    /// where each home is filed. The rent statistics' query.
+    /// <para>
+    /// Rows only, no arithmetic. Periods are converted and medians taken in process, because a
+    /// median does not translate to SQL on both providers and the rows are a few decimals each.
+    /// Capped at <paramref name="limit"/>, newest first.
+    /// </para>
+    /// </summary>
+    Task<IReadOnlyList<HousingRentPrice>> GetRentPricesAsync(
+        string countryCode, int limit, CancellationToken cancellationToken = default);
 
-    void Remove(HousingListing listing);
+    /// <summary>
+    /// Every match with a position, as identifiers and coordinates only, up to
+    /// <paramref name="limit"/>. For a "nearest first" search, which orders by a distance only
+    /// Location may measure and so cannot ask the database to sort.
+    /// </summary>
+    Task<IReadOnlyList<HousingNearestCandidate>> QueryNearestCandidatesAsync(
+        HousingListingQueryFilter filter, int limit, CancellationToken cancellationToken = default);
 }

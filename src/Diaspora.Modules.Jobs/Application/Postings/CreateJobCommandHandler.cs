@@ -32,6 +32,7 @@ namespace Diaspora.Modules.Jobs.Application.Postings;
 public sealed class CreateJobCommandHandler : ICommandHandler<CreateJobCommand, JobResponse>
 {
     private readonly IJobPostingRepository _postings;
+    private readonly IJobPostingSearch _postingSearch;
     private readonly IHiringPipelineRepository _pipelines;
     private readonly IJobAnalyticsRepository _analytics;
     private readonly IUnitOfWork _unitOfWork;
@@ -44,6 +45,7 @@ public sealed class CreateJobCommandHandler : ICommandHandler<CreateJobCommand, 
 
     public CreateJobCommandHandler(
         IJobPostingRepository postings,
+        IJobPostingSearch postingSearch,
         IHiringPipelineRepository pipelines,
         IJobAnalyticsRepository analytics,
         IUnitOfWork unitOfWork,
@@ -55,6 +57,7 @@ public sealed class CreateJobCommandHandler : ICommandHandler<CreateJobCommand, 
         IClock clock)
     {
         _postings = postings;
+    _postingSearch = postingSearch;
         _pipelines = pipelines;
         _analytics = analytics;
         _unitOfWork = unitOfWork;
@@ -89,7 +92,7 @@ public sealed class CreateJobCommandHandler : ICommandHandler<CreateJobCommand, 
 
         // An abuse bound rather than an editorial one: it is drafts a script can create for free
         // that are counted, not published postings.
-        var openCount = await _postings.CountOpenByEmployerAsync(employerId, cancellationToken);
+        var openCount = await _postingSearch.CountOpenByEmployerAsync(employerId, cancellationToken);
 
         if (openCount >= _options.Value.MaxOpenPostingsPerEmployer)
         {

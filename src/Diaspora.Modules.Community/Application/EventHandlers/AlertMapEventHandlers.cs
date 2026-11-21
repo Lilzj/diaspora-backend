@@ -26,9 +26,9 @@ namespace Diaspora.Modules.Community.Application.EventHandlers;
 public sealed class AlertMapAnnouncer
 {
     private readonly CommunityIntegrationEventRelay _relay;
-    private readonly ICommunityPostRepository _posts;
+    private readonly ICommunityPostReader _posts;
 
-    public AlertMapAnnouncer(CommunityIntegrationEventRelay relay, ICommunityPostRepository posts)
+    public AlertMapAnnouncer(CommunityIntegrationEventRelay relay, ICommunityPostReader posts)
     {
         _relay = relay;
         _posts = posts;

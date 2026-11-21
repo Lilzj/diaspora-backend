@@ -49,7 +49,7 @@ public sealed class CreatorActivityRecorder
 {
     private readonly ICreatorProfileRepository _creators;
     private readonly ICreatorActivityRepository _activity;
-    private readonly ICreatorRewardRepository _rewards;
+    private readonly ICreatorPointRuleRepository _rewards;
     private readonly MilestoneProgressService _milestones;
     private readonly ChallengeProgressService _challenges;
     private readonly ReferralQualificationService _referrals;
@@ -61,7 +61,7 @@ public sealed class CreatorActivityRecorder
     public CreatorActivityRecorder(
         ICreatorProfileRepository creators,
         ICreatorActivityRepository activity,
-        ICreatorRewardRepository rewards,
+        ICreatorPointRuleRepository rewards,
         MilestoneProgressService milestones,
         ChallengeProgressService challenges,
         ReferralQualificationService referrals,

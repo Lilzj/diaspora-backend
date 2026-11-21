@@ -23,12 +23,12 @@ namespace Diaspora.Modules.Location.Application.Search;
 public sealed class SearchLocationsQueryHandler
     : IQueryHandler<SearchLocationsQuery, LocationSearchResponse>
 {
-    private readonly IAdministrativeAreaRepository _areas;
+    private readonly IAdministrativeAreaSearch _areas;
     private readonly ICountryRepository _countries;
     private readonly IGeoDistanceCalculator _calculator;
 
     public SearchLocationsQueryHandler(
-        IAdministrativeAreaRepository areas,
+        IAdministrativeAreaSearch areas,
         ICountryRepository countries,
         IGeoDistanceCalculator calculator)
     {

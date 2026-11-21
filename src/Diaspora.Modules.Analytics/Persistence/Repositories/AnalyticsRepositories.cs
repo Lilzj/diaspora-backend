@@ -50,7 +50,7 @@ internal static class TrackingSafety
 /// the way to keep that promise is to have no signature that would let a handler do it.
 /// </para>
 /// </summary>
-public sealed class AnalyticsEventRepository : IAnalyticsEventRepository
+public sealed class AnalyticsEventRepository : IAnalyticsEventRepository, IAnalyticsCellSource, IAnalyticsEventReports, IAnalyticsEventHousekeeping
 {
     private readonly DiasporaDbContext _dbContext;
 
@@ -566,7 +566,7 @@ public sealed class AnalyticsContentDimensionRepository : IAnalyticsContentDimen
 }
 
 /// <summary>Reads and writes the daily rollups.</summary>
-public sealed class AnalyticsRollupRepository : IAnalyticsRollupRepository
+public sealed class AnalyticsRollupRepository : IAnalyticsRollupRepository, IAnalyticsRollupReports, IAnalyticsRollupHousekeeping
 {
     private readonly DiasporaDbContext _dbContext;
 

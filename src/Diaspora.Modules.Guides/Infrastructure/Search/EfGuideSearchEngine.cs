@@ -36,9 +36,9 @@ namespace Diaspora.Modules.Guides.Infrastructure.Search;
 /// </summary>
 public sealed class EfGuideSearchEngine : IGuideSearchEngine
 {
-    private readonly IGuideRepository _guides;
+    private readonly IGuideSearch _guides;
 
-    public EfGuideSearchEngine(IGuideRepository guides) => _guides = guides;
+    public EfGuideSearchEngine(IGuideSearch guides) => _guides = guides;
 
     /// <summary>
     /// A no-op. The write model is the index — see the class summary.

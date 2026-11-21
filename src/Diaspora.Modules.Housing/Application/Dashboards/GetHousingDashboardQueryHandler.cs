@@ -35,7 +35,7 @@ public sealed class GetHousingDashboardQueryHandler
 
     private const int RecentListings = 5;
 
-    private readonly IHousingListingRepository _listings;
+    private readonly IHousingListingSearch _listings;
     private readonly IHousingViewingRepository _viewings;
     private readonly IHousingReservationRepository _reservations;
     private readonly IHousingAnalyticsRepository _analytics;
@@ -44,7 +44,7 @@ public sealed class GetHousingDashboardQueryHandler
     private readonly IClock _clock;
 
     public GetHousingDashboardQueryHandler(
-        IHousingListingRepository listings,
+        IHousingListingSearch listings,
         IHousingViewingRepository viewings,
         IHousingReservationRepository reservations,
         IHousingAnalyticsRepository analytics,

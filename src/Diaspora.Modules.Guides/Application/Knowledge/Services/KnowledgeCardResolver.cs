@@ -28,12 +28,12 @@ namespace Diaspora.Modules.Guides.Application.Knowledge.Services;
 /// </summary>
 public sealed class KnowledgeCardResolver
 {
-    private readonly IGuideRepository _guides;
+    private readonly IGuideSearch _guides;
     private readonly GuideAuthorizationService _authorization;
     private readonly GuideAuthorNames _authorNames;
 
     public KnowledgeCardResolver(
-        IGuideRepository guides,
+        IGuideSearch guides,
         GuideAuthorizationService authorization,
         GuideAuthorNames authorNames)
     {

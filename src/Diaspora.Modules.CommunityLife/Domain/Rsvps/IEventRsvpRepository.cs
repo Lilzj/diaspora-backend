@@ -6,12 +6,8 @@ using Diaspora.SharedKernel.Pagination;
 namespace Diaspora.Modules.CommunityLife.Domain.Rsvps;
 
 /// <summary>
-/// How the module reads and writes responses.
-/// <para>
-/// There is deliberately no method that returns every response to an event as a list. The attendee
-/// list is paged everywhere it is rendered, and a repository that offered an unbounded read would
-/// be the one a well-meaning handler used to render a card.
-/// </para>
+/// How the module loads and stores an RSVP it is about to change, including the waitlist and live
+/// batches a capacity change promotes from.
 /// </summary>
 public interface IEventRsvpRepository
 {
@@ -30,6 +26,36 @@ public interface IEventRsvpRepository
         UserId attendeeUserId,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// The waiting list, in the order people joined it.
+    /// <para>
+    /// Order matters and is the whole point: promoting whoever the database returned first would
+    /// make a waiting list a lottery.
+    /// </para>
+    /// </summary>
+    Task<IReadOnlyList<EventRsvp>> FindWaitlistAsync(
+        CommunityEventId eventId, int limit, CancellationToken cancellationToken = default);
+
+    /// <summary>Every live response to an event. The cancellation sweep's work list, batched.</summary>
+    Task<IReadOnlyList<EventRsvp>> FindLiveAsync(
+        CommunityEventId eventId, int batchSize, CancellationToken cancellationToken = default);
+
+    Task AddAsync(EventRsvp rsvp, CancellationToken cancellationToken = default);
+
+    void Update(EventRsvp rsvp);
+}
+
+/// <summary>
+/// Lists of RSVPs: an organizer's page, an attendee's own, and the addressable set a reminder
+/// fans out to.
+/// <para>
+/// There is deliberately no method that returns every response to an event as a list. The attendee
+/// list is paged everywhere it is rendered, and a role that offered an unbounded read would be the
+/// one a well-meaning handler used to render a card.
+/// </para>
+/// </summary>
+public interface IEventRsvpSearch
+{
     Task<CursorPagedResult<EventRsvp>> SearchAsync(
         RsvpQueryFilter filter, CancellationToken cancellationToken = default);
 
@@ -46,6 +72,29 @@ public interface IEventRsvpRepository
         IReadOnlyCollection<CommunityEventId> eventIds,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Everybody who should hear about a change to the event — B13.3.
+    /// <para>
+    /// <b>Live responses, plus the ones the platform released when the event was called off.</b>
+    /// The second half is the whole reason this exists and not <see cref="FindLiveAsync"/>:
+    /// cancelling an event releases every place inside the same transaction, so by the time anything
+    /// downstream asks who was affected, nobody is live and the honest answer to "who should be told
+    /// this was cancelled" is a list that no longer exists. The decline reason is what separates
+    /// those members from the ones who withdrew of their own accord — and telling somebody who
+    /// pulled out last month that the event is off is a message they did not need.
+    /// </para>
+    /// <para>Bounded like every other fan-out query. The caller pages or accepts the cap.</para>
+    /// </summary>
+    Task<IReadOnlyList<EventRsvp>> FindAddressableAsync(
+        CommunityEventId eventId, int batchSize, CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// The figures a capacity check asks: counts by status, places taken, how many are waitlisted
+/// ahead of one, and whether an RSVP exists at all.
+/// </summary>
+public interface IEventRsvpFacts
+{
     /// <summary>How many responses an event has in each status, and how many places they hold.</summary>
     Task<IReadOnlyDictionary<RsvpStatus, int>> CountByStatusAsync(
         CommunityEventId eventId, CancellationToken cancellationToken = default);
@@ -59,16 +108,6 @@ public interface IEventRsvpRepository
     /// </summary>
     Task<RsvpPlaceTotals> SumPlacesAsync(
         CommunityEventId eventId, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// The waiting list, in the order people joined it.
-    /// <para>
-    /// Order matters and is the whole point: promoting whoever the database returned first would
-    /// make a waiting list a lottery.
-    /// </para>
-    /// </summary>
-    Task<IReadOnlyList<EventRsvp>> FindWaitlistAsync(
-        CommunityEventId eventId, int limit, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// How many waitlisted responses joined the queue before a given one.
@@ -89,33 +128,9 @@ public interface IEventRsvpRepository
         DateTimeOffset joinedAt,
         CancellationToken cancellationToken = default);
 
-    /// <summary>Every live response to an event. The cancellation sweep's work list, batched.</summary>
-    Task<IReadOnlyList<EventRsvp>> FindLiveAsync(
-        CommunityEventId eventId, int batchSize, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Everybody who should hear about a change to the event — B13.3.
-    /// <para>
-    /// <b>Live responses, plus the ones the platform released when the event was called off.</b>
-    /// The second half is the whole reason this exists and not <see cref="FindLiveAsync"/>:
-    /// cancelling an event releases every place inside the same transaction, so by the time anything
-    /// downstream asks who was affected, nobody is live and the honest answer to "who should be told
-    /// this was cancelled" is a list that no longer exists. The decline reason is what separates
-    /// those members from the ones who withdrew of their own accord — and telling somebody who
-    /// pulled out last month that the event is off is a message they did not need.
-    /// </para>
-    /// <para>Bounded like every other fan-out query. The caller pages or accepts the cap.</para>
-    /// </summary>
-    Task<IReadOnlyList<EventRsvp>> FindAddressableAsync(
-        CommunityEventId eventId, int batchSize, CancellationToken cancellationToken = default);
-
     /// <summary>Whether the member has ever responded to the event.</summary>
     Task<bool> ExistsAsync(
         CommunityEventId eventId,
         UserId attendeeUserId,
         CancellationToken cancellationToken = default);
-
-    Task AddAsync(EventRsvp rsvp, CancellationToken cancellationToken = default);
-
-    void Update(EventRsvp rsvp);
 }

@@ -19,12 +19,12 @@ namespace Diaspora.Modules.Guides.Application.Engagement;
 /// </summary>
 public sealed class ReportGuideCommandHandler : ICommandHandler<ReportGuideCommand>
 {
-    private readonly IGuideRepository _guides;
+    private readonly IGuideReader _guides;
     private readonly GuideReportService _reports;
     private readonly GuideAuthorizationService _authorization;
 
     public ReportGuideCommandHandler(
-        IGuideRepository guides,
+        IGuideReader guides,
         GuideReportService reports,
         GuideAuthorizationService authorization)
     {

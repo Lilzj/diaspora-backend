@@ -53,7 +53,7 @@ public sealed class StoredEnumQueryTests : PooledIdentityTestBase
         var run = await SeedPostingsAsync();
 
         using var scope = Factory.Services.CreateScope();
-        var postings = scope.ServiceProvider.GetRequiredService<IJobPostingRepository>();
+        var postings = scope.ServiceProvider.GetRequiredService<IJobPostingSearch>();
 
         var upToMid = await postings.QueryAsync(
             new JobQueryFilter { Text = run, MaximumExperience = ExperienceLevel.Mid }, null, 50);

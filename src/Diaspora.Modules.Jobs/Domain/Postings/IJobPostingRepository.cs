@@ -5,28 +5,27 @@ using Diaspora.SharedKernel.Pagination;
 namespace Diaspora.Modules.Jobs.Domain.Postings;
 
 /// <summary>
-/// Reads and writes job postings.
+/// How the module loads and stores a posting it is about to change, plus the two lifecycle
+/// batches: the expired postings a sweep closes and the newly published ones a digest announces.
 /// <para>
-/// <b>Three shapes of read, and the split is load-bearing.</b> <see cref="GetAsync"/>
-/// materialises the whole aggregate — lines, skills, tags, references, questions, notes —
-/// because a command about to mutate it needs all of it, and a partially loaded aggregate
-/// cannot enforce its own invariants. <see cref="GetForReadAsync"/> materialises the same graph
-/// untracked, for the detail screen. <see cref="QueryAsync"/> materialises the <em>card</em>
-/// graph, because a results page of twenty postings that eagerly loaded twenty full adverts
-/// would be several thousand rows to render twenty titles.
+/// <b>Three shapes of read, and the split is load-bearing — these three roles are those three
+/// shapes.</b> <see cref="GetAsync"/> materialises the whole aggregate — lines, skills, tags,
+/// references, questions, notes — because a command about to mutate it needs all of it, and a
+/// partially loaded aggregate cannot enforce its own invariants.
+/// <see cref="IJobPostingReader.GetForReadAsync"/> materialises the same graph untracked, for the
+/// detail screen. <see cref="IJobPostingSearch.QueryAsync"/> materialises the <em>card</em> graph,
+/// because a results page of twenty postings that eagerly loaded twenty full adverts would be
+/// several thousand rows to render twenty titles.
+/// </para>
+/// <para>
+/// <see cref="GetManyAsync"/> is declared here and on the reader, because a batch identity load
+/// and a list's hydration step are the same operation.
 /// </para>
 /// </summary>
 public interface IJobPostingRepository
 {
     /// <summary>The full aggregate, tracked. For commands.</summary>
     Task<JobPosting?> GetAsync(JobPostingId id, CancellationToken cancellationToken = default);
-
-    /// <summary>The full graph, untracked. Everything the detail screen renders.</summary>
-    Task<JobPosting?> GetForReadAsync(
-        JobPostingId id, CancellationToken cancellationToken = default);
-
-    /// <summary>The full graph, by the deep-link handle.</summary>
-    Task<JobPosting?> GetBySlugAsync(JobSlug slug, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// The full graph, tracked, including a soft-deleted posting.
@@ -40,27 +39,6 @@ public interface IJobPostingRepository
     /// </summary>
     Task<JobPosting?> GetIncludingDeletedAsync(
         JobPostingId id, CancellationToken cancellationToken = default);
-
-    /// <summary>Several postings at once, card graph, untracked. Hydrates search hits.</summary>
-    Task<IReadOnlyList<JobPosting>> GetManyAsync(
-        IReadOnlyCollection<JobPostingId> ids, CancellationToken cancellationToken = default);
-
-    /// <summary>The one query search, browse, nearby and every dashboard run. Card graph.</summary>
-    Task<CursorPagedResult<JobPosting>> QueryAsync(
-        JobQueryFilter filter,
-        string? cursor,
-        int limit,
-        CancellationToken cancellationToken = default);
-
-    /// <summary>How many postings match, for a facet count or a dashboard tile.</summary>
-    Task<int> CountAsync(JobQueryFilter filter, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Whether a slug is free. Advisory, not authoritative — the unique index is what actually
-    /// guarantees it. Exists so the allocator can pick a free suffix before writing, rather than
-    /// catching a constraint violation and retrying.
-    /// </summary>
-    Task<bool> SlugExistsAsync(JobSlug slug, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// The posting holding Trust's verification identifier, tracked.
@@ -88,11 +66,61 @@ public interface IJobPostingRepository
     Task<IReadOnlyList<JobPosting>> GetPublishedSinceAsync(
         DateTimeOffset since, int limit, CancellationToken cancellationToken = default);
 
-    /// <summary>How many postings an employer currently has open. Enforces the posting ceiling.</summary>
-    Task<int> CountOpenByEmployerAsync(
-        EmployerProfileId employerId, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Whether a slug is free. Advisory, not authoritative — the unique index is what actually
+    /// guarantees it. Exists so the allocator can pick a free suffix before writing, rather than
+    /// catching a constraint violation and retrying.
+    /// </summary>
+    Task<bool> SlugExistsAsync(JobSlug slug, CancellationToken cancellationToken = default);
+
+    /// <summary>Several postings at once, card graph, untracked. Hydrates search hits.</summary>
+    Task<IReadOnlyList<JobPosting>> GetManyAsync(
+        IReadOnlyCollection<JobPostingId> ids, CancellationToken cancellationToken = default);
 
     Task AddAsync(JobPosting posting, CancellationToken cancellationToken = default);
 
     void Remove(JobPosting posting);
+}
+
+/// <summary>
+/// A posting for display: one untracked, one by slug, or a batch for a list of cards. The same
+/// graph <see cref="IJobPostingRepository.GetAsync"/> loads, without the tracking a command needs.
+/// </summary>
+public interface IJobPostingReader
+{
+    /// <summary>The full graph, untracked. Everything the detail screen renders.</summary>
+    Task<JobPosting?> GetForReadAsync(
+        JobPostingId id, CancellationToken cancellationToken = default);
+
+    /// <summary>The full graph, by the deep-link handle.</summary>
+    Task<JobPosting?> GetBySlugAsync(JobSlug slug, CancellationToken cancellationToken = default);
+
+    /// <summary>Several postings at once, card graph, untracked. Hydrates search hits.</summary>
+    Task<IReadOnlyList<JobPosting>> GetManyAsync(
+        IReadOnlyCollection<JobPostingId> ids, CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// Discovery: a page of postings, its count, and the open count an employer's allowance is checked
+/// against.
+/// <para>
+/// <see cref="QueryAsync"/> materialises the card graph rather than the whole advert, for the
+/// reason <see cref="IJobPostingRepository"/> records.
+/// </para>
+/// </summary>
+public interface IJobPostingSearch
+{
+    /// <summary>The one query search, browse, nearby and every dashboard run. Card graph.</summary>
+    Task<CursorPagedResult<JobPosting>> QueryAsync(
+        JobQueryFilter filter,
+        string? cursor,
+        int limit,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>How many postings match, for a facet count or a dashboard tile.</summary>
+    Task<int> CountAsync(JobQueryFilter filter, CancellationToken cancellationToken = default);
+
+    /// <summary>How many postings an employer currently has open. Enforces the posting ceiling.</summary>
+    Task<int> CountOpenByEmployerAsync(
+        EmployerProfileId employerId, CancellationToken cancellationToken = default);
 }

@@ -36,12 +36,12 @@ namespace Diaspora.Modules.Jobs.Infrastructure.Recommendations;
 public sealed class HeuristicJobRecommendationProvider : IJobRecommendationProvider
 {
     private readonly ICandidateProfileRepository _candidates;
-    private readonly IJobPostingRepository _postings;
+    private readonly IJobPostingSearch _postings;
     private readonly IClock _clock;
 
     public HeuristicJobRecommendationProvider(
         ICandidateProfileRepository candidates,
-        IJobPostingRepository postings,
+        IJobPostingSearch postings,
         IClock clock)
     {
         _candidates = candidates;

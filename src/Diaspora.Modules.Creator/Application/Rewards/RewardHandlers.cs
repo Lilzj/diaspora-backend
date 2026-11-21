@@ -261,10 +261,10 @@ public sealed record GetRewardRulesQuery : IQuery<CreatorPointRulesResponse>;
 public sealed class GetRewardRulesQueryHandler
     : IQueryHandler<GetRewardRulesQuery, CreatorPointRulesResponse>
 {
-    private readonly ICreatorRewardRepository _rewards;
+    private readonly ICreatorPointRuleRepository _rewards;
     private readonly IClock _clock;
 
-    public GetRewardRulesQueryHandler(ICreatorRewardRepository rewards, IClock clock)
+    public GetRewardRulesQueryHandler(ICreatorPointRuleRepository rewards, IClock clock)
     {
         _rewards = rewards;
         _clock = clock;
@@ -304,17 +304,20 @@ public sealed class GetRewardCatalogueQueryHandler
 {
     private readonly CreatorContext _context;
     private readonly ICreatorRewardRepository _rewards;
+    private readonly ICreatorRewardRedemptionRepository _redemptions;
     private readonly IRewardPointsAccount _points;
     private readonly IClock _clock;
 
     public GetRewardCatalogueQueryHandler(
         CreatorContext context,
         ICreatorRewardRepository rewards,
+        ICreatorRewardRedemptionRepository redemptions,
         IRewardPointsAccount points,
         IClock clock)
     {
         _context = context;
         _rewards = rewards;
+        _redemptions = redemptions;
         _points = points;
         _clock = clock;
     }
@@ -388,7 +391,7 @@ public sealed class GetRewardCatalogueQueryHandler
         // by construction does not exist.
         if (isPersisted && reward.MaxPerCreator is { } cap)
         {
-            var used = await _rewards.CountRedemptionsAsync(creator.Id, reward.Id, cancellationToken);
+            var used = await _redemptions.CountRedemptionsAsync(creator.Id, reward.Id, cancellationToken);
 
             if (used >= cap)
             {
@@ -398,7 +401,7 @@ public sealed class GetRewardCatalogueQueryHandler
 
         if (isPersisted && reward.CooldownHours is { } cooldown)
         {
-            var last = await _rewards.LastRedeemedAtAsync(creator.Id, reward.Id, cancellationToken);
+            var last = await _redemptions.LastRedeemedAtAsync(creator.Id, reward.Id, cancellationToken);
 
             if (last is { } at && at.AddHours(cooldown) > now)
             {
@@ -424,10 +427,10 @@ public sealed class ListMyRedemptionsQueryHandler
     : IQueryHandler<ListMyRedemptionsQuery, IReadOnlyList<CreatorRewardRedemptionResponse>>
 {
     private readonly CreatorContext _context;
-    private readonly ICreatorRewardRepository _rewards;
+    private readonly ICreatorRewardRedemptionRepository _rewards;
 
     public ListMyRedemptionsQueryHandler(
-        CreatorContext context, ICreatorRewardRepository rewards)
+        CreatorContext context, ICreatorRewardRedemptionRepository rewards)
     {
         _context = context;
         _rewards = rewards;
@@ -502,6 +505,7 @@ public sealed class RedeemRewardCommandHandler
 
     private readonly CreatorContext _context;
     private readonly ICreatorRewardRepository _rewards;
+    private readonly ICreatorRewardRedemptionRepository _redemptions;
     private readonly IRewardPointsAccount _points;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IGuidGenerator _guids;
@@ -510,6 +514,7 @@ public sealed class RedeemRewardCommandHandler
     public RedeemRewardCommandHandler(
         CreatorContext context,
         ICreatorRewardRepository rewards,
+        ICreatorRewardRedemptionRepository redemptions,
         IRewardPointsAccount points,
         IUnitOfWork unitOfWork,
         IGuidGenerator guids,
@@ -517,6 +522,7 @@ public sealed class RedeemRewardCommandHandler
     {
         _context = context;
         _rewards = rewards;
+        _redemptions = redemptions;
         _points = points;
         _unitOfWork = unitOfWork;
         _guids = guids;
@@ -547,7 +553,7 @@ public sealed class RedeemRewardCommandHandler
 
         if (key is not null)
         {
-            var replayed = await _rewards.FindByIdempotencyKeyAsync(creator.Value.Id, key, cancellationToken);
+            var replayed = await _redemptions.FindByIdempotencyKeyAsync(creator.Value.Id, key, cancellationToken);
 
             if (replayed is not null)
             {
@@ -581,7 +587,7 @@ public sealed class RedeemRewardCommandHandler
 
         if (reward.MaxPerCreator is { } cap)
         {
-            var used = await _rewards.CountRedemptionsAsync(
+            var used = await _redemptions.CountRedemptionsAsync(
                 creator.Value.Id, reward.Id, cancellationToken);
 
             if (used >= cap)
@@ -593,7 +599,7 @@ public sealed class RedeemRewardCommandHandler
 
         if (reward.CooldownHours is { } cooldown)
         {
-            var last = await _rewards.LastRedeemedAtAsync(
+            var last = await _redemptions.LastRedeemedAtAsync(
                 creator.Value.Id, reward.Id, cancellationToken);
 
             if (last is { } at && at.AddHours(cooldown) > now)
@@ -634,14 +640,14 @@ public sealed class RedeemRewardCommandHandler
         // placement, a badge or a session against it. Members spent points and were told they had
         // been given something they never received. A redemption is now fulfilled, or rejected and
         // refunded, by a person: DecideRedemptionCommand. The points are spent now, exactly as before.
-        _rewards.AddRedemption(redemption);
+        _redemptions.AddRedemption(redemption);
 
         // In a transaction: a violation here aborts it, so the guard rethrows rather than looking
         // up — the client's retry replays from the pre-check above.
         var commit = await CreatorIdempotency.GuardAsync(
             key,
             token => _unitOfWork.SaveChangesAsync(token),
-            token => _rewards.FindByIdempotencyKeyAsync(creator.Value.Id, key!, token),
+            token => _redemptions.FindByIdempotencyKeyAsync(creator.Value.Id, key!, token),
             cancellationToken,
             inTransaction: true);
 

@@ -30,6 +30,7 @@ public sealed class CreateGuideTranslationCommandHandler
     : ICommandHandler<CreateGuideTranslationCommand, GuideResponse>
 {
     private readonly IGuideRepository _guides;
+    private readonly IGuideReader _guideReader;
     private readonly IUnitOfWork _unitOfWork;
     private readonly GuideAuthorizationService _authorization;
     private readonly GuideSlugAllocator _slugs;
@@ -38,6 +39,7 @@ public sealed class CreateGuideTranslationCommandHandler
 
     public CreateGuideTranslationCommandHandler(
         IGuideRepository guides,
+        IGuideReader guideReader,
         IUnitOfWork unitOfWork,
         GuideAuthorizationService authorization,
         GuideSlugAllocator slugs,
@@ -45,6 +47,7 @@ public sealed class CreateGuideTranslationCommandHandler
         IClock clock)
     {
         _guides = guides;
+    _guideReader = guideReader;
         _unitOfWork = unitOfWork;
         _authorization = authorization;
         _slugs = slugs;
@@ -64,7 +67,7 @@ public sealed class CreateGuideTranslationCommandHandler
             return Result.Failure<GuideResponse>(caller.Error);
         }
 
-        var source = await _guides.GetForReadAsync(
+        var source = await _guideReader.GetForReadAsync(
             GuideId.From(command.GuideId), cancellationToken);
 
         if (source is null || !_authorization.CanSee(source))

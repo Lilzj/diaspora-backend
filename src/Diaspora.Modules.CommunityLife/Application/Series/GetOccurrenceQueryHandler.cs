@@ -22,6 +22,7 @@ public sealed class GetOccurrenceQueryHandler
     : IQueryHandler<GetOccurrenceQuery, EventOccurrenceResponse>
 {
     private readonly ICommunityEventRepository _events;
+    private readonly ICommunityEventSeries _communityEventSeries;
     private readonly IEventSeriesRepository _series;
     private readonly CommunityLifeAuthorizationService _authorization;
     private readonly EventSeriesReadContext _read;
@@ -29,12 +30,14 @@ public sealed class GetOccurrenceQueryHandler
 
     public GetOccurrenceQueryHandler(
         ICommunityEventRepository events,
+        ICommunityEventSeries communityEventSeries,
         IEventSeriesRepository series,
         CommunityLifeAuthorizationService authorization,
         EventSeriesReadContext read,
         IClock clock)
     {
         _events = events;
+        _communityEventSeries = communityEventSeries;
         _series = series;
         _authorization = authorization;
         _read = read;
@@ -70,7 +73,7 @@ public sealed class GetOccurrenceQueryHandler
                 CommunityLifeErrors.EventSeriesNotFound);
         }
 
-        var next = await _events.FindNextOccurrenceAsync(
+        var next = await _communityEventSeries.FindNextOccurrenceAsync(
             seriesId, _clock.UtcNow, cancellationToken);
 
         var mapped = await _read.ToOccurrencesAsync(

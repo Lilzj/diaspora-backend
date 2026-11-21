@@ -29,9 +29,9 @@ namespace Diaspora.Modules.Providers.Infrastructure.Recommendations;
 /// </summary>
 public sealed class SimilarCategoryRecommendations : IProviderRecommendationProvider
 {
-    private readonly IProviderRepository _providers;
+    private readonly IProviderSearch _providers;
 
-    public SimilarCategoryRecommendations(IProviderRepository providers) => _providers = providers;
+    public SimilarCategoryRecommendations(IProviderSearch providers) => _providers = providers;
 
     public string Module => ProvidersModuleMetadata.Name;
 

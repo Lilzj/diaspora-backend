@@ -53,14 +53,14 @@ public sealed class GetAnalyticsRetentionQueryHandler
 
     private readonly AnalyticsQueryContext _context;
     private readonly AnalyticsActivitySubjects _subjects;
-    private readonly IAnalyticsEventRepository _events;
+    private readonly IAnalyticsEventReports _events;
     private readonly AnalyticsActorHasher _actors;
     private readonly AnalyticsOptions _options;
 
     public GetAnalyticsRetentionQueryHandler(
         AnalyticsQueryContext context,
         AnalyticsActivitySubjects subjects,
-        IAnalyticsEventRepository events,
+        IAnalyticsEventReports events,
         AnalyticsActorHasher actors,
         IOptions<AnalyticsOptions> options)
     {

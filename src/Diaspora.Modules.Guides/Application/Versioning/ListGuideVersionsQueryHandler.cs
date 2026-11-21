@@ -27,12 +27,12 @@ namespace Diaspora.Modules.Guides.Application.Versioning;
 public sealed class ListGuideVersionsQueryHandler
     : IQueryHandler<ListGuideVersionsQuery, IReadOnlyList<GuideVersionSummaryResponse>>
 {
-    private readonly IGuideRepository _guides;
+    private readonly IGuideReader _guides;
     private readonly IGuideVersionRepository _versions;
     private readonly GuideAuthorizationService _authorization;
 
     public ListGuideVersionsQueryHandler(
-        IGuideRepository guides,
+        IGuideReader guides,
         IGuideVersionRepository versions,
         GuideAuthorizationService authorization)
     {

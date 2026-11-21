@@ -20,14 +20,14 @@ public sealed class ListApplicationInterviewsQueryHandler
 {
     private readonly IInterviewRepository _interviews;
     private readonly IJobApplicationRepository _applications;
-    private readonly IJobPostingRepository _postings;
+    private readonly IJobPostingReader _postings;
     private readonly IEmployerProfileRepository _employers;
     private readonly JobAuthorizationService _authorization;
 
     public ListApplicationInterviewsQueryHandler(
         IInterviewRepository interviews,
         IJobApplicationRepository applications,
-        IJobPostingRepository postings,
+        IJobPostingReader postings,
         IEmployerProfileRepository employers,
         JobAuthorizationService authorization)
     {

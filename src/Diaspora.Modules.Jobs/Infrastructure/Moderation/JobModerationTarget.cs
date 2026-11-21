@@ -27,13 +27,16 @@ namespace Diaspora.Modules.Jobs.Infrastructure.Moderation;
 public sealed class JobModerationTarget : IModerationTarget
 {
     private readonly IJobPostingRepository _postings;
+    private readonly IJobPostingReader _postingReader;
     private readonly IEmployerProfileRepository _employers;
     private readonly IClock _clock;
 
     public JobModerationTarget(
-        IJobPostingRepository postings, IEmployerProfileRepository employers, IClock clock)
+        IJobPostingRepository postings,
+        IJobPostingReader postingReader, IEmployerProfileRepository employers, IClock clock)
     {
         _postings = postings;
+    _postingReader = postingReader;
         _employers = employers;
         _clock = clock;
     }
@@ -45,7 +48,7 @@ public sealed class JobModerationTarget : IModerationTarget
     public async Task<ModerationTargetSnapshot?> DescribeAsync(
         Guid contentId, CancellationToken cancellationToken = default)
     {
-        var posting = await _postings.GetForReadAsync(JobPostingId.From(contentId), cancellationToken);
+        var posting = await _postingReader.GetForReadAsync(JobPostingId.From(contentId), cancellationToken);
 
         if (posting is null)
         {

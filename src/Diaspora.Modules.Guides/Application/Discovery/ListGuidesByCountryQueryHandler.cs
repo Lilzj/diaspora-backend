@@ -22,14 +22,14 @@ namespace Diaspora.Modules.Guides.Application.Discovery;
 public sealed class ListGuidesByCountryQueryHandler
     : IQueryHandler<ListGuidesByCountryQuery, CursorPagedResult<GuideCardResponse>>
 {
-    private readonly IGuideRepository _guides;
+    private readonly IGuideSearch _guides;
     private readonly GuideAuthorizationService _authorization;
     private readonly GuideRankingStrategyRegistry _rankings;
     private readonly IClock _clock;
     private readonly GuideAuthorNames _authorNames;
 
     public ListGuidesByCountryQueryHandler(
-        IGuideRepository guides,
+        IGuideSearch guides,
         GuideAuthorizationService authorization,
         GuideRankingStrategyRegistry rankings,
         IClock clock,

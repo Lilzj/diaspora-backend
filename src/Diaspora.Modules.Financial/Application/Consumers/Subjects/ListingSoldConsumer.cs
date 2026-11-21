@@ -17,10 +17,11 @@ public sealed class ListingSoldConsumer : SubjectRetirementConsumer<ListingSoldI
 {
     public ListingSoldConsumer(
         IPlacementRepository placements,
+        IPlacementFacts placementFacts,
         IUnitOfWork unitOfWork,
         IClock clock,
         ILogger<ListingSoldConsumer> logger)
-        : base(placements, unitOfWork, clock, logger)
+        : base(placements, placementFacts, unitOfWork, clock, logger)
     {
     }
 

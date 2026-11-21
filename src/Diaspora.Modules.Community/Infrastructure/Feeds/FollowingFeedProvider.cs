@@ -24,10 +24,10 @@ namespace Diaspora.Modules.Community.Infrastructure.Feeds;
 /// </summary>
 public sealed class FollowingFeedProvider : IFeedProvider
 {
-    private readonly ICommunityPostRepository _posts;
+    private readonly ICommunityPostSearch _posts;
     private readonly IFollowRepository _follows;
 
-    public FollowingFeedProvider(ICommunityPostRepository posts, IFollowRepository follows)
+    public FollowingFeedProvider(ICommunityPostSearch posts, IFollowRepository follows)
     {
         _posts = posts;
         _follows = follows;

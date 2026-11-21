@@ -9,9 +9,9 @@ namespace Diaspora.Modules.CommunityLife.Infrastructure.Search;
 /// </summary>
 public sealed class EfOrganizationSearchEngine : IOrganizationSearchEngine
 {
-    private readonly IOrganizationRepository _organizations;
+    private readonly IOrganizationSearch _organizations;
 
-    public EfOrganizationSearchEngine(IOrganizationRepository organizations) =>
+    public EfOrganizationSearchEngine(IOrganizationSearch organizations) =>
         _organizations = organizations;
 
     public string EngineName => "database";

@@ -35,7 +35,7 @@ namespace Diaspora.Modules.Marketplace.Persistence.Repositories;
 /// Soft-deleted rows never appear at all — the shared context's global filter owns that predicate.
 /// </para>
 /// </summary>
-public sealed class MarketplaceListingRepository : IMarketplaceListingRepository
+public sealed class MarketplaceListingRepository : IMarketplaceListingRepository, IMarketplaceListingSearch, IMarketplaceListingSellerFacts, IMarketplaceListingStatistics
 {
     private readonly DiasporaDbContext _dbContext;
 

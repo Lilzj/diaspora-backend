@@ -13,10 +13,10 @@ namespace Diaspora.Modules.Financial.Application.Placements;
 public sealed class GetPlacementsForSubjectQueryHandler
     : IQueryHandler<GetPlacementsForSubjectQuery, IReadOnlyList<PlacementResponse>>
 {
-    private readonly IPlacementRepository _placements;
+    private readonly IPlacementFacts _placements;
     private readonly IClock _clock;
 
-    public GetPlacementsForSubjectQueryHandler(IPlacementRepository placements, IClock clock)
+    public GetPlacementsForSubjectQueryHandler(IPlacementFacts placements, IClock clock)
     {
         _placements = placements;
         _clock = clock;

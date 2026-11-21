@@ -24,14 +24,14 @@ public sealed class UpdateEmployerCommandHandler
     : ICommandHandler<UpdateEmployerCommand, EmployerResponse>
 {
     private readonly IEmployerProfileRepository _employers;
-    private readonly IJobPostingRepository _postings;
+    private readonly IJobPostingSearch _postings;
     private readonly IUnitOfWork _unitOfWork;
     private readonly JobAuthorizationService _authorization;
     private readonly JobMediaClaimer _media;
 
     public UpdateEmployerCommandHandler(
         IEmployerProfileRepository employers,
-        IJobPostingRepository postings,
+        IJobPostingSearch postings,
         IUnitOfWork unitOfWork,
         JobAuthorizationService authorization,
         JobMediaClaimer media)

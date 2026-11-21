@@ -50,9 +50,9 @@ public sealed class ListRedemptionsForReviewQueryValidator : AbstractValidator<L
 public sealed class ListRedemptionsForReviewQueryHandler
     : IQueryHandler<ListRedemptionsForReviewQuery, IReadOnlyList<CreatorRewardRedemptionResponse>>
 {
-    private readonly ICreatorRewardRepository _rewards;
+    private readonly ICreatorRewardRedemptionRepository _rewards;
 
-    public ListRedemptionsForReviewQueryHandler(ICreatorRewardRepository rewards) => _rewards = rewards;
+    public ListRedemptionsForReviewQueryHandler(ICreatorRewardRedemptionRepository rewards) => _rewards = rewards;
 
     public async Task<Result<IReadOnlyList<CreatorRewardRedemptionResponse>>> Handle(
         ListRedemptionsForReviewQuery query, CancellationToken cancellationToken)
@@ -140,14 +140,14 @@ public sealed class DecideRedemptionCommandHandler
     private const string Reject = "reject";
 
     private readonly CreatorContext _context;
-    private readonly ICreatorRewardRepository _rewards;
+    private readonly ICreatorRewardRedemptionRepository _rewards;
     private readonly IRewardPointsAccount _points;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
 
     public DecideRedemptionCommandHandler(
         CreatorContext context,
-        ICreatorRewardRepository rewards,
+        ICreatorRewardRedemptionRepository rewards,
         IRewardPointsAccount points,
         IUnitOfWork unitOfWork,
         IClock clock)

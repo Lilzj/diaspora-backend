@@ -17,10 +17,11 @@ public sealed class ProviderStatusChangedConsumer : SubjectRetirementConsumer<Pr
 {
     public ProviderStatusChangedConsumer(
         IPlacementRepository placements,
+        IPlacementFacts placementFacts,
         IUnitOfWork unitOfWork,
         IClock clock,
         ILogger<ProviderStatusChangedConsumer> logger)
-        : base(placements, unitOfWork, clock, logger)
+        : base(placements, placementFacts, unitOfWork, clock, logger)
     {
     }
 

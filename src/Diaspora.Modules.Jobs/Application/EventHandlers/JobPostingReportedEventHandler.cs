@@ -21,13 +21,13 @@ namespace Diaspora.Modules.Jobs.Application.EventHandlers;
 public sealed class JobPostingReportedEventHandler : DomainEventHandler<JobPostingReportedDomainEvent>
 {
     private readonly IJobReportRepository _reports;
-    private readonly IJobPostingRepository _postings;
+    private readonly IJobPostingReader _postings;
     private readonly IEmployerProfileRepository _employers;
     private readonly IIntegrationEventPublisher _publisher;
 
     public JobPostingReportedEventHandler(
         IJobReportRepository reports,
-        IJobPostingRepository postings,
+        IJobPostingReader postings,
         IEmployerProfileRepository employers,
         IIntegrationEventPublisher publisher)
     {

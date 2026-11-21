@@ -53,6 +53,7 @@ public sealed class DuplicateEventCommandHandler
     : ICommandHandler<DuplicateEventCommand, EventResponse>
 {
     private readonly ICommunityEventRepository _events;
+    private readonly ICommunityEventGuards _guards;
     private readonly IEventAnalyticsRepository _analytics;
     private readonly IUnitOfWork _unitOfWork;
     private readonly CommunityLifeAuthorizationService _authorization;
@@ -65,6 +66,7 @@ public sealed class DuplicateEventCommandHandler
 
     public DuplicateEventCommandHandler(
         ICommunityEventRepository events,
+        ICommunityEventGuards guards,
         IEventAnalyticsRepository analytics,
         IUnitOfWork unitOfWork,
         CommunityLifeAuthorizationService authorization,
@@ -76,6 +78,7 @@ public sealed class DuplicateEventCommandHandler
         IClock clock)
     {
         _events = events;
+        _guards = guards;
         _analytics = analytics;
         _unitOfWork = unitOfWork;
         _authorization = authorization;
@@ -114,7 +117,7 @@ public sealed class DuplicateEventCommandHandler
             return Result.Failure<EventResponse>(CommunityLifeErrors.NotEventOrganizer);
         }
 
-        var live = await _events.CountLiveByOrganizerAsync(caller.Value, cancellationToken);
+        var live = await _guards.CountLiveByOrganizerAsync(caller.Value, cancellationToken);
 
         if (live >= _options.Value.MaxLiveEventsPerOrganizer)
         {
@@ -136,7 +139,7 @@ public sealed class DuplicateEventCommandHandler
 
         // Same title on the same date is a double-submit rather than a second event, which is what
         // the create path decides too. A different date makes it a repeat, and that is allowed.
-        if (await _events.HasDuplicateAsync(
+        if (await _guards.HasDuplicateAsync(
                 caller.Value, titleText, schedule.Value.StartsAt, excluding: null, cancellationToken))
         {
             return Result.Failure<EventResponse>(CommunityLifeErrors.DuplicateEvent);

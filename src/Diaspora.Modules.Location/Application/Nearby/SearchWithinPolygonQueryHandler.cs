@@ -17,10 +17,10 @@ public sealed class SearchWithinPolygonQueryHandler
     : IQueryHandler<SearchWithinPolygonQuery, IReadOnlyList<AreaSummaryResponse>>
 {
     private readonly GeospatialProviderRegistry _spatial;
-    private readonly IAdministrativeAreaRepository _areas;
+    private readonly IAdministrativeAreaSearch _areas;
 
     public SearchWithinPolygonQueryHandler(
-        GeospatialProviderRegistry spatial, IAdministrativeAreaRepository areas)
+        GeospatialProviderRegistry spatial, IAdministrativeAreaSearch areas)
     {
         _spatial = spatial;
         _areas = areas;

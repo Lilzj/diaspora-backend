@@ -235,7 +235,7 @@ public sealed class SignupBonusRepository : ISignupBonusRepository
 /// history to count it would make that authority a function of how much of it fitted in a page.
 /// </para>
 /// </summary>
-public sealed class CreatorRewardRepository : ICreatorRewardRepository
+public sealed class CreatorRewardRepository : ICreatorRewardRepository, ICreatorPointRuleRepository, ICreatorRewardRedemptionRepository
 {
     private readonly DiasporaDbContext _dbContext;
 

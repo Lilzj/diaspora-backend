@@ -35,7 +35,7 @@ namespace Diaspora.Modules.CommunityLife.Application.Discovery;
 public sealed class SearchEventsQueryHandler
     : IQueryHandler<SearchEventsQuery, EventSearchResultResponse>
 {
-    private readonly ICommunityEventRepository _events;
+    private readonly ICommunityEventSearch _events;
     private readonly ICommunityEventSearchEngine _engine;
     private readonly CommunityLifeCatalogResolver _catalog;
     private readonly CommunityLifeNeighborhoodResolver _neighborhoods;
@@ -45,7 +45,7 @@ public sealed class SearchEventsQueryHandler
     private readonly IReadOnlyList<IMemberCommunityDirectory> _communities;
 
     public SearchEventsQueryHandler(
-        ICommunityEventRepository events,
+        ICommunityEventSearch events,
         ICommunityEventSearchEngine engine,
         CommunityLifeCatalogResolver catalog,
         CommunityLifeNeighborhoodResolver neighborhoods,

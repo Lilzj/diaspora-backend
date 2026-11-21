@@ -16,9 +16,9 @@ namespace Diaspora.Modules.Community.Infrastructure.Content;
 /// </summary>
 public sealed class CommunityPostContentSource : ICommunityContentSource
 {
-    private readonly ICommunityPostRepository _posts;
+    private readonly ICommunityPostReader _posts;
 
-    public CommunityPostContentSource(ICommunityPostRepository posts) => _posts = posts;
+    public CommunityPostContentSource(ICommunityPostReader posts) => _posts = posts;
 
     public CommunityContentType ContentType => CommunityContentType.Post;
 

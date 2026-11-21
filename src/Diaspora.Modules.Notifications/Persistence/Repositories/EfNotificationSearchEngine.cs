@@ -21,9 +21,9 @@ namespace Diaspora.Modules.Notifications.Persistence.Repositories;
 /// </summary>
 public sealed class EfNotificationSearchEngine : INotificationSearchEngine
 {
-    private readonly INotificationRepository _notifications;
+    private readonly INotificationInbox _notifications;
 
-    public EfNotificationSearchEngine(INotificationRepository notifications) =>
+    public EfNotificationSearchEngine(INotificationInbox notifications) =>
         _notifications = notifications;
 
     public Task<CursorPagedResult<Notification>> SearchAsync(

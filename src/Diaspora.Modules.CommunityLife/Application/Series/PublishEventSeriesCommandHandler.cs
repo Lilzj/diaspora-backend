@@ -32,6 +32,7 @@ public sealed class PublishEventSeriesCommandHandler
 {
     private readonly IEventSeriesRepository _series;
     private readonly ICommunityEventRepository _events;
+    private readonly ICommunityEventSeries _communityEventSeries;
     private readonly IUnitOfWork _unitOfWork;
     private readonly CommunityLifeAuthorizationService _authorization;
     private readonly EventSeriesExpansionService _expansion;
@@ -41,6 +42,7 @@ public sealed class PublishEventSeriesCommandHandler
     public PublishEventSeriesCommandHandler(
         IEventSeriesRepository series,
         ICommunityEventRepository events,
+        ICommunityEventSeries communityEventSeries,
         IUnitOfWork unitOfWork,
         CommunityLifeAuthorizationService authorization,
         EventSeriesExpansionService expansion,
@@ -49,6 +51,7 @@ public sealed class PublishEventSeriesCommandHandler
     {
         _series = series;
         _events = events;
+        _communityEventSeries = communityEventSeries;
         _unitOfWork = unitOfWork;
         _authorization = authorization;
         _expansion = expansion;
@@ -86,7 +89,7 @@ public sealed class PublishEventSeriesCommandHandler
 
         _series.Update(series);
 
-        var occurrences = await _events.FindOccurrencesToRewriteAsync(
+        var occurrences = await _communityEventSeries.FindOccurrencesToRewriteAsync(
             series.Id,
             fromSequence: 1,
             notBefore: now,

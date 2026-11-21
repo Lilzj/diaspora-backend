@@ -105,7 +105,7 @@ public sealed class AnalyticsThresholdConditionTests
 
         var source = new AnalyticsAutomationConditionSource(
             new AnalyticsReadService(
-                Rollups(recordedOn, views), Substitute.For<IAnalyticsEventRepository>()),
+                Rollups(recordedOn, views), Substitute.For<IAnalyticsEventReports>()),
             clock);
 
         return await source.ReadAsync(
@@ -117,9 +117,9 @@ public sealed class AnalyticsThresholdConditionTests
     /// A rollup table holding at most one owner row, and answering "was anything recorded before
     /// this date" truthfully — which is the question the whole distinction turns on.
     /// </summary>
-    private static IAnalyticsRollupRepository Rollups(DateOnly? recordedOn, long views)
+    private static IAnalyticsRollupReports Rollups(DateOnly? recordedOn, long views)
     {
-        var rollups = Substitute.For<IAnalyticsRollupRepository>();
+        var rollups = Substitute.For<IAnalyticsRollupReports>();
 
         IReadOnlyList<OwnerDailyRollup> none = [];
 

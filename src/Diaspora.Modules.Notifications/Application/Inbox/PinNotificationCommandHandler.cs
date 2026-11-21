@@ -20,12 +20,12 @@ public sealed class PinNotificationCommandHandler
     : ICommandHandler<PinNotificationCommand, NotificationResponse>
 {
     private readonly NotificationMutationService _mutations;
-    private readonly INotificationRepository _notifications;
+    private readonly INotificationInbox _notifications;
     private readonly InboxCounterService _counters;
 
     public PinNotificationCommandHandler(
         NotificationMutationService mutations,
-        INotificationRepository notifications,
+        INotificationInbox notifications,
         InboxCounterService counters)
     {
         _mutations = mutations;

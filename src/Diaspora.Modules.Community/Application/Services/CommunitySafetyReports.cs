@@ -15,9 +15,9 @@ public sealed class CommunitySafetyReports : ICommunitySafetyReports
     /// <summary>The categories a member files a safety report under.</summary>
     public static readonly IReadOnlyList<PostCategory> SafetyCategories = [PostCategory.Police, PostCategory.Emergency];
 
-    private readonly ICommunityPostRepository _posts;
+    private readonly ICommunityPostSearch _posts;
 
-    public CommunitySafetyReports(ICommunityPostRepository posts) => _posts = posts;
+    public CommunitySafetyReports(ICommunityPostSearch posts) => _posts = posts;
 
     public async Task<CommunitySafetyReportCounts> CountCorroboratedAsync(
         string hierarchyPath,

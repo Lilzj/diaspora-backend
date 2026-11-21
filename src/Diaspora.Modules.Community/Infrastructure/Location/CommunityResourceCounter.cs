@@ -20,9 +20,9 @@ namespace Diaspora.Modules.Community.Infrastructure.Location;
 /// </summary>
 public sealed class CommunityResourceCounter : ILocationResourceCounter
 {
-    private readonly ICommunityPostRepository _posts;
+    private readonly ICommunityPostSearch _posts;
 
-    public CommunityResourceCounter(ICommunityPostRepository posts) => _posts = posts;
+    public CommunityResourceCounter(ICommunityPostSearch posts) => _posts = posts;
 
     public string ResourceType => CommunityNearbyResourceProvider.Key;
 

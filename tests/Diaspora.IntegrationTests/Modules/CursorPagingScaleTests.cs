@@ -62,7 +62,7 @@ public sealed class CursorPagingScaleTests : IntegrationTestBase
         FeedCursor? cursor = null;
 
         using var scope = Factory.Services.CreateScope();
-        var posts = scope.ServiceProvider.GetRequiredService<ICommunityPostRepository>();
+        var posts = scope.ServiceProvider.GetRequiredService<ICommunityPostSearch>();
 
         while (true)
         {
@@ -109,7 +109,7 @@ public sealed class CursorPagingScaleTests : IntegrationTestBase
         var author = await SeedPostsAsync(count: 10, groupSize: 3, pinnedCount: 0);
 
         using var scope = Factory.Services.CreateScope();
-        var posts = scope.ServiceProvider.GetRequiredService<ICommunityPostRepository>();
+        var posts = scope.ServiceProvider.GetRequiredService<ICommunityPostSearch>();
 
         var first = await posts.QueryAsync(new PostQueryFilter { AuthorIds = [author], Limit = 4 });
 
@@ -143,7 +143,7 @@ public sealed class CursorPagingScaleTests : IntegrationTestBase
         var pages = 0;
 
         using var scope = Factory.Services.CreateScope();
-        var posts = scope.ServiceProvider.GetRequiredService<ICommunityPostRepository>();
+        var posts = scope.ServiceProvider.GetRequiredService<ICommunityPostSearch>();
 
         while (true)
         {

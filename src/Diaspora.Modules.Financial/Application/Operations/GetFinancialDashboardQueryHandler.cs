@@ -34,7 +34,7 @@ public sealed class GetFinancialDashboardQueryHandler
 {
     private readonly IRevenueRecordRepository _revenue;
     private readonly ISubscriptionRepository _subscriptions;
-    private readonly IPlacementRepository _placements;
+    private readonly IPlacementFacts _placements;
     private readonly IMonetizationProductRepository _products;
     private readonly IFinancialPolicyRepository _policies;
     private readonly IContributionFundRepository _funds;
@@ -46,7 +46,7 @@ public sealed class GetFinancialDashboardQueryHandler
     public GetFinancialDashboardQueryHandler(
         IRevenueRecordRepository revenue,
         ISubscriptionRepository subscriptions,
-        IPlacementRepository placements,
+        IPlacementFacts placements,
         IMonetizationProductRepository products,
         IFinancialPolicyRepository policies,
         IContributionFundRepository funds,

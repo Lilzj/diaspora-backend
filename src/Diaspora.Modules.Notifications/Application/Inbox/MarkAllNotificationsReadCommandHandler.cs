@@ -27,6 +27,7 @@ public sealed class MarkAllNotificationsReadCommandHandler
     private const int BatchSize = 500;
 
     private readonly INotificationRepository _notifications;
+    private readonly INotificationInbox _notificationInbox;
     private readonly IUserInboxRepository _inboxes;
     private readonly NotificationAuthorizationService _authorization;
     private readonly IUnitOfWork _unitOfWork;
@@ -34,12 +35,14 @@ public sealed class MarkAllNotificationsReadCommandHandler
 
     public MarkAllNotificationsReadCommandHandler(
         INotificationRepository notifications,
+        INotificationInbox notificationInbox,
         IUserInboxRepository inboxes,
         NotificationAuthorizationService authorization,
         IUnitOfWork unitOfWork,
         IClock clock)
     {
         _notifications = notifications;
+    _notificationInbox = notificationInbox;
         _inboxes = inboxes;
         _authorization = authorization;
         _unitOfWork = unitOfWork;
@@ -56,7 +59,7 @@ public sealed class MarkAllNotificationsReadCommandHandler
             return Result.Failure<UnreadCountResponse>(caller.Error);
         }
 
-        var unread = await _notifications.ListUnreadAsync(caller.Value, BatchSize, cancellationToken);
+        var unread = await _notificationInbox.ListUnreadAsync(caller.Value, BatchSize, cancellationToken);
         var now = _clock.UtcNow;
 
         foreach (var notification in unread)
@@ -72,7 +75,7 @@ public sealed class MarkAllNotificationsReadCommandHandler
         // one past it, so the remaining count is measured instead.
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        var remaining = await _notifications.CountUnreadAsync(caller.Value, cancellationToken);
+        var remaining = await _notificationInbox.CountUnreadAsync(caller.Value, cancellationToken);
 
         return Result.Success(new UnreadCountResponse
         {

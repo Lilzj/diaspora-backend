@@ -23,12 +23,12 @@ namespace Diaspora.Modules.CommunityLife.Application.Events;
 public sealed class ListMyEventsQueryHandler
     : IQueryHandler<ListMyEventsQuery, EventSearchResultResponse>
 {
-    private readonly ICommunityEventRepository _events;
+    private readonly ICommunityEventSearch _events;
     private readonly CommunityLifeAuthorizationService _authorization;
     private readonly CommunityEventReadContext _read;
 
     public ListMyEventsQueryHandler(
-        ICommunityEventRepository events,
+        ICommunityEventSearch events,
         CommunityLifeAuthorizationService authorization,
         CommunityEventReadContext read)
     {

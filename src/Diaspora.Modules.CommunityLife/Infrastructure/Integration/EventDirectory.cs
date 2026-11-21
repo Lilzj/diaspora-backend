@@ -21,12 +21,14 @@ namespace Diaspora.Modules.CommunityLife.Infrastructure.Integration;
 public sealed class EventDirectory : IEventDirectory
 {
     private readonly ICommunityEventRepository _events;
+    private readonly ICommunityEventSearch _search;
     private readonly IOrganizationRepository _organizations;
 
     public EventDirectory(
-        ICommunityEventRepository events, IOrganizationRepository organizations)
+        ICommunityEventRepository events, ICommunityEventSearch search, IOrganizationRepository organizations)
     {
         _events = events;
+        _search = search;
         _organizations = organizations;
     }
 
@@ -83,7 +85,7 @@ public sealed class EventDirectory : IEventDirectory
         int limit = 10,
         CancellationToken cancellationToken = default)
     {
-        var page = await _events.SearchAsync(
+        var page = await _search.SearchAsync(
             new EventQueryFilter
             {
                 CountryCode = countryCode,

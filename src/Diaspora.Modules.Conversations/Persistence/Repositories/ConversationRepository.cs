@@ -20,7 +20,7 @@ namespace Diaspora.Modules.Conversations.Persistence.Repositories;
 /// <c>(user_id, is_archived, left_at)</c> answers the whole of the access decision.
 /// </para>
 /// </summary>
-public sealed class ConversationRepository : IConversationRepository
+public sealed class ConversationRepository : IConversationRepository, IConversationInbox, IConversationNudges
 {
     private readonly DiasporaDbContext _dbContext;
 

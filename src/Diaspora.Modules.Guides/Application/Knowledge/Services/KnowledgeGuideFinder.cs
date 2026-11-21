@@ -27,10 +27,10 @@ namespace Diaspora.Modules.Guides.Application.Knowledge.Services;
 /// </summary>
 public sealed class KnowledgeGuideFinder
 {
-    private readonly IGuideRepository _guides;
+    private readonly IGuideSearch _guides;
     private readonly GuideAuthorizationService _authorization;
 
-    public KnowledgeGuideFinder(IGuideRepository guides, GuideAuthorizationService authorization)
+    public KnowledgeGuideFinder(IGuideSearch guides, GuideAuthorizationService authorization)
     {
         _guides = guides;
         _authorization = authorization;

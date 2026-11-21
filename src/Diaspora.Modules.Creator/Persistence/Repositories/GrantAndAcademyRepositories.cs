@@ -198,7 +198,7 @@ public sealed class GrantApplicationRepository : IGrantApplicationRepository
 /// are the grader and the seeder. Every other read serves questions and options without it.
 /// </para>
 /// </summary>
-public sealed class AcademyRepository : IAcademyRepository
+public sealed class AcademyRepository : IAcademyRepository, IAcademyCatalogue
 {
     private readonly DiasporaDbContext _dbContext;
 

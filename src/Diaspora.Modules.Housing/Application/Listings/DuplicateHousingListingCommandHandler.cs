@@ -43,6 +43,7 @@ public sealed class DuplicateHousingListingCommandHandler
     : ICommandHandler<DuplicateHousingListingCommand, HousingListingResponse>
 {
     private readonly IHousingListingRepository _listings;
+    private readonly IHousingListingGuards _guards;
     private readonly IHousingAnalyticsRepository _analytics;
     private readonly IUnitOfWork _unitOfWork;
     private readonly HousingAuthorizationService _authorization;
@@ -55,6 +56,7 @@ public sealed class DuplicateHousingListingCommandHandler
 
     public DuplicateHousingListingCommandHandler(
         IHousingListingRepository listings,
+        IHousingListingGuards guards,
         IHousingAnalyticsRepository analytics,
         IUnitOfWork unitOfWork,
         HousingAuthorizationService authorization,
@@ -66,6 +68,7 @@ public sealed class DuplicateHousingListingCommandHandler
         IClock clock)
     {
         _listings = listings;
+        _guards = guards;
         _analytics = analytics;
         _unitOfWork = unitOfWork;
         _authorization = authorization;
@@ -102,7 +105,7 @@ public sealed class DuplicateHousingListingCommandHandler
             return Result.Failure<HousingListingResponse>(HousingErrors.NotListingOwner);
         }
 
-        var held = await _listings.CountAgainstListingQuotaAsync(landlord.Value.Id, cancellationToken);
+        var held = await _guards.CountAgainstListingQuotaAsync(landlord.Value.Id, cancellationToken);
 
         if (held >= _options.Value.MaxActiveListingsPerLandlord)
         {
@@ -113,7 +116,7 @@ public sealed class DuplicateHousingListingCommandHandler
             ? Copied(source.Title.Value)
             : command.Title;
 
-        if (await _listings.HasDuplicateAsync(
+        if (await _guards.HasDuplicateAsync(
                 landlord.Value.Id, titleText, excluding: null, cancellationToken))
         {
             return Result.Failure<HousingListingResponse>(HousingErrors.DuplicateListing);

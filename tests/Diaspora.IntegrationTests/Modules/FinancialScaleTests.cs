@@ -124,7 +124,7 @@ public sealed class FinancialScaleTests : PooledIdentityTestBase
         var subjects = await CreatePlacementsAsync(SubjectCount);
 
         using var scope = Factory.Services.CreateScope();
-        var placements = scope.ServiceProvider.GetRequiredService<IPlacementRepository>();
+        var placements = scope.ServiceProvider.GetRequiredService<IPlacementFacts>();
         var clock = scope.ServiceProvider.GetRequiredService<IClock>();
 
         var found = await placements.ListActiveForSubjectsAsync(

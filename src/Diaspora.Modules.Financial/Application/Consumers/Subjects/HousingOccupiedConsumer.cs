@@ -15,10 +15,11 @@ public sealed class HousingOccupiedConsumer : SubjectRetirementConsumer<HousingO
 {
     public HousingOccupiedConsumer(
         IPlacementRepository placements,
+        IPlacementFacts placementFacts,
         IUnitOfWork unitOfWork,
         IClock clock,
         ILogger<HousingOccupiedConsumer> logger)
-        : base(placements, unitOfWork, clock, logger)
+        : base(placements, placementFacts, unitOfWork, clock, logger)
     {
     }
 

@@ -61,14 +61,14 @@ public sealed class GetAreaActivityQueryHandler : IQueryHandler<GetAreaActivityQ
     private const int UpcomingBoxCap = 200;
 
     private readonly IEventAnalyticsRepository _analytics;
-    private readonly ICommunityEventRepository _events;
-    private readonly IOrganizationRepository _organizations;
+    private readonly ICommunityEventSearch _events;
+    private readonly IOrganizationSearch _organizations;
     private readonly IClock _clock;
 
     public GetAreaActivityQueryHandler(
         IEventAnalyticsRepository analytics,
-        ICommunityEventRepository events,
-        IOrganizationRepository organizations,
+        ICommunityEventSearch events,
+        IOrganizationSearch organizations,
         IClock clock)
     {
         _analytics = analytics;

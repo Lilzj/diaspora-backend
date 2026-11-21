@@ -12,9 +12,9 @@ public sealed class MemberEventActivityReader : IMemberEventActivityReader
     /// <summary>More than this is a caller counting the platform, not a community.</summary>
     private const int MaximumMembers = 5000;
 
-    private readonly ICommunityEventRepository _events;
+    private readonly ICommunityEventStatistics _events;
 
-    public MemberEventActivityReader(ICommunityEventRepository events) => _events = events;
+    public MemberEventActivityReader(ICommunityEventStatistics events) => _events = events;
 
     public async Task<MemberEventActivity> CountAsync(
         IReadOnlyCollection<Guid> memberUserIds,

@@ -34,17 +34,22 @@ public abstract class SubjectRetirementConsumer<TIntegrationEvent>
 {
     protected SubjectRetirementConsumer(
         IPlacementRepository placements,
+        IPlacementFacts placementFacts,
         IUnitOfWork unitOfWork,
         IClock clock,
         ILogger logger)
     {
         Placements = placements;
+        PlacementFacts = placementFacts;
         UnitOfWork = unitOfWork;
         Clock = clock;
         Logger = logger;
     }
 
     protected IPlacementRepository Placements { get; }
+
+    /// <summary>The active placements for a subject. A question, not a write.</summary>
+    protected IPlacementFacts PlacementFacts { get; }
 
     protected IUnitOfWork UnitOfWork { get; }
 
@@ -79,7 +84,7 @@ public abstract class SubjectRetirementConsumer<TIntegrationEvent>
 
         var now = Clock.UtcNow;
 
-        var placements = await Placements.ListActiveForSubjectAsync(
+        var placements = await PlacementFacts.ListActiveForSubjectAsync(
             SubjectReference.Create(SubjectType, subjectId), now, cancellationToken);
 
         if (placements.Count == 0)

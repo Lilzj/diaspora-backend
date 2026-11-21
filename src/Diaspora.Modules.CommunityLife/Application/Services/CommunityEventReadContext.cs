@@ -27,6 +27,7 @@ public sealed class CommunityEventReadContext
 {
     private readonly IOrganizationRepository _organizations;
     private readonly IEventRsvpRepository _rsvps;
+    private readonly IEventRsvpSearch _rsvpSearch;
     private readonly CommunityLifeCatalogResolver _catalog;
     private readonly CommunityLifeAuthorizationService _authorization;
     private readonly IClock _clock;
@@ -34,12 +35,14 @@ public sealed class CommunityEventReadContext
     public CommunityEventReadContext(
         IOrganizationRepository organizations,
         IEventRsvpRepository rsvps,
+        IEventRsvpSearch rsvpSearch,
         CommunityLifeCatalogResolver catalog,
         CommunityLifeAuthorizationService authorization,
         IClock clock)
     {
         _organizations = organizations;
         _rsvps = rsvps;
+    _rsvpSearch = rsvpSearch;
         _catalog = catalog;
         _authorization = authorization;
         _clock = clock;
@@ -154,7 +157,7 @@ public sealed class CommunityEventReadContext
             return new Dictionary<CommunityEventId, string>();
         }
 
-        var responses = await _rsvps.FindForAttendeeAsync(
+        var responses = await _rsvpSearch.FindForAttendeeAsync(
             callerId,
             [.. events.Select(communityEvent => communityEvent.Id)],
             cancellationToken);

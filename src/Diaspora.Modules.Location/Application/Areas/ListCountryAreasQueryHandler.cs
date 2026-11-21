@@ -12,9 +12,9 @@ namespace Diaspora.Modules.Location.Application.Areas;
 public sealed class ListCountryAreasQueryHandler
     : IQueryHandler<ListCountryAreasQuery, PagedResult<AreaSummaryResponse>>
 {
-    private readonly IAdministrativeAreaRepository _areas;
+    private readonly IAdministrativeAreaSearch _areas;
 
-    public ListCountryAreasQueryHandler(IAdministrativeAreaRepository areas)
+    public ListCountryAreasQueryHandler(IAdministrativeAreaSearch areas)
     {
         _areas = areas;
     }

@@ -19,9 +19,9 @@ namespace Diaspora.Modules.Community.Infrastructure.Feeds;
 /// </summary>
 public abstract class PostFeedProvider : IFeedProvider
 {
-    protected PostFeedProvider(ICommunityPostRepository posts) => Posts = posts;
+    protected PostFeedProvider(ICommunityPostSearch posts) => Posts = posts;
 
-    protected ICommunityPostRepository Posts { get; }
+    protected ICommunityPostSearch Posts { get; }
 
     public abstract string FeedKey { get; }
 

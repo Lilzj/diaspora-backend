@@ -210,6 +210,15 @@ public interface IGrantApplicationRepository
         CreatorId creatorId, string key, CancellationToken cancellationToken = default);
 }
 
+/// <summary>
+/// Authoring the academy: adding a section, a course, a lesson or a quiz, and the key lookups a
+/// seeder uses to stay idempotent.
+/// <para>
+/// Changes when the content format changes. <see cref="ListSectionsAsync"/> is declared here as
+/// well as on the catalogue, because the seeder lists the sections it is about to attach courses
+/// to.
+/// </para>
+/// </summary>
 public interface IAcademyRepository
 {
     void AddSection(AcademySection section);
@@ -222,6 +231,27 @@ public interface IAcademyRepository
 
     void UpdateCourse(AcademyCourse course);
 
+    Task<AcademyCourse?> FindCourseBySlugAsync(
+        string slug, CancellationToken cancellationToken = default);
+
+    Task<AcademyLesson?> FindLessonByKeyAsync(
+        AcademyCourseId courseId, string key, CancellationToken cancellationToken = default);
+
+    Task<AcademyQuiz?> FindQuizByKeyAsync(string key, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<AcademySection>> ListSectionsAsync(
+        CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// Browsing the academy: the sections, the courses in one, the lessons in a course, and a quiz.
+/// <para>
+/// What a learner's screens ask. Six of the module's eleven academy consumers need nothing else,
+/// and none of them can write.
+/// </para>
+/// </summary>
+public interface IAcademyCatalogue
+{
     Task<IReadOnlyList<AcademySection>> ListSectionsAsync(
         CancellationToken cancellationToken = default);
 
@@ -231,25 +261,17 @@ public interface IAcademyRepository
     Task<AcademyCourse?> GetCourseAsync(
         AcademyCourseId id, CancellationToken cancellationToken = default);
 
-    Task<AcademyCourse?> FindCourseBySlugAsync(
-        string slug, CancellationToken cancellationToken = default);
-
     Task<IReadOnlyList<AcademyLesson>> ListLessonsAsync(
         AcademyCourseId courseId, CancellationToken cancellationToken = default);
 
     Task<AcademyLesson?> GetLessonAsync(
         AcademyLessonId id, CancellationToken cancellationToken = default);
 
-    Task<AcademyLesson?> FindLessonByKeyAsync(
-        AcademyCourseId courseId, string key, CancellationToken cancellationToken = default);
-
     /// <summary>
     /// The quiz, with its answer key. The only repository method that loads it, and its callers are
     /// the grader and the seeder.
     /// </summary>
     Task<AcademyQuiz?> GetQuizAsync(AcademyQuizId id, CancellationToken cancellationToken = default);
-
-    Task<AcademyQuiz?> FindQuizByKeyAsync(string key, CancellationToken cancellationToken = default);
 }
 
 public interface ICreatorLearningProgressRepository
@@ -320,23 +342,18 @@ public interface ISignupBonusRepository
         CreatorId creatorId, string key, CancellationToken cancellationToken = default);
 }
 
+/// <summary>
+/// The reward catalogue: what a creator can redeem points for.
+/// <para>
+/// One of three repositories that used to be one. The reward definitions, the point rules and the
+/// redemptions are three aggregates with three lifecycles, and the single interface meant the
+/// points engine — which only ever resolves a rule for an action — depended on all sixteen
+/// members of all three.
+/// </para>
+/// </summary>
 public interface ICreatorRewardRepository
 {
-    void AddRule(CreatorPointRule rule);
-
     void AddReward(CreatorRewardDefinition reward);
-
-    void AddRedemption(CreatorRewardRedemption redemption);
-
-    void UpdateRedemption(CreatorRewardRedemption redemption);
-
-    Task<IReadOnlyList<CreatorPointRule>> ListRulesAsync(CancellationToken cancellationToken = default);
-
-    Task<CreatorPointRule?> FindRuleByKeyAsync(
-        string key, CancellationToken cancellationToken = default);
-
-    Task<CreatorPointRule?> FindRuleForActionAsync(
-        string actionType, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<CreatorRewardDefinition>> ListRewardsAsync(
         CancellationToken cancellationToken = default);
@@ -346,6 +363,38 @@ public interface ICreatorRewardRepository
 
     Task<CreatorRewardDefinition?> FindRewardByKeyAsync(
         string key, CancellationToken cancellationToken = default);
+}
+/// <summary>
+/// The point rules: what earns a creator points, and how many.
+/// <para>
+/// Read by the points engine on every scoring action, which is why it is worth it not depending
+/// on redemptions at all.
+/// </para>
+/// </summary>
+public interface ICreatorPointRuleRepository
+{
+    void AddRule(CreatorPointRule rule);
+
+    Task<IReadOnlyList<CreatorPointRule>> ListRulesAsync(CancellationToken cancellationToken = default);
+
+    Task<CreatorPointRule?> FindRuleByKeyAsync(
+        string key, CancellationToken cancellationToken = default);
+
+    Task<CreatorPointRule?> FindRuleForActionAsync(
+        string actionType, CancellationToken cancellationToken = default);
+}
+/// <summary>
+/// A creator's redemptions: claiming a reward, and the review queue that settles it.
+/// <para>
+/// Carries the idempotency lookup and the per-reward counters a claim is checked against, because
+/// those questions are about a redemption rather than about the reward it names.
+/// </para>
+/// </summary>
+public interface ICreatorRewardRedemptionRepository
+{
+    void AddRedemption(CreatorRewardRedemption redemption);
+
+    void UpdateRedemption(CreatorRewardRedemption redemption);
 
     Task<IReadOnlyList<CreatorRewardRedemption>> ListRedemptionsAsync(
         CreatorId creatorId, int take, CancellationToken cancellationToken = default);

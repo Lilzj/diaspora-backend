@@ -4,7 +4,9 @@ using Diaspora.Modules.Financial.Domain.ValueObjects;
 
 namespace Diaspora.Modules.Financial.Domain.Placements;
 
-/// <summary>Retrieval and staging for purchased placements.</summary>
+/// <summary>
+/// A placement's own persistence: create, load, save. Three members.
+/// </summary>
 public interface IPlacementRepository
 {
     void Add(Placement placement);
@@ -12,7 +14,59 @@ public interface IPlacementRepository
     void Update(Placement placement);
 
     Task<Placement?> FindAsync(PlacementId placementId, CancellationToken cancellationToken = default);
+}
 
+/// <summary>
+/// The batches the placement sweeps walk: due to start, lapsed, expiring, paused by moderation,
+/// and whatever is running or scheduled for one subject.
+/// <para>
+/// Tracked aggregates whose callers move them through their states, so they belong beside the
+/// writes rather than on a role that reports. The sweeps take this role and the repository, which
+/// is the honest shape: they read a batch and they save it.
+/// </para>
+/// </summary>
+public interface IPlacementSchedule
+{
+    /// <summary>Scheduled placements whose window has opened.</summary>
+    Task<IReadOnlyList<Placement>> ListDueAsync(
+        DateTimeOffset asOf, int take, CancellationToken cancellationToken = default);
+
+    /// <summary>Placements whose window has closed and which nothing has ended yet.</summary>
+    Task<IReadOnlyList<Placement>> ListLapsedAsync(
+        DateTimeOffset asOf, int take, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Placements whose window closes within a lead time and which have not been announced.
+    /// <para>
+    /// The filter on <c>ExpiryAnnouncedFor</c> is in the query rather than in the sweep so a
+    /// deployment with a hundred thousand placements does not load the ones it has already warned
+    /// about on every pass.
+    /// </para>
+    /// </summary>
+    Task<IReadOnlyList<Placement>> ListExpiringAsync(
+        DateTimeOffset asOf,
+        DateTimeOffset until,
+        int take,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Every placement over a subject that a moderation decision paused.</summary>
+    Task<IReadOnlyList<Placement>> ListPausedForModerationAsync(
+        SubjectReference subject, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Every placement over a subject that is running or waiting to run: what a moderation decision
+    /// that takes the subject out of view pauses.
+    /// </summary>
+    Task<IReadOnlyList<Placement>> ListRunningOrScheduledForSubjectAsync(
+        SubjectReference subject, CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// What is live, for whom, and how much of it: the active placements for a subject or many, a
+/// purchaser's own, the active count, and the overlap check a new placement is tested against.
+/// </summary>
+public interface IPlacementFacts
+{
     /// <summary>
     /// Every placement currently in force over a subject.
     /// <para>
@@ -23,17 +77,6 @@ public interface IPlacementRepository
     /// </summary>
     Task<IReadOnlyList<Placement>> ListActiveForSubjectAsync(
         SubjectReference subject, DateTimeOffset asOf, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Every placement over a subject that is running or waiting to run: what a moderation decision
-    /// that takes the subject out of view pauses.
-    /// </summary>
-    Task<IReadOnlyList<Placement>> ListRunningOrScheduledForSubjectAsync(
-        SubjectReference subject, CancellationToken cancellationToken = default);
-
-    /// <summary>Every placement over a subject that a moderation decision paused.</summary>
-    Task<IReadOnlyList<Placement>> ListPausedForModerationAsync(
-        SubjectReference subject, CancellationToken cancellationToken = default);
 
     /// <summary>Active placements over many subjects at once, so a list page needs one query.</summary>
     Task<IReadOnlyList<Placement>> ListActiveForSubjectsAsync(
@@ -58,28 +101,6 @@ public interface IPlacementRepository
     /// </para>
     /// </summary>
     Task<int> CountActiveAsync(DateTimeOffset asOf, CancellationToken cancellationToken = default);
-
-    /// <summary>Placements whose window has closed and which nothing has ended yet.</summary>
-    Task<IReadOnlyList<Placement>> ListLapsedAsync(
-        DateTimeOffset asOf, int take, CancellationToken cancellationToken = default);
-
-    /// <summary>Scheduled placements whose window has opened.</summary>
-    Task<IReadOnlyList<Placement>> ListDueAsync(
-        DateTimeOffset asOf, int take, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Placements whose window closes within a lead time and which have not been announced.
-    /// <para>
-    /// The filter on <c>ExpiryAnnouncedFor</c> is in the query rather than in the sweep so a
-    /// deployment with a hundred thousand placements does not load the ones it has already warned
-    /// about on every pass.
-    /// </para>
-    /// </summary>
-    Task<IReadOnlyList<Placement>> ListExpiringAsync(
-        DateTimeOffset asOf,
-        DateTimeOffset until,
-        int take,
-        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Whether a subject already has a placement of a kind overlapping a window.

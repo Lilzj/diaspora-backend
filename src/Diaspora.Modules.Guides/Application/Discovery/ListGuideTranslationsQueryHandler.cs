@@ -34,15 +34,18 @@ namespace Diaspora.Modules.Guides.Application.Discovery;
 public sealed class ListGuideTranslationsQueryHandler
     : IQueryHandler<ListGuideTranslationsQuery, IReadOnlyList<GuideCardResponse>>
 {
-    private readonly IGuideRepository _guides;
+    private readonly IGuideReader _guides;
+    private readonly IGuideSearch _guideSearch;
     private readonly GuideAuthorizationService _authorization;
     private readonly GuideAuthorNames _authorNames;
 
     public ListGuideTranslationsQueryHandler(
-        IGuideRepository guides, GuideAuthorizationService authorization,
+        IGuideReader guides,
+        IGuideSearch guideSearch, GuideAuthorizationService authorization,
         GuideAuthorNames authorNames)
     {
         _guides = guides;
+    _guideSearch = guideSearch;
         _authorization = authorization;
         _authorNames = authorNames;
     }
@@ -71,7 +74,7 @@ public sealed class ListGuideTranslationsQueryHandler
             Limit = GuideLimits.MaxPageSize
         };
 
-        var page = await _guides.QueryAsync(
+        var page = await _guideSearch.QueryAsync(
             filter, cursor: null, GuideLimits.MaxPageSize, cancellationToken);
 
         var translations = page.Items

@@ -29,11 +29,13 @@ namespace Diaspora.Modules.Guides.Infrastructure.Moderation;
 public sealed class GuideModerationTarget : IModerationTarget
 {
     private readonly IGuideRepository _guides;
+    private readonly IGuideReader _guideReader;
     private readonly IClock _clock;
 
-    public GuideModerationTarget(IGuideRepository guides, IClock clock)
+    public GuideModerationTarget(IGuideRepository guides, IGuideReader guideReader, IClock clock)
     {
         _guides = guides;
+    _guideReader = guideReader;
         _clock = clock;
     }
 
@@ -44,7 +46,7 @@ public sealed class GuideModerationTarget : IModerationTarget
     public async Task<ModerationTargetSnapshot?> DescribeAsync(
         Guid contentId, CancellationToken cancellationToken = default)
     {
-        var guide = await _guides.GetForReadAsync(GuideId.From(contentId), cancellationToken);
+        var guide = await _guideReader.GetForReadAsync(GuideId.From(contentId), cancellationToken);
 
         return guide is null
             ? null

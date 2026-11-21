@@ -143,10 +143,16 @@ public sealed class JobsModule : IPlatformModule
     /// </summary>
     private static void RegisterRepositories(IServiceCollection services)
     {
-        services.AddScoped<IJobPostingRepository, JobPostingRepository>();
+        services.AddScoped<JobPostingRepository>();
+        services.AddScoped<IJobPostingRepository>(services => services.GetRequiredService<JobPostingRepository>());
+        services.AddScoped<IJobPostingReader>(services => services.GetRequiredService<JobPostingRepository>());
+        services.AddScoped<IJobPostingSearch>(services => services.GetRequiredService<JobPostingRepository>());
         services.AddScoped<IEmployerProfileRepository, EmployerProfileRepository>();
         services.AddScoped<ICandidateProfileRepository, CandidateProfileRepository>();
-        services.AddScoped<IJobApplicationRepository, JobApplicationRepository>();
+        services.AddScoped<JobApplicationRepository>();
+        services.AddScoped<IJobApplicationRepository>(services => services.GetRequiredService<JobApplicationRepository>());
+        services.AddScoped<IJobApplicationSearch>(services => services.GetRequiredService<JobApplicationRepository>());
+        services.AddScoped<IJobApplicationFacts>(services => services.GetRequiredService<JobApplicationRepository>());
         services.AddScoped<IInterviewRepository, InterviewRepository>();
         services.AddScoped<IJobOfferRepository, JobOfferRepository>();
         services.AddScoped<IHiringPipelineRepository, HiringPipelineRepository>();

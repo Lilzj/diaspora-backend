@@ -103,7 +103,7 @@ public sealed class CreatorCatalogueSeeder : BackgroundService, IReferenceDataSe
     private static async Task SeedPointRulesAsync(
         IServiceProvider services, CancellationToken cancellationToken)
     {
-        var repository = services.GetRequiredService<ICreatorRewardRepository>();
+        var repository = services.GetRequiredService<ICreatorPointRuleRepository>();
         var unitOfWork = services.GetRequiredService<IUnitOfWork>();
         var guids = services.GetRequiredService<IGuidGenerator>();
 

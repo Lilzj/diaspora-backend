@@ -42,6 +42,7 @@ public sealed class CreateEventCommandHandler
     : ICommandHandler<CreateEventCommand, EventResponse>
 {
     private readonly ICommunityEventRepository _events;
+    private readonly ICommunityEventGuards _guards;
     private readonly IOrganizationRepository _organizations;
     private readonly IEventAnalyticsRepository _analytics;
     private readonly IUnitOfWork _unitOfWork;
@@ -60,6 +61,7 @@ public sealed class CreateEventCommandHandler
 
     public CreateEventCommandHandler(
         ICommunityEventRepository events,
+        ICommunityEventGuards guards,
         IOrganizationRepository organizations,
         IEventAnalyticsRepository analytics,
         IUnitOfWork unitOfWork,
@@ -77,6 +79,7 @@ public sealed class CreateEventCommandHandler
         IEnumerable<ICommunityEventPostingAuthority> communityAuthorities)
     {
         _events = events;
+        _guards = guards;
         _organizations = organizations;
         _analytics = analytics;
         _unitOfWork = unitOfWork;
@@ -298,14 +301,14 @@ public sealed class CreateEventCommandHandler
     private async Task<Result> GuardAsync(
         UserId caller, CreateEventRequest request, CancellationToken cancellationToken)
     {
-        var live = await _events.CountLiveByOrganizerAsync(caller, cancellationToken);
+        var live = await _guards.CountLiveByOrganizerAsync(caller, cancellationToken);
 
         if (live >= _options.Value.MaxLiveEventsPerOrganizer)
         {
             return Result.Failure(CommunityLifeErrors.TooManyEvents);
         }
 
-        return await _events.HasDuplicateAsync(
+        return await _guards.HasDuplicateAsync(
             caller, request.Title, request.StartsAt, excluding: null, cancellationToken)
             ? Result.Failure(CommunityLifeErrors.DuplicateEvent)
             : Result.Success();

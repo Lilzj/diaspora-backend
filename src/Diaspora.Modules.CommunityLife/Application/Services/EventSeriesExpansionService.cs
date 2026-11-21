@@ -35,6 +35,7 @@ namespace Diaspora.Modules.CommunityLife.Application.Services;
 public sealed class EventSeriesExpansionService
 {
     private readonly ICommunityEventRepository _events;
+    private readonly ICommunityEventSeries _series;
     private readonly IEventAnalyticsRepository _analytics;
     private readonly CommunityLifeSlugAllocator _slugs;
     private readonly IOptions<CommunityLifeOptions> _options;
@@ -43,6 +44,7 @@ public sealed class EventSeriesExpansionService
 
     public EventSeriesExpansionService(
         ICommunityEventRepository events,
+        ICommunityEventSeries series,
         IEventAnalyticsRepository analytics,
         CommunityLifeSlugAllocator slugs,
         IOptions<CommunityLifeOptions> options,
@@ -50,6 +52,7 @@ public sealed class EventSeriesExpansionService
         IClock clock)
     {
         _events = events;
+        _series = series;
         _analytics = analytics;
         _slugs = slugs;
         _options = options;
@@ -77,7 +80,7 @@ public sealed class EventSeriesExpansionService
         var horizon = DateOnly.FromDateTime(
             now.UtcDateTime.AddDays(Math.Clamp(options.SeriesHorizonDays, 1, 3_650)));
 
-        var written = await _events.FindOccurrenceSequencesAsync(series.Id, cancellationToken);
+        var written = await _series.FindOccurrenceSequencesAsync(series.Id, cancellationToken);
         var already = written.ToHashSet();
 
         var remaining = Math.Min(

@@ -82,11 +82,23 @@ public sealed class CommunityLifeModule : IPlatformModule
 
     private static void RegisterRepositories(IServiceCollection services)
     {
-        services.AddScoped<IOrganizationRepository, OrganizationRepository>();
-        services.AddScoped<ICommunityEventRepository, CommunityEventRepository>();
+        services.AddScoped<OrganizationRepository>();
+        services.AddScoped<IOrganizationRepository>(services => services.GetRequiredService<OrganizationRepository>());
+        services.AddScoped<IOrganizationSearch>(services => services.GetRequiredService<OrganizationRepository>());
+        services.AddScoped<IOrganizationGuards>(services => services.GetRequiredService<OrganizationRepository>());
+        services.AddScoped<IOrganizationStatistics>(services => services.GetRequiredService<OrganizationRepository>());
+        services.AddScoped<CommunityEventRepository>();
+        services.AddScoped<ICommunityEventRepository>(services => services.GetRequiredService<CommunityEventRepository>());
+        services.AddScoped<ICommunityEventSearch>(services => services.GetRequiredService<CommunityEventRepository>());
+        services.AddScoped<ICommunityEventGuards>(services => services.GetRequiredService<CommunityEventRepository>());
+        services.AddScoped<ICommunityEventSeries>(services => services.GetRequiredService<CommunityEventRepository>());
+        services.AddScoped<ICommunityEventStatistics>(services => services.GetRequiredService<CommunityEventRepository>());
         services.AddScoped<IEventSeriesRepository, EventSeriesRepository>();
         services.AddScoped<IOrganizationMembershipRepository, OrganizationMembershipRepository>();
-        services.AddScoped<IEventRsvpRepository, EventRsvpRepository>();
+        services.AddScoped<EventRsvpRepository>();
+        services.AddScoped<IEventRsvpRepository>(services => services.GetRequiredService<EventRsvpRepository>());
+        services.AddScoped<IEventRsvpSearch>(services => services.GetRequiredService<EventRsvpRepository>());
+        services.AddScoped<IEventRsvpFacts>(services => services.GetRequiredService<EventRsvpRepository>());
         services.AddScoped<IOrganizationTypeRepository, OrganizationTypeRepository>();
         services.AddScoped<IEventCategoryRepository, EventCategoryRepository>();
         services.AddScoped<ICommunityLifeReportRepository, CommunityLifeReportRepository>();

@@ -33,13 +33,13 @@ public sealed class ListBookmarkedGuidesQueryHandler
     /// <summary>Candidate pages examined per request. Bounds the cost of a sparse answer.</summary>
     private const int MaxCandidatePages = 10;
 
-    private readonly IGuideRepository _guides;
+    private readonly IGuideSearch _guides;
     private readonly GuideBookmarkService _bookmarks;
     private readonly GuideAuthorizationService _authorization;
     private readonly GuideAuthorNames _authorNames;
 
     public ListBookmarkedGuidesQueryHandler(
-        IGuideRepository guides,
+        IGuideSearch guides,
         GuideBookmarkService bookmarks,
         GuideAuthorizationService authorization,
         GuideAuthorNames authorNames)

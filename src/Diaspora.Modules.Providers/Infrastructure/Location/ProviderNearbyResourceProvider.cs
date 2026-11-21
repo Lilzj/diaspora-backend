@@ -30,11 +30,11 @@ public sealed class ProviderNearbyResourceProvider : INearbyResourceProvider
     /// <summary>One of the six resource-type keys Location froze. Not a new one.</summary>
     public const string Key = "providers";
 
-    private readonly IProviderRepository _providers;
+    private readonly IProviderSearch _providers;
     private readonly ILocationDirectory _location;
 
     public ProviderNearbyResourceProvider(
-        IProviderRepository providers, ILocationDirectory location)
+        IProviderSearch providers, ILocationDirectory location)
     {
         _providers = providers;
         _location = location;

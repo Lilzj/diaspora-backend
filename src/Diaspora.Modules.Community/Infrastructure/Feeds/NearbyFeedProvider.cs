@@ -25,7 +25,7 @@ public sealed class NearbyFeedProvider : PostFeedProvider
 
     private const double DefaultRadiusKm = 25d;
 
-    public NearbyFeedProvider(ICommunityPostRepository posts) : base(posts) { }
+    public NearbyFeedProvider(ICommunityPostSearch posts) : base(posts) { }
 
     public override string FeedKey => FeedKeys.Nearby;
 

@@ -32,10 +32,10 @@ public sealed class CommunityLifeNearbyResourceProvider : INearbyResourceProvide
     /// </summary>
     public const string Key = "events";
 
-    private readonly ICommunityEventRepository _events;
+    private readonly ICommunityEventSearch _events;
     private readonly IClock _clock;
 
-    public CommunityLifeNearbyResourceProvider(ICommunityEventRepository events, IClock clock)
+    public CommunityLifeNearbyResourceProvider(ICommunityEventSearch events, IClock clock)
     {
         _events = events;
         _clock = clock;

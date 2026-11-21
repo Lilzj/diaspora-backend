@@ -19,17 +19,20 @@ namespace Diaspora.Modules.Location.Application.Services;
 public sealed class LocationDirectory : ILocationDirectory
 {
     private readonly IAdministrativeAreaRepository _areas;
+    private readonly IAdministrativeAreaSearch _areaSearch;
     private readonly ICountryRepository _countries;
     private readonly GeospatialProviderRegistry _spatial;
     private readonly IGeoDistanceCalculator _calculator;
 
     public LocationDirectory(
         IAdministrativeAreaRepository areas,
+        IAdministrativeAreaSearch areaSearch,
         ICountryRepository countries,
         GeospatialProviderRegistry spatial,
         IGeoDistanceCalculator calculator)
     {
         _areas = areas;
+    _areaSearch = areaSearch;
         _countries = countries;
         _spatial = spatial;
         _calculator = calculator;
@@ -73,7 +76,7 @@ public sealed class LocationDirectory : ILocationDirectory
             return [];
         }
 
-        var children = await _areas.GetChildrenAsync(
+        var children = await _areaSearch.GetChildrenAsync(
             parent.CountryId,
             parentId,
             level,
@@ -93,7 +96,7 @@ public sealed class LocationDirectory : ILocationDirectory
             return [];
         }
 
-        var ancestors = await _areas.GetAncestorsAsync(area, cancellationToken);
+        var ancestors = await _areaSearch.GetAncestorsAsync(area, cancellationToken);
 
         // Root first, and including the node itself — a breadcrumb without its leaf is a
         // breadcrumb the caller has to reassemble.
