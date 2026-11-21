@@ -181,4 +181,86 @@ public sealed class PersistenceArchitectureTests
         overridden.Should().Contain(nameof(DiasporaDbContext.SaveChanges));
         overridden.Should().Contain(nameof(DiasporaDbContext.SaveChangesAsync));
     }
+
+    // ── The unit of work stays decomposed ────────────────────────────────
+
+    /// <summary>
+    /// <b>What BSOLID-002 moved, and the fact that it went somewhere rather than away.</b>
+    /// <para>
+    /// The context composes the model, checks each module stayed in its schema, and routes a save
+    /// down one of three paths. The work each path does belongs to a collaborator. The member
+    /// names below are the ones that left on 21 November 2026; the type names are where they went,
+    /// and they are asserted because a name list on its own is satisfied by deleting the
+    /// collaborator and the behaviour with it.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_context_owns_the_model_and_the_routing_rather_than_the_work()
+    {
+        string[] moved =
+        [
+            "SaveAndDispatchAsync",
+            "PersistAsync",
+            "ApplyAuditFields",
+            "CollectDomainEvents",
+            "IsUniqueViolation",
+            "ExecuteOnceAsync",
+            "ExecuteVerifiedAsync",
+            "RunTransactionAttemptAsync",
+            "VerifyCommittedAsync",
+            "WriteTransactionReceiptAsync",
+            "BuildReceiptInsertSql",
+            "RegisterSqliteDateTimeOffsetConverters",
+            "RegisterStronglyTypedIdConverters"
+        ];
+
+        var declared = typeof(DiasporaDbContext)
+            .GetMethods(
+                BindingFlags.Public | BindingFlags.NonPublic |
+                BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)
+            .Select(method => method.Name)
+            .ToList();
+
+        declared.Should().NotIntersectWith(
+            moved,
+            "each of these is a responsibility the unit of work delegates; one back on the " +
+            "context is the growth the finding was about");
+
+        // By name, because the collaborators are internal to the persistence assembly and this
+        // one has no InternalsVisibleTo — which is itself the point: nothing outside the unit of
+        // work may hold any of the three.
+        var types = PersistenceAssembly.GetTypes().Select(type => type.Name).ToList();
+
+        types.Should().Contain("SaveAndDispatchCoordinator");
+        types.Should().Contain("TransactionalExecutor");
+        types.Should().Contain("TransactionReplayGuard");
+    }
+
+    /// <summary>
+    /// <b>BSOLID-002's acceptance criterion, kept as a rule rather than left as a measurement
+    /// taken once.</b>
+    /// <para>
+    /// A line ceiling is a crude assertion and it is the right one here. The file reached 898 lines
+    /// without a single unreasonable commit — every responsibility it absorbed was documented with
+    /// the defect that motivated it, which is precisely why no reviewer stopped any of them. A
+    /// declared number makes the next one a decision somebody has to make on purpose, in a diff
+    /// that says so.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_context_stays_under_its_declared_ceiling()
+    {
+        const int Ceiling = 300;
+
+        var path = Path.Combine(
+            SourceTree.Root.FullName, "src", "Diaspora.Persistence", "DiasporaDbContext.cs");
+
+        File.Exists(path).Should().BeTrue(
+            "a ceiling on a file that is not there is not a ceiling");
+
+        File.ReadAllLines(path).Length.Should().BeLessThanOrEqualTo(
+            Ceiling,
+            "the unit of work delegates its work. Something new belongs in a collaborator, or " +
+            "this number moves in a commit that argues for it");
+    }
 }

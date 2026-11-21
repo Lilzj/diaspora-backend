@@ -157,19 +157,30 @@ public sealed class DuplicateRecordArchitectureTests
     /// reversed a filter that matched would swallow every lost update and tell the caller not to
     /// retry something a retry would have fixed.
     /// </para>
+    /// <para>
+    /// <b>Anchored on the declaration rather than on a file.</b> <c>PersistAsync</c> left
+    /// <c>DiasporaDbContext</c> for <c>SaveAndDispatchCoordinator</c> on 21 November 2026
+    /// (BSOLID-002), and a rule keyed on a path would have had to be edited to follow it — which
+    /// is the edit somebody makes by deleting the assertion. The count below is the population
+    /// guard that goes with that: a scan finding no declaration would otherwise compare an empty
+    /// list of catch arms against an empty list and pass.
+    /// </para>
     /// </summary>
     [Fact]
     public void The_concurrency_arm_is_tried_before_the_duplicate_arm()
     {
-        var context = SourceTree.ProductionFiles.Single(file =>
-            file.Path == PersistenceProject + "DiasporaDbContext.cs");
+        var declarations = SourceTree.ProductionFiles
+            .Where(file => file.Path.StartsWith(PersistenceProject, StringComparison.Ordinal))
+            .SelectMany(file => file.Root.DescendantNodes().OfType<MethodDeclarationSyntax>())
+            .Where(method => method.Identifier.ValueText == "PersistAsync")
+            .ToList();
 
-        var persist = context.Root
-            .DescendantNodes()
-            .OfType<MethodDeclarationSyntax>()
-            .Single(method => method.Identifier.ValueText == "PersistAsync");
+        declarations.Should().HaveCount(
+            1,
+            "the platform has exactly one place that writes the tracker and translates what the " +
+            "write threw; a second would be a second opinion on what a duplicate is");
 
-        var arms = persist
+        var arms = declarations[0]
             .DescendantNodes()
             .OfType<CatchClauseSyntax>()
             .Select(clause => clause.Declaration?.Type.ToString() ?? "(no declaration)")

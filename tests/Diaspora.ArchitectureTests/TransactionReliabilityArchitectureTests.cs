@@ -3,6 +3,7 @@ using Diaspora.Domain.Abstractions;
 using Diaspora.Persistence;
 using Diaspora.Platform.Transactions;
 using FluentAssertions;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.EntityFrameworkCore.Storage;
 using NetArchTest.Rules;
 using Xunit;
@@ -97,13 +98,31 @@ public sealed class TransactionReliabilityArchitectureTests
     // ── The platform owns execution ──────────────────────────────────────
 
     /// <summary>
-    /// One place creates execution strategies, and it is the unit of work. A second would be a
-    /// second opinion on whether a replay is safe.
+    /// One place <em>executes</em> a transaction, and it is the unit of work. A second would be a
+    /// second opinion on whether a replay is safe. Two places create an execution strategy, and
+    /// both are named below.
+    /// <para>
+    /// <b>Three halves, because the first one never asserted this and the sentence above used to
+    /// say something the platform did not do.</b> The member check forbids a <em>helper</em> — a
+    /// shared <c>CreateExecutionStrategy</c> anything in the assembly could call — and it was the
+    /// whole rule until 21 November 2026. It passes just as happily with five call sites in five
+    /// types as with one, and it scans only the persistence assembly, so it never saw that
+    /// <c>TransactionHealthCheck</c> in the API had been creating one all along. Fourth time this
+    /// ledger has found a guardrail enforcing one direction of a property and not the one that
+    /// mattered.
+    /// </para>
+    /// <para>
+    /// <b>And creating one turned out to be the wrong subject.</b> The health check is correct: it
+    /// creates a strategy to read <c>RetriesOnFailure</c> off it, reports whether commit
+    /// verification is in play on this deployment, and executes nothing through it. What a second
+    /// opinion on transactional reliability actually needs is to <em>open a transaction</em>, so
+    /// that is what the third part counts — and there, one file is the whole answer.
+    /// </para>
     /// </summary>
     [Fact]
     public void Only_the_unit_of_work_creates_an_execution_strategy()
     {
-        var callers = PersistenceAssembly.GetTypes()
+        var helpers = PersistenceAssembly.GetTypes()
             .Where(type => type.GetMethods(
                     BindingFlags.Public | BindingFlags.NonPublic |
                     BindingFlags.Instance | BindingFlags.Static)
@@ -111,10 +130,58 @@ public sealed class TransactionReliabilityArchitectureTests
             .Select(type => type.Name)
             .ToArray();
 
-        callers.Should().BeEmpty(
-            "creating a strategy is DiasporaDbContext's own affair, done inline rather than " +
-            "through a helper anything else could call");
+        helpers.Should().BeEmpty(
+            "a strategy is created inline, never through a helper anything else could call");
+
+        // Exact in both directions, so a third entry fails and so does losing either of these.
+        string[] mayCreateOne =
+        [
+            // Reads RetriesOnFailure to report the deployment's capability. Executes nothing.
+            "src/Diaspora.Api/Health/TransactionHealthCheck.cs",
+            "src/Diaspora.Persistence/Transactions/TransactionalExecutor.cs"
+        ];
+
+        var creators = CallSitesOf("CreateExecutionStrategy")
+            .Select(location => location[..location.LastIndexOf(':')])
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
+        creators.Should().Equal(
+            mayCreateOne,
+            "a new one is a position on transactional reliability taken outside the unit of work");
+
+        var openers = CallSitesOf("BeginTransactionAsync");
+
+        openers.Should().NotBeEmpty(
+            "a scan that finds no transaction being opened is a broken scan, not a clean platform");
+
+        openers.Should().OnlyContain(
+            location => location.StartsWith(
+                "src/Diaspora.Persistence/Transactions/TransactionalExecutor.cs:", StringComparison.Ordinal),
+            "one place opens a database transaction, and it is the one that writes the receipt, " +
+            "verifies the commit and refuses an unsafe replay. Found: {0}",
+            string.Join(", ", openers));
     }
+
+    /// <summary>
+    /// Every invocation of a method by that name across <c>src/</c>, as clickable locations.
+    /// <para>
+    /// Roslyn rather than a text search, because the executor's own documentation names
+    /// <c>BeginTransactionAsync</c> in prose to explain why it must not be called directly — and a
+    /// grep would count that sentence as a call site.
+    /// </para>
+    /// </summary>
+    private static List<string> CallSitesOf(string methodName) =>
+        SourceTree.ProductionFiles
+            .SelectMany(file => file.Root
+                .DescendantNodes()
+                .OfType<InvocationExpressionSyntax>()
+                .Where(call => call.Expression is MemberAccessExpressionSyntax member
+                               && string.Equals(
+                                   member.Name.Identifier.ValueText, methodName, StringComparison.Ordinal))
+                .Select(file.Locate))
+            .ToList();
 
     /// <summary>
     /// The transactional contract a handler sees is <see cref="IUnitOfWork"/> and nothing else. No
@@ -159,6 +226,15 @@ public sealed class TransactionReliabilityArchitectureTests
     /// decides whether to verify commits by asking the strategy whether it retries, never by
     /// testing a provider name. A string comparison against "Npgsql" here would silently do nothing
     /// on SQL Server and on whatever provider is added next.
+    /// <para>
+    /// <b>It used to read a slice of <c>DiasporaDbContext.cs</c> from an anchor to the end of the
+    /// file, and that was load-bearing in a way nothing recorded.</b> The context also held the
+    /// SQLite <c>DateTimeOffset</c> convention, whose body necessarily contains the literal
+    /// <c>"Sqlite"</c>, so the rule only passed because that method happened to sit <em>above</em>
+    /// the anchor. Reordering the file would have failed it for no reason at all. BSOLID-002 moved
+    /// the conventions to <c>ModelConventions</c> and transactional execution to its own file, so
+    /// the rule now reads a whole file and depends on nothing but what is in it.
+    /// </para>
     /// </summary>
     [Theory]
     [InlineData("Npgsql")]
@@ -167,13 +243,14 @@ public sealed class TransactionReliabilityArchitectureTests
     [InlineData("Postgres")]
     public void The_transaction_path_is_not_selected_by_provider_name(string providerName)
     {
-        var source = File.ReadAllText(
-            Path.Combine(RepositoryRoot(), "src", "Diaspora.Persistence", "DiasporaDbContext.cs"));
+        var path = Path.Combine(
+            RepositoryRoot(), "src", "Diaspora.Persistence", "Transactions", "TransactionalExecutor.cs");
 
-        var transactionSection = source[source.IndexOf(
-            "ExecuteTransactionalAsync<TResult>", StringComparison.Ordinal)..];
+        File.Exists(path).Should().BeTrue(
+            "the transactional execution path is what this rule is about; if it moved, this rule " +
+            "has to move with it rather than quietly read nothing");
 
-        transactionSection.Should().NotContain(
+        File.ReadAllText(path).Should().NotContain(
             $"\"{providerName}\"",
             "the choice must key off IExecutionStrategy.RetriesOnFailure, which every provider " +
             "answers correctly, including ones that do not exist yet");
