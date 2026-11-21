@@ -30,9 +30,9 @@ namespace Diaspora.Modules.Marketplace.Infrastructure.Search;
 /// </summary>
 public sealed class EfMarketplaceSearchEngine : IMarketplaceSearchEngine
 {
-    private readonly IMarketplaceListingRepository _listings;
+    private readonly IMarketplaceListingSearch _listings;
 
-    public EfMarketplaceSearchEngine(IMarketplaceListingRepository listings) =>
+    public EfMarketplaceSearchEngine(IMarketplaceListingSearch listings) =>
         _listings = listings;
 
     /// <summary>A no-op. This engine reads the write model, so there is no index to feed.</summary>

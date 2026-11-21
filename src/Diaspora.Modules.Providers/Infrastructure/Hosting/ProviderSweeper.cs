@@ -88,6 +88,7 @@ public sealed class ProviderSweeper : BackgroundService
         using var scope = _scopes.CreateScope();
 
         var providers = scope.ServiceProvider.GetRequiredService<IProviderRepository>();
+        var statistics = scope.ServiceProvider.GetRequiredService<IProviderStatistics>();
         var categories = scope.ServiceProvider.GetRequiredService<IServiceCategoryRepository>();
         var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
         var clock = scope.ServiceProvider.GetRequiredService<IClock>();
@@ -102,7 +103,7 @@ public sealed class ProviderSweeper : BackgroundService
             provider.RecomputeVerificationSummary(now);
         }
 
-        var counts = await providers.CountByCategoryAsync(cancellationToken);
+        var counts = await statistics.CountByCategoryAsync(cancellationToken);
         var all = await categories.ListAllAsync(includeRetired: true, cancellationToken);
 
         foreach (var category in all)

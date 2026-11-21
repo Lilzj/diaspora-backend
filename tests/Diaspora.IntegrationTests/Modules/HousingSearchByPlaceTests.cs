@@ -92,7 +92,7 @@ public sealed class HousingSearchByPlaceTests : PooledIdentityTestBase
         var homes = await SeedAsync();
 
         using var scope = Factory.Services.CreateScope();
-        var repository = scope.ServiceProvider.GetRequiredService<IHousingListingRepository>();
+        var repository = scope.ServiceProvider.GetRequiredService<IHousingListingSearch>();
 
         var page = await repository.QueryAsync(
             new HousingListingQueryFilter

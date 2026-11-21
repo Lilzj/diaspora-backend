@@ -24,13 +24,13 @@ public sealed class ListSavedListingsQueryHandler
     : IQueryHandler<ListSavedListingsQuery, CursorPagedResult<SavedListingResponse>>
 {
     private readonly ISavedListingRepository _saved;
-    private readonly IMarketplaceListingRepository _listings;
+    private readonly IMarketplaceListingSearch _listings;
     private readonly ISellerProfileRepository _sellers;
     private readonly MarketplaceAuthorizationService _authorization;
 
     public ListSavedListingsQueryHandler(
         ISavedListingRepository saved,
-        IMarketplaceListingRepository listings,
+        IMarketplaceListingSearch listings,
         ISellerProfileRepository sellers,
         MarketplaceAuthorizationService authorization)
     {

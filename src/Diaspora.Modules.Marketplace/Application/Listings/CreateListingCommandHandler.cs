@@ -35,6 +35,7 @@ public sealed class CreateListingCommandHandler
     : ICommandHandler<CreateListingCommand, ListingResponse>
 {
     private readonly IMarketplaceListingRepository _listings;
+    private readonly IMarketplaceListingSellerFacts _sellerFacts;
     private readonly IListingAnalyticsRepository _analytics;
     private readonly IUnitOfWork _unitOfWork;
     private readonly MarketplaceAuthorizationService _authorization;
@@ -48,6 +49,7 @@ public sealed class CreateListingCommandHandler
 
     public CreateListingCommandHandler(
         IMarketplaceListingRepository listings,
+        IMarketplaceListingSellerFacts sellerFacts,
         IListingAnalyticsRepository analytics,
         IUnitOfWork unitOfWork,
         MarketplaceAuthorizationService authorization,
@@ -60,6 +62,7 @@ public sealed class CreateListingCommandHandler
         IClock clock)
     {
         _listings = listings;
+        _sellerFacts = sellerFacts;
         _analytics = analytics;
         _unitOfWork = unitOfWork;
         _authorization = authorization;
@@ -88,7 +91,7 @@ public sealed class CreateListingCommandHandler
 
         // An abuse bound rather than an editorial one: it is drafts a script can create for free
         // that are counted, not published listings a person wrote.
-        var openCount = await _listings.CountActiveBySellerAsync(
+        var openCount = await _sellerFacts.CountActiveBySellerAsync(
             seller.Value.Id, cancellationToken);
 
         if (openCount >= _options.Value.MaxActiveListingsPerSeller)
@@ -106,7 +109,7 @@ public sealed class CreateListingCommandHandler
         // An exact repeat of a listing the seller already has live is a double-submit, not a second
         // item. Near-duplicates are a fraud provider's job, where a false positive costs a note
         // rather than a refusal.
-        if (await _listings.HasDuplicateAsync(
+        if (await _sellerFacts.HasDuplicateAsync(
                 seller.Value.Id, title.Value.Value, excluding: null, cancellationToken))
         {
             return Result.Failure<ListingResponse>(MarketplaceErrors.DuplicateListing);

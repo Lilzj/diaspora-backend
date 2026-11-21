@@ -18,9 +18,9 @@ public sealed class HousingRentStatistics : IRentStatistics
     /// </summary>
     public const int MaximumListingsRead = 20_000;
 
-    private readonly IHousingListingRepository _listings;
+    private readonly IHousingListingStatistics _listings;
 
-    public HousingRentStatistics(IHousingListingRepository listings) => _listings = listings;
+    public HousingRentStatistics(IHousingListingStatistics listings) => _listings = listings;
 
     public Task<RentComparison> CompareMonthlyRentAsync(
         string countryCode, string areaPath, CancellationToken cancellationToken = default) =>

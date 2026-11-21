@@ -27,9 +27,9 @@ public sealed class MarketplaceNearbyResourceProvider : INearbyResourceProvider
     /// <summary>One of the resource-type keys Location froze. Not a new one.</summary>
     public const string Key = "marketplace";
 
-    private readonly IMarketplaceListingRepository _listings;
+    private readonly IMarketplaceListingSearch _listings;
 
-    public MarketplaceNearbyResourceProvider(IMarketplaceListingRepository listings) =>
+    public MarketplaceNearbyResourceProvider(IMarketplaceListingSearch listings) =>
         _listings = listings;
 
     public string ResourceType => Key;

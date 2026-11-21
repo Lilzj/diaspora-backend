@@ -40,6 +40,7 @@ public sealed class CreateHousingListingCommandHandler
     : ICommandHandler<CreateHousingListingCommand, HousingListingResponse>
 {
     private readonly IHousingListingRepository _listings;
+    private readonly IHousingListingGuards _guards;
     private readonly IHousingAnalyticsRepository _analytics;
     private readonly IUnitOfWork _unitOfWork;
     private readonly HousingAuthorizationService _authorization;
@@ -55,6 +56,7 @@ public sealed class CreateHousingListingCommandHandler
 
     public CreateHousingListingCommandHandler(
         IHousingListingRepository listings,
+        IHousingListingGuards guards,
         IHousingAnalyticsRepository analytics,
         IUnitOfWork unitOfWork,
         HousingAuthorizationService authorization,
@@ -69,6 +71,7 @@ public sealed class CreateHousingListingCommandHandler
         IClock clock)
     {
         _listings = listings;
+        _guards = guards;
         _analytics = analytics;
         _unitOfWork = unitOfWork;
         _authorization = authorization;
@@ -98,7 +101,7 @@ public sealed class CreateHousingListingCommandHandler
         var request = command.Request;
         var now = _clock.UtcNow;
 
-        var held = await _listings.CountAgainstListingQuotaAsync(landlord.Value.Id, cancellationToken);
+        var held = await _guards.CountAgainstListingQuotaAsync(landlord.Value.Id, cancellationToken);
 
         if (held >= _options.Value.MaxActiveListingsPerLandlord)
         {
@@ -107,7 +110,7 @@ public sealed class CreateHousingListingCommandHandler
 
         // Exact-title duplicates within one landlord. Fuzzy matching is the fraud seam's job, where
         // a false positive is a moderator's note rather than a refusal.
-        if (await _listings.HasDuplicateAsync(
+        if (await _guards.HasDuplicateAsync(
                 landlord.Value.Id, request.Title, excluding: null, cancellationToken))
         {
             return Result.Failure<HousingListingResponse>(HousingErrors.DuplicateListing);

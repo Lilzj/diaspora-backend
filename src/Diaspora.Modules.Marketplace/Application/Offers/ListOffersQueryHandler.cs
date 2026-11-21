@@ -25,12 +25,12 @@ public sealed class ListOffersQueryHandler
     : IQueryHandler<ListOffersQuery, CursorPagedResult<OfferCardResponse>>
 {
     private readonly IListingOfferRepository _offers;
-    private readonly IMarketplaceListingRepository _listings;
+    private readonly IMarketplaceListingSearch _listings;
     private readonly MarketplaceAuthorizationService _authorization;
 
     public ListOffersQueryHandler(
         IListingOfferRepository offers,
-        IMarketplaceListingRepository listings,
+        IMarketplaceListingSearch listings,
         MarketplaceAuthorizationService authorization)
     {
         _offers = offers;

@@ -29,7 +29,7 @@ namespace Diaspora.Modules.Providers.Persistence.Repositories;
 /// a card query fast and a command silently operate on an aggregate with no members in it.
 /// </para>
 /// </summary>
-public sealed class ProviderRepository : IProviderRepository
+public sealed class ProviderRepository : IProviderRepository, IProviderSearch, IProviderMembership, IProviderStatistics
 {
     private readonly DiasporaDbContext _dbContext;
 

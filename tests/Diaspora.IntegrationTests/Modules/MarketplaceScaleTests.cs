@@ -82,7 +82,7 @@ public sealed class MarketplaceScaleTests : IntegrationTestBase
         var seller = await SeedListingsAsync(ListingCount);
 
         using var scope = Factory.Services.CreateScope();
-        var listings = scope.ServiceProvider.GetRequiredService<IMarketplaceListingRepository>();
+        var listings = scope.ServiceProvider.GetRequiredService<IMarketplaceListingSearch>();
 
         var seen = new HashSet<Guid>();
         var pages = 0;
@@ -136,7 +136,7 @@ public sealed class MarketplaceScaleTests : IntegrationTestBase
         var seller = await SeedListingsAsync(ListingCount);
 
         using var scope = Factory.Services.CreateScope();
-        var listings = scope.ServiceProvider.GetRequiredService<IMarketplaceListingRepository>();
+        var listings = scope.ServiceProvider.GetRequiredService<IMarketplaceListingSearch>();
 
         var page = await listings.QueryAsync(
             new ListingQueryFilter { SellerId = seller }, cursor: null, limit: 20);
@@ -155,7 +155,7 @@ public sealed class MarketplaceScaleTests : IntegrationTestBase
         var seller = await SeedListingsAsync(ListingCount);
 
         using var scope = Factory.Services.CreateScope();
-        var listings = scope.ServiceProvider.GetRequiredService<IMarketplaceListingRepository>();
+        var listings = scope.ServiceProvider.GetRequiredService<IMarketplaceListingSearch>();
 
         var page = await listings.QueryAsync(
             new ListingQueryFilter { SellerId = seller }, cursor: null, limit: 5_000);
@@ -175,7 +175,7 @@ public sealed class MarketplaceScaleTests : IntegrationTestBase
         var seller = await SeedListingsAsync(ListingCount);
 
         using var scope = Factory.Services.CreateScope();
-        var listings = scope.ServiceProvider.GetRequiredService<IMarketplaceListingRepository>();
+        var listings = scope.ServiceProvider.GetRequiredService<IMarketplaceListingSearch>();
 
         var page = await listings.QueryAsync(
             new ListingQueryFilter
@@ -211,7 +211,7 @@ public sealed class MarketplaceScaleTests : IntegrationTestBase
         var seller = await SeedListingsAsync(ListingCount);
 
         using var scope = Factory.Services.CreateScope();
-        var listings = scope.ServiceProvider.GetRequiredService<IMarketplaceListingRepository>();
+        var listings = scope.ServiceProvider.GetRequiredService<IMarketplaceListingSearch>();
 
         var page = await listings.QueryAsync(
             new ListingQueryFilter
@@ -245,7 +245,7 @@ public sealed class MarketplaceScaleTests : IntegrationTestBase
         var seller = await SeedListingsAsync(200);
 
         using var scope = Factory.Services.CreateScope();
-        var listings = scope.ServiceProvider.GetRequiredService<IMarketplaceListingRepository>();
+        var listings = scope.ServiceProvider.GetRequiredService<IMarketplaceListingSearch>();
 
         var page = await listings.QueryAsync(
             new ListingQueryFilter { SellerId = seller, CountryCode = "JP" },
@@ -331,7 +331,7 @@ public sealed class MarketplaceScaleTests : IntegrationTestBase
 
         using var scope = Factory.Services.CreateScope();
         var engine = scope.ServiceProvider.GetRequiredService<IMarketplaceSearchEngine>();
-        var listings = scope.ServiceProvider.GetRequiredService<IMarketplaceListingRepository>();
+        var listings = scope.ServiceProvider.GetRequiredService<IMarketplaceListingSearch>();
 
         var outcome = await engine.SearchAsync(new MarketplaceSearchRequest
         {
@@ -370,7 +370,7 @@ public sealed class MarketplaceScaleTests : IntegrationTestBase
         var seller = await SeedListingsAsync(ListingCount);
 
         using var scope = Factory.Services.CreateScope();
-        var listings = scope.ServiceProvider.GetRequiredService<IMarketplaceListingRepository>();
+        var listings = scope.ServiceProvider.GetRequiredService<IMarketplaceListingSearch>();
 
         var filter = new ListingQueryFilter
         {
@@ -407,7 +407,7 @@ public sealed class MarketplaceScaleTests : IntegrationTestBase
         var seller = await SeedListingsAsync(ListingCount);
 
         using var scope = Factory.Services.CreateScope();
-        var listings = scope.ServiceProvider.GetRequiredService<IMarketplaceListingRepository>();
+        var listings = scope.ServiceProvider.GetRequiredService<IMarketplaceListingSearch>();
 
         var filter = new ListingQueryFilter { SellerId = seller };
 

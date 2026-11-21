@@ -7,21 +7,10 @@ using Diaspora.SharedKernel.Pagination;
 namespace Diaspora.Modules.Providers.Domain.Providers;
 
 /// <summary>
-/// Reads and writes providers.
+/// How the module loads and stores a provider it is about to change.
 /// <para>
-/// <b>Three shapes of read, and the split is load-bearing.</b> <see cref="GetAsync"/>
-/// materialises the whole aggregate — members, services, areas, hours, gallery, certifications,
-/// verifications — because a command about to mutate it needs all of it and a partially loaded
-/// aggregate cannot enforce its own invariants. <see cref="GetForReadAsync"/> materialises the
-/// profile-screen graph. <see cref="QueryAsync"/> materialises the <em>card</em> graph, because
-/// a discovery page of twenty cards that eagerly loaded every provider's whole gallery, service
-/// list and weekly schedule would be several thousand rows to render twenty names.
-/// </para>
-/// <para>
-/// The query method takes a <see cref="ProviderQueryFilter"/> rather than an
-/// <c>IQueryable</c>, for the reason that type documents: a contributed ranking strategy must
-/// not be able to compose an expression that fails to translate at run time inside somebody
-/// else's stack trace.
+/// Identity-based access, the slug uniqueness check that guards registration, and the lapsed
+/// verification batch the sweeper loads in order to act on it.
 /// </para>
 /// </summary>
 public interface IProviderRepository
@@ -39,6 +28,40 @@ public interface IProviderRepository
     Task<IReadOnlyList<Provider>> GetManyAsync(
         IReadOnlyCollection<ProviderId> ids, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Whether a slug is free.
+    /// <para>
+    /// Advisory, not authoritative: the unique index is what actually guarantees it. This exists
+    /// so registration can pick a free suffix before writing, rather than catching a constraint
+    /// violation and retrying — which works but produces a gap in the identifier sequence and an
+    /// error in every log.
+    /// </para>
+    /// </summary>
+    Task<bool> SlugExistsAsync(ProviderSlug slug, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Providers holding a verification that has lapsed but is still marked current.
+    /// The sweeper's query — a badge must come off when the grant expires, not when the
+    /// provider next happens to be edited.
+    /// </summary>
+    Task<IReadOnlyList<Provider>> ListWithLapsedVerificationsAsync(
+        DateTimeOffset asOf, int batchSize, CancellationToken cancellationToken = default);
+
+    Task AddAsync(Provider provider, CancellationToken cancellationToken = default);
+
+    void Remove(Provider provider);
+}
+
+/// <summary>
+/// The directory path: a page of providers, how many match, and the nearest few.
+/// <para>
+/// Changes when the directory screen changes rather than when the aggregate does.
+/// <see cref="GetManyAsync"/> is declared here as well, because hydrating the ids a search
+/// returned is the same operation as loading a batch by id.
+/// </para>
+/// </summary>
+public interface IProviderSearch
+{
     /// <summary>The one query discovery, nearby, similar and "mine" all run.</summary>
     Task<CursorPagedResult<Provider>> QueryAsync(
         ProviderQueryFilter filter, CancellationToken cancellationToken = default);
@@ -53,17 +76,21 @@ public interface IProviderRepository
     Task<IReadOnlyList<ProviderNearestCandidate>> QueryNearestCandidatesAsync(
         ProviderQueryFilter filter, int limit, CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Whether a slug is free.
-    /// <para>
-    /// Advisory, not authoritative: the unique index is what actually guarantees it. This exists
-    /// so registration can pick a free suffix before writing, rather than catching a constraint
-    /// violation and retrying — which works but produces a gap in the identifier sequence and an
-    /// error in every log.
-    /// </para>
-    /// </summary>
-    Task<bool> SlugExistsAsync(ProviderSlug slug, CancellationToken cancellationToken = default);
+    /// <summary>Several providers' card graphs at once. The N+1 guard for a bookmark list.</summary>
+    Task<IReadOnlyList<Provider>> GetManyAsync(
+        IReadOnlyCollection<ProviderId> ids, CancellationToken cancellationToken = default);
+}
 
+/// <summary>
+/// Who owns a provider and who may act for one.
+/// <para>
+/// The ownership and role questions authorization asks, plus the member's own provider list.
+/// Separate because it changes when the membership model changes — a new role, a new limit on how
+/// many a member may own — and that is unrelated to how a provider is stored.
+/// </para>
+/// </summary>
+public interface IProviderMembership
+{
     /// <summary>How many providers a member owns. Enforces the per-owner ceiling.</summary>
     Task<int> CountOwnedByAsync(UserId ownerId, CancellationToken cancellationToken = default);
 
@@ -87,7 +114,19 @@ public interface IProviderRepository
     /// <summary>The owners of many providers, in one query. For self-review and self-report checks.</summary>
     Task<IReadOnlyDictionary<Guid, Guid>> GetOwnersAsync(
         IReadOnlyCollection<Guid> providerIds, CancellationToken cancellationToken = default);
+}
 
+/// <summary>
+/// How many providers are in a place or a category.
+/// <para>
+/// What B4's resource counters and the category facets ask for.
+/// <see cref="QueryNearestCandidatesAsync"/> is declared here as well as on the search interface,
+/// because "what is near this point" is the same question whether a directory screen or an area
+/// page is asking it.
+/// </para>
+/// </summary>
+public interface IProviderStatistics
+{
     /// <summary>Active providers in a catalogue subtree. B4's area count.</summary>
     Task<int> CountInAreaAsync(
         string hierarchyPathPrefix, CancellationToken cancellationToken = default);
@@ -100,14 +139,9 @@ public interface IProviderRepository
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Providers holding a verification that has lapsed but is still marked current.
-    /// The sweeper's query — a badge must come off when the grant expires, not when the
-    /// provider next happens to be edited.
+    /// Every match as identifiers and positions only, up to <paramref name="limit"/>. For a
+    /// "nearest first" search, which orders by a distance only Location may measure.
     /// </summary>
-    Task<IReadOnlyList<Provider>> ListWithLapsedVerificationsAsync(
-        DateTimeOffset asOf, int batchSize, CancellationToken cancellationToken = default);
-
-    Task AddAsync(Provider provider, CancellationToken cancellationToken = default);
-
-    void Remove(Provider provider);
+    Task<IReadOnlyList<ProviderNearestCandidate>> QueryNearestCandidatesAsync(
+        ProviderQueryFilter filter, int limit, CancellationToken cancellationToken = default);
 }

@@ -29,7 +29,7 @@ public sealed class GetMarketplaceDashboardQueryHandler
 {
     private const int RailSize = 12;
 
-    private readonly IMarketplaceListingRepository _listings;
+    private readonly IMarketplaceListingSearch _listings;
     private readonly ISellerProfileRepository _sellers;
     private readonly ISavedListingRepository _saved;
     private readonly IListingOfferRepository _offers;
@@ -39,7 +39,7 @@ public sealed class GetMarketplaceDashboardQueryHandler
     private readonly MarketplaceGeographicScopeAdapter _geography;
 
     public GetMarketplaceDashboardQueryHandler(
-        IMarketplaceListingRepository listings,
+        IMarketplaceListingSearch listings,
         ISellerProfileRepository sellers,
         ISavedListingRepository saved,
         IListingOfferRepository offers,

@@ -46,7 +46,7 @@ namespace Diaspora.Modules.Providers.Application.Discovery;
 public sealed class SearchProvidersQueryHandler
     : IQueryHandler<SearchProvidersQuery, ProviderPageResponse>
 {
-    private readonly IProviderRepository _providers;
+    private readonly IProviderSearch _providers;
     private readonly ServiceCategoryResolver _categories;
     private readonly GeographicScopeAdapter _geography;
     private readonly RankingStrategyRegistry _rankings;
@@ -55,7 +55,7 @@ public sealed class SearchProvidersQueryHandler
     private readonly IClock _clock;
 
     public SearchProvidersQueryHandler(
-        IProviderRepository providers,
+        IProviderSearch providers,
         ServiceCategoryResolver categories,
         GeographicScopeAdapter geography,
         RankingStrategyRegistry rankings,

@@ -37,6 +37,7 @@ namespace Diaspora.Modules.Providers.Application.Services;
 public sealed class ProviderSearchProjectionService : IProviderSearchProjectionSource
 {
     private readonly IProviderRepository _providers;
+    private readonly IProviderSearch _search;
     private readonly ServiceCategoryResolver _categories;
     private readonly IEnumerable<IProviderSearchProjectionContributor> _contributors;
     private readonly IClock _clock;
@@ -44,12 +45,14 @@ public sealed class ProviderSearchProjectionService : IProviderSearchProjectionS
 
     public ProviderSearchProjectionService(
         IProviderRepository providers,
+        IProviderSearch search,
         ServiceCategoryResolver categories,
         IEnumerable<IProviderSearchProjectionContributor> contributors,
         IClock clock,
         ILogger<ProviderSearchProjectionService> logger)
     {
         _providers = providers;
+        _search = search;
         _categories = categories;
         _contributors = contributors;
         _clock = clock;
@@ -118,7 +121,7 @@ public sealed class ProviderSearchProjectionService : IProviderSearchProjectionS
 
         do
         {
-            var page = await _providers.QueryAsync(
+            var page = await _search.QueryAsync(
                 new ProviderQueryFilter
                 {
                     Statuses = [ProviderStatus.Active],

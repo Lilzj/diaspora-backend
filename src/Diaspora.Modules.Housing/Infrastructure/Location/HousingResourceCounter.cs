@@ -27,9 +27,9 @@ public sealed class HousingResourceCounter : ILocationResourceCounter
     /// <summary>One of the resource-type keys Location froze. Not a new one.</summary>
     public const string Key = "housing";
 
-    private readonly IHousingListingRepository _listings;
+    private readonly IHousingListingStatistics _listings;
 
-    public HousingResourceCounter(IHousingListingRepository listings) => _listings = listings;
+    public HousingResourceCounter(IHousingListingStatistics listings) => _listings = listings;
 
     public string ResourceType => Key;
 

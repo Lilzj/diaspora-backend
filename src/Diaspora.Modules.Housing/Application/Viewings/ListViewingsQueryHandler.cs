@@ -23,14 +23,14 @@ public sealed class ListViewingsQueryHandler
     : IQueryHandler<ListViewingsQuery, IReadOnlyList<HousingViewingResponse>>
 {
     private readonly IHousingViewingRepository _viewings;
-    private readonly IHousingListingRepository _listings;
+    private readonly IHousingListingSearch _listings;
     private readonly ILandlordProfileRepository _landlords;
     private readonly HousingAuthorizationService _authorization;
     private readonly IMemberProfileService _members;
 
     public ListViewingsQueryHandler(
         IHousingViewingRepository viewings,
-        IHousingListingRepository listings,
+        IHousingListingSearch listings,
         ILandlordProfileRepository landlords,
         HousingAuthorizationService authorization,
         IMemberProfileService members)

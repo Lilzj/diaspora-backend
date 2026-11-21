@@ -37,7 +37,7 @@ namespace Diaspora.Modules.Marketplace.Application.Discovery;
 public sealed class SearchListingsQueryHandler
     : IQueryHandler<SearchListingsQuery, ListingSearchResultResponse>
 {
-    private readonly IMarketplaceListingRepository _listings;
+    private readonly IMarketplaceListingSearch _listings;
     private readonly ISellerProfileRepository _sellers;
     private readonly ISavedListingRepository _saved;
     private readonly MarketplaceAuthorizationService _authorization;
@@ -47,7 +47,7 @@ public sealed class SearchListingsQueryHandler
     private readonly IClock _clock;
 
     public SearchListingsQueryHandler(
-        IMarketplaceListingRepository listings,
+        IMarketplaceListingSearch listings,
         ISellerProfileRepository sellers,
         ISavedListingRepository saved,
         MarketplaceAuthorizationService authorization,

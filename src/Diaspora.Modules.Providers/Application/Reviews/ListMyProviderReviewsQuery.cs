@@ -47,13 +47,13 @@ public sealed class ListMyProviderReviewsQueryHandler
 {
     private const int DefaultLimit = 20;
 
-    private readonly IProviderRepository _providers;
+    private readonly IProviderMembership _providers;
     private readonly IProviderReviewRepository _reviews;
     private readonly ProviderAuthorizationService _authorization;
     private readonly ProviderReviewerNames _names;
 
     public ListMyProviderReviewsQueryHandler(
-        IProviderRepository providers,
+        IProviderMembership providers,
         IProviderReviewRepository reviews,
         ProviderAuthorizationService authorization,
         ProviderReviewerNames names)

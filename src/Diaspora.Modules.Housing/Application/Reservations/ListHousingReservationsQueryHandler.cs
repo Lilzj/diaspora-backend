@@ -20,13 +20,13 @@ public sealed class ListHousingReservationsQueryHandler
     : IQueryHandler<ListHousingReservationsQuery, IReadOnlyList<HousingReservationResponse>>
 {
     private readonly IHousingReservationRepository _reservations;
-    private readonly IHousingListingRepository _listings;
+    private readonly IHousingListingSearch _listings;
     private readonly ILandlordProfileRepository _landlords;
     private readonly HousingAuthorizationService _authorization;
 
     public ListHousingReservationsQueryHandler(
         IHousingReservationRepository reservations,
-        IHousingListingRepository listings,
+        IHousingListingSearch listings,
         ILandlordProfileRepository landlords,
         HousingAuthorizationService authorization)
     {

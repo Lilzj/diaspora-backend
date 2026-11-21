@@ -38,13 +38,13 @@ public sealed class NeighborhoodStatisticsService
     private const int MarketWindowDays = 730;
 
     private readonly IHousingAnalyticsRepository _analytics;
-    private readonly IHousingListingRepository _listings;
+    private readonly IHousingListingStatistics _listings;
     private readonly IResourceCounts _resourceCounts;
     private readonly IClock _clock;
 
     public NeighborhoodStatisticsService(
         IHousingAnalyticsRepository analytics,
-        IHousingListingRepository listings,
+        IHousingListingStatistics listings,
         IResourceCounts resourceCounts,
         IClock clock)
     {

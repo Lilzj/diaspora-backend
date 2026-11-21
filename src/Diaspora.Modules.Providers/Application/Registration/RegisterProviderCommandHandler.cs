@@ -36,6 +36,7 @@ public sealed class RegisterProviderCommandHandler
     : ICommandHandler<RegisterProviderCommand, ProviderResponse>
 {
     private readonly IProviderRepository _providers;
+    private readonly IProviderMembership _membership;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ServiceCategoryResolver _categories;
     private readonly ProviderSlugAllocator _slugs;
@@ -49,6 +50,7 @@ public sealed class RegisterProviderCommandHandler
 
     public RegisterProviderCommandHandler(
         IProviderRepository providers,
+        IProviderMembership membership,
         IUnitOfWork unitOfWork,
         ServiceCategoryResolver categories,
         ProviderSlugAllocator slugs,
@@ -61,6 +63,7 @@ public sealed class RegisterProviderCommandHandler
         IClock clock)
     {
         _providers = providers;
+        _membership = membership;
         _unitOfWork = unitOfWork;
         _categories = categories;
         _slugs = slugs;
@@ -101,7 +104,7 @@ public sealed class RegisterProviderCommandHandler
             return Result.Failure<ProviderResponse>(ProviderErrors.TypeUnsupported);
         }
 
-        var owned = await _providers.CountOwnedByAsync(caller.Value, cancellationToken);
+        var owned = await _membership.CountOwnedByAsync(caller.Value, cancellationToken);
 
         if (owned >= ProviderLimits.MaxProvidersPerOwner)
         {

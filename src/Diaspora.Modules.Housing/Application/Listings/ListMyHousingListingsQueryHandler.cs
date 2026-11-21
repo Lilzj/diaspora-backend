@@ -19,12 +19,12 @@ namespace Diaspora.Modules.Housing.Application.Listings;
 public sealed class ListMyHousingListingsQueryHandler
     : IQueryHandler<ListMyHousingListingsQuery, HousingSearchResultResponse>
 {
-    private readonly IHousingListingRepository _listings;
+    private readonly IHousingListingSearch _listings;
     private readonly HousingAuthorizationService _authorization;
     private readonly HousingListingReadContext _read;
 
     public ListMyHousingListingsQueryHandler(
-        IHousingListingRepository listings,
+        IHousingListingSearch listings,
         HousingAuthorizationService authorization,
         HousingListingReadContext read)
     {
