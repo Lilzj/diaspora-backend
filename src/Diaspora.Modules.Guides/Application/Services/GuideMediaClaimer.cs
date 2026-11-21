@@ -1,6 +1,6 @@
+using Diaspora.Contracts.Media.V1;
 using Diaspora.Modules.Media.Contracts.V1.Requests;
-using Diaspora.Modules.Media.Domain.Enums;
-using MediatR;
+using Diaspora.Modules.Media.Integration;
 using Microsoft.Extensions.Logging;
 
 namespace Diaspora.Modules.Guides.Application.Services;
@@ -27,12 +27,12 @@ namespace Diaspora.Modules.Guides.Application.Services;
 /// </summary>
 public sealed class GuideMediaClaimer
 {
-    private readonly ISender _sender;
+    private readonly IMediaAttachments _media;
     private readonly ILogger<GuideMediaClaimer> _logger;
 
-    public GuideMediaClaimer(ISender sender, ILogger<GuideMediaClaimer> logger)
+    public GuideMediaClaimer(IMediaAttachments media, ILogger<GuideMediaClaimer> logger)
     {
-        _sender = sender;
+        _media = media;
         _logger = logger;
     }
 
@@ -45,20 +45,17 @@ public sealed class GuideMediaClaimer
     {
         try
         {
-            await _sender.Send(
-                new Modules.Media.Application.Assets.AttachMediaCommand
+            await _media.AttachAsync(
+                new AttachMediaRequest
                 {
-                    Request = new AttachMediaRequest
-                    {
-                        MediaId = mediaId,
+                    MediaId = mediaId,
 
-                        // Media's own enum already carries a value for this module. B8 adds
-                        // nothing to Media and edits nothing in it.
-                        OwnerType = nameof(MediaOwnerType.Guide),
-                        OwnerId = guideId,
-                        Role = role,
-                        Position = position
-                    }
+                    // Media's own enum already carries a value for this module. B8 adds
+                    // nothing to Media and edits nothing in it.
+                    OwnerType = nameof(MediaOwnerType.Guide),
+                    OwnerId = guideId,
+                    Role = role,
+                    Position = position
                 },
                 cancellationToken);
         }

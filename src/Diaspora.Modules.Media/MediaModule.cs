@@ -12,6 +12,7 @@ using Diaspora.Modules.Media.Infrastructure.Hosting;
 using Diaspora.Modules.Media.Infrastructure.Platform;
 using Diaspora.Modules.Media.Infrastructure.Processing;
 using Diaspora.Modules.Media.Infrastructure.Storage;
+using Diaspora.Modules.Media.Integration;
 using Diaspora.Modules.Media.Options;
 using Diaspora.Modules.Media.Persistence.Repositories;
 using Diaspora.Platform.Modules;
@@ -208,6 +209,12 @@ public sealed class MediaModule : IPlatformModule
         services.AddScoped<UploadCoordinator>();
         services.AddScoped<MediaAccessGuard>();
         services.AddScoped<MediaUrlFactory>();
+
+        // The operations other modules perform on B5. Registered against the interface so a
+        // consumer depends on Integration and never on the command envelopes behind it.
+        services.AddScoped<MediaAttachments>();
+        services.AddScoped<IMediaAttachments>(
+            provider => provider.GetRequiredService<MediaAttachments>());
 
         services.AddScoped<MediaMapper>();
         services.AddScoped<UploadMapper>();

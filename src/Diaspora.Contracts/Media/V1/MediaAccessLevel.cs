@@ -1,4 +1,4 @@
-namespace Diaspora.Modules.Media.Domain.Enums;
+namespace Diaspora.Contracts.Media.V1;
 
 /// <summary>
 /// What an explicit grant permits its holder to do.

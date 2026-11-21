@@ -1,9 +1,8 @@
 ﻿using Diaspora.Modules.Media.Contracts.V1.Requests;
-using Diaspora.Modules.Media.Domain.Enums;
-using Diaspora.Modules.Media.Domain.ValueObjects;
+using Diaspora.Contracts.Media.V1;
 using Diaspora.Modules.Community.Domain.Comments;
 using Diaspora.Modules.Community.Domain.Posts;
-using MediatR;
+using Diaspora.Modules.Media.Integration;
 using Microsoft.Extensions.Logging;
 
 namespace Diaspora.Modules.Community.Application.Services;
@@ -31,12 +30,12 @@ namespace Diaspora.Modules.Community.Application.Services;
 /// </summary>
 public sealed class MediaAttachmentClaimer
 {
-    private readonly ISender _sender;
+    private readonly IMediaAttachments _media;
     private readonly ILogger<MediaAttachmentClaimer> _logger;
 
-    public MediaAttachmentClaimer(ISender sender, ILogger<MediaAttachmentClaimer> logger)
+    public MediaAttachmentClaimer(IMediaAttachments media, ILogger<MediaAttachmentClaimer> logger)
     {
-        _sender = sender;
+        _media = media;
         _logger = logger;
     }
 
@@ -108,17 +107,14 @@ public sealed class MediaAttachmentClaimer
     {
         try
         {
-            await _sender.Send(
-                new Modules.Media.Application.Assets.AttachMediaCommand
+            await _media.AttachAsync(
+                new AttachMediaRequest
                 {
-                    Request = new AttachMediaRequest
-                    {
-                        MediaId = mediaId,
-                        OwnerType = ownerType,
-                        OwnerId = ownerId,
-                        Role = role,
-                        Position = position
-                    }
+                    MediaId = mediaId,
+                    OwnerType = ownerType,
+                    OwnerId = ownerId,
+                    Role = role,
+                    Position = position
                 },
                 cancellationToken);
         }

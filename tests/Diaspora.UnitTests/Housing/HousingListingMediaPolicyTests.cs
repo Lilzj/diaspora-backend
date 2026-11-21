@@ -1,9 +1,8 @@
+using Diaspora.Contracts.Media.V1;
 using Diaspora.Modules.Housing.Application.Services;
 using Diaspora.Modules.Housing.Domain.Identifiers;
 using Diaspora.Modules.Housing.Domain.Landlords;
 using Diaspora.Modules.Housing.Domain.Listings;
-using Diaspora.Modules.Media.Domain.Enums;
-using Diaspora.Modules.Media.Domain.ValueObjects;
 using Diaspora.Modules.Media.Extensibility.Access;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.UnitTests.Housing.TestData;

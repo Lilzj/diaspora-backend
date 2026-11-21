@@ -1,4 +1,4 @@
-using Diaspora.Modules.Media.Domain.Enums;
+using Diaspora.Contracts.Media.V1;
 using Diaspora.Modules.Media.Extensibility.Access;
 
 namespace Diaspora.UnitTests.Media;

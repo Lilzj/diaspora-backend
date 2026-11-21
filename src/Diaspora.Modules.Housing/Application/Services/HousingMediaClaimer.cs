@@ -1,6 +1,6 @@
+using Diaspora.Contracts.Media.V1;
 using Diaspora.Modules.Media.Contracts.V1.Requests;
-using Diaspora.Modules.Media.Domain.Enums;
-using MediatR;
+using Diaspora.Modules.Media.Integration;
 using Microsoft.Extensions.Logging;
 
 namespace Diaspora.Modules.Housing.Application.Services;
@@ -26,12 +26,12 @@ namespace Diaspora.Modules.Housing.Application.Services;
 /// </summary>
 public sealed class HousingMediaClaimer
 {
-    private readonly ISender _sender;
+    private readonly IMediaAttachments _media;
     private readonly ILogger<HousingMediaClaimer> _logger;
 
-    public HousingMediaClaimer(ISender sender, ILogger<HousingMediaClaimer> logger)
+    public HousingMediaClaimer(IMediaAttachments media, ILogger<HousingMediaClaimer> logger)
     {
-        _sender = sender;
+        _media = media;
         _logger = logger;
     }
 
@@ -50,19 +50,16 @@ public sealed class HousingMediaClaimer
 
         try
         {
-            await _sender.Send(
-                new Modules.Media.Application.Assets.AttachMediaCommand
+            await _media.AttachAsync(
+                new AttachMediaRequest
                 {
-                    Request = new AttachMediaRequest
-                    {
-                        MediaId = mediaId,
+                    MediaId = mediaId,
 
-                        // Media own enum already carries a value for this module.
-                        OwnerType = nameof(MediaOwnerType.HousingListing),
-                        OwnerId = ownerId,
-                        Role = role,
-                        Position = position
-                    }
+                    // Media own enum already carries a value for this module.
+                    OwnerType = nameof(MediaOwnerType.HousingListing),
+                    OwnerId = ownerId,
+                    Role = role,
+                    Position = position
                 },
                 cancellationToken);
         }

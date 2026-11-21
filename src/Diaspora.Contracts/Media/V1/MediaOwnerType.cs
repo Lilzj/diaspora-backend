@@ -1,4 +1,4 @@
-namespace Diaspora.Modules.Media.Domain.Enums;
+namespace Diaspora.Contracts.Media.V1;
 
 /// <summary>
 /// The kind of thing an asset was uploaded for.
