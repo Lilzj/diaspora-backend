@@ -27,14 +27,14 @@ namespace Diaspora.Modules.CommunityLife.Application.Rsvps;
 public sealed class ListMyRsvpsQueryHandler : IQueryHandler<ListMyRsvpsQuery, RsvpPageResponse>
 {
     private readonly IEventRsvpRepository _rsvps;
-    private readonly ICommunityEventRepository _events;
+    private readonly ICommunityEventSearch _events;
     private readonly CommunityLifeAuthorizationService _authorization;
     private readonly CommunityEventReadContext _read;
     private readonly IClock _clock;
 
     public ListMyRsvpsQueryHandler(
         IEventRsvpRepository rsvps,
-        ICommunityEventRepository events,
+        ICommunityEventSearch events,
         CommunityLifeAuthorizationService authorization,
         CommunityEventReadContext read,
         IClock clock)

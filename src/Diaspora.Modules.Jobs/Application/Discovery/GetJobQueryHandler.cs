@@ -27,7 +27,7 @@ public sealed class GetJobQueryHandler : IQueryHandler<GetJobQuery, JobResponse>
 {
     private readonly IJobPostingRepository _postings;
     private readonly IEmployerProfileRepository _employers;
-    private readonly IJobApplicationRepository _applications;
+    private readonly IJobApplicationFacts _applications;
     private readonly ISavedJobRepository _saved;
     private readonly JobAuthorizationService _authorization;
     private readonly JobProviderResolver _providers;
@@ -37,7 +37,7 @@ public sealed class GetJobQueryHandler : IQueryHandler<GetJobQuery, JobResponse>
     public GetJobQueryHandler(
         IJobPostingRepository postings,
         IEmployerProfileRepository employers,
-        IJobApplicationRepository applications,
+        IJobApplicationFacts applications,
         ISavedJobRepository saved,
         JobAuthorizationService authorization,
         JobProviderResolver providers,

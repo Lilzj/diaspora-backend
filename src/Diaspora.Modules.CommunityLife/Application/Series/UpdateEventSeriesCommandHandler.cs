@@ -51,6 +51,7 @@ public sealed class UpdateEventSeriesCommandHandler
 {
     private readonly IEventSeriesRepository _series;
     private readonly ICommunityEventRepository _events;
+    private readonly ICommunityEventSeries _communityEventSeries;
     private readonly IUnitOfWork _unitOfWork;
     private readonly CommunityLifeAuthorizationService _authorization;
     private readonly CommunityLifeNeighborhoodResolver _neighborhoods;
@@ -61,6 +62,7 @@ public sealed class UpdateEventSeriesCommandHandler
     public UpdateEventSeriesCommandHandler(
         IEventSeriesRepository series,
         ICommunityEventRepository events,
+        ICommunityEventSeries communityEventSeries,
         IUnitOfWork unitOfWork,
         CommunityLifeAuthorizationService authorization,
         CommunityLifeNeighborhoodResolver neighborhoods,
@@ -70,6 +72,7 @@ public sealed class UpdateEventSeriesCommandHandler
     {
         _series = series;
         _events = events;
+        _communityEventSeries = communityEventSeries;
         _unitOfWork = unitOfWork;
         _authorization = authorization;
         _neighborhoods = neighborhoods;
@@ -366,7 +369,7 @@ public sealed class UpdateEventSeriesCommandHandler
         UserId caller,
         CancellationToken cancellationToken)
     {
-        var occurrences = await _events.FindOccurrencesToRewriteAsync(
+        var occurrences = await _communityEventSeries.FindOccurrencesToRewriteAsync(
             series.Id,
             fromSequence,
             now,

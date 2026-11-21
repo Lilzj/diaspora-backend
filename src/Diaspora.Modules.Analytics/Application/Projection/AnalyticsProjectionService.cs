@@ -53,7 +53,7 @@ namespace Diaspora.Modules.Analytics.Application.Projection;
 /// </summary>
 public sealed class AnalyticsProjectionService
 {
-    private readonly IAnalyticsEventRepository _events;
+    private readonly IAnalyticsCellSource _events;
     private readonly IAnalyticsRollupRepository _rollups;
     private readonly IAnalyticsContentDimensionRepository _dimensions;
     private readonly IAnalyticsProjectionRepository _projection;
@@ -63,7 +63,7 @@ public sealed class AnalyticsProjectionService
     private readonly ILogger<AnalyticsProjectionService> _logger;
 
     public AnalyticsProjectionService(
-        IAnalyticsEventRepository events,
+        IAnalyticsCellSource events,
         IAnalyticsRollupRepository rollups,
         IAnalyticsContentDimensionRepository dimensions,
         IAnalyticsProjectionRepository projection,

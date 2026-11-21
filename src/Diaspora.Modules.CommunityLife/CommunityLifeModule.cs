@@ -83,7 +83,12 @@ public sealed class CommunityLifeModule : IPlatformModule
     private static void RegisterRepositories(IServiceCollection services)
     {
         services.AddScoped<IOrganizationRepository, OrganizationRepository>();
-        services.AddScoped<ICommunityEventRepository, CommunityEventRepository>();
+        services.AddScoped<CommunityEventRepository>();
+        services.AddScoped<ICommunityEventRepository>(services => services.GetRequiredService<CommunityEventRepository>());
+        services.AddScoped<ICommunityEventSearch>(services => services.GetRequiredService<CommunityEventRepository>());
+        services.AddScoped<ICommunityEventGuards>(services => services.GetRequiredService<CommunityEventRepository>());
+        services.AddScoped<ICommunityEventSeries>(services => services.GetRequiredService<CommunityEventRepository>());
+        services.AddScoped<ICommunityEventStatistics>(services => services.GetRequiredService<CommunityEventRepository>());
         services.AddScoped<IEventSeriesRepository, EventSeriesRepository>();
         services.AddScoped<IOrganizationMembershipRepository, OrganizationMembershipRepository>();
         services.AddScoped<IEventRsvpRepository, EventRsvpRepository>();

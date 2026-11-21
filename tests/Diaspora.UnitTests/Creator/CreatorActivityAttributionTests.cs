@@ -229,7 +229,7 @@ public sealed class CreatorActivityAttributionTests
     {
         var creators = Substitute.For<ICreatorProfileRepository>();
         var activity = Substitute.For<ICreatorActivityRepository>();
-        var rewards = Substitute.For<ICreatorRewardRepository>();
+        var rewards = Substitute.For<ICreatorPointRuleRepository>();
         var clock = Substitute.For<IClock>();
         var guids = Substitute.For<IGuidGenerator>();
 

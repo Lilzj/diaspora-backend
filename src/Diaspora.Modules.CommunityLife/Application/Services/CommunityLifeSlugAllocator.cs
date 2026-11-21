@@ -24,12 +24,12 @@ public sealed class CommunityLifeSlugAllocator
     private const int MaxAttempts = 12;
 
     private readonly IOrganizationRepository _organizations;
-    private readonly ICommunityEventRepository _events;
+    private readonly ICommunityEventGuards _events;
     private readonly IEventSeriesRepository _series;
 
     public CommunityLifeSlugAllocator(
         IOrganizationRepository organizations,
-        ICommunityEventRepository events,
+        ICommunityEventGuards events,
         IEventSeriesRepository series)
     {
         _organizations = organizations;
@@ -63,7 +63,7 @@ public sealed class CommunityLifeSlugAllocator
     /// <para>
     /// <b>B12.1, and it exists because uniqueness in the database is not uniqueness in a
     /// transaction.</b> Expanding a series writes twenty-six events in one unit of work, and
-    /// <see cref="ICommunityEventRepository.SlugExistsAsync"/> can only see what has been committed
+    /// <see cref="ICommunityEventGuards.SlugExistsAsync"/> can only see what has been committed
     /// — so every one of the twenty-six was offered the same free handle and the insert failed on
     /// the unique index. The reserved set is what the run has already issued.
     /// </para>

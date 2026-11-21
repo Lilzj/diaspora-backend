@@ -320,23 +320,18 @@ public interface ISignupBonusRepository
         CreatorId creatorId, string key, CancellationToken cancellationToken = default);
 }
 
+/// <summary>
+/// The reward catalogue: what a creator can redeem points for.
+/// <para>
+/// One of three repositories that used to be one. The reward definitions, the point rules and the
+/// redemptions are three aggregates with three lifecycles, and the single interface meant the
+/// points engine — which only ever resolves a rule for an action — depended on all sixteen
+/// members of all three.
+/// </para>
+/// </summary>
 public interface ICreatorRewardRepository
 {
-    void AddRule(CreatorPointRule rule);
-
     void AddReward(CreatorRewardDefinition reward);
-
-    void AddRedemption(CreatorRewardRedemption redemption);
-
-    void UpdateRedemption(CreatorRewardRedemption redemption);
-
-    Task<IReadOnlyList<CreatorPointRule>> ListRulesAsync(CancellationToken cancellationToken = default);
-
-    Task<CreatorPointRule?> FindRuleByKeyAsync(
-        string key, CancellationToken cancellationToken = default);
-
-    Task<CreatorPointRule?> FindRuleForActionAsync(
-        string actionType, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<CreatorRewardDefinition>> ListRewardsAsync(
         CancellationToken cancellationToken = default);
@@ -346,6 +341,38 @@ public interface ICreatorRewardRepository
 
     Task<CreatorRewardDefinition?> FindRewardByKeyAsync(
         string key, CancellationToken cancellationToken = default);
+}
+/// <summary>
+/// The point rules: what earns a creator points, and how many.
+/// <para>
+/// Read by the points engine on every scoring action, which is why it is worth it not depending
+/// on redemptions at all.
+/// </para>
+/// </summary>
+public interface ICreatorPointRuleRepository
+{
+    void AddRule(CreatorPointRule rule);
+
+    Task<IReadOnlyList<CreatorPointRule>> ListRulesAsync(CancellationToken cancellationToken = default);
+
+    Task<CreatorPointRule?> FindRuleByKeyAsync(
+        string key, CancellationToken cancellationToken = default);
+
+    Task<CreatorPointRule?> FindRuleForActionAsync(
+        string actionType, CancellationToken cancellationToken = default);
+}
+/// <summary>
+/// A creator's redemptions: claiming a reward, and the review queue that settles it.
+/// <para>
+/// Carries the idempotency lookup and the per-reward counters a claim is checked against, because
+/// those questions are about a redemption rather than about the reward it names.
+/// </para>
+/// </summary>
+public interface ICreatorRewardRedemptionRepository
+{
+    void AddRedemption(CreatorRewardRedemption redemption);
+
+    void UpdateRedemption(CreatorRewardRedemption redemption);
 
     Task<IReadOnlyList<CreatorRewardRedemption>> ListRedemptionsAsync(
         CreatorId creatorId, int take, CancellationToken cancellationToken = default);

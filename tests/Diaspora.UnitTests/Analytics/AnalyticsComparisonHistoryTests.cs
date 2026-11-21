@@ -210,7 +210,7 @@ public sealed class AnalyticsComparisonHistoryTests
         new(new AnalyticsCounts(views, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), views > 0 ? 1 : 0, 0, hasData, hasHistory);
 
     private static AnalyticsReadService Reads(IAnalyticsRollupRepository rollups) =>
-        new(rollups, Substitute.For<IAnalyticsEventRepository>());
+        new(rollups, Substitute.For<IAnalyticsEventReports>());
 
     /// <summary>A rollup table holding one owner row, on one day, answering every read truthfully.</summary>
     private static IAnalyticsRollupRepository OwnerRowsOn(DateOnly day)

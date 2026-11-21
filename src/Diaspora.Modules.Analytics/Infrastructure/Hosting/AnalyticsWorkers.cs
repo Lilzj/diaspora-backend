@@ -233,7 +233,7 @@ public sealed class AnalyticsRetentionWorker : BackgroundService
         {
             var options = _options.Value;
             var calendar = scope.ServiceProvider.GetRequiredService<AnalyticsReportingCalendar>();
-            var events = scope.ServiceProvider.GetRequiredService<IAnalyticsEventRepository>();
+            var events = scope.ServiceProvider.GetRequiredService<IAnalyticsEventHousekeeping>();
             var rollups = scope.ServiceProvider.GetRequiredService<IAnalyticsRollupRepository>();
             var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 

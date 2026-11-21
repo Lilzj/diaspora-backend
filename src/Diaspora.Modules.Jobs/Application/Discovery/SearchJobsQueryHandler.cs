@@ -36,7 +36,7 @@ public sealed class SearchJobsQueryHandler
     private readonly IJobSearchEngine _engine;
     private readonly IJobPostingRepository _postings;
     private readonly IEmployerProfileRepository _employers;
-    private readonly IJobApplicationRepository _applications;
+    private readonly IJobApplicationFacts _applications;
     private readonly ISavedJobRepository _saved;
     private readonly JobRankingStrategyRegistry _ranking;
     private readonly JobAuthorizationService _authorization;
@@ -47,7 +47,7 @@ public sealed class SearchJobsQueryHandler
         IJobSearchEngine engine,
         IJobPostingRepository postings,
         IEmployerProfileRepository employers,
-        IJobApplicationRepository applications,
+        IJobApplicationFacts applications,
         ISavedJobRepository saved,
         JobRankingStrategyRegistry ranking,
         JobAuthorizationService authorization,

@@ -15,13 +15,23 @@ namespace Diaspora.ArchitectureTests;
 /// across the tail used exactly one.
 /// </para>
 /// <para>
-/// <b>The finding's own verification criteria cannot all be met, and these rules say which.</b> It
-/// asks for three things: no <c>I*Repository</c> over twelve members, the largest split, and no
-/// handler taking a repository it uses one method of. The first contradicts the remediation beside
-/// it, which says to leave the 13–14 band alone. The third is not reachable by the two-way split
-/// the remediation describes — splitting 24 into 8 writes and 16 queries still hands a consumer
-/// that needs one count a 16-member dependency; only a role per reason-to-change gets there, which
-/// is what the split interfaces are. These rules enforce the achievable form of all three.
+/// <b>The finding's three verification criteria do not agree with each other.</b> It asks for no
+/// <c>I*Repository</c> over twelve members, the largest split, and no handler taking a repository
+/// it uses one method of. The third is not reachable by the two-way split the remediation
+/// describes — splitting 24 into 8 writes and 16 queries still hands a consumer that needs one
+/// count a 16-member dependency; only a role per reason-to-change gets there, which is what the
+/// split interfaces are, and <see cref="No_holder_takes_a_role_wider_than_it_uses"/> is its
+/// enforceable form.
+/// </para>
+/// <para>
+/// <b>The first criterion is right and the remediation beside it is wrong, which took a
+/// measurement to establish.</b> The remediation says to leave the 13–14 band alone unless it is
+/// being touched anyway. Measured on 21 November 2026, that band has the same defect the tail had:
+/// <b>190 of its 295 consumers use exactly one member</b>, 258 use two or fewer, and the heaviest
+/// consumer of the 69-consumer <c>IGuideRepository</c> uses three of its fourteen. Only
+/// <c>ICommunityInitiativeRepository</c> is genuinely cohesive — two consumers, one of which uses
+/// all fourteen. The band is smaller bags rather than smaller contracts, so the list below is what
+/// remains to be split, not debt anybody has agreed to keep.
 /// </para>
 /// </summary>
 public sealed class RepositorySegregationArchitectureTests
@@ -43,10 +53,6 @@ public sealed class RepositorySegregationArchitectureTests
     /// </summary>
     private static readonly (string Interface, int Members)[] RepositoriesStillOverTwelve =
     [
-        ("ICommunityEventRepository", 23),
-        ("IAnalyticsEventRepository", 19),
-        ("ICreatorRewardRepository", 16),
-        ("IJobApplicationRepository", 15),
         ("IAcademyRepository", 14),
         ("IAdministrativeAreaRepository", 14),
         ("ICommunityInitiativeRepository", 14),
@@ -80,6 +86,13 @@ public sealed class RepositorySegregationArchitectureTests
             "IMarketplaceListingSellerFacts", "IMarketplaceListingStatistics"],
         ["IProviderRepository", "IProviderSearch", "IProviderMembership",
             "IProviderStatistics"],
+        ["ICommunityEventRepository", "ICommunityEventSearch", "ICommunityEventGuards",
+            "ICommunityEventSeries", "ICommunityEventStatistics"],
+        ["IAnalyticsEventRepository", "IAnalyticsCellSource", "IAnalyticsEventReports",
+            "IAnalyticsEventHousekeeping"],
+        ["ICreatorRewardRepository", "ICreatorPointRuleRepository",
+            "ICreatorRewardRedemptionRepository"],
+        ["IJobApplicationRepository", "IJobApplicationSearch", "IJobApplicationFacts"],
     ];
 
     private const int Ceiling = 12;

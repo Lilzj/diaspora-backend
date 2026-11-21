@@ -102,7 +102,10 @@ public sealed class CreatorModule : IPlatformModule
         services.AddScoped<ICreatorCertificateRepository, CreatorCertificateRepository>();
         services.AddScoped<ICreatorReferralRepository, CreatorReferralRepository>();
         services.AddScoped<ISignupBonusRepository, SignupBonusRepository>();
-        services.AddScoped<ICreatorRewardRepository, CreatorRewardRepository>();
+        services.AddScoped<CreatorRewardRepository>();
+        services.AddScoped<ICreatorRewardRepository>(services => services.GetRequiredService<CreatorRewardRepository>());
+        services.AddScoped<ICreatorPointRuleRepository>(services => services.GetRequiredService<CreatorRewardRepository>());
+        services.AddScoped<ICreatorRewardRedemptionRepository>(services => services.GetRequiredService<CreatorRewardRepository>());
         services.AddScoped<ICreatorActivityRepository, CreatorActivityRepository>();
         services.AddScoped<ICreatorEarningRepository, CreatorEarningRepository>();
         services.AddScoped<

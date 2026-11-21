@@ -128,7 +128,7 @@ public sealed class SellerAnalyticsTests
     public async Task A_sellers_totals_leave_out_everything_that_is_not_a_listing()
     {
         var rollups = Substitute.For<IAnalyticsRollupRepository>();
-        var events = Substitute.For<IAnalyticsEventRepository>();
+        var events = Substitute.For<IAnalyticsEventReports>();
 
         rollups.ListContentForOwnerAsync(Seller, Arg.Any<DateOnly>(), Arg.Any<DateOnly>(), Arg.Any<CancellationToken>())
             .Returns(
@@ -152,7 +152,7 @@ public sealed class SellerAnalyticsTests
     public async Task Unique_viewers_are_counted_across_listings_only_never_across_everything_owned()
     {
         var rollups = Substitute.For<IAnalyticsRollupRepository>();
-        var events = Substitute.For<IAnalyticsEventRepository>();
+        var events = Substitute.For<IAnalyticsEventReports>();
 
         rollups.ListContentForOwnerAsync(Seller, Arg.Any<DateOnly>(), Arg.Any<DateOnly>(), Arg.Any<CancellationToken>())
             .Returns([Row(AnalyticsContentType.Marketplace, Listing, views: 40, conversions: 1)]);
@@ -182,7 +182,7 @@ public sealed class SellerAnalyticsTests
     public async Task A_seller_with_no_listing_activity_reports_no_data_rather_than_zeroes_with_history()
     {
         var rollups = Substitute.For<IAnalyticsRollupRepository>();
-        var events = Substitute.For<IAnalyticsEventRepository>();
+        var events = Substitute.For<IAnalyticsEventReports>();
 
         rollups.ListContentForOwnerAsync(Seller, Arg.Any<DateOnly>(), Arg.Any<DateOnly>(), Arg.Any<CancellationToken>())
             .Returns([Row(AnalyticsContentType.Guide, Guide, views: 80, conversions: 0)]);

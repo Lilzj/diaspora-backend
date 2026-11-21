@@ -51,6 +51,14 @@ public sealed record AnalyticsCellCounts(
 /// the request.
 /// </para>
 /// </summary>
+/// <summary>
+/// Recording an analytics event, and the de-duplication that guards it.
+/// <para>
+/// The ingest path and nothing else. Everything that reads these rows back does so for a reason
+/// that has nothing to do with how they are written, which is why the reads are three separate
+/// seams below.
+/// </para>
+/// </summary>
 public interface IAnalyticsEventRepository
 {
     void Add(AnalyticsEvent analyticsEvent);
@@ -66,7 +74,17 @@ public interface IAnalyticsEventRepository
     /// </summary>
     Task<IReadOnlyCollection<string>> FindExistingKeysAsync(
         IReadOnlyCollection<string> dedupKeys, CancellationToken cancellationToken = default);
-
+}
+/// <summary>
+/// What the rollup projection reads: one day's cell for a piece of content or an owner.
+/// <para>
+/// The projection walks the event stream forward from a position and aggregates it into daily
+/// cells. Its reads are driven by the rollup's own schedule and shape, so they change when the
+/// rollup changes — not when a dashboard gains a figure.
+/// </para>
+/// </summary>
+public interface IAnalyticsCellSource
+{
     /// <summary>
     /// The next slice of the stream, in ingestion order, strictly after the cursor.
     /// <para>
@@ -139,7 +157,17 @@ public interface IAnalyticsEventRepository
     Task<IReadOnlyList<(DateOnly Day, AnalyticsContentType ContentType, Guid ContentId)>>
         ListContentCellsAsync(
             DateOnly fromDay, DateOnly toDay, CancellationToken cancellationToken = default);
-
+}
+/// <summary>
+/// The figures a dashboard asks for over a date range.
+/// <para>
+/// Distinct viewers by owner, by content, by content type, funnel journeys, active days and views
+/// by surface. These are computed from the event rows rather than from the rollup, so they change
+/// when somebody asks a new question of the same data.
+/// </para>
+/// </summary>
+public interface IAnalyticsEventReports
+{
     /// <summary>
     /// Distinct actors over a window for one owner. The period unique-viewer figure.
     /// <para>
@@ -177,27 +205,6 @@ public interface IAnalyticsEventRepository
         DateTimeOffset from,
         DateTimeOffset to,
         CancellationToken cancellationToken = default);
-
-    /// <summary>Rows that name content whose owner analytics did not know at the time.</summary>
-    Task<IReadOnlyList<AnalyticsEvent>> ListUnattributedAsync(
-        AnalyticsContentType contentType,
-        Guid contentId,
-        int limit,
-        CancellationToken cancellationToken = default);
-
-    /// <summary>Retention. Deletes rows whose window has closed, in bounded batches.</summary>
-    Task<int> DeleteExpiredAsync(
-        DateTimeOffset olderThan, int batchSize, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Erasure. Deletes every row this module observed about one member.
-    /// <para>
-    /// Takes the actor key rather than a user identifier, because the key is all this table holds —
-    /// the caller hashes once and this method deletes precisely. See <see cref="AnalyticsEvent"/>
-    /// for why the raw identifier is not stored.
-    /// </para>
-    /// </summary>
-    Task<int> DeleteForActorAsync(string actorKey, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// How many journeys reached <paramref name="reached"/> having also reached every one of
@@ -239,6 +246,37 @@ public interface IAnalyticsEventRepository
         DateTimeOffset from,
         DateTimeOffset to,
         CancellationToken cancellationToken = default);
+}
+/// <summary>
+/// Retention and attribution repair.
+/// <para>
+/// The retention sweep's bounded delete, the erasure path's delete for one actor, and the
+/// unattributed rows a backfill claims. All three run from hosted services on their own schedules
+/// and none of them is a report.
+/// </para>
+/// </summary>
+public interface IAnalyticsEventHousekeeping
+{
+    /// <summary>Rows that name content whose owner analytics did not know at the time.</summary>
+    Task<IReadOnlyList<AnalyticsEvent>> ListUnattributedAsync(
+        AnalyticsContentType contentType,
+        Guid contentId,
+        int limit,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Retention. Deletes rows whose window has closed, in bounded batches.</summary>
+    Task<int> DeleteExpiredAsync(
+        DateTimeOffset olderThan, int batchSize, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Erasure. Deletes every row this module observed about one member.
+    /// <para>
+    /// Takes the actor key rather than a user identifier, because the key is all this table holds —
+    /// the caller hashes once and this method deletes precisely. See <see cref="AnalyticsEvent"/>
+    /// for why the raw identifier is not stored.
+    /// </para>
+    /// </summary>
+    Task<int> DeleteForActorAsync(string actorKey, CancellationToken cancellationToken = default);
 }
 
 /// <summary>

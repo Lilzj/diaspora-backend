@@ -222,7 +222,7 @@ public sealed class JobsScaleTests : IntegrationTestBase
 
         using var scope = Factory.Services.CreateScope();
         var applications = scope.ServiceProvider
-            .GetRequiredService<IJobApplicationRepository>();
+            .GetRequiredService<IJobApplicationSearch>();
 
         var seen = new HashSet<Guid>();
         string? cursor = null;

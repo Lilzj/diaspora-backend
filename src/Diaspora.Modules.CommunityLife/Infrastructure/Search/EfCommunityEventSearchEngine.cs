@@ -21,9 +21,9 @@ namespace Diaspora.Modules.CommunityLife.Infrastructure.Search;
 /// </summary>
 public sealed class EfCommunityEventSearchEngine : ICommunityEventSearchEngine
 {
-    private readonly ICommunityEventRepository _events;
+    private readonly ICommunityEventSearch _events;
 
-    public EfCommunityEventSearchEngine(ICommunityEventRepository events) => _events = events;
+    public EfCommunityEventSearchEngine(ICommunityEventSearch events) => _events = events;
 
     public string EngineName => "database";
 

@@ -18,10 +18,10 @@ namespace Diaspora.Modules.Analytics.Application.Services;
 public sealed class AnalyticsReadService
 {
     private readonly IAnalyticsRollupRepository _rollups;
-    private readonly IAnalyticsEventRepository _events;
+    private readonly IAnalyticsEventReports _events;
 
     public AnalyticsReadService(
-        IAnalyticsRollupRepository rollups, IAnalyticsEventRepository events)
+        IAnalyticsRollupRepository rollups, IAnalyticsEventReports events)
     {
         _rollups = rollups;
         _events = events;

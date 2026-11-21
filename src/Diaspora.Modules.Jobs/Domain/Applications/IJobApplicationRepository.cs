@@ -13,6 +13,13 @@ namespace Diaspora.Modules.Jobs.Domain.Applications;
 /// The detail read does, because the timeline is the reason anyone opens one.
 /// </para>
 /// </summary>
+/// <summary>
+/// How the module loads and stores an application it is about to change.
+/// <para>
+/// Identity-based access, the candidate-and-posting lookup an apply command checks, and the stale
+/// batch the nudge sweep loads in order to act on it.
+/// </para>
+/// </summary>
 public interface IJobApplicationRepository
 {
     /// <summary>The full aggregate, tracked, history included. For commands.</summary>
@@ -50,6 +57,26 @@ public interface IJobApplicationRepository
         JobPostingId postingId,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Applications left unanswered past the staleness threshold, tracked and bounded. What the
+    /// ghosting sweep works from — the figure that goes on an employer's public reputation, so
+    /// it is measured rather than asserted.
+    /// </summary>
+    Task<IReadOnlyList<JobApplication>> GetStaleUnansweredAsync(
+        DateTimeOffset submittedBefore, int limit, CancellationToken cancellationToken = default);
+
+    Task AddAsync(JobApplication application, CancellationToken cancellationToken = default);
+
+    void Remove(JobApplication application);
+}
+/// <summary>
+/// The employer's application list: a page, a count, and the status breakdown beside it.
+/// <para>
+/// One screen's questions, which change when that screen does.
+/// </para>
+/// </summary>
+public interface IJobApplicationSearch
+{
     /// <summary>The listing. Employer applicant list and candidate tracker alike, no history.</summary>
     Task<CursorPagedResult<JobApplication>> QueryAsync(
         ApplicationQueryFilter filter,
@@ -62,30 +89,32 @@ public interface IJobApplicationRepository
         ApplicationQueryFilter filter, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// The same breakdown across a whole employer. The dashboard's funnel, and the figure the
+    /// employer's conversion rate is computed from.
+    /// </summary>
+    Task<IReadOnlyDictionary<ApplicationStatus, int>> CountByStatusForEmployerAsync(
+        EmployerProfileId employerId, CancellationToken cancellationToken = default);
+}
+/// <summary>
+/// What has already been applied for, and how applications are distributed.
+/// <para>
+/// The per-posting breakdowns, the applicant's recent rate that bounds a new application, and the
+/// set of postings a member has already applied to — which a job list asks for in bulk so it can
+/// mark them without loading an application per card.
+/// </para>
+/// </summary>
+public interface IJobApplicationFacts
+{
+    /// <summary>
     /// Applications on one posting, grouped by status. The hiring-pipeline view, answered in
     /// one round trip rather than one per column.
     /// </summary>
     Task<IReadOnlyDictionary<ApplicationStatus, int>> CountByStatusAsync(
         JobPostingId postingId, CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// The same breakdown across a whole employer. The dashboard's funnel, and the figure the
-    /// employer's conversion rate is computed from.
-    /// </summary>
-    Task<IReadOnlyDictionary<ApplicationStatus, int>> CountByStatusForEmployerAsync(
-        EmployerProfileId employerId, CancellationToken cancellationToken = default);
-
     /// <summary>Applications by pipeline stage on one posting. The kanban board's counts.</summary>
     Task<IReadOnlyDictionary<string, int>> CountByStageAsync(
         JobPostingId postingId, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Applications left unanswered past the staleness threshold, tracked and bounded. What the
-    /// ghosting sweep works from — the figure that goes on an employer's public reputation, so
-    /// it is measured rather than asserted.
-    /// </summary>
-    Task<IReadOnlyList<JobApplication>> GetStaleUnansweredAsync(
-        DateTimeOffset submittedBefore, int limit, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Every live application on a posting, tracked. What a posting closure or an employer
@@ -106,8 +135,4 @@ public interface IJobApplicationRepository
         UserId applicantUserId,
         IReadOnlyCollection<JobPostingId> postingIds,
         CancellationToken cancellationToken = default);
-
-    Task AddAsync(JobApplication application, CancellationToken cancellationToken = default);
-
-    void Remove(JobApplication application);
 }

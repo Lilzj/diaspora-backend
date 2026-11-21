@@ -26,10 +26,10 @@ public sealed class CommunityLifeResourceCounter : ILocationResourceCounter
     /// <summary>The same key the nearby provider claims. See its remarks.</summary>
     public const string Key = "events";
 
-    private readonly ICommunityEventRepository _events;
+    private readonly ICommunityEventStatistics _events;
     private readonly IClock _clock;
 
-    public CommunityLifeResourceCounter(ICommunityEventRepository events, IClock clock)
+    public CommunityLifeResourceCounter(ICommunityEventStatistics events, IClock clock)
     {
         _events = events;
         _clock = clock;

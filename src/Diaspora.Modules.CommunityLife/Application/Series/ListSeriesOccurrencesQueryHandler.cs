@@ -24,14 +24,14 @@ public sealed class ListSeriesOccurrencesQueryHandler
     : IQueryHandler<ListSeriesOccurrencesQuery, EventOccurrencePageResponse>
 {
     private readonly IEventSeriesRepository _series;
-    private readonly ICommunityEventRepository _events;
+    private readonly ICommunityEventSeries _events;
     private readonly CommunityLifeAuthorizationService _authorization;
     private readonly EventSeriesReadContext _read;
     private readonly IClock _clock;
 
     public ListSeriesOccurrencesQueryHandler(
         IEventSeriesRepository series,
-        ICommunityEventRepository events,
+        ICommunityEventSeries events,
         CommunityLifeAuthorizationService authorization,
         EventSeriesReadContext read,
         IClock clock)

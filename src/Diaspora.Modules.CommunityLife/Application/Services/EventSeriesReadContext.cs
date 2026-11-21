@@ -25,7 +25,7 @@ namespace Diaspora.Modules.CommunityLife.Application.Services;
 public sealed class EventSeriesReadContext
 {
     private readonly IOrganizationRepository _organizations;
-    private readonly ICommunityEventRepository _events;
+    private readonly ICommunityEventSeries _events;
     private readonly IEventRsvpRepository _rsvps;
     private readonly CommunityLifeCatalogResolver _catalog;
     private readonly CommunityLifeAuthorizationService _authorization;
@@ -33,7 +33,7 @@ public sealed class EventSeriesReadContext
 
     public EventSeriesReadContext(
         IOrganizationRepository organizations,
-        ICommunityEventRepository events,
+        ICommunityEventSeries events,
         IEventRsvpRepository rsvps,
         CommunityLifeCatalogResolver catalog,
         CommunityLifeAuthorizationService authorization,

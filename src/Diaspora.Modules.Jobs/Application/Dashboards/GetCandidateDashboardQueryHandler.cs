@@ -40,7 +40,7 @@ public sealed class GetCandidateDashboardQueryHandler
     private const int ClosingSoonCount = 5;
 
     private readonly ICandidateProfileRepository _candidates;
-    private readonly IJobApplicationRepository _applications;
+    private readonly IJobApplicationSearch _applications;
     private readonly IJobOfferRepository _offers;
     private readonly IInterviewRepository _interviews;
     private readonly ISavedJobRepository _saved;
@@ -53,7 +53,7 @@ public sealed class GetCandidateDashboardQueryHandler
 
     public GetCandidateDashboardQueryHandler(
         ICandidateProfileRepository candidates,
-        IJobApplicationRepository applications,
+        IJobApplicationSearch applications,
         IJobOfferRepository offers,
         IInterviewRepository interviews,
         ISavedJobRepository saved,

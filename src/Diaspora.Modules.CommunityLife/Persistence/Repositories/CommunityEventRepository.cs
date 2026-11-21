@@ -26,7 +26,7 @@ namespace Diaspora.Modules.CommunityLife.Persistence.Repositories;
 /// them, and a discovery feed emphatically does not.
 /// </para>
 /// </summary>
-public sealed class CommunityEventRepository : ICommunityEventRepository
+public sealed class CommunityEventRepository : ICommunityEventRepository, ICommunityEventSearch, ICommunityEventGuards, ICommunityEventSeries, ICommunityEventStatistics
 {
     private readonly DiasporaDbContext _dbContext;
 

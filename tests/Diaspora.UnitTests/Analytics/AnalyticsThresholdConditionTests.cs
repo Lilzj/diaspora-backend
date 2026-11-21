@@ -105,7 +105,7 @@ public sealed class AnalyticsThresholdConditionTests
 
         var source = new AnalyticsAutomationConditionSource(
             new AnalyticsReadService(
-                Rollups(recordedOn, views), Substitute.For<IAnalyticsEventRepository>()),
+                Rollups(recordedOn, views), Substitute.For<IAnalyticsEventReports>()),
             clock);
 
         return await source.ReadAsync(

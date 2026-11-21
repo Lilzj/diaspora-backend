@@ -5,6 +5,15 @@ using Diaspora.SharedKernel.Pagination;
 namespace Diaspora.Modules.CommunityLife.Domain.CommunityEvents;
 
 /// <summary>How the module reads and writes events.</summary>
+/// <summary>
+/// How the module loads and stores an event it is about to change.
+/// <para>
+/// Identity-based access plus the two lifecycle batches. <see cref="FindStartedAsync"/> and
+/// <see cref="FindEndedAsync"/> look like queries and are not: the sweep loads each batch, moves
+/// its events through their states and saves, so they return tracked aggregates and belong with
+/// the writes.
+/// </para>
+/// </summary>
 public interface ICommunityEventRepository
 {
     Task<CommunityEvent?> GetAsync(
@@ -22,32 +31,8 @@ public interface ICommunityEventRepository
     Task<CommunityEvent?> GetBySlugAsync(
         string slug, CancellationToken cancellationToken = default);
 
-    Task<CursorPagedResult<CommunityEvent>> SearchAsync(
-        EventQueryFilter filter, CancellationToken cancellationToken = default);
-
     Task<IReadOnlyList<CommunityEvent>> FindManyAsync(
         IReadOnlyCollection<CommunityEventId> ids, CancellationToken cancellationToken = default);
-
-    /// <summary>Whether the organizer already has an event with that title starting that day.</summary>
-    Task<bool> HasDuplicateAsync(
-        UserId organizerUserId,
-        string? title,
-        DateTimeOffset startsAt,
-        CommunityEventId? excluding,
-        CancellationToken cancellationToken = default);
-
-    /// <summary>How many live events the organizer holds. The abuse bound.</summary>
-    Task<int> CountLiveByOrganizerAsync(
-        UserId organizerUserId, CancellationToken cancellationToken = default);
-
-    Task<bool> SlugExistsAsync(string slug, CancellationToken cancellationToken = default);
-
-    /// <summary>How many discoverable upcoming events sit in an area. B4's counter seam.</summary>
-    Task<int> CountInAreaAsync(
-        string areaPathPrefix, DateTimeOffset asOf, CancellationToken cancellationToken = default);
-
-    Task<int> CountInCountryAsync(
-        string countryCode, DateTimeOffset asOf, CancellationToken cancellationToken = default);
 
     /// <summary>Published events whose start time has passed. The lifecycle sweep's work list.</summary>
     Task<IReadOnlyList<CommunityEvent>> FindStartedAsync(
@@ -56,6 +41,23 @@ public interface ICommunityEventRepository
     /// <summary>Running events whose end time has passed. The completion sweep's work list.</summary>
     Task<IReadOnlyList<CommunityEvent>> FindEndedAsync(
         DateTimeOffset asOf, int batchSize, CancellationToken cancellationToken = default);
+
+    Task AddAsync(CommunityEvent communityEvent, CancellationToken cancellationToken = default);
+
+    void Update(CommunityEvent communityEvent);
+}
+/// <summary>
+/// Discovery: a page of events, a time window, a map viewport.
+/// <para>
+/// Changes when a discovery screen changes rather than when the aggregate does.
+/// <see cref="FindManyAsync"/> is declared here as well as on the repository, because hydrating
+/// the ids a search returned is the same operation as loading a batch by id.
+/// </para>
+/// </summary>
+public interface ICommunityEventSearch
+{
+    Task<CursorPagedResult<CommunityEvent>> SearchAsync(
+        EventQueryFilter filter, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Events in a window, for a calendar. Bounded rather than paged, because a calendar renders a
@@ -79,6 +81,44 @@ public interface ICommunityEventRepository
         int limit,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<CommunityEvent>> FindManyAsync(
+        IReadOnlyCollection<CommunityEventId> ids, CancellationToken cancellationToken = default);
+}
+/// <summary>
+/// The questions an event command asks before it writes: is this slug free, is this a duplicate,
+/// is the organizer within their live-event allowance.
+/// <para>
+/// Domain invariants rather than reports. They change when the organizing rules change, which is
+/// not a reason for the aggregate's persistence contract to change.
+/// </para>
+/// </summary>
+public interface ICommunityEventGuards
+{
+    /// <summary>Whether the organizer already has an event with that title starting that day.</summary>
+    Task<bool> HasDuplicateAsync(
+        UserId organizerUserId,
+        string? title,
+        DateTimeOffset startsAt,
+        CommunityEventId? excluding,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>How many live events the organizer holds. The abuse bound.</summary>
+    Task<int> CountLiveByOrganizerAsync(
+        UserId organizerUserId, CancellationToken cancellationToken = default);
+
+    Task<bool> SlugExistsAsync(string slug, CancellationToken cancellationToken = default);
+}
+/// <summary>
+/// A recurring event's occurrences.
+/// <para>
+/// B12.1 made an occurrence an event in its own right (ADR-021), and this is the part of the
+/// repository that reasons about the series rather than about one event: which occurrences exist,
+/// which need rewriting after a series edit, and which is next. Separate because it changes with
+/// the recurrence model, which nothing else in the module depends on.
+/// </para>
+/// </summary>
+public interface ICommunityEventSeries
+{
     // ── Occurrences ─────────────────────────────────────────────────────────────────────────
     //
     // B12.1. An occurrence is an event, so every read above serves one; what these add is the
@@ -152,6 +192,24 @@ public interface ICommunityEventRepository
 
     Task<int> CountOccurrencesAsync(
         EventSeriesId seriesId, CancellationToken cancellationToken = default);
+}
+/// <summary>
+/// How many events are in a place, and how many organizers are new.
+/// <para>
+/// What B4's resource counters ask when they compose an area's page, and what the programme
+/// reporting asks about first-time organizers. <see cref="SearchAsync"/> is declared here as well,
+/// because a counter reaches a place's events through the same filtered search a discovery screen
+/// uses.
+/// </para>
+/// </summary>
+public interface ICommunityEventStatistics
+{
+    /// <summary>How many discoverable upcoming events sit in an area. B4's counter seam.</summary>
+    Task<int> CountInAreaAsync(
+        string areaPathPrefix, DateTimeOffset asOf, CancellationToken cancellationToken = default);
+
+    Task<int> CountInCountryAsync(
+        string countryCode, DateTimeOffset asOf, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Events these organisers first published in <c>[from, until)</c>, and how many of them
@@ -164,7 +222,6 @@ public interface ICommunityEventRepository
         DateTimeOffset until,
         CancellationToken cancellationToken = default);
 
-    Task AddAsync(CommunityEvent communityEvent, CancellationToken cancellationToken = default);
-
-    void Update(CommunityEvent communityEvent);
+    Task<CursorPagedResult<CommunityEvent>> SearchAsync(
+        EventQueryFilter filter, CancellationToken cancellationToken = default);
 }

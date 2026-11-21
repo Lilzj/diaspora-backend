@@ -72,7 +72,11 @@ public sealed class AnalyticsModule : IPlatformModule
 
     private static void RegisterRepositories(IServiceCollection services)
     {
-        services.AddScoped<IAnalyticsEventRepository, AnalyticsEventRepository>();
+        services.AddScoped<AnalyticsEventRepository>();
+        services.AddScoped<IAnalyticsEventRepository>(services => services.GetRequiredService<AnalyticsEventRepository>());
+        services.AddScoped<IAnalyticsCellSource>(services => services.GetRequiredService<AnalyticsEventRepository>());
+        services.AddScoped<IAnalyticsEventReports>(services => services.GetRequiredService<AnalyticsEventRepository>());
+        services.AddScoped<IAnalyticsEventHousekeeping>(services => services.GetRequiredService<AnalyticsEventRepository>());
         services.AddScoped<IAnalyticsContentDimensionRepository, AnalyticsContentDimensionRepository>();
         services.AddScoped<IAnalyticsRollupRepository, AnalyticsRollupRepository>();
         services.AddScoped<IAnalyticsProjectionRepository, AnalyticsProjectionRepository>();
