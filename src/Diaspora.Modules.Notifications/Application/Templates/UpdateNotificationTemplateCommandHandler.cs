@@ -1,4 +1,5 @@
 using Diaspora.Application.Abstractions;
+using Diaspora.Contracts.Notifications.V1;
 using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Notifications.Application.Mapping;
 using Diaspora.Modules.Notifications.Application.Services;

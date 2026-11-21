@@ -1,9 +1,9 @@
 using Diaspora.Application.Abstractions;
+using Diaspora.Contracts.Notifications.V1;
 using Diaspora.Modules.Notifications.Application.Mapping;
 using Diaspora.Modules.Notifications.Application.Services;
 using Diaspora.Modules.Notifications.Contracts.V1.Responses;
 using Diaspora.Modules.Notifications.Domain.Catalog;
-using Diaspora.Modules.Notifications.Domain.Enums;
 using Diaspora.Modules.Notifications.Domain.Inboxes;
 using Diaspora.Modules.Notifications.Domain.Notifications;
 using Diaspora.Modules.Notifications.Extensibility.Search;

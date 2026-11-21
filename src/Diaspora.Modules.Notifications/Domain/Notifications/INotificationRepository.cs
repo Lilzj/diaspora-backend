@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Notifications.V1;
 using Diaspora.Modules.Notifications.Domain.Enums;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.Pagination;

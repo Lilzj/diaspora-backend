@@ -1,8 +1,8 @@
+using Diaspora.Contracts.Notifications.V1;
 using Diaspora.Domain.Identity.Repositories;
 using Diaspora.Domain.Identity.Users;
 using Diaspora.Domain.Identity.ValueObjects;
 using Diaspora.Email;
-using Diaspora.Modules.Notifications.Domain.Enums;
 using Diaspora.SharedKernel.Identity;
 using Diaspora.SharedKernel.ValueObjects;
 using FluentAssertions;

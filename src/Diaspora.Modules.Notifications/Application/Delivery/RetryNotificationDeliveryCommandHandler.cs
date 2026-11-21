@@ -1,9 +1,9 @@
 using Diaspora.Application.Abstractions;
+using Diaspora.Contracts.Notifications.V1;
 using Diaspora.Domain.Abstractions;
 using Diaspora.Modules.Notifications.Application.Mapping;
 using Diaspora.Modules.Notifications.Application.Services;
 using Diaspora.Modules.Notifications.Contracts.V1.Responses;
-using Diaspora.Modules.Notifications.Domain.Enums;
 using Diaspora.Modules.Notifications.Domain.Errors;
 using Diaspora.Modules.Notifications.Domain.Notifications;
 using Diaspora.Platform.Services.Abstractions;

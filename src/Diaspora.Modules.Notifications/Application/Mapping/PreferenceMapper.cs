@@ -1,6 +1,6 @@
+using Diaspora.Contracts.Notifications.V1;
 using Diaspora.Modules.Notifications.Contracts.V1.Responses;
 using Diaspora.Modules.Notifications.Domain.Catalog;
-using Diaspora.Modules.Notifications.Domain.Enums;
 using Diaspora.Modules.Notifications.Domain.Preferences;
 
 namespace Diaspora.Modules.Notifications.Application.Mapping;

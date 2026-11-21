@@ -1,4 +1,4 @@
-using Diaspora.Modules.Notifications.Domain.Enums;
+using Diaspora.Contracts.Notifications.V1;
 using Diaspora.Modules.Notifications.Domain.Identifiers;
 using Diaspora.Modules.Notifications.Domain.Templates;
 using Diaspora.Modules.Notifications.Domain.ValueObjects;

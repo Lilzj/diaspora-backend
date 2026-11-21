@@ -1,8 +1,8 @@
+using Diaspora.Contracts.Notifications.V1;
 using System.Diagnostics;
 using System.Globalization;
 using Diaspora.Domain.Abstractions;
 using Diaspora.IntegrationTests.Common;
-using Diaspora.Modules.Notifications.Domain.Enums;
 using Diaspora.Modules.Notifications.Domain.Inboxes;
 using Diaspora.Modules.Notifications.Domain.Notifications;
 using Diaspora.Modules.Notifications.Domain.ValueObjects;

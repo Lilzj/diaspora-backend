@@ -1,10 +1,10 @@
 using Diaspora.Application.Abstractions;
 using Diaspora.Contracts.Financial.V1.Events;
+using Diaspora.Contracts.Notifications.V1;
 using Diaspora.Modules.Notifications.Application.Consumers;
 using Diaspora.Modules.Notifications.Application.Consumers.Financial;
 using Diaspora.Modules.Notifications.Application.Dispatch;
 using Diaspora.Modules.Notifications.Catalog;
-using Diaspora.Modules.Notifications.Domain.Enums;
 using Diaspora.Modules.Notifications.Catalog.Rules;
 using Diaspora.Modules.Notifications.Catalog.Templates;
 using Diaspora.SharedKernel.Results;

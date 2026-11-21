@@ -1,5 +1,5 @@
+using Diaspora.Contracts.Notifications.V1;
 using Diaspora.Modules.Notifications.Domain.Analytics;
-using Diaspora.Modules.Notifications.Domain.Enums;
 using Diaspora.Platform.Services.Abstractions;
 
 namespace Diaspora.Modules.Notifications.Application.Services;

@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Notifications.V1;
 using Diaspora.Modules.Notifications.Domain.Enums;
 
 namespace Diaspora.Modules.Notifications.Application.Dispatch;

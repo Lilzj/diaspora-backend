@@ -1,6 +1,6 @@
 using Diaspora.Application.Abstractions;
+using Diaspora.Contracts.Notifications.V1;
 using Diaspora.Modules.Notifications.Application.Services;
-using Diaspora.Modules.Notifications.Domain.Enums;
 using Diaspora.Modules.Notifications.Domain.Events;
 using Diaspora.Modules.Notifications.Observability;
 

@@ -4,7 +4,7 @@ using Diaspora.Contracts.Marketplace.V1.Events;
 // Two modules publish a contract with this name; the alias names the one this file means, which is
 // the same collision the rules themselves key on the namespace-qualified name to avoid.
 using HousingReservationCancelled = Diaspora.Contracts.Housing.V1.Events.ReservationCancelledIntegrationEvent;
-using Diaspora.Modules.Notifications.Domain.Enums;
+using Diaspora.Contracts.Notifications.V1;
 using Diaspora.Modules.Notifications.Extensibility.Routing;
 
 namespace Diaspora.Modules.Notifications.Catalog.Rules;

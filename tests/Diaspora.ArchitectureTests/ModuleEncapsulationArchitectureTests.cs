@@ -258,6 +258,29 @@ public sealed class ModuleEncapsulationArchitectureTests
     /// emptiness instead of a count above zero, which makes it a ratchet against the next one.
     /// </para>
     /// <para>
+    /// <b>The fifth wave closed the vocabulary class entirely.</b> B13's published
+    /// <c>Extensibility</c> seams named seven of its own <c>Domain.Enums</c> types across sixteen
+    /// files, so every notification-category contributor was obliged to import them:
+    /// <c>NotificationCategorySeed.DefaultPriority</c> is a <c>NotificationPriority</c>, and a
+    /// module declaring a category has no way to set it without reaching past the seam it was
+    /// handed. The seven are published to <c>Diaspora.Contracts.Notifications.V1</c>; the five
+    /// left behind — <c>NotificationStatus</c>, <c>DeliveryStatus</c>, <c>DigestStatus</c>,
+    /// <c>TemplateStatus</c> and <c>ArchiveReason</c> — are lifecycle state the module owns, and
+    /// nothing outside B13 names any of them. <b>The division already existed; only the namespace
+    /// disagreed with it.</b>
+    /// </para>
+    /// <para>
+    /// <see cref="A_published_read_surface_does_not_oblige_a_consumer_to_reach_past_it"/> could
+    /// not have found this one. It scans <c>Integration</c>, and <b>B13 has no
+    /// <c>Integration</c> namespace at all</b> — its seams are contributor-facing, so they live in
+    /// <c>Extensibility</c>, which that rule excludes for a stated reason: a contributor is handed
+    /// the module's own aggregate on purpose. The reason holds for an aggregate and does not hold
+    /// for a <em>seed</em>, which the contributor constructs rather than receives, so every
+    /// internal type in one is an obligation.
+    /// <see cref="A_contributor_seed_does_not_name_the_modules_internals"/> is that narrower line,
+    /// and it is narrower than the exclusion it refines rather than a reversal of it.
+    /// </para>
+    /// <para>
     /// <b>That is the shape of the rest of this finding rather than a special case.</b> Both
     /// reports prescribed a read-model port for each of the 107 crossings — and these nine
     /// consumers were already using the port. Where a published seam names an internal type, no
@@ -273,6 +296,8 @@ public sealed class ModuleEncapsulationArchitectureTests
     private static readonly InternalEdge[] EdgesStillOwed =
     [
         // Application -- another module's commands, queries or services (3 edges, 17 crossings).
+        // The last three kinds of reach left on the platform are all here or below: no module
+        // now crosses into Guides, Providers, Media or Notifications at all.
         // The eight module -> Media edges closed 20 November 2026, and with them the last
         // inline crossing on the platform: B5 published an operation to carry the request it
         // had already published, and the seven *MediaClaimer classes call it.
@@ -285,14 +310,14 @@ public sealed class ModuleEncapsulationArchitectureTests
         new("CommunityLife", "Location", 2, 0, Reach.Aggregate),
         new("Creator", "Community", 1, 0, Reach.Aggregate),
 
-        // Vocabulary -- enumerations, value objects, identifiers (3 edges, 4 crossings).
-        // Nine edges closed 20 November 2026: every crossing into Guides and into Providers.
-        // All nine were forced by those two modules' own published seams -- see the summary.
-        // Seven more closed the same day when B6's content vocabulary was published, and
-        // five more when B4's did. Every vocabulary edge left is into Notifications.
-        new("Integrations", "Notifications", 2, 0, Reach.Vocabulary),
-        new("Automation", "Notifications", 1, 0, Reach.Vocabulary),
-        new("Conversations", "Notifications", 1, 0, Reach.Vocabulary)
+        // Vocabulary -- enumerations, value objects, identifiers (0 edges).
+        // Twenty-four edges closed between 20 and 21 November 2026, and this class is now empty:
+        // nine into Guides and Providers, seven when B6's content vocabulary was published, five
+        // when B4's was, and the last three on 21 November when B13's was. Every one of the
+        // twenty-four was forced by the producer's own published surface naming its own internals,
+        // and not one was closable where it was written. Reach.Vocabulary stays declared, and the
+        // classifier that assigns it stays, because the next crossing of this shape must land here
+        // rather than be reclassified into a kind that still has entries to hide in.
     ];
 
     /// <summary>One module's published read surface, and the internal references left in it.</summary>
@@ -307,7 +332,9 @@ public sealed class ModuleEncapsulationArchitectureTests
     /// The published read surfaces that still name a type behind them, by module.
     /// <para>
     /// Measured by the rule that enforces it rather than by a second scan written to agree with
-    /// it. Guides and Providers are absent because the first wave emptied them.
+    /// it. Guides is absent because the first wave emptied it; Providers is still here at two,
+    /// which is what the summary above records and what this sentence said otherwise until
+    /// 21 November 2026.
     /// </para>
     /// </summary>
     private static readonly SeamDebt[] SurfacesStillLeaking =
@@ -316,6 +343,21 @@ public sealed class ModuleEncapsulationArchitectureTests
         new("Location", 5),
         new("Conversations", 4),
         new("Providers", 2)
+    ];
+
+    /// <summary>
+    /// The contributor seeds that still name their own module's internals, by module.
+    /// <para>
+    /// Measured by the rule below. B13's six were emptied on 21 November 2026 by publishing the
+    /// vocabulary they named; these eight are the same shape and have the same remedy.
+    /// </para>
+    /// </summary>
+    private static readonly SeamDebt[] SeedsStillLeaking =
+    [
+        new("Financial", 4),
+        new("Guides", 1),
+        new("Marketplace", 1),
+        new("Recommendations", 2)
     ];
 
     /// <summary>A module's own layers. Reaching one of these from its own seam is the debt.</summary>
@@ -775,6 +817,82 @@ public sealed class ModuleEncapsulationArchitectureTests
     }
 
     /// <summary>
+    /// <b>A contributor seed does not name the module's internals.</b>
+    /// <para>
+    /// A <c>*Seed</c> is the one published type a contributor <em>constructs</em> rather than
+    /// receives, which is what separates it from the rest of <c>Extensibility</c> and from the
+    /// reason <see cref="A_published_read_surface_does_not_oblige_a_consumer_to_reach_past_it"/>
+    /// excludes that segment. A ranking strategy is handed a <c>Provider</c> on purpose; a module
+    /// declaring a notification category has to fill one in, so every internal type in the seed is
+    /// a crossing with the contributor not yet written.
+    /// </para>
+    /// <para>
+    /// Added on the wave that closed the vocabulary class, because B13 was the case neither rule
+    /// could see: <b>it has no <c>Integration</c> namespace</b>, so the surface rule had nothing to
+    /// scan, and the three consumer edges were recorded against the three consumers while the
+    /// obligation sat in <c>NotificationCategorySeed</c>. Six seeds, seven enums, sixteen files.
+    /// </para>
+    /// <para>
+    /// Narrower than the exclusion it refines, deliberately. The aggregates in B13's surface stay:
+    /// <c>TemplateRenderRequest</c> carries a <c>NotificationTemplate</c>,
+    /// <c>IDigestGenerator</c> and <c>INotificationSearchEngine</c> name their aggregates, and all
+    /// three are the case the exclusion was written for. The one adjacent case this rule does not
+    /// cover is <c>IDeepLinkResolver</c>, which returns an internal <c>DeepLink</c> value object:
+    /// no implementation outside B13 exists today, so nothing is obliged by it, and publishing a
+    /// type with no consumer would be the shape this platform has been bitten by twice. It is
+    /// written down here instead, and it becomes real the day a deployment ships its own resolver.
+    /// </para>
+    /// <para>
+    /// Uses the same reader as the surface scan, so it sees a reach written relative to the module
+    /// or with no module name at all — see
+    /// <see cref="The_surface_scan_sees_an_internal_reach_however_it_is_written"/>.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_contributor_seed_does_not_name_the_modules_internals()
+    {
+        var declared = SeedsStillLeaking.ToDictionary(debt => debt.Module, StringComparer.Ordinal);
+        var found = ScanContributorSeeds();
+        var offenders = new List<string>();
+
+        foreach (var (module, references) in found.OrderBy(
+            entry => entry.Key, StringComparer.Ordinal))
+        {
+            var where = string.Join(", ", references.Order(StringComparer.Ordinal));
+
+            if (!declared.TryGetValue(module, out var allowed))
+            {
+                offenders.Add(
+                    $"NEW LEAK a {module} contributor seed names that module's own internals " +
+                    $"{references.Count} time(s), so every contributor filling one in is obliged " +
+                    $"to import them. Publish the type. {where}");
+
+                continue;
+            }
+
+            if (references.Count != allowed.References)
+            {
+                var direction = references.Count > allowed.References ? "GREW" : "SHRANK";
+
+                offenders.Add(
+                    $"{direction} {module} seeds: {allowed.References} recorded, " +
+                    $"{references.Count} found. {where}");
+            }
+        }
+
+        foreach (var debt in SeedsStillLeaking.Where(debt => !found.ContainsKey(debt.Module)))
+        {
+            offenders.Add(
+                $"CLOSED {debt.Module} seeds: {debt.References} recorded, none found. " +
+                "Remove the entry in the commit that published the vocabulary.");
+        }
+
+        offenders.Should().BeEmpty(
+            "a seed a contributor fills in cannot be filled in without the types it names:\n" +
+            string.Join("\n", offenders));
+    }
+
+    /// <summary>
     /// <b>The surface scan sees an internal reach however it is written.</b>
     /// <para>
     /// The same probe the crossing scanner needed, for the same reason and against the same
@@ -962,7 +1080,25 @@ public sealed class ModuleEncapsulationArchitectureTests
     /// only for the fully qualified form would have called clean.
     /// </para>
     /// </summary>
-    private static Dictionary<string, List<string>> ScanPublishedSurfaces()
+    private static Dictionary<string, List<string>> ScanPublishedSurfaces() =>
+        ScanSurfaces(static (_, segments) =>
+            segments.Length >= 2
+            && string.Equals(segments[1], "Integration", StringComparison.Ordinal));
+
+    /// <summary>
+    /// The seeds a contributor constructs, which is the part of <c>Extensibility</c> that
+    /// obliges rather than hands over. Named by convention — <c>*Seed</c> is what this platform
+    /// has called them since B13's catalogue shipped — so a seed named something else is outside
+    /// this rule, and the naming test in the contributor suites is what keeps that honest.
+    /// </summary>
+    private static Dictionary<string, List<string>> ScanContributorSeeds() =>
+        ScanSurfaces(static (path, segments) =>
+            segments.Length >= 2
+            && string.Equals(segments[1], "Extensibility", StringComparison.Ordinal)
+            && path.EndsWith("Seed.cs", StringComparison.Ordinal));
+
+    private static Dictionary<string, List<string>> ScanSurfaces(
+        Func<string, string[], bool> include)
     {
         var found = new Dictionary<string, List<string>>(StringComparer.Ordinal);
 
@@ -975,8 +1111,7 @@ public sealed class ModuleEncapsulationArchitectureTests
 
             var segments = file.Path[ModuleSourcePrefix.Length..].Split('/');
 
-            if (segments.Length < 2
-                || !string.Equals(segments[1], "Integration", StringComparison.Ordinal))
+            if (!include(file.Path, segments))
             {
                 continue;
             }

@@ -1,4 +1,4 @@
-namespace Diaspora.Modules.Notifications.Domain.Enums;
+namespace Diaspora.Contracts.Notifications.V1;
 
 /// <summary>
 /// How urgently a message must reach the member. The single most consequential value in the module.

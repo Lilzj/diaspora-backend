@@ -1,4 +1,4 @@
-namespace Diaspora.Modules.Notifications.Domain.Enums;
+namespace Diaspora.Contracts.Notifications.V1;
 
 /// <summary>How often a member wants their low-urgency messages collected.</summary>
 public enum DigestFrequency

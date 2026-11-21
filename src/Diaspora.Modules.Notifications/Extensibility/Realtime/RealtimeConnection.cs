@@ -1,4 +1,4 @@
-using Diaspora.Modules.Notifications.Domain.Enums;
+using Diaspora.Contracts.Notifications.V1;
 using Diaspora.SharedKernel.Identity;
 
 namespace Diaspora.Modules.Notifications.Extensibility.Realtime;

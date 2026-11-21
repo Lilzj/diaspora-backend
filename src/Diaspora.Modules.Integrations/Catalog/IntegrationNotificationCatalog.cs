@@ -1,5 +1,4 @@
-using Diaspora.Modules.Notifications.Catalog;
-using Diaspora.Modules.Notifications.Domain.Enums;
+using Diaspora.Contracts.Notifications.V1;
 using Diaspora.Modules.Notifications.Extensibility.Catalog;
 using Diaspora.Modules.Notifications.Extensibility.Routing;
 using Diaspora.Modules.Notifications.Extensibility.Templates;

@@ -3,7 +3,7 @@ namespace Diaspora.Platform.Services.Models;
 /// <summary>
 /// <b>The kernel's channel flags, superseded by B13's own.</b> Reachable only through
 /// <see cref="NotificationRequest"/>, obsoleted with it in B1.4.1, and not to be confused with
-/// <c>Diaspora.Modules.Notifications.Domain.NotificationChannelKind</c> — which is the one the
+/// <c>Diaspora.Contracts.Notifications.V1.NotificationChannelKind</c> — which is the one the
 /// Communication Platform actually routes on, and which knows about preferences, quiet hours and
 /// per-channel delivery state that a flags enum cannot express.
 /// </summary>

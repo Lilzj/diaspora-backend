@@ -1,6 +1,6 @@
 using Diaspora.Contracts.Moderation.V1.Events;
+using Diaspora.Contracts.Notifications.V1;
 using Diaspora.Modules.Notifications.Application.Consumers.Moderation;
-using Diaspora.Modules.Notifications.Domain.Enums;
 using Diaspora.Modules.Notifications.Extensibility.Routing;
 
 namespace Diaspora.Modules.Notifications.Catalog.Rules;

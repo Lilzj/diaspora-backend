@@ -1,5 +1,5 @@
+using Diaspora.Contracts.Notifications.V1;
 using Diaspora.Modules.Notifications.Domain.Digests;
-using Diaspora.Modules.Notifications.Domain.Enums;
 using Diaspora.Modules.Notifications.Domain.Identifiers;
 using Diaspora.Persistence;
 using Diaspora.Persistence.Paging;

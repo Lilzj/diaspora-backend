@@ -1,5 +1,5 @@
 using Diaspora.Contracts.Financial.V1.Events;
-using Diaspora.Modules.Notifications.Domain.Enums;
+using Diaspora.Contracts.Notifications.V1;
 using Diaspora.Modules.Notifications.Extensibility.Routing;
 
 namespace Diaspora.Modules.Notifications.Catalog.Rules;

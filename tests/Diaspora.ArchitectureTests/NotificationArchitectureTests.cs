@@ -1,3 +1,6 @@
+using Diaspora.Contracts.Notifications.V1;
+using Diaspora.Modules.Notifications.Catalog.Rules;
+using Diaspora.Modules.Notifications.Catalog;
 using System.Reflection;
 using Diaspora.Application.Abstractions;
 using Diaspora.Contracts.Events;
@@ -162,16 +165,29 @@ public class NotificationArchitectureTests
     [Fact]
     public void No_consumer_names_a_template_a_category_or_a_priority()
     {
-        var result = Types.InAssembly(Module)
+        // typeof rather than four string literals, because this rule passed on 21 November 2026
+        // while naming two types that no longer existed: NotificationPriority and DeliveryPolicy
+        // had moved to Diaspora.Contracts.Notifications.V1, nothing depended on the old names, and
+        // NotHaveDependencyOnAny was satisfied by a world in which the forbidden thing could not
+        // be named at all. A compile-checked name cannot go stale without breaking the build.
+        var forbidden = new[]
+        {
+            typeof(NotificationTemplateKeys).FullName!,
+            typeof(NotificationCategoryKeys).FullName!,
+            typeof(NotificationPriority).FullName!,
+            typeof(DeliveryPolicy).FullName!
+        };
+
+        var consumers = Types.InAssembly(Module)
             .That()
-            .ResideInNamespaceStartingWith("Diaspora.Modules.Notifications.Application.Consumers")
-            .Should()
-            .NotHaveDependencyOnAny(
-                "Diaspora.Modules.Notifications.Catalog.Rules.NotificationTemplateKeys",
-                "Diaspora.Modules.Notifications.Catalog.NotificationCategoryKeys",
-                "Diaspora.Modules.Notifications.Domain.Enums.NotificationPriority",
-                "Diaspora.Modules.Notifications.Domain.Enums.DeliveryPolicy")
-            .GetResult();
+            .ResideInNamespaceStartingWith("Diaspora.Modules.Notifications.Application.Consumers");
+
+        consumers.GetTypes().Should().NotBeEmpty(
+            "the other half of the same failure: a rule whose population is empty passes without "
+            + "checking anything, so the namespace this scans is asserted to exist before the "
+            + "dependency check is believed");
+
+        var result = consumers.Should().NotHaveDependencyOnAny(forbidden).GetResult();
 
         result.IsSuccessful.Should().BeTrue(
             "a consumer that named a template or a priority would have moved the routing decision "

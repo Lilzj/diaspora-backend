@@ -1,5 +1,5 @@
+using Diaspora.Contracts.Notifications.V1;
 using System.Security.Claims;
-using Diaspora.Modules.Notifications.Domain.Enums;
 using Diaspora.Modules.Notifications.Extensibility.Realtime;
 using Diaspora.SharedKernel.Identity;
 using Microsoft.AspNetCore.Authorization;

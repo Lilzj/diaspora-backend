@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Notifications.V1;
 using Diaspora.Modules.Notifications.Application.Services;
 using Diaspora.Modules.Notifications.Domain.Catalog;
 using Diaspora.Modules.Notifications.Domain.Enums;
