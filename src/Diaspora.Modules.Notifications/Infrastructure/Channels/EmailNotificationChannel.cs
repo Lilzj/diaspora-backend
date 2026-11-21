@@ -1,6 +1,6 @@
+using Diaspora.Contracts.Notifications.V1;
 using Diaspora.Modules.Notifications.Application.Preferences;
 using Diaspora.Modules.Notifications.Domain.Catalog;
-using Diaspora.Modules.Notifications.Domain.Enums;
 using Diaspora.Modules.Notifications.Extensibility.Channels;
 using Microsoft.Extensions.Logging;
 

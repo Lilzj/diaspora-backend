@@ -1,4 +1,4 @@
-using Diaspora.Modules.Notifications.Domain.Enums;
+using Diaspora.Contracts.Notifications.V1;
 using Diaspora.Modules.Notifications.Extensibility.Realtime;
 using Diaspora.Modules.Notifications.Infrastructure.Realtime;
 using Diaspora.Modules.Notifications.Options;

@@ -1,6 +1,6 @@
+using Diaspora.Contracts.Notifications.V1;
 using System.Diagnostics;
 using Diaspora.Domain.Abstractions;
-using Diaspora.Modules.Notifications.Domain.Enums;
 using Diaspora.Modules.Notifications.Domain.Notifications;
 using Diaspora.Modules.Notifications.Extensibility.Channels;
 using Diaspora.Modules.Notifications.Extensibility.Devices;

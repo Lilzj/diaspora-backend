@@ -1,4 +1,4 @@
-namespace Diaspora.Modules.Notifications.Domain.Enums;
+namespace Diaspora.Contracts.Notifications.V1;
 
 /// <summary>
 /// How a rule wants its message delivered, before preferences get a say.

@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text;
-using Diaspora.Modules.Notifications.Domain.Enums;
 using Diaspora.Modules.Notifications.Domain.Errors;
 using Diaspora.Modules.Notifications.Domain.Policies;
 using Diaspora.Modules.Notifications.Domain.Templates;

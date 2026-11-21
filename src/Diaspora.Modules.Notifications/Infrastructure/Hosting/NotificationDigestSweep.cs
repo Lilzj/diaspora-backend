@@ -1,5 +1,5 @@
+using Diaspora.Contracts.Notifications.V1;
 using Diaspora.Domain.Abstractions;
-using Diaspora.Modules.Notifications.Domain.Enums;
 using Diaspora.Modules.Notifications.Domain.Preferences;
 using Diaspora.Modules.Notifications.Extensibility.Digests;
 using Diaspora.Modules.Notifications.Options;

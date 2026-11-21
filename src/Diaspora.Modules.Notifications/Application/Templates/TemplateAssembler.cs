@@ -1,6 +1,6 @@
+using Diaspora.Contracts.Notifications.V1;
 using Diaspora.Modules.Notifications.Application.Mapping;
 using Diaspora.Modules.Notifications.Contracts.V1.Requests;
-using Diaspora.Modules.Notifications.Domain.Enums;
 using Diaspora.Modules.Notifications.Domain.Templates;
 using Diaspora.Modules.Notifications.Domain.ValueObjects;
 using Diaspora.Platform.Services.Abstractions;

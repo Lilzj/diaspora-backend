@@ -1,4 +1,4 @@
-namespace Diaspora.Modules.Notifications.Domain.Enums;
+namespace Diaspora.Contracts.Notifications.V1;
 
 /// <summary>
 /// What kind of client an endpoint belongs to.
