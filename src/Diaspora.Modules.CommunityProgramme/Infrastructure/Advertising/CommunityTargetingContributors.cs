@@ -1,7 +1,7 @@
+using Diaspora.Contracts.Financial.V1.Advertising;
 using Diaspora.Modules.CommunityProgramme.Domain.Communities;
 using Diaspora.Modules.CommunityProgramme.Domain.Identifiers;
 using Diaspora.Modules.CommunityProgramme.Domain.Repositories;
-using Diaspora.Modules.Financial.Domain.Advertising;
 using Diaspora.Modules.Financial.Extensibility.Advertising;
 using Diaspora.SharedKernel.Identity;
 

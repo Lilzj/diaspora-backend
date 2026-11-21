@@ -8,6 +8,7 @@ using Diaspora.Modules.Financial.Domain.Identifiers;
 using Diaspora.Modules.Financial.Domain.Memberships;
 using Diaspora.Modules.Financial.Domain.Payments;
 using Diaspora.Modules.Financial.Extensibility.Memberships;
+using Diaspora.Modules.Financial.Integration;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Results;
 using Microsoft.Extensions.Logging;
@@ -46,7 +47,7 @@ namespace Diaspora.Modules.Financial.Application.Memberships;
 /// makes the second attempt a replay of the first rather than a second binding.
 /// </para>
 /// </summary>
-public sealed class MembershipPaymentBinder
+public sealed class MembershipPaymentBinder : IMembershipPayments
 {
     private readonly IMembershipPaymentBindingRepository _bindings;
     private readonly IPaymentIntentRepository _intents;

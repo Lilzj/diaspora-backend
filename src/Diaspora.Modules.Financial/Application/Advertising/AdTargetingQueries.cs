@@ -1,4 +1,5 @@
 using Diaspora.Application.Abstractions;
+using Diaspora.Contracts.Financial.V1.Advertising;
 using Diaspora.Modules.Financial.Contracts.V1.Requests;
 using Diaspora.Modules.Financial.Contracts.V1.Responses;
 using Diaspora.Modules.Financial.Domain.Advertising;

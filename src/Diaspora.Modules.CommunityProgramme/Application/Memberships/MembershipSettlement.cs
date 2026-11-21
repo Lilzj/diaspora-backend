@@ -8,7 +8,7 @@ using Diaspora.Modules.CommunityProgramme.Contracts.V1.Responses;
 using Diaspora.Modules.CommunityProgramme.Domain.Errors;
 using Diaspora.Modules.CommunityProgramme.Domain.Identifiers;
 using Diaspora.Modules.CommunityProgramme.Domain.Repositories;
-using Diaspora.Modules.Financial.Application.Memberships;
+using Diaspora.Modules.Financial.Integration;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Results;
 using FluentValidation;
@@ -44,7 +44,7 @@ namespace Diaspora.Modules.CommunityProgramme.Application.Memberships;
 /// <b>B15's decision arrives through an injected service, not through <c>ISender</c>.</b> The
 /// platform's <c>DSP1001</c> refuses a handler that can reach any other handler in the process, and
 /// its own remedy is the one taken here: extract the shared behaviour into a service and inject it.
-/// <c>MembershipPaymentBinder</c> is that service, it lives in B15, and it is the only thing on this
+/// <c>IMembershipPayments</c> is that seam, the service behind it lives in B15, and it is the only thing on this
 /// platform that decides whether a payment bought a membership.
 /// </para>
 /// <para>
@@ -79,7 +79,7 @@ public sealed class RecordMembershipSettlementCommandHandler
     private readonly IProgrammeMembershipRepository _memberships;
     private readonly IMembershipProgrammeRepository _programmes;
     private readonly CommunityProgrammeAccessService _access;
-    private readonly MembershipPaymentBinder _binder;
+    private readonly IMembershipPayments _payments;
     private readonly IGuidGenerator _guids;
     private readonly IClock _clock;
     private readonly IUnitOfWork _unitOfWork;
@@ -88,7 +88,7 @@ public sealed class RecordMembershipSettlementCommandHandler
         IProgrammeMembershipRepository memberships,
         IMembershipProgrammeRepository programmes,
         CommunityProgrammeAccessService access,
-        MembershipPaymentBinder binder,
+        IMembershipPayments payments,
         IGuidGenerator guids,
         IClock clock,
         IUnitOfWork unitOfWork)
@@ -96,7 +96,7 @@ public sealed class RecordMembershipSettlementCommandHandler
         _memberships = memberships;
         _programmes = programmes;
         _access = access;
-        _binder = binder;
+        _payments = payments;
         _guids = guids;
         _clock = clock;
         _unitOfWork = unitOfWork;
@@ -128,7 +128,7 @@ public sealed class RecordMembershipSettlementCommandHandler
         // B15's decision, passed through verbatim on refusal. Restating it in this module's
         // vocabulary would mean two catalogues describing one rule, and the client already handles
         // B15's financial errors from the checkout it just came through.
-        var bound = await _binder.BindAsync(
+        var bound = await _payments.BindAsync(
             command.MembershipId, command.Request.PaymentIntentId, cancellationToken);
 
         if (bound.IsFailure)

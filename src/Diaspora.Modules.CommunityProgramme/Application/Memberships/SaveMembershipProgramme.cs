@@ -12,7 +12,7 @@ using Diaspora.Modules.CommunityProgramme.Domain.Memberships;
 using Diaspora.Modules.CommunityProgramme.Domain.Policies;
 using Diaspora.Modules.CommunityProgramme.Domain.Repositories;
 using Diaspora.Modules.CommunityProgramme.Domain.ValueObjects;
-using Diaspora.Modules.Financial.Application.Services;
+using Diaspora.Modules.Financial.Integration;
 using Diaspora.Platform.Services.Abstractions;
 using Diaspora.SharedKernel.Results;
 using FluentValidation;
@@ -105,7 +105,7 @@ public sealed class SaveMembershipProgrammeCommandHandler
     private readonly IProgrammeMembershipRepository _memberships;
     private readonly CommunityProgrammeAccessService _access;
     private readonly MembershipEligibilityEvaluator _eligibility;
-    private readonly CurrencyCatalog _currencies;
+    private readonly ICurrencies _currencies;
     private readonly ProgrammeIdempotency _commit;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IGuidGenerator _guids;
@@ -116,7 +116,7 @@ public sealed class SaveMembershipProgrammeCommandHandler
         IProgrammeMembershipRepository memberships,
         CommunityProgrammeAccessService access,
         MembershipEligibilityEvaluator eligibility,
-        CurrencyCatalog currencies,
+        ICurrencies currencies,
         ProgrammeIdempotency commit,
         IUnitOfWork unitOfWork,
         IGuidGenerator guids,

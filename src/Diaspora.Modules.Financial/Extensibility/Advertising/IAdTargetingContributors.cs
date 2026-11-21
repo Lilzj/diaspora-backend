@@ -1,4 +1,4 @@
-using Diaspora.Modules.Financial.Domain.Advertising;
+using Diaspora.Contracts.Financial.V1.Advertising;
 
 namespace Diaspora.Modules.Financial.Extensibility.Advertising;
 

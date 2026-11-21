@@ -1,3 +1,4 @@
+using Diaspora.Contracts.Financial.V1.Advertising;
 using Diaspora.Domain.Abstractions;
 using Diaspora.IntegrationTests.Common;
 using Diaspora.Modules.Financial.Domain.Advertising;
