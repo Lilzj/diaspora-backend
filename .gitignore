@@ -135,6 +135,29 @@ docs/
 # checkout, where File.ReadAllText throws rather than skips. Found before the
 # commit this time rather than by CI.
 !src/Diaspora.Observability/AlertCatalog.md
+
+# -- ...and the decision register, which is the fourth time the same rule -----
+#
+# The three notes above each end the same way: a guardrail's input must be in
+# the repository, or the guardrail is a comment. The architectural decision
+# register is the same thing one level up. Twenty-two ADRs recorded why this
+# platform is shaped as it is, and not one of them was in a clean checkout --
+# invisible to CI, to a new machine, and to anybody who was not the author.
+# BARCH-004 asked for its decision to be written into an ADR, which would have
+# produced a twenty-third invisible file.
+#
+# The notes above say a file inside docs/ cannot be rescued, and twice solved
+# it by moving the file out. That is right for one build input and wrong for a
+# register of twenty-three: re-inclusion works as long as every parent is
+# un-excluded first, which is what the three lines below do. docs/* then
+# re-excludes everything else under docs/ by name, so the audit reports, the
+# phase write-ups and the release-readiness notes stay exactly as local as
+# they were.
+!docs/
+docs/*
+!docs/adrs/
+!docs/adrs/*.md
+
 .neon
 .env.local
 node_modules/

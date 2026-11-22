@@ -11,6 +11,13 @@ namespace Diaspora.ArchitectureTests;
 /// file exists that the checkout was never going to contain — and nothing they guard was checked.
 /// </para>
 /// <para>
+/// <b>One exception since 21 November 2026, and it does not change this.</b> The decision register
+/// in <c>docs/adrs</c> is tracked (BARCH-004), because twenty-two ADRs explaining the platform's
+/// shape were reaching nobody. The carve-out is narrow and deliberately leaves
+/// <c>docs/platform</c> local, which is what this gate keys on — so these rules skip on a clean
+/// checkout exactly as before.
+/// </para>
+/// <para>
 /// <b>Absent means the whole <c>docs/platform</c> directory, not one file in it.</b> Where the
 /// documentation exists these rules run exactly as before, so a guide deleted, renamed or left
 /// stale still fails. They are skipped only where there is no documentation to be wrong.

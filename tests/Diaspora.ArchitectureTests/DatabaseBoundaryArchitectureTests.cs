@@ -35,10 +35,17 @@ namespace Diaspora.ArchitectureTests;
 /// <para>
 /// <b>The context is not split, deliberately.</b> Splitting would cost the cross-module
 /// transaction, which is load-bearing for the financial settlement paths. The decision and its
-/// three consequences are recorded in <c>docs/adrs/adr-022-one-database-context.md</c> — and that
-/// file is not in the repository, because <c>docs/</c> is gitignored and none of the platform's 22
-/// ADRs are tracked. That is why the enforceable half of the decision lives here and in the
-/// context's own summary rather than in the ADR alone.
+/// three consequences are recorded in <c>docs/adrs/adr-022-one-database-context.md</c>.
+/// </para>
+/// <para>
+/// <b>That ADR was the twenty-third file nobody would have been able to read.</b> When it was
+/// written, <c>docs/</c> was gitignored and not one of the platform's 22 decision records was
+/// tracked. The register is tracked now, narrowly — the audit reports and phase write-ups are
+/// still local — which is why <see cref="The_decision_register_is_in_the_repository"/> exists: the
+/// same rule the <c>.gitignore</c> states three times over, that a guardrail's input must be in
+/// the repository or the guardrail is a comment. The enforceable half of the decision still lives
+/// here and in the context's own summary rather than in the ADR, which is the right division of
+/// labour; what tracking buys is that the narrative travels with the code it explains.
 /// </para>
 /// </summary>
 public sealed class DatabaseBoundaryArchitectureTests
@@ -169,6 +176,43 @@ public sealed class DatabaseBoundaryArchitectureTests
             "a seventeenth holder is a new place the boundary is kept by convention, and it " +
             "should be a deliberate edit rather than a quiet one. Found: {0}",
             string.Join(", ", found));
+    }
+
+    /// <summary>
+    /// The decision register is in the repository, and this ADR is in it.
+    /// <para>
+    /// <b>The <c>.gitignore</c> states the rule three times and this is the fourth.</b> Its own
+    /// notes record a test that had never run because its input lived in <c>docs/</c>, and an
+    /// alert catalogue that would not have existed on a clean checkout. A register of twenty-three
+    /// decision records is the same failure one level up: it explains why the platform is shaped
+    /// as it is, and until 21 November 2026 a clean checkout had none of it.
+    /// </para>
+    /// <para>
+    /// This rule is what stops the carve-out being reverted by a tidy-up. It reads the working
+    /// tree, so it is only meaningful because these files are now committed — which is the whole
+    /// point of it.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_decision_register_is_in_the_repository()
+    {
+        var register = new DirectoryInfo(
+            Path.Combine(SourceTree.Root.FullName, "docs", "adrs"));
+
+        register.Exists.Should().BeTrue(
+            "the architectural decision register is tracked, and a checkout without it cannot " +
+            "tell anybody why this platform is shaped as it is");
+
+        var records = register.GetFiles("adr-*.md");
+
+        records.Should().HaveCountGreaterThanOrEqualTo(
+            22, "twenty-two decision records existed when the register was first tracked, and a " +
+                "decision is retired by superseding it rather than by deleting the record");
+
+        records.Select(file => file.Name)
+            .Should().Contain(
+                name => name.StartsWith("adr-022", StringComparison.Ordinal),
+                "ADR-022 records the one-context decision these rules enforce");
     }
 
     /// <summary>
