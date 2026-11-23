@@ -318,6 +318,189 @@ public sealed class CoordinateDiscoveryTests : PooledIdentityTestBase
         stored.Latitude.Should().BeApproximately(MombasaLatitude, 1e-6);
     }
 
+    // ── What a card says about where its row is ─────────────────────────────────────────────────
+
+    // RMD-007. A map places search results, and a result that cannot say where it is cannot be
+    // placed. Until 23 November 2026 four of the seven cards the map draws said nothing: the job,
+    // guide and home cards had no coordinate at all, and every event's `location` declared one and
+    // never filled it. Four of the map's seven layers could not draw a pin against a running server,
+    // whatever the client did. Each test reads the pinned and the unpinned Mombasa rows back through
+    // the circle-with-town search above, which returns both. The three cards that were already
+    // right are held to it as well, because the map depends on all seven.
+
+    [Fact]
+    public async Task A_home_card_says_where_the_home_is_only_as_precisely_as_a_stranger_may_know()
+    {
+        Api.ClearAuthentication();
+        var run = await SeedHomesAsync();
+
+        var cards = await CardsAsync(
+            await HttpClient.GetAsync(
+                $"/api/v1/housing/search?limit=50&query={run.Tag}&{AroundNyali}&city=Mombasa"),
+            run,
+            "title");
+
+        var pinned = PinOf(cards[run.Pinned].GetProperty("location"));
+
+        // Seeded NeighborhoodOnly at -4.0435, 39.6682. A stranger is told it to two places.
+        pinned.Latitude.Should().BeApproximately(-4.04, 1e-9);
+        pinned.Longitude.Should().BeApproximately(39.67, 1e-9);
+        pinned.Latitude.Should().NotBe(
+            MombasaLatitude, "an exact pin on a search result is a door number in another form");
+
+        PinOf(cards[run.Unpinned].GetProperty("location")).Should().Be(NoPin);
+    }
+
+    [Fact]
+    public async Task An_event_card_says_where_its_venue_is()
+    {
+        Api.ClearAuthentication();
+        var run = await SeedEventsAsync();
+
+        var cards = await CardsAsync(
+            await HttpClient.GetAsync(
+                $"/api/v1/community-life/events?limit=50&q={run.Tag}&{AroundNyali}&city=Mombasa"),
+            run,
+            "title");
+
+        AssertExactlyMombasa(PinOf(cards[run.Pinned].GetProperty("location")));
+        PinOf(cards[run.Unpinned].GetProperty("location")).Should().Be(NoPin);
+    }
+
+    [Fact]
+    public async Task A_job_card_says_where_the_posting_is_pinned()
+    {
+        Api.ClearAuthentication();
+        var run = await SeedJobsAsync();
+
+        var cards = await CardsAsync(
+            await HttpClient.GetAsync(
+                $"/api/v1/jobs?limit=50&q={run.Tag}&{AroundNyali}&city=Mombasa"),
+            run,
+            "title");
+
+        AssertExactlyMombasa(PinOf(cards[run.Pinned]));
+        PinOf(cards[run.Unpinned]).Should().Be(NoPin);
+    }
+
+    [Fact]
+    public async Task A_guide_card_says_where_the_guide_is_pinned()
+    {
+        Api.ClearAuthentication();
+        var run = await SeedGuidesAsync();
+
+        var cards = await CardsAsync(
+            await HttpClient.GetAsync(
+                $"/api/v1/guides/nearby?limit=50&{AroundNyali}&cityName=mombasa"),
+            run,
+            "title");
+
+        AssertExactlyMombasa(PinOf(cards[run.Pinned]));
+        PinOf(cards[run.Unpinned]).Should().Be(NoPin);
+    }
+
+    [Fact]
+    public async Task An_organization_card_says_where_the_organization_is_pinned()
+    {
+        Api.ClearAuthentication();
+        var run = await SeedOrganizationsAsync();
+
+        var cards = await CardsAsync(
+            await HttpClient.GetAsync(
+                $"/api/v1/community-life/organizations?limit=50&q={run.Tag}&{AroundNyali}&city=Mombasa"),
+            run,
+            "name");
+
+        AssertExactlyMombasa(PinOf(cards[run.Pinned].GetProperty("location")));
+        PinOf(cards[run.Unpinned].GetProperty("location")).Should().Be(NoPin);
+    }
+
+    [Fact]
+    public async Task A_marketplace_card_says_where_the_seller_pinned_it()
+    {
+        Api.ClearAuthentication();
+        var run = await SeedMarketplaceListingsAsync();
+
+        var cards = await CardsAsync(
+            await HttpClient.PostAsJsonAsync(
+                "/api/v1/marketplace/search",
+                new
+                {
+                    text = run.Tag,
+                    latitude = -4.0220,
+                    longitude = 39.7100,
+                    radiusKm = 15,
+                    city = "Mombasa",
+                    limit = 50
+                },
+                JsonOptions),
+            run,
+            "title");
+
+        AssertExactlyMombasa(PinOf(cards[run.Pinned].GetProperty("location")));
+        PinOf(cards[run.Unpinned].GetProperty("location")).Should().Be(NoPin);
+    }
+
+    [Fact]
+    public async Task A_provider_card_says_where_the_provider_is_pinned()
+    {
+        var run = await SeedProvidersAsync();
+
+        // The directory needs `providers.read`; the other six routes are anonymous.
+        var (_, auth) = await RegisterVerifiedMemberAsync();
+        Api.Authenticate(auth.Tokens.AccessToken);
+
+        var cards = await CardsAsync(
+            await HttpClient.GetAsync(
+                $"/api/v1/providers?limit=50&query={run.Tag}&{AroundNyali}&cityName=Mombasa"),
+            run,
+            "name");
+
+        AssertExactlyMombasa(PinOf(cards[run.Pinned].GetProperty("location")));
+        PinOf(cards[run.Unpinned].GetProperty("location")).Should().Be(NoPin);
+    }
+
+    private static readonly (double? Latitude, double? Longitude) NoPin = (null, null);
+
+    /// <summary>
+    /// The run's own rows from a page, by title. The store is shared across the collection, so a
+    /// page holds other tests' rows too.
+    /// </summary>
+    private static async Task<Dictionary<string, JsonElement>> CardsAsync(
+        HttpResponseMessage response, SeededRun run, string titleProperty)
+    {
+        var data = await DataAsync(response);
+
+        var cards = data.GetProperty("items").EnumerateArray()
+            .Where(item => item.GetProperty(titleProperty).GetString()!
+                .EndsWith(run.Tag, StringComparison.Ordinal))
+            .ToDictionary(item => item.GetProperty(titleProperty).GetString()!);
+
+        // Both rows, or the assertions prove nothing: "no pin" said of a row that never came back
+        // is not a statement about the card.
+        cards.Keys.Should().Contain([run.Pinned, run.Unpinned]);
+
+        return cards;
+    }
+
+    /// <summary>
+    /// A coordinate pair as the card carries it. An absent property and a JSON null both read as
+    /// no pin, because a response serialised without nulls says the second as the first.
+    /// </summary>
+    private static (double? Latitude, double? Longitude) PinOf(JsonElement holder) =>
+        (NumberOrNull(holder, "latitude"), NumberOrNull(holder, "longitude"));
+
+    private static double? NumberOrNull(JsonElement holder, string name) =>
+        holder.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Number
+            ? value.GetDouble()
+            : null;
+
+    private static void AssertExactlyMombasa((double? Latitude, double? Longitude) pin)
+    {
+        pin.Latitude.Should().BeApproximately(MombasaLatitude, 1e-9);
+        pin.Longitude.Should().BeApproximately(MombasaLongitude, 1e-9);
+    }
+
     // ── The three questions ───────────────────────────────────────────────────────────────────
 
     private async Task AssertFoundAsync(

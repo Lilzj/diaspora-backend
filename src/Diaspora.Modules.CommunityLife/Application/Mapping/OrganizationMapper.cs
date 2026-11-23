@@ -39,11 +39,8 @@ public static class OrganizationMapper
             Description = organization.Description.Body,
             Mission = organization.Mission,
             Vision = organization.Vision,
-            Location = CommunityLifeSharedMapper.ToResponse(organization.Location) with
-            {
-                Latitude = organization.Latitude,
-                Longitude = organization.Longitude
-            },
+            Location = CommunityLifeSharedMapper.ToResponse(
+                organization.Location, organization.Latitude, organization.Longitude),
             Contact = CommunityLifeSharedMapper.ToResponse(organization.Contact),
             SocialLinks = CommunityLifeSharedMapper.ToResponse(organization.SocialLinks),
             Languages = [.. organization.Languages.Select(language => language.Name)],
@@ -161,11 +158,8 @@ public static class OrganizationMapper
             Slug = organization.Slug.Value,
             OrganizationTypeKey = organization.OrganizationTypeKey,
             Summary = organization.Description.Summary,
-            Location = CommunityLifeSharedMapper.ToResponse(organization.Location) with
-            {
-                Latitude = organization.Latitude,
-                Longitude = organization.Longitude
-            },
+            Location = CommunityLifeSharedMapper.ToResponse(
+                organization.Location, organization.Latitude, organization.Longitude),
             LogoMediaId = organization.Logo?.MediaId,
             CoverMediaId = organization.CoverImage?.MediaId,
             IsVerified = organization.TrustMark.IsVerified,

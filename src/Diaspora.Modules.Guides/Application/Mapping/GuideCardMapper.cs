@@ -31,6 +31,8 @@ public static class GuideCardMapper
             CategoryKey = guide.CategoryKey,
             CountryCode = guide.Location.CountryCode,
             CityName = guide.Location.CityName,
+            Latitude = guide.Latitude,
+            Longitude = guide.Longitude,
             Language = guide.Language.Code,
             Status = GuideWireNames.ToWire(guide.Status),
             Difficulty = GuideWireNames.ToWire(guide.Reading.Difficulty),

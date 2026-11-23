@@ -46,6 +46,18 @@ public sealed record JobCardResponse
     /// <summary>The most specific place the posting named. What the card actually prints.</summary>
     public required string LocationLabel { get; init; }
 
+    /// <summary>
+    /// The employer's pin, in WGS84 degrees. Null when none was given.
+    /// <para>
+    /// The pin the posting's detail already carries, on the card because a map places search
+    /// results and a result that cannot say where it is cannot be placed (RMD-007).
+    /// </para>
+    /// </summary>
+    public double? Latitude { get; init; }
+
+    /// <inheritdoc cref="Latitude"/>
+    public double? Longitude { get; init; }
+
     public required string WorkplaceType { get; init; }
 
     public required bool IsRemote { get; init; }

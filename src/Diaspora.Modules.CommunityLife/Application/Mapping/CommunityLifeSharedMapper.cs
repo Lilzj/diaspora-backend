@@ -14,7 +14,19 @@ namespace Diaspora.Modules.CommunityLife.Application.Mapping;
 /// </summary>
 public static class CommunityLifeSharedMapper
 {
-    public static LocationResponse ToResponse(CommunityLifeLocationContext location)
+    /// <summary>
+    /// A place, with the pin that belongs to it.
+    /// <para>
+    /// The pin is an argument because <see cref="LocationResponse"/> declares one and only the
+    /// caller knows whose it is: an organization's is its own, an event's is its venue's. When this
+    /// took the place alone, the two organization mappers added their pin afterwards and the four
+    /// event mappers never did, so every event's <c>location</c> said nothing about where it was.
+    /// The detail still had the venue; a search result has no venue, so a map reading one had
+    /// nothing to place (RMD-007, 23 November 2026).
+    /// </para>
+    /// </summary>
+    public static LocationResponse ToResponse(
+        CommunityLifeLocationContext location, double? latitude, double? longitude)
     {
         ArgumentNullException.ThrowIfNull(location);
 
@@ -25,6 +37,8 @@ public static class CommunityLifeSharedMapper
             CityName = location.CityName,
             NeighborhoodName = location.NeighborhoodName,
             NeighborhoodAreaId = location.NeighborhoodAreaId,
+            Latitude = latitude,
+            Longitude = longitude,
             DisplayName = location.DisplayName
         };
     }

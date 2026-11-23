@@ -153,6 +153,8 @@ public static class JobMapper
 
             CountryCode = posting.Location.CountryCode,
             LocationLabel = posting.Location.DisplayName,
+            Latitude = posting.Latitude,
+            Longitude = posting.Longitude,
             WorkplaceType = JobWireNames.ToWire(posting.WorkArrangement.WorkplaceType),
             IsRemote = posting.WorkArrangement.IsRemote,
             OffersVisaSponsorship = posting.WorkArrangement.OffersVisaSponsorship,

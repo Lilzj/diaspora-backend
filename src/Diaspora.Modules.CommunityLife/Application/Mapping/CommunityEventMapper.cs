@@ -63,7 +63,8 @@ public static class CommunityEventMapper
                 CheckInOpensAt = communityEvent.Schedule.CheckInOpensAt
             },
             AttendanceMode = communityEvent.AttendanceMode.ToString(),
-            Location = CommunityLifeSharedMapper.ToResponse(communityEvent.Location),
+            Location = CommunityLifeSharedMapper.ToResponse(
+                communityEvent.Location, communityEvent.Venue.Latitude, communityEvent.Venue.Longitude),
             Venue = new EventVenueResponse
             {
                 Name = communityEvent.Venue.Name,
@@ -227,7 +228,8 @@ public static class CommunityEventMapper
             TimeZoneId = communityEvent.Schedule.TimeZoneId,
             AttendanceMode = communityEvent.AttendanceMode.ToString(),
             VenueName = communityEvent.Venue.Name,
-            Location = CommunityLifeSharedMapper.ToResponse(communityEvent.Location),
+            Location = CommunityLifeSharedMapper.ToResponse(
+                communityEvent.Location, communityEvent.Venue.Latitude, communityEvent.Venue.Longitude),
             CoverMediaId = communityEvent.CoverImage?.MediaId,
             IsFree = communityEvent.Audience.IsFree,
             IsFamilyFriendly = communityEvent.Audience.IsFamilyFriendly,

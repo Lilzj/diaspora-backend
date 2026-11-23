@@ -21,6 +21,19 @@ public sealed record GuideCardResponse
 
     public string? CityName { get; init; }
 
+    /// <summary>
+    /// The guide's pin, in WGS84 degrees. Null for a guide about a whole country or town, which most
+    /// guides are.
+    /// <para>
+    /// The pin the guide's detail already carries, on the card because a map places search results
+    /// and a result that cannot say where it is cannot be placed (RMD-007).
+    /// </para>
+    /// </summary>
+    public double? Latitude { get; init; }
+
+    /// <inheritdoc cref="Latitude"/>
+    public double? Longitude { get; init; }
+
     /// <summary>Lower-case ISO 639-1.</summary>
     public required string Language { get; init; }
 
