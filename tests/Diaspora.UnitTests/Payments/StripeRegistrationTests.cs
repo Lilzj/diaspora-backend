@@ -145,7 +145,7 @@ public class StripeRegistrationTests
     /// <summary>
     /// <b>The adapter requires the platform's resilience services, and that is new.</b> Every
     /// Stripe client is routed through <c>IResilienceExecutor</c> under
-    /// <c>financial.payment-provider</c>, so creating one resolves the executor and the policy
+    /// <c>financial.payment-provider.stripe</c>, so creating one resolves the executor and the policy
     /// catalogue. Before BARCH-007 these clients needed nothing but a timeout; a deployment that
     /// registers the adapter without <c>AddProductionPlatform</c> now fails when the first client
     /// is created rather than when the first charge is refused, which is the better of the two.
@@ -193,7 +193,7 @@ public class StripeRegistrationTests
 
         public IEnumerable<OperationalPolicy> Policies =>
         [
-            new RetryPolicy(OperationalPolicyNames.CircuitBreaker.PaymentProvider)
+            new RetryPolicy(OperationalPolicyNames.CircuitBreaker.StripePayments)
             {
                 MaxAttempts = 2
             }

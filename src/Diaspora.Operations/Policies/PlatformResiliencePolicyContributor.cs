@@ -56,27 +56,96 @@ public sealed class PlatformResiliencePolicyContributor : IOperationalPolicyCont
             OverallTimeout = TimeSpan.FromSeconds(20)
         },
 
-        new RetryPolicy(OperationalPolicyNames.CircuitBreaker.PaymentProvider)
+        // ─── The zero-retry policies every governed HTTP client must have ─────────────────
+        //
+        // Zero, and it is the most important number in this file.
+        //
+        // ResilientHttpHandler sends one HttpRequestMessage. The executor's retry re-invokes the
+        // operation, which here re-sends that same message — a request whose content has been
+        // consumed is not resendable, so the second attempt fails for a reason that has nothing to
+        // do with the provider. And the absence of a policy is not neutral: RetryFor falls back to
+        // Retry.Default, which is three attempts, so a client routed through the handler without a
+        // line here would quietly gain two retries on every call. For a payment that is the
+        // duplicate charge the breaker below exists to prevent.
+        //
+        // Named for the dependency rather than sitting under Retry.*, because the executor resolves
+        // both policies from the one dependency name, and a retry policy filed somewhere else is a
+        // retry policy the executor never finds.
+        //
+        // Retry is not forbidden here, only automatic retry at the transport. A caller that knows
+        // an operation is idempotent — a status read, a webhook replay — retries above this layer
+        // where it can build a fresh request and decide. The handler refuses to be constructed for
+        // a dependency missing one of these, and an architecture rule asserts the same thing
+        // against the composed catalogue at build time.
+
+        new RetryPolicy(OperationalPolicyNames.CircuitBreaker.StripePayments)
         {
-            // Zero, and it is the most important number in this file.
-            //
-            // The breaker below says why: duplicate charges are created by retries against a
-            // provider that is timing out after it has already taken the money. The executor
-            // cannot know that — it retries whatever its policy allows — so the policy has to be
-            // the thing that knows, and the absence of one is not neutral. RetryFor falls back to
-            // Retry.Default, which is three attempts, so a payment client routed to the breaker
-            // without this line would quietly gain two retries on every charge.
-            //
-            // Named for the dependency rather than sitting under Retry.*, because the executor
-            // resolves both policies from the one dependency name, and a retry policy filed
-            // somewhere else is a retry policy the executor never finds.
-            //
-            // Retry is not forbidden for payments, only automatic retry at the transport. A caller
-            // that knows an operation is idempotent — a status read, a webhook replay — retries
-            // above this layer where it can build a fresh request and decide.
-            Description = "Payment gateways. Never retried at the transport: a charge is not idempotent.",
+            Description = "Stripe. Never retried at the transport: a charge is not idempotent.",
             MaxAttempts = 0,
             OverallTimeout = TimeSpan.FromSeconds(25)
+        },
+
+        new RetryPolicy(OperationalPolicyNames.CircuitBreaker.PayPalPayments)
+        {
+            Description = "PayPal. Never retried at the transport: a charge is not idempotent.",
+            MaxAttempts = 0,
+            OverallTimeout = TimeSpan.FromSeconds(25)
+        },
+
+        new RetryPolicy(OperationalPolicyNames.CircuitBreaker.FlutterwavePayments)
+        {
+            Description = "Flutterwave. Never retried at the transport: a charge is not idempotent.",
+            MaxAttempts = 0,
+            OverallTimeout = TimeSpan.FromSeconds(25)
+        },
+
+        new RetryPolicy(OperationalPolicyNames.CircuitBreaker.FirebasePush)
+        {
+            // A resent FCM message is a second notification on somebody's lock screen. The channel
+            // above decides whether a failed send is worth repeating, and it has the device token
+            // and the dead-token rules to decide with.
+            Description = "Firebase Cloud Messaging. A resent push is a duplicate notification.",
+            MaxAttempts = 0,
+            OverallTimeout = TimeSpan.FromSeconds(20)
+        },
+
+        // The four below name their client rather than a constant, because for these the client and
+        // the dependency are the same thing and the dashboard should say so. The literal is held to
+        // the constant by OutboundResilienceArchitectureTests, which resolves every governed
+        // client's dependency name and fails when one has no policy here.
+
+        new RetryPolicy("maps.google.routes")
+        {
+            // A GET, so a retry would be safe — and it would also spend a second unit of the
+            // monthly Routes allowance that platform.provider_usage meters before the call. The
+            // meter is above this layer and would not see the second call, so the allowance and
+            // the bill would disagree.
+            Description = "Google Routes. Metered above the transport, so a transport retry is unbilled.",
+            MaxAttempts = 0,
+            OverallTimeout = TimeSpan.FromSeconds(20)
+        },
+
+        new RetryPolicy("maps.google.places")
+        {
+            Description = "Google Places. Metered above the transport, as Routes is.",
+            MaxAttempts = 0,
+            OverallTimeout = TimeSpan.FromSeconds(20)
+        },
+
+        new RetryPolicy("police-uk")
+        {
+            Description = "Police UK crime data. A background refresh; the next run is the retry.",
+            MaxAttempts = 0,
+            OverallTimeout = TimeSpan.FromSeconds(30)
+        },
+
+        new RetryPolicy("trust-decisions")
+        {
+            // Outbound to somebody else's webhook endpoint. Whether a decision may be delivered
+            // twice is their invariant, not this platform's, so the transport does not decide it.
+            Description = "Trust decision webhooks. Redelivery is the receiver's invariant.",
+            MaxAttempts = 0,
+            OverallTimeout = TimeSpan.FromSeconds(20)
         },
 
         new RetryPolicy(OperationalPolicyNames.Retry.DatabaseTransient)
@@ -103,12 +172,43 @@ public sealed class PlatformResiliencePolicyContributor : IOperationalPolicyCont
         },
 
         // ─── Circuit breakers ─────────────────────────────────────────────────────────────
-        new CircuitBreakerPolicy(OperationalPolicyNames.CircuitBreaker.PaymentProvider)
+        //
+        // The three payment breakers are tuned identically and are three policies rather than one,
+        // because the executor keys breaker STATE by dependency name. Under one name, Stripe's
+        // failures would open the circuit on PayPal and Flutterwave — and the registry picks a
+        // gateway by currency and country, so a degraded African corridor would refuse a European
+        // card that was never going to touch it. Splitting them costs sensitivity: each breaker now
+        // needs MinimumThroughput calls of its own inside the sampling window before it can trip,
+        // so a low-volume provider is slower to break. That is the right way round. A breaker that
+        // trips late protects the pool a little later; a breaker shared between alternatives turns
+        // one provider's outage into an outage of the whole payment surface.
+
+        new CircuitBreakerPolicy(OperationalPolicyNames.CircuitBreaker.StripePayments)
         {
             // The strictest breaker on the platform, and the longest break. A payment gateway that
             // is failing must not be hammered: duplicate charges are created by retries against a
             // provider that is timing out after it has already taken the money.
-            Description = "Payment gateways. Strictest breaker on the platform.",
+            Description = "Stripe. Strictest breaker on the platform.",
+            FailureRatio = 0.3,
+            SamplingDuration = TimeSpan.FromSeconds(60),
+            MinimumThroughput = 5,
+            BreakDuration = TimeSpan.FromSeconds(60),
+            CallTimeout = TimeSpan.FromSeconds(20)
+        },
+
+        new CircuitBreakerPolicy(OperationalPolicyNames.CircuitBreaker.PayPalPayments)
+        {
+            Description = "PayPal. Tuned as Stripe's; separate so one provider's outage is one.",
+            FailureRatio = 0.3,
+            SamplingDuration = TimeSpan.FromSeconds(60),
+            MinimumThroughput = 5,
+            BreakDuration = TimeSpan.FromSeconds(60),
+            CallTimeout = TimeSpan.FromSeconds(20)
+        },
+
+        new CircuitBreakerPolicy(OperationalPolicyNames.CircuitBreaker.FlutterwavePayments)
+        {
+            Description = "Flutterwave. Tuned as Stripe's; separate so one provider's outage is one.",
             FailureRatio = 0.3,
             SamplingDuration = TimeSpan.FromSeconds(60),
             MinimumThroughput = 5,
@@ -124,9 +224,13 @@ public sealed class PlatformResiliencePolicyContributor : IOperationalPolicyCont
             CallTimeout = TimeSpan.FromSeconds(30)
         },
 
-        new CircuitBreakerPolicy(OperationalPolicyNames.CircuitBreaker.NotificationProvider)
+        new CircuitBreakerPolicy(OperationalPolicyNames.CircuitBreaker.FirebasePush)
         {
-            Description = "Email, SMS and push transports.",
+            // This used to be notifications.provider and covered "email, SMS and push" in its
+            // description alone: email and SMS are governed at their call sites under per-provider
+            // names of their own, so the only transport it could ever have applied to was push,
+            // and push was governed by nothing at all. Named for what it governs.
+            Description = "Firebase Cloud Messaging.",
             FailureRatio = 0.5,
             BreakDuration = TimeSpan.FromSeconds(30),
             CallTimeout = TimeSpan.FromSeconds(15)

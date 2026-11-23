@@ -49,26 +49,28 @@ public static class PayPalPaymentsRegistration
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        // Every client below is routed through the platform's payment breaker. B17 declared
-        // financial.payment-provider -- the strictest breaker on the platform -- and until now
-        // nothing ran under it: these clients set a transport timeout and nothing else, so a
-        // provider that went slow held a thread and a connection per call until the pool was gone.
-        // The retry policy for that dependency is MaxAttempts = 0 and must stay that way; the
+        // Every client below is routed through PayPal's own breaker, tuned identically to the
+        // other two payment adapters' and keyed separately from them. The executor keys breaker
+        // state by dependency name, so one shared name would mean another provider's outage
+        // refusing a PayPal payment -- and IPaymentGatewayRegistry.Resolve picks a gateway by
+        // currency and country, so the three are alternatives rather than a chain.
+        //
+        // The retry policy for this dependency is MaxAttempts = 0 and must stay that way; the
         // handler refuses to be constructed otherwise.
         services.AddHttpClient(PayPalAccessTokenCache.HttpClientName, (provider, client) =>
             client.Timeout = TransportTimeout(provider))
             .WithPlatformResilience(
-                OperationalPolicyNames.CircuitBreaker.PaymentProvider);
+                OperationalPolicyNames.CircuitBreaker.PayPalPayments);
 
         services.AddHttpClient(PayPalSettlementProvider.HttpClientName, (provider, client) =>
             client.Timeout = TransportTimeout(provider))
             .WithPlatformResilience(
-                OperationalPolicyNames.CircuitBreaker.PaymentProvider);
+                OperationalPolicyNames.CircuitBreaker.PayPalPayments);
 
         services.AddHttpClient(PayPalPayoutWebhookProcessor.HttpClientName, (provider, client) =>
             client.Timeout = TransportTimeout(provider))
             .WithPlatformResilience(
-                OperationalPolicyNames.CircuitBreaker.PaymentProvider);
+                OperationalPolicyNames.CircuitBreaker.PayPalPayments);
 
         // Singleton because the token it holds is account-wide and refreshing it is single-flight.
         // A scoped cache would mint a token per request, which is the behaviour it exists to avoid.

@@ -22,6 +22,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Diaspora.Modules.Notifications\Diaspora.Modules.Notifications.csproj" />
+    <!-- The resilience handler these clients are registered under. -->
+    <ProjectReference Include="..\Diaspora.Platform\Diaspora.Platform.csproj" />
   </ItemGroup>
 
   <ItemGroup>

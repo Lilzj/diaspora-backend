@@ -33,12 +33,46 @@ public static class OperationalPolicyNames
         public const string DistributedCache = "cache.distributed";
     }
 
-    /// <summary>Circuit breakers, one per class of dependency the platform does not control.</summary>
+    /// <summary>
+    /// Circuit breakers.
+    /// <para>
+    /// <b>One per provider, not one per class of provider.</b> The executor keys breaker state by
+    /// the dependency name it is given, so every client sharing a name shares one breaker: a name
+    /// covering three providers means the slowest of them opens the circuit for the other two.
+    /// That is the wrong trade wherever the providers are alternatives rather than a pipeline, and
+    /// on this platform they are — <c>IPaymentGatewayRegistry.Resolve</c> picks a gateway by
+    /// currency and country, so a degraded corridor must not refuse a payment that was never going
+    /// to touch it. The email adapter states the same rule in its own words: <em>"an unrecognised
+    /// provider gets its own dependency so its failures stay off every other provider's breaker"</em>.
+    /// </para>
+    /// <para>
+    /// A name here only sets a breaker's <em>settings</em>. A dependency with no policy of its own
+    /// still gets its own breaker instance, tuned from <see cref="ExternalApi"/> — which is why the
+    /// clients that want ordinary external-API settings name themselves rather than sharing a name
+    /// to inherit one.
+    /// </para>
+    /// </summary>
     public static class CircuitBreaker
     {
-        public const string PaymentProvider = "financial.payment-provider";
+        /// <summary>
+        /// Stripe's. Payment breakers are declared per provider and tuned identically; what they do
+        /// not share is state.
+        /// </summary>
+        public const string StripePayments = "financial.payment-provider.stripe";
+
+        /// <summary>PayPal's. See <see cref="StripePayments"/>.</summary>
+        public const string PayPalPayments = "financial.payment-provider.paypal";
+
+        /// <summary>Flutterwave's. See <see cref="StripePayments"/>.</summary>
+        public const string FlutterwavePayments = "financial.payment-provider.flutterwave";
+
+        /// <summary>
+        /// Firebase Cloud Messaging: the token exchange and the send, under one name because a send
+        /// cannot succeed without a token and the two fail together.
+        /// </summary>
+        public const string FirebasePush = "notifications.push.firebase";
+
         public const string MediaProvider = "media.provider";
-        public const string NotificationProvider = "notifications.provider";
         public const string SearchProvider = "search.provider";
         public const string ExternalApi = "external.api";
         public const string DistributedCache = "cache.distributed";

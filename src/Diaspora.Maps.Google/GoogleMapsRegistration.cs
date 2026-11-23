@@ -1,5 +1,6 @@
 using Diaspora.Modules.GeographicIntelligence.Domain.Routing;
 using Diaspora.Modules.Location.Extensibility;
+using Diaspora.Platform.Operations.Resilience;
 using Diaspora.Platform.Usage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -41,19 +42,31 @@ public static class GoogleMapsRegistration
                 "Maps:Google:BillingTimeZone is not a time zone this host knows.")
             .ValidateOnStart();
 
+        // Both clients are governed, and they are governed separately.
+        //
+        // The audit recorded these as a backpressure exception because every billable call takes a
+        // unit from a monthly allowance first. A quota limits spend, not concurrency: it does not
+        // return the connection a slow call is holding, and both of these are read on a member's
+        // request -- PlanRouteQuery and the place-search queries are query handlers, so a Routes
+        // outage holds a request thread per member looking at a map.
+        //
+        // Routes and Places are separate dependencies because they are separate Google APIs with
+        // separate quotas and separate outages; sharing a name would let one break the other.
         services.AddHttpClient(GoogleRoutingProvider.HttpClientName, (provider, client) =>
         {
             var current = provider.GetRequiredService<IOptionsMonitor<GoogleMapsOptions>>().CurrentValue;
             client.BaseAddress = new Uri(current.RoutesBaseUrl);
             client.Timeout = TimeSpan.FromSeconds(current.TimeoutSeconds);
-        });
+        })
+            .WithPlatformResilience(GoogleRoutingProvider.HttpClientName);
 
         services.AddHttpClient(GooglePlaceSearchProvider.HttpClientName, (provider, client) =>
         {
             var current = provider.GetRequiredService<IOptionsMonitor<GoogleMapsOptions>>().CurrentValue;
             client.BaseAddress = new Uri(current.PlacesBaseUrl);
             client.Timeout = TimeSpan.FromSeconds(current.TimeoutSeconds);
-        });
+        })
+            .WithPlatformResilience(GooglePlaceSearchProvider.HttpClientName);
 
         // Scoped, because the meter writes through the request's DbContext.
         services.AddScoped<IRoutingProvider>(provider => new GoogleRoutingProvider(

@@ -29,7 +29,10 @@ public interface IResilienceExecutor
     /// <paramref name="dependency"/>.
     /// </summary>
     /// <param name="dependency">
-    /// What is being called — <c>financial.payment-provider</c>, <c>media.provider</c>. Resolves the
+    /// What is being called — <c>financial.payment-provider.stripe</c>, <c>maps.google.routes</c>.
+    /// One name per provider, never one per class of provider: this is the key breaker and
+    /// bulkhead state is held under, so a name two providers share is a breaker they share.
+    /// Resolves the
     /// retry policy, the breaker policy and the bulkhead, and labels every metric emitted.
     /// </param>
     /// <param name="operation">The call. Must be safe to run more than once.</param>
