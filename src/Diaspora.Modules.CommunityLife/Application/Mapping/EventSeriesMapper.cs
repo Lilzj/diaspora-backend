@@ -54,7 +54,8 @@ public static class EventSeriesMapper
             DurationMinutes = series.Schedule.DurationMinutes,
             TimeZoneId = series.Schedule.TimeZoneId,
             AttendanceMode = series.AttendanceMode.ToString(),
-            Location = CommunityLifeSharedMapper.ToResponse(series.Location),
+            Location = CommunityLifeSharedMapper.ToResponse(
+                series.Location, series.Venue.Latitude, series.Venue.Longitude),
             Venue = new EventVenueResponse
             {
                 Name = series.Venue.Name,
@@ -152,7 +153,8 @@ public static class EventSeriesMapper
             EventStatus = occurrence.Status.ToString(),
             OriginalStartsAt = occurrence.OriginalStartsAt,
             CancellationReason = occurrence.CancellationReason,
-            Location = CommunityLifeSharedMapper.ToResponse(occurrence.Location),
+            Location = CommunityLifeSharedMapper.ToResponse(
+                occurrence.Location, occurrence.Venue.Latitude, occurrence.Venue.Longitude),
             VenueName = occurrence.Venue.Name,
             Capacity = CommunityEventMapper.ToResponse(occurrence, viewerIsOrganizer),
             ViewerRsvpStatus = viewerRsvpStatus,

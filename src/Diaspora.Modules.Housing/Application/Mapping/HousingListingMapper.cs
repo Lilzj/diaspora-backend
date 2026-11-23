@@ -4,6 +4,7 @@ using Diaspora.Modules.Housing.Domain.Enums;
 using Diaspora.Modules.Housing.Domain.Landlords;
 using Diaspora.Modules.Housing.Domain.Listings;
 using Diaspora.Modules.Housing.Domain.Policies;
+using Diaspora.Modules.Housing.Domain.ValueObjects;
 
 namespace Diaspora.Modules.Housing.Application.Mapping;
 
@@ -195,15 +196,30 @@ public static class HousingListingMapper
         MaximumStayNights = listing.Availability.MaximumStayNights
     };
 
-    public static HousingLocationResponse ToLocation(HousingListing listing) => new()
+    /// <summary>
+    /// Where the property is, as precisely as a stranger may know: the coordinate is
+    /// <see cref="PropertyAddress.PublicCoordinates"/>, whoever is asking. The viewer's own
+    /// entitlement is the disclosed address, which only the detail carries.
+    /// </summary>
+    public static HousingLocationResponse ToLocation(HousingListing listing)
     {
-        CountryCode = listing.Location.CountryCode,
-        RegionName = listing.Location.RegionName,
-        CityName = listing.Location.CityName,
-        NeighborhoodName = listing.Location.NeighborhoodName,
-        NeighborhoodAreaId = listing.Location.NeighborhoodAreaId,
-        DisplayName = listing.Location.DisplayName
-    };
+        ArgumentNullException.ThrowIfNull(listing);
+
+        var (latitude, longitude) = PropertyAddress.PublicCoordinates(
+            listing.Address.Latitude, listing.Address.Longitude, listing.Address.Visibility);
+
+        return new HousingLocationResponse
+        {
+            CountryCode = listing.Location.CountryCode,
+            RegionName = listing.Location.RegionName,
+            CityName = listing.Location.CityName,
+            NeighborhoodName = listing.Location.NeighborhoodName,
+            NeighborhoodAreaId = listing.Location.NeighborhoodAreaId,
+            Latitude = latitude,
+            Longitude = longitude,
+            DisplayName = listing.Location.DisplayName
+        };
+    }
 
     public static StayPolicyResponse ToStayPolicy(HousingListing listing) => new()
     {
