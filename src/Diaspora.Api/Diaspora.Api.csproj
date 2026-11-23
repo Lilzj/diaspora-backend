@@ -37,6 +37,13 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- SchemaReferenceIds is composition-root plumbing rather than API surface
+         and its rewrite rule is worth testing directly. Same arrangement as
+         Diaspora.Operations and the four modules that do this. -->
+    <InternalsVisibleTo Include="Diaspora.ApiTests" />
 
     <!--
       Build-time only, for the OpenAPI document emission configured above. The two metadata

@@ -243,6 +243,11 @@ builder.Services.AddEndpointsApiExplorer();
 // only safe one on this host.
 builder.Services.AddOpenApi(options =>
 {
+    // RMD-006. A component name in OpenAPI is global and a type name in C# is not, so two modules
+    // each declaring a BookmarkResponse produced one component and whichever the generator met
+    // first described both modules' routes. SchemaReferenceIds says what that cost.
+    options.CreateSchemaReferenceId = Diaspora.Api.OpenApi.SchemaReferenceIds.For;
+
     options.AddSchemaTransformer<Diaspora.Api.OpenApi.EnumValuesSchemaTransformer>();
     options.AddDocumentTransformer<Diaspora.Api.OpenApi.BearerSecuritySchemeTransformer>();
     options.AddOperationTransformer<Diaspora.Api.OpenApi.EndpointSecurityOperationTransformer>();
