@@ -33,7 +33,7 @@ public static class ResilientHttpClientBuilderExtensions
 /// Puts an outbound <see cref="HttpClient"/> under the platform's resilience policies.
 /// <para>
 /// <b>The platform had the breaker and nothing to break.</b>
-/// <c>OperationalPolicyNames.CircuitBreaker.PaymentProvider</c> has been declared since B17 with the
+/// <c>OperationalPolicyNames.CircuitBreaker</c>'s payment breaker has been declared since B17 with the
 /// strictest settings on the platform and a comment explaining exactly why — <em>duplicate charges
 /// are created by retries against a provider that is timing out after it has already taken the
 /// money</em>. It is in the policy catalogue, on the operator dashboard, in the health contributor

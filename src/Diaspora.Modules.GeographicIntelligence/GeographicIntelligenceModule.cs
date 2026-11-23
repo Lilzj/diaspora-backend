@@ -5,6 +5,7 @@ using Diaspora.Modules.GeographicIntelligence.Infrastructure.Routing;
 using Diaspora.Modules.GeographicIntelligence.Infrastructure.Safety;
 using Diaspora.Modules.GeographicIntelligence.Options;
 using Diaspora.Platform.Modules;
+using Diaspora.Platform.Operations.Resilience;
 using FluentValidation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -102,8 +103,13 @@ public sealed class GeographicIntelligenceModule : IPlatformModule
 
         // Police-recorded crime for the safety counts. A singleton because it holds the per-point
         // month cache; the named client comes from the factory on every request.
+        // Governed, although it is a background read. A public dataset going slow delays an
+        // intelligence refresh rather than a member's request -- but the connection it holds comes
+        // from the same pool every request draws on, and the pool is what BARCH-002's single
+        // instance makes finite.
         services.AddHttpClient(PoliceUkCrimeData.HttpClientName, client =>
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("Diaspora/1.0 (+https://diaspora-api.fly.dev)"));
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Diaspora/1.0 (+https://diaspora-api.fly.dev)"))
+            .WithPlatformResilience(PoliceUkCrimeData.HttpClientName);
         services.TryAddSingleton<IPoliceCrimeData, PoliceUkCrimeData>();
     }
 }

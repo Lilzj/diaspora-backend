@@ -6,6 +6,7 @@ using Diaspora.Modules.Trust.Infrastructure.Hosting;
 using Diaspora.Modules.Trust.Options;
 using Diaspora.Modules.Trust.Persistence;
 using Diaspora.Platform.Modules;
+using Diaspora.Platform.Operations.Resilience;
 using Diaspora.Platform.Services.Abstractions;
 using FluentValidation;
 using Microsoft.Extensions.Configuration;
@@ -178,7 +179,11 @@ public sealed class TrustModule : IPlatformModule
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        services.AddHttpClient(HttpTrustDecisionPublisher.HttpClientName);
+        // Governed. The receiver is somebody else's endpoint, so a stall here is a stall this
+        // platform cannot fix by waiting -- and it holds a connection from the shared pool while
+        // it does.
+        services.AddHttpClient(HttpTrustDecisionPublisher.HttpClientName)
+            .WithPlatformResilience(HttpTrustDecisionPublisher.HttpClientName);
         services.AddScoped<ITrustDecisionPublisher, HttpTrustDecisionPublisher>();
     }
 

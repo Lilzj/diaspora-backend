@@ -62,36 +62,42 @@ public static class StripePaymentsRegistration
         // before this runs.
         services.TryAddSingleton<IStripeAccountResolver, StripeDestinationAccountResolver>();
 
-        // Every client below is routed through the platform's payment breaker. B17 declared
-        // financial.payment-provider -- the strictest breaker on the platform -- and until now
-        // nothing ran under it: these clients set a transport timeout and nothing else, so a
-        // provider that went slow held a thread and a connection per call until the pool was gone.
-        // The retry policy for that dependency is MaxAttempts = 0 and must stay that way; the
+        // Every client below is routed through Stripe's own breaker. B17 declared the payment
+        // breaker -- the strictest on the platform -- and nothing ran under it until the handler
+        // existed: these clients set a transport timeout and nothing else, so a provider that went
+        // slow held a thread and a connection per call until the pool was gone.
+        //
+        // Stripe's own, not the payment class's. The executor keys breaker state by dependency
+        // name, so one name across the three adapters would mean Flutterwave's outage refusing a
+        // Stripe charge -- and the registry picks a gateway by currency and country, so those are
+        // alternatives rather than a chain.
+        //
+        // The retry policy for this dependency is MaxAttempts = 0 and must stay that way; the
         // handler refuses to be constructed otherwise.
         services.AddHttpClient(StripeSettlementProvider.HttpClientName, (provider, client) =>
             client.Timeout = TransportTimeout(provider))
             .WithPlatformResilience(
-                OperationalPolicyNames.CircuitBreaker.PaymentProvider);
+                OperationalPolicyNames.CircuitBreaker.StripePayments);
 
         services.AddHttpClient(StripeConnectVerificationSource.HttpClientName, (provider, client) =>
             client.Timeout = TransportTimeout(provider))
             .WithPlatformResilience(
-                OperationalPolicyNames.CircuitBreaker.PaymentProvider);
+                OperationalPolicyNames.CircuitBreaker.StripePayments);
 
         services.AddHttpClient(StripePayoutOnboarding.HttpClientName, (provider, client) =>
             client.Timeout = TransportTimeout(provider))
             .WithPlatformResilience(
-                OperationalPolicyNames.CircuitBreaker.PaymentProvider);
+                OperationalPolicyNames.CircuitBreaker.StripePayments);
 
         services.AddHttpClient(StripeSettlementStatusProvider.HttpClientName, (provider, client) =>
             client.Timeout = TransportTimeout(provider))
             .WithPlatformResilience(
-                OperationalPolicyNames.CircuitBreaker.PaymentProvider);
+                OperationalPolicyNames.CircuitBreaker.StripePayments);
 
         services.AddHttpClient(StripePaymentGateway.HttpClientName, (provider, client) =>
             client.Timeout = TransportTimeout(provider))
             .WithPlatformResilience(
-                OperationalPolicyNames.CircuitBreaker.PaymentProvider);
+                OperationalPolicyNames.CircuitBreaker.StripePayments);
 
         // ── The charge half ──────────────────────────────────────────────────────
         //

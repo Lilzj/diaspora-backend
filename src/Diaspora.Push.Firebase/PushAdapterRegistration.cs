@@ -1,5 +1,7 @@
 using Diaspora.Modules.Notifications.Extensibility.Channels;
 using Diaspora.Modules.Notifications.Options;
+using Diaspora.Platform.Operations.Policies;
+using Diaspora.Platform.Operations.Resilience;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -67,13 +69,27 @@ public static class PushAdapterRegistration
                 key, provider.GetRequiredService<IHttpClientFactory>().CreateClient(TokenClientName));
         });
 
-        services.AddHttpClient(TokenClientName);
+        // Both clients are governed, under one dependency name.
+        //
+        // These two were the platform's last outbound calls with nothing but a transport timeout,
+        // and they were invisible as well as ungoverned: the rule that was supposed to notice read
+        // the registration's first argument and matched on the name of the constant, so it saw
+        // every client called HttpClientName and neither of these. A scan that recognises its
+        // population by naming convention finds whatever already follows the convention.
+        //
+        // One name, not two: a send cannot succeed without a token, so breaking them apart would
+        // leave the send breaker counting failures of a call that had already been refused
+        // upstream. The token exchange is also low-volume -- the credential caches the token -- so
+        // a breaker of its own would rarely reach the throughput it needs to trip.
+        services.AddHttpClient(TokenClientName)
+            .WithPlatformResilience(OperationalPolicyNames.CircuitBreaker.FirebasePush);
 
         services.AddHttpClient(SendClientName, (provider, client) =>
         {
             var current = provider.GetRequiredService<IOptions<PushProviderOptions>>().Value;
             client.Timeout = TimeSpan.FromSeconds(current.TimeoutSeconds > 0 ? current.TimeoutSeconds : 10);
-        });
+        })
+            .WithPlatformResilience(OperationalPolicyNames.CircuitBreaker.FirebasePush);
 
         // Scoped, matching the placeholder it replaces, so the channel's lifetime expectations are
         // unchanged. The credential above is the singleton, which is what holds the cached token.

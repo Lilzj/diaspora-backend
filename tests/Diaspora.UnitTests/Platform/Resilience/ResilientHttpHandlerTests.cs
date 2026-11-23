@@ -7,7 +7,7 @@ using Xunit;
 namespace Diaspora.UnitTests.Platform.Resilience;
 
 /// <summary>
-/// The handler that gave <c>financial.payment-provider</c> a caller.
+/// The handler that gave the payment breaker a caller.
 /// <para>
 /// <b>BARCH-007 is recorded as "no circuit breakers" and that is not what was wrong.</b> The
 /// platform has had a breaker since B17, with an operator dashboard, isolate and reset controls, a
@@ -16,10 +16,16 @@ namespace Diaspora.UnitTests.Platform.Resilience;
 /// before this handler, <c>financial.payment-provider</c> appeared twice in the repository, at its
 /// own two declarations. Eleven payment clients set a transport timeout and nothing else.
 /// </para>
+/// <para>
+/// That name is gone now and the reason is worth keeping. One name governed all three payment
+/// adapters, and the executor keys breaker state by the name -- so Flutterwave timing out would
+/// have opened the circuit on Stripe, which the gateway registry would never have routed that
+/// payment to in the first place. The dependency below is a test name rather than a shipped one.
+/// </para>
 /// </summary>
 public sealed class ResilientHttpHandlerTests
 {
-    private const string Dependency = "financial.payment-provider";
+    private const string Dependency = "test.payment-provider";
 
     // ── The refusal ──────────────────────────────────────────────────────
 
