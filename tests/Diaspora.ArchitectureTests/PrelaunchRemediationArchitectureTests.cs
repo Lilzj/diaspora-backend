@@ -120,6 +120,48 @@ public sealed class PrelaunchRemediationArchitectureTests
                 + "entry on the row names. No test in this solution can observe it."
         };
 
+    /// <summary>
+    /// Rows this repository already names although they are still OPEN, each with what is owed.
+    /// <para>
+    /// <b>This is where a row says why it is still open, and until now there was nowhere.</b>
+    /// <see cref="An_open_finding_carries_no_evidence_and_no_date"/> requires an OPEN row to claim
+    /// nothing, which is right — evidence is for closure — and it leaves a deliberate decision to
+    /// hold a row open looking exactly like an oversight. BSOLID-007 was held open for four days
+    /// by a reason that belonged to BSEC-013, and nothing recorded that where a reader would find
+    /// it.
+    /// </para>
+    /// <para>
+    /// <b>An entry is not an exemption from doing the work.</b> It says the work a row has left is
+    /// not this row's to do — a secret to rotate, a collector to stand up, another row's fix — so
+    /// the identifier goes on appearing in code while the row stays open. Every other open row
+    /// that code names is remediation which landed and was never credited, which is what
+    /// <see cref="An_open_backend_finding_is_not_one_the_repository_has_already_answered"/>
+    /// exists to catch.
+    /// </para>
+    /// </summary>
+    private static readonly Dictionary<string, string> StillOpenThoughNamed =
+        new(StringComparer.Ordinal)
+        {
+            ["BSEC-013"] =
+                "The first of the audit's two alternatives landed on 19 November: the issuer is "
+                + "retired at error level and nothing registers it. The row's second clause is "
+                + "still true though — a service token signed with the member key is accepted "
+                + "and skips every live-state check — and the fix for that is multi-key "
+                + "validation keyed by kid, which this ledger assigns to BSEC-008. BlockedBy "
+                + "names it.",
+            ["BSEC-008"] =
+                "Named once, and as somebody else's cross-reference: BSEC-013's retirement notice "
+                + "records that reviving the service-token issuer would need a kid-scoped signing "
+                + "key, and key material belongs to this row. Nothing here acts on BSEC-008 "
+                + "itself, which is live secrets in a working tree and the rotation of them.",
+            ["BARCH-008"] =
+                "The half this repository owns landed on 9 November 2026: a Production host "
+                + "refuses to start with no exporter configured, the alert catalogue is complete, "
+                + "and outbound HTTP carries telemetry. What is owed is a collector to receive the "
+                + "export and OpenTelemetry__OtlpEndpoint set on the deployment, and no commit in "
+                + "this repository can supply either."
+        };
+
     private static readonly string[] States =
         ["OPEN", "FIXED", "VERIFIED", "ACCEPTED", "SUPERSEDED"];
 
@@ -130,6 +172,10 @@ public sealed class PrelaunchRemediationArchitectureTests
 
     private static readonly Lazy<Dictionary<string, HashSet<string>>> DeclaredTests =
         new(LoadDeclaredTests);
+
+    private static readonly Lazy<List<string>> Sources = new(LoadSources);
+
+    private static readonly Lazy<Dictionary<string, List<string>>> Mentions = new(LoadMentions);
 
     /// <summary>Expands a declared identifier space into the identifiers it names.</summary>
     private static HashSet<string> Identifiers((string Prefix, int Count)[] families) =>
@@ -415,6 +461,125 @@ public sealed class PrelaunchRemediationArchitectureTests
             + "itself the moment a test can do the job instead");
     }
 
+    // ─── A state can be well-formed and still be untrue ─────────────────────────────────────
+
+    /// <summary>
+    /// An OPEN backend row is not one this repository has already answered.
+    /// <para>
+    /// <b>This is the direction the suite was missing, and it cost four days.</b> BSOLID-007 asks
+    /// whether three declared capabilities have a consumer. All three were answered on 19
+    /// November 2026 — the service-token issuer retired at error level and deregistered, the
+    /// step-up purpose live since the day after the audit, the third marked correct by the audit
+    /// itself — and the row stayed OPEN, held there by BSEC-013's residual, which is a different
+    /// row's. Nothing was forgotten and nothing was wrong except that the reason lived in no
+    /// file: an OPEN row is required to claim nothing, so a decision to hold one open reads
+    /// exactly like an oversight, and four days later neither could be told from the other.
+    /// </para>
+    /// <para>
+    /// The rules either side of this one are a matched pair about a row's <i>form</i>: an OPEN row
+    /// claims nothing, a closed row names evidence and a date, a closed backend row names a test
+    /// that resolves. None of them asks whether the state agrees with the repository.
+    /// <see cref="An_open_finding_carries_no_evidence_and_no_date"/> even names this failure in
+    /// its own message — "the fix landed and the state was never advanced" — and cannot see it,
+    /// because it reads the row, and the row says nothing. The detector for an unrecorded closure
+    /// required somebody to have recorded it.
+    /// </para>
+    /// <para>
+    /// <b>What stands in for "answered" is the identifier appearing in code</b>, which is weaker
+    /// than proof and far stronger than nothing. Remediation in this repository always names the
+    /// row it answers — in an <c>[Obsolete]</c> message, in the comment left where a registration
+    /// used to be, in the docstring of the rule that replaces it — so the mention lands in the
+    /// same commit as the fix, which is the commit where the ledger should have moved. A row that
+    /// is genuinely open while named says so in <see cref="StillOpenThoughNamed"/>.
+    /// </para>
+    /// <para>
+    /// Source only, never prose. <c>docs/</c> is untracked, so a mention there would make the
+    /// rule pass or fail depending on whose checkout ran it; and a finding that closes on a
+    /// sentence is XC-007, the root cause this suite exists not to reproduce.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void An_open_backend_finding_is_not_one_the_repository_has_already_answered()
+    {
+        EveryProjectContributesSource();
+
+        var answered = Ledger.Value
+            .Where(finding => finding.State == "OPEN")
+            .Where(finding => finding.Repo == "backend")
+            .Where(finding => !StillOpenThoughNamed.ContainsKey(finding.Id))
+            .Where(finding => Mentions.Value.ContainsKey(finding.Id))
+            .Select(finding =>
+                $"{finding.Id}: OPEN, and named by {string.Join(", ", Mentions.Value[finding.Id])}")
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
+        answered.Should().BeEmpty(
+            "naming a finding in code is how this repository records that the finding was acted "
+            + "on, and a row left OPEN through it is remediation nobody credited. Advance the "
+            + "state with evidence and a date, or say in StillOpenThoughNamed what the row "
+            + "is still waiting for and whose it is:"
+            + Environment.NewLine + string.Join(Environment.NewLine, answered));
+    }
+
+    /// <summary>
+    /// An entry for a row the code names stays earned, or it fails here rather than going quiet.
+    /// <para>
+    /// The clause that carries the most weight is the one asserting the scan still finds the
+    /// identifier. A scan that silently stopped seeing anything — a moved root, a separator, an
+    /// extension — would let the rule above pass over every row at once, and nothing else in this
+    /// suite would notice. Here it retires every entry in the same breath and names each one,
+    /// which is a derived population rather than a floor: this repository has already paid once
+    /// for a guard that asked only for "at least fifteen" and got seventeen with two missing.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void An_entry_for_a_row_the_code_names_is_still_earned()
+    {
+        var problems = new List<string>();
+
+        foreach (var (id, reason) in StillOpenThoughNamed)
+        {
+            var finding = Ledger.Value.Find(candidate => candidate.Id == id);
+
+            if (finding is null)
+            {
+                problems.Add($"{id}: listed here but absent from the ledger");
+                continue;
+            }
+
+            if (finding.State != "OPEN")
+            {
+                problems.Add(
+                    $"{id}: listed here but {finding.State} — this list is for rows that are "
+                    + "still open, so the entry has outlived the thing it described");
+            }
+
+            if (finding.Repo != "backend")
+            {
+                problems.Add(
+                    $"{id}: listed here but Repo is {finding.Repo}, and the rule it is listed "
+                    + "against binds backend rows only");
+            }
+
+            if (!Mentions.Value.ContainsKey(id))
+            {
+                problems.Add(
+                    $"{id}: listed here as named by this repository, and nothing names it — "
+                    + "either the mention went away and the entry stayed, or the scan that looks "
+                    + "for it has stopped working");
+            }
+
+            if (reason.Length < 60)
+            {
+                problems.Add($"{id}: the entry does not say what is still owed");
+            }
+        }
+
+        problems.Should().BeEmpty(
+            "a row that code names while it is open is a claim that the work left in it belongs "
+            + "to somebody outside this repository, and it expires the day that stops being true");
+    }
+
     // ─── Order ──────────────────────────────────────────────────────────────────────────────
 
     /// <summary>A dependency names a row in this ledger.</summary>
@@ -499,6 +664,122 @@ public sealed class PrelaunchRemediationArchitectureTests
     private static bool IsIsoDate(string value) =>
         DateOnly.TryParseExact(
             value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
+
+    /// <summary>
+    /// The scan's population, derived rather than counted: every project under <c>src/</c> and
+    /// <c>tests/</c> contributes at least one file to it.
+    /// <para>
+    /// A floor would not do, and this repository knows why. A rule guarded by "at least fifteen
+    /// clients" was satisfied by the seventeen it could see while two were missing, because a
+    /// floor cannot see a hole in its own population. A moved root, a wrong separator or a
+    /// changed extension empties this corpus in exactly that way — silently, with the rule it
+    /// feeds still passing over every row.
+    /// </para>
+    /// </summary>
+    private static void EveryProjectContributesSource()
+    {
+        var projects = Roots()
+            .SelectMany(root => root.EnumerateFiles("*.csproj", SearchOption.AllDirectories))
+            .Select(file => file.DirectoryName! + Path.DirectorySeparatorChar)
+            .ToList();
+
+        projects.Should().NotBeEmpty("the solution has projects under src/ and tests/");
+
+        projects
+            .Where(project => !Sources.Value.Exists(file =>
+                file.StartsWith(project, StringComparison.Ordinal)))
+            .Order(StringComparer.Ordinal)
+            .Should().BeEmpty(
+                "a project contributing nothing to the scan is a scan that has stopped seeing "
+                + "part of the repository");
+    }
+
+    private static IEnumerable<DirectoryInfo> Roots() =>
+        new[] { "src", "tests" }
+            .Select(name => new DirectoryInfo(Path.Combine(SourceTree.Root.FullName, name)));
+
+    /// <summary>
+    /// Every <c>.cs</c> file under <c>src/</c> and <c>tests/</c>, less this one.
+    /// <para>
+    /// <b>This file is excluded from its own scan, and that is load-bearing.</b> Both entries in
+    /// <see cref="StillOpenThoughNamed"/> are identifiers written here, so a scan that read this
+    /// file would find every listed row named by the list that lists it — an entry arguing for
+    /// its own presence, which is a shape this repository has met before.
+    /// </para>
+    /// </summary>
+    private static List<string> LoadSources()
+    {
+        var self = typeof(PrelaunchRemediationArchitectureTests).Name + ".cs";
+
+        return Roots()
+            .SelectMany(root => root.EnumerateFiles("*.cs", SearchOption.AllDirectories))
+            .Where(file => !Excluded(file.FullName, "obj") && !Excluded(file.FullName, "bin"))
+            .Where(file => !string.Equals(file.Name, self, StringComparison.Ordinal))
+            .Select(file => file.FullName)
+            .ToList();
+    }
+
+    private static bool Excluded(string path, string folder) =>
+        path.Contains(
+            Path.DirectorySeparatorChar + folder + Path.DirectorySeparatorChar,
+            StringComparison.Ordinal);
+
+    /// <summary>
+    /// Which files name which finding, read as text rather than parsed.
+    /// <para>
+    /// A mention is an identifier in a comment far more often than it is an identifier in code —
+    /// an <c>[Obsolete]</c> message, a note where a registration used to be — so a syntax tree
+    /// would answer a narrower question than the one being asked.
+    /// </para>
+    /// </summary>
+    private static Dictionary<string, List<string>> LoadMentions()
+    {
+        var ids = Ledger.Value.Select(finding => finding.Id).ToList();
+        var mentions = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+
+        foreach (var path in Sources.Value)
+        {
+            var text = File.ReadAllText(path);
+            var relative = Path
+                .GetRelativePath(SourceTree.Root.FullName, path)
+                .Replace(Path.DirectorySeparatorChar, '/');
+
+            foreach (var id in ids.Where(id => Names(text, id)))
+            {
+                if (!mentions.TryGetValue(id, out var files))
+                {
+                    files = [];
+                    mentions[id] = files;
+                }
+
+                files.Add(relative);
+            }
+        }
+
+        return mentions;
+    }
+
+    /// <summary>
+    /// Whether text names a finding, which needs the digit guard: BSEC-001 is a substring of
+    /// BSEC-0011, and a family that reaches three figures would make that a live confusion rather
+    /// than a theoretical one.
+    /// </summary>
+    private static bool Names(string text, string id)
+    {
+        for (var index = text.IndexOf(id, StringComparison.Ordinal);
+             index >= 0;
+             index = text.IndexOf(id, index + id.Length, StringComparison.Ordinal))
+        {
+            var after = index + id.Length;
+
+            if (after >= text.Length || !char.IsAsciiDigit(text[after]))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     private static List<Finding> LoadLedger()
     {
