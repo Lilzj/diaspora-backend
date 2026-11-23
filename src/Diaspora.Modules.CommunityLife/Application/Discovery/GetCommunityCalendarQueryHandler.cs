@@ -141,6 +141,7 @@ public sealed class GetCommunityCalendarQueryHandler
             Title = entry.Title,
             StartsAt = entry.StartsAt,
             EndsAt = entry.EndsAt,
+            TimeZoneId = entry.TimeZoneId,
             IsAllDay = entry.IsAllDay,
             EntryType = entry.EntryType,
             Description = entry.Description,

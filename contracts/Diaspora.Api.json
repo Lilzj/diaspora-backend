@@ -69803,6 +69803,12 @@
             ],
             "format": "date-time"
           },
+          "timeZoneId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "isAllDay": {
             "type": "boolean"
           },

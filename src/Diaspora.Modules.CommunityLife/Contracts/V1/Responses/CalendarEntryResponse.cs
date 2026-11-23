@@ -11,6 +11,12 @@ public sealed record CalendarEntryResponse
 
     public DateTimeOffset? EndsAt { get; init; }
 
+    /// <summary>
+    /// The IANA zone <see cref="StartsAt"/> and <see cref="EndsAt"/> are local to: for an event,
+    /// its venue's, which is the time its own page shows. Null when the source has none.
+    /// </summary>
+    public string? TimeZoneId { get; init; }
+
     public required bool IsAllDay { get; init; }
 
     /// <summary><c>Event</c>, <c>Holiday</c>, or whatever a contributed source calls its rows.</summary>

@@ -47,6 +47,7 @@ public sealed class CommunityEventCalendarSource : ICommunityCalendarSource
                 Title = communityEvent.Title.Value,
                 StartsAt = communityEvent.Schedule.StartsAt,
                 EndsAt = communityEvent.Schedule.EndsAt,
+                TimeZoneId = communityEvent.Schedule.TimeZoneId,
 
                 // An event that spans a day or more reads better as an all-day entry than as a
                 // block running off the bottom of every column it crosses.
