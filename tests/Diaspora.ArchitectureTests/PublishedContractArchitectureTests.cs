@@ -1,4 +1,6 @@
+using System.Reflection;
 using System.Text.Json;
+using Diaspora.Platform.Modules;
 using FluentAssertions;
 using Xunit;
 
@@ -434,6 +436,222 @@ public class PublishedContractArchitectureTests
                 + "can see rename a field — which is the whole of RMD-003, found twice by hand "
                 + "before anything was written down about it");
     }
+
+    /// <summary>
+    /// A schema name in this document stands for exactly one type.
+    /// <para>
+    /// <b>A component name in OpenAPI is global and a C# type name is not</b>, and until 23
+    /// November 2026 nothing reconciled the two. Seventeen component names each stood for two or
+    /// three different contract types; the generator emitted whichever it reached first, left the
+    /// others out of the document entirely, and documented every route of the other modules with
+    /// that one's properties. Measured against the corrected document, <b>147 of the 1,092
+    /// operations</b> had been described with a shape that belonged to another module.
+    /// </para>
+    /// <para>
+    /// <b>What that looked like in the one place anybody checked.</b> The document said
+    /// <c>POST /api/v1/trust/verifications</c> took <c>{ notes }</c>; the route binds nine
+    /// properties, and the client declares all nine — so a comparison of the two would have
+    /// reported the client as wrong. <c>POST /api/v1/community/bookmarks</c> was described with
+    /// the other bookmark module's body, which the client had found by hand and recorded in a
+    /// comment reading "the published contract is wrong about this route". That comment was the
+    /// whole of the platform's knowledge of this.
+    /// </para>
+    /// <para>
+    /// <b>And the winner was discovery order.</b> Nothing chose CommunityProgramme's
+    /// <c>MoneyResponse</c> over Financial's and Creator's — the generator met it first, and 93
+    /// operations were documented with its shape when they return one of the others.
+    /// <c>SchemaReferenceIds</c> qualifies an ambiguous name with its module and refuses to give
+    /// one id to two types; this is the rule that fails if the qualifying is ever switched off,
+    /// which takes that refusal with it.
+    /// </para>
+    /// <para>
+    /// Ambiguity is read from the assemblies rather than from source, which is the same answer the
+    /// generator computes and for the same reason: <c>SourcedValueResponse</c> and
+    /// <c>SourcedValueResponse&lt;T&gt;</c> are two names to the runtime and one to a regex, and a
+    /// source scan reports a collision that cannot happen.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void No_schema_name_in_the_contract_stands_for_more_than_one_type()
+    {
+        var declarations = TypeNamesByAssembly();
+
+        EveryModuleContributedTypes(declarations);
+
+        var ambiguous = declarations
+            .SelectMany(entry => entry.Value.Select(name => (Assembly: entry.Key, Name: name)))
+            .GroupBy(declaration => declaration.Name, StringComparer.Ordinal)
+            .Where(group => group.Select(declaration => declaration.Assembly)
+                .Distinct(StringComparer.Ordinal).Count() > 1)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Select(declaration => declaration.Assembly)
+                    .Distinct(StringComparer.Ordinal)
+                    .Order(StringComparer.Ordinal)
+                    .ToList(),
+                StringComparer.Ordinal);
+
+        // Every name the document could be built from: what the platform declares, spelled the
+        // way an id spells it (no arity), plus the qualified forms the generator synthesises.
+        // Longest match wins, so `ModerationCaseReportResponse` is read as itself rather than as
+        // a `ReportResponse` with a prefix, and `Community.BookmarkResponse` as itself rather than
+        // as an unqualified one.
+        var candidates = declarations.Values
+            .SelectMany(names => names)
+            .Select(WithoutArity)
+            .Concat(ambiguous.SelectMany(entry =>
+                entry.Value.Select(assembly => Segment(assembly) + "." + entry.Key)))
+            .Distinct(StringComparer.Ordinal)
+            .OrderByDescending(name => name.Length)
+            .ToList();
+
+        var bare = SchemaNames()
+            .Where(id => Tokenise(id, candidates).Any(ambiguous.ContainsKey))
+            .Select(id => id + ": names "
+                + string.Join(" and ", Tokenise(id, candidates)
+                    .Where(ambiguous.ContainsKey)
+                    .Select(name => $"'{name}' (declared by "
+                        + string.Join(" and ", ambiguous[name]) + ")")))
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
+        bare.Should().BeEmpty(
+            "a component this document names once must be one shape. Each of these is two or "
+            + "more, so every route described with it is described with whichever type the "
+            + "generator reached first — and the routes of the other module are documented as "
+            + "sending and returning something they do not. SchemaReferenceIds qualifies an "
+            + "ambiguous name with the module that owns it:"
+            + Environment.NewLine + string.Join(Environment.NewLine, bare));
+    }
+
+    /// <summary>
+    /// Splits a composed reference id into the type names it was built from, longest first.
+    /// <para>
+    /// <b>Reading the id as a whole is not enough, and the gap is the dangerous half.</b> A leaf
+    /// schema named <c>BookmarkResponse</c> is obvious. A wrapper named
+    /// <c>ApiResponseOfBookmarkResponse</c> is the same collision one level up — two different
+    /// wrapper types claiming one component — and the document cannot show it, because a JSON
+    /// object holds one value per key and the loser is simply not there. So the ambiguity has to
+    /// be found inside the name.
+    /// </para>
+    /// <para>
+    /// This reads the emitted document rather than re-running the generator's own rewrite, which
+    /// is what keeps it a check: the two share an idea, not an implementation, and the thing
+    /// asserted is the artefact clients read.
+    /// </para>
+    /// </summary>
+    private static List<string> Tokenise(string id, List<string> candidates)
+    {
+        var tokens = new List<string>();
+
+        for (var index = 0; index < id.Length;)
+        {
+            var match = candidates.Find(name =>
+                string.CompareOrdinal(id, index, name, 0, name.Length) == 0);
+
+            if (match is null)
+            {
+                index++;
+                continue;
+            }
+
+            tokens.Add(match);
+            index += match.Length;
+        }
+
+        return tokens;
+    }
+
+    /// <summary>
+    /// The last segment of an assembly name, which is how <c>SchemaReferenceIds</c> spells the
+    /// module in a qualified component name — joined with a dot, which no C# identifier can
+    /// contain, so a qualified name can never be mistaken for some other type's own name.
+    /// </summary>
+    private static string Segment(string assembly) =>
+        assembly[(assembly.LastIndexOf('.') + 1)..];
+
+    /// <summary>
+    /// A CLR name as a component id spells it: <c>PagedResult`1</c> appears as
+    /// <c>PagedResult</c>.
+    /// </summary>
+    private static string WithoutArity(string name)
+    {
+        var tick = name.IndexOf('`', StringComparison.Ordinal);
+        return tick < 0 ? name : name[..tick];
+    }
+
+    /// <summary>
+    /// The scan that rule rests on can see the whole platform.
+    /// <para>
+    /// Derived, never a floor. An assembly list that quietly came back short would empty the set
+    /// of ambiguous names and leave the rule above passing over a document full of them — and
+    /// "at least N assemblies" cannot tell a short list from a complete one. Every module project
+    /// on disk must appear, so a module that stops being scanned fails by name.
+    /// </para>
+    /// </summary>
+    private static void EveryModuleContributedTypes(
+        Dictionary<string, HashSet<string>> declarations)
+    {
+        var onDisk = new DirectoryInfo(Path.Combine(SourceTree.Root.FullName, "src"))
+            .EnumerateDirectories("Diaspora.Modules.*")
+            .Select(directory => directory.Name)
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
+        onDisk.Should().NotBeEmpty("the solution has module projects under src/");
+
+        onDisk
+            .Where(module => !declarations.TryGetValue(module, out var types) || types.Count == 0)
+            .Should().BeEmpty(
+                "a module whose types the scan cannot see is a module whose collisions it cannot "
+                + "report, and the rule it feeds would pass without them");
+    }
+
+    /// <summary>
+    /// Every public type each platform assembly declares, by simple name.
+    /// <para>
+    /// <c>Type.Name</c> rather than the full name on purpose: the collision this guards against is
+    /// between two types that a consumer would call by the same word, which is exactly what the
+    /// document's component names are.
+    /// </para>
+    /// </summary>
+    private static Dictionary<string, HashSet<string>> TypeNamesByAssembly()
+    {
+        var declarations = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+
+        foreach (var assembly in ModuleAssemblyScanner.FindPlatformAssemblies())
+        {
+            var name = assembly.GetName().Name;
+
+            if (name is null)
+            {
+                continue;
+            }
+
+            Type[] types;
+
+            try
+            {
+                types = assembly.GetExportedTypes();
+            }
+            catch (Exception exception) when (
+                exception is FileNotFoundException or FileLoadException or TypeLoadException
+                    or ReflectionTypeLoadException)
+            {
+                continue;
+            }
+
+            declarations[name] = [.. types.Select(type => type.Name)];
+        }
+
+        return declarations;
+    }
+
+    private static List<string> SchemaNames() =>
+        Contract.Value.RootElement.TryGetProperty("components", out var components)
+        && components.TryGetProperty("schemas", out var schemas)
+            ? [.. schemas.EnumerateObject().Select(schema => schema.Name)]
+            : [];
 
     /// <summary>
     /// A body is a schema, not a <c>content</c> block.

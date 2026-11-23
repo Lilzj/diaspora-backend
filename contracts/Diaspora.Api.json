@@ -1337,7 +1337,7 @@
             "name": "status",
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/JobStatus"
+              "$ref": "#/components/schemas/Platform.JobStatus"
             }
           },
           {
@@ -1584,7 +1584,7 @@
                     "type": "null"
                   },
                   {
-                    "$ref": "#/components/schemas/SubmitVerificationRequest"
+                    "$ref": "#/components/schemas/Contracts.SubmitVerificationRequest"
                   }
                 ]
               }
@@ -1596,7 +1596,7 @@
                     "type": "null"
                   },
                   {
-                    "$ref": "#/components/schemas/SubmitVerificationRequest"
+                    "$ref": "#/components/schemas/Contracts.SubmitVerificationRequest"
                   }
                 ]
               }
@@ -1608,7 +1608,7 @@
                     "type": "null"
                   },
                   {
-                    "$ref": "#/components/schemas/SubmitVerificationRequest"
+                    "$ref": "#/components/schemas/Contracts.SubmitVerificationRequest"
                   }
                 ]
               }
@@ -7453,7 +7453,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseOfIReadOnlyListOfBookmarkResponse"
+                  "$ref": "#/components/schemas/ApiResponseOfIReadOnlyListOfBookmarks.BookmarkResponse"
                 }
               }
             }
@@ -7474,7 +7474,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateBookmarkRequest"
+                "$ref": "#/components/schemas/Bookmarks.CreateBookmarkRequest"
               }
             }
           },
@@ -7486,7 +7486,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseOfBookmarkResponse"
+                  "$ref": "#/components/schemas/ApiResponseOfBookmarks.BookmarkResponse"
                 }
               }
             }
@@ -7932,7 +7932,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseOfPollResponse"
+                  "$ref": "#/components/schemas/ApiResponseOfCommunity.PollResponse"
                 }
               }
             }
@@ -8770,7 +8770,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateBookmarkRequest"
+                "$ref": "#/components/schemas/Community.CreateBookmarkRequest"
               }
             }
           },
@@ -8782,7 +8782,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseOfBookmarkResponse"
+                  "$ref": "#/components/schemas/ApiResponseOfCommunity.BookmarkResponse"
                 }
               }
             }
@@ -9164,7 +9164,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseOfReportResponse"
+                  "$ref": "#/components/schemas/ApiResponseOfCommunity.ReportResponse"
                 }
               }
             }
@@ -9251,7 +9251,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseOfIReadOnlyListOfModerationQueueItemResponse"
+                  "$ref": "#/components/schemas/ApiResponseOfIReadOnlyListOfCommunity.ModerationQueueItemResponse"
                 }
               }
             }
@@ -9296,7 +9296,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseOfIReadOnlyListOfModerationDecisionResponse"
+                  "$ref": "#/components/schemas/ApiResponseOfIReadOnlyListOfCommunity.ModerationDecisionResponse"
                 }
               }
             }
@@ -10238,7 +10238,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseOfOrganizationDashboardResponse"
+                  "$ref": "#/components/schemas/ApiResponseOfCommunityLife.OrganizationDashboardResponse"
                 }
               }
             }
@@ -10592,7 +10592,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SetOperatingHoursRequest"
+                "$ref": "#/components/schemas/CommunityLife.SetOperatingHoursRequest"
               }
             }
           },
@@ -11060,7 +11060,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/DecideMembershipRequest"
+                "$ref": "#/components/schemas/CommunityLife.DecideMembershipRequest"
               }
             }
           },
@@ -12987,7 +12987,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseOfReportResponse"
+                  "$ref": "#/components/schemas/ApiResponseOfCommunityLife.ReportResponse"
                 }
               }
             }
@@ -15228,7 +15228,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseOfOrganizationDashboardResponse"
+                  "$ref": "#/components/schemas/ApiResponseOfCommunityProgramme.OrganizationDashboardResponse"
                 }
               }
             }
@@ -15585,7 +15585,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/BindMembershipPaymentRequest"
+                "$ref": "#/components/schemas/CommunityProgramme.BindMembershipPaymentRequest"
               }
             }
           },
@@ -15632,7 +15632,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/DecideMembershipRequest"
+                "$ref": "#/components/schemas/CommunityProgramme.DecideMembershipRequest"
               }
             }
           },
@@ -17038,7 +17038,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseOfOrganizationAnalyticsResponse"
+                  "$ref": "#/components/schemas/ApiResponseOfCommunityProgramme.OrganizationAnalyticsResponse"
                 }
               }
             }
@@ -36209,7 +36209,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateReservationRequest"
+                "$ref": "#/components/schemas/Housing.UpdateReservationRequest"
               }
             }
           },
@@ -41338,7 +41338,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseOfCountryExperienceResponse"
+                  "$ref": "#/components/schemas/ApiResponseOfLocation.CountryExperienceResponse"
                 }
               }
             }
@@ -41384,7 +41384,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseOfCountryExperienceResponse"
+                  "$ref": "#/components/schemas/ApiResponseOfLocation.CountryExperienceResponse"
                 }
               }
             }
@@ -42228,7 +42228,7 @@
                     "type": "null"
                   },
                   {
-                    "$ref": "#/components/schemas/SubmitVerificationRequest"
+                    "$ref": "#/components/schemas/Marketplace.SubmitVerificationRequest"
                   }
                 ]
               }
@@ -42577,7 +42577,7 @@
                     "type": "null"
                   },
                   {
-                    "$ref": "#/components/schemas/SubmitVerificationRequest"
+                    "$ref": "#/components/schemas/Marketplace.SubmitVerificationRequest"
                   }
                 ]
               }
@@ -43066,7 +43066,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateReservationRequest"
+                "$ref": "#/components/schemas/Marketplace.UpdateReservationRequest"
               }
             }
           },
@@ -49353,7 +49353,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseOfIReadOnlyListOfCreatorRecommendationResponse"
+                  "$ref": "#/components/schemas/ApiResponseOfIReadOnlyListOfRecommendations.CreatorRecommendationResponse"
                 }
               }
             }
@@ -49916,7 +49916,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SubmitVerificationRequest"
+                "$ref": "#/components/schemas/Trust.SubmitVerificationRequest"
               }
             }
           },
@@ -50852,7 +50852,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseOfPagedResultOfModerationQueueItemResponse"
+                  "$ref": "#/components/schemas/ApiResponseOfPagedResultOfTrust.ModerationQueueItemResponse"
                 }
               }
             }
@@ -50889,7 +50889,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseOfModerationQueueItemResponse"
+                  "$ref": "#/components/schemas/ApiResponseOfTrust.ModerationQueueItemResponse"
                 }
               }
             }
@@ -50934,7 +50934,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseOfModerationQueueItemResponse"
+                  "$ref": "#/components/schemas/ApiResponseOfTrust.ModerationQueueItemResponse"
                 }
               }
             }
@@ -50968,7 +50968,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseOfModerationQueueItemResponse"
+                  "$ref": "#/components/schemas/ApiResponseOfTrust.ModerationQueueItemResponse"
                 }
               }
             }
@@ -51012,7 +51012,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseOfModerationQueueItemResponse"
+                  "$ref": "#/components/schemas/ApiResponseOfTrust.ModerationQueueItemResponse"
                 }
               }
             }
@@ -51059,7 +51059,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseOfModerationQueueItemResponse"
+                  "$ref": "#/components/schemas/ApiResponseOfTrust.ModerationQueueItemResponse"
                 }
               }
             }
@@ -51106,7 +51106,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseOfModerationQueueItemResponse"
+                  "$ref": "#/components/schemas/ApiResponseOfTrust.ModerationQueueItemResponse"
                 }
               }
             }
@@ -52197,7 +52197,7 @@
             "type": "boolean"
           },
           "fundingAmount": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Creator.MoneyResponse"
           },
           "fundingMinimum": {
             "oneOf": [
@@ -52205,7 +52205,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/MoneyResponse"
+                "$ref": "#/components/schemas/Creator.MoneyResponse"
               }
             ]
           },
@@ -52685,6 +52685,38 @@
           }
         }
       },
+      "AiReviewResponse": {
+        "required": [
+          "status",
+          "flags",
+          "confidence",
+          "processedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "flags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "processedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "AlertCapabilitiesResponse": {
         "required": [
           "canPublish",
@@ -52800,6 +52832,46 @@
       },
       "AlertSeverity": {
         "type": "integer"
+      },
+      "Analytics.DataFreshnessResponse": {
+        "required": [
+          "computedAt",
+          "sourceName"
+        ],
+        "type": "object",
+        "properties": {
+          "computedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sourceName": {
+            "type": "string"
+          },
+          "methodology": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "limitations": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "sampleSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          }
+        }
       },
       "AnalyticsAccessResponse": {
         "required": [
@@ -53139,7 +53211,7 @@
             "type": "array"
           },
           "freshness": {
-            "$ref": "#/components/schemas/DataFreshnessResponse"
+            "$ref": "#/components/schemas/Analytics.DataFreshnessResponse"
           },
           "unavailableMetrics": {
             "type": "array",
@@ -53377,7 +53449,7 @@
             "type": "string"
           },
           "freshness": {
-            "$ref": "#/components/schemas/DataFreshnessResponse"
+            "$ref": "#/components/schemas/Analytics.DataFreshnessResponse"
           }
         }
       },
@@ -53651,7 +53723,7 @@
             ]
           },
           "freshness": {
-            "$ref": "#/components/schemas/DataFreshnessResponse"
+            "$ref": "#/components/schemas/Analytics.DataFreshnessResponse"
           },
           "privacyClass": {
             "type": "string"
@@ -54039,7 +54111,7 @@
             "type": "string"
           },
           "freshness": {
-            "$ref": "#/components/schemas/DataFreshnessResponse"
+            "$ref": "#/components/schemas/Analytics.DataFreshnessResponse"
           }
         }
       },
@@ -55281,7 +55353,7 @@
           }
         }
       },
-      "ApiResponseOfBookmarkResponse": {
+      "ApiResponseOfBookmarks.BookmarkResponse": {
         "required": [
           "data",
           "meta"
@@ -55294,7 +55366,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/BookmarkResponse"
+                "$ref": "#/components/schemas/Bookmarks.BookmarkResponse"
               }
             ]
           },
@@ -55545,6 +55617,72 @@
           }
         }
       },
+      "ApiResponseOfCommunity.BookmarkResponse": {
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Community.BookmarkResponse"
+              }
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        }
+      },
+      "ApiResponseOfCommunity.PollResponse": {
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Community.PollResponse"
+              }
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        }
+      },
+      "ApiResponseOfCommunity.ReportResponse": {
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Community.ReportResponse"
+              }
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        }
+      },
       "ApiResponseOfCommunityAnnouncementResponse": {
         "required": [
           "data",
@@ -55735,6 +55873,50 @@
               },
               {
                 "$ref": "#/components/schemas/CommunityInitiativeUpdateResponse"
+              }
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        }
+      },
+      "ApiResponseOfCommunityLife.OrganizationDashboardResponse": {
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CommunityLife.OrganizationDashboardResponse"
+              }
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        }
+      },
+      "ApiResponseOfCommunityLife.ReportResponse": {
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CommunityLife.ReportResponse"
               }
             ]
           },
@@ -56183,6 +56365,50 @@
           }
         }
       },
+      "ApiResponseOfCommunityProgramme.OrganizationAnalyticsResponse": {
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CommunityProgramme.OrganizationAnalyticsResponse"
+              }
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        }
+      },
+      "ApiResponseOfCommunityProgramme.OrganizationDashboardResponse": {
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CommunityProgramme.OrganizationDashboardResponse"
+              }
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        }
+      },
       "ApiResponseOfCommunityReportResponse": {
         "required": [
           "data",
@@ -56615,28 +56841,6 @@
               },
               {
                 "$ref": "#/components/schemas/CountryDirectoryDetailResponse"
-              }
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/ApiMeta"
-          }
-        }
-      },
-      "ApiResponseOfCountryExperienceResponse": {
-        "required": [
-          "data",
-          "meta"
-        ],
-        "type": "object",
-        "properties": {
-          "data": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/CountryExperienceResponse"
               }
             ]
           },
@@ -59306,7 +59510,7 @@
           }
         }
       },
-      "ApiResponseOfIReadOnlyListOfBookmarkResponse": {
+      "ApiResponseOfIReadOnlyListOfBookmarks.BookmarkResponse": {
         "required": [
           "data",
           "meta"
@@ -59319,7 +59523,7 @@
               "array"
             ],
             "items": {
-              "$ref": "#/components/schemas/BookmarkResponse"
+              "$ref": "#/components/schemas/Bookmarks.BookmarkResponse"
             }
           },
           "meta": {
@@ -59404,6 +59608,48 @@
             ],
             "items": {
               "$ref": "#/components/schemas/CampaignResponse"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        }
+      },
+      "ApiResponseOfIReadOnlyListOfCommunity.ModerationDecisionResponse": {
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/Community.ModerationDecisionResponse"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        }
+      },
+      "ApiResponseOfIReadOnlyListOfCommunity.ModerationQueueItemResponse": {
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/Community.ModerationQueueItemResponse"
             }
           },
           "meta": {
@@ -59824,27 +60070,6 @@
             ],
             "items": {
               "$ref": "#/components/schemas/CreatorMilestoneResponse"
-            }
-          },
-          "meta": {
-            "$ref": "#/components/schemas/ApiMeta"
-          }
-        }
-      },
-      "ApiResponseOfIReadOnlyListOfCreatorRecommendationResponse": {
-        "required": [
-          "data",
-          "meta"
-        ],
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": [
-              "null",
-              "array"
-            ],
-            "items": {
-              "$ref": "#/components/schemas/CreatorRecommendationResponse"
             }
           },
           "meta": {
@@ -60608,48 +60833,6 @@
           }
         }
       },
-      "ApiResponseOfIReadOnlyListOfModerationDecisionResponse": {
-        "required": [
-          "data",
-          "meta"
-        ],
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": [
-              "null",
-              "array"
-            ],
-            "items": {
-              "$ref": "#/components/schemas/ModerationDecisionResponse"
-            }
-          },
-          "meta": {
-            "$ref": "#/components/schemas/ApiMeta"
-          }
-        }
-      },
-      "ApiResponseOfIReadOnlyListOfModerationQueueItemResponse": {
-        "required": [
-          "data",
-          "meta"
-        ],
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": [
-              "null",
-              "array"
-            ],
-            "items": {
-              "$ref": "#/components/schemas/ModerationQueueItemResponse"
-            }
-          },
-          "meta": {
-            "$ref": "#/components/schemas/ApiMeta"
-          }
-        }
-      },
       "ApiResponseOfIReadOnlyListOfMonetizationProductResponse": {
         "required": [
           "data",
@@ -61252,6 +61435,27 @@
             ],
             "items": {
               "$ref": "#/components/schemas/RecommendationReasonCatalogResponse"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        }
+      },
+      "ApiResponseOfIReadOnlyListOfRecommendations.CreatorRecommendationResponse": {
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/Recommendations.CreatorRecommendationResponse"
             }
           },
           "meta": {
@@ -62479,6 +62683,28 @@
           }
         }
       },
+      "ApiResponseOfLocation.CountryExperienceResponse": {
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Location.CountryExperienceResponse"
+              }
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        }
+      },
       "ApiResponseOfLocationProfileResponse": {
         "required": [
           "data",
@@ -62801,28 +63027,6 @@
               },
               {
                 "$ref": "#/components/schemas/MessageResponse"
-              }
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/ApiMeta"
-          }
-        }
-      },
-      "ApiResponseOfModerationQueueItemResponse": {
-        "required": [
-          "data",
-          "meta"
-        ],
-        "type": "object",
-        "properties": {
-          "data": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/ModerationQueueItemResponse"
               }
             ]
           },
@@ -63394,28 +63598,6 @@
           }
         }
       },
-      "ApiResponseOfOrganizationAnalyticsResponse": {
-        "required": [
-          "data",
-          "meta"
-        ],
-        "type": "object",
-        "properties": {
-          "data": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/OrganizationAnalyticsResponse"
-              }
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/ApiMeta"
-          }
-        }
-      },
       "ApiResponseOfOrganizationCapabilitiesResponse": {
         "required": [
           "data",
@@ -63430,28 +63612,6 @@
               },
               {
                 "$ref": "#/components/schemas/OrganizationCapabilitiesResponse"
-              }
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/ApiMeta"
-          }
-        }
-      },
-      "ApiResponseOfOrganizationDashboardResponse": {
-        "required": [
-          "data",
-          "meta"
-        ],
-        "type": "object",
-        "properties": {
-          "data": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/OrganizationDashboardResponse"
               }
             ]
           },
@@ -63702,28 +63862,6 @@
           }
         }
       },
-      "ApiResponseOfPagedResultOfModerationQueueItemResponse": {
-        "required": [
-          "data",
-          "meta"
-        ],
-        "type": "object",
-        "properties": {
-          "data": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/PagedResultOfModerationQueueItemResponse"
-              }
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/ApiMeta"
-          }
-        }
-      },
       "ApiResponseOfPagedResultOfReputationEventResponse": {
         "required": [
           "data",
@@ -63738,6 +63876,28 @@
               },
               {
                 "$ref": "#/components/schemas/PagedResultOfReputationEventResponse"
+              }
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        }
+      },
+      "ApiResponseOfPagedResultOfTrust.ModerationQueueItemResponse": {
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PagedResultOfTrust.ModerationQueueItemResponse"
               }
             ]
           },
@@ -64046,28 +64206,6 @@
               },
               {
                 "$ref": "#/components/schemas/PlatformHealthModel"
-              }
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/ApiMeta"
-          }
-        }
-      },
-      "ApiResponseOfPollResponse": {
-        "required": [
-          "data",
-          "meta"
-        ],
-        "type": "object",
-        "properties": {
-          "data": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/PollResponse"
               }
             ]
           },
@@ -64662,28 +64800,6 @@
               },
               {
                 "$ref": "#/components/schemas/ReportPageResponse"
-              }
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/ApiMeta"
-          }
-        }
-      },
-      "ApiResponseOfReportResponse": {
-        "required": [
-          "data",
-          "meta"
-        ],
-        "type": "object",
-        "properties": {
-          "data": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/ReportResponse"
               }
             ]
           },
@@ -65366,6 +65482,28 @@
               },
               {
                 "$ref": "#/components/schemas/TransactionDetailResponse"
+              }
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        }
+      },
+      "ApiResponseOfTrust.ModerationQueueItemResponse": {
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Trust.ModerationQueueItemResponse"
               }
             ]
           },
@@ -66400,7 +66538,7 @@
             }
           },
           "freshness": {
-            "$ref": "#/components/schemas/DataFreshnessResponse"
+            "$ref": "#/components/schemas/GeographicIntelligence.DataFreshnessResponse"
           }
         }
       },
@@ -66569,7 +66707,7 @@
             "$ref": "#/components/schemas/AreaSafetyResponse"
           },
           "freshness": {
-            "$ref": "#/components/schemas/DataFreshnessResponse"
+            "$ref": "#/components/schemas/GeographicIntelligence.DataFreshnessResponse"
           }
         }
       },
@@ -66792,6 +66930,67 @@
         "properties": {
           "kind": {
             "type": "string"
+          }
+        }
+      },
+      "AttachDocumentRequest": {
+        "required": [
+          "documentType",
+          "documentReference"
+        ],
+        "type": "object",
+        "properties": {
+          "documentType": {
+            "type": "string"
+          },
+          "documentReference": {
+            "type": "string"
+          },
+          "documentNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "issuingCountry": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "issueDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "expiryDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "fileName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "contentType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sizeInBytes": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
           }
         }
       },
@@ -69060,18 +69259,6 @@
           }
         }
       },
-      "BindMembershipPaymentRequest": {
-        "required": [
-          "paymentIntentId"
-        ],
-        "type": "object",
-        "properties": {
-          "paymentIntentId": {
-            "type": "string",
-            "format": "uuid"
-          }
-        }
-      },
       "BlockedTargetResponse": {
         "required": [
           "targetType",
@@ -69258,7 +69445,7 @@
           }
         }
       },
-      "BookmarkResponse": {
+      "Bookmarks.BookmarkResponse": {
         "required": [
           "id",
           "targetType",
@@ -69286,6 +69473,27 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "Bookmarks.CreateBookmarkRequest": {
+        "required": [
+          "targetType",
+          "targetId"
+        ],
+        "type": "object",
+        "properties": {
+          "targetType": {
+            "type": "string"
+          },
+          "targetId": {
+            "type": "string"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -69900,19 +70108,19 @@
             ]
           },
           "raised": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "allocated": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "disbursed": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "disbursedVerified": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "remaining": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "lines": {
             "type": "array",
@@ -69969,7 +70177,7 @@
             "type": "string"
           },
           "target": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "isReached": {
             "type": "boolean"
@@ -69996,12 +70204,12 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/MoneyResponse"
+                "$ref": "#/components/schemas/Financial.MoneyResponse"
               }
             ]
           },
           "raised": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "percentage": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
@@ -70220,7 +70428,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/MoneyResponse"
+                "$ref": "#/components/schemas/Financial.MoneyResponse"
               }
             ]
           },
@@ -71062,60 +71270,6 @@
           }
         }
       },
-      "CategoryPreferenceResponse": {
-        "required": [
-          "key",
-          "displayName",
-          "enabled",
-          "inApp",
-          "push",
-          "email",
-          "useDigest",
-          "isMandatory",
-          "position"
-        ],
-        "type": "object",
-        "properties": {
-          "key": {
-            "type": "string"
-          },
-          "displayName": {
-            "type": "string"
-          },
-          "description": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "enabled": {
-            "type": "boolean"
-          },
-          "inApp": {
-            "type": "boolean"
-          },
-          "push": {
-            "type": "boolean"
-          },
-          "email": {
-            "type": "boolean"
-          },
-          "useDigest": {
-            "type": "boolean"
-          },
-          "isMandatory": {
-            "type": "boolean"
-          },
-          "position": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          }
-        }
-      },
       "ChangeAutomationStatusRequest": {
         "type": "object",
         "properties": {
@@ -71660,6 +71814,439 @@
           }
         }
       },
+      "Community.BookmarkResponse": {
+        "required": [
+          "bookmarkId",
+          "savedId",
+          "userId",
+          "contentType",
+          "contentId",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "bookmarkId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "savedId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "contentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "folderId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Community.CreateBookmarkRequest": {
+        "required": [
+          "contentType",
+          "contentId"
+        ],
+        "type": "object",
+        "properties": {
+          "contentType": {
+            "type": "string"
+          },
+          "contentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "folderId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "Community.ModerationDecisionResponse": {
+        "required": [
+          "actionId",
+          "contentType",
+          "contentId",
+          "actionType",
+          "source",
+          "previousStatus",
+          "newStatus",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "actionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "moderatorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "moderatorName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "contentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "actionType": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "previousStatus": {
+            "type": "string"
+          },
+          "newStatus": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Community.ModerationQueueItemResponse": {
+        "required": [
+          "contentType",
+          "contentId",
+          "title",
+          "authorId",
+          "reportCount",
+          "reports",
+          "status",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "contentType": {
+            "type": "string"
+          },
+          "contentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "authorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "authorName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "authorLevel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "aiReview": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ContentReviewResponse"
+              }
+            ]
+          },
+          "reportCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "reports": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Community.ReportResponse"
+            }
+          },
+          "status": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Community.PollOptionRequest": {
+        "required": [
+          "label"
+        ],
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "imageMediaId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "Community.PollOptionResponse": {
+        "required": [
+          "optionId",
+          "label",
+          "position"
+        ],
+        "type": "object",
+        "properties": {
+          "optionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "label": {
+            "type": "string"
+          },
+          "position": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "imageMediaId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "voteCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "sharePercent": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "votedByViewer": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Community.PollResponse": {
+        "required": [
+          "pollId",
+          "question",
+          "options",
+          "allowsMultiple",
+          "resultVisibility",
+          "status",
+          "hasVoted",
+          "canSeeResults"
+        ],
+        "type": "object",
+        "properties": {
+          "pollId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "question": {
+            "type": "string"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Community.PollOptionResponse"
+            }
+          },
+          "allowsMultiple": {
+            "type": "boolean"
+          },
+          "resultVisibility": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "closesAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "totalVotes": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "voterCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "hasVoted": {
+            "type": "boolean"
+          },
+          "canSeeResults": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Community.ReportResponse": {
+        "required": [
+          "reportId",
+          "reporterId",
+          "contentType",
+          "contentId",
+          "reasonCode",
+          "status",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "reportId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reporterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reporterName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "contentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reasonCode": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "evidenceUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "resolvedBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "resolutionNote": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resolvedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
       "CommunityAnnouncementResponse": {
         "required": [
           "announcementId",
@@ -71908,7 +72495,7 @@
             "type": "string"
           },
           "freshness": {
-            "$ref": "#/components/schemas/DataFreshnessResponse"
+            "$ref": "#/components/schemas/CommunityProgramme.DataFreshnessResponse"
           }
         }
       },
@@ -72072,7 +72659,7 @@
             "type": "string"
           },
           "fundingAmount": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Creator.MoneyResponse"
           },
           "fundingMinimum": {
             "oneOf": [
@@ -72080,7 +72667,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/MoneyResponse"
+                "$ref": "#/components/schemas/Creator.MoneyResponse"
               }
             ]
           },
@@ -72090,7 +72677,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/MoneyResponse"
+                "$ref": "#/components/schemas/Creator.MoneyResponse"
               }
             ]
           },
@@ -72403,6 +72990,343 @@
           }
         }
       },
+      "CommunityLife.DecideMembershipRequest": {
+        "required": [
+          "approve"
+        ],
+        "type": "object",
+        "properties": {
+          "approve": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CommunityLife.MediaReferenceResponse": {
+        "required": [
+          "mediaId",
+          "role",
+          "order"
+        ],
+        "type": "object",
+        "properties": {
+          "mediaId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "role": {
+            "type": "string"
+          },
+          "order": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "caption": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CommunityLife.OrganizationAnalyticsResponse": {
+        "required": [
+          "organizationId",
+          "viewCount",
+          "uniqueViewCount",
+          "totalJoins",
+          "totalDepartures",
+          "totalRemovals",
+          "currentMemberCount",
+          "peakMemberCount",
+          "eventsPublished",
+          "eventsCompleted",
+          "eventsCancelled",
+          "totalRsvps",
+          "totalAttendances",
+          "totalNoShows",
+          "volunteerAttendances"
+        ],
+        "type": "object",
+        "properties": {
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "viewCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "uniqueViewCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "totalJoins": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "totalDepartures": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "totalRemovals": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "currentMemberCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "peakMemberCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "eventsPublished": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "eventsCompleted": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "eventsCancelled": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "totalRsvps": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "totalAttendances": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "totalNoShows": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "volunteerAttendances": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "retentionRate": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "attendanceRate": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "CommunityLife.OrganizationDashboardResponse": {
+        "required": [
+          "organization",
+          "statistics",
+          "analytics",
+          "completeness"
+        ],
+        "type": "object",
+        "properties": {
+          "organization": {
+            "$ref": "#/components/schemas/OrganizationSummaryResponse"
+          },
+          "statistics": {
+            "$ref": "#/components/schemas/MembershipStatisticsResponse"
+          },
+          "analytics": {
+            "$ref": "#/components/schemas/CommunityLife.OrganizationAnalyticsResponse"
+          },
+          "pendingRequests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MembershipResponse"
+            }
+          },
+          "upcomingEvents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventSummaryResponse"
+            }
+          },
+          "recentEvents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventSummaryResponse"
+            }
+          },
+          "completeness": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "CommunityLife.ReportResponse": {
+        "required": [
+          "reportId",
+          "subjectType",
+          "subjectId",
+          "reason",
+          "status",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "reportId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "subjectType": {
+            "type": "string"
+          },
+          "subjectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "resolutionNote": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "mergedIntoSubjectId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "reportedByUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resolvedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "CommunityLife.SetOperatingHoursRequest": {
+        "type": "object",
+        "properties": {
+          "baseRevision": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "hours": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OperatingHourRequest"
+            }
+          }
+        }
+      },
       "CommunityLifeCatalogueResponse": {
         "type": "object",
         "properties": {
@@ -72678,7 +73602,7 @@
             "type": "string"
           },
           "freshness": {
-            "$ref": "#/components/schemas/DataFreshnessResponse"
+            "$ref": "#/components/schemas/CommunityProgramme.DataFreshnessResponse"
           },
           "isRestricted": {
             "type": "boolean"
@@ -73276,7 +74200,7 @@
           "options": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/PollOptionResponse"
+              "$ref": "#/components/schemas/CommunityProgramme.PollOptionResponse"
             }
           },
           "maxSelections": {
@@ -73474,7 +74398,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/PollResponse"
+                "$ref": "#/components/schemas/Community.PollResponse"
               }
             ]
           },
@@ -73839,6 +74763,230 @@
           },
           "isSaved": {
             "type": "boolean"
+          }
+        }
+      },
+      "CommunityProgramme.BindMembershipPaymentRequest": {
+        "required": [
+          "paymentIntentId"
+        ],
+        "type": "object",
+        "properties": {
+          "paymentIntentId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "CommunityProgramme.DataFreshnessResponse": {
+        "required": [
+          "computedAt",
+          "sourceName"
+        ],
+        "type": "object",
+        "properties": {
+          "computedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sourceName": {
+            "type": "string"
+          },
+          "methodology": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "limitations": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "sampleSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "CommunityProgramme.DecideMembershipRequest": {
+        "required": [
+          "decision"
+        ],
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": "string"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CommunityProgramme.MoneyResponse": {
+        "required": [
+          "amount",
+          "currency",
+          "exponent"
+        ],
+        "type": "object",
+        "properties": {
+          "amount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "exponent": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "CommunityProgramme.OrganizationAnalyticsResponse": {
+        "required": [
+          "organizationId",
+          "period",
+          "memberGrowth",
+          "volunteerHours",
+          "pollParticipation",
+          "computedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "period": {
+            "type": "string"
+          },
+          "memberGrowth": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TimeSeriesPointResponse"
+            }
+          },
+          "volunteerHours": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TimeSeriesPointResponse"
+            }
+          },
+          "pollParticipation": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TimeSeriesPointResponse"
+            }
+          },
+          "computedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CommunityProgramme.OrganizationDashboardResponse": {
+        "required": [
+          "organizationId",
+          "organizationName",
+          "capabilities",
+          "counts",
+          "computedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organizationName": {
+            "type": "string"
+          },
+          "logoMediaId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/OrganizationCapabilitiesResponse"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/DashboardCountsResponse"
+          },
+          "computedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CommunityProgramme.PollOptionRequest": {
+        "required": [
+          "label"
+        ],
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CommunityProgramme.PollOptionResponse": {
+        "required": [
+          "optionId",
+          "label",
+          "sortOrder"
+        ],
+        "type": "object",
+        "properties": {
+          "optionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "label": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sortOrder": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -74243,7 +75391,7 @@
             "type": "string"
           },
           "freshness": {
-            "$ref": "#/components/schemas/DataFreshnessResponse"
+            "$ref": "#/components/schemas/CommunityProgramme.DataFreshnessResponse"
           }
         }
       },
@@ -74747,6 +75895,17 @@
           }
         }
       },
+      "Contracts.SubmitVerificationRequest": {
+        "type": "object",
+        "properties": {
+          "notes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "ContributionFundResponse": {
         "required": [
           "fundId",
@@ -74785,7 +75944,7 @@
             }
           },
           "raised": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "target": {
             "oneOf": [
@@ -74793,7 +75952,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/MoneyResponse"
+                "$ref": "#/components/schemas/Financial.MoneyResponse"
               }
             ]
           },
@@ -74871,7 +76030,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/MoneyResponse"
+                "$ref": "#/components/schemas/Financial.MoneyResponse"
               }
             ]
           },
@@ -75799,7 +76958,7 @@
             }
           },
           "freshness": {
-            "$ref": "#/components/schemas/DataFreshnessResponse"
+            "$ref": "#/components/schemas/GeographicIntelligence.DataFreshnessResponse"
           }
         }
       },
@@ -76269,106 +77428,6 @@
           }
         }
       },
-      "CountryExperienceResponse": {
-        "required": [
-          "id",
-          "countryCode",
-          "countryName",
-          "flag",
-          "arrivedOn",
-          "startYear",
-          "years",
-          "isCurrentResidence",
-          "experienceLevel",
-          "languageFamiliarity",
-          "culturalFamiliarity",
-          "isVerified",
-          "verificationState",
-          "expertiseAreas"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "countryCode": {
-            "type": "string"
-          },
-          "countryName": {
-            "type": "string"
-          },
-          "flag": {
-            "type": "string"
-          },
-          "arrivedOn": {
-            "type": "string",
-            "format": "date"
-          },
-          "departedOn": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date"
-          },
-          "startYear": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "endYear": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "null",
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "years": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "isCurrentResidence": {
-            "type": "boolean"
-          },
-          "experienceLevel": {
-            "type": "string"
-          },
-          "role": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "languageFamiliarity": {
-            "type": "string"
-          },
-          "culturalFamiliarity": {
-            "type": "string"
-          },
-          "isVerified": {
-            "type": "boolean"
-          },
-          "verificationState": {
-            "type": "string"
-          },
-          "expertiseAreas": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
       "CountryExperienceTimelineResponse": {
         "required": [
           "experiences",
@@ -76381,7 +77440,7 @@
           "experiences": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/CountryExperienceResponse"
+              "$ref": "#/components/schemas/Location.CountryExperienceResponse"
             }
           },
           "currentResidence": {
@@ -76390,7 +77449,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/CountryExperienceResponse"
+                "$ref": "#/components/schemas/Location.CountryExperienceResponse"
               }
             ]
           },
@@ -77167,27 +78226,6 @@
             "type": "string"
           },
           "glyph": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
-      "CreateBookmarkRequest": {
-        "required": [
-          "targetType",
-          "targetId"
-        ],
-        "type": "object",
-        "properties": {
-          "targetType": {
-            "type": "string"
-          },
-          "targetId": {
-            "type": "string"
-          },
-          "note": {
             "type": [
               "null",
               "string"
@@ -79531,7 +80569,7 @@
               "array"
             ],
             "items": {
-              "$ref": "#/components/schemas/PollOptionRequest"
+              "$ref": "#/components/schemas/CommunityProgramme.PollOptionRequest"
             }
           },
           "maxSelections": {
@@ -80173,6 +81211,35 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "Creator.MoneyResponse": {
+        "required": [
+          "minorUnits",
+          "currency",
+          "exponent"
+        ],
+        "type": "object",
+        "properties": {
+          "minorUnits": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "exponent": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -81787,63 +82854,6 @@
           }
         }
       },
-      "CreatorRecommendationResponse": {
-        "required": [
-          "recommendationId",
-          "kind",
-          "title",
-          "body",
-          "reason",
-          "actionLabel",
-          "actionRoute"
-        ],
-        "type": "object",
-        "properties": {
-          "recommendationId": {
-            "type": "string"
-          },
-          "kind": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "body": {
-            "type": "string"
-          },
-          "reason": {
-            "type": "string"
-          },
-          "icon": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "actionLabel": {
-            "type": "string"
-          },
-          "actionRoute": {
-            "type": "string"
-          },
-          "confidence": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
-            "type": [
-              "null",
-              "number",
-              "string"
-            ],
-            "format": "double"
-          },
-          "expiresAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          }
-        }
-      },
       "CreatorReferralPageResponse": {
         "required": [
           "referrals",
@@ -82852,7 +83862,7 @@
             "format": "uuid"
           },
           "amount": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "kind": {
             "type": "string"
@@ -82931,7 +83941,7 @@
             "type": "string"
           },
           "amount": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "reason": {
             "type": "string"
@@ -83464,6 +84474,67 @@
           }
         }
       },
+      "DashboardCountsResponse": {
+        "required": [
+          "pendingMemberApplications",
+          "activeMembers",
+          "openOpportunities",
+          "pendingVolunteerApplications",
+          "openPolls",
+          "recentAnnouncements"
+        ],
+        "type": "object",
+        "properties": {
+          "pendingMemberApplications": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "activeMembers": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "openOpportunities": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pendingVolunteerApplications": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "openPolls": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "recentAnnouncements": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "DashboardMetric": {
         "required": [
           "label",
@@ -83528,46 +84599,6 @@
       "DashboardStatus": {
         "type": "integer",
         "default": 0
-      },
-      "DataFreshnessResponse": {
-        "required": [
-          "computedAt",
-          "sourceName"
-        ],
-        "type": "object",
-        "properties": {
-          "computedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "sourceName": {
-            "type": "string"
-          },
-          "methodology": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "limitations": {
-            "type": [
-              "null",
-              "array"
-            ],
-            "items": {
-              "type": "string"
-            }
-          },
-          "sampleSize": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "null",
-              "integer",
-              "string"
-            ],
-            "format": "int64"
-          }
-        }
       },
       "DecideAccountActionRequest": {
         "type": "object",
@@ -83764,23 +84795,6 @@
             "type": "boolean"
           },
           "note": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
-      "DecideMembershipRequest": {
-        "required": [
-          "approve"
-        ],
-        "type": "object",
-        "properties": {
-          "approve": {
-            "type": "boolean"
-          },
-          "reason": {
             "type": [
               "null",
               "string"
@@ -84257,7 +85271,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/MoneyResponse"
+                "$ref": "#/components/schemas/Financial.MoneyResponse"
               }
             ]
           },
@@ -84267,7 +85281,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/MoneyResponse"
+                "$ref": "#/components/schemas/Financial.MoneyResponse"
               }
             ]
           },
@@ -84364,7 +85378,7 @@
             ]
           },
           "amount": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "status": {
             "type": "string"
@@ -84420,7 +85434,7 @@
             "format": "date-time"
           },
           "amount": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "donationCount": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
@@ -84477,10 +85491,10 @@
             }
           },
           "total": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "refunded": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "donationCount": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
@@ -86196,7 +87210,7 @@
           "media": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/MediaReferenceResponse"
+              "$ref": "#/components/schemas/CommunityLife.MediaReferenceResponse"
             }
           },
           "guides": {
@@ -87661,6 +88675,50 @@
           }
         }
       },
+      "Financial.MoneyResponse": {
+        "required": [
+          "amount",
+          "currency",
+          "minorUnits",
+          "exponent"
+        ],
+        "type": "object",
+        "properties": {
+          "amount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "minorUnits": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "exponent": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "symbol": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "FinancialCapabilitiesResponse": {
         "required": [
           "gateways",
@@ -88051,7 +89109,7 @@
             "type": "string"
           },
           "allocated": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "spent": {
             "oneOf": [
@@ -88059,7 +89117,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/MoneyResponse"
+                "$ref": "#/components/schemas/Financial.MoneyResponse"
               }
             ]
           },
@@ -88207,6 +89265,50 @@
               "string"
             ],
             "format": "date"
+          }
+        }
+      },
+      "GeographicIntelligence.DataFreshnessResponse": {
+        "required": [
+          "computedAt",
+          "sourceName"
+        ],
+        "type": "object",
+        "properties": {
+          "computedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sourceName": {
+            "type": "string"
+          },
+          "methodology": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "limitations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "validUntil": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "sampleSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -88393,7 +89495,7 @@
             "type": "string"
           },
           "donationTotal": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "donationCount": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
@@ -88404,7 +89506,7 @@
             "format": "int32"
           },
           "contributionTotal": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "monetaryContributionCount": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
@@ -88545,7 +89647,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/MoneyResponse"
+                "$ref": "#/components/schemas/Creator.MoneyResponse"
               }
             ]
           },
@@ -88597,7 +89699,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/MoneyResponse"
+                "$ref": "#/components/schemas/Creator.MoneyResponse"
               }
             ]
           },
@@ -90587,7 +91689,7 @@
             "$ref": "#/components/schemas/BoundsResponse"
           },
           "freshness": {
-            "$ref": "#/components/schemas/DataFreshnessResponse"
+            "$ref": "#/components/schemas/GeographicIntelligence.DataFreshnessResponse"
           }
         }
       },
@@ -90774,6 +91876,30 @@
               "string"
             ],
             "format": "int32"
+          }
+        }
+      },
+      "Housing.UpdateReservationRequest": {
+        "required": [
+          "action"
+        ],
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "holdExpiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -93259,10 +94385,10 @@
             "format": "int32"
           },
           "unitPrice": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "total": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "subjectType": {
             "type": [
@@ -93326,10 +94452,10 @@
             }
           },
           "subtotal": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "tax": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "taxLabel": {
             "type": [
@@ -93344,10 +94470,10 @@
             }
           },
           "total": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "refunded": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "issuedAt": {
             "type": "string",
@@ -93383,7 +94509,7 @@
             "type": "string"
           },
           "amount": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           }
         }
       },
@@ -94959,9 +96085,6 @@
           }
         }
       },
-      "JobStatus": {
-        "type": "integer"
-      },
       "JobWorkArrangementResponse": {
         "required": [
           "workplaceType",
@@ -96259,10 +97382,10 @@
             "type": "string"
           },
           "amount": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "balanceAfter": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "reason": {
             "type": "string"
@@ -98136,6 +99259,106 @@
           }
         }
       },
+      "Location.CountryExperienceResponse": {
+        "required": [
+          "id",
+          "countryCode",
+          "countryName",
+          "flag",
+          "arrivedOn",
+          "startYear",
+          "years",
+          "isCurrentResidence",
+          "experienceLevel",
+          "languageFamiliarity",
+          "culturalFamiliarity",
+          "isVerified",
+          "verificationState",
+          "expertiseAreas"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "countryCode": {
+            "type": "string"
+          },
+          "countryName": {
+            "type": "string"
+          },
+          "flag": {
+            "type": "string"
+          },
+          "arrivedOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "departedOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "startYear": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "endYear": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "years": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "isCurrentResidence": {
+            "type": "boolean"
+          },
+          "experienceLevel": {
+            "type": "string"
+          },
+          "role": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "languageFamiliarity": {
+            "type": "string"
+          },
+          "culturalFamiliarity": {
+            "type": "string"
+          },
+          "isVerified": {
+            "type": "boolean"
+          },
+          "verificationState": {
+            "type": "string"
+          },
+          "expertiseAreas": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "LocationContextResponse": {
         "type": "object",
         "properties": {
@@ -98818,6 +100041,64 @@
           }
         }
       },
+      "Marketplace.SubmitVerificationRequest": {
+        "type": "object",
+        "properties": {
+          "evidenceMediaIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "notes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "Marketplace.UpdateReservationRequest": {
+        "required": [
+          "action"
+        ],
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "collectFrom": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "collectUntil": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "collectionPlace": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "MarketplaceDashboardResponse": {
         "required": [
           "offersAwaitingYou",
@@ -99053,6 +100334,40 @@
           }
         }
       },
+      "Media.MediaReferenceResponse": {
+        "required": [
+          "mediaId",
+          "ownerType",
+          "ownerId",
+          "role",
+          "position"
+        ],
+        "type": "object",
+        "properties": {
+          "mediaId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ownerType": {
+            "type": "string"
+          },
+          "ownerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "role": {
+            "type": "string"
+          },
+          "position": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "MediaAssetResponse": {
         "required": [
           "mediaId",
@@ -99134,7 +100449,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/MediaReferenceResponse"
+                "$ref": "#/components/schemas/Media.MediaReferenceResponse"
               }
             ]
           },
@@ -99413,37 +100728,6 @@
           }
         }
       },
-      "MediaReferenceResponse": {
-        "required": [
-          "mediaId",
-          "role",
-          "order"
-        ],
-        "type": "object",
-        "properties": {
-          "mediaId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "role": {
-            "type": "string"
-          },
-          "order": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "caption": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
       "MediaVariantResponse": {
         "required": [
           "purpose",
@@ -99714,7 +100998,7 @@
             "type": "string"
           },
           "amount": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "settledAt": {
             "type": "string",
@@ -100152,7 +101436,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/MoneyResponse"
+                "$ref": "#/components/schemas/CommunityProgramme.MoneyResponse"
               }
             ]
           },
@@ -100471,134 +101755,31 @@
           }
         }
       },
-      "ModerationDecisionResponse": {
+      "ModerationCaseReportResponse": {
         "required": [
-          "actionId",
-          "contentType",
-          "contentId",
-          "actionType",
-          "source",
-          "previousStatus",
-          "newStatus",
-          "createdAt"
+          "reasonCode",
+          "moduleReason",
+          "module",
+          "filedAt"
         ],
         "type": "object",
         "properties": {
-          "actionId": {
-            "type": "string",
-            "format": "uuid"
+          "reasonCode": {
+            "type": "string"
           },
-          "moderatorId": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "uuid"
+          "moduleReason": {
+            "type": "string"
           },
-          "moderatorName": {
+          "detail": {
             "type": [
               "null",
               "string"
             ]
           },
-          "contentType": {
+          "module": {
             "type": "string"
           },
-          "contentId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "actionType": {
-            "type": "string"
-          },
-          "source": {
-            "type": "string"
-          },
-          "reason": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "previousStatus": {
-            "type": "string"
-          },
-          "newStatus": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "ModerationQueueItemResponse": {
-        "required": [
-          "contentType",
-          "contentId",
-          "title",
-          "authorId",
-          "reportCount",
-          "reports",
-          "status",
-          "createdAt"
-        ],
-        "type": "object",
-        "properties": {
-          "contentType": {
-            "type": "string"
-          },
-          "contentId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "title": {
-            "type": "string"
-          },
-          "authorId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "authorName": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "authorLevel": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "aiReview": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/ContentReviewResponse"
-              }
-            ]
-          },
-          "reportCount": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "reports": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ReportResponse"
-            }
-          },
-          "status": {
-            "type": "string"
-          },
-          "createdAt": {
+          "filedAt": {
             "type": "string",
             "format": "date-time"
           }
@@ -100748,7 +101929,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/MoneyResponse"
+                "$ref": "#/components/schemas/Financial.MoneyResponse"
               }
             ]
           },
@@ -100839,13 +102020,13 @@
             "format": "uuid"
           },
           "listPrice": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "discount": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "paid": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "promotionCode": {
             "type": [
@@ -100999,35 +102180,6 @@
           }
         }
       },
-      "MoneyResponse": {
-        "required": [
-          "amount",
-          "currency",
-          "exponent"
-        ],
-        "type": "object",
-        "properties": {
-          "amount": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
-            "format": "double"
-          },
-          "currency": {
-            "type": "string"
-          },
-          "exponent": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          }
-        }
-      },
       "MovementLimitsResponse": {
         "required": [
           "isEnabled",
@@ -101053,7 +102205,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/MoneyResponse"
+                "$ref": "#/components/schemas/Financial.MoneyResponse"
               }
             ]
           },
@@ -101063,7 +102215,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/MoneyResponse"
+                "$ref": "#/components/schemas/Financial.MoneyResponse"
               }
             ]
           },
@@ -101073,7 +102225,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/MoneyResponse"
+                "$ref": "#/components/schemas/Financial.MoneyResponse"
               }
             ]
           },
@@ -101083,7 +102235,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/MoneyResponse"
+                "$ref": "#/components/schemas/Financial.MoneyResponse"
               }
             ]
           },
@@ -101093,7 +102245,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/MoneyResponse"
+                "$ref": "#/components/schemas/Financial.MoneyResponse"
               }
             ]
           },
@@ -101112,7 +102264,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/MoneyResponse"
+                "$ref": "#/components/schemas/Financial.MoneyResponse"
               }
             ]
           }
@@ -102074,7 +103226,7 @@
             }
           },
           "freshness": {
-            "$ref": "#/components/schemas/DataFreshnessResponse"
+            "$ref": "#/components/schemas/GeographicIntelligence.DataFreshnessResponse"
           },
           "nearbyNeighborhoodIds": {
             "type": "array",
@@ -103101,7 +104253,7 @@
           "categories": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/CategoryPreferenceResponse"
+              "$ref": "#/components/schemas/Notifications.CategoryPreferenceResponse"
             }
           },
           "communication": {
@@ -103212,6 +104364,60 @@
             "items": {
               "$ref": "#/components/schemas/NotificationActionResponse"
             }
+          }
+        }
+      },
+      "Notifications.CategoryPreferenceResponse": {
+        "required": [
+          "key",
+          "displayName",
+          "enabled",
+          "inApp",
+          "push",
+          "email",
+          "useDigest",
+          "isMandatory",
+          "position"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "inApp": {
+            "type": "boolean"
+          },
+          "push": {
+            "type": "boolean"
+          },
+          "email": {
+            "type": "boolean"
+          },
+          "useDigest": {
+            "type": "boolean"
+          },
+          "isMandatory": {
+            "type": "boolean"
+          },
+          "position": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -104097,162 +105303,6 @@
           }
         }
       },
-      "OrganizationAnalyticsResponse": {
-        "required": [
-          "organizationId",
-          "viewCount",
-          "uniqueViewCount",
-          "totalJoins",
-          "totalDepartures",
-          "totalRemovals",
-          "currentMemberCount",
-          "peakMemberCount",
-          "eventsPublished",
-          "eventsCompleted",
-          "eventsCancelled",
-          "totalRsvps",
-          "totalAttendances",
-          "totalNoShows",
-          "volunteerAttendances"
-        ],
-        "type": "object",
-        "properties": {
-          "organizationId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "viewCount": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "uniqueViewCount": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "totalJoins": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "totalDepartures": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "totalRemovals": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "currentMemberCount": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "peakMemberCount": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "eventsPublished": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "eventsCompleted": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "eventsCancelled": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "totalRsvps": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "totalAttendances": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "totalNoShows": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "volunteerAttendances": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "retentionRate": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
-            "type": [
-              "null",
-              "number",
-              "string"
-            ],
-            "format": "double"
-          },
-          "attendanceRate": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
-            "type": [
-              "null",
-              "number",
-              "string"
-            ],
-            "format": "double"
-          }
-        }
-      },
       "OrganizationCapabilitiesResponse": {
         "required": [
           "organizationId",
@@ -104308,52 +105358,6 @@
           },
           "canViewFinancials": {
             "type": "boolean"
-          }
-        }
-      },
-      "OrganizationDashboardResponse": {
-        "required": [
-          "organization",
-          "statistics",
-          "analytics",
-          "completeness"
-        ],
-        "type": "object",
-        "properties": {
-          "organization": {
-            "$ref": "#/components/schemas/OrganizationSummaryResponse"
-          },
-          "statistics": {
-            "$ref": "#/components/schemas/MembershipStatisticsResponse"
-          },
-          "analytics": {
-            "$ref": "#/components/schemas/OrganizationAnalyticsResponse"
-          },
-          "pendingRequests": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MembershipResponse"
-            }
-          },
-          "upcomingEvents": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EventSummaryResponse"
-            }
-          },
-          "recentEvents": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EventSummaryResponse"
-            }
-          },
-          "completeness": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
-            "format": "double"
           }
         }
       },
@@ -104609,7 +105613,7 @@
           "media": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/MediaReferenceResponse"
+              "$ref": "#/components/schemas/CommunityLife.MediaReferenceResponse"
             }
           },
           "guides": {
@@ -105652,7 +106656,7 @@
           }
         }
       },
-      "PagedResultOfModerationQueueItemResponse": {
+      "PagedResultOfReputationEventResponse": {
         "type": "object",
         "properties": {
           "items": {
@@ -105661,7 +106665,7 @@
               "array"
             ],
             "items": {
-              "$ref": "#/components/schemas/ModerationQueueItemResponse"
+              "$ref": "#/components/schemas/ReputationEventResponse"
             }
           },
           "page": {
@@ -105704,7 +106708,7 @@
           }
         }
       },
-      "PagedResultOfReputationEventResponse": {
+      "PagedResultOfTrust.ModerationQueueItemResponse": {
         "type": "object",
         "properties": {
           "items": {
@@ -105713,7 +106717,7 @@
               "array"
             ],
             "items": {
-              "$ref": "#/components/schemas/ReputationEventResponse"
+              "$ref": "#/components/schemas/Trust.ModerationQueueItemResponse"
             }
           },
           "page": {
@@ -105938,16 +106942,16 @@
             "type": "string"
           },
           "amount": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "captured": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "refunded": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "refundableRemaining": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "methodKind": {
             "type": "string"
@@ -106191,7 +107195,7 @@
           "categories": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/CategoryPreferenceResponse"
+              "$ref": "#/components/schemas/Recommendations.CategoryPreferenceResponse"
             }
           },
           "blockedTargets": {
@@ -106629,13 +107633,13 @@
             "type": "string"
           },
           "dueNow": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "proratedCredit": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "nextChargeAmount": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "nextChargeAt": {
             "type": [
@@ -106741,6 +107745,9 @@
           }
         }
       },
+      "Platform.JobStatus": {
+        "type": "integer"
+      },
       "PlatformHealthModel": {
         "required": [
           "state",
@@ -106782,77 +107789,6 @@
       },
       "PlatformHealthState": {
         "type": "integer"
-      },
-      "PollOptionRequest": {
-        "required": [
-          "label"
-        ],
-        "type": "object",
-        "properties": {
-          "label": {
-            "type": "string"
-          },
-          "imageMediaId": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "uuid"
-          }
-        }
-      },
-      "PollOptionResponse": {
-        "required": [
-          "optionId",
-          "label",
-          "position"
-        ],
-        "type": "object",
-        "properties": {
-          "optionId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "label": {
-            "type": "string"
-          },
-          "position": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "imageMediaId": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "uuid"
-          },
-          "voteCount": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "null",
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "sharePercent": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
-            "type": [
-              "null",
-              "number",
-              "string"
-            ],
-            "format": "double"
-          },
-          "votedByViewer": {
-            "type": "boolean"
-          }
-        }
       },
       "PollOptionResultResponse": {
         "required": [
@@ -106907,7 +107843,7 @@
           "options": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/PollOptionRequest"
+              "$ref": "#/components/schemas/Community.PollOptionRequest"
             }
           },
           "allowsMultiple": {
@@ -106925,74 +107861,6 @@
               "string"
             ],
             "format": "date-time"
-          }
-        }
-      },
-      "PollResponse": {
-        "required": [
-          "pollId",
-          "question",
-          "options",
-          "allowsMultiple",
-          "resultVisibility",
-          "status",
-          "hasVoted",
-          "canSeeResults"
-        ],
-        "type": "object",
-        "properties": {
-          "pollId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "question": {
-            "type": "string"
-          },
-          "options": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PollOptionResponse"
-            }
-          },
-          "allowsMultiple": {
-            "type": "boolean"
-          },
-          "resultVisibility": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string"
-          },
-          "closesAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          },
-          "totalVotes": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "null",
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "voterCount": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "null",
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "hasVoted": {
-            "type": "boolean"
-          },
-          "canSeeResults": {
-            "type": "boolean"
           }
         }
       },
@@ -107534,7 +108402,7 @@
             }
           },
           "freshness": {
-            "$ref": "#/components/schemas/DataFreshnessResponse"
+            "$ref": "#/components/schemas/Analytics.DataFreshnessResponse"
           }
         }
       },
@@ -108200,7 +109068,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/MoneyResponse"
+                "$ref": "#/components/schemas/CommunityProgramme.MoneyResponse"
               }
             ]
           },
@@ -108278,13 +109146,13 @@
             "type": "boolean"
           },
           "listPrice": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "discount": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "payable": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "refusalCode": {
             "type": [
@@ -111136,7 +112004,7 @@
             "type": "string"
           },
           "amount": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "destinationCode": {
             "type": [
@@ -111666,6 +112534,84 @@
           },
           "isProjection": {
             "type": "boolean"
+          }
+        }
+      },
+      "Recommendations.CategoryPreferenceResponse": {
+        "required": [
+          "categoryKey",
+          "isMuted"
+        ],
+        "type": "object",
+        "properties": {
+          "categoryKey": {
+            "type": "string"
+          },
+          "targetType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isMuted": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Recommendations.CreatorRecommendationResponse": {
+        "required": [
+          "recommendationId",
+          "kind",
+          "title",
+          "body",
+          "reason",
+          "actionLabel",
+          "actionRoute"
+        ],
+        "type": "object",
+        "properties": {
+          "recommendationId": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "icon": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "actionLabel": {
+            "type": "string"
+          },
+          "actionRoute": {
+            "type": "string"
+          },
+          "confidence": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -112218,7 +113164,7 @@
             ]
           },
           "amount": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "intervalMonths": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
@@ -112374,7 +113320,7 @@
             "type": "string"
           },
           "amount": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "reason": {
             "type": "string"
@@ -112430,7 +113376,7 @@
             "format": "uuid"
           },
           "amount": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "reason": {
             "type": "string"
@@ -113265,7 +114211,7 @@
           "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ReportResponse"
+              "$ref": "#/components/schemas/CommunityLife.ReportResponse"
             }
           },
           "nextCursor": {
@@ -113295,83 +114241,6 @@
           },
           "requiresEvidence": {
             "type": "boolean"
-          }
-        }
-      },
-      "ReportResponse": {
-        "required": [
-          "reportId",
-          "reporterId",
-          "contentType",
-          "contentId",
-          "reasonCode",
-          "status",
-          "createdAt"
-        ],
-        "type": "object",
-        "properties": {
-          "reportId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "reporterId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "reporterName": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "contentType": {
-            "type": "string"
-          },
-          "contentId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "reasonCode": {
-            "type": "string"
-          },
-          "description": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "evidenceUrl": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "status": {
-            "type": "string"
-          },
-          "resolvedBy": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "uuid"
-          },
-          "resolutionNote": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "resolvedAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
           }
         }
       },
@@ -114362,19 +115231,19 @@
             "type": "string"
           },
           "gross": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "commission": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "fees": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "refunds": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "net": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "transactionCount": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
@@ -114610,7 +115479,7 @@
             "format": "int64"
           },
           "credit": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "minorUnitsPerPoint": {
             "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
@@ -114675,7 +115544,7 @@
             "format": "int64"
           },
           "credited": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "minorUnitsPerPoint": {
             "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
@@ -115004,7 +115873,7 @@
             "type": "string"
           },
           "available": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           }
         }
       },
@@ -116448,7 +117317,7 @@
             "$ref": "#/components/schemas/JobPriority"
           },
           "status": {
-            "$ref": "#/components/schemas/JobStatus"
+            "$ref": "#/components/schemas/Platform.JobStatus"
           },
           "attempts": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
@@ -116602,7 +117471,7 @@
             ]
           },
           "freshness": {
-            "$ref": "#/components/schemas/DataFreshnessResponse"
+            "$ref": "#/components/schemas/GeographicIntelligence.DataFreshnessResponse"
           }
         }
       },
@@ -118553,26 +119422,6 @@
           }
         }
       },
-      "SetOperatingHoursRequest": {
-        "type": "object",
-        "properties": {
-          "baseRevision": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "null",
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "hours": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/OperatingHourRequest"
-            }
-          }
-        }
-      },
       "SetOrganizationGuidesRequest": {
         "type": "object",
         "properties": {
@@ -119331,7 +120180,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/MoneyResponse"
+                "$ref": "#/components/schemas/Financial.MoneyResponse"
               }
             ]
           },
@@ -120201,17 +121050,6 @@
           }
         }
       },
-      "SubmitVerificationRequest": {
-        "type": "object",
-        "properties": {
-          "notes": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
       "SubmitVolunteerApplicationRequest": {
         "type": "object",
         "properties": {
@@ -120276,7 +121114,7 @@
             "type": "string"
           },
           "price": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "isFree": {
             "type": "boolean"
@@ -120922,7 +121760,7 @@
             "type": "string"
           },
           "amount": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "description": {
             "type": "string"
@@ -121021,6 +121859,390 @@
           }
         }
       },
+      "Trust.CountryExperienceResponse": {
+        "required": [
+          "countryCode",
+          "countryName",
+          "flag",
+          "startYear",
+          "isVerified",
+          "role",
+          "yearsOfResidence"
+        ],
+        "type": "object",
+        "properties": {
+          "countryCode": {
+            "type": "string"
+          },
+          "countryName": {
+            "type": "string"
+          },
+          "flag": {
+            "type": "string"
+          },
+          "startYear": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "endYear": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "isVerified": {
+            "type": "boolean"
+          },
+          "role": {
+            "type": "string"
+          },
+          "yearsOfResidence": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "Trust.ModerationDecisionResponse": {
+        "required": [
+          "actionId",
+          "contentType",
+          "contentId",
+          "actionType",
+          "previousStatus",
+          "newStatus",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "actionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "moderatorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "kind": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "outcome": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reasonCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "contentId": {
+            "type": "string"
+          },
+          "actionType": {
+            "type": "string"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "previousStatus": {
+            "type": "string"
+          },
+          "newStatus": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Trust.ModerationQueueItemResponse": {
+        "required": [
+          "itemId",
+          "contentType",
+          "contentId",
+          "authorId",
+          "authorViolationCount",
+          "reportCount",
+          "status",
+          "priority",
+          "isOverdue",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "contentId": {
+            "type": "string"
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "authorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "authorLevel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "authorViolationCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "aiReview": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AiReviewResponse"
+              }
+            ]
+          },
+          "reportCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "status": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "assignedModeratorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "dueAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "isOverdue": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "targetType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "area": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reasonCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reasonLabel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "staffInitiated": {
+            "type": "boolean"
+          },
+          "openingNote": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "currentOutcome": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "secondReview": {
+            "type": "string"
+          },
+          "secondReviewDueAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "firstDeciderId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "proposedReasonCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "proposedNote": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "appealDeadline": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "reviewRequestedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "hiddenAutomatically": {
+            "type": "boolean"
+          },
+          "awaitsDecision": {
+            "type": "boolean"
+          },
+          "reports": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ModerationCaseReportResponse"
+            }
+          },
+          "decisions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Trust.ModerationDecisionResponse"
+            }
+          }
+        }
+      },
+      "Trust.SubmitVerificationRequest": {
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "nationality": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "residenceCountry": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "targetCountry": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "arrivalDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "supportingNotes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "selfieReference": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "expertiseAreas": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "documents": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/AttachDocumentRequest"
+            }
+          }
+        }
+      },
       "TrustProfileResponse": {
         "required": [
           "userId",
@@ -121080,7 +122302,7 @@
           "experienceTimeline": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/CountryExperienceResponse"
+              "$ref": "#/components/schemas/Trust.CountryExperienceResponse"
             }
           },
           "joinedAt": {
@@ -121255,7 +122477,7 @@
             "type": "string"
           },
           "amount": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "chargeAt": {
             "type": "string",
@@ -124524,30 +125746,6 @@
           }
         }
       },
-      "UpdateReservationRequest": {
-        "required": [
-          "action"
-        ],
-        "type": "object",
-        "properties": {
-          "action": {
-            "type": "string"
-          },
-          "holdExpiresAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          },
-          "reason": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
       "UpdateSavedSearchRequest": {
         "type": "object",
         "properties": {
@@ -126795,7 +127993,7 @@
             "type": "string"
           },
           "amount": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "count": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
@@ -126845,19 +128043,19 @@
             "type": "string"
           },
           "available": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "pending": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "reserved": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "lifetimeCredits": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "lifetimeDebits": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "entryCount": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
@@ -126904,13 +128102,13 @@
             "type": "string"
           },
           "gross": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "fee": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "net": {
-            "$ref": "#/components/schemas/MoneyResponse"
+            "$ref": "#/components/schemas/Financial.MoneyResponse"
           },
           "destinationId": {
             "type": "string",
