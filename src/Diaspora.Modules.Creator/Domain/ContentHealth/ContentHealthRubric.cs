@@ -51,9 +51,9 @@ public static class ContentHealthRubric
 {
     /// <summary>
     /// Bumped whenever a criterion or a weight changes. A score is only comparable to another score
-    /// from the same version.
+    /// from the same version. Version 2 (24 Nov 2026): tags apply only to the types that carry them.
     /// </summary>
-    public const int Version = 1;
+    public const int Version = 2;
 
     /// <summary>
     /// At or above this, an item is <c>healthy</c>. Below <see cref="NeedsWorkBelow"/> it is
@@ -167,6 +167,13 @@ public static class ContentHealthRubric
             Field = "tags",
             Weight = 10,
             Hint = "Add a tag or two. They are how related items find each other.",
+            AppliesTo = ["marketplace", "guide", "provider", "job"],
+
+            // Version 2. This applied to every type, and events and homes cannot have tags: no
+            // request sets one, no record holds one and no list card sends one. So every event and
+            // every home was told to add a tag its author could not add, and lost these 10 points
+            // for good — the marking-down `AppliesTo` exists to prevent. The types listed are the
+            // ones whose list cards carry `tags`.
         },
     ];
 }
