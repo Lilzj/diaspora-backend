@@ -6,6 +6,7 @@ using Diaspora.Contracts.Identity.V1.Requests;
 using Diaspora.Domain.Identity.Users;
 using Diaspora.IntegrationTests.Common;
 using Diaspora.Persistence;
+using Diaspora.Platform.Modules;
 using Diaspora.SharedKernel.Identity;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -55,12 +56,12 @@ public sealed class TrustModuleTests : IdentityTestBase
     }
 
     [Fact]
-    public async Task The_platform_manifest_lists_the_trust_module()
+    public void The_platform_manifest_lists_the_trust_module()
     {
-        var response = await HttpClient.GetAsync("/");
-        var body = await response.Content.ReadAsStringAsync();
-
-        body.Should().Contain("Trust", "the kernel discovered the module by assembly scan");
+        Factory.Services.GetRequiredService<PlatformManifest>().GetRegisteredModules()
+            .Select(module => module.Name)
+            .Should().Contain(
+                "Trust", "the kernel discovered the module by assembly scan");
     }
 
     // ── Access control ───────────────────────────────────────────────────

@@ -3,7 +3,10 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Diaspora.IntegrationTests.Common;
 using Diaspora.Platform.Messaging.Outbox.Model;
+using Diaspora.Platform.Messaging.Outbox.Statistics;
+using Diaspora.Platform.Messaging.Outbox.Telemetry;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Diaspora.IntegrationTests.Platform;
@@ -178,7 +181,17 @@ public sealed class ReliableMessagingTests : PooledIdentityTestBase
     [Fact]
     public async Task Readiness_reports_the_outbox()
     {
+        // The numbers are an operator's (BSEC-009): a caller with no token reads each check's
+        // status and data: null. Signed in before the drain, because signing in writes events of
+        // its own and this asserts an empty queue.
+        await SignInAsRoleAsync("Admin");
         await Factory.DrainOutboxAsync();
+
+        // The check serves a snapshot for up to SnapshotCacheSeconds (five), so a reading another
+        // test took before this drain, with that test's messages still queued, can answer for this
+        // one: it did, as eight Identity messages from an operator signing in. Forgetting the
+        // reading makes the check query the queue as it is now, through its own code path.
+        Factory.Services.GetRequiredService<OutboxStatisticsSnapshot>().Update(OutboxStatistics.Empty);
 
         var outbox = await HttpClient.ReadinessCheckAsync("outbox");
 
@@ -209,6 +222,10 @@ public sealed class ReliableMessagingTests : PooledIdentityTestBase
             "/api/v1/community/posts",
             new { body = "Observed.", visibility = "public", publish = true },
             JsonOptions);
+
+        // The numbers are an operator's (BSEC-009): a caller with no token reads each check's
+        // status and data: null.
+        await SignInAsRoleAsync("Admin");
 
         var outbox = await HttpClient.ReadinessCheckAsync("outbox");
 

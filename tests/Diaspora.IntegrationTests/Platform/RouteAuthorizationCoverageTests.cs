@@ -1,7 +1,11 @@
+using System.Reflection;
 using Diaspora.IntegrationTests.Common;
+using Diaspora.Modules.Financial.Integration;
 using FluentAssertions;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -48,11 +52,15 @@ public sealed class RouteAuthorizationCoverageTests
 
     private readonly List<RouteEndpoint> _endpoints;
 
+    private readonly IServiceProvider _services;
+
     public RouteAuthorizationCoverageTests(CustomWebApplicationFactory factory)
     {
         ArgumentNullException.ThrowIfNull(factory);
 
         factory.EnsureDatabaseCreated();
+
+        _services = factory.Services;
 
         using var scope = factory.Services.CreateScope();
 
@@ -184,10 +192,119 @@ public sealed class RouteAuthorizationCoverageTests
                 + "if it is not");
     }
 
+    /// <summary>
+    /// <b>Every module route on the baseline reaches its module through <c>ISender</c>, checked rather
+    /// than assumed.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The rule above admits any undeclared route under <c>/api/v1/</c> on the strength of a
+    /// sentence: "a module route reaches its module through <c>ISender</c>, so the pipeline does
+    /// run." Two did not. <c>GET /notifications/realtime/configuration</c> and
+    /// <c>GET /notifications/realtime/presence</c> read bound options and the presence store
+    /// directly, bypassing MediatR on purpose, so nothing refused an anonymous caller while the
+    /// published contract told every client a token was required (BSEC-009, BBL-007). It is the gap
+    /// the rule above was written to close for three host routes, one level down: the premise was
+    /// prose.
+    /// </para>
+    /// <para>
+    /// A handler that takes no <c>ISender</c> has no request type for the pipeline to enforce, so its
+    /// route is the only place its authorization can be stated. This reads the handler's own
+    /// signature: a minimal-API delegate's parameters, or a controller's action and constructor.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void Every_module_route_on_the_baseline_reaches_the_pipeline()
+    {
+        var moduleRoutes = _endpoints
+            .Where(DeclaresNothing)
+            .Where(endpoint => endpoint.Metadata.GetMetadata<HttpMethodMetadata>() is not null)
+            .ToList();
+
+        moduleRoutes.Should().HaveCountGreaterThan(
+            400, "the baseline holds over four hundred module routes; a filter that found none would "
+                 + "pass by finding nothing");
+
+        // Materialised and joined, because BeEmpty names only the first item it finds, and a guard
+        // that reports one offender at a time turns a sweep into a loop.
+        var outside = moduleRoutes
+            .Where(endpoint => !ReachesTheSender(endpoint))
+            .Select(Describe)
+            .OrderBy(entry => entry, StringComparer.Ordinal)
+            .ToList();
+
+        outside.Should().BeEmpty(
+            "each of these declares no authorization, which delegates it to the request type the "
+            + "pipeline enforces, and its handler takes no ISender: there is no request type, so "
+            + "nothing refuses an anonymous caller. Declare RequireAuthorization on the route, or "
+            + "AllowAnonymous if a stranger is meant to reach it: {0}",
+            string.Join(", ", outside));
+    }
+
+    /// <summary>
+    /// <b>A seam excused from the rule above sends through <c>ISender</c> itself, checked.</b>
+    /// Without this the list below would be the prose the rule replaced, one name long.
+    /// </summary>
+    [Fact]
+    public void Every_seam_a_route_takes_instead_of_the_sender_sends_through_it()
+    {
+        using var scope = _services.CreateScope();
+
+        foreach (var seam in SeamsThatSend)
+        {
+            var implementation = scope.ServiceProvider.GetRequiredService(seam).GetType();
+
+            implementation.GetConstructors()
+                .SelectMany(constructor => constructor.GetParameters())
+                .Select(parameter => parameter.ParameterType)
+                .Should().Contain(
+                    typeof(ISender),
+                    "{0} stands in for ISender on a route only because {1} sends every call through it",
+                    seam.Name,
+                    implementation.Name);
+        }
+    }
+
+    /// <summary>
+    /// <b>Seams a module route may take in place of <c>ISender</c>, by name.</b>
+    /// <para>
+    /// CommunityProgramme's nineteen campaign routes reach the pipeline one hop away: they take
+    /// Financial's <see cref="ICampaigns"/>, whose implementation sends every call through
+    /// <c>ISender</c> so that every pipeline behaviour still runs. The rule's first version read only
+    /// the delegate's own parameters and reported all nineteen, beside the two realtime routes it was
+    /// written for. A seam joins this list as a decision, and the fact above checks it.
+    /// </para>
+    /// </summary>
+    private static readonly Type[] SeamsThatSend = [typeof(ICampaigns)];
+
+    private static bool DeclaresNothing(RouteEndpoint endpoint) =>
+        endpoint.Metadata.GetMetadata<IAuthorizeData>() is null
+        && endpoint.Metadata.GetMetadata<IAllowAnonymous>() is null;
+
+    /// <summary>
+    /// Whether the handler behind a route can reach the CQRS pipeline at all: a minimal-API delegate
+    /// that takes <c>ISender</c>, or a controller given one.
+    /// </summary>
+    private static bool ReachesTheSender(RouteEndpoint endpoint)
+    {
+        if (endpoint.Metadata.GetMetadata<ControllerActionDescriptor>() is { } action)
+        {
+            return TakesTheSender(action.MethodInfo.GetParameters())
+                   || action.ControllerTypeInfo.GetConstructors()
+                       .Any(constructor => TakesTheSender(constructor.GetParameters()));
+        }
+
+        return endpoint.Metadata.GetMetadata<MethodInfo>() is { } handler
+               && TakesTheSender(handler.GetParameters());
+    }
+
+    private static bool TakesTheSender(IEnumerable<ParameterInfo> parameters) =>
+        parameters.Any(parameter => typeof(ISender).IsAssignableFrom(parameter.ParameterType)
+                                    || SeamsThatSend.Contains(parameter.ParameterType));
+
     private IEnumerable<string> Undeclared() =>
         _endpoints
-            .Where(endpoint => endpoint.Metadata.GetMetadata<IAuthorizeData>() is null
-                               && endpoint.Metadata.GetMetadata<IAllowAnonymous>() is null)
+            .Where(DeclaresNothing)
             .Select(Describe);
 
     private static string Describe(RouteEndpoint endpoint) =>

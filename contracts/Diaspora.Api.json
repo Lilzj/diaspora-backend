@@ -603,6 +603,30 @@
         ]
       }
     },
+    "/api/v1/platform/operations/modules": {
+      "get": {
+        "tags": [
+          "Operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseOfIReadOnlyListOfModuleInfo"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ]
+      }
+    },
     "/api/v1/platform/operations/dashboards": {
       "get": {
         "tags": [
@@ -4773,7 +4797,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AnonymousTypeOfstringAndstringAndIReadOnlyListOfModuleInfoAndstring"
+                  "$ref": "#/components/schemas/ApiResponseOfPlatformInfoResponse"
                 }
               }
             }
@@ -54262,44 +54286,6 @@
           }
         }
       },
-      "AnonymousTypeOfstringAndstringAndIReadOnlyListOfModuleInfoAndstring": {
-        "required": [
-          "platform",
-          "version",
-          "modules",
-          "health"
-        ],
-        "type": "object",
-        "properties": {
-          "platform": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "version": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "modules": {
-            "type": [
-              "null",
-              "array"
-            ],
-            "items": {
-              "$ref": "#/components/schemas/ModuleInfo"
-            }
-          },
-          "health": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
       "ApiMeta": {
         "required": [
           "requestId",
@@ -60833,6 +60819,27 @@
           }
         }
       },
+      "ApiResponseOfIReadOnlyListOfModuleInfo": {
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ModuleInfo"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        }
+      },
       "ApiResponseOfIReadOnlyListOfMonetizationProductResponse": {
         "required": [
           "data",
@@ -64206,6 +64213,28 @@
               },
               {
                 "$ref": "#/components/schemas/PlatformHealthModel"
+              }
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        }
+      },
+      "ApiResponseOfPlatformInfoResponse": {
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PlatformInfoResponse"
               }
             ]
           },
@@ -107849,6 +107878,21 @@
       },
       "PlatformHealthState": {
         "type": "integer"
+      },
+      "PlatformInfoResponse": {
+        "required": [
+          "platform",
+          "health"
+        ],
+        "type": "object",
+        "properties": {
+          "platform": {
+            "type": "string"
+          },
+          "health": {
+            "type": "string"
+          }
+        }
       },
       "PollOptionResultResponse": {
         "required": [

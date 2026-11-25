@@ -33,6 +33,10 @@ public sealed class TransactionReliabilityTests : PooledIdentityTestBase
     [Fact]
     public async Task Readiness_reports_how_transactions_execute()
     {
+        // The numbers are an operator's (BSEC-009): a caller with no token reads each check's
+        // status and data: null.
+        await SignInAsRoleAsync("Admin");
+
         var transactions = await HttpClient.ReadinessCheckAsync("transactions");
 
         transactions.GetProperty("status").GetString().Should().Be("Healthy");
@@ -85,6 +89,10 @@ public sealed class TransactionReliabilityTests : PooledIdentityTestBase
             "/api/v1/community/posts",
             new { body = "No receipt for this.", visibility = "public", publish = true },
             JsonOptions);
+
+        // The numbers are an operator's (BSEC-009): a caller with no token reads each check's
+        // status and data: null.
+        await SignInAsRoleAsync("Admin");
 
         var transactions = await HttpClient.ReadinessCheckAsync("transactions");
 
