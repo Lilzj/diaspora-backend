@@ -1,4 +1,6 @@
+using Diaspora.Api.Platform;
 using Diaspora.Modules.Location.Extensibility;
+using Diaspora.SharedKernel.Results;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Diaspora.Api.Identity;
 using Asp.Versioning;
@@ -473,8 +475,12 @@ app.MapControllers().WithPlatformRateLimitDefault();
 // referencing its controllers or its request types.
 app.MapModuleEndpoints();
 
-// Platform info endpoint. The environment name is deliberately not reported: an
-// unauthenticated caller has no need to know which deployment they reached.
+// Platform info endpoint: which platform this is and where to ask whether it is up, and nothing a
+// stranger could map the deployment with. The environment name was never reported, for that reason;
+// until 25 Nov 2026 the root still listed every composed module with a version string, which told an
+// unauthenticated caller exactly which capability areas this deployment runs (BSEC-009). That list
+// is an operator's question now, at GET /api/v1/platform/operations/modules. The answer travels in
+// the platform envelope like every other JSON body on the host (BBL-007).
 //
 // AllowAnonymous says what the comment above already assumed, and it is load-bearing in three
 // places (BSEC-011). This endpoint reaches no CQRS request, so AuthorizationBehavior never runs
@@ -483,13 +489,8 @@ app.MapModuleEndpoints();
 // health probes and these three, EndpointSecurityOperationTransformer reads this to decide what
 // the published contract says, and without it the contract declares a token is needed to read a
 // version number.
-hostEndpoints.MapGet("/", (PlatformManifest manifest) => new
-{
-    platform = "Diaspora",
-    version = "1.0.0",
-    modules = manifest.GetRegisteredModules(),
-    health = "/health/live"
-})
+hostEndpoints.MapGet("/", (HttpContext context) => PlatformResults.Ok(
+        context, Result.Success(new PlatformInfoResponse(Platform: "Diaspora", Health: "/health/live"))))
     .AllowAnonymous();
 
 // Stripe Checkout return pages.

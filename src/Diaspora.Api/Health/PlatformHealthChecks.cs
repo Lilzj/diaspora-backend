@@ -1,8 +1,11 @@
 using System.Text.Json;
+using Diaspora.Api.Platform.Operations;
 using Diaspora.Persistence;
 using Diaspora.Platform.Authorization;
 using Diaspora.Platform.Modules;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Diaspora.Api.Health;
@@ -87,10 +90,22 @@ public static class PlatformHealthChecks
     /// Writes health results as JSON, so a human hitting the endpoint during an incident
     /// learns which dependency is down rather than the single word "Unhealthy".
     /// </summary>
-    public static Task WriteResponse(HttpContext context, HealthReport report)
+    public static async Task WriteResponse(HttpContext context, HealthReport report)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(report);
+
+        // Each check's data is an operator's (BSEC-009). The probes are anonymous because an
+        // orchestrator calls them with no credential, and what they owe a caller they know nothing
+        // about is whether this instance is up and which named dependency is not. The data said far
+        // more: every composed module with its version, the outbox backlog per module, how
+        // transactions execute here. A caller whose token satisfies the operations read policy still
+        // receives all of it, so an operator loses nothing by asking with one.
+        var authorization = context.RequestServices.GetRequiredService<IAuthorizationService>();
+        var operatorAsking = (await authorization
+                .AuthorizeAsync(context.User, OperationsPolicies.Read)
+                .ConfigureAwait(false))
+            .Succeeded;
 
         context.Response.ContentType = "application/json; charset=utf-8";
 
@@ -116,7 +131,7 @@ public static class PlatformHealthChecks
                 // operational counts in its data and never a payload, an identifier or
                 // anything a member wrote. The outbox check follows it deliberately, which is
                 // why its listings carry event types and never event bodies.
-                data = entry.Value.Data.Count == 0 ? null : entry.Value.Data,
+                data = operatorAsking && entry.Value.Data.Count > 0 ? entry.Value.Data : null,
 
                 // The exception message, never the stack trace. A readiness endpoint is
                 // typically reachable from inside the cluster by more things than it should be.
@@ -124,7 +139,7 @@ public static class PlatformHealthChecks
             })
         };
 
-        return context.Response.WriteAsJsonAsync(payload, JsonSerializerOptions.Web);
+        await context.Response.WriteAsJsonAsync(payload, JsonSerializerOptions.Web).ConfigureAwait(false);
     }
 }
 

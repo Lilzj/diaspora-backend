@@ -23,6 +23,11 @@ namespace Diaspora.IntegrationTests.Common;
 /// returned as it is, whatever its status, so a genuinely Unhealthy outbox still fails its test on
 /// the first read. A check that throws on every attempt fails the test with its own error text.
 /// </para>
+/// <para>
+/// <b>Each check's data is an operator's</b> (BSEC-009). A client with no token reads every
+/// entry's status with <c>data: null</c>; a test that asserts the numbers signs in as an operator
+/// first, as <c>Readiness_reports_the_outbox</c> does.
+/// </para>
 /// </summary>
 public static class ReadinessProbe
 {

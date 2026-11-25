@@ -3,7 +3,9 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Diaspora.Contracts.Identity.V1.Responses;
 using Diaspora.IntegrationTests.Common;
+using Diaspora.Platform.Modules;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Diaspora.IntegrationTests.Modules;
@@ -103,13 +105,12 @@ public sealed class JobsModuleTests : IdentityTestBase
     }
 
     [Fact]
-    public async Task The_platform_manifest_lists_the_jobs_module()
+    public void The_platform_manifest_lists_the_jobs_module()
     {
-        var response = await HttpClient.GetAsync("/");
-        var body = await response.Content.ReadAsStringAsync();
-
-        body.Should().Contain(
-            "Jobs", "the kernel discovered the module and published it in the manifest");
+        Factory.Services.GetRequiredService<PlatformManifest>().GetRegisteredModules()
+            .Select(module => module.Name)
+            .Should().Contain(
+                "Jobs", "the kernel discovered the module and published it in the manifest");
     }
 
     // ── The catalogue seeded ────────────────────────────────────────────────────────────────

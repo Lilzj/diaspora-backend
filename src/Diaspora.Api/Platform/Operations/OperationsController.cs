@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using Diaspora.Api.Common;
 using Diaspora.Platform.Http;
+using Diaspora.Platform.Modules;
 using Diaspora.Platform.Operations.Alerting;
 using Diaspora.Platform.Operations.Caching;
 using Diaspora.Platform.Operations.Configuration;
@@ -113,6 +114,25 @@ public sealed class OperationsController : ApiController
         var model = await _health.CheckAsync(dimension, cancellationToken);
 
         return Ok(new ApiResponse<PlatformHealthModel>(model, ApiMeta.For(HttpContext)));
+    }
+
+    // ─── Modules ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// The modules this deployment composes, with their versions.
+    /// <para>
+    /// Moved here from <c>GET /</c> (BSEC-009). An inventory of the deployment answers an operator's
+    /// question, so it asks for the permission every other route on this controller asks for.
+    /// </para>
+    /// </summary>
+    [HttpGet("modules")]
+    [ProducesResponseType<ApiResponse<IReadOnlyList<ModuleInfo>>>(StatusCodes.Status200OK)]
+    public IActionResult GetModules([FromServices] PlatformManifest manifest)
+    {
+        ArgumentNullException.ThrowIfNull(manifest);
+
+        return Ok(new ApiResponse<IReadOnlyList<ModuleInfo>>(
+            manifest.GetRegisteredModules(), ApiMeta.For(HttpContext)));
     }
 
     // ─── Dashboards ──────────────────────────────────────────────────────────────────────

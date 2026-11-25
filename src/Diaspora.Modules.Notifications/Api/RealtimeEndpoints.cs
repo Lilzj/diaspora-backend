@@ -22,6 +22,13 @@ namespace Diaspora.Modules.Notifications.Api;
 /// validate, nothing to write and nothing to audit. A handler here would be six files whose whole
 /// content was returning a configuration object.
 /// </para>
+/// <para>
+/// <b>So each route states its own authorization, because nothing downstream will.</b> Bypassing the
+/// pipeline bypasses <c>AuthorizationBehavior</c> with it, and until 25 Nov 2026 both routes answered
+/// an anonymous caller while the published contract told every client a token was required
+/// (BSEC-009, BBL-007). Each now asks for <see cref="NotificationPolicies.Recipient"/>, the policy
+/// <c>RealtimeHub</c> asks for: everyone who needs these answers is about to open that socket.
+/// </para>
 /// </summary>
 internal static class RealtimeEndpoints
 {
@@ -58,6 +65,7 @@ internal static class RealtimeEndpoints
                     MaxConnectionsPerUser = realtime.MaxConnectionsPerUser
                 }));
             })
+            .RequireAuthorization(NotificationPolicies.Recipient)
             .WithName("GetRealtimeConfiguration")
             .WithSummary("Where the real-time hub is and what this deployment supports.");
 
@@ -70,16 +78,19 @@ internal static class RealtimeEndpoints
                 HttpContext context,
                 CancellationToken cancellationToken) =>
             {
-                if (currentUser.UserId is not { } userId)
-                {
-                    return PlatformResults.Ok(
-                        context,
-                        Result.Success(PresenceSnapshot.Absent(SharedKernel.Identity.UserId.Empty)));
-                }
+                // The policy below admits only a caller holding the recipient permission, which a
+                // member's token carries, so there is a member here. The branch this replaces
+                // answered an anonymous caller with an empty presence: authorization written inline,
+                // because nothing upstream refused one. A caller with no member behind it now means
+                // a token was issued wrongly, and that fails loudly rather than being answered.
+                var userId = currentUser.UserId
+                    ?? throw new InvalidOperationException(
+                        "The recipient policy admitted a caller with no member behind it.");
 
                 return PlatformResults.Ok(
                     context, Result.Success(await presence.GetAsync(userId, cancellationToken)));
             })
+            .RequireAuthorization(NotificationPolicies.Recipient)
             .WithName("GetOwnPresence")
             .WithSummary("The caller's own availability, as other members would see it.");
     }

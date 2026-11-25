@@ -41,6 +41,16 @@
 # an oversight. They now declare .AllowAnonymous() and RateLimitPolicyNames.Engagement, so the
 # decision is visible in three places that agree: the command, the route and the contract.
 #
+# 25 November 2026: 468 -> 466. BSEC-009 and BBL-007. GET /notifications/realtime/configuration
+# and GET /notifications/realtime/presence sat here with no request type behind them: they read
+# bound options and the presence store directly, bypassing MediatR on purpose, so the sentence at
+# the top was false for them and nothing refused an anonymous caller. The 478 -> 475 entry says
+# The_baseline_is_module_routes_and_the_two_probes checks that a request type stands behind every
+# line; it checks the /api/v1/ prefix, which both have. Both now declare
+# RequireAuthorization(NotificationPolicies.Recipient), the realtime hub's own policy, and
+# Every_module_route_on_the_baseline_reaches_the_pipeline reads each remaining line's handler for an
+# ISender, or a named seam that sends through one.
+#
 # Format: <METHOD[,METHOD]> <route pattern>
 ANY /health/live
 ANY /health/ready
@@ -266,8 +276,6 @@ GET /api/v1/notifications/digests
 GET /api/v1/notifications/preferences
 GET /api/v1/notifications/preferences/communication
 GET /api/v1/notifications/preferences/subscriptions
-GET /api/v1/notifications/realtime/configuration
-GET /api/v1/notifications/realtime/presence
 GET /api/v1/notifications/templates
 GET /api/v1/notifications/templates/{key}
 GET /api/v1/notifications/unread-count
