@@ -1,6 +1,4 @@
-using System.Net;
 using System.Text;
-using System.Text.Json;
 using Diaspora.Email;
 using Diaspora.Modules.Notifications.Domain.ValueObjects;
 using Diaspora.Modules.Notifications.Extensibility.DeepLinks;
@@ -22,7 +20,8 @@ namespace Diaspora.Api.Hosting;
 /// pass the same two checks a notification's deep link does: <see cref="DeepLink.TryCreate"/>
 /// (no scheme, no <c>//</c>, no backslash, no traversal) and the client's route table
 /// (<see cref="IDeepLinkResolver.IsKnownRoute"/>). Anything else is a plain 404. Everything written
-/// into the page is HTML-encoded, and the script receives it as a JSON string literal.
+/// into the page is HTML-encoded, and the script reads the destination from the page's own link
+/// rather than carrying it, so the page's policy admits it by one hash (<see cref="HostPage"/>).
 /// </para>
 /// <para>
 /// A query string is carried over only when every character is one a URL query may hold unencoded;
@@ -110,63 +109,15 @@ internal static class AppOpenPages
         return true;
     }
 
-    private static IResult Page(string deepLink)
-    {
-        var href = WebUtility.HtmlEncode(deepLink);
-        var script = JsonSerializer.Serialize(deepLink);
+    private static HostPage Page(string deepLink) => HostPage.Link(
+        "Opening Diaspora",
+        "If Diaspora does not open by itself, press the button. If it still does not open, install or update the Diaspora app and try the link again.",
+        deepLink,
+        "Open Diaspora",
+        handOff: true);
 
-        return Html(
-            "Opening Diaspora",
-            "If Diaspora does not open by itself, press the button. If it still does not open, install or update the Diaspora app and try the link again.",
-            $"""<a class="button" href="{href}">Open Diaspora</a>""",
-            $"<script>location.replace({script});</script>",
-            StatusCodes.Status200OK);
-    }
-
-    private static IResult NotFound() => Html(
+    private static HostPage NotFound() => HostPage.Message(
         "This link cannot be opened",
         "It does not point to anything in Diaspora. Open the app and find it from there.",
-        action: string.Empty,
-        script: string.Empty,
         StatusCodes.Status404NotFound);
-
-    private static IResult Html(string heading, string message, string action, string script, int statusCode)
-    {
-        var h = WebUtility.HtmlEncode(heading);
-        var m = WebUtility.HtmlEncode(message);
-
-        var html = $$"""
-            <!doctype html>
-            <html lang="en">
-            <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <meta name="referrer" content="no-referrer">
-            <meta name="robots" content="noindex">
-            <title>{{h}}</title>
-            <style>
-              body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0;
-                     display: grid; place-items: center; min-height: 100vh; background: #f7f8fa;
-                     color: #14161a; padding: 24px; }
-              main { max-width: 22rem; text-align: center; }
-              h1 { font-size: 1.25rem; margin: 0 0 .5rem; }
-              p { margin: 0 0 1.5rem; line-height: 1.5; color: #55606e; }
-              .button { display: inline-block; background: #f59e0b; color: #fff; text-decoration: none;
-                        font: inherit; font-weight: 700; padding: .75rem 1.5rem; border-radius: 999px;
-                        border: 0; cursor: pointer; }
-            </style>
-            </head>
-            <body>
-            <main>
-              <h1>{{h}}</h1>
-              <p>{{m}}</p>
-              {{action}}
-            </main>
-            {{script}}
-            </body>
-            </html>
-            """;
-
-        return Results.Content(html, "text/html; charset=utf-8", Encoding.UTF8, statusCode);
-    }
 }

@@ -441,7 +441,9 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
-    app.MapScalarApiReference(options =>
+
+    // At the one path SecurityHeadersMiddleware sends without a policy, and only in Development.
+    app.MapScalarApiReference(SecurityHeadersMiddleware.ApiReferencePath, options =>
     {
         options
             .WithTitle("Diaspora Platform API")
@@ -504,41 +506,8 @@ hostEndpoints.MapGet("/", (HttpContext context) => PlatformResults.Ok(
 // checkout.session.completed callback, and a member who never lands here — closed the tab, lost
 // signal — is not treated differently from one who did. Reading an outcome off a redirect the member
 // controls would be an unauthenticated write to the payment state machine.
-static IResult CheckoutReturn(string heading, string message, string deepLink)
-{
-    // $$ so the CSS braces stay literal and only {{...}} interpolates. With a single $ the raw
-    // string reads every { as an interpolation hole and the stylesheet stops compiling.
-    var html = $$"""
-        <!doctype html>
-        <html lang="en">
-        <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>{{heading}}</title>
-        <style>
-          body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0;
-                 display: grid; place-items: center; min-height: 100vh; background: #f7f8fa;
-                 color: #14161a; padding: 24px; }
-          main { max-width: 22rem; text-align: center; }
-          h1 { font-size: 1.25rem; margin: 0 0 .5rem; }
-          p { margin: 0 0 1.5rem; line-height: 1.5; color: #55606e; }
-          a { display: inline-block; background: #f59e0b; color: #fff; text-decoration: none;
-              font-weight: 700; padding: .75rem 1.5rem; border-radius: 999px; }
-        </style>
-        </head>
-        <body>
-        <main>
-          <h1>{{heading}}</h1>
-          <p>{{message}}</p>
-          <a href="{{deepLink}}">Return to Diaspora</a>
-        </main>
-        <script>location.replace({{System.Text.Json.JsonSerializer.Serialize(deepLink)}});</script>
-        </body>
-        </html>
-        """;
-
-    return Results.Content(html, "text/html; charset=utf-8");
-}
+static HostPage CheckoutReturn(string heading, string message, string deepLink) =>
+    HostPage.Link(heading, message, deepLink, "Return to Diaspora", handOff: true);
 
 // Both are AllowAnonymous for the reason the pages exist: Stripe sends the member's own browser
 // here, which carries no token and cannot be given one. Declaring it is what keeps the published
