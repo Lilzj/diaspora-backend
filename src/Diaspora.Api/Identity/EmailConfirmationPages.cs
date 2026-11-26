@@ -1,4 +1,4 @@
-using System.Net;
+using Diaspora.Api.Hosting;
 using Diaspora.Api.RateLimiting;
 using Diaspora.Application.Identity.Commands.EmailChange;
 using Diaspora.Application.Identity.Commands.EmailVerification;
@@ -120,57 +120,14 @@ internal static class EmailConfirmationPages
             .RequireRateLimiting(RateLimitingRegistration.RecoveryPolicy);
     }
 
-    private static IResult Page(
+    private static HostPage Page(
         string heading,
         string message,
         string? form,
         string? appLink = null,
         string formAction = Path,
-        string buttonLabel = "Confirm my email")
-    {
-        var h = WebUtility.HtmlEncode(heading);
-        var m = WebUtility.HtmlEncode(message);
-
-        var action = form is null
-            ? appLink is null ? string.Empty : $"""<a class="button" href="{appLink}">Open Diaspora</a>"""
-            : $"""
-               <form method="post" action="{formAction}">
-                 <input type="hidden" name="token" value="{WebUtility.HtmlEncode(form)}">
-                 <button class="button" type="submit">{WebUtility.HtmlEncode(buttonLabel)}</button>
-               </form>
-               """;
-
-        var html = $$"""
-            <!doctype html>
-            <html lang="en">
-            <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <meta name="referrer" content="no-referrer">
-            <meta name="robots" content="noindex">
-            <title>{{h}}</title>
-            <style>
-              body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0;
-                     display: grid; place-items: center; min-height: 100vh; background: #f7f8fa;
-                     color: #14161a; padding: 24px; }
-              main { max-width: 22rem; text-align: center; }
-              h1 { font-size: 1.25rem; margin: 0 0 .5rem; }
-              p { margin: 0 0 1.5rem; line-height: 1.5; color: #55606e; }
-              .button { display: inline-block; background: #f59e0b; color: #fff; text-decoration: none;
-                        font: inherit; font-weight: 700; padding: .75rem 1.5rem; border-radius: 999px;
-                        border: 0; cursor: pointer; }
-            </style>
-            </head>
-            <body>
-            <main>
-              <h1>{{h}}</h1>
-              <p>{{m}}</p>
-              {{action}}
-            </main>
-            </body>
-            </html>
-            """;
-
-        return Results.Content(html, "text/html; charset=utf-8");
-    }
+        string buttonLabel = "Confirm my email") =>
+        form is not null ? HostPage.Form(heading, message, formAction, form, buttonLabel)
+        : appLink is not null ? HostPage.Link(heading, message, appLink, "Open Diaspora", handOff: false)
+        : HostPage.Message(heading, message);
 }

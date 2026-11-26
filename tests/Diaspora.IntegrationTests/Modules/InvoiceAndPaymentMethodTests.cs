@@ -221,7 +221,10 @@ public sealed partial class InvoiceAndPaymentMethodTests : PooledIdentityTestBas
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         response.Content.Headers.ContentType!.MediaType.Should().Be("text/html");
-        response.Headers.GetValues("Content-Security-Policy").Single().Should().Contain("default-src 'none'");
+        // Its own policy, not the host's default (BSEC-010 made that universal): the default
+        // forbids every style, and this document has to print as laid out.
+        response.Headers.GetValues("Content-Security-Policy").Single()
+            .Should().Contain("default-src 'none'").And.Contain("style-src");
         response.Headers.CacheControl!.NoStore.Should().BeTrue();
 
         var html = await response.Content.ReadAsStringAsync();
