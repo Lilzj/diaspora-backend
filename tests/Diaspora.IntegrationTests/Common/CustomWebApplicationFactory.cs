@@ -115,6 +115,11 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Api.Program>
                 ["Identity:Jwt:Audience"] = "https://api.diaspora.test",
                 ["Identity:Jwt:AccessTokenMinutes"] = "15",
 
+                // BSEC-012. A real host list, so every request in this suite passes through the
+                // filter a deployment runs rather than around it. The test server addresses itself
+                // as localhost; AllowedHostTests sends the hosts it must refuse, and the probes.
+                ["AllowedHosts"] = "localhost",
+
                 // Kept low so tests can exhaust budgets without long loops.
                 ["Identity:Otp:MaxVerificationAttempts"] = "3",
                 ["Identity:Otp:MaxResends"] = "2",
