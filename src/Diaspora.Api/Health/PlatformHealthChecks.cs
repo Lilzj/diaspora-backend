@@ -31,6 +31,12 @@ public static class PlatformHealthChecks
     public const string LiveTag = "live";
     public const string ReadyTag = "ready";
 
+    /// <summary>Where the orchestrator asks whether this process should be replaced. Fly.io's service check reads it.</summary>
+    public const string LivePath = "/health/live";
+
+    /// <summary>Where the orchestrator asks whether this instance should receive traffic.</summary>
+    public const string ReadyPath = "/health/ready";
+
     public static IServiceCollection AddPlatformHealthChecks(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);

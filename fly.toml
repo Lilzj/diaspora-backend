@@ -120,6 +120,18 @@ primary_region = 'iad'
   # Measured on .NET 10.0.13. With the validator in place that mistake now refuses to boot.
   ForwardedHeaders__KnownIPNetworks__0 = '172.16.0.0/12'
 
+  # ── The hosts this deployment answers on (BSEC-012) ───────────────────────
+  #
+  # A request naming any other Host is refused with a bare 400. The host will not start where this
+  # is unset or '*', and refuses an entry with a scheme or a port, which would match nothing.
+  # Attaching a custom domain (`fly certs add`) means adding it here, ';'-separated, in the same
+  # change; until then every request to it is refused. AllowedHostTests holds every https:// host
+  # this file configures to this list.
+  #
+  # The service check below needs no entry. Fly makes it over the private network with the
+  # machine's own address as its Host, so the two probe paths are answered whatever Host they send.
+  AllowedHosts = 'diaspora-api.fly.dev'
+
   # ── Where telemetry goes, and why this app will not boot without it ───────
   #
   # NOT SET HERE, AND REQUIRED. `OpenTelemetry__OtlpEndpoint` is a Fly secret, set out of

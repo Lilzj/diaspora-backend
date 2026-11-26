@@ -281,6 +281,12 @@ builder.Services.AddOptions<TrustedProxyOptions>()
 
 builder.Services.AddSingleton<IValidateOptions<TrustedProxyOptions>, TrustedProxyOptionsValidator>();
 
+// BSEC-012. AllowedHosts was "*", so a request naming any host at all reached every handler, and
+// MediaUrlFactory builds a URL from the request's own host when no public base URL is set. A deployed
+// environment now names the hosts it serves or does not start. AllowedHostFiltering says why the list
+// is applied by this host rather than by the framework, which would refuse Fly.io's own health check.
+builder.Services.AddAllowedHostFiltering();
+
 // BSEC-006. Nothing set a request-body ceiling, so Kestrel's own 30,000,000-byte default was
 // the only bound on every route — a number nobody here chose. Bound through options rather
 // than a constant because a wrong value is a 413 for an author mid-draft, and that is found
@@ -376,6 +382,11 @@ app.UseSerilogRequestLogging(options =>
     };
 });
 
+// BSEC-012. A Host this deployment does not serve is refused here: after the request log, so the
+// refusal is on record, and before anything reads the host. Not first, where the framework puts its
+// own filter, because there it would refuse the orchestrator's probe too.
+app.UseAllowedHostFiltering();
+
 // Global exception handler
 app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
@@ -425,13 +436,13 @@ app.UseAuthorization();
 //
 // Declared rather than omitted. RateLimitCoverage gives every other endpoint on this host a
 // budget whether it asks or not, and the coverage guardrail asserts this exemption list by name.
-app.MapHealthChecks("/health/live", new HealthCheckOptions
+app.MapHealthChecks(PlatformHealthChecks.LivePath, new HealthCheckOptions
 {
     Predicate = check => check.Tags.Contains(PlatformHealthChecks.LiveTag),
     ResponseWriter = PlatformHealthChecks.WriteResponse
 }).DisableRateLimiting();
 
-app.MapHealthChecks("/health/ready", new HealthCheckOptions
+app.MapHealthChecks(PlatformHealthChecks.ReadyPath, new HealthCheckOptions
 {
     Predicate = check => check.Tags.Contains(PlatformHealthChecks.ReadyTag),
     ResponseWriter = PlatformHealthChecks.WriteResponse
@@ -492,7 +503,7 @@ app.MapModuleEndpoints();
 // the published contract says, and without it the contract declares a token is needed to read a
 // version number.
 hostEndpoints.MapGet("/", (HttpContext context) => PlatformResults.Ok(
-        context, Result.Success(new PlatformInfoResponse(Platform: "Diaspora", Health: "/health/live"))))
+        context, Result.Success(new PlatformInfoResponse(Platform: "Diaspora", Health: PlatformHealthChecks.LivePath))))
     .AllowAnonymous();
 
 // Stripe Checkout return pages.
